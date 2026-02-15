@@ -1,5 +1,5 @@
 
-import type { Element, IBattleEntity, ProgramData } from './types';
+import type { Element, IBattleEntity, ProgramData, IBattleState } from './types';
 
 /**
  * Elemental Advantage Matrix based on legacy Rules.cs
@@ -24,37 +24,24 @@ const SECONDARY_MITIGATION = 0.75;
  * Calculates the final elemental modifier including STAB and Resistance.
  * Matches `Rules.GetModifier` and `Rules.GetTypeAdvantage`
  */
-export function calculateModifier(attackerType: Element, defenderPrimary: Element, defenderSecondary: Element | undefined, cardElement: Element): number {
+export function calculateModifier(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData): number {
   let modifier = 1.0;
 
-  // 1. STAB (Same-Type Attack Bonus) - Rules.cs line 133
-  // "attackerType.Contains(cardType)" implies if the card element matches any of the attacker's types.
-  // Our system separates primary/secondary, but for now assuming attackerType passed here is checked against card.
-  // Wait, Rules.cs takes `MingmingAlignment attackerType` which implies it holds both.
-  // Let's stick to the current logic: if card matches primary OR secondary (if we had it passed)
-  // For this pure function, let's assume `attackerType` is the checking context. 
-  // Actually, let's look at `calculateDamage` signature.
-
-  if (attackerType === cardElement) {
+  // 1. STAB (Same-Type Attack Bonus)
+  // Check if program element matches attacker's primary OR secondary
+  if (attacker.primaryElement === program.element || attacker.secondaryElement === program.element) {
     modifier = STAB_BONUS;
   }
 
-  // 2. Primary Type Advantage - Rules.cs line 142
-  const primaryAdv = ElementalMatrix[cardElement]?.[defenderPrimary] ?? 1.0;
+  // 2. Primary Type Advantage
+  const primaryAdv = ElementalMatrix[program.element]?.[target.primaryElement] ?? 1.0;
   modifier *= primaryAdv;
 
-  // 3. Secondary Type Advantage - Rules.cs line 145
-  if (defenderSecondary) {
-    const secondaryAdv = ElementalMatrix[cardElement]?.[defenderSecondary] ?? 1.0;
-    // Rules.cs line 146: modifier *= hasSecondaryAdvantage ? secondaryValue * SECONDARY_TYPE_ADVANTAGE : 1;
-    // Wait, Rules.cs says: if (hasSecondaryAdvantage) result *= val * 0.75.
-    // This implies ANY secondary interaction is dampened? Or only if it exists in the lookup?
-    // "AlignmentAdvantageLookup.TryGetValue" returns true ONLY if it's explicitly defined (Effective/Ineffective).
-    // So neutral interactions (1.0) don't trigger the 0.75 mitigation.
-    // We must check if it exists in our Matrix.
-
-    const hasSecondaryEntry = ElementalMatrix[cardElement]?.[defenderSecondary] !== undefined;
-    if (hasSecondaryEntry) {
+  // 3. Secondary Type Advantage
+  if (target.secondaryElement) {
+    // Only apply if the interaction is explicitly defined (Effective/Ineffective)
+    const secondaryAdv = ElementalMatrix[program.element]?.[target.secondaryElement];
+    if (secondaryAdv !== undefined) {
       modifier *= secondaryAdv * SECONDARY_MITIGATION;
     }
   }
@@ -62,48 +49,33 @@ export function calculateModifier(attackerType: Element, defenderPrimary: Elemen
   return modifier;
 }
 
-export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData, power: number): number {
-  // STAB logic needs to check both attacker elements
-  let isStab = false;
-  if (attacker.primaryElement === program.element) isStab = true;
-  if (attacker.secondaryElement && attacker.secondaryElement === program.element) isStab = true;
+import { applyDamageModifiers } from './core/Hooks';
+// ... types ...
 
-  // We pass the "matching" element to calculateModifier or handle STAB outside?
-  // Rules.cs handles STAB inside GetModifier.
-  // Let's refactor calculateModifier to take the whole attacker/target if needed, or just keep it pure.
-  // Let's keep it pure but handle STAB correctly.
+export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData, power: number, state: IBattleState): number {
+  const modifier = calculateModifier(attacker, target, program);
 
-  let modifier = isStab ? STAB_BONUS : 1.0;
+  // Step 1: Base Level Damage
+  const levelBase = Math.floor((2 * attacker.level) / 5) + 2;
 
-  // Type Advantages
-  const primaryAdv = ElementalMatrix[program.element]?.[target.primaryElement] ?? 1.0;
-  modifier *= primaryAdv;
+  // Step 2: Scaled Damage
+  const scaled = levelBase * power * attacker.attack / target.defense;
 
-  if (target.secondaryElement) {
-    const secVal = ElementalMatrix[program.element]?.[target.secondaryElement];
-    if (secVal !== undefined) {
-      modifier *= secVal * SECONDARY_MITIGATION;
-    }
-  }
+  // Step 3: Reduction
+  const reduced = (scaled / 50) + 2;
 
-  // Formula from Rules.cs line 123-126
-  // float damage = (float)((2 * level) / 5) + 2;
-  // damage *= (float)cardPower * attack / defense;
-  // damage = (float)(damage / 50) + 2;
-  // damage *= _modifier;
+  // Step 4: Final Modifier
+  let damage = Math.floor(reduced * modifier);
 
-  const levelBase = ((2 * attacker.level) / 5) + 2;
+  // Step 5: Hooks
+  damage = applyDamageModifiers(damage, {
+    source: attacker,
+    target,
+    program,
+    state
+  });
 
-  // Note: Rules.cs uses float division. JavaScript numbers are doubles (floats) by default, so we are good.
-  // But we might want to floor at intermediate steps if Unity mimics integer division in parts?
-  // Line 123: ((2 * level) / 5) is integer division in C# if level is int!
-  // So Math.floor((2 * level) / 5) is required.
-
-  const step1 = Math.floor((2 * attacker.level) / 5) + 2;
-  const step2 = step1 * power * attacker.attack / target.defense;
-  const step3 = (step2 / 50) + 2;
-  // Final: Apply elemental modifier and floor
-  return Math.floor(step3 * modifier);
+  return Math.max(0, damage);
 }
 
 /**

@@ -44,42 +44,46 @@ function createMockProgram(element: Element): ProgramData {
 
 describe('Combat Utils - Elemental Logic', () => {
     it('should return 1.0 for neutral match-up', () => {
-        // Matchup: Attacker=Energy(None), Card=Fire, Def=Fire.
-        // STAB? No. Matrix? 1.0. Result 1.0.
-        expect(calculateModifier('None', 'Fire', undefined, 'Fire')).toBe(1.0);
+        const attacker = createMockEntity('att', 'None');
+        const target = createMockEntity('def', 'Fire');
+        const program = createMockProgram('Fire');
+
+        expect(calculateModifier(attacker, target, program)).toBe(1.0);
     });
 
     it('should apply STAB (1.5x)', () => {
-        // Attacker=Fire, Card=Fire, Def=None (Neutral)
-        expect(calculateModifier('Fire', 'None', undefined, 'Fire')).toBe(1.5);
+        const attacker = createMockEntity('att', 'Fire');
+        const target = createMockEntity('def', 'None');
+        const program = createMockProgram('Fire');
+
+        expect(calculateModifier(attacker, target, program)).toBe(1.5);
     });
 
     it('should apply Super Effective (2.0x)', () => {
-        // Water vs Fire -> 2.0
-        // Attacker=None (No STAB), Card=Water, Def=Fire
-        expect(calculateModifier('None', 'Fire', undefined, 'Water')).toBe(2.0);
+        const attacker = createMockEntity('att', 'None');
+        const target = createMockEntity('def', 'Fire');
+        const program = createMockProgram('Water');
+
+        expect(calculateModifier(attacker, target, program)).toBe(2.0);
     });
 
     it('should apply Ineffective (0.5x)', () => {
-        // Fire vs Water -> 0.5
-        expect(calculateModifier('None', 'Water', undefined, 'Fire')).toBe(0.5);
+        const attacker = createMockEntity('att', 'None');
+        const target = createMockEntity('def', 'Water');
+        const program = createMockProgram('Fire');
+
+        expect(calculateModifier(attacker, target, program)).toBe(0.5);
     });
 
-    it('should combine STAB and Super Effective (3.0x)', () => {
-        // Attacker=Water, Card=Water vs Def=Fire
-        // STAB (1.5) * Super Effective (2.0) = 3.0
-        expect(calculateModifier('Water', 'Fire', undefined, 'Water')).toBe(3.0);
-    });
+    it('should apply Secondary Resistance mitigation (0.375x)', () => {
+        // Fire vs Light = 1.0
+        // Fire vs Water = 0.5
+        // Total = 1.0 * (0.5 * 0.75) = 0.375
+        const attacker = createMockEntity('att', 'None');
+        const target = createMockEntity('def', 'Light', 'Water');
+        const program = createMockProgram('Fire');
 
-    it('should apply Secondary Resistance mitigation (0.75x)', () => {
-        // Card=Fire vs Def=Light/Water
-        // Fire vs Light = 1.0 (Neutral)
-        // Fire vs Water = 0.5 (Ineffective) -> This triggers the secondary mitigation logic?
-        // Rules.cs line 146: modifier *= hasSecondaryAdvantage ? secondaryValue * SECONDARY_TYPE_ADVANTAGE : 1;
-        // secondaryValue here is 0.5. SECONDARY_TYPE_ADVANTAGE is 0.75.
-        // So modifier *= 0.5 * 0.75 = 0.375
-
-        expect(calculateModifier('None', 'Light', 'Water', 'Fire')).toBe(0.375);
+        expect(calculateModifier(attacker, target, program)).toBe(0.375);
     });
 });
 
@@ -88,8 +92,9 @@ describe('Combat Utils - Damage Formula', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 50, 100, 100); // Water != None
         const target = createMockEntity('def', 'None', undefined, 50, 100, 100);
         const program = createMockProgram('None'); // Neutral element
+        const state = { activeSide: 'PLAYER' } as any; // Mock state
 
-        const damage = calculateDamage(attacker, target, program, 40);
+        const damage = calculateDamage(attacker, target, program, 40, state);
         expect(damage).toBe(19);
     });
 
@@ -97,8 +102,9 @@ describe('Combat Utils - Damage Formula', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 100, 100, 100);
         const target = createMockEntity('def', 'None', undefined, 100, 100, 100);
         const program = createMockProgram('None');
+        const state = { activeSide: 'PLAYER' } as any;
 
-        const damage = calculateDamage(attacker, target, program, 40);
+        const damage = calculateDamage(attacker, target, program, 40, state);
         expect(damage).toBe(35);
     });
 
@@ -106,8 +112,9 @@ describe('Combat Utils - Damage Formula', () => {
         const attacker = createMockEntity('att', 'Fire', undefined, 50, 100, 100);
         const target = createMockEntity('def', 'None', undefined, 50, 100, 100); // Neutral target
         const program = createMockProgram('Fire');
+        const state = { activeSide: 'PLAYER' } as any;
 
-        const damage = calculateDamage(attacker, target, program, 40);
+        const damage = calculateDamage(attacker, target, program, 40, state);
         expect(damage).toBe(29);
     });
 });

@@ -152,21 +152,17 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     };
 
     if (programData && programData.actions) {
-        programData.actions.forEach(action => {
+        // Iterate through actions and apply them
+        // Using a loop to allow breaking if target dies (Multi-Hit Logic)
+        for (const action of programData.actions) {
+            // Check if primary target is alive (Multi-Hit Stop)
+
+            const targetEntity = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+            if (targetEntity && targetEntity.currentHp <= 0) break;
+
             const handler = effectHandlers[action.type];
             if (handler) {
-                // Map Action params to Payload
-                // Action: { type: 'ATTACK', power: 20, element: 'Fire', target: 'Single' }
-                // Handler Payload: { sourceId, targetId, power, element, ... }
-                // Target resolution might need to be dynamic (Self vs Target)
-
-                // Simple Target Resolution for MVP:
-                // If action.target === 'SELF', effectiveTarget = sourceId
-                // If action.target === 'TARGET', effectiveTarget = targetId
-                // If action.target === 'ALL', loop? Handlers currently take single targetId.
-                // We'll need to expand this for 'ALL'. 
-                // For now, assuming SINGLE TARGET or SELF.
-
+                // ... (existing helper logic for target resolution) ...
                 let effectiveTargetId = targetId;
                 if (action.target === 'SELF' || action.target === 'Self') {
                     effectiveTargetId = sourceId;
@@ -183,7 +179,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             } else {
                 console.warn(`No handler for effect type: ${action.type}`);
             }
-        });
+        }
     }
 
     return newState;
@@ -234,9 +230,9 @@ function handleEndTurn(state: IBattleState): IBattleState {
     return newState;
 }
 
-// --- Phase Processors ---
-
-// --- Phase Processors ---
+// Helper to look up resolvestatusEffects since we can't import circular?
+// effectHandlers exports it.
+import { resolvestatusEffects } from './effectHandlers';
 
 function processPostTurn(state: IBattleState): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'POST_TURN', timestamp: Date.now() });
@@ -249,9 +245,14 @@ function processPostTurn(state: IBattleState): IBattleState {
         timestamp: Date.now()
     });
 
-    const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
-    const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const activeParty = state[activePartyKey];
+    // 0. Resolve Burn / DoT (Before duration decrement?)
+    // User said "Update the Burn resolver".
+    // Usually DoT happens, then ticks down.
+    let newState = resolvestatusEffects(state);
+
+    const activePartyKey = newState.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const activeDeckKey = newState.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+    const activeParty = newState[activePartyKey];
 
     // 1. Resolve Status Effects & Decrement Durations
     const processedActiveParty = activeParty.map(entity => {
@@ -276,15 +277,14 @@ function processPostTurn(state: IBattleState): IBattleState {
     });
 
     // 2. Discard Hand
-    const newDeckState = discardHand(state[activeDeckKey]);
+    const newDeckState = discardHand(newState[activeDeckKey]);
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'POST_TURN', timestamp: Date.now() });
 
     return {
-        ...state,
+        ...newState,
         [activePartyKey]: processedActiveParty,
         [activeDeckKey]: newDeckState,
-        // Turn number doesn't change yet
     };
 }
 
@@ -310,6 +310,8 @@ function processPreTurn(state: IBattleState): IBattleState {
     });
 
     // 2. Reset Energy & Handle Statuses
+    //Todo: Asleep still has energy and can use cards. Most cards will have the constraint on them that the 
+    // unit must not be asleep to play them. 
     const refreshedParty = activeParty.map(entity => ({
         ...entity,
         currentEnergy: entity.maxEnergy
