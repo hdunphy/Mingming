@@ -83,3 +83,14 @@ This document defines eight new MingMings inspired by Norse mythology, each repr
 | **Meltdown** | Take 20 damage. Gain **Strengthened** (5 stacks). | Self | 1 | 0 |
 | **Sword of Flame** | Deal 150 damage. This unit becomes **Stunned** next turn. | Single | 3 | 150 |
 | **Ash to Ash** | Consume all **Burn** status on enemy to heal 10 HP per stage. | Single | 1 | 0 |
+
+
+
+Additions:
+Fire: Fenrir (World ender)
+
+*Narrative:* A wolf like robot intended for a multitude of purposes. Excels at carrying and increasing its own strength
+
+Water: Kraken (Deep water guardian)
+
+*Narrative:* A underwater monstrosity that controls the very ecosystem of the deep seas. This is the true god of the seas.
