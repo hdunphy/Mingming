@@ -61,18 +61,29 @@ export interface ProgramConstraint {
 ## **2. The Damage Processor (`combatUtils.ts`)**
 
 ### **2.1. The Formula**
-Implementation must strictly follow the GDD formula:
-`Damage = Floor((((((2L/5)+2) * P * A/D) / 50) + 2) * M)`
+Implementation must strictly follow the Unity legacy formula:
+1. `Base = ((2 * level) / 5) + 2`
+2. `Scaled = Base * Power * Attack / Defense`
+3. `Total = (Scaled / 50) + 2`
+4. `Final = Floor(Total * Modifier)`
 
 ### **2.2. Modifier (M) Calculation Logic**
-1. **STAB (Same-Type Attack Bonus):** 1.25x if `program.element` matches `attacker.primaryElement`.
+1. **STAB (Same-Type Attack Bonus):** 1.5x if `program.element` matches `attacker.primaryElement`.
 2. **Type Advantage:** 
    - 2.0x for Super Effective.
    - 0.5x for Resisted.
    - 0.75x for Partial Resistance (secondary type check).
-3. **Stat Buffs/Debuffs:**
-   - Attack modifier: `1.0 + (strengthenStacks * 0.01) - (weakenStacks * 0.01)`
-   - Defense modifier: `1.0 + (sharpStacks * 0.01) - (dazedStacks * 0.01)`
+
+---
+
+## **3. Progression & Stats**
+
+### **3.1. Stat Formula**
+- `StandardStat = Floor(((2 * baseStat) + modifier) * level / 100) + 5`
+- `HealthStat = StandardStat + level + 5`
+
+### **3.2. Experience Curve**
+- `ExpForLevel = Round(0.8 * level^3)`
 
 ---
 

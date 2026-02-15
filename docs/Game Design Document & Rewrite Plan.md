@@ -45,18 +45,23 @@ The UI must support right-click cancellation of target designation to prevent ac
 
 The opponent is governed by an artificial intelligence module, originally integrated into the repository five years ago. In the React rewrite, this AI must operate as an asynchronous thunk or saga that evaluates the current board state, selects optimal or randomized card plays, dispatches the corresponding actions, and then autonomously triggers the end-turn phase to return control to the player.
 
-### **Algorithmic Combat Resolution**
+### **Mathematical Resolution**
 
-The calculation of damage output is not a static integer subtraction; it relies on a multi-layered mathematical formula that dynamically accounts for the executing unit's level, base statistics, the card's inherent power metric, the target's defensive capabilities, and a matrix of contextual modifiers. The specific algorithm required for the game engine's reducer logic is defined mathematically as follows:  
-Let L denote the level of the source MingMing. Let P denote the base power of the played card. Let A denote the attack statistic of the source MingMing (post-status effect modification). Let D denote the defense statistic of the target MingMing (post-status effect modification). Let M denote the cumulative floating-point modifier multiplier.  
-The system calculates intermediate values before arriving at the final integer damage output. The engine must first establish a base scaling factor derived strictly from the unit's level:  
-This base value is then multiplied by the ratio of the attacker's power to the defender's resilience, scaled by the card's inherent programmatic strength:  
-To ensure damage numbers remain legible and mathematically balanced within the game's intended pacing, the scaled value is normalized and a flat constant is reapplied:  
-Finally, the cumulative modifier M is applied, and the resulting floating-point number is rounded down to the nearest whole integer using a floor function to ensure clean UI presentation and absolute mathematical predictability:  
-The calculation of the modifier (M) is a compound operation aggregated from multiple discrete conditional checks. The engine first checks for typological synergy. If the card played shares an elemental typing with the source MingMing executing it, a 25% Same-Type Attack Bonus (STAB) is applied, multiplying the baseline 1.0 modifier by 1.25.  
-Subsequently, the modifier is adjusted by elemental advantage matrices. The engine cross-references the card's element against the target's primary element. It applies a 2.0 multiplier for super-effective interactions and a 0.5 multiplier for ineffective or resisted interactions. If the target unit possesses a dual-typing, and the elemental advantage triggers against its secondary element rather than its primary, the mathematical impact is slightly mitigated, scaling the multiplier to 0.75.  
-Beyond combat resolution, mathematical scaling governs the overarching progression loop. Level advancement for the MingMing units is dictated by an exponential experience threshold formula. The total cumulative experience points (Exp) required to reach a specific level boundary is calculated as:  
-The implementation of a cubic function ensures a rapidly steepening curve. While early levels are achieved quickly, demanding exponentially greater computational investment to achieve upper-tier statistical advantages, thereby lengthening the engagement tail of the software.
+#### **Stat Formulas**
+- **Standard Stat (Attack/Defense):** `Floor(((2 * Base) + Modifier) * Level / 100) + 5`
+- **Health (HP):** `StandardStat + Level + 5`
+
+#### **Damage Formula**
+`Damage = Floor(((((2L/5)+2) * P * A/D) / 50) + 2) * M)`
+- **L:** Level | **P:** Power | **A:** Attack | **D:** Defense
+- **M:** Modifiers (STAB 1.5x, Type Advantage 2.0x/0.5x)
+- **Dual-Type Mitigation:** 0.75x multiplier if advantage triggers against secondary element.
+
+#### **Experience Curve**
+- **Cubic XP:** `Exp = Round(0.8 * L^3)`
+
+### **Typological Matrix**
+8 Elements: Fire, Water, Earth, Air, Nature, Ice, Light, Dark.
 
 ## **Typological Matrix and Elemental Affinities**
 
