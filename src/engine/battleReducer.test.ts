@@ -12,8 +12,8 @@ function createMockState(): IBattleState {
         activeSide: 'PLAYER',
         logs: [],
         playerParty: [
-            { id: 'p1', currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Hero', hpIV: 0, attackIV: 0, defenseIV: 0, level: 10, experience: 0, definitionId: 'def1', baseStats: { hp: 100, attack: 10, defense: 10, energy: 10, cardDraw: 1 }, primaryElement: 'Fire', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, tempHp: 0, isTrapped: false } as IBattleEntity,
-            { id: 'p2', currentEnergy: 5, maxEnergy: 10, statusEffects: [], name: 'Ally', hpIV: 0, attackIV: 0, defenseIV: 0, level: 10, experience: 0, definitionId: 'def1', baseStats: { hp: 100, attack: 10, defense: 10, energy: 10, cardDraw: 1 }, primaryElement: 'Water', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, tempHp: 0, isTrapped: false } as IBattleEntity
+            { id: 'p1', currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Hero', hpIV: 0, attackIV: 0, defenseIV: 0, level: 10, experience: 0, definitionId: 'def1', baseStats: { hp: 100, attack: 10, defense: 10, energy: 10, cardDraw: 1 }, primaryElement: 'Fire', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0 } as IBattleEntity,
+            { id: 'p2', currentEnergy: 5, maxEnergy: 10, statusEffects: [], name: 'Ally', hpIV: 0, attackIV: 0, defenseIV: 0, level: 10, experience: 0, definitionId: 'def1', baseStats: { hp: 100, attack: 10, defense: 10, energy: 10, cardDraw: 1 }, primaryElement: 'Water', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0 } as IBattleEntity
         ],
         enemyParty: [],
         playerDeck: {
@@ -23,11 +23,13 @@ function createMockState(): IBattleState {
                 { id: 'h1', dataId: 'card1', currentCost: 3, isPlayable: true },
                 { id: 'h2', dataId: 'card2', currentCost: 1, isPlayable: true }
             ] as ProgramEntity[],
+            drawpile: [], // Empty for this test? Or populated?
             discard: []
         },
         enemyDeck: {
             ownerId: 'ENEMY',
             deck: [],
+            drawpile: [],
             hand: [],
             discard: []
         }
@@ -142,5 +144,101 @@ describe('Battle Reducer State Machine', () => {
         // Unchanged
         expect(newState.playerParty[0].currentEnergy).toBe(2);
         expect(newState.playerDeck.hand.length).toBe(2);
+    });
+
+
+    it('should apply status effects additively', () => {
+        // Initial: p1 has 2 stacks of 'Poison'
+        const p1WithStatus = {
+            ...initialState.playerParty[0],
+            statusEffects: [{ id: 's1', type: 'Poison', duration: 3, stacks: 2 }]
+        } as IBattleEntity;
+
+        const testState = {
+            ...initialState,
+            playerParty: [p1WithStatus, initialState.playerParty[1]]
+        };
+
+        const action: BattleAction = {
+            type: 'APPLY_STATUS',
+            payload: { targetId: 'p1', status: 'Poison', stacks: 3 }
+        };
+
+        const newState = battleReducer(testState, action);
+        const p1 = newState.playerParty[0];
+
+        expect(p1.statusEffects.length).toBe(1);
+        expect(p1.statusEffects[0].type).toBe('Poison');
+        expect(p1.statusEffects[0].stacks).toBe(5); // 2 + 3
+    });
+
+    it('should handle Status Duality (Sharp cancels Dazed)', () => {
+        // Initial: p1 has 5 stacks of 'Dazed'
+        const p1WithStatus = {
+            ...initialState.playerParty[0],
+            statusEffects: [{ id: 's1', type: 'Dazed', duration: 3, stacks: 5 }]
+        } as IBattleEntity;
+
+        const testState = {
+            ...initialState,
+            playerParty: [p1WithStatus, initialState.playerParty[1]]
+        };
+
+        // Apply 3 Sharp. Should reduce Dazed to 2.
+        const action1: BattleAction = {
+            type: 'APPLY_STATUS',
+            payload: { targetId: 'p1', status: 'Sharp', stacks: 3 }
+        };
+
+        let newState = battleReducer(testState, action1);
+        let p1 = newState.playerParty[0];
+
+        expect(p1.statusEffects.length).toBe(1);
+        expect(p1.statusEffects[0].type).toBe('Dazed');
+        expect(p1.statusEffects[0].stacks).toBe(2); // 5 - 3
+
+        // Apply 4 Sharp. Should remove Dazed and add 2 Sharp.
+        const action2: BattleAction = {
+            type: 'APPLY_STATUS',
+            payload: { targetId: 'p1', status: 'Sharp', stacks: 4 }
+        };
+
+        newState = battleReducer(newState, action2);
+        p1 = newState.playerParty[0];
+
+        expect(p1.statusEffects.length).toBe(1);
+        expect(p1.statusEffects[0].type).toBe('Sharp');
+        expect(p1.statusEffects[0].stacks).toBe(2); // 4 - 2 (remaining dazed)
+    });
+
+    it('should draw cards from drawpile on PRE_TURN', () => {
+        // Setup state where Enemy has 1 card in drawpile
+        const enemyDrawpileCard: ProgramEntity = { id: 'd1', dataId: 'card_e1', currentCost: 1, isPlayable: true };
+        const testState: IBattleState = {
+            ...initialState,
+            enemyDeck: {
+                ...initialState.enemyDeck,
+                drawpile: [enemyDrawpileCard],
+                hand: []
+            }
+        };
+
+        // Player ends turn -> Enemy PRE_TURN -> Draw
+        const newState = battleReducer(testState, { type: 'END_TURN' } as BattleAction);
+
+        // Enemy active
+        expect(newState.activeSide).toBe('ENEMY');
+        // Check Enemy Hand
+        expect(newState.enemyDeck.hand.length).toBe(1);
+        expect(newState.enemyDeck.hand[0].id).toBe('d1');
+        // Check Enemy Drawpile empty
+        expect(newState.enemyDeck.drawpile.length).toBe(0);
+
+        // Check event
+        expect(globalBattleEventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'CARD_DRAWN',
+            ownerId: 'ENEMY',
+            cardId: 'card_e1'
+        }));
     });
 });

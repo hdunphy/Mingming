@@ -13,6 +13,8 @@ import { globalBattleEventBus, type BattleEvent } from './events';
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
+import { effectHandlers } from './effectHandlers';
+import { drawCards, discardHand } from './deckLogic';
 
 // --- Constants ---
 // Use the Registry to look up base costs.
@@ -26,7 +28,8 @@ export type BattleAction =
     | { type: 'INITIALIZE_BATTLE'; payload: IBattleState }
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
-    | { type: 'END_TURN' };
+    | { type: 'END_TURN' }
+    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number } };
 
 // --- Constants ---
 
@@ -55,6 +58,10 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
 
         case 'END_TURN':
             return handleEndTurn(state);
+
+        case 'APPLY_STATUS':
+            // Direct application via action (for testing or game logic)
+            return effectHandlers['APPLY_STATUS'](state, action.payload);
 
         default:
             return state;
@@ -126,10 +133,15 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         timestamp: Date.now()
     });
 
-    // 7. Resolve Effect (Stub for now - we need the Effect System to modify Target)
-    // TODO: Use Effect Handlers here
+    // 7. Resolve Effect
+    // Lookup Program Data to get actions
+    // Note: We need GetProgramData again.
+    // Optimization: Should have looked it up earlier for Cost check too, but cost is on Entity (cached).
+    // Now we need the full definition.
+    const programData = GetProgramData(card.dataId);
 
-    return {
+    // Iterate through actions and apply them
+    let newState = {
         ...state,
         [activePartyKey]: newParty,
         [activeDeckKey]: {
@@ -138,6 +150,43 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             discard: newDiscard
         }
     };
+
+    if (programData && programData.actions) {
+        programData.actions.forEach(action => {
+            const handler = effectHandlers[action.type];
+            if (handler) {
+                // Map Action params to Payload
+                // Action: { type: 'ATTACK', power: 20, element: 'Fire', target: 'Single' }
+                // Handler Payload: { sourceId, targetId, power, element, ... }
+                // Target resolution might need to be dynamic (Self vs Target)
+
+                // Simple Target Resolution for MVP:
+                // If action.target === 'SELF', effectiveTarget = sourceId
+                // If action.target === 'TARGET', effectiveTarget = targetId
+                // If action.target === 'ALL', loop? Handlers currently take single targetId.
+                // We'll need to expand this for 'ALL'. 
+                // For now, assuming SINGLE TARGET or SELF.
+
+                let effectiveTargetId = targetId;
+                if (action.target === 'SELF' || action.target === 'Self') {
+                    effectiveTargetId = sourceId;
+                }
+
+                newState = handler(newState, {
+                    sourceId,
+                    targetId: effectiveTargetId,
+                    power: action.power || 0,
+                    element: action.element || programData.element,
+                    status: action.status,
+                    stacks: action.stacks || 1
+                });
+            } else {
+                console.warn(`No handler for effect type: ${action.type}`);
+            }
+        });
+    }
+
+    return newState;
 }
 
 function handleTransferEnergy(state: IBattleState, payload: { sourceId: string; targetId: string }): IBattleState {
@@ -187,44 +236,55 @@ function handleEndTurn(state: IBattleState): IBattleState {
 
 // --- Phase Processors ---
 
+// --- Phase Processors ---
+
 function processPostTurn(state: IBattleState): IBattleState {
-    // 0. Emit Phase Start
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'POST_TURN', timestamp: Date.now() });
 
-    const activeParty = state.activeSide === 'PLAYER' ? state.playerParty : state.enemyParty;
-    const otherParty = state.activeSide === 'PLAYER' ? state.enemyParty : state.playerParty;
+    // Emit TURN_END for the finishing player
+    globalBattleEventBus.emit({
+        type: 'TURN_END',
+        turnNumber: state.turn,
+        activeSide: state.activeSide,
+        timestamp: Date.now()
+    });
 
-    // 1. Resolve Status Effects (Burn, Poison, Regen) & Decrement Durations
+    const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+    const activeParty = state[activePartyKey];
+
+    // 1. Resolve Status Effects & Decrement Durations
     const processedActiveParty = activeParty.map(entity => {
-        // Logic for DoT would go here (e.g. reduce HP if burned)
-        // For now, just decrement durations
-        const newEffects = entity.statusEffects
-            .map(e => ({ ...e, duration: e.duration - 1 }))
-            .filter(e => e.duration > 0);
+        const newEffects = [];
 
-        // Placeholder for removing "Temp HP" if we had that logic
+        for (const effect of entity.statusEffects) {
+            const newDuration = effect.duration - 1;
+            if (newDuration > 0) {
+                newEffects.push({ ...effect, duration: newDuration });
+            } else {
+                // Expired
+                globalBattleEventBus.emit({
+                    type: 'STATUS_REMOVED',
+                    targetId: entity.id,
+                    status: effect.type,
+                    timestamp: Date.now()
+                });
+            }
+        }
+
         return { ...entity, statusEffects: newEffects, tempHp: 0 };
     });
 
-    // 2. Discard Hand (Hand is in DeckState, we need to move hand to discard)
-    // We need to update the deck state for the active player
-    const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const currentDeckState = state[activeDeckKey];
-
-    const newDeckState = {
-        ...currentDeckState,
-        discard: [...currentDeckState.discard, ...currentDeckState.hand],
-        hand: []
-    };
+    // 2. Discard Hand
+    const newDeckState = discardHand(state[activeDeckKey]);
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'POST_TURN', timestamp: Date.now() });
 
     return {
         ...state,
-        [state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty']: processedActiveParty,
+        [activePartyKey]: processedActiveParty,
         [activeDeckKey]: newDeckState,
-        turn: state.turn, // Turn number increments in PreTurn of appropriate side? Or end of round?
-        // Usually Turn 1: Player -> Enemy -> Turn 2.
+        // Turn number doesn't change yet
     };
 }
 
@@ -233,7 +293,7 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     // 1. Toggle Active Side
     const nextSide = state.activeSide === 'PLAYER' ? 'ENEMY' : 'PLAYER';
-    const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn; // Increment turn when looping back to Player?
+    const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn;
 
     const activePartyKey = nextSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
     const activeDeckKey = nextSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
@@ -241,64 +301,23 @@ function processPreTurn(state: IBattleState): IBattleState {
     const activeParty = state[activePartyKey];
     const activeDeck = state[activeDeckKey];
 
-    // 2. Reset Energy & Handle Statuses that trigger start of turn
+    // Emit TURN_START
+    globalBattleEventBus.emit({
+        type: 'TURN_START',
+        turnNumber: nextTurn,
+        activeSide: nextSide,
+        timestamp: Date.now()
+    });
+
+    // 2. Reset Energy & Handle Statuses
     const refreshedParty = activeParty.map(entity => ({
         ...entity,
         currentEnergy: entity.maxEnergy
     }));
 
-    // 3. Draw Cards (Up to HAND_SIZE_LIMIT)
-    let currentHand = [...activeDeck.hand];
-    let currentDeck = [...activeDeck.deck]; // Strings (IDs)
-    let currentDiscard = [...activeDeck.discard]; // ProgramEntities
-
-    // We need a way to convert ProgramData ID to ProgramEntity
-    // For now, let's assume we have a helper or factory. 
-    // Since we don't have the Program definitions here, we might need to pass them or use a lookup.
-    // For the reducer to be pure, it should have access to definitions or they should be unnecessary for ID moving.
-    // Converting ID -> Entity happens on instantiation.
-
-    // NOTE: The DeckState.deck is string[] (IDs). Hand is ProgramEntity[].
-    // We need to instantiate entities when drawing.
-    // This implies we need a 'ProgramRef' from a global lookup.
-    // For this MVP, we will stub the "Instantiate" part or require `programLookup` in payload.
-    // But Reducer signature is fixed.
-    // Solution: The State should probably hold the definitions or we import a singleton lookup (less pure).
-    // Or, we change DeckState.deck to be ProgramEntities (sleeping).
-
-    // Implementation for MVP: Creating dummy entities with ID.
-    const cardsToDraw = HAND_SIZE_LIMIT - currentHand.length;
-
-    for (let i = 0; i < cardsToDraw; i++) {
-        if (currentDeck.length === 0) {
-            if (currentDiscard.length === 0) break; // No cards left
-            // Shuffle Discard into Deck
-            // In a real app we'd map discard entities back to IDs? Or just shuffle entities?
-            // If we want to persist state (current cost etc), better to keep entities.
-            // Types says Deck is string[]. Discard is ProgramEntity[].
-            // So we extract IDs from discard.
-            currentDeck = currentDiscard.map(e => e.dataId); // Using dataId as ref
-            // Shuffle (Fisher-Yates) - creating a seeded random would be ideal here.
-            // For now, simple sort.
-            currentDeck.sort(() => Math.random() - 0.5);
-            currentDiscard = [];
-
-            globalBattleEventBus.emit({ type: 'DECK_SHUFFLED', ownerId: nextSide, timestamp: Date.now() });
-        }
-
-        const newCardId = currentDeck.shift();
-        if (newCardId) {
-            // Instantiate
-            const newEntity: ProgramEntity = {
-                id: crypto.randomUUID(), // Unique instance ID
-                dataId: newCardId,
-                currentCost: GetBaseCost(newCardId),
-                isPlayable: true
-            };
-            currentHand.push(newEntity);
-            globalBattleEventBus.emit({ type: 'CARD_DRAWN', ownerId: nextSide, cardId: newCardId, timestamp: Date.now() });
-        }
-    }
+    // 3. Draw Cards
+    const cardsToDraw = HAND_SIZE_LIMIT - activeDeck.hand.length;
+    const newDeckState = drawCards(activeDeck, cardsToDraw);
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
@@ -307,11 +326,6 @@ function processPreTurn(state: IBattleState): IBattleState {
         activeSide: nextSide,
         turn: nextTurn,
         [activePartyKey]: refreshedParty,
-        [activeDeckKey]: {
-            ...activeDeck,
-            deck: currentDeck,
-            hand: currentHand,
-            discard: currentDiscard
-        }
+        [activeDeckKey]: newDeckState
     };
 }

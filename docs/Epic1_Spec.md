@@ -45,8 +45,9 @@ export interface MingMing {
 export interface Program {
   // ... existing fields
   hits: number; // Default: 1. Support for multi-hit programs.
+  isDaemon: boolean; // If true, card installs as a Persistent Daemon instead of discarding.
   constraints: ProgramConstraint[]; // Requirements to play (e.g., HasStatus, MinEnergy).
-  logicOverrides?: string; // Reference to custom logic hooks (e.g., extra damage if target is asleep).
+  logicOverrides?: string; // Reference to custom logic hooks.
 }
 
 export interface ProgramConstraint {
@@ -110,14 +111,25 @@ To support modular card effects and stat tracking, the kernel must emit events a
 
 ---
 
-## **5. The Tactical AI (Min-Max Controller)**
-The opponent logic must evaluate the "Board Score" using Alpha-Beta pruning.
-- **Score Weighting:** 
-    - `Enemy_HP_Loss * 2.0`
-    - `Self_HP_Gain * 1.5`
-    - `Positive_Status_Applied * 0.5`
-    - `Negative_Status_Mitigated * 0.5`
-- **Execution:** The AI simulates play permutations for the current hand and selects the sequence that maximizes the Score.
+## **5. The Tactical AI (MaxTurnAttack Controller)**
+
+The opponent logic must evaluate the "Board Score" using a recursive permutation search (Min-Max) for the current turn, exactly as implemented in the Unity `MaxTurnAttack.cs`.
+
+### **5.1. Recursive Search Logic**
+- **Function:** `getBestCardPlay(state: IBattleState, hand: ProgramEntity[]): ProgramPlaySequence`
+- **Execution:** 
+    1. For each Program in the current Hand:
+    2. Simulate the outcome on all valid targets (cloning the state).
+    3. Calculate the resulting `BoardScore`.
+    4. If the simulated state still has usable energy/cards, recurse.
+    5. Return the sequence that yields the highest cumulative `BoardScore`.
+
+### **5.2. Heuristic Scoring (Unity Legacy)**
+The score is calculated by evaluating the state of all MingMings on the board:
+- **MingMing Score:** `(Current_HP * 2) + Status_Score_Sum`
+- **Status Score:** Weighted values defined per status (e.g., Burn = -1 to -3, Strengthened = +2).
+- **Total Board Score:** `Sum(Self_MingMing_Scores) - Sum(Enemy_MingMing_Scores)`
+- **Card Bonus:** Each card played adds an intrinsic `Card_Score` based on its defined actions.
 
 ---
 
@@ -138,7 +150,7 @@ The final validation of Epic 1.
 | **Type Effectiveness** | Fire Program on Nature MingMing deals 2.0x damage. |
 | **Status Cancellation** | Applying 'Sharp' to a 'Dazed' unit nullifies both. |
 | **Sleep Interaction** | Unit with 'Asleep' has 0 energy; wakes up on hit. |
-| **Exponential XP** | `calculateExp(level 50)` returns `125,000`. |
+| **Exponential XP** | `calculateExp(level 50)` returns `100,000`. |
 
 ---
 

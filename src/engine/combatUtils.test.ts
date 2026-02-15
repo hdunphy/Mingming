@@ -23,6 +23,7 @@ function createMockEntity(id: string, primary: Element, secondary?: Element, lev
         attack,
         defense,
         speed: 10,
+        cardDraw: 1,
     } as IBattleEntity; // Cast to satisfy readonly requirements if needed, or just match interface
 }
 

@@ -65,7 +65,9 @@ export interface IMingmingState {
  */
 export interface IBattleEntity extends IMingmingState {
   // Derived Stats (Calculated at start of battle from Definition + Level)
+  readonly name: string;
   readonly maxHp: number;
+  readonly cardDraw: number;
   readonly maxEnergy: number;
   readonly attack: number;
   readonly defense: number;
@@ -107,7 +109,9 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
 
   return {
     ...instance,
+    name: definition.name,
     maxHp: finalHp,
+    cardDraw: definition.cardDraw,
     maxEnergy: definition.baseStats.energy,
     attack: calculateStandardStat(definition.baseStats.attack, attackIV, instance.level),
     defense: calculateStandardStat(definition.baseStats.defense, defenseIV, instance.level),
@@ -134,7 +138,7 @@ export function getExpForLevel(level: number): number {
 
 export interface ProgramAction {
   readonly type: string;
-  readonly payload: any;
+  readonly [key: string]: any; // Flat structure for JSON
 }
 
 export interface ProgramConstraint {
@@ -168,6 +172,7 @@ export interface ProgramEntity {
 export interface IDeckState {
   readonly ownerId: string;
   readonly deck: ReadonlyArray<string>; // Array of ProgramData IDs
+  readonly drawpile: ReadonlyArray<ProgramEntity>;
   readonly hand: ReadonlyArray<ProgramEntity>;
   readonly discard: ReadonlyArray<ProgramEntity>;
 }

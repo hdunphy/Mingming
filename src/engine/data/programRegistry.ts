@@ -1,7 +1,6 @@
-
 import type { ProgramData } from '../types';
 
-export const ProgramRegistry: Record<string, ProgramData> = {
+const ProgramRegistry: Record<string, ProgramData> = {
     // Fire
     'card_ember': {
         id: 'card_ember',
@@ -12,7 +11,9 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         category: 'Attack',
         baseCost: 1,
         constraints: [],
-        actions: [], // We will define Actions later in the ActionFactory
+        actions: [
+            { type: 'ATTACK', power: 10, element: 'Fire', target: 'TARGET' }
+        ],
         artReference: 'ember_art'
     },
     'card_fireball': {
@@ -24,7 +25,10 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         category: 'Attack',
         baseCost: 2,
         constraints: [],
-        actions: [],
+        actions: [
+            { type: 'ATTACK', power: 25, element: 'Fire', target: 'TARGET' },
+            { type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }
+        ],
         artReference: 'fireball_art'
     },
     // Water
@@ -37,7 +41,10 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         category: 'Attack',
         baseCost: 1,
         constraints: [],
-        actions: [],
+        actions: [
+            { type: 'ATTACK', power: 8, element: 'Water', target: 'TARGET' },
+            { type: 'DRAW', count: 1, target: 'SELF' } // Draw not implemented in handlers yet, but good to have data
+        ],
         artReference: 'bubble_art'
     },
     // Nature
@@ -50,7 +57,9 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         category: 'Attack',
         baseCost: 1,
         constraints: [],
-        actions: [],
+        actions: [
+            { type: 'ATTACK', power: 15, element: 'Nature', target: 'TARGET' }
+        ],
         artReference: 'vine_whip_art'
     },
     // Neutral / Energy
@@ -63,7 +72,9 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         category: 'Attack',
         baseCost: 3,
         constraints: [],
-        actions: [],
+        actions: [
+            { type: 'ATTACK', power: 5, element: 'None', target: 'TARGET' }
+        ],
         artReference: ''
     },
     'card2': { // Test card
@@ -75,7 +86,9 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         category: 'Attack',
         baseCost: 1,
         constraints: [],
-        actions: [],
+        actions: [
+            { type: 'ATTACK', power: 5, element: 'None', target: 'TARGET' }
+        ],
         artReference: ''
     }
 };
