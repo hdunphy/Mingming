@@ -1,6 +1,7 @@
 
 import { battleReducer, type BattleAction } from '../battleReducer';
 import type { IBattleState, IBattleEntity } from '../types';
+import { globalBattleEventBus } from '../events';
 
 // Weights for scoring
 // Weights for scoring specific statuses
@@ -134,7 +135,11 @@ function findBestSequence(
 
 export function getBestAction(state: IBattleState): BattleAction {
     const MAX_DEPTH = 3; // Limit recursion to prevent hangs
+
+    // Silence events during AI simulation to prevent log spam and side effects
+    globalBattleEventBus.mute();
     const result = findBestSequence(state, state.activeSide, 0, MAX_DEPTH);
+    globalBattleEventBus.unmute();
 
     if (result.firstAction) {
         return result.firstAction;

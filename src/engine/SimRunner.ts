@@ -101,7 +101,14 @@ export function runSimulation(): SimResult {
 
     const unsubscribe = globalBattleEventBus.subscribe(event => {
         const turnInfo = 'turnNumber' in event ? `[Turn ${event.turnNumber}]` : '';
-        logBuffer.push(`${turnInfo} ${event.type} - ${JSON.stringify(event)}`);
+        const logEntry = `${turnInfo} ${event.type} - ${JSON.stringify(event)}`;
+        logBuffer.push(logEntry);
+
+        // Check for Significant Events to log to console immediately
+        const significantEvents = ['TURN_START', 'DAMAGE_TAKEN', 'STATUS_APPLIED', 'PROGRAM_PLAYED', 'BATTLE_ENDED', 'TURN_END'];
+        if (significantEvents.includes(event.type)) {
+            console.log(logEntry);
+        }
     });
 
     let winner: 'PLAYER' | 'ENEMY' | 'DRAW' | null = null;

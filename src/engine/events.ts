@@ -119,6 +119,7 @@ export type EventListener = (event: BattleEvent) => void;
  */
 export class BattleEventBus {
     private listeners: EventListener[] = [];
+    private enabled: boolean = true;
 
     public subscribe(listener: EventListener): () => void {
         this.listeners.push(listener);
@@ -128,7 +129,16 @@ export class BattleEventBus {
     }
 
     public emit(event: BattleEvent): void {
+        if (!this.enabled) return;
         this.listeners.forEach(listener => listener(event));
+    }
+
+    public mute(): void {
+        this.enabled = false;
+    }
+
+    public unmute(): void {
+        this.enabled = true;
     }
 }
 
