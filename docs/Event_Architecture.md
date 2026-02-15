@@ -58,3 +58,13 @@ The engine implements a **`Max_Trigger_Depth = 5`**.
 
 ### **4.2. Action Validation**
 Every hook has access to an `isCancelled` flag. If a Priority 100 hook (e.g., `AsleepStatusCheck`) sets `isCancelled = true`, the engine skips all lower-priority hooks and moves straight to the clean-up phase.
+
+---
+
+## **5. Multi-Hit Resolution Logic**
+
+Programs with `hits > 1` (e.g., "Acorn Shot") must be processed as iterative events to allow for reactive triggers between each hit.
+
+1. **Iteration Loop:** The engine executes the full `onModifierPhase` -> `onPostDamage` lifecycle for *each* discrete hit.
+2. **Interruptability:** If a target faints (HP <= 0) mid-sequence, or if a reactive hook (like `Stunned`) triggers, the remaining hits in the sequence are aborted.
+3. **Trigger Reciprocity:** Defensive hooks (like "Thorns" or "Shields") are evaluated per-hit. A 3-hit attack will trigger a 10-damage retaliation hook 3 times, totaling 30 damage.

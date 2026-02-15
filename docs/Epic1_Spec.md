@@ -23,14 +23,36 @@ export interface MingMing {
   stats: {
     hp: number;
     maxHp: number;
+    tempHp: number; // Shields/Light barriers - purged during POST_TURN
     attack: number;
     defense: number;
     energy: number;
     maxEnergy: number;
   };
+  // Tracking for permanent "Wither/Strengthen" battle modifiers
+  baseStats: {
+    attack: number;
+    defense: number;
+  };
   primaryElement: Element;
   secondaryElement?: Element;
   statusEffects: StatusEffectInstance[];
+}
+```
+
+### **1.3. Program Interface Additions**
+```typescript
+export interface Program {
+  // ... existing fields
+  hits: number; // Default: 1. Support for multi-hit programs.
+  constraints: ProgramConstraint[]; // Requirements to play (e.g., HasStatus, MinEnergy).
+  logicOverrides?: string; // Reference to custom logic hooks (e.g., extra damage if target is asleep).
+}
+
+export interface ProgramConstraint {
+  type: 'HAS_STATUS' | 'HEALTH_THRESHOLD' | 'ENERGY_THRESHOLD';
+  target: 'SELF' | 'TARGET';
+  value: string | number;
 }
 ```
 
@@ -106,7 +128,32 @@ The final validation of Epic 1.
 
 ---
 
-## **5. Global Seeded RNG**
-All probabilistic events (shuffling, encounters) must use a seeded PRNG.
-`const state = { seed: number, ... }`
-`const { value, nextSeed } = PRNG(state.seed);`
+## **7. The Data-Driven Program Factory**
+
+To replicate and improve upon the Unity `ScriptableObject` + `CardAction` hierarchy, the engine uses a **Compositional Effect Pattern**.
+
+### **7.1. Program Definition (`programs.json`)**
+Instead of monolithic classes, Programs are defined as a list of **Discrete Effects**.
+```json
+{
+  "id": "rage",
+  "name": "Rage",
+  "actions": [
+    { "type": "ATTACK", "power": 20, "element": "Fire" },
+    { "type": "APPLY_STATUS", "status": "STRENGTHENED", "target": "SELF", "stacks": 1 }
+  ],
+  "cost": 1
+}
+```
+
+### **7.2. Effect Handlers (`effectHandlers.ts`)**
+Each effect type maps to a pure function. This mirrors your Unity `CardAction` subclasses.
+- `handleAttack(state, payload)`
+- `handleHeal(state, payload)`
+- `handleApplyStatus(state, payload)`
+- `handleDraw(state, payload)`
+
+### **7.3. Benefits of this Port**
+- **Hot-Loading:** You can add new Programs to the JSON file and see them in the game instantly without a recompile.
+- **Complexity:** You can create a card that "Heals an Ally, Damages an Enemy, and Draws 2 cards" just by adding three objects to the `actions` array in the JSON.
+- **Separation of Concerns:** The `battleReducer` doesn't know *what* a card does; it just iterates through the `actions` array and calls the corresponding handlers.

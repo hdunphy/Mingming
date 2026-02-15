@@ -41,18 +41,32 @@ This epic focuses on the systems required to manage the Developer's assets, prog
 
 ---
 
-## **4. Persistence Layer (`SaveSystem.ts`)**
+## **4. The Drop Table Engine (`RewardSystem.ts`)**
 
-### **4.1. Storage Strategy**
-- **Primary:** `LocalStorage` for rapid development.
-- **Future:** `IndexedDB` for larger data sets or Electron-native file saving.
+To handle the "Synthesis" economy, the engine must support probabilistic loot drops.
 
-### **4.2. State Serialization**
-- **Deterministic Format:** The save file is a JSON string of the entire root store (Inventory, Roster, Blueprints, Global Seed, and Overworld Coordinates).
-- **Auto-Save:** Triggered after Synthesis, Deck saving, or Combat conclusion.
+### **4.1. Drop Table Schema**
+- **Definition:** A mapping of MingMing architectures to their potential drops.
+- **Rolls:** Upon victory, the engine executes a roll against the `seededPRNG` for:
+    - `Blueprint_Drop_Rate` (e.g., 5% chance for a rare architecture).
+    - `Scrap_Yield_Range` (e.g., 5-15 scraps per unit).
+    - `Card_Reward_Pool` (3 random cards from the defeated unit's element).
 
 ---
 
-## **5. GDD Review & Missing Features**
-- **Rarity Integration:** The GDD defines card rarity (1-3). Milestone 1.1 must include `rarity` in the `Program` interface to drive scrap yield.
-- **Consumables Check:** The GDD mentions "consumables and restorative items are restricted entirely to the overworld." Milestone 3.4 will need to include a `ConsumableInventory` and `RestorativeLogic`.
+## **5. Map Interactions & Resource Nodes**
+- **Heal Stations:** Interaction nodes that restore all `activeParty` MingMings to `maxHp` and `maxEnergy`.
+- **Blueprints Scavenging:** One-time nodes (treasure chests) that provide specific rare Blueprints or large Scrap piles.
+
+---
+
+## **6. Persistence & Integrity (`SaveSystem.ts`)**
+
+### **6.1. Storage Strategy**
+- **Primary:** `LocalStorage` for rapid development.
+- **Steam/Native:** `SQLite` integration for single-file, serverless database reliability.
+
+### **6.2. The Zod Validation Guardrail**
+To prevent runtime crashes caused by typos in the data JSONs, we implement **Zod Schemas** for all static data:
+- **Contract:** If `programs.json` has a cost of "Five" instead of `5`, the `Zod.parse()` will catch it at boot time.
+- **Error Mapping:** Provides human-readable error logs identifying exactly which JSON entry is malformed.
