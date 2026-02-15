@@ -87,14 +87,17 @@ Implementation must strictly follow the Unity legacy formula:
 
 ---
 
-## **3. The State Machine (`battleReducer.ts`)**
+## **4. The State Machine (`battleReducer.ts`)**
 
-### **3.1. Phase Logic**
+### **4.1. Phase Logic**
 - **PRE_TURN:** Reset energy, decrement status, draw to 9.
-- **ACTION:** Accept `PLAY_PROGRAM` or `TRANSFER_ENERGY`.
+- **ACTION:** Accept the following discrete actions:
+    - `PLAY_PROGRAM`: Ingests `sourceId`, `targetId`, and `programId`. Validates constraints and energy before execution.
+    - `TRANSFER_ENERGY`: Sacrifice 2 Energy from `sourceId` to grant 1 Energy to `targetId`.
+    - `END_TURN`: Explicitly ends the Developer's ACTION phase.
 - **POST_TURN:** Resolve DoT, purge hand, toggle control.
 
-### **3.2. Middleware Hook System (The "Event Bus")**
+### **4.2. Middleware Hook System (The "Event Bus")**
 To support modular card effects and stat tracking, the kernel must emit events at every state mutation point. These hooks allow cards to "subscribe" to logic.
 - `onProgramPlayed(card, source, target)`
 - `onDamageTaken(target, amount, element)`
@@ -107,7 +110,7 @@ To support modular card effects and stat tracking, the kernel must emit events a
 
 ---
 
-## **4. The Tactical AI (Min-Max Controller)**
+## **5. The Tactical AI (Min-Max Controller)**
 The opponent logic must evaluate the "Board Score" using Alpha-Beta pruning.
 - **Score Weighting:** 
     - `Enemy_HP_Loss * 2.0`
@@ -118,7 +121,7 @@ The opponent logic must evaluate the "Board Score" using Alpha-Beta pruning.
 
 ---
 
-## **5. Headless Simulation Runner (`SimRunner.ts`)**
+## **6. Headless Simulation Runner (`SimRunner.ts`)**
 The final validation of Epic 1.
 - **Input:** Two Decks + Two Teams of MingMings.
 - **Process:** Runs the `battleReducer` in a loop (using the Tactical AI for both sides) until a winner is declared.
@@ -126,7 +129,7 @@ The final validation of Epic 1.
 
 ---
 
-## **6. Mandatory Unit Tests (`Kernel.test.ts`)**
+## **7. Mandatory Unit Tests (`Kernel.test.ts`)**
 
 | Scenario | Expected Outcome |
 | :--- | :--- |
@@ -139,11 +142,11 @@ The final validation of Epic 1.
 
 ---
 
-## **7. The Data-Driven Program Factory**
+## **8. The Data-Driven Program Factory**
 
 To replicate and improve upon the Unity `ScriptableObject` + `CardAction` hierarchy, the engine uses a **Compositional Effect Pattern**.
 
-### **7.1. Program Definition (`programs.json`)**
+### **8.1. Program Definition (`programs.json`)**
 Instead of monolithic classes, Programs are defined as a list of **Discrete Effects**.
 ```json
 {
@@ -157,14 +160,14 @@ Instead of monolithic classes, Programs are defined as a list of **Discrete Effe
 }
 ```
 
-### **7.2. Effect Handlers (`effectHandlers.ts`)**
+### **8.2. Effect Handlers (`effectHandlers.ts`)**
 Each effect type maps to a pure function. This mirrors your Unity `CardAction` subclasses.
 - `handleAttack(state, payload)`
 - `handleHeal(state, payload)`
 - `handleApplyStatus(state, payload)`
 - `handleDraw(state, payload)`
 
-### **7.3. Benefits of this Port**
+### **8.3. Benefits of this Port**
 - **Hot-Loading:** You can add new Programs to the JSON file and see them in the game instantly without a recompile.
 - **Complexity:** You can create a card that "Heals an Ally, Damages an Enemy, and Draws 2 cards" just by adding three objects to the `actions` array in the JSON.
 - **Separation of Concerns:** The `battleReducer` doesn't know *what* a card does; it just iterates through the `actions` array and calls the corresponding handlers.
