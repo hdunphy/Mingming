@@ -11,7 +11,9 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 - **Milestone 1.2: The Damage Processor:** Implement the deterministic damage formula and elemental matrix.
 - **Milestone 1.3: Turn State Machine:** Implement the 3-phase turn logic (Pre-Turn, Attack, Post-Turn).
 - **Milestone 1.4: Status Effect Ecosystem:** Reducer logic for the 8 status effects (Burn stages, Sleep-break, etc.).
-- **Milestone 1.5: TDD Validation:** 100+ unit tests covering complex interactions (e.g., Energy Transfer math).
+- **Milestone 1.5: The Middleware Hook System (Event Bus):** Implement a modular event system (e.g., `onDamageTaken`, `onStatusApplied`, `onProgramPlayed`) to allow cards/stats to hook into the engine.
+- **Milestone 1.6: The Tactical AI (Min-Max):** Implement the Alpha-Beta Min-Max algorithm to evaluate optimal hand-play order based on board state (HP/Status weighting).
+- **Milestone 1.7: The Headless Simulation Runner:** A CLI or script-based runner to execute 1,000+ full battles without a UI to verify balance and stability.
 
 ## **Epic 2: The Interface Layer (Battle UI)**
 *Focus: High-fidelity, reactive combat presentation.*

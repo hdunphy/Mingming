@@ -57,22 +57,43 @@ Implementation must strictly follow the GDD formula:
 ## **3. The State Machine (`battleReducer.ts`)**
 
 ### **3.1. Phase Logic**
-- **PRE_TURN:**
-    - Reset energy: `mingming.energy = mingming.maxEnergy`.
-    - Decrement status counters.
-    - Handle Sleep: If damage taken > 0, remove 'Asleep'.
-    - Draw: Move cards from `deck` to `hand` until `hand.length === 9`.
-- **ACTION:**
-    - Accept `PLAY_PROGRAM`, `TRANSFER_ENERGY`, or `END_TURN`.
-    - **Transfer Energy Logic:** Deduct 2 from `Source`, add 1 to `Target`.
-- **POST_TURN:**
-    - Apply DoT: Resolve Poison and Burn percentile damage.
-    - Discard: `discardPile.push(...hand); hand = []`.
-    - Pass Control.
+- **PRE_TURN:** Reset energy, decrement status, draw to 9.
+- **ACTION:** Accept `PLAY_PROGRAM` or `TRANSFER_ENERGY`.
+- **POST_TURN:** Resolve DoT, purge hand, toggle control.
+
+### **3.2. Middleware Hook System (The "Event Bus")**
+To support modular card effects and stat tracking, the kernel must emit events at every state mutation point. These hooks allow cards to "subscribe" to logic.
+- `onProgramPlayed(card, source, target)`
+- `onDamageTaken(target, amount, element)`
+- `onStatusApplied(target, status)`
+- `onStatusRemoved(target, status)`
+- `onPhaseStart(phase)`
+- `onPhaseEnd(phase)`
+- `onDeckShuffled()`
+- `onCardDrawn(card)`
 
 ---
 
-## **4. Mandatory Unit Tests (`Kernel.test.ts`)**
+## **4. The Tactical AI (Min-Max Controller)**
+The opponent logic must evaluate the "Board Score" using Alpha-Beta pruning.
+- **Score Weighting:** 
+    - `Enemy_HP_Loss * 2.0`
+    - `Self_HP_Gain * 1.5`
+    - `Positive_Status_Applied * 0.5`
+    - `Negative_Status_Mitigated * 0.5`
+- **Execution:** The AI simulates play permutations for the current hand and selects the sequence that maximizes the Score.
+
+---
+
+## **5. Headless Simulation Runner (`SimRunner.ts`)**
+The final validation of Epic 1.
+- **Input:** Two Decks + Two Teams of MingMings.
+- **Process:** Runs the `battleReducer` in a loop (using the Tactical AI for both sides) until a winner is declared.
+- **Output:** JSON log of all events, total turns, and final HP values.
+
+---
+
+## **6. Mandatory Unit Tests (`Kernel.test.ts`)**
 
 | Scenario | Expected Outcome |
 | :--- | :--- |
