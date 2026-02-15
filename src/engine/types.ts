@@ -4,17 +4,19 @@ export type TargetType = 'Single' | 'Self' | 'Side' | 'All';
 export type ProgramCategory = 'Attack' | 'Heal' | 'Status' | 'Special';
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
 
-export enum StatusType {
-  Burn = 'Burn',
-  Poison = 'Poison',
-  Asleep = 'Asleep',
-  Weakened = 'Weakened',
-  Strengthened = 'Strengthened',
-  Dazed = 'Dazed',
-  Sharp = 'Sharp',
-  Stunned = 'Stunned',
-  Regen = 'Regen'
-}
+export const StatusType = {
+  Burn: 'Burn',
+  Poison: 'Poison',
+  Asleep: 'Asleep',
+  Weakened: 'Weakened',
+  Strengthened: 'Strengthened',
+  Dazed: 'Dazed',
+  Sharp: 'Sharp',
+  Stunned: 'Stunned',
+  Regen: 'Regen'
+} as const;
+
+export type StatusType = typeof StatusType[keyof typeof StatusType];
 
 export interface StatusEffectInstance {
   readonly id: string;
@@ -69,6 +71,10 @@ export interface IBattleEntity extends IMingmingState {
   readonly defense: number;
   readonly speed: number; // Derived from something? Or base?
 
+  // Element caching for combat
+  readonly primaryElement: Element;
+  readonly secondaryElement?: Element;
+
   // Transient State (Mutable via Redux/Zustand, but defined as readonly here to enforce immutable updates)
   readonly currentHp: number;
   readonly currentEnergy: number;
@@ -106,6 +112,9 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     attack: calculateStandardStat(definition.baseStats.attack, attackIV, instance.level),
     defense: calculateStandardStat(definition.baseStats.defense, defenseIV, instance.level),
     speed: 10, // Placeholder for future logic
+
+    primaryElement: definition.primaryElement,
+    secondaryElement: definition.secondaryElement,
 
     currentHp: finalHp,
     currentEnergy: definition.baseStats.energy,
@@ -169,12 +178,12 @@ export interface IBattleState {
   readonly turn: number;
   readonly phase: TurnPhase;
   readonly activeSide: 'PLAYER' | 'ENEMY';
-  
+
   readonly playerParty: ReadonlyArray<IBattleEntity>;
   readonly enemyParty: ReadonlyArray<IBattleEntity>;
-  
+
   readonly playerDeck: IDeckState;
   readonly enemyDeck: IDeckState;
-  
+
   readonly logs: ReadonlyArray<string>;
 }
