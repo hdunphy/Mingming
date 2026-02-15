@@ -78,36 +78,47 @@ export interface IBattleEntity extends IMingmingState {
 
 // --- Transformation Logic ---
 
+/**
+ * Calculates a standard stat (Attack/Defense) using the Unity Legacy Formula.
+ */
+function calculateStandardStat(base: number, modifier: number, level: number): number {
+  return Math.floor(((2 * base) + modifier) * level / 100) + 5;
+}
+
+/**
+ * Calculates Health using the Unity Legacy Formula.
+ */
+function calculateHealth(base: number, modifier: number, level: number): number {
+  return calculateStandardStat(base, modifier, level) + level + 5;
+}
+
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {
-  // Formula: Base + ((Base * 0.02) * Level) - Standard Pokemon-ish scaling or Unity formula?
-  // User requested: "Base + Modifier * Level" where modifier is implicit or IV?
-  // Let's assume a simple linear scaling for now as per "Base + Modifier * Level" prompt implies 
-  // maybe "Modifier" means the "2L/5" part of the damage formula? 
-  // Actually the prompt says: "Unity formula: Base + Modifier * Level". 
-  // Since we don't have explicit "Modifiers" in Definition, I will assume a default scalar or use IVs if present.
-  // For MVP, lets do: Stat = Base + (Base * 0.05 * Level)
+  const attackIV = instance.attackIV ?? 0;
+  const defenseIV = instance.defenseIV ?? 0;
+  const hpIV = instance.hpIV ?? 0;
 
-  // Actually, looking at the GDD damage formula: damage = ... (2L/5 + 2) ...
-  // It doesn't explicitly define *stat* growth, just damage. 
-  // I will implement a standard linear growth for now: Base + (Base * 0.1 * Level) generic.
-
-  const growthRate = 0.1;
-
-  const calcStat = (base: number, level: number) => Math.floor(base + (base * growthRate * level));
+  const finalHp = calculateHealth(definition.baseStats.hp, hpIV, instance.level);
 
   return {
     ...instance,
-    maxHp: calcStat(definition.baseStats.hp, instance.level),
-    maxEnergy: definition.baseStats.energy, // Energy usually doesn't scale with level?
-    attack: calcStat(definition.baseStats.attack, instance.level),
-    defense: calcStat(definition.baseStats.defense, instance.level),
-    speed: 10, // Placeholder
+    maxHp: finalHp,
+    maxEnergy: definition.baseStats.energy,
+    attack: calculateStandardStat(definition.baseStats.attack, attackIV, instance.level),
+    defense: calculateStandardStat(definition.baseStats.defense, defenseIV, instance.level),
+    speed: 10, // Placeholder for future logic
 
-    currentHp: calcStat(definition.baseStats.hp, instance.level),
+    currentHp: finalHp,
     currentEnergy: definition.baseStats.energy,
     tempHp: 0,
     statusEffects: []
   };
+}
+
+/**
+ * Calculates the total XP required to reach a specific level boundary.
+ */
+export function getExpForLevel(level: number): number {
+  return Math.round(0.8 * Math.pow(level, 3));
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
@@ -141,4 +152,29 @@ export interface ProgramEntity {
   readonly dataId: string; // Ref to ProgramData
   readonly currentCost: number;
   readonly isPlayable: boolean;
+}
+
+// --- Deck & State Definitions ---
+
+export interface IDeckState {
+  readonly ownerId: string;
+  readonly deck: ReadonlyArray<string>; // Array of ProgramData IDs
+  readonly hand: ReadonlyArray<ProgramEntity>;
+  readonly discard: ReadonlyArray<ProgramEntity>;
+}
+
+export interface IBattleState {
+  readonly sessionId: string;
+  readonly seed: number;
+  readonly turn: number;
+  readonly phase: TurnPhase;
+  readonly activeSide: 'PLAYER' | 'ENEMY';
+  
+  readonly playerParty: ReadonlyArray<IBattleEntity>;
+  readonly enemyParty: ReadonlyArray<IBattleEntity>;
+  
+  readonly playerDeck: IDeckState;
+  readonly enemyDeck: IDeckState;
+  
+  readonly logs: ReadonlyArray<string>;
 }
