@@ -82,6 +82,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly tempHp: number; // Shields
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
+  readonly artReference?: string;
 }
 
 // --- Transformation Logic ---
@@ -124,7 +125,8 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     currentEnergy: definition.baseStats.energy,
     tempHp: 0,
     statusEffects: [],
-    hooks: []
+    hooks: [],
+    artReference: definition.artReference
   };
 }
 

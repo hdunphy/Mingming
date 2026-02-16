@@ -246,7 +246,7 @@ const BattleArena: React.FC = () => {
                     }
                 }
 
-                const translateX = index === 1 ? (isEnemy ? -60 : 60) : 0;
+                const translateX = 0; // Removed manual offset to allow horizontal layout to breathe
 
                 return (
                     <motion.div

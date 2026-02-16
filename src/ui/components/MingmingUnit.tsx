@@ -78,10 +78,15 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             className={`unit-card ${isSelected ? 'selected' : ''} ${isTargeted ? 'targeted' : ''}`}
             data-side={isEnemy ? 'enemy' : 'player'}
             animate={controls}
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.02 }}
             style={{
                 borderTop: `4px solid ${elementColor}`,
-                x: isSelected ? (isEnemy ? -40 : 40) : 0,
+                x: isSelected ? (isEnemy ? -20 : 20) : 0,
+                display: 'flex',
+                alignItems: 'stretch',
+                gap: '12px',
+                width: '320px', // Wider for horizontal layout
+                padding: '12px'
             }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={onClick}
@@ -110,50 +115,87 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     </motion.div>
                 ))}
             </AnimatePresence>
-            <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <span className={`element-badge ${entity.primaryElement.toLowerCase()}`}>
+
+            {/* Left: Art Column */}
+            <div style={{
+                flex: '0 0 100px',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                position: 'relative',
+                background: 'rgba(255,255,255,0.03)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+                {entity.artReference && (
+                    <motion.img
+                        src={new URL(`../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
+                        alt={entity.name}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            filter: isEnemy ? 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' : 'drop-shadow(0 0 8px rgba(255,255,255,0.15))',
+                            transform: isEnemy ? 'scaleX(-1)' : 'none'
+                        }}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                    />
+                )}
+            </div>
+
+            {/* Right: Info Column */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`element-badge ${entity.primaryElement.toLowerCase()}`} style={{ fontSize: '0.6rem', width: '18px', height: '18px' }}>
                         {entity.primaryElement[0]}
                     </span>
-                    <div className="unit-name">{entity.name}</div>
-                </div>
-                <div style={{ fontSize: '0.7rem', textAlign: 'center', opacity: 0.7 }}>
-                    Lv. {entity.level}
+                    <div className="unit-name" style={{ fontSize: '1rem', margin: 0, textAlign: 'left', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {entity.name}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 700 }}>
+                        Lv. {entity.level}
+                    </div>
                 </div>
 
-                <div className="bar-container">
-                    {/* Preview Damage Layer */}
-                    {previewDamage > 0 && (
-                        <div
-                            className="hp-bar-preview"
-                            style={{
-                                left: `${previewPercent}%`,
-                                width: `${hpPercent - previewPercent}%`
+                <div style={{ marginTop: '8px' }}>
+                    <div className="bar-container" style={{ margin: '4px 0' }}>
+                        {/* Preview Damage Layer */}
+                        {previewDamage > 0 && (
+                            <div
+                                className="hp-bar-preview"
+                                style={{
+                                    left: `${previewPercent}%`,
+                                    width: `${hpPercent - previewPercent}%`
+                                }}
+                            />
+                        )}
+                        <motion.div
+                            className="hp-bar"
+                            initial={{ width: `${hpPercent}%` }}
+                            animate={{
+                                width: `${hpPercent}%`,
+                                backgroundColor: hpPercent < 25 ? 'var(--hp-red)' : 'var(--hp-green)'
                             }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
                         />
-                    )}
-                    <motion.div
-                        className="hp-bar"
-                        initial={{ width: `${hpPercent}%` }}
-                        animate={{
-                            width: `${hpPercent}%`,
-                            backgroundColor: hpPercent < 25 ? 'var(--hp-red)' : 'var(--hp-green)'
-                        }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                    />
-                </div>
-                <div style={{ fontSize: '0.65rem', textAlign: 'center', opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
-                    {entity.currentHp} / {entity.maxHp}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', textAlign: 'right', opacity: 0.8, fontVariantNumeric: 'tabular-nums', marginTop: '-2px' }}>
+                        {entity.currentHp} / {entity.maxHp}
+                    </div>
                 </div>
 
-                <div className="energy-row">
+                <div className="energy-row" style={{ marginTop: '4px', justifyContent: 'flex-start' }}>
                     {energyPips}
                 </div>
 
                 {/* Status Effects */}
-                {entity.statusEffects.length > 0 && (
-                    <div className="status-row">
-                        {entity.statusEffects.map((se, i) => {
+                <div className="status-row" style={{ marginTop: '6px', justifyContent: 'flex-start', minHeight: '20px' }}>
+                    {entity.statusEffects.length > 0 ? (
+                        entity.statusEffects.map((se, i) => {
                             const info = STATUS_ICONS[se.type] || { icon: '✦', color: '#ccc' };
                             return (
                                 <div
@@ -162,13 +204,15 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                     style={{ borderColor: info.color, color: info.color }}
                                     title={`${se.type} (${se.stacks} stacks)`}
                                 >
-                                    <span className="status-icon">{info.icon}</span>
-                                    {se.stacks > 1 && <span className="status-stacks">×{se.stacks}</span>}
+                                    <span className="status-icon" style={{ fontSize: '0.6rem' }}>{info.icon}</span>
+                                    {se.stacks > 1 && <span className="status-stacks" style={{ fontSize: '0.5rem' }}>×{se.stacks}</span>}
                                 </div>
                             );
-                        })}
-                    </div>
-                )}
+                        })
+                    ) : (
+                        <div style={{ fontSize: '0.6rem', opacity: 0.3 }}>No active effects</div>
+                    )}
+                </div>
             </div>
         </motion.div>
     );

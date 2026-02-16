@@ -1,25 +1,23 @@
-import type { IBattleEntity, ProgramEntity, IBattleState } from '../types';
+import type { IBattleEntity, ProgramEntity, IBattleState, IMingmingState } from '../types';
+import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
+import { GetMingmingData } from './mingmingRegistry';
 
-export function createMockEntity(id: string, name: string, team: 'PLAYER' | 'ENEMY'): IBattleEntity {
-    return {
-        id,
-        name,
-        level: 10,
-        experience: 0,
-        hpIV: 0, attackIV: 0, defenseIV: 0,
-        maxHp: 100,
-        attack: 15,
-        defense: 5,
-        maxEnergy: 10,
-        cardDraw: 1,
-        currentHp: 100,
-        currentEnergy: 10,
-        primaryElement: team === 'PLAYER' ? 'Fire' : 'Water',
-        statusEffects: [],
-        definitionId: 'def_1',
-        tempHp: 0, speed: 10
+export function createMockEntity(name: string, mingmingId: string = 'fenrir', level: number = 10, experience: number = 0): IBattleEntity {
+    const definition = GetMingmingData(mingmingId);
+
+    const instance: IMingmingState = {
+        id: crypto.randomUUID(),
+        definitionId: mingmingId,
+        nickname: name,
+        level: level,
+        experience: experience,
+        hpIV: Math.floor(Math.random() * 32),
+        attackIV: Math.floor(Math.random() * 32),
+        defenseIV: Math.floor(Math.random() * 32),
     };
+
+    return initializeBattleEntity(instance, definition);
 }
 
 export function createMockDeck(isWater: boolean = false): string[] {
@@ -45,16 +43,16 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
 }
 
 export function createInitialBattleState(): IBattleState {
-    const p1 = createMockEntity('p1', 'Hero-Fire 1', 'PLAYER');
-    const p2 = createMockEntity('p2', 'Hero-Fire 2', 'PLAYER');
-    const p3 = createMockEntity('p3', 'Hero-Fire 3', 'PLAYER');
+    const p1 = createMockEntity('Hero-Water 1', 'kraken');
+    const p2 = createMockEntity('Hero-Water 2', 'kraken');
+    const p3 = createMockEntity('Hero-Water 3', 'kraken');
 
-    const e1 = createMockEntity('e1', 'Villain-Water 1', 'ENEMY');
-    const e2 = createMockEntity('e2', 'Villain-Water 2', 'ENEMY');
-    const e3 = createMockEntity('e3', 'Villain-Water 3', 'ENEMY');
+    const e1 = createMockEntity('Villain-Fire 1', 'fenrir');
+    const e2 = createMockEntity('Villain-Fire 2', 'fenrir');
+    const e3 = createMockEntity('Villain-Fire 3', 'fenrir');
 
-    const pDeckCards = instantiateDeck(createMockDeck());
-    const eDeckCards = instantiateDeck(createMockDeck(true));
+    const pDeckCards = instantiateDeck(createMockDeck(true));
+    const eDeckCards = instantiateDeck(createMockDeck());
 
     // Draw initial hands (9 cards for 3v3)
     const pHand = pDeckCards.slice(0, 9);

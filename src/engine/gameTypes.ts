@@ -3,6 +3,7 @@
  * Persistent data structures for the player's save file.
  */
 
+import { createMockEntity } from "./data/battleFactories";
 import type { IMingmingState } from "./types";
 
 // --- Card Inventory ---
@@ -76,24 +77,15 @@ export function createDefaultSave(): IPlayerSave {
 
 export function createStarterSave(): IPlayerSave {
     // Starter MingMings
-    const starter1: IMingmingState = {
-        id: 'starter-mm-1', definitionId: 'def_fire_1', nickname: 'Ember',
-        level: 5, experience: 0, attackIV: 8, defenseIV: 6, hpIV: 10
-    };
-    const starter2: IMingmingState = {
-        id: 'starter-mm-2', definitionId: 'def_fire_2', nickname: 'Blaze',
-        level: 5, experience: 0, attackIV: 10, defenseIV: 4, hpIV: 7
-    };
-    const starter3: IMingmingState = {
-        id: 'starter-mm-3', definitionId: 'def_fire_3', nickname: 'Scorch',
-        level: 5, experience: 0, attackIV: 6, defenseIV: 9, hpIV: 8
-    };
+    const starter1: IMingmingState = createMockEntity('Squirt', 'kraken');
+    const starter2: IMingmingState = createMockEntity('Spikey', 'kraken');
+    const starter3: IMingmingState = createMockEntity('Chomper', 'kraken');
 
-    // Starter deck cards (Fire-themed)
+    // Starter deck cards (Water-themed)
     const starterCardIds = [
-        'reckless', 'flamethrower', 'erupt', 'rage', 'charge',
-        'radiate', 'fired_up', 'toats', 'roast', 'spicy_breath',
-        'preheat', 'flash', 'fire_punch'
+        'squirt', 'water_jet', 'whirlpool', 'bathe', 'scald',
+        'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
+        'rain', 'drink_tea', 'hydro_pump', 'cannon_ball', 'hot_springs', 'nightmare'
     ];
     const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => ({
         instanceId: `starter-card-${dataId}`,
