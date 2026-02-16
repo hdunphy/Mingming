@@ -1,0 +1,8 @@
+[] Side status affect on own side did not give selected mingming any effect. I used "Strengthen whole side" and only other mingmings received the buff. Althought this worked the second time I tried? It might matter which mingming I targeted. I forget who I targeted the first time, but the second time I targeted the acting Mingming
+[] Enemy AI wouldn't strike the killing blow
+[] Status effects are not working. Alseep and stunned conditions don't prevent actions. I want this to be handled throught the constraints system, so add an awake constraint which checks the mingming is awake before allowing it and an alert constraint to make sure the mingming is not stunned.
+[] Status effects are not reported in the logs
+[] I would like to see the health numbers current/max
+[] Stunnded status shouldn't be able to stack its a boolean that is removed after one turn
+[] Sleep when applied starts with 3 stacks and should be removed after 3 turns. Applying sleep again means it resets to 3 stacks.
+[] I saw the tabs for terminal, lab, and deck builder, but its gone after starting a battle. There should either be a way to exit the battle or those tabs should always exist. We need a starter deck with starter mingmings to pull from.

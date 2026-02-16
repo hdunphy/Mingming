@@ -494,3 +494,519 @@ body {
   background: transparent;
   border: 2px solid var(--accent-primary);
 }
+
+/* === Navigation Bar === */
+.main-nav {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgba(10, 10, 18, 0.95);
+  border-bottom: 1px solid var(--glass-border);
+  z-index: 200;
+  flex-shrink: 0;
+}
+
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #888;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-tab:hover {
+  color: #ccc;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab.active {
+  color: #fff;
+  background: rgba(124, 58, 237, 0.2);
+  border-color: var(--accent-primary);
+}
+
+.nav-icon {
+  font-size: 16px;
+}
+
+.screen-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* === Shared Management Styles === */
+.deck-terminal,
+.roster-terminal,
+.synthesis-lab {
+  padding: 20px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+.deck-terminal-header,
+.roster-header,
+.synthesis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.deck-terminal-header h1,
+.roster-header h1,
+.synthesis-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.empty-state {
+  color: #555;
+  font-style: italic;
+  padding: 24px;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+/* === Deck Terminal === */
+.deck-counter {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.valid-badge {
+  margin-left: 8px;
+  font-size: 14px;
+  color: var(--hp-green);
+}
+
+.deck-terminal-body {
+  display: flex;
+  gap: 20px;
+}
+
+.deck-panel {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.deck-panel h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-bar select {
+  flex: 1;
+  padding: 6px 8px;
+  background: rgba(30, 30, 50, 0.8);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: #ccc;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.deck-card {
+  background: rgba(20, 20, 35, 0.9);
+  border: 2px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.deck-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-primary);
+}
+
+.deck-card.in-deck {
+  opacity: 0.5;
+}
+
+.deck-card-cost {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--energy-blue);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.deck-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.deck-card-element {
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+
+.deck-card-category {
+  font-size: 10px;
+  color: #777;
+}
+
+.deck-card-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 8px;
+  background: var(--accent-primary);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* Deck list */
+.deck-list-panel {
+  max-width: 360px;
+}
+
+.deck-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.deck-list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 13px;
+}
+
+.deck-list-item:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.deck-list-num {
+  color: #555;
+  min-width: 24px;
+}
+
+.deck-list-cost {
+  font-weight: 700;
+}
+
+.deck-list-name {
+  flex: 1;
+}
+
+.deck-list-remove {
+  color: var(--hp-red);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.deck-list-item:hover .deck-list-remove {
+  opacity: 1;
+}
+
+/* === Roster Terminal === */
+.party-counter {
+  font-size: 16px;
+  color: var(--energy-blue);
+  font-weight: 600;
+}
+
+.roster-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.party-grid {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.party-slot {
+  flex: 1;
+  min-height: 120px;
+  background: var(--bg-card);
+  border: 2px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.party-slot.filled {
+  border-color: var(--accent-primary);
+}
+
+.party-slot:hover {
+  border-color: var(--hp-red);
+}
+
+.slot-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.slot-level {
+  font-size: 14px;
+  color: var(--energy-blue);
+}
+
+.slot-ivs {
+  font-size: 11px;
+  color: #777;
+  margin-top: 4px;
+}
+
+.slot-action {
+  font-size: 10px;
+  color: var(--hp-red);
+  opacity: 0;
+  margin-top: 6px;
+  transition: opacity 0.15s;
+}
+
+.party-slot:hover .slot-action {
+  opacity: 1;
+}
+
+.slot-empty-text {
+  color: #444;
+  font-style: italic;
+  margin-top: 36px;
+}
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.roster-card {
+  background: var(--bg-card);
+  border: 2px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.roster-card:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.roster-card.active {
+  border-color: var(--hp-green);
+}
+
+.roster-card-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.roster-card-level {
+  color: var(--energy-blue);
+  font-size: 14px;
+}
+
+.roster-card-ivs {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.roster-card-xp {
+  font-size: 11px;
+  color: #555;
+  margin-top: 2px;
+}
+
+.roster-card-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 9px;
+  background: var(--hp-green);
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* === Synthesis Lab === */
+.scrap-balance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+}
+
+.scrap-count {
+  font-weight: 700;
+  color: #fbbf24;
+  font-size: 22px;
+}
+
+.scrap-label {
+  color: #888;
+  font-size: 14px;
+}
+
+.synthesis-body {
+  display: flex;
+  gap: 20px;
+}
+
+.synthesis-panel {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.synthesis-panel h2 {
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.synthesis-hint {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 12px;
+}
+
+.selected-scrap {
+  border-color: var(--hp-red) !important;
+}
+
+.scrap-badge {
+  background: var(--hp-red) !important;
+}
+
+.scrap-button {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.scrap-button:hover {
+  transform: scale(1.02);
+}
+
+.blueprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.blueprint-card {
+  background: rgba(25, 25, 40, 0.9);
+  border: 2px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.blueprint-card.affordable {
+  border-color: var(--hp-green);
+}
+
+.blueprint-card.affordable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.2);
+}
+
+.blueprint-card.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bp-name {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.bp-cost {
+  font-size: 14px;
+  color: #fbbf24;
+}
+
+.compile-flash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 197, 94, 0.3);
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--hp-green);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
