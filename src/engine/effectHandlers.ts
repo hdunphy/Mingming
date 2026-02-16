@@ -1,5 +1,4 @@
-import { GetProgramData } from './data/programRegistry';
-import type { IBattleState, IBattleEntity, ProgramData, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { StatusType } from './types';
 import { calculateDamage, calculateHeal } from './combatUtils';
 import { globalBattleEventBus } from './events';
@@ -259,7 +258,7 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 }
 
 import { drawCards } from './deckLogic';
-import { DEFAULT, DEFAULT_GAME_CONFIG } from './data/gameConfig';
+import { DEFAULT_GAME_CONFIG } from './data/gameConfig';
 
 // ... imports ...
 

@@ -48,7 +48,7 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         const cardId = 'card_1';
         const deck = {
             ...state.playerDeck,
-            hand: [{ id: cardId, dataId: 'any', currentCost: 2, isPlayable: true }]
+            hand: [{ id: cardId, dataId: 'card1', currentCost: 2, isPlayable: true }]
         };
         state = { ...state, playerDeck: deck };
 

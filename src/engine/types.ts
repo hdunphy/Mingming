@@ -144,7 +144,7 @@ export interface ProgramAction {
 }
 
 export interface ProgramConstraint {
-  readonly type: 'HAS_STATUS' | 'HEALTH_THRESHOLD' | 'ENERGY_THRESHOLD';
+  readonly type: 'HAS_STATUS' | 'HEALTH_THRESHOLD' | 'BASE';
   readonly target: 'SELF' | 'TARGET';
   readonly value: string | number;
 }

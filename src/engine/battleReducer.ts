@@ -70,6 +70,72 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
 
 // --- Action Handlers ---
 
+/**
+ * Validates all play requirements for a program including energy and custom constraints.
+ */
+function validateProgramConstraints(
+    _state: IBattleState,
+    source: IBattleEntity,
+    target: IBattleEntity | undefined,
+    program: ProgramData,
+    cost: number
+): boolean {
+
+    // 2. Custom Constraints
+    if (program.constraints) {
+        for (const constraint of program.constraints) {
+            const subject = constraint.target === 'SELF' ? source : target;
+            if (!subject) {
+                // If it requires a target and no target is selected? 
+                // Usually target is required for Single, but not for Side/All (it iterates later).
+                // But for constraints, if it checks target, we need one.
+                if (constraint.target === 'TARGET') {
+                    console.warn(`Constraint ${constraint.type} requires a target.`);
+                    return false;
+                }
+                continue;
+            }
+
+            switch (constraint.type) {
+                case 'HAS_STATUS':
+                    const hasStatus = subject.statusEffects.some(s => s.type === constraint.value);
+                    if (!hasStatus) {
+                        console.warn(`Constraint failed: ${constraint.target} must have ${constraint.value}`);
+                        return false;
+                    }
+                    break;
+
+                case 'HEALTH_THRESHOLD':
+                    // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
+                    if (typeof constraint.value !== 'string') break;
+                    const [op, valStr] = constraint.value.split(':');
+                    const threshold = parseInt(valStr);
+                    const hpPercent = (subject.currentHp / subject.maxHp) * 100;
+
+                    if (op === 'LT' && hpPercent >= threshold) {
+                        console.warn(`Constraint failed: ${constraint.target} HP must be less than ${threshold}%`);
+                        return false;
+                    }
+                    if (op === 'GT' && hpPercent <= threshold) {
+                        console.warn(`Constraint failed: ${constraint.target} HP must be greater than ${threshold}%`);
+                        return false;
+                    }
+                    break;
+
+                case 'BASE':
+                    // 1. Base Energy Check
+                    if (source.currentEnergy < cost) {
+                        console.warn("Insufficient Energy");
+                        return false;
+                    }
+                    break;
+            }
+        }
+    }
+
+    return true;
+}
+
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
         console.warn(`Attempted to play program during ${state.phase} phase.`);
@@ -96,14 +162,17 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     }
 
     const card = hand[cardIndex];
+    const programData = GetProgramData(card.dataId);
 
-    // 3. Check Energy
-    if (sourceEntity.currentEnergy < card.currentCost) {
-        console.warn("Insufficient Energy");
+    // 3. Identify Primary Target (for validation)
+    const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
+
+    // 4. Validate Constraints & Energy
+    if (!validateProgramConstraints(state, sourceEntity, targetEntity, programData, card.currentCost)) {
         return state;
     }
 
-    // 4. Pay Energy
+    // 5. Pay Energy
     const newSourceEntity = {
         ...sourceEntity,
         currentEnergy: sourceEntity.currentEnergy - card.currentCost
@@ -134,12 +203,6 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     });
 
     // 7. Resolve Effect
-    // Lookup Program Data to get actions
-    // Note: We need GetProgramData again.
-    // Optimization: Should have looked it up earlier for Cost check too, but cost is on Entity (cached).
-    // Now we need the full definition.
-    const programData = GetProgramData(card.dataId);
-
     // Iterate through actions and apply them
     let newState = {
         ...state,

@@ -10,7 +10,8 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },],
         actions: [
             { type: 'ATTACK', power: 10, element: 'Fire', target: 'TARGET' }
         ],
@@ -24,7 +25,8 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 2,
-        constraints: [],
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },],
         actions: [
             { type: 'ATTACK', power: 25, element: 'Fire', target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }
@@ -40,7 +42,8 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },],
         actions: [
             { type: 'ATTACK', power: 8, element: 'Water', target: 'TARGET' },
             { type: 'DRAW', count: 1, target: 'SELF' } // Draw not implemented in handlers yet, but good to have data
@@ -56,7 +59,8 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },],
         actions: [
             { type: 'ATTACK', power: 15, element: 'Nature', target: 'TARGET' }
         ],
@@ -71,7 +75,8 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 3,
-        constraints: [],
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },],
         actions: [
             { type: 'ATTACK', power: 5, element: 'None', target: 'TARGET' }
         ],
@@ -85,7 +90,8 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },],
         actions: [
             { type: 'ATTACK', power: 5, element: 'None', target: 'TARGET' }
         ],
@@ -99,9 +105,60 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Attack',
         baseCost: 3,
-        constraints: [],
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },],
         actions: [
             { type: 'ATTACK', power: 15, element: 'Earth', target: 'TARGET' }
+        ],
+        artReference: ''
+    },
+    'prog_drain': {
+        id: 'prog_drain',
+        name: 'Drain Attack',
+        description: 'Deal 15 damage. Heal self for 10.',
+        element: 'Nature',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 2,
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' }],
+        actions: [
+            { type: 'ATTACK', power: 15, element: 'Nature', target: 'TARGET' },
+            { type: 'HEAL', power: 10, target: 'SELF' }
+        ],
+        artReference: ''
+    },
+    'prog_adrenaline': {
+        id: 'prog_adrenaline',
+        name: 'Adrenaline Rush',
+        description: 'Requires HP < 30%. Deal 40 damage.',
+        element: 'Air',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 1,
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },
+            { type: 'HEALTH_THRESHOLD', target: 'SELF', value: 'LT:30' }
+        ],
+        actions: [
+            { type: 'ATTACK', power: 40, element: 'Air', target: 'TARGET' }
+        ],
+        artReference: ''
+    },
+    'prog_kick': {
+        id: 'prog_kick',
+        name: 'Punish Burn',
+        description: 'Requires target to have Burn. Deal 30 damage.',
+        element: 'Earth',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 1,
+        constraints: [
+            { type: 'BASE', target: 'SELF', value: '' },
+            { type: 'HAS_STATUS', target: 'TARGET', value: 'Burn' }
+        ],
+        actions: [
+            { type: 'ATTACK', power: 30, element: 'Earth', target: 'TARGET' }
         ],
         artReference: ''
     }
@@ -120,7 +177,9 @@ export const GetProgramData = (id: string): ProgramData => {
             target: 'Single',
             category: 'Attack',
             baseCost: 99,
-            constraints: [],
+            constraints: [
+                { type: 'BASE', target: 'SELF', value: '' }
+            ],
             actions: [],
             artReference: ''
         };
