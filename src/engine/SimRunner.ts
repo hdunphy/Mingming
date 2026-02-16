@@ -5,94 +5,7 @@ import { getBestAction } from './ai/TacticalAI';
 import { globalBattleEventBus } from './events';
 import { GetProgramData } from './data/programRegistry';
 
-// --- Mock Data Factories ---
-
-function createMockEntity(id: string, name: string, team: 'PLAYER' | 'ENEMY'): IBattleEntity {
-    return {
-        id,
-        name,
-        level: 10,
-        experience: 0,
-        hpIV: 0, attackIV: 0, defenseIV: 0,
-        maxHp: 100,
-        attack: 15,
-        defense: 5,
-        maxEnergy: 10,
-        cardDraw: 1,
-        currentHp: 100,
-        currentEnergy: 10,
-        primaryElement: team === 'PLAYER' ? 'Fire' : 'Water',
-        statusEffects: [],
-        definitionId: 'def_1',
-        tempHp: 0, speed: 10
-        // baseStats removed to match IBattleEntity type
-    };
-}
-
-function createMockDeck(): string[] {
-    // 15 cards: variety for 3v3
-    return [
-        'card_ember', 'card_ember', 'card_ember',
-        'card_vine_whip', 'card_vine_whip', 'card_vine_whip',
-        'card_bubble', 'card_bubble', 'card_bubble',
-        'card_earthquake', 'card_earthquake', 'card_earthquake',
-        'card_fireball', 'card_fireball', 'card_fireball'
-    ];
-}
-
-function instantiateDeck(deckIds: string[]): ProgramEntity[] {
-    return deckIds.map(id => ({
-        id: crypto.randomUUID(),
-        dataId: id,
-        currentCost: GetProgramData(id).baseCost,
-        isPlayable: true
-    }));
-}
-
-function createInitialState(): IBattleState {
-    const p1 = createMockEntity('p1', 'Hero-Fire', 'PLAYER');
-    const p2 = createMockEntity('p2', 'Hero-Water', 'PLAYER');
-    const p3 = createMockEntity('p3', 'Hero-Nature', 'PLAYER');
-
-    const e1 = createMockEntity('e1', 'Villain-Fire', 'ENEMY');
-    const e2 = createMockEntity('e2', 'Villain-Water', 'ENEMY');
-    const e3 = createMockEntity('e3', 'Villain-Nature', 'ENEMY');
-
-    const pDeckCards = instantiateDeck(createMockDeck());
-    const eDeckCards = instantiateDeck(createMockDeck());
-
-    // Draw initial hands (9 cards for 3v3)
-    const pHand = pDeckCards.slice(0, 9);
-    const pDraw = pDeckCards.slice(9);
-
-    const eHand = eDeckCards.slice(0, 9);
-    const eDraw = eDeckCards.slice(9);
-
-    return {
-        sessionId: 'sim_' + Date.now(),
-        seed: Date.now(),
-        turn: 1,
-        phase: 'ACTION',
-        activeSide: 'PLAYER',
-        logs: [],
-        playerParty: [p1, p2, p3],
-        enemyParty: [e1, e2, e3],
-        playerDeck: {
-            ownerId: 'PLAYER',
-            deck: [],
-            drawpile: pDraw,
-            hand: pHand,
-            discard: []
-        },
-        enemyDeck: {
-            ownerId: 'ENEMY',
-            deck: [],
-            drawpile: eDraw,
-            hand: eHand,
-            discard: []
-        }
-    };
-}
+import { createInitialBattleState } from './data/battleFactories';
 
 // --- Simulation Logic ---
 
@@ -104,7 +17,7 @@ export interface SimResult {
 }
 
 export function runSimulation(): SimResult {
-    let state = createInitialState();
+    let state = createInitialBattleState();
     const logBuffer: string[] = [];
     const MAX_TURNS = 50;
 
@@ -146,8 +59,8 @@ export function runSimulation(): SimResult {
         state = nextState;
 
         // 4. Win/Loss Detection
-        const pAlive = state.playerParty.some(e => e.currentHp > 0);
-        const eAlive = state.enemyParty.some(e => e.currentHp > 0);
+        const pAlive = state.playerParty.some((e: IBattleEntity) => e.currentHp > 0);
+        const eAlive = state.enemyParty.some((e: IBattleEntity) => e.currentHp > 0);
 
         if (!pAlive) {
             winner = 'ENEMY';

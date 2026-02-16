@@ -1,68 +1,260 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: #f0f0f5;
+  background-color: #050508;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  /* Design Tokens */
+  --bg-dark: #050508;
+  --bg-card: rgba(18, 18, 24, 0.85);
+  --accent-primary: #7c3aed;
+  --hp-green: #22c55e;
+  --hp-red: #ef4444;
+  --energy-blue: #3b82f6;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --premium-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.9);
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  /* Elemental Colors */
+  --fire: #ff3333;
+  --water: #3399ff;
+  --nature: #33cc33;
+  --earth: #996633;
+  --air: #87ceeb;
+  --ice: #00ffff;
+  --light: #ffff80;
+  --dark: #8000ff;
 }
 
 body {
   margin: 0;
   display: flex;
-  place-items: center;
-  min-width: 320px;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #1b1b3a 0%, #050508 100%);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#root {
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+/* Battle Layout */
+.battle-screen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stage-area {
+  flex: 0 0 70%;
+  /* Top 70% */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 100px;
+  position: relative;
+  background: radial-gradient(circle at center, #1b1b3a 0%, #050508 100%);
+  box-shadow: inset 0 -20px 40px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.console-area {
+  flex: 0 0 30%;
+  /* Bottom 30% */
+  background: #0a0a0f;
+  border-top: 2px solid var(--glass-border);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.party-column {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.player-side {
+  align-items: flex-start;
+}
+
+.enemy-side {
+  align-items: flex-end;
+}
+
+/* Units */
+.unit-card {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 16px;
+  width: 220px;
+  box-shadow: var(--premium-shadow);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  position: relative;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.unit-card:hover {
+  border-color: var(--accent-primary);
+  transform: scale(1.05);
+  z-index: 50;
+}
+
+.unit-card.selected {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 30px var(--accent-primary);
+}
+
+.unit-name {
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.bar-container {
+  background: rgba(0, 0, 0, 0.5);
+  height: 10px;
+  border-radius: 5px;
+  margin: 10px 0;
+}
+
+.hp-bar {
+  height: 100%;
+  background: var(--hp-green);
+  transition: width 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.energy-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.energy-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--energy-blue);
+}
+
+.energy-pip.empty {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Console & Card Hand */
+.hand-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 0;
+  box-sizing: border-box;
+}
+
+.hand-fan {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 140px;
+  /* Reduced to fit console */
+  width: 100%;
+  position: relative;
+}
+
+.program-card {
+  width: 130px;
+  height: 180px;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px;
+  position: absolute;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.program-card:hover {
+  transform: translateY(-20px) scale(1.05) !important;
+  border-color: var(--accent-primary);
+  z-index: 100 !important;
+}
+
+.program-card.selected {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 20px var(--accent-primary);
+  transform: translateY(-30px) scale(1.1) !important;
+}
+
+.card-cost {
+  background: var(--energy-blue);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.card-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.battle-controls {
+  display: flex;
+  gap: 20px;
+  z-index: 300;
+}
+
+.action-button {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3);
+}
+
+.action-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.action-button.end-turn {
+  background: transparent;
+  border: 2px solid var(--accent-primary);
 }

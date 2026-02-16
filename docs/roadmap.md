@@ -7,13 +7,13 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 
 ## **Epic 1: The Headless Kernel (Logic Core)**
 *Focus: 100% UI-independent combat engine.*
-- **Milestone 1.1: State Definitions:** Define Typescript interfaces for `MingMing`, `Program`, `Deck`, and `GameState`.
-- **Milestone 1.2: The Damage Processor:** Implement the deterministic damage formula and elemental matrix.
-- **Milestone 1.3: Turn State Machine:** Implement the 3-phase turn logic (Pre-Turn, Attack, Post-Turn).
-- **Milestone 1.4: Status Effect Ecosystem:** Reducer logic for the 8 status effects (Burn stages, Sleep-break, etc.).
-- **Milestone 1.5: The Middleware Hook System (Event Bus):** Implement a modular event system (e.g., `onDamageTaken`, `onStatusApplied`, `onProgramPlayed`) to allow cards/stats to hook into the engine.
-- **Milestone 1.6: The Tactical AI (Min-Max):** Implement the Alpha-Beta Min-Max algorithm to evaluate optimal hand-play order based on board state (HP/Status weighting).
-- **Milestone 1.7: The Headless Simulation Runner:** A CLI or script-based runner to execute 1,000+ full battles without a UI to verify balance and stability.
+- [x] **Milestone 1.1: State Definitions:** Define Typescript interfaces for `MingMing`, `Program`, `Deck`, and `GameState`.
+- [x] **Milestone 1.2: The Damage Processor:** Implement the deterministic damage formula and elemental matrix.
+- [x] **Milestone 1.3: Turn State Machine:** Implement the 3-phase turn logic (Pre-Turn, Attack, Post-Turn).
+- [x] **Milestone 1.4: Status Effect Ecosystem:** Reducer logic for the 8 status effects (Burn stages, Sleep-break, etc.).
+- [x] **Milestone 1.5: The Middleware Hook System (Event Bus):** Implement a modular event system (e.g., `onDamageTaken`, `onStatusApplied`, `onProgramPlayed`).
+- [x] **Milestone 1.6: The Tactical AI (Min-Max):** Implement the Alpha-Beta Min-Max algorithm for optimal hand-play.
+- [x] **Milestone 1.7: The Headless Simulation Runner:** CLI/Script runner to execute full battles for balance verification.
 
 ## **Epic 2: The Interface Layer (Battle UI)**
 *Focus: High-fidelity, reactive combat presentation.*
@@ -26,7 +26,7 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 *Focus: Roster and Deck building systems.*
 - **Milestone 3.1: The Deck Builder:** Paginated card inventory and deck validation (max quantity checks).
 - **Milestone 3.2: Synthesis Lab:** UI for "Breaking Scraps" and "Synthesizing Blueprints."
-- **Milestone 3.3: Persistence:** LocalStorage/IndexedDB save system for current MingMings and Decks.
+- **Milestone 3.3: Persistence:** LocalStorage/SQLite save system for current MingMings and Decks.
 
 ## **Epic 4: The Overworld (Grid Engine)**
 *Focus: Tile-based exploration and encounter logic.*
@@ -40,7 +40,25 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 - **Milestone 5.2: Seeded Replays:** Replay system to verify 100% determinism.
 - **Milestone 5.3: Steam/Electron Wrap:** Packaging the web app as a native executable.
 
+## **Epic 6: The Augmentation Protocol**
+*Focus: Long-term strategic depth and synergies.*
+- **Milestone 6.1: Hardware Module System:** Implement physical "Relic" slots (max 3 per MingMing) with passive logic hooks.
+- **Milestone 6.2: Persistent Daemon Logic:** Create a new card class that installs background processes for battle-long buffs.
+- **Milestone 6.3: Modularity Balance:** Ensure AI accounts for installed Modules and active Daemons in its Min-Max scoring.
+
+## **Epic 7: The LAN Protocol (Positioning & Adjacency)**
+*Focus: Spatial strategy and team networking.*
+- **Milestone 7.1: Grid-Aware State:** Add `slotIndex` to `IBattleEntity` and update the Reducer to track 3v3 positioning.
+- **Milestone 7.2: Adjacency Logic:** Implement the "Networking" hook system where MingMings gain buffs based on neighbors (e.g., LAN Synergies).
+- **Milestone 7.3: Positional Programs:** Create cards that manipulate positioning (e.g., `Re-Route.dm` to swap slots).
+- **Milestone 7.4: Splash Damage Engine:** Update the Damage Processor to handle adjacency-based splash damage.
+
+## **Epic 8: The Developer Toolkit (Modding & Creation)**
+*Focus: Community longevity and rapid iteration.*
+- **Milestone 8.1: The Blueprint Forge:** Visual UI for creating MingMings and adjusting IV scaling.
+- **Milestone 8.2: The Program Compiler:** Visual UI for stacking `actions` and `constraints` for new cards.
+
 ---
 
-## **Current Priority: Epic 1 (The Headless Kernel)**
-**Next Task:** Bootstrap the project and implement **Milestone 1.1 & 1.2**.
+## **Current Priority: Epic 2 (The Interface Layer)**
+**Next Task:** Deconstruct Milestone 2.1 implementation requirements.

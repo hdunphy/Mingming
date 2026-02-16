@@ -6,28 +6,26 @@ This document outlines the UI/UX requirements for the **Mingming** combat interf
 
 ## **1. Layout Architecture (`BattleArena.tsx`)**
 
-The arena must handle up to 6 MingMings (3 Player, 3 Enemy) and a 9-card hand without feeling cluttered.
+The arena utilizes a **Side-on Perspective** (similar to Slay the Spire) to maximize the 3v3 battlefield while ensuring the 9-card hand does not overlap active units.
 
-### **1.1. The "Perspective" Grid**
-- **Enemy Side (Top):** 3 units arranged in a slight arc.
-- **Player Side (Bottom):** 3 units arranged in a slight arc.
-- **Z-Index Logic:** Units in the "Back" have lower scale (0.8x) and opacity (0.9x) until they move forward.
+### **1.1. The "Side-on" Stage (Top 70%)**
+- **Player Side (Left):** 3 units arranged in a staggered `>` formation.
+- **Enemy Side (Right):** 3 units arranged in a staggered `<` formation.
+- **Depth Stagger:** Units in the "Back" (further from center) should have slightly lower scale (0.9x) to simulate perspective.
 
 ### **1.2. The "Step Forward" Lunge (Framer Motion)**
-- **Trigger:** When a `Program` is selected (active card state).
-- **Animation:** The source MingMing lunges toward the center (Y-offset: -50px).
-- **Secondary Effect:** Non-targetable units are slightly dimmed; valid targets pulse with a white outline.
+- **Trigger:** When a `Program` is selected from the hand.
+- **Animation:** The source MingMing lunges horizontally toward the center of the screen (X-offset: 60px for Player, -60px for Enemy).
+- **Secondary Effect:** Valid targets pulse with an elemental outline; non-targets are dimmed (opacity 0.4x).
 
 ---
 
-## **2. Program Hand & Interaction (`CardHand.tsx`)**
+## **2. The Console: Hand & Interaction (Bottom 30%)**
 
-### **2.1. Hand Layout**
-- **Dynamic Fan:** Cards should fan out at the bottom of the screen.
-- **Hover State:** Selected cards pop up, showing a detailed **Tooltip** with:
-    - Elemental Type Icon.
-    - Energy Cost (matches the color of the unit's energy bar).
-    - Raw Power and Status Effect details.
+### **2.1. Hand Layout (`CardHand.tsx`)**
+- **Reserved Space:** The bottom 30% of the screen is a dedicated "Console" area. 
+- **Non-Overlap:** The hand must **never** physically overlap the MingMing sprites or their health bars on the stage.
+- **Dynamic Fan:** Cards fan out at the bottom. Hovering over a card slides it upward *within the Console area* and shows a high-fidelity tooltip.
 
 ### **2.2. Targeting System (Drag-to-Action)**
 - **Drag Start:** Program card detaches from hand.
