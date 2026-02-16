@@ -47,7 +47,10 @@ function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
     const myScore = state[myPartyKey].reduce((sum, e) => sum + getEntityScore(e), 0);
     const oppScore = state[oppPartyKey].reduce((sum, e) => sum + getEntityScore(e), 0);
 
-    return myScore - oppScore;
+    // Kill bonus: strongly incentivize finishing off enemies
+    const oppDead = state[oppPartyKey].filter(e => e.currentHp <= 0).length;
+
+    return myScore - oppScore + (oppDead * 50);
 }
 
 /**

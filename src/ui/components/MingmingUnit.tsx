@@ -142,6 +142,9 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     />
                 </div>
+                <div style={{ fontSize: '0.65rem', textAlign: 'center', opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
+                    {entity.currentHp} / {entity.maxHp}
+                </div>
 
                 <div className="energy-row">
                     {energyPips}
@@ -157,7 +160,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                     key={`${se.type}-${i}`}
                                     className="status-badge"
                                     style={{ borderColor: info.color, color: info.color }}
-                                    title={`${se.type} (${se.stacks} stacks, ${se.duration} turns)`}
+                                    title={`${se.type} (${se.stacks} stacks)`}
                                 >
                                     <span className="status-icon">{info.icon}</span>
                                     {se.stacks > 1 && <span className="status-stacks">×{se.stacks}</span>}

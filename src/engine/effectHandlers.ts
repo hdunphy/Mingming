@@ -2,6 +2,7 @@ import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { StatusType } from './types';
 import { calculateDamage, calculateHeal } from './combatUtils';
 import { globalBattleEventBus } from './events';
+import { getStatusBehavior } from './StatusBehaviors';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -132,61 +133,7 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
 // ... Duality Map ...
 // ... handleApplyStatus ...
 
-// --- Burn Logic & Post Turn Handler ---
-export function resolvestatusEffects(state: IBattleState): IBattleState {
-    // Determine active party for Post-Turn (The player whose turn just ended)
-    const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
-    const activeParty = state[activePartyKey];
-
-    const updatedParty = activeParty.map(entity => {
-        let currentHp = entity.currentHp;
-        let defense = entity.defense;
-
-        const burnEffect = entity.statusEffects.find(s => s.type === 'Burn');
-        if (burnEffect) {
-
-            const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
-            const stacks = burnEffect.stacks;
-
-            const { damagePercent, defShredPercent } = burnConfig[stacks - 1] ?? burnConfig[burnConfig.length - 1];
-
-            // Apply Burn Damage
-            const burnDamage = Math.floor(entity.maxHp * damagePercent);
-            if (burnDamage > 0) {
-                currentHp = Math.max(0, currentHp - burnDamage);
-                globalBattleEventBus.emit({
-                    type: 'DAMAGE_TAKEN',
-                    targetId: entity.id,
-                    amount: burnDamage,
-                    element: 'Fire',
-                    timestamp: Date.now()
-                });
-            }
-
-            // Apply Defense Shred
-            if (defShredPercent > 0) {
-                const shredAmount = Math.floor(entity.defense * defShredPercent);
-                // Defense reduction is permanent "Shred" in this implementation
-                defense = Math.max(0, defense - shredAmount);
-
-                globalBattleEventBus.emit({
-                    type: 'STATUS_APPLIED', // Using STATUS_APPLIED as a generic "stat change" indicator if no specific event
-                    targetId: entity.id,
-                    status: 'Weakened', // Mocking a stat change event or could add a STAT_CHANGE event
-                    stacks: shredAmount,
-                    timestamp: Date.now()
-                });
-            }
-        }
-
-        return { ...entity, currentHp, defense };
-    });
-
-    return {
-        ...state,
-        [activePartyKey]: updatedParty
-    };
-}
+// --- Duality Map (pre-step before behavior.onApply) ---
 
 const DUALITY_MAP: Partial<Record<StatusType, StatusType>> = {
     'Sharp': 'Dazed',
@@ -195,88 +142,103 @@ const DUALITY_MAP: Partial<Record<StatusType, StatusType>> = {
     'Weakened': 'Strengthened',
 };
 
-function handleApplyStatus(state: IBattleState, payload: { targetId: string; status: StatusType; stacks: number }): IBattleState {
-    const { targetId, status, stacks } = payload;
-    const oppositeStatus = DUALITY_MAP[status];
+function handleApplyStatus(state: IBattleState, payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number }): IBattleState {
+    const { targetId, status, stacks, sourceId, power } = payload;
+    const behavior = getStatusBehavior(status);
 
-    // Update entity status list
+    const sourceEntity = sourceId
+        ? (state.playerParty.find(e => e.id === sourceId) || state.enemyParty.find(e => e.id === sourceId))
+        : undefined;
+
+    const initialTarget = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
+    if (!initialTarget) return state;
+
+    // 1. Scaling
+    const scaledStacks = behavior.getScaledStacks(stacks, sourceEntity, power);
+
+    // 2. Duality cancellation
+    const oppositeStatus = DUALITY_MAP[status];
+    let currentEffects = [...initialTarget.statusEffects];
+    let remainingStacks = scaledStacks;
+    let dualityLogs: string[] = [];
+
+    if (oppositeStatus) {
+        const oppositeIndex = currentEffects.findIndex(s => s.type === oppositeStatus);
+        if (oppositeIndex !== -1) {
+            const opposite = currentEffects[oppositeIndex];
+            if (opposite.stacks > remainingStacks) {
+                currentEffects[oppositeIndex] = { ...opposite, stacks: opposite.stacks - remainingStacks };
+                dualityLogs.push(`  ✨ ${initialTarget.name}'s ${oppositeStatus} reduced by ${remainingStacks} by ${status}`);
+                remainingStacks = 0;
+            } else if (opposite.stacks === remainingStacks) {
+                currentEffects.splice(oppositeIndex, 1);
+                dualityLogs.push(`  ✨ ${initialTarget.name}'s ${oppositeStatus} canceled by ${status}`);
+                remainingStacks = 0;
+            } else {
+                remainingStacks -= opposite.stacks;
+                currentEffects.splice(oppositeIndex, 1);
+                dualityLogs.push(`  ✨ ${initialTarget.name}'s ${oppositeStatus} canceled by ${status}`);
+            }
+        }
+    }
+
+    let finalEffects = currentEffects;
+    let immediateDamage = 0;
+    let behaviorLogs: string[] = [];
+
+    // 3. Behavior Logic (only if stacks remaining after duality)
+    if (remainingStacks > 0) {
+        const result = behavior.onApply(currentEffects, remainingStacks, initialTarget, sourceEntity, power);
+        finalEffects = result.updatedEffects;
+        immediateDamage = result.immediateDamage;
+        behaviorLogs = result.logs;
+    }
+
+    // 4. Update State
+    let newState = state;
+
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => {
             if (e.id !== targetId) return e;
-
-            let newStatusEffects = [...e.statusEffects];
-            let remainingStacks = stacks;
-
-            // 1. Check Duality (Opposite)
-            if (oppositeStatus) {
-                const oppositeIndex = newStatusEffects.findIndex(s => s.type === oppositeStatus);
-                if (oppositeIndex !== -1) {
-                    const opposite = newStatusEffects[oppositeIndex];
-
-                    if (opposite.stacks > remainingStacks) {
-                        // Reduce opposite, consume all new stacks
-                        newStatusEffects[oppositeIndex] = { ...opposite, stacks: opposite.stacks - remainingStacks };
-                        remainingStacks = 0;
-                    } else if (opposite.stacks === remainingStacks) {
-                        // Remove opposite, consume all new stacks
-                        newStatusEffects.splice(oppositeIndex, 1);
-                        remainingStacks = 0;
-                    } else {
-                        // Remove opposite, some new stacks remain
-                        remainingStacks -= opposite.stacks;
-                        newStatusEffects.splice(oppositeIndex, 1);
-                    }
-                }
-            }
-
-            // 2. Additive Stacks (Same) or New Instance
-            if (remainingStacks > 0) {
-                const existingIndex = newStatusEffects.findIndex(s => s.type === status);
-
-                if (existingIndex !== -1) {
-                    // Add to existing
-                    const existing = newStatusEffects[existingIndex];
-                    newStatusEffects[existingIndex] = { ...existing, stacks: existing.stacks + remainingStacks, duration: 3 };
-                } else {
-                    // Add new
-                    newStatusEffects.push({
-                        id: crypto.randomUUID(),
-                        type: status,
-                        duration: 3,
-                        stacks: remainingStacks
-                    });
-                }
-            }
-
-            return {
-                ...e,
-                statusEffects: newStatusEffects
-            };
+            const newHp = Math.max(0, e.currentHp - immediateDamage);
+            return { ...e, currentHp: newHp, statusEffects: finalEffects };
         });
 
-    globalBattleEventBus.emit({
-        type: 'STATUS_APPLIED',
-        targetId,
-        status,
-        stacks,
-        timestamp: Date.now()
-    });
-
-    let newState: IBattleState = {
+    newState = {
         ...state,
         playerParty: updateParty(state.playerParty),
         enemyParty: updateParty(state.enemyParty)
-    } as IBattleState;
+    };
 
-    const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
-    const targetName = targetEntity?.name || targetId;
-    newState = addLog(newState, `  → ${targetName} gains ${status} (${stacks} stacks)`);
+    // 5. Logging & Events
+    for (const log of dualityLogs) newState = addLog(newState, log);
+    for (const log of behaviorLogs) newState = addLog(newState, log);
+
+    if (remainingStacks > 0) {
+        newState = addLog(newState, `  → ${initialTarget.name} gains ${status} (${remainingStacks} stacks)`);
+        globalBattleEventBus.emit({
+            type: 'STATUS_APPLIED',
+            targetId,
+            status,
+            stacks: remainingStacks,
+            timestamp: Date.now()
+        });
+    }
+
+    if (immediateDamage > 0) {
+        globalBattleEventBus.emit({
+            type: 'DAMAGE_TAKEN',
+            targetId: initialTarget.id,
+            amount: immediateDamage,
+            element: 'None',
+            timestamp: Date.now()
+        });
+    }
 
     return newState;
 }
 
 import { drawCards } from './deckLogic';
-import { DEFAULT_GAME_CONFIG } from './data/gameConfig';
 
 // ... imports ...
 

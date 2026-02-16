@@ -1,7 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity, StatusType } from './types';
 import { GetProgramData } from './data/programRegistry';
+import { TestProgramRegistry } from './data/testProgramRegistry';
+
+vi.mock('./data/programRegistry', async (importOriginal) => {
+    const original = await importOriginal<typeof import('./data/programRegistry')>();
+    return {
+        ...original,
+        GetProgramData: vi.fn((id: string) => TestProgramRegistry[id] || original.GetProgramData(id))
+    };
+});
 
 // --- Helper: Mock State ---
 function createMockState(): IBattleState {
@@ -99,7 +108,7 @@ describe('Milestone 8: Program Factory & Constraints', () => {
         let state = createMockState();
         const e1 = {
             ...state.enemyParty[0],
-            statusEffects: [{ id: 'b1', type: 'Burn' as StatusType, stacks: 1, duration: 3 }]
+            statusEffects: [{ id: 'b1', type: 'Burn' as StatusType, stacks: 1 }]
         };
         state = { ...state, enemyParty: [e1] };
 

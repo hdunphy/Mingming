@@ -1,5 +1,13 @@
 import type { ProgramData } from '../types';
 
+
+export const AWAKE_CONSTRAINT = { type: 'NOT_STATUS' as const, target: 'SELF' as const, value: 'Asleep' };
+export const ALERT_CONSTRAINT = { type: 'NOT_STATUS' as const, target: 'SELF' as const, value: 'Stunned' };
+export const ASLEEP_CONSTRAINT = { type: 'HAS_STATUS' as const, target: 'SELF' as const, value: 'Asleep' };
+export const BASE_CONSTRAINT = { type: 'BASE' as const, target: 'SELF' as const, value: '' };
+
+export const STANDARD_CONSTRAINTS = [ALERT_CONSTRAINT, AWAKE_CONSTRAINT, BASE_CONSTRAINT];
+
 const ProgramRegistry: Record<string, ProgramData> = {
     // --- GDD CORE CARDS (34) ---
     'rest': {
@@ -10,7 +18,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Status',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'APPLY_STATUS', status: 'Asleep', stacks: 1, target: 'TARGET' },
             { type: 'HEAL', power: 10, target: 'TARGET' }
@@ -24,7 +32,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [{ type: 'HAS_STATUS', target: 'TARGET', value: 'Asleep' }],
+        constraints: [ASLEEP_CONSTRAINT, BASE_CONSTRAINT, ALERT_CONSTRAINT],
         actions: [{ type: 'ATTACK', power: 20, target: 'TARGET' }],
     },
     'scratch': {
@@ -35,7 +43,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }],
     },
     'squirt': {
@@ -46,7 +54,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 0,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 10, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Dazed', stacks: 1, target: 'TARGET' }
@@ -60,7 +68,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 90, target: 'TARGET' }],
     },
     'whirlpool': {
@@ -71,7 +79,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 20, target: 'TARGET' },
             { type: 'DRAW', count: 1, target: 'SELF' }
@@ -85,7 +93,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Special',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'REMOVE_STATUS', target: 'TARGET' }],
     },
     'bathe': {
@@ -96,7 +104,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Self',
         category: 'Heal',
         baseCost: 0,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'HEAL', power: 10, target: 'TARGET' }],
     },
     'scald': {
@@ -107,7 +115,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 30, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }
@@ -121,7 +129,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 30, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Poison', stacks: 1, target: 'TARGET' }
@@ -135,7 +143,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Self',
         category: 'Heal',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'HEAL', power: 10, target: 'TARGET' },
             { type: 'DRAW', count: 1, target: 'SELF' }
@@ -149,7 +157,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 20, target: 'TARGET' }],
     },
     'hypnosis': {
@@ -160,7 +168,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Status',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Asleep', stacks: 1, target: 'TARGET' }],
     },
     'reguvinate': {
@@ -171,7 +179,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Self',
         category: 'Heal',
         baseCost: 1,
-        constraints: [{ type: 'HAS_STATUS', target: 'SELF', value: 'Asleep' }],
+        constraints: [ASLEEP_CONSTRAINT, BASE_CONSTRAINT, ALERT_CONSTRAINT],
         actions: [{ type: 'HEAL', power: 20, target: 'TARGET' }],
     },
     'rain': {
@@ -182,7 +190,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Status',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Weakened', stacks: 1, target: 'TARGET' }],
     },
     'drink_tea': {
@@ -193,7 +201,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Self',
         category: 'Status',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'APPLY_STATUS', status: 'Sharp', stacks: 1, target: 'TARGET' },
             { type: 'DRAW', count: 1, target: 'SELF' }
@@ -207,7 +215,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 3,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 150, target: 'TARGET' }],
     },
     'boost': {
@@ -218,7 +226,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Special',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ADD_ENERGY', amount: 2, target: 'TARGET' }],
     },
     'cannon_ball': {
@@ -229,7 +237,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Attack',
         baseCost: 4,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 100, target: 'TARGET' }],
     },
     'hot_springs': {
@@ -240,7 +248,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Status',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Strengthened', stacks: 1, target: 'TARGET' }],
     },
     'reckless': {
@@ -251,7 +259,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Self',
         category: 'Status',
         baseCost: 0,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'APPLY_STATUS', status: 'Dazed', stacks: 1, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Strengthened', stacks: 1, target: 'TARGET' }
@@ -265,7 +273,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 75, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }
@@ -279,7 +287,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Attack',
         baseCost: 3,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 90, target: 'TARGET' }],
     },
     'rage': {
@@ -291,7 +299,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 20, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Strengthened', stacks: 1, target: 'SELF' }
@@ -305,7 +313,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 50, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Weakened', stacks: 1, target: 'SELF' }
@@ -319,7 +327,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Status',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Strengthened', stacks: 1, target: 'TARGET' }],
     },
     'fired_up': {
@@ -330,7 +338,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Self',
         category: 'Heal',
         baseCost: 1,
-        constraints: [{ type: 'HAS_STATUS', target: 'SELF', value: 'Burn' }],
+        constraints: [{ type: 'HAS_STATUS', target: 'SELF', value: 'Burn' }, ...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'HEAL', power: 10, target: 'TARGET' },
             { type: 'REMOVE_STATUS', status: 'Burn', target: 'TARGET' }
@@ -344,7 +352,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Status',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }],
     },
     'roast': {
@@ -355,7 +363,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Status',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Burn', stacks: 3, target: 'TARGET' }],
     },
     'spicy_breath': {
@@ -366,7 +374,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 0,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }],
     },
     'preheat': {
@@ -377,7 +385,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Self',
         category: 'Status',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Strengthened', stacks: 1, target: 'TARGET' }],
     },
     'flash': {
@@ -388,7 +396,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Status',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Stunned', stacks: 1, target: 'TARGET' }],
     },
     'fire_punch': {
@@ -399,7 +407,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 60, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Stunned', stacks: 1, target: 'TARGET' }
@@ -412,56 +420,56 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'ignite_pipeline',
         name: 'Ignite Pipeline',
         description: 'Apply Burn (Stage 1). If already Burned, upgrade to Stage 2.',
-        element: 'Fire', target: 'Single', category: 'Status', baseCost: 1, constraints: [],
+        element: 'Fire', target: 'Single', category: 'Status', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }],
     },
     'magma_surge': {
         id: 'magma_surge',
         name: 'Magma Surge',
         description: 'Deal 30 damage. Target takes +5 damage from Burn for 3 turns.',
-        element: 'Fire', target: 'Single', category: 'Attack', baseCost: 1, constraints: [],
+        element: 'Fire', target: 'Single', category: 'Attack', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }],
     },
     'heat_sink': {
         id: 'heat_sink',
         name: 'Heat Sink',
         description: 'Remove Burn from target to gain +2 Energy.',
-        element: 'Fire', target: 'Single', category: 'Special', baseCost: 0, constraints: [],
+        element: 'Fire', target: 'Single', category: 'Special', baseCost: 0, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'REMOVE_STATUS', status: 'Burn', target: 'TARGET' }, { type: 'ADD_ENERGY', amount: 2, target: 'SELF' }],
     },
     'combustion': {
         id: 'combustion',
         name: 'Combustion',
         description: 'Deal 40 damage. If target is Stage 3 Burned, deal 80 instead.',
-        element: 'Fire', target: 'Single', category: 'Attack', baseCost: 2, constraints: [],
+        element: 'Fire', target: 'Single', category: 'Attack', baseCost: 2, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }],
     },
     'sulfur_cloud': {
         id: 'sulfur_cloud',
         name: 'Sulfur Cloud',
         description: 'Apply Stage 1 Burn to the entire enemy Side.',
-        element: 'Fire', target: 'Side', category: 'Status', baseCost: 2, constraints: [],
+        element: 'Fire', target: 'Side', category: 'Status', baseCost: 2, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }],
     },
     'surtrs_wrath': {
         id: 'surtrs_wrath',
         name: "Surtr's Wrath",
         description: 'Deal 100 damage. Targets with Stage 3 Burn are also Stunned.',
-        element: 'Fire', target: 'Single', category: 'Attack', baseCost: 4, constraints: [],
+        element: 'Fire', target: 'Single', category: 'Attack', baseCost: 4, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 100, target: 'TARGET' }],
     },
     'self_immolate': {
         id: 'self_immolate',
         name: 'Self-Immolate',
         description: 'Take 15 damage, gain 2 Strengthened stacks.',
-        element: 'Fire', target: 'Self', category: 'Status', baseCost: 0, constraints: [],
+        element: 'Fire', target: 'Self', category: 'Status', baseCost: 0, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 15, target: 'SELF' }, { type: 'APPLY_STATUS', status: 'Strengthened', stacks: 2, target: 'SELF' }],
     },
     'nova_blast': {
         id: 'nova_blast',
         name: 'Nova Blast',
         description: 'Deal 70 damage to all units.',
-        element: 'Fire', target: 'All', category: 'Attack', baseCost: 2, constraints: [],
+        element: 'Fire', target: 'All', category: 'Attack', baseCost: 2, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 70, target: 'TARGET' }],
     },
 
@@ -470,21 +478,21 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'venomous_coil',
         name: 'Venomous Coil',
         description: 'Deal 20 damage and apply 2 Dazed stacks.',
-        element: 'Water', target: 'Single', category: 'Attack', baseCost: 1, constraints: [],
+        element: 'Water', target: 'Single', category: 'Attack', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 20, target: 'TARGET' }, { type: 'APPLY_STATUS', status: 'Dazed', stacks: 2, target: 'TARGET' }],
     },
     'abyssal_grip': {
         id: 'abyssal_grip',
         name: 'Abyssal Grip',
         description: 'If target is Dazed, apply Stunned (1 turn).',
-        element: 'Water', target: 'Single', category: 'Status', baseCost: 2, constraints: [{ type: 'HAS_STATUS', target: 'TARGET', value: 'Dazed' }],
+        element: 'Water', target: 'Single', category: 'Status', baseCost: 2, constraints: [{ type: 'HAS_STATUS', target: 'TARGET', value: 'Dazed' }, ...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Stunned', stacks: 1, target: 'TARGET' }],
     },
     'murky_water': {
         id: 'murky_water',
         name: 'Murky Water',
         description: 'Apply 3 Dazed stacks to the entire enemy Side.',
-        element: 'Water', target: 'Side', category: 'Status', baseCost: 3, constraints: [],
+        element: 'Water', target: 'Side', category: 'Status', baseCost: 3, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Dazed', stacks: 3, target: 'TARGET' }],
     },
 
@@ -493,14 +501,14 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'iron_hide',
         name: 'Iron Hide',
         description: 'Gain 3 Sharp stacks.',
-        element: 'Earth', target: 'Self', category: 'Status', baseCost: 1, constraints: [],
+        element: 'Earth', target: 'Self', category: 'Status', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Sharp', stacks: 3, target: 'TARGET' }],
     },
     'earthquake_norse': {
         id: 'earthquake_norse',
         name: 'Earthquake',
         description: 'Deal 40 damage to all enemies. Power increases by 5 for every Sharp stack you have.',
-        element: 'Earth', target: 'Side', category: 'Attack', baseCost: 3, constraints: [],
+        element: 'Earth', target: 'Side', category: 'Attack', baseCost: 3, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }],
     },
 
@@ -509,7 +517,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'tailwind',
         name: 'Tailwind',
         description: 'Draw 2 cards, then Discard 1.',
-        element: 'Air', target: 'Self', category: 'Special', baseCost: 1, constraints: [],
+        element: 'Air', target: 'Self', category: 'Special', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'DRAW', count: 2, target: 'SELF' }],
     },
 
@@ -518,7 +526,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'acorn_shot',
         name: 'Acorn Shot',
         description: 'Deal 10 damage 3 times.',
-        element: 'Nature', target: 'Single', category: 'Attack', baseCost: 1, constraints: [],
+        element: 'Nature', target: 'Single', category: 'Attack', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 10, target: 'TARGET' },
             { type: 'ATTACK', power: 10, target: 'TARGET' },
@@ -531,7 +539,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'glacial_age',
         name: 'Glacial Age',
         description: 'All enemies are Asleep for 1 turn.',
-        element: 'Ice', target: 'Side', category: 'Status', baseCost: 4, constraints: [],
+        element: 'Ice', target: 'Side', category: 'Status', baseCost: 4, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Asleep', stacks: 1, target: 'TARGET' }],
     },
 
@@ -540,7 +548,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'radiant_hope',
         name: 'Radiant Hope',
         description: 'Heal all allied MingMings for 15 HP.',
-        element: 'Light', target: 'Side', category: 'Heal', baseCost: 2, constraints: [],
+        element: 'Light', target: 'Side', category: 'Heal', baseCost: 2, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'HEAL', power: 15, target: 'TARGET' }],
     },
 
@@ -549,14 +557,14 @@ const ProgramRegistry: Record<string, ProgramData> = {
         id: 'soul_siphon',
         name: 'Soul Siphon',
         description: 'Deal 30 damage, heal for 15.',
-        element: 'Dark', target: 'Single', category: 'Attack', baseCost: 1, constraints: [],
+        element: 'Dark', target: 'Single', category: 'Attack', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }, { type: 'HEAL', power: 15, target: 'SELF' }],
     },
     'reboot': {
         id: 'reboot',
         name: 'Reboot',
         description: 'Revive a fainted MingMing with 1 HP.',
-        element: 'Dark', target: 'Single', category: 'Special', baseCost: 5, constraints: [],
+        element: 'Dark', target: 'Single', category: 'Special', baseCost: 5, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'REVIVE', target: 'TARGET' }],
     },
 
@@ -569,7 +577,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 10, element: 'Fire', target: 'TARGET' }],
     },
     'card_vine_whip': {
@@ -580,7 +588,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 15, element: 'Nature', target: 'TARGET' }],
     },
     'card_bubble': {
@@ -591,7 +599,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 1,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 8, element: 'Water', target: 'TARGET' }, { type: 'DRAW', count: 1, target: 'SELF' }],
     },
     'card_fireball': {
@@ -602,7 +610,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Single',
         category: 'Attack',
         baseCost: 2,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 25, element: 'Fire', target: 'TARGET' }, { type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }],
     },
     'card_earthquake': {
@@ -613,7 +621,7 @@ const ProgramRegistry: Record<string, ProgramData> = {
         target: 'Side',
         category: 'Attack',
         baseCost: 3,
-        constraints: [],
+        constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 15, element: 'Earth', target: 'TARGET' }],
     }
 };

@@ -30,7 +30,8 @@ export function createMockDeck(isWater: boolean = false): string[] {
         'rain', 'drink_tea', 'hydro_pump', 'cannon_ball', 'hot_springs', 'nightmare'
     ]
         : [
-            'reckless', 'flamethrower', 'erupt', 'rage', 'charge', 'radiate', 'fired_up', 'toats', 'roast', 'spicy_breath', 'preheat', 'flash', 'fire_punch'
+            'reckless', 'flamethrower', 'erupt', 'rage', 'charge', 'radiate', 'fired_up',
+            'toats', 'roast', 'spicy_breath', 'preheat', 'flash', 'fire_punch'
         ];
 }
 

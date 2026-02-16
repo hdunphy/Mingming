@@ -1,7 +1,17 @@
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { calculateDamage, calculateModifier, calculateHeal, ElementalMatrix } from './combatUtils';
 import type { IBattleEntity, ProgramData, Element } from './types';
+import { GetProgramData } from './data/programRegistry';
+import { TestProgramRegistry } from './data/testProgramRegistry';
+
+vi.mock('./data/programRegistry', async (importOriginal) => {
+    const original = await importOriginal<typeof import('./data/programRegistry')>();
+    return {
+        ...original,
+        GetProgramData: vi.fn((id: string) => TestProgramRegistry[id] || original.GetProgramData(id))
+    };
+});
 
 // Mock Factory Helper
 function createMockEntity(id: string, primary: Element, secondary?: Element, level = 50, attack = 100, defense = 100): IBattleEntity {
@@ -143,6 +153,7 @@ describe('Combat Utils - Heal Formula', () => {
         const injuredTarget = { ...target, maxHp: 200, currentHp: 100 }; // 100 missing.
 
         const heal = calculateHeal(attacker, injuredTarget, 5);
-        expect(heal).toBe(75);
+        // rawHeal = 6 * 5 * 5 / 4 = 37.5. Floor is 37.
+        expect(heal).toBe(37);
     });
 });

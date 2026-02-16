@@ -1,9 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import { effectHandlers } from './effectHandlers';
 import { type IBattleState, type IBattleEntity, type ProgramData, StatusType, getExpForLevel } from './types';
 import { calculateModifier } from './combatUtils';
 import { globalBattleEventBus } from './events';
+import { GetProgramData } from './data/programRegistry';
+import { TestProgramRegistry } from './data/testProgramRegistry';
+
+vi.mock('./data/programRegistry', async (importOriginal) => {
+    const original = await importOriginal<typeof import('./data/programRegistry')>();
+    return {
+        ...original,
+        GetProgramData: vi.fn((id: string) => TestProgramRegistry[id] || original.GetProgramData(id))
+    };
+});
 
 // --- Test Helpers ---
 
@@ -113,7 +123,7 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         // Give target Dazed (2 stacks)
         const e1 = {
             ...state.enemyParty[0],
-            statusEffects: [{ id: '1', type: 'Dazed' as StatusType, stacks: 2, duration: 3 }]
+            statusEffects: [{ id: '1', type: 'Dazed' as StatusType, stacks: 2 }]
         };
         state = { ...state, enemyParty: [e1] };
 
@@ -140,7 +150,7 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         const asleepP1 = {
             ...p1,
             currentEnergy: 0,
-            statusEffects: [{ id: 's1', type: 'Asleep' as StatusType, stacks: 1, duration: 3 }]
+            statusEffects: [{ id: 's1', type: 'Asleep' as StatusType, stacks: 1 }]
         };
         state = { ...state, playerParty: [asleepP1] };
 
@@ -164,7 +174,7 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         let sleepState = createMockState();
         const asleepP1_2 = {
             ...sleepState.playerParty[0],
-            statusEffects: [{ id: 's1', type: 'Asleep' as StatusType, stacks: 1, duration: 3 }]
+            statusEffects: [{ id: 's1', type: 'Asleep' as StatusType, stacks: 1 }]
         };
         sleepState = { ...sleepState, playerParty: [asleepP1_2] };
 

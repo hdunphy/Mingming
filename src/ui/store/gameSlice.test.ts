@@ -15,10 +15,11 @@ import gameReducer, {
     loadSave,
     resetSave
 } from './gameSlice';
-import type { IPlayerSave, IMingmingInstance, IOwnedProgram, IActiveDeck, IBlueprint } from '../../engine/gameTypes';
+import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint } from '../../engine/gameTypes';
 import { createDefaultSave } from '../../engine/gameTypes';
+import type { IMingmingState } from '../../engine/types';
 
-function makeMingming(id: string): IMingmingInstance {
+function makeMingming(id: string): IMingmingState {
     return { id, definitionId: 'def_fire', level: 5, experience: 0, attackIV: 5, defenseIV: 5, hpIV: 5 };
 }
 

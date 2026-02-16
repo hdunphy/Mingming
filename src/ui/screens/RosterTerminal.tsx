@@ -1,8 +1,6 @@
-import React, { useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
-import { setActiveParty, removeFromRoster } from '../store/gameSlice';
-import type { IMingmingInstance } from '../../engine/gameTypes';
+import { setActiveParty } from '../store/gameSlice';
 
 export default function RosterTerminal() {
     const dispatch = useDispatch();

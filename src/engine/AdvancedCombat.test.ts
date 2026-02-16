@@ -1,12 +1,21 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
-import { resolvestatusEffects } from './effectHandlers';
-import type { IBattleState, IBattleEntity, ProgramData } from './types';
+import { getStatusBehavior } from './StatusBehaviors';
+import type { IBattleState, IBattleEntity, ProgramData, StatusEffectInstance } from './types';
 import { StatusType } from './types';
 import { calculateDamage } from './combatUtils';
 import { registerHook } from './core/Hooks';
 import { GetProgramData } from './data/programRegistry';
+import { TestProgramRegistry } from './data/testProgramRegistry';
 import { DEFAULT_GAME_CONFIG } from './data/gameConfig';
+
+vi.mock('./data/programRegistry', async (importOriginal) => {
+    const original = await importOriginal<typeof import('./data/programRegistry')>();
+    return {
+        ...original,
+        GetProgramData: vi.fn((id: string) => TestProgramRegistry[id] || original.GetProgramData(id))
+    };
+});
 
 // --- Helper: Mock State ---
 function createMockState(): IBattleState {
@@ -86,40 +95,32 @@ describe('Advanced Combat Mechanics', () => {
         expect(damage).toBeGreaterThan(4);
     });
 
-    // 3. Burn Scaling
-    it('Burn Scaling: 1 stack = 1%, 2 stacks = 2% + shred, 3 stacks = 5% + shred', () => {
-        let state = createMockState();
-        const target = {
-            ...state.enemyParty[0],
-            maxHp: 1000,
-            currentHp: 1000,
-            defense: 100,
-            statusEffects: [{ id: 'b1', type: 'Burn' as StatusType, stacks: 1, duration: 3 }]
-        };
-        state = { ...state, enemyParty: [target], activeSide: 'ENEMY' }; // Enemy turn ending processes their status
-
+    // 3. Burn Scaling (via StatusBehavior.endTurn)
+    it('Burn Scaling: 1 stack = 2%, 2 stacks = 5% + shred, 3 stacks = 12% + shred', () => {
+        const burnBehavior = getStatusBehavior('Burn');
         const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
+
+        const entity = {
+            id: 'e1', name: 'Target', maxHp: 1000, currentHp: 1000, defense: 100
+        } as IBattleEntity;
+
         // 1 Stack
-        let nextState = resolvestatusEffects(state);
-        expect(nextState.enemyParty[0].currentHp).toBe(1000 - (1000 * burnConfig[0].damagePercent));
-        expect(nextState.enemyParty[0].defense).toBe(100 - (100 * burnConfig[0].defShredPercent));
+        const burn1: StatusEffectInstance = { id: 'b1', type: 'Burn', stacks: 1 };
+        const result1 = burnBehavior.endTurn(burn1, entity);
+        expect(result1.damage).toBe(Math.floor(1000 * burnConfig[0].damagePercent));
+        expect(result1.defenseShred).toBe(Math.floor(100 * burnConfig[0].defShredPercent));
+        expect(result1.updatedInstance).not.toBeNull(); // Permanent
 
         // 2 Stacks
-        state = {
-            ...state,
-            enemyParty: [{ ...target, currentHp: 1000, statusEffects: [{ id: 'b1', type: 'Burn' as StatusType, stacks: 2, duration: 3 }] }]
-        };
-        nextState = resolvestatusEffects(state);
-        expect(nextState.enemyParty[0].currentHp).toBe(1000 - (1000 * burnConfig[1].damagePercent));
-        expect(nextState.enemyParty[0].defense).toBe(100 - (100 * burnConfig[1].defShredPercent));
+        const burn2: StatusEffectInstance = { id: 'b2', type: 'Burn', stacks: 2 };
+        const result2 = burnBehavior.endTurn(burn2, entity);
+        expect(result2.damage).toBe(Math.floor(1000 * burnConfig[1].damagePercent));
+        expect(result2.defenseShred).toBe(Math.floor(100 * burnConfig[1].defShredPercent));
 
         // 3 Stacks
-        state = {
-            ...state,
-            enemyParty: [{ ...target, currentHp: 1000, defense: 100, statusEffects: [{ id: 'b1', type: 'Burn' as StatusType, stacks: 3, duration: 3 }] }]
-        };
-        nextState = resolvestatusEffects(state);
-        expect(nextState.enemyParty[0].currentHp).toBe(1000 - (1000 * burnConfig[2].damagePercent));
-        expect(nextState.enemyParty[0].defense).toBe(100 - (100 * burnConfig[2].defShredPercent));
+        const burn3: StatusEffectInstance = { id: 'b3', type: 'Burn', stacks: 3 };
+        const result3 = burnBehavior.endTurn(burn3, entity);
+        expect(result3.damage).toBe(Math.floor(1000 * burnConfig[2].damagePercent));
+        expect(result3.defenseShred).toBe(Math.floor(100 * burnConfig[2].defShredPercent));
     });
 });

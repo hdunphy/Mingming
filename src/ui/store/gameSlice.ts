@@ -2,28 +2,28 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type {
     IPlayerSave,
-    IMingmingInstance,
     IOwnedProgram,
     IActiveDeck,
     IBlueprint
 } from '../../engine/gameTypes';
-import { createDefaultSave, DECK_SIZE } from '../../engine/gameTypes';
+import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
+import type { IMingmingState } from '../../engine/types';
 
-const initialState: IPlayerSave = createDefaultSave();
+const initialState: IPlayerSave = createStarterSave();
 
 const gameSlice = createSlice({
     name: 'game',
     initialState,
     reducers: {
         // --- Roster ---
-        addToRoster: (state, action: PayloadAction<IMingmingInstance>) => {
-            (state.roster as IMingmingInstance[]).push(action.payload);
+        addToRoster: (state, action: PayloadAction<IMingmingState>) => {
+            (state.roster as IMingmingState[]).push(action.payload);
         },
         removeFromRoster: (state, action: PayloadAction<string>) => {
             const id = action.payload;
             // Also remove from active party if present
             state.activeParty = (state.activeParty as string[]).filter(pid => pid !== id);
-            state.roster = (state.roster as IMingmingInstance[]).filter(m => m.id !== id);
+            state.roster = (state.roster as IMingmingState[]).filter(m => m.id !== id);
         },
 
         // --- Active Party (max 3) ---

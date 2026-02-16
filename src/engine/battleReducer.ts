@@ -6,7 +6,8 @@ import type {
     IDeckState,
     ProgramEntity,
     ProgramData,
-    StatusType
+    StatusType,
+    StatusEffectInstance
 } from './types';
 import { globalBattleEventBus, type BattleEvent } from './events';
 // We will import combatUtils later for card resolution
@@ -133,10 +134,20 @@ export function validateProgramConstraints(
                         return false;
                     }
                     break;
+
+                case 'NOT_STATUS':
+                    const hasBlockingStatus = subject.statusEffects.some(s => s.type === constraint.value);
+                    if (hasBlockingStatus) {
+                        return false;
+                    }
+                    break;
             }
         }
     }
-
+    else {
+        //TODO add details about program for debugging.
+        console.log("[Warning]: No constraints found for program.");
+    }
     return true;
 }
 
@@ -228,11 +239,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             // Target Resolution
             let targetIds: string[] = [];
 
-            //TODO: Does all work here? Also this is not easy to follow.
             if (programData.target === 'Side' || programData.target === 'All') {
-                // Determine which side the lead target belongs to
-                const isOnPlayerSide = state.playerParty.some(e => e.id === targetId);
-                const targetParty = isOnPlayerSide ? state.playerParty : state.enemyParty;
+                // Determine which side the lead target belongs to (use newState for consistency)
+                const isOnPlayerSide = newState.playerParty.some(e => e.id === targetId);
+                const targetParty = isOnPlayerSide ? newState.playerParty : newState.enemyParty;
                 targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
             } else if (action.target === 'SELF' || action.target === 'Self') { //Why SELF and Self??
                 targetIds = [sourceId];
@@ -309,9 +319,7 @@ function handleEndTurn(state: IBattleState): IBattleState {
     return newState;
 }
 
-// Helper to look up resolvestatusEffects since we can't import circular?
-// effectHandlers exports it.
-import { resolvestatusEffects } from './effectHandlers';
+import { getStatusBehavior } from './StatusBehaviors';
 
 function processPostTurn(state: IBattleState): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'POST_TURN', timestamp: Date.now() });
@@ -324,25 +332,42 @@ function processPostTurn(state: IBattleState): IBattleState {
         timestamp: Date.now()
     });
 
-    // 0. Resolve Burn / DoT (Before duration decrement?)
-    // User said "Update the Burn resolver".
-    // Usually DoT happens, then ticks down.
-    let newState = resolvestatusEffects(state);
+    const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+    const activeParty = state[activePartyKey];
 
-    const activePartyKey = newState.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
-    const activeDeckKey = newState.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const activeParty = newState[activePartyKey];
-
-    // 1. Resolve Status Effects & Decrement Durations
-    const processedActiveParty = activeParty.map(entity => {
-        const newEffects = [];
+    // Process each entity's status effects via behavior.endTurn()
+    const statusLogs: string[] = [];
+    const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
+        let currentHp = entity.currentHp;
+        let defense = entity.defense;
+        const newEffects: StatusEffectInstance[] = [];
 
         for (const effect of entity.statusEffects) {
-            const newDuration = effect.duration - 1;
-            if (newDuration > 0) {
-                newEffects.push({ ...effect, duration: newDuration });
+            const behavior = getStatusBehavior(effect.type);
+            const result = behavior.endTurn(effect, entity);
+
+            // Apply damage
+            if (result.damage > 0) {
+                currentHp = Math.max(0, currentHp - result.damage);
+                globalBattleEventBus.emit({
+                    type: 'DAMAGE_TAKEN',
+                    targetId: entity.id,
+                    amount: result.damage,
+                    element: effect.type === 'Burn' ? 'Fire' : 'None',
+                    timestamp: Date.now()
+                });
+            }
+
+            // Apply defense shred
+            if (result.defenseShred > 0) {
+                defense = Math.max(0, defense - result.defenseShred);
+            }
+
+            // Keep or remove
+            if (result.updatedInstance) {
+                newEffects.push(result.updatedInstance);
             } else {
-                // Expired
                 globalBattleEventBus.emit({
                     type: 'STATUS_REMOVED',
                     targetId: entity.id,
@@ -350,20 +375,24 @@ function processPostTurn(state: IBattleState): IBattleState {
                     timestamp: Date.now()
                 });
             }
+
+            // Collect logs
+            statusLogs.push(...result.logs);
         }
 
-        return { ...entity, statusEffects: newEffects, tempHp: 0 };
+        return { ...entity, currentHp, defense, statusEffects: newEffects, tempHp: 0 };
     });
 
     // 2. Discard Hand
-    const newDeckState = discardHand(newState[activeDeckKey]);
+    const newDeckState = discardHand(state[activeDeckKey]);
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'POST_TURN', timestamp: Date.now() });
 
     return {
-        ...newState,
+        ...state,
         [activePartyKey]: processedActiveParty,
         [activeDeckKey]: newDeckState,
+        logs: [...state.logs, ...statusLogs],
     };
 }
 

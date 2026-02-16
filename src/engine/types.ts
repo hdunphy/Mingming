@@ -21,7 +21,6 @@ export type StatusType = typeof StatusType[keyof typeof StatusType];
 export interface StatusEffectInstance {
   readonly id: string;
   readonly type: StatusType;
-  readonly duration: number;
   readonly stacks: number;
 }
 
@@ -144,7 +143,7 @@ export interface ProgramAction {
 }
 
 export interface ProgramConstraint {
-  readonly type: 'HAS_STATUS' | 'HEALTH_THRESHOLD' | 'BASE';
+  readonly type: 'HAS_STATUS' | 'NOT_STATUS' | 'HEALTH_THRESHOLD' | 'BASE';
   readonly target: 'SELF' | 'TARGET';
   readonly value: string | number;
 }

@@ -2,6 +2,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { globalBattleEventBus } from './events';
+import { GetProgramData } from './data/programRegistry';
+import { TestProgramRegistry } from './data/testProgramRegistry';
+
+vi.mock('./data/programRegistry', async (importOriginal) => {
+    const original = await importOriginal<typeof import('./data/programRegistry')>();
+    return {
+        ...original,
+        GetProgramData: vi.fn((id: string) => TestProgramRegistry[id] || original.GetProgramData(id))
+    };
+});
 
 function createMockState(): IBattleState {
     return {
@@ -151,7 +161,7 @@ describe('Battle Reducer State Machine', () => {
         // Initial: p1 has 2 stacks of 'Poison'
         const p1WithStatus = {
             ...initialState.playerParty[0],
-            statusEffects: [{ id: 's1', type: 'Poison', duration: 3, stacks: 2 }]
+            statusEffects: [{ id: 's1', type: 'Poison', stacks: 2 }]
         } as IBattleEntity;
 
         const testState = {
@@ -176,7 +186,7 @@ describe('Battle Reducer State Machine', () => {
         // Initial: p1 has 5 stacks of 'Dazed'
         const p1WithStatus = {
             ...initialState.playerParty[0],
-            statusEffects: [{ id: 's1', type: 'Dazed', duration: 3, stacks: 5 }]
+            statusEffects: [{ id: 's1', type: 'Dazed', stacks: 5 }]
         } as IBattleEntity;
 
         const testState = {

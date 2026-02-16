@@ -5,4 +5,4 @@
 [] I would like to see the health numbers current/max
 [] Stunnded status shouldn't be able to stack its a boolean that is removed after one turn
 [] Sleep when applied starts with 3 stacks and should be removed after 3 turns. Applying sleep again means it resets to 3 stacks.
-[] I saw the tabs for terminal, lab, and deck builder, but its gone after starting a battle. There should either be a way to exit the battle or those tabs should always exist. We need a starter deck with starter mingmings to pull from.
+[x] I saw the tabs for terminal, lab, and deck builder, but its gone after starting a battle. There should either be a way to exit the battle or those tabs should always exist. We need a starter deck with starter mingmings to pull from.
