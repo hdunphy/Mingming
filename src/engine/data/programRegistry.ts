@@ -90,6 +90,20 @@ const ProgramRegistry: Record<string, ProgramData> = {
             { type: 'ATTACK', power: 5, element: 'None', target: 'TARGET' }
         ],
         artReference: ''
+    },
+    'card_earthquake': {
+        id: 'card_earthquake',
+        name: 'Earthquake',
+        description: 'Deal 15 damage to all enemies.',
+        element: 'Earth',
+        target: 'Side',
+        category: 'Attack',
+        baseCost: 3,
+        constraints: [],
+        actions: [
+            { type: 'ATTACK', power: 15, element: 'Earth', target: 'TARGET' }
+        ],
+        artReference: ''
     }
 };
 

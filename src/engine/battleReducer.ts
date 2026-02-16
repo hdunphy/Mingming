@@ -153,31 +153,39 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
     if (programData && programData.actions) {
         // Iterate through actions and apply them
-        // Using a loop to allow breaking if target dies (Multi-Hit Logic)
         for (const action of programData.actions) {
-            // Check if primary target is alive (Multi-Hit Stop)
+            // Target Resolution
+            let targetIds: string[] = [];
 
-            const targetEntity = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
-            if (targetEntity && targetEntity.currentHp <= 0) break;
-
-            const handler = effectHandlers[action.type];
-            if (handler) {
-                // ... (existing helper logic for target resolution) ...
-                let effectiveTargetId = targetId;
-                if (action.target === 'SELF' || action.target === 'Self') {
-                    effectiveTargetId = sourceId;
-                }
-
-                newState = handler(newState, {
-                    sourceId,
-                    targetId: effectiveTargetId,
-                    power: action.power || 0,
-                    element: action.element || programData.element,
-                    status: action.status,
-                    stacks: action.stacks || 1
-                });
+            //TODO: Does all work here? Also this is not easy to follow.
+            if (programData.target === 'Side' || programData.target === 'All') {
+                // Determine which side the lead target belongs to
+                const isOnPlayerSide = state.playerParty.some(e => e.id === targetId);
+                const targetParty = isOnPlayerSide ? state.playerParty : state.enemyParty;
+                targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
+            } else if (action.target === 'SELF' || action.target === 'Self') { //Why SELF and Self??
+                targetIds = [sourceId];
             } else {
-                console.warn(`No handler for effect type: ${action.type}`);
+                targetIds = [targetId];
+            }
+
+            // Execute action for each target
+            for (const tId of targetIds) {
+                // Check if target is still alive (relevant for multi-hit single target, less for Side)
+                const targetEntity = newState.playerParty.find(e => e.id === tId) || newState.enemyParty.find(e => e.id === tId);
+                if (targetEntity && targetEntity.currentHp <= 0) continue;
+
+                const handler = effectHandlers[action.type];
+                if (handler) {
+                    newState = handler(newState, {
+                        sourceId,
+                        targetId: tId,
+                        power: action.power || 0,
+                        element: action.element || programData.element,
+                        status: action.status,
+                        stacks: action.stacks || 1
+                    });
+                }
             }
         }
     }

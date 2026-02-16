@@ -133,17 +133,11 @@ export function resolvestatusEffects(state: IBattleState): IBattleState {
 
         const burnEffect = entity.statusEffects.find(s => s.type === 'Burn');
         if (burnEffect) {
-            const stacks = burnEffect.stacks;
-            let damagePercent = 0.01; // 1 stack = 1%
-            let defShredPercent = 0;
 
-            if (stacks === 2) {
-                damagePercent = 0.02;
-                defShredPercent = 0.01;
-            } else if (stacks >= 3) {
-                damagePercent = 0.05;
-                defShredPercent = 0.05;
-            }
+            const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
+            const stacks = burnEffect.stacks;
+
+            const { damagePercent, defShredPercent } = burnConfig[stacks - 1] ?? burnConfig[burnConfig.length - 1];
 
             // Apply Burn Damage
             const burnDamage = Math.floor(entity.maxHp * damagePercent);
@@ -153,7 +147,7 @@ export function resolvestatusEffects(state: IBattleState): IBattleState {
                     type: 'DAMAGE_TAKEN',
                     targetId: entity.id,
                     amount: burnDamage,
-                    element: 'Fire', // Burn is Fire?
+                    element: 'Fire',
                     timestamp: Date.now()
                 });
             }
@@ -265,6 +259,7 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 }
 
 import { drawCards } from './deckLogic';
+import { DEFAULT, DEFAULT_GAME_CONFIG } from './data/gameConfig';
 
 // ... imports ...
 

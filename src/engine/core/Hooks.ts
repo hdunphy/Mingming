@@ -1,4 +1,4 @@
-import { IBattleState, IBattleEntity, ProgramData } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData } from '../types';
 
 export type HookContext = {
     source?: IBattleEntity;

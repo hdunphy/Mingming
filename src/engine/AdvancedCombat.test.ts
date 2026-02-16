@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { battleReducer, BattleAction } from './battleReducer';
+import { battleReducer, type BattleAction } from './battleReducer';
 import { resolvestatusEffects } from './effectHandlers';
-import { IBattleState, IBattleEntity, ProgramData, StatusType } from './types';
+import type { IBattleState, IBattleEntity, ProgramData } from './types';
+import { StatusType } from './types';
 import { calculateDamage } from './combatUtils';
 import { registerHook } from './core/Hooks';
 import { GetProgramData } from './data/programRegistry';
+import { DEFAULT_GAME_CONFIG } from './data/gameConfig';
 
 // --- Helper: Mock State ---
 function createMockState(): IBattleState {
@@ -96,10 +98,11 @@ describe('Advanced Combat Mechanics', () => {
         };
         state = { ...state, enemyParty: [target], activeSide: 'ENEMY' }; // Enemy turn ending processes their status
 
+        const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
         // 1 Stack
         let nextState = resolvestatusEffects(state);
-        expect(nextState.enemyParty[0].currentHp).toBe(990);
-        expect(nextState.enemyParty[0].defense).toBe(100);
+        expect(nextState.enemyParty[0].currentHp).toBe(1000 - (1000 * burnConfig[0].damagePercent));
+        expect(nextState.enemyParty[0].defense).toBe(100 - (100 * burnConfig[0].defShredPercent));
 
         // 2 Stacks
         state = {
@@ -107,8 +110,8 @@ describe('Advanced Combat Mechanics', () => {
             enemyParty: [{ ...target, currentHp: 1000, statusEffects: [{ id: 'b1', type: 'Burn' as StatusType, stacks: 2, duration: 3 }] }]
         };
         nextState = resolvestatusEffects(state);
-        expect(nextState.enemyParty[0].currentHp).toBe(980);
-        expect(nextState.enemyParty[0].defense).toBe(99);
+        expect(nextState.enemyParty[0].currentHp).toBe(1000 - (1000 * burnConfig[1].damagePercent));
+        expect(nextState.enemyParty[0].defense).toBe(100 - (100 * burnConfig[1].defShredPercent));
 
         // 3 Stacks
         state = {
@@ -116,7 +119,7 @@ describe('Advanced Combat Mechanics', () => {
             enemyParty: [{ ...target, currentHp: 1000, defense: 100, statusEffects: [{ id: 'b1', type: 'Burn' as StatusType, stacks: 3, duration: 3 }] }]
         };
         nextState = resolvestatusEffects(state);
-        expect(nextState.enemyParty[0].currentHp).toBe(950);
-        expect(nextState.enemyParty[0].defense).toBe(95);
+        expect(nextState.enemyParty[0].currentHp).toBe(1000 - (1000 * burnConfig[2].damagePercent));
+        expect(nextState.enemyParty[0].defense).toBe(100 - (100 * burnConfig[2].defShredPercent));
     });
 });

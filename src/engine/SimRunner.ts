@@ -3,6 +3,7 @@ import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { getBestAction } from './ai/TacticalAI';
 import { globalBattleEventBus } from './events';
+import { GetProgramData } from './data/programRegistry';
 
 // --- Mock Data Factories ---
 
@@ -29,10 +30,13 @@ function createMockEntity(id: string, name: string, team: 'PLAYER' | 'ENEMY'): I
 }
 
 function createMockDeck(): string[] {
-    // 10 cards using valid IDs from Registry
+    // 15 cards: variety for 3v3
     return [
-        'card_ember', 'card_ember', 'card_ember', 'card_ember', 'card_ember',
-        'card_vine_whip', 'card_vine_whip', 'card_vine_whip', 'card_vine_whip', 'card_vine_whip'
+        'card_ember', 'card_ember', 'card_ember',
+        'card_vine_whip', 'card_vine_whip', 'card_vine_whip',
+        'card_bubble', 'card_bubble', 'card_bubble',
+        'card_earthquake', 'card_earthquake', 'card_earthquake',
+        'card_fireball', 'card_fireball', 'card_fireball'
     ];
 }
 
@@ -40,34 +44,39 @@ function instantiateDeck(deckIds: string[]): ProgramEntity[] {
     return deckIds.map(id => ({
         id: crypto.randomUUID(),
         dataId: id,
-        currentCost: 1, // Mock cost
+        currentCost: GetProgramData(id).baseCost,
         isPlayable: true
     }));
 }
 
 function createInitialState(): IBattleState {
-    const p1 = createMockEntity('p1', 'Hero', 'PLAYER');
-    const e1 = createMockEntity('e1', 'Villain', 'ENEMY');
+    const p1 = createMockEntity('p1', 'Hero-Fire', 'PLAYER');
+    const p2 = createMockEntity('p2', 'Hero-Water', 'PLAYER');
+    const p3 = createMockEntity('p3', 'Hero-Nature', 'PLAYER');
+
+    const e1 = createMockEntity('e1', 'Villain-Fire', 'ENEMY');
+    const e2 = createMockEntity('e2', 'Villain-Water', 'ENEMY');
+    const e3 = createMockEntity('e3', 'Villain-Nature', 'ENEMY');
 
     const pDeckCards = instantiateDeck(createMockDeck());
     const eDeckCards = instantiateDeck(createMockDeck());
 
-    // Draw initial hands (5 cards) manually for the "Start"
-    const pHand = pDeckCards.slice(0, 5);
-    const pDraw = pDeckCards.slice(5);
+    // Draw initial hands (9 cards for 3v3)
+    const pHand = pDeckCards.slice(0, 9);
+    const pDraw = pDeckCards.slice(9);
 
-    const eHand = eDeckCards.slice(0, 5);
-    const eDraw = eDeckCards.slice(5);
+    const eHand = eDeckCards.slice(0, 9);
+    const eDraw = eDeckCards.slice(9);
 
     return {
         sessionId: 'sim_' + Date.now(),
         seed: Date.now(),
         turn: 1,
-        phase: 'ACTION', // Start in ACTION to avoid Pre-Turn complexity in sim for now
+        phase: 'ACTION',
         activeSide: 'PLAYER',
         logs: [],
-        playerParty: [p1],
-        enemyParty: [e1],
+        playerParty: [p1, p2, p3],
+        enemyParty: [e1, e2, e3],
         playerDeck: {
             ownerId: 'PLAYER',
             deck: [],

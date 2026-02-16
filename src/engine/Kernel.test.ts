@@ -155,8 +155,8 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         // It should now be Player's Turn
         expect(nextState.activeSide).toBe('PLAYER');
 
-        // P1 should have 0 energy because they are Asleep
-        expect(nextState.playerParty[0].currentEnergy).toBe(0);
+        // P1 should have the same energy because Asleep doesn't drain energy.
+        expect(nextState.playerParty[0].currentEnergy).toBe(10);
 
         globalBattleEventBus.unmute();
 

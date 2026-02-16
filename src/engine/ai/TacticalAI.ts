@@ -2,6 +2,7 @@
 import { battleReducer, type BattleAction } from '../battleReducer';
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
+import { GetProgramData } from '../data/programRegistry';
 
 // Weights for scoring
 // Weights for scoring specific statuses
@@ -90,14 +91,21 @@ function findBestSequence(
     // So recursion naturally handles permutations.
 
     for (const card of hand) {
-        // Optimization: Skip unplayable cards (Cost check)
-        // We find the first ally valid to cast it
+        const programData = GetProgramData(card.dataId);
+
+        // 1. Identify Valid Targets
+        let potentialTargets: IBattleEntity[] = [];
+
+        if (programData.target === 'Self') {
+            potentialTargets = [...myParty];
+        } else if (programData.target === 'Side' || programData.target === 'All' || programData.target === 'Single') {
+            potentialTargets = [...oppParty];
+        }
+
         for (const source of myParty) {
             if (source.currentEnergy < card.currentCost) continue;
 
-            // Targets: Assume Single Target logic for MVP
-            // TODO: check ProgramData target type. For now, try all enemies.
-            for (const target of oppParty) {
+            for (const target of potentialTargets) {
                 const action: BattleAction = {
                     type: 'PLAY_PROGRAM',
                     payload: {
@@ -108,6 +116,7 @@ function findBestSequence(
                 };
 
                 moveFound = true;
+                // ... rest of the simulation logic
 
                 // Simulate
                 const nextState = battleReducer(state, action);
