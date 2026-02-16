@@ -173,14 +173,23 @@ body {
   box-sizing: border-box;
 }
 
-.hand-fan {
+.hand-row {
   display: flex;
   justify-content: center;
   align-items: flex-end;
   height: 140px;
-  /* Reduced to fit console */
   width: 100%;
-  position: relative;
+  padding: 0 20px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.hand-row>* {
+  margin-left: -40px;
+}
+
+.hand-row>*:first-child {
+  margin-left: 0;
 }
 
 .program-card {
@@ -190,10 +199,10 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 12px;
-  position: absolute;
+  position: relative;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
   backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
@@ -207,9 +216,134 @@ body {
 }
 
 .program-card.selected {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 20px var(--accent-primary);
-  transform: translateY(-30px) scale(1.1) !important;
+  border: 3px solid #fff;
+  transform: translateY(-20px) scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+/* Element Badges */
+.element-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin: 0 4px;
+}
+
+.card-element {
+  font-size: 0.6rem;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Combat Log */
+.combat-log-container {
+  width: 320px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 0 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+  z-index: 50;
+}
+
+.log-messages {
+  max-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+.log-header {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--accent-secondary);
+}
+
+.log-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.log-entry {
+  line-height: 1.4;
+  color: #ccc;
+}
+
+.log-timestamp {
+  opacity: 0.4;
+  margin-right: 4px;
+}
+
+.element-badge.fire {
+  background-color: var(--fire);
+}
+
+.element-badge.water {
+  background-color: var(--water);
+}
+
+.element-badge.earth {
+  background-color: var(--earth);
+}
+
+.element-badge.air {
+  background-color: var(--air);
+}
+
+.element-badge.nature {
+  background-color: var(--nature);
+}
+
+.element-badge.ice {
+  background-color: var(--ice);
+}
+
+.element-badge.light {
+  background-color: var(--light);
+  color: #333;
+}
+
+.element-badge.dark {
+  background-color: var(--dark);
+}
+
+.element-badge.none {
+  background-color: #888;
+}
+
+.hp-bar-preview {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  z-index: 5;
 }
 
 .card-cost {

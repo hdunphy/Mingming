@@ -1,35 +1,212 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
-import { selectSource, selectTarget } from '../store/battleSlice';
+import CombatLog from './CombatLog';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
+import { calculateDamage } from '../../engine/combatUtils';
+import { GetProgramData } from '../../engine/data/programRegistry';
+
+const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
+    <motion.div
+        key={side}
+        initial={{ scale: 0.5, opacity: 0, x: -200 }}
+        animate={{ scale: 1, opacity: 1, x: 0 }}
+        exit={{ scale: 1.5, opacity: 0, x: 200 }}
+        className="turn-banner"
+        style={{
+            position: 'absolute',
+            top: '40%',
+            left: '30%',
+            right: '30%',
+            padding: '20px',
+            background: side === 'PLAYER' ? 'rgba(0, 150, 255, 0.8)' : 'rgba(255, 50, 50, 0.8)',
+            color: 'white',
+            textAlign: 'center',
+            fontSize: '3rem',
+            fontWeight: 900,
+            borderRadius: '10px',
+            backdropFilter: 'blur(10px)',
+            zIndex: 1000,
+            pointerEvents: 'none'
+        }}
+    >
+        {side === 'PLAYER' ? 'YOUR TURN' : 'ENEMY TURN'}
+    </motion.div>
+);
+
+const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS' }> = ({ result }) => (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="end-game-overlay"
+        style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+        }}
+    >
+        <motion.h1
+            initial={{ scale: 0 }}
+            animate={{ scale: 1.2 }}
+            style={{
+                fontSize: '5rem',
+                color: result === 'WIN' ? '#00ffaa' : '#ff4444',
+                textShadow: '0 0 30px currentColor'
+            }}
+        >
+            {result === 'WIN' ? 'VICTORY' : 'DEFEAT'}
+        </motion.h1>
+        <button onClick={() => window.location.reload()} className="action-button" style={{ marginTop: '40px' }}>
+            RETURN TO BASE
+        </button>
+    </motion.div>
+);
 
 const BattleArena: React.FC = () => {
     const dispatch = useDispatch();
     const battleState = useSelector((state: RootState) => state.battle.battle);
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
+    const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
+
+    const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
+    const [showTurnBanner, setShowTurnBanner] = useState(false);
+    const [dragPoint, setDragPoint] = useState<{ x: number, y: number } | null>(null);
+    const [originPoint, setOriginPoint] = useState<{ x: number, y: number } | null>(null);
+    const [isTargeting, setIsTargeting] = useState(false);
+    const prevSideRef = useRef(battleState?.activeSide);
+
+    // Hotkeys implementation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!battleState || battleState.activeSide !== 'PLAYER') return;
+
+            // 1-9: Select Card
+            if (e.key >= '1' && e.key <= '9') {
+                const index = parseInt(e.key) - 1;
+                const hand = battleState.playerDeck.hand;
+                if (hand[index]) {
+                    dispatch(selectCard(hand[index].id));
+                }
+            }
+
+            // W, E, R: Select Player Units
+            if (e.key.toLowerCase() === 'w') dispatch(selectSource(battleState.playerParty[0]?.id));
+            if (e.key.toLowerCase() === 'e') dispatch(selectSource(battleState.playerParty[1]?.id));
+            if (e.key.toLowerCase() === 'r') dispatch(selectSource(battleState.playerParty[2]?.id));
+
+            // Space: End Turn
+            if (e.key === ' ') {
+                e.preventDefault();
+                dispatch(endTurn());
+            }
+
+            // Esc: Clear selections
+            if (e.key === 'Escape') {
+                dispatch(selectCard(null));
+                dispatch(selectSource(null));
+                dispatch(selectTarget(null));
+                setDragPoint(null);
+                setOriginPoint(null);
+                setIsTargeting(false);
+            }
+        };
+
+        const handleWheel = (e: WheelEvent) => {
+            if (!battleState || battleState.activeSide !== 'PLAYER' || !selectedSourceId) return;
+            const currentIndex = battleState.playerParty.findIndex(p => p.id === selectedSourceId);
+            if (currentIndex === -1) return;
+
+            let nextIndex = currentIndex + (e.deltaY > 0 ? 1 : -1);
+            if (nextIndex < 0) nextIndex = battleState.playerParty.length - 1;
+            if (nextIndex >= battleState.playerParty.length) nextIndex = 0;
+
+            dispatch(selectSource(battleState.playerParty[nextIndex].id));
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('wheel', handleWheel);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('wheel', handleWheel);
+        };
+    }, [battleState, dispatch, selectedSourceId]);
+
+    useEffect(() => {
+        if (battleState?.activeSide !== prevSideRef.current) {
+            setShowTurnBanner(true);
+            const timer = setTimeout(() => setShowTurnBanner(false), 2000);
+            prevSideRef.current = battleState?.activeSide;
+            return () => clearTimeout(timer);
+        }
+    }, [battleState?.activeSide]);
+
+    const handlePlay = (cardId: string, targetId: string) => {
+        if (!battleState || !selectedSourceId) return;
+
+        dispatch(playProgram({
+            sourceId: selectedSourceId,
+            targetId,
+            programId: cardId
+        }));
+
+        // Persist source selection, clear card/drag state
+        dispatch(selectCard(null));
+        setDragPoint(null);
+        setOriginPoint(null);
+    };
 
     if (!battleState) return <div className="battle-screen">Loading Battle...</div>;
+
+    const isVictory = battleState.enemyParty.every(e => e.currentHp <= 0);
+    const isDefeat = battleState.playerParty.every(p => p.currentHp <= 0);
 
     const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
         <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
             {party.map((entity, index) => {
                 const isSelected = selectedSourceId === entity.id;
                 const isTargeted = selectedTargetId === entity.id;
+                const isHovered = hoveredUnitId === entity.id;
 
-                // Stagger logic: Middle unit (index 1) is closer to center
-                // Player is on Left, Enemy is on Right.
+                let previewDamage = 0;
+                if (isHovered && selectedCardId && selectedSourceId) {
+                    const source = battleState.playerParty.find(p => p.id === selectedSourceId) ||
+                        battleState.enemyParty.find(e => e.id === selectedSourceId);
+                    const card = battleState.playerDeck.hand.find(c => c.id === selectedCardId);
+
+                    if (source && card) {
+                        const programData = GetProgramData(card.dataId);
+                        const attackAction = programData.actions.find(a => a.type === 'DAMAGE');
+                        if (attackAction) {
+                            previewDamage = calculateDamage(source, entity, programData, attackAction.power || 0, battleState);
+                        }
+                    }
+                }
+
                 const translateX = index === 1 ? (isEnemy ? -60 : 60) : 0;
 
                 return (
-                    <div
+                    <motion.div
                         key={entity.id}
-                        style={{
-                            transform: `translateX(${translateX}px)`,
-                            transition: 'all 0.3s ease'
+                        initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
+                        animate={{ opacity: 1, x: translateX }}
+                        transition={{ delay: index * 0.1, type: 'spring' }}
+                        onMouseEnter={() => setHoveredUnitId(entity.id)}
+                        onMouseLeave={() => setHoveredUnitId(null)}
+                        onPointerUp={() => {
+                            if (selectedCardId && isEnemy) {
+                                handlePlay(selectedCardId, entity.id);
+                                dispatch(selectCard(null));
+                            }
                         }}
                     >
                         <MingmingUnit
@@ -37,6 +214,7 @@ const BattleArena: React.FC = () => {
                             isEnemy={isEnemy}
                             isSelected={isSelected}
                             isTargeted={isTargeted}
+                            previewDamage={previewDamage}
                             onClick={() => {
                                 if (isEnemy) {
                                     dispatch(selectTarget(isTargeted ? null : entity.id));
@@ -45,26 +223,86 @@ const BattleArena: React.FC = () => {
                                 }
                             }}
                         />
-                    </div>
+                    </motion.div>
                 );
             })}
         </div>
     );
 
     return (
-        <div className="battle-screen">
+        <div className="battle-screen"
+            onPointerMove={(e) => {
+                if (isTargeting && selectedCardId) {
+                    setDragPoint({ x: e.clientX, y: e.clientY });
+                }
+            }}
+            onPointerUp={() => {
+                setIsTargeting(false);
+                setDragPoint(null);
+                setOriginPoint(null);
+            }}
+        >
+            <AnimatePresence>
+                {showTurnBanner && <TurnBanner side={battleState.activeSide} />}
+                {isVictory && <WinLossOverlay result="WIN" />}
+                {isDefeat && <WinLossOverlay result="LOSS" />}
+            </AnimatePresence>
+
+            {/* Targeting Line SVG */}
+            {selectedCardId && dragPoint && originPoint && (
+                <svg style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1000, width: '100%', height: '100%' }}>
+                    <motion.line
+                        x1={originPoint.x}
+                        y1={originPoint.y}
+                        x2={dragPoint.x}
+                        y2={dragPoint.y}
+                        stroke="rgba(255, 255, 255, 0.5)"
+                        strokeWidth="4"
+                        strokeDasharray="10 10"
+                        animate={{ strokeDashoffset: [0, -20] }}
+                        transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+                    />
+                    <circle cx={dragPoint.x} cy={dragPoint.y} r="8" fill="white" />
+                </svg>
+            )}
+
             {/* Stage: Top 70% */}
-            <div className="stage-area">
+            <motion.div
+                className="stage-area"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1 }}
+            >
                 {renderParty(battleState.playerParty, false)}
+
+                <CombatLog />
+
                 {renderParty(battleState.enemyParty, true)}
-            </div>
+            </motion.div>
 
             {/* Console: Bottom 30% */}
-            <div className="console-area">
-                <CardHand />
+            <div
+                className="console-area"
+                onPointerUp={() => {
+                    setDragPoint(null);
+                    setOriginPoint(null);
+                }}
+            >
+                <CardHand
+                    onTargetingStart={(point) => {
+                        setOriginPoint(point);
+                        setIsTargeting(true);
+                    }}
+                    onTargetingEnd={() => {
+                        setIsTargeting(false);
+                        setDragPoint(null);
+                        setOriginPoint(null);
+                    }}
+                />
             </div>
         </div>
     );
 };
+
 
 export default BattleArena;

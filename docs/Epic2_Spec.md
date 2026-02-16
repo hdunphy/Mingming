@@ -59,5 +59,11 @@ The UI must reflect the **Kernel** phases perfectly:
 - **Responsive Scaling:** UI must work at 16:9 (Steam Deck) and 4:3 (Legacy) aspect ratios.
 - **Hotkeys:** 
     - `1-9`: Select card.
+    - 'w': First mingming
+    - 'e': Second mingming
+    - 'r': Third mingming
+    - 'scroll wheel': Cycle through mingmings on your side
     - `Space`: End Turn.
     - `Tab`: Toggle detailed unit stats.
+    - `Esc`: Cancel action.
+    - 'Drag and drop': Drag and drop cards to play cards once a mingming is selected. Like Slay the Spire.

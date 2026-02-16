@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity } from '../../engine/types';
 
 interface MingmingUnitProps {
@@ -6,6 +7,7 @@ interface MingmingUnitProps {
     isEnemy?: boolean;
     isSelected?: boolean;
     isTargeted?: boolean;
+    previewDamage?: number;
     onClick?: () => void;
 }
 
@@ -14,10 +16,38 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     isEnemy = false,
     isSelected = false,
     isTargeted = false,
+    previewDamage = 0,
     onClick
 }) => {
-    // isEnemy is preserved for future side-specific logic
+    const controls = useAnimation();
+    const [damageSplatters, setDamageSplatters] = React.useState<{ id: number, amount: number }[]>([]);
+    const prevHpRef = React.useRef(entity.currentHp);
+
+    // Trigger damage effects when HP changes
+    useEffect(() => {
+        if (entity.currentHp < prevHpRef.current) {
+            const damage = prevHpRef.current - entity.currentHp;
+            const id = Date.now();
+
+            // Add splatter
+            setDamageSplatters(prev => [...prev, { id, amount: damage }]);
+
+            // Shake animation
+            controls.start({
+                x: [0, -10, 10, -5, 5, 0],
+                transition: { duration: 0.4 }
+            });
+
+            // Cleanup splatter after animation
+            setTimeout(() => {
+                setDamageSplatters(prev => prev.filter(s => s.id !== id));
+            }, 1000);
+        }
+        prevHpRef.current = entity.currentHp;
+    }, [entity.currentHp, controls]);
+
     const hpPercent = (entity.currentHp / entity.maxHp) * 100;
+    const previewPercent = Math.max(0, ((entity.currentHp - previewDamage) / entity.maxHp) * 100);
 
     // Generate energy pips
     const energyPips = [];
@@ -33,27 +63,72 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     const elementColor = `var(--${entity.primaryElement.toLowerCase()})`;
 
     return (
-        <div
+        <motion.div
             className={`unit-card ${isSelected ? 'selected' : ''} ${isTargeted ? 'targeted' : ''}`}
             data-side={isEnemy ? 'enemy' : 'player'}
+            animate={controls}
+            whileHover={{ scale: 1.05 }}
             style={{
-                borderTop: `4px solid ${elementColor}`
+                borderTop: `4px solid ${elementColor}`,
+                x: isSelected ? (isEnemy ? -40 : 40) : 0,
             }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={onClick}
         >
+            <AnimatePresence>
+                {damageSplatters.map(s => (
+                    <motion.div
+                        key={s.id}
+                        initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                        animate={{ opacity: 1, scale: 1.5, y: -100 }}
+                        exit={{ opacity: 0 }}
+                        className="damage-splatter"
+                        style={{
+                            position: 'absolute',
+                            top: '20%',
+                            left: '40%',
+                            color: 'var(--hp-red)',
+                            fontWeight: 900,
+                            fontSize: '1.5rem',
+                            textShadow: '0 0 10px rgba(0,0,0,0.8)',
+                            pointerEvents: 'none',
+                            zIndex: 1000
+                        }}
+                    >
+                        -{s.amount}
+                    </motion.div>
+                ))}
+            </AnimatePresence>
             <div>
-                <div className="unit-name">{entity.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <span className={`element-badge ${entity.primaryElement.toLowerCase()}`}>
+                        {entity.primaryElement[0]}
+                    </span>
+                    <div className="unit-name">{entity.name}</div>
+                </div>
                 <div style={{ fontSize: '0.7rem', textAlign: 'center', opacity: 0.7 }}>
                     Lv. {entity.level}
                 </div>
 
                 <div className="bar-container">
-                    <div
+                    {/* Preview Damage Layer */}
+                    {previewDamage > 0 && (
+                        <div
+                            className="hp-bar-preview"
+                            style={{
+                                left: `${previewPercent}%`,
+                                width: `${hpPercent - previewPercent}%`
+                            }}
+                        />
+                    )}
+                    <motion.div
                         className="hp-bar"
-                        style={{
+                        initial={{ width: `${hpPercent}%` }}
+                        animate={{
                             width: `${hpPercent}%`,
                             backgroundColor: hpPercent < 25 ? 'var(--hp-red)' : 'var(--hp-green)'
                         }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
                     />
                 </div>
 
@@ -61,7 +136,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     {energyPips}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
