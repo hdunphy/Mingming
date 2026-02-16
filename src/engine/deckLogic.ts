@@ -2,6 +2,7 @@
 import type { IDeckState, ProgramEntity } from './types';
 import { GetProgramData } from './data/programRegistry';
 import { globalBattleEventBus } from './events';
+import { PRNG } from './core/PRNG';
 
 const HAND_SIZE_LIMIT = 9;
 
@@ -10,10 +11,11 @@ const HAND_SIZE_LIMIT = 9;
  * Automatically shuffles discard into drawpile if drawpile is empty.
  * Emits CARD_DRAWN and DECK_SHUFFLED events.
  */
-export function drawCards(deckState: IDeckState, count: number): IDeckState {
+export function drawCards(deckState: IDeckState, count: number, seed: number): { state: IDeckState; nextSeed: number } {
     let currentHand = [...deckState.hand];
     let currentDrawpile = [...deckState.drawpile];
     let currentDiscard = [...deckState.discard];
+    let currentSeed = seed;
     const ownerId = deckState.ownerId;
 
     for (let i = 0; i < count; i++) {
@@ -22,31 +24,32 @@ export function drawCards(deckState: IDeckState, count: number): IDeckState {
         if (currentDrawpile.length === 0) {
             if (currentDiscard.length === 0) break; // No cards left
 
-            // Shuffle Discard into Drawpile
-            // For now, we simply move the entities. 
-            // If we needed to reset them (e.g. cost), we would do it here.
-            currentDrawpile = [...currentDiscard];
-
-            // Fisher-Yates shuffle would be better, but simple sort for MVP
-            currentDrawpile.sort(() => Math.random() - 0.5);
+            // Seeded Fisher-Yates Shuffle
+            const prng = new PRNG(currentSeed);
+            const { shuffled, nextSeed } = prng.shuffle(currentDiscard);
+            
+            currentDrawpile = shuffled;
             currentDiscard = [];
+            currentSeed = nextSeed;
 
             globalBattleEventBus.emit({ type: 'DECK_SHUFFLED', ownerId, timestamp: Date.now() });
         }
 
         const drawnCard = currentDrawpile.shift();
         if (drawnCard) {
-            // Card is already an entity in the drawpile
             currentHand.push(drawnCard);
             globalBattleEventBus.emit({ type: 'CARD_DRAWN', ownerId, cardId: drawnCard.dataId, timestamp: Date.now() });
         }
     }
 
     return {
-        ...deckState,
-        hand: currentHand,
-        drawpile: currentDrawpile,
-        discard: currentDiscard
+        state: {
+            ...deckState,
+            hand: currentHand,
+            drawpile: currentDrawpile,
+            discard: currentDiscard
+        },
+        nextSeed: currentSeed
     };
 }
 

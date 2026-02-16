@@ -16,7 +16,11 @@ import { GetProgramData } from './data/programRegistry';
 import { effectHandlers } from './effectHandlers';
 import { drawCards, discardHand } from './deckLogic';
 
-// --- Constants ---
+// --- Helpers ---
+function addLog(state: IBattleState, message: string): IBattleState {
+    return { ...state, logs: [...state.logs, message] };
+}
+
 // Use the Registry to look up base costs.
 const GetBaseCost = (dataId: string): number => {
     return GetProgramData(dataId).baseCost;
@@ -203,7 +207,6 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     });
 
     // 7. Resolve Effect
-    // Iterate through actions and apply them
     let newState = {
         ...state,
         [activePartyKey]: newParty,
@@ -213,6 +216,11 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             discard: newDiscard
         }
     };
+
+    // Log the action
+    const sourceName = sourceEntity.name;
+    const targetName = targetEntity?.name || 'unknown';
+    newState = addLog(newState, `${sourceName} plays ${programData.name} → ${targetName}`);
 
     if (programData && programData.actions) {
         // Iterate through actions and apply them
@@ -286,17 +294,17 @@ function handleTransferEnergy(state: IBattleState, payload: { sourceId: string; 
 function handleEndTurn(state: IBattleState): IBattleState {
     if (state.phase !== 'ACTION') return state;
 
-    // Transition to POST_TURN
-    let newState = { ...state, phase: 'POST_TURN' as TurnPhase };
+    let newState = addLog(state, `--- ${state.activeSide} ends their turn ---`);
+    newState = { ...newState, phase: 'POST_TURN' as TurnPhase };
 
-    // Execute Post-Turn Logic (DoT, specific end turn effects)
+    // Execute Post-Turn Logic
     newState = processPostTurn(newState);
 
     // Transition to PRE_TURN of next player
     newState = processPreTurn(newState);
 
     // Set Phase to ACTION for the next player
-    newState.phase = 'ACTION';
+    newState = { ...newState, phase: 'ACTION' as TurnPhase };
 
     return newState;
 }
@@ -363,7 +371,7 @@ function processPreTurn(state: IBattleState): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'PRE_TURN', timestamp: Date.now() });
 
     // 1. Toggle Active Side
-    const nextSide = state.activeSide === 'PLAYER' ? 'ENEMY' : 'PLAYER';
+    const nextSide = state.activeSide === 'PLAYER' ? 'ENEMY' as const : 'PLAYER' as const;
     const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn;
 
     const activePartyKey = nextSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
@@ -390,15 +398,20 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     // 3. Draw Cards
     const cardsToDraw = HAND_SIZE_LIMIT - activeDeck.hand.length;
-    const newDeckState = drawCards(activeDeck, cardsToDraw);
+    const { state: newDeckState, nextSeed } = drawCards(activeDeck, cardsToDraw, state.seed);
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    return {
+    let newState = {
         ...state,
+        seed: nextSeed,
         activeSide: nextSide,
         turn: nextTurn,
         [activePartyKey]: refreshedParty,
         [activeDeckKey]: newDeckState
     };
+
+    newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
+
+    return newState;
 }

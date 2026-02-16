@@ -5,10 +5,12 @@ import type { RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { getBestAction } from '../../engine/ai/TacticalAI';
+import { battleReducer } from '../../engine/battleReducer';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -150,6 +152,49 @@ const BattleArena: React.FC = () => {
         }
     }, [battleState?.activeSide]);
 
+    // Enemy AI Turn Automation
+    useEffect(() => {
+        if (!battleState || battleState.activeSide !== 'ENEMY') return;
+
+        // Check if battle is over
+        const isOver = battleState.playerParty.every(p => p.currentHp <= 0) ||
+            battleState.enemyParty.every(e => e.currentHp <= 0);
+        if (isOver) return;
+
+        let cancelled = false;
+
+        const runAI = async () => {
+            // Wait for turn banner to display
+            await new Promise(r => setTimeout(r, 1200));
+            if (cancelled) return;
+
+            let currentState = battleState;
+            let safety = 0;
+
+            while (safety < 20) {
+                safety++;
+                const action = getBestAction(currentState);
+
+                // Apply the action
+                currentState = battleReducer(currentState, action);
+
+                // Update the UI
+                dispatch(setBattleState(currentState as any));
+
+                // If AI chose END_TURN, we're done
+                if (action.type === 'END_TURN') break;
+
+                // Small delay between AI actions for visibility
+                await new Promise(r => setTimeout(r, 600));
+                if (cancelled) return;
+            }
+        };
+
+        runAI();
+
+        return () => { cancelled = true; };
+    }, [battleState?.activeSide, battleState?.turn]);
+
     const handlePlay = (cardId: string, targetId: string) => {
         if (!battleState || !selectedSourceId) return;
 
@@ -176,9 +221,10 @@ const BattleArena: React.FC = () => {
                 const isSelected = selectedSourceId === entity.id;
                 const isTargeted = selectedTargetId === entity.id;
                 const isHovered = hoveredUnitId === entity.id;
+                const isDead = entity.currentHp <= 0;
 
                 let previewDamage = 0;
-                if (isHovered && selectedCardId && selectedSourceId) {
+                if (isHovered && !isDead && selectedCardId && selectedSourceId) {
                     const source = battleState.playerParty.find(p => p.id === selectedSourceId) ||
                         battleState.enemyParty.find(e => e.id === selectedSourceId);
                     const card = battleState.playerDeck.hand.find(c => c.id === selectedCardId);
@@ -198,12 +244,13 @@ const BattleArena: React.FC = () => {
                     <motion.div
                         key={entity.id}
                         initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
-                        animate={{ opacity: 1, x: translateX }}
+                        animate={{ opacity: isDead ? 0.35 : 1, x: translateX }}
                         transition={{ delay: index * 0.1, type: 'spring' }}
-                        onMouseEnter={() => setHoveredUnitId(entity.id)}
+                        style={{ pointerEvents: isDead ? 'none' : 'auto' }}
+                        onMouseEnter={() => !isDead && setHoveredUnitId(entity.id)}
                         onMouseLeave={() => setHoveredUnitId(null)}
                         onPointerUp={() => {
-                            if (selectedCardId && isEnemy) {
+                            if (selectedCardId && isEnemy && !isDead) {
                                 handlePlay(selectedCardId, entity.id);
                                 dispatch(selectCard(null));
                             }
@@ -216,6 +263,7 @@ const BattleArena: React.FC = () => {
                             isTargeted={isTargeted}
                             previewDamage={previewDamage}
                             onClick={() => {
+                                if (isDead) return;
                                 if (isEnemy) {
                                     dispatch(selectTarget(isTargeted ? null : entity.id));
                                 } else {

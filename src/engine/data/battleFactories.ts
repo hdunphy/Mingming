@@ -23,12 +23,11 @@ export function createMockEntity(id: string, name: string, team: 'PLAYER' | 'ENE
 }
 
 export function createMockDeck(): string[] {
+    // Using original 34-card core deck IDs from Registry
     return [
-        'card_ember', 'card_ember', 'card_ember',
-        'card_vine_whip', 'card_vine_whip', 'card_vine_whip',
-        'card_bubble', 'card_bubble', 'card_bubble',
-        'card_earthquake', 'card_earthquake', 'card_earthquake',
-        'card_fireball', 'card_fireball', 'card_fireball'
+        'squirt', 'water_jet', 'whirlpool', 'bathe', 'scald',
+        'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
+        'rain', 'drink_tea', 'hydro_pump', 'cannon_ball', 'hot_springs'
     ];
 }
 

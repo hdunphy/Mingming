@@ -3,6 +3,10 @@ import { StatusType } from './types';
 import { calculateDamage, calculateHeal } from './combatUtils';
 import { globalBattleEventBus } from './events';
 
+function addLog(state: IBattleState, message: string): IBattleState {
+    return { ...state, logs: [...state.logs, message] };
+}
+
 const HAND_SIZE_LIMIT = 9;
 
 type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
@@ -77,11 +81,15 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
             return { ...e, currentHp: newCurrentHp, statusEffects: newStatus };
         });
 
-    return {
+    let newState: IBattleState = {
         ...state,
         playerParty: updateParty(state.playerParty),
         enemyParty: updateParty(state.enemyParty)
-    };
+    } as IBattleState;
+
+    newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+
+    return newState;
 }
 
 function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number }): IBattleState {
@@ -110,11 +118,15 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => e.id === targetId ? { ...e, currentHp: newCurrentHp } : e);
 
-    return {
+    let newState: IBattleState = {
         ...state,
         playerParty: updateParty(state.playerParty),
         enemyParty: updateParty(state.enemyParty)
-    };
+    } as IBattleState;
+
+    newState = addLog(newState, `  → ${target.name} heals ${healAmount} HP`);
+
+    return newState;
 }
 
 // ... Duality Map ...
@@ -250,11 +262,17 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
         timestamp: Date.now()
     });
 
-    return {
+    let newState: IBattleState = {
         ...state,
         playerParty: updateParty(state.playerParty),
         enemyParty: updateParty(state.enemyParty)
-    };
+    } as IBattleState;
+
+    const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
+    const targetName = targetEntity?.name || targetId;
+    newState = addLog(newState, `  → ${targetName} gains ${status} (${stacks} stacks)`);
+
+    return newState;
 }
 
 import { drawCards } from './deckLogic';
@@ -269,11 +287,12 @@ function handleDraw(state: IBattleState, payload: { targetId: string; count: num
     const isPlayer = state.playerParty.some(e => e.id === targetId);
     const deckKey = isPlayer ? 'playerDeck' : 'enemyDeck';
 
-    // 2. Delegate to deckLogic
-    const newDeckState = drawCards(state[deckKey], count);
+    // 2. Delegate to deckLogic (with Seed)
+    const { state: newDeckState, nextSeed } = drawCards(state[deckKey], count, state.seed);
 
     return {
         ...state,
+        seed: nextSeed,
         [deckKey]: newDeckState
     };
 }
