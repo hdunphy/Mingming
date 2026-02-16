@@ -2,6 +2,17 @@ import React, { useEffect } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity } from '../../engine/types';
 
+const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
+    Burn: { icon: '🔥', color: '#ff6633' },
+    Poison: { icon: '☠️', color: '#88cc22' },
+    Stunned: { icon: '⚡', color: '#ffcc00' },
+    Asleep: { icon: '💤', color: '#8888ff' },
+    Dazed: { icon: '💫', color: '#cc88ff' },
+    Weakened: { icon: '⬇️', color: '#ff8888' },
+    Strengthened: { icon: '⬆️', color: '#44ddff' },
+    Sharp: { icon: '🛡️', color: '#aaaaaa' },
+};
+
 interface MingmingUnitProps {
     entity: IBattleEntity;
     isEnemy?: boolean;
@@ -135,6 +146,26 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                 <div className="energy-row">
                     {energyPips}
                 </div>
+
+                {/* Status Effects */}
+                {entity.statusEffects.length > 0 && (
+                    <div className="status-row">
+                        {entity.statusEffects.map((se, i) => {
+                            const info = STATUS_ICONS[se.type] || { icon: '✦', color: '#ccc' };
+                            return (
+                                <div
+                                    key={`${se.type}-${i}`}
+                                    className="status-badge"
+                                    style={{ borderColor: info.color, color: info.color }}
+                                    title={`${se.type} (${se.stacks} stacks, ${se.duration} turns)`}
+                                >
+                                    <span className="status-icon">{info.icon}</span>
+                                    {se.stacks > 1 && <span className="status-stacks">×{se.stacks}</span>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </motion.div>
     );

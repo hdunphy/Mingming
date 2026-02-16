@@ -1,5 +1,5 @@
 
-import { battleReducer, type BattleAction } from '../battleReducer';
+import { battleReducer, validateProgramConstraints, type BattleAction } from '../battleReducer';
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
@@ -83,51 +83,56 @@ function findBestSequence(
 
     let bestScore = currentScore;
     let bestAction: BattleAction | null = null;
-    let moveFound = false;
-
-    // Iterate all cards in hand
-    // Note: We need to handle "once per card instance". 
-    // In our state, playing a card removes it from hand (moves to discard). 
-    // So recursion naturally handles permutations.
 
     for (const card of hand) {
         const programData = GetProgramData(card.dataId);
 
-        // 1. Identify Valid Targets
+        // Determine valid targets based on card target type
         let potentialTargets: IBattleEntity[] = [];
 
         if (programData.target === 'Self') {
-            potentialTargets = [...myParty];
-        } else if (programData.target === 'Side' || programData.target === 'All' || programData.target === 'Single') {
-            potentialTargets = [...oppParty];
+            potentialTargets = [...myParty]; // Self cards target own units
+        } else if (programData.category === 'Heal' && programData.target !== 'Side') {
+            potentialTargets = [...myParty]; // Heal cards target allies
+        } else if (programData.target === 'Side' || programData.target === 'All') {
+            // Side/All can target either side; try both
+            potentialTargets = [...oppParty, ...myParty];
+        } else {
+            potentialTargets = [...oppParty]; // Single attacks target enemies
         }
 
         for (const source of myParty) {
             if (source.currentEnergy < card.currentCost) continue;
 
             for (const target of potentialTargets) {
+                // Validate constraints BEFORE simulating
+                if (!validateProgramConstraints(state, source, target, programData, card.currentCost)) {
+                    continue; // Skip this card/target combo — constraints not met
+                }
+
+                // For Self cards, the effective target is always the source
+                const effectiveTargetId = programData.target === 'Self' ? source.id : target.id;
+
                 const action: BattleAction = {
                     type: 'PLAY_PROGRAM',
                     payload: {
                         sourceId: source.id,
-                        targetId: target.id,
+                        targetId: effectiveTargetId,
                         programId: card.id
                     }
                 };
 
-                moveFound = true;
-                // ... rest of the simulation logic
-
                 // Simulate
                 const nextState = battleReducer(state, action);
+
+                // Skip if state didn't change (reducer rejected it)
+                if (nextState === state) continue;
 
                 // Recursive Call
                 const result = findBestSequence(nextState, side, depth + 1, maxDepth);
 
                 if (result.score > bestScore) {
                     bestScore = result.score;
-                    // If we are at root (depth 0), we record this as the best first action
-                    // If we are deeper, we don't care about the action, just the score bubbles up
                     if (depth === 0) {
                         bestAction = action;
                     }
@@ -135,9 +140,6 @@ function findBestSequence(
             }
         }
     }
-
-    // If no moves improved score significantly, or no moves possible, we return current
-    // (We default to null action, which caller interprets as END_TURN usually)
 
     return { score: bestScore, firstAction: bestAction };
 }

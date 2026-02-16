@@ -77,7 +77,7 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
 /**
  * Validates all play requirements for a program including energy and custom constraints.
  */
-function validateProgramConstraints(
+export function validateProgramConstraints(
     _state: IBattleState,
     source: IBattleEntity,
     target: IBattleEntity | undefined,

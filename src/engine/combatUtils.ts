@@ -80,12 +80,12 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
 
 /**
  * Calculates Heal Amount from legacy Rules.cs
- * Formula: LevelMod * Power * Attack / 2
+ * Formula: LevelMod * Power * Attack / 4  (halved for balance)
  * Clamped to target's missing health.
  */
 export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, power: number): number {
   const levelBase = ((2 * attacker.level) / 5) + 2;
-  const rawHeal = levelBase * power * attacker.attack / 2;
+  const rawHeal = levelBase * power * attacker.attack / 4;
 
   const missingHp = target.maxHp - target.currentHp;
   return Math.floor(Math.min(rawHeal, missingHp));

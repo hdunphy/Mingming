@@ -215,6 +215,14 @@ const BattleArena: React.FC = () => {
     const isVictory = battleState.enemyParty.every(e => e.currentHp <= 0);
     const isDefeat = battleState.playerParty.every(p => p.currentHp <= 0);
 
+    // Helper: get the currently selected card's program data
+    const getSelectedCardData = () => {
+        if (!battleState || !selectedCardId) return null;
+        const card = battleState.playerDeck.hand.find(c => c.id === selectedCardId);
+        if (!card) return null;
+        return GetProgramData(card.dataId);
+    };
+
     const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
         <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
             {party.map((entity, index) => {
@@ -250,8 +258,21 @@ const BattleArena: React.FC = () => {
                         onMouseEnter={() => !isDead && setHoveredUnitId(entity.id)}
                         onMouseLeave={() => setHoveredUnitId(null)}
                         onPointerUp={() => {
-                            if (selectedCardId && isEnemy && !isDead) {
-                                handlePlay(selectedCardId, entity.id);
+                            if (!selectedCardId || isDead) return;
+                            const cardData = getSelectedCardData();
+                            if (!cardData) return;
+
+                            // Determine if this is a valid target
+                            const targetType = cardData.target;
+                            const isValidTarget =
+                                (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
+                                (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
+                                (!isEnemy && cardData.category === 'Heal');
+
+                            if (isValidTarget) {
+                                // For Self cards, always target the source
+                                const effectiveTargetId = targetType === 'Self' ? (selectedSourceId || entity.id) : entity.id;
+                                handlePlay(selectedCardId, effectiveTargetId);
                                 dispatch(selectCard(null));
                             }
                         }}
@@ -264,6 +285,25 @@ const BattleArena: React.FC = () => {
                             previewDamage={previewDamage}
                             onClick={() => {
                                 if (isDead) return;
+
+                                // If we have a card selected, check if this is a valid target
+                                if (selectedCardId) {
+                                    const cardData = getSelectedCardData();
+                                    if (cardData) {
+                                        const targetType = cardData.target;
+                                        const canTarget =
+                                            (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
+                                            (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
+                                            (!isEnemy && cardData.category === 'Heal');
+
+                                        if (canTarget) {
+                                            dispatch(selectTarget(isTargeted ? null : entity.id));
+                                            return;
+                                        }
+                                    }
+                                }
+
+                                // Default behavior: enemy = target, friendly = source
                                 if (isEnemy) {
                                     dispatch(selectTarget(isTargeted ? null : entity.id));
                                 } else {
