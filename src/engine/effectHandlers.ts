@@ -1,8 +1,9 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
-import { StatusType } from './types';
+import { StatusType, getExpForLevel } from './types';
 import { calculateDamage, calculateHeal } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
+import { GetMingmingData } from './data/mingmingRegistry';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -10,7 +11,7 @@ function addLog(state: IBattleState, message: string): IBattleState {
 
 const HAND_SIZE_LIMIT = 9;
 
-type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
+export type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
 
 export const effectHandlers: Record<string, EffectHandler> = {
     'ATTACK': handleAttack,
@@ -19,14 +20,77 @@ export const effectHandlers: Record<string, EffectHandler> = {
     'DRAW': handleDraw
 };
 
-// ... (other handlers remain the same, I will target the imports and handleDraw specifically) ...
+// --- XP Helpers ---
+
+function calculateDeathXp(defeatedUnit: IBattleEntity): number {
+    // Death Exp = 1/5 of XP for next level
+    return Math.floor(getExpForLevel(defeatedUnit.level + 1) / 5);
+}
+
+function handleLevelUp(entity: IBattleEntity): IBattleEntity {
+    // Check if current XP exceeds threshold for next level
+    const xpNeeded = getExpForLevel(entity.level + 1);
+    if (entity.experience >= xpNeeded) {
+        const newLevel = entity.level + 1;
+
+        // Lookup base stats from registry
+        const definition = GetMingmingData(entity.definitionId);
+        const baseHp = definition.baseStats.hp;
+        const baseAtk = definition.baseStats.attack;
+        const baseDef = definition.baseStats.defense;
+
+        const hpIV = entity.hpIV ?? 0;
+        const atkIV = entity.attackIV ?? 0;
+        const defIV = entity.defenseIV ?? 0;
+
+        // Recalculate stats using the Unity Legacy Formula
+        const newMaxHp = Math.floor(((2 * baseHp) + hpIV) * newLevel / 100) + newLevel + 10;
+        const newAttack = Math.floor(((2 * baseAtk) + atkIV) * newLevel / 100) + 5;
+        const newDefense = Math.floor(((2 * baseDef) + defIV) * newLevel / 100) + 5;
+
+        const hpDiff = newMaxHp - entity.maxHp;
+
+        const leveledEntity: IBattleEntity = {
+            ...entity,
+            level: newLevel,
+            maxHp: newMaxHp,
+            currentHp: entity.currentHp + hpDiff, // Heal by the amount gained
+            attack: newAttack,
+            defense: newDefense
+        };
+
+        return handleLevelUp(leveledEntity); // Recursive level up
+    }
+    return entity;
+}
+
+function addExperience(state: IBattleState, entityId: string, amount: number): IBattleState {
+    const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+        party.map(e => {
+            if (e.id !== entityId) return e;
+            const updated = handleLevelUp({ ...e, experience: e.experience + amount });
+            if (updated.level > e.level) {
+                globalBattleEventBus.emit({
+                    type: 'LEVEL_UP',
+                    targetId: e.id,
+                    newLevel: updated.level,
+                    timestamp: Date.now()
+                });
+            }
+            return updated;
+        });
+
+    return {
+        ...state,
+        playerParty: updateParty(state.playerParty),
+        enemyParty: updateParty(state.enemyParty)
+    };
+}
 
 
 function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any }): IBattleState {
     const { sourceId, targetId, power, element } = payload;
 
-
-    // Find entities (Helper to avoid duplication? Maybe move to utils someday)
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
 
     let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
@@ -34,9 +98,9 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
 
     if (!source || !target) return state;
 
-    // Calculate Damage (Passing state for Hooks)
+    // Calculate Damage
     const mockProgram = { element: element } as ProgramData;
-    const damage = calculateDamage(source, target, mockProgram, power, state); // <--- Updated
+    const damage = calculateDamage(source, target, mockProgram, power, state);
 
     // Apply Damage
     const newCurrentHp = Math.max(0, target.currentHp - damage);
@@ -44,7 +108,6 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     // Wake up if Asleep and taken damage
     let wakesUp = false;
     if (damage > 0) {
-        // ... (Asleep logic similar to before)
         const sleepIndex = target.statusEffects.findIndex(s => s.type === 'Asleep');
         if (sleepIndex !== -1) {
             wakesUp = true;
@@ -89,6 +152,25 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     } as IBattleState;
 
     newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+
+    // Death / XP Handling: Award XP to the entire opposing side
+    if (newCurrentHp <= 0) {
+        const xpYield = calculateDeathXp(target);
+
+        // Determine which side the defeated target belongs to
+        const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
+        const opposingSide = targetIsPlayer ? newState.enemyParty : newState.playerParty;
+        const aliveOpponents = opposingSide.filter(e => e.currentHp > 0);
+
+        if (aliveOpponents.length > 0) {
+            const xpPerUnit = Math.floor(xpYield / aliveOpponents.length);
+            newState = addLog(newState, `  ✨ ${xpYield} XP split among ${aliveOpponents.length} allies (${xpPerUnit} each)`);
+
+            for (const ally of aliveOpponents) {
+                newState = addExperience(newState, ally.id, xpPerUnit);
+            }
+        }
+    }
 
     return newState;
 }

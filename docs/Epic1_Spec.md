@@ -149,7 +149,7 @@ The final validation of Epic 1.
 | **Energy Transfer** | Source -2, Target +1. Fails if Source < 2. |
 | **Type Effectiveness** | Fire Program on Nature MingMing deals 2.0x damage. |
 | **Status Cancellation** | Applying 'Sharp' to a 'Dazed' unit nullifies both. |
-| **Status Wearing Off** | 'Sharp', 'Dazed', 'Strengthened', 'Weakened' and 'Poison' stacks decrement by 1 per turn. |
+| **Status Wearing Off** | 'Poison' stacks decrement by 1 per turn. **'Sharp', 'Dazed', 'Strengthened', 'Weakened' are PERMANENT for the battle.** |
 | **Sleep Interaction** | Unit with 'Asleep' has 0 energy; wakes up on hit. |
 | **Exponential XP** | `calculateExp(level 50)` returns `100,000`. |
 

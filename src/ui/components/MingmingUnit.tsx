@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity } from '../../engine/types';
+import { getExpForLevel } from '../../engine/types';
 
 const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
     Burn: { icon: '🔥', color: '#ff6633' },
@@ -32,7 +33,9 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 }) => {
     const controls = useAnimation();
     const [damageSplatters, setDamageSplatters] = React.useState<{ id: number, amount: number }[]>([]);
+    const [levelUpVisible, setLevelUpVisible] = React.useState(false);
     const prevHpRef = React.useRef(entity.currentHp);
+    const prevLevelRef = React.useRef(entity.level);
 
     // Trigger damage effects when HP changes
     useEffect(() => {
@@ -57,8 +60,22 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
         prevHpRef.current = entity.currentHp;
     }, [entity.currentHp, controls]);
 
+    // Level Up detection
+    useEffect(() => {
+        if (entity.level > prevLevelRef.current) {
+            setLevelUpVisible(true);
+            setTimeout(() => setLevelUpVisible(false), 3000);
+        }
+        prevLevelRef.current = entity.level;
+    }, [entity.level]);
+
     const hpPercent = (entity.currentHp / entity.maxHp) * 100;
     const previewPercent = Math.max(0, ((entity.currentHp - previewDamage) / entity.maxHp) * 100);
+
+    // XP Progress
+    const currentLevelExp = getExpForLevel(entity.level);
+    const nextLevelExp = getExpForLevel(entity.level + 1);
+    const xpProgress = ((entity.experience - currentLevelExp) / (nextLevelExp - currentLevelExp)) * 100;
 
     // Generate energy pips
     const energyPips = [];
@@ -114,6 +131,28 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         -{s.amount}
                     </motion.div>
                 ))}
+                {levelUpVisible && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                        animate={{ opacity: 1, scale: 1.2, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="level-up-pop"
+                        style={{
+                            position: 'absolute',
+                            top: '10%',
+                            left: '0',
+                            width: '100%',
+                            textAlign: 'center',
+                            zIndex: 1100,
+                            pointerEvents: 'none',
+                            fontSize: '2rem',
+                            letterSpacing: '2px',
+                            background: 'linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.2), transparent)'
+                        }}
+                    >
+                        LEVEL UP!
+                    </motion.div>
+                )}
             </AnimatePresence>
 
             {/* Left: Art Column */}
@@ -156,8 +195,24 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     <div className="unit-name" style={{ fontSize: '1rem', margin: 0, textAlign: 'left', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {entity.name}
                     </div>
-                    <div style={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 700 }}>
-                        Lv. {entity.level}
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 700 }}>
+                            Lv. {entity.level}
+                        </div>
+                        {/* XP Bar */}
+                        <div className="bar-container xp-bar-container" style={{ width: '60px', height: '3px', marginTop: '2px', background: 'rgba(255,255,255,0.1)' }}>
+                            <motion.div
+                                className="xp-bar"
+                                style={{
+                                    height: '100%',
+                                    backgroundColor: '#00d2ff',
+                                    boxShadow: '0 0 5px rgba(0, 210, 255, 0.5)'
+                                }}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${xpProgress}%` }}
+                                transition={{ duration: 1, delay: 0.5 }}
+                            />
+                        </div>
                     </div>
                 </div>
 

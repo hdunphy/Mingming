@@ -16,7 +16,8 @@ export type BattleEventType =
     | 'DECK_SHUFFLED'
     | 'CARD_DRAWN'
     | 'TURN_START' // Explicit turn start event
-    | 'TURN_END'; // Explicit turn end event
+    | 'TURN_END' // Explicit turn end event
+    | 'LEVEL_UP';
 
 export interface BaseEvent {
     readonly type: BattleEventType;
@@ -97,6 +98,12 @@ export interface TurnEvent extends BaseEvent {
     readonly activeSide: 'PLAYER' | 'ENEMY';
 }
 
+export interface LevelUpEvent extends BaseEvent {
+    readonly type: 'LEVEL_UP';
+    readonly targetId: string;
+    readonly newLevel: number;
+}
+
 export type BattleEvent =
     | BattleStartedEvent
     | BattleEndedEvent
@@ -109,7 +116,8 @@ export type BattleEvent =
     | PhaseEvent
     | CardDrawnEvent
     | DeckShuffledEvent
-    | TurnEvent;
+    | TurnEvent
+    | LevelUpEvent;
 
 export type EventListener = (event: BattleEvent) => void;
 
