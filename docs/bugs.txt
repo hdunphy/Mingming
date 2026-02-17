@@ -16,14 +16,16 @@
 [x] 29199 console warnings in the log: "Constraint failed: SELF must have Burn". (Fixed: removed all console.warn from validateProgramConstraints)
 [x] If cards are unplayeable currently, they should be visually indicate they cannot be played.
 [x] The more card rotation the further the card moves when it is hovered or selected. We should account for the rotation so that the card is still in the same area when hovered, but straightened out.
+[x] Card draw is too high, we should make it be totalCardDraw of each minming - number of mingmings + 1. So if I have 3 mingmings with 3 carddraw each, it should be card draw of 7. 
+[x] Draw card effect from card doesn't work.
+[x] First time, the card draw is 9. It should be 7.
+[x] I'm not convinced the draw pile, discard pile, and hand are being updated correctly.
 
 [] The battle view is very short. The main screen should be taller so we can make the mingming cards larger.
 [] The status icons are too small and the outline looks bad.
-[x] XP bars didn't get updated upon mingming death. XP bars are now missing! (Fixed: re-added XP bar to MingmingUnit HUD card)
-[?] Card draw is too high, we should make it be totalCardDraw of each minming - number of mingmings + 1. So if I have 3 mingmings with 3 carddraw each, it should be card draw of 7. 
+[] XP bars didn't get updated upon mingming death.
 [] The constraint tooltip is not very helpful. It should only show if a constraint is not being met and why. 
 [] The Picture of the mingming is too small. Make the container a square and have the lvl text overlay the picture at the bottom.
-[x] Draw card effect from card doesn't work. (Fixed: handleDraw now uses sourceId to determine caster's side instead of targetId)
-[x] Draw pile and discard pile counters missing from UI. (Fixed: added pile indicators flanking battle controls in CardHand)
-[x] First hand uses hardcoded 9 instead of card draw formula. (Fixed: battleFactories now uses drawCards with sum(cardDraw) - aliveCount + 1)
 [] Cards are only disabled if the energy is too great. They need to check the constraints each time a new mingming is selected (ignoring the targeting).
+[] Draw and discard piles are hidden by cards. End turn button should also be moved to the right side of the screen.
+[] Side cards apply all actions for each target. So Whirlpool does damage to all mingmings and draws a card for each. Target should be on the card (Self, single, side) in case you want to do a large amount of damgae to one and then some to others. 
