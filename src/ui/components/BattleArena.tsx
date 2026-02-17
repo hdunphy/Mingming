@@ -11,6 +11,11 @@ import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
+import { rollDropTable } from '../../engine/RewardSystem';
+import BattleReport from './BattleReport';
+import { applyRewardBundle as applyRewardAction, resetSave } from '../store/gameSlice';
+import { deleteSave } from '../../engine/SaveSystem';
+import type { IRewardBundle } from '../../engine/gameTypes';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -40,7 +45,7 @@ const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     </motion.div>
 );
 
-const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS' }> = ({ result }) => (
+const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => void, onDefeatReset?: () => void }> = ({ result, onShowReport, onDefeatReset }) => (
     <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -67,9 +72,20 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS' }> = ({ result }) => (
         >
             {result === 'WIN' ? 'VICTORY' : 'DEFEAT'}
         </motion.h1>
-        <button onClick={() => window.location.reload()} className="action-button" style={{ marginTop: '40px' }}>
-            RETURN TO BASE
-        </button>
+        {result === 'LOSS' && (
+            <p style={{ color: '#ff8888', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                RUN TERMINATED. DATA WIPED.
+            </p>
+        )}
+        {result === 'WIN' && onShowReport ? (
+            <button onClick={onShowReport} className="action-button" style={{ marginTop: '40px' }}>
+                VIEW REWARDS
+            </button>
+        ) : (
+            <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
+                {result === 'LOSS' ? 'RESTART GAUNTLET' : 'RETURN TO BASE'}
+            </button>
+        )}
     </motion.div>
 );
 
@@ -85,6 +101,11 @@ const BattleArena: React.FC = () => {
     const [dragPoint, setDragPoint] = useState<{ x: number, y: number } | null>(null);
     const [originPoint, setOriginPoint] = useState<{ x: number, y: number } | null>(null);
     const [isTargeting, setIsTargeting] = useState(false);
+
+    // Epic 3.5: Post-battle state
+    const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
+    const [showReport, setShowReport] = useState(false);
+
     const prevSideRef = useRef(battleState?.activeSide);
 
     // Hotkeys implementation
@@ -215,6 +236,33 @@ const BattleArena: React.FC = () => {
     const isVictory = battleState.enemyParty.every(e => e.currentHp <= 0);
     const isDefeat = battleState.playerParty.every(p => p.currentHp <= 0);
 
+    // Epic 3.5: Wipe save on defeat
+    useEffect(() => {
+        if (isDefeat) {
+            deleteSave();
+        }
+    }, [isDefeat]);
+
+    const handleDefeatReset = () => {
+        dispatch(resetSave());
+        window.location.reload();
+    };
+
+    // Roll rewards on victory
+    useEffect(() => {
+        if (isVictory && !rewardBundle) {
+            const bundle = rollDropTable(battleState.enemyParty, battleState.seed);
+            setRewardBundle(bundle);
+        }
+    }, [isVictory, battleState.enemyParty, battleState.seed, rewardBundle]);
+
+    const handleContinue = () => {
+        if (rewardBundle) {
+            dispatch(applyRewardAction(rewardBundle));
+        }
+        dispatch(setBattleState(null as any));
+    };
+
     // Helper: get the currently selected card's program data
     const getSelectedCardData = () => {
         if (!battleState || !selectedCardId) return null;
@@ -332,8 +380,25 @@ const BattleArena: React.FC = () => {
         >
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner side={battleState.activeSide} />}
-                {isVictory && <WinLossOverlay result="WIN" />}
-                {isDefeat && <WinLossOverlay result="LOSS" />}
+                {isVictory && !showReport && (
+                    <WinLossOverlay
+                        result="WIN"
+                        onShowReport={() => setShowReport(true)}
+                    />
+                )}
+                {isDefeat && (
+                    <WinLossOverlay
+                        result="LOSS"
+                        onDefeatReset={handleDefeatReset}
+                    />
+                )}
+                {isVictory && showReport && rewardBundle && (
+                    <BattleReport
+                        bundle={rewardBundle}
+                        winners={battleState.playerParty as any}
+                        onContinue={handleContinue}
+                    />
+                )}
             </AnimatePresence>
 
             {/* Targeting Line SVG */}

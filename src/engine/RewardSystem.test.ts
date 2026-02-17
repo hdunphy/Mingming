@@ -99,6 +99,16 @@ describe('RewardSystem', () => {
                 expect(table.cardPool).toContain(card.dataId);
             }
         });
+
+        it('calculates XP correctly (20 * level per defeated)', () => {
+            const level = 10;
+            const defeated = [
+                { ...makeDeadEntity('e1', 'def_fire', 'Dead 1'), level },
+                { ...makeDeadEntity('e2', 'def_fire', 'Dead 2'), level: 5 }
+            ];
+            const result = rollDropTable(defeated, 42);
+            expect(result.xp).toBe((10 * 20) + (5 * 20)); // 200 + 100
+        });
     });
 
     describe('getDropTable', () => {

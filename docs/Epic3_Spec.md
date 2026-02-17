@@ -13,12 +13,27 @@ This epic focuses on the systems required to manage the Developer's assets, prog
 
 ### **1.2. Deck Validation Rules**
 - **Cardinality Check:** Players cannot add more instances of a `Program` than they currently own in their inventory.
-- **Size Constraint:** Decks must be exactly 40 cards (or a defined range). The "Save" button remains disabled until constraints are met.
+- **Size Constraint:** Decks have a minimum of 12 cards and a maximum of 40 cards. The "Save" button remains disabled until constraints are met.
 - **Sync:** Changes must be committed to the `activeDeck` slice of the state.
 
 ---
 
-## **2. The Synthesis Lab (`SynthesisLab.tsx`)**
+## **2. Mid-Battle Progression (The Active XP System)**
+
+To achieve parity with classic monster battlers, XP is awarded dynamically during the battle.
+
+### **2.1. Trigger Conditions**
+- **Defeat Reward:** When an enemy MingMing's HP reaches 0, the XP value of that unit is immediately distributed among all *active* player MingMings.
+- **Active Participants:** Only units currently on the field (the "Active 3") receive a share of the XP.
+
+### **2.2. Dynamic Level-Ups**
+- **Stat Recalculation:** If a MingMing levels up mid-battle, its stats (HP, Attack, Defense) are immediately recalculated based on the new level. 
+- **Current HP Buff:** When a unit levels up, its `maxHp` increases. The `currentHp` should increase by the same delta, allowing for "clutch" mid-battle survival.
+- **UI Feedback:** Level-up animations and stat-increase popups should trigger immediately over the `MingmingUnit` card.
+
+---
+
+## **3. The Synthesis Lab (`SynthesisLab.tsx`)**
 
 ### **2.1. The Scrap Economy**
 - **Deconstruction:** Reducer logic to remove a `Program` from inventory and increment a global `CommonScrap` integer.
@@ -34,14 +49,14 @@ This epic focuses on the systems required to manage the Developer's assets, prog
 
 ---
 
-## **3. Party Management (`RosterTerminal.tsx`)**
+## **4. Party Management (`RosterTerminal.tsx`)**
 
 - **The Active 3:** UI to drag and drop MingMings from the `roster` (storage) into the `activeParty` (max 3 slots).
 - **Prohibition Logic:** This interface is **only** accessible at a Bench/Terminal. The `activeParty` state is locked during overworld traversal.
 
 ---
 
-## **4. The Drop Table Engine (`RewardSystem.ts`)**
+## **5. The Drop Table Engine (`RewardSystem.ts`)**
 
 To handle the "Synthesis" economy, the engine must support probabilistic loot drops.
 
@@ -54,13 +69,13 @@ To handle the "Synthesis" economy, the engine must support probabilistic loot dr
 
 ---
 
-## **5. Map Interactions & Resource Nodes**
+## **6. Map Interactions & Resource Nodes**
 - **Heal Stations:** Interaction nodes that restore all `activeParty` MingMings to `maxHp` and `maxEnergy`.
 - **Blueprints Scavenging:** One-time nodes (treasure chests) that provide specific rare Blueprints or large Scrap piles.
 
 ---
 
-## **6. Persistence & Integrity (`SaveSystem.ts`)**
+## **7. Persistence & Integrity (`SaveSystem.ts`)**
 
 ### **6.1. Storage Strategy**
 - **Primary:** `LocalStorage` for rapid development.

@@ -21,7 +21,7 @@ export interface IActiveDeck {
     readonly cards: ReadonlyArray<string>; // Array of IOwnedProgram.instanceId
 }
 
-export const DECK_SIZE = 40;
+export const DECK_SIZE = 12;
 
 // --- Blueprint ---
 
@@ -37,6 +37,7 @@ export interface IRewardBundle {
     readonly scraps: number;
     readonly blueprints: ReadonlyArray<IBlueprint>;
     readonly cards: ReadonlyArray<IOwnedProgram>;
+    readonly xp: number;
 }
 
 // --- Drop Table ---
@@ -75,27 +76,43 @@ export function createDefaultSave(): IPlayerSave {
     };
 }
 
-export function createStarterSave(): IPlayerSave {
-    // Starter MingMings
-    const starter1: IMingmingState = createMockEntity('Squirt', 'kraken');
-    const starter2: IMingmingState = createMockEntity('Spikey', 'kraken');
-    const starter3: IMingmingState = createMockEntity('Chomper', 'kraken');
+export function createStarterSave(starterId: 'kraken' | 'fenrir' = 'kraken'): IPlayerSave {
+    const isWater = starterId === 'kraken';
 
-    // Starter deck cards (Water-themed)
-    const starterCardIds = [
+    // Starter MingMing (Level 1)
+    const starter: IMingmingState = {
+        id: crypto.randomUUID(),
+        definitionId: starterId,
+        nickname: isWater ? 'Bubbles' : 'Iggy',
+        level: 1,
+        experience: 0,
+        attackIV: 10 + Math.floor(Math.random() * 6),
+        defenseIV: 10 + Math.floor(Math.random() * 6),
+        hpIV: 10 + Math.floor(Math.random() * 6)
+    };
+
+    // Starter deck cards (12 cards)
+    const waterStarterIds = [
         'squirt', 'water_jet', 'whirlpool', 'bathe', 'scald',
         'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
-        'rain', 'drink_tea', 'hydro_pump', 'cannon_ball', 'hot_springs', 'nightmare'
+        'rain', 'drink_tea'
     ];
+    const fireStarterIds = [
+        'spicy_breath', 'flamethrower', 'erupt', 'rage', 'charge',
+        'toats', 'roast', 'preheat', 'flash', 'fire_punch',
+        'ignite_pipeline', 'combustion'
+    ];
+
+    const starterCardIds = isWater ? waterStarterIds : fireStarterIds;
     const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => ({
-        instanceId: `starter-card-${dataId}`,
+        instanceId: crypto.randomUUID(),
         dataId
     }));
 
     return {
         version: 1,
-        roster: [starter1, starter2, starter3],
-        activeParty: [starter1.id, starter2.id, starter3.id],
+        roster: [starter],
+        activeParty: [starter.id],
         cardInventory: starterCards,
         activeDeck: {
             id: 'starter-deck',

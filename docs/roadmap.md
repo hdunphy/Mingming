@@ -48,12 +48,13 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 
 ## **Epic 3.5: The Terminal Gauntlet (Roguelike Loop)**
 *Focus: Creating a self-sustaining loop of Battle -> Rewards -> Management -> Battle using the current menu screens as the Hub.*
-- [ ] **Milestone 3.5.1: Small Start:** Update `createStarterSave` for 1 MingMing and 12-card decks.
-- [ ] **Milestone 3.5.2: Reward System:** Implement `RewardSystem.ts` for Scraps, Cards, and XP.
-- [ ] **Milestone 3.5.3: Post-Battle UI:** Create the report screen with XP bars and loot reveal.
-- [ ] **Milestone 3.5.4: Save/Load:** Implement `localStorage` persistence and auto-save.
-- [ ] **Milestone 3.5.5: Permadeath:** Implement save-wiping on defeat.
-- [ ] **Milestone 3.5.6: Main Menu:** Add title screen and starter selection (Fire/Water/Earth).
+- [ ] **Milestone 3.5.1: Small Start:** Update `createStarterSave` for 1 MingMing and a 12-card starter deck (max limit 40).
+- [ ] **Milestone 3.5.2: Mid-Battle Progression:** Implement "Active XP" system where MingMings gain XP and level up *during* combat (Pokemon-style).
+- [ ] **Milestone 3.5.3: Reward System:** Implement `RewardSystem.ts` for Scraps, Cards, and post-battle loot.
+- [ ] **Milestone 3.5.4: Post-Battle UI:** Create the report screen with loot reveal and total run stats.
+- [ ] **Milestone 3.5.5: Save/Load:** Implement `localStorage` persistence and auto-save.
+- [ ] **Milestone 3.5.6: Permadeath:** Implement save-wiping on defeat.
+- [ ] **Milestone 3.5.7: Main Menu:** Add title screen and selection for 3 starters (Fire/Water/Earth).
 
 ## **Epic 8: The LAN Protocol (Positioning & Adjacency)**
 *Focus: Spatial strategy and team networking.*

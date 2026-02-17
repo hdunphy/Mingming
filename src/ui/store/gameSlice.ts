@@ -4,12 +4,14 @@ import type {
     IPlayerSave,
     IOwnedProgram,
     IActiveDeck,
-    IBlueprint
+    IBlueprint,
+    IRewardBundle
 } from '../../engine/gameTypes';
 import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
+import { getExpForLevel } from '../../engine/types';
 
-const initialState: IPlayerSave = createStarterSave();
+const initialState: IPlayerSave = createDefaultSave();
 
 const gameSlice = createSlice({
     name: 'game',
@@ -115,9 +117,53 @@ const gameSlice = createSlice({
         loadSave: (_state, action: PayloadAction<IPlayerSave>) => {
             return action.payload;
         },
+        applyRewardBundle: (state, action: PayloadAction<IRewardBundle>) => {
+            const bundle = action.payload;
+            state.scrapCount += bundle.scraps;
+
+            // Blueprints
+            for (const bp of bundle.blueprints) {
+                const exists = state.blueprints.some(b => b.architectureId === bp.architectureId);
+                if (!exists) {
+                    (state.blueprints as IBlueprint[]).push(bp);
+                }
+            }
+
+            // Cards
+            for (const card of bundle.cards) {
+                (state.cardInventory as IOwnedProgram[]).push(card);
+            }
+
+            // XP Distribution
+            if (bundle.xp > 0 && state.activeParty.length > 0) {
+                const xpPerMember = Math.floor(bundle.xp / state.activeParty.length);
+                state.roster = state.roster.map(member => {
+                    if (state.activeParty.includes(member.id)) {
+                        let newXp = member.experience + xpPerMember;
+                        let newLevel = member.level;
+
+                        // Level up loop
+                        while (newXp >= getExpForLevel(newLevel + 1)) {
+                            newLevel++;
+                        }
+
+                        return {
+                            ...member,
+                            experience: newXp,
+                            level: newLevel
+                        };
+                    }
+                    return member;
+                });
+            }
+        },
+        startNewGauntlet: (_state, action: PayloadAction<'kraken' | 'fenrir'>) => {
+            return createStarterSave(action.payload);
+        },
 
         // --- Reset ---
-        resetSave: () => {
+        resetSave: (state) => {
+            void state;
             return createDefaultSave();
         }
     }
@@ -138,6 +184,8 @@ export const {
     addBlueprint,
     healParty,
     loadSave,
+    applyRewardBundle,
+    startNewGauntlet,
     resetSave
 } = gameSlice.actions;
 

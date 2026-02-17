@@ -95,6 +95,7 @@ export function rollDropTable(
     seed: number
 ): IRewardBundle {
     let totalScraps = 0;
+    let totalXp = 0;
     const allBlueprints: IBlueprint[] = [];
     const allCards: IOwnedProgram[] = [];
     let currentSeed = seed;
@@ -106,6 +107,7 @@ export function rollDropTable(
         const result = rollForEntity(entity, prng);
 
         totalScraps += result.scraps;
+        totalXp += entity.level * 20;
         if (result.blueprint) {
             allBlueprints.push(result.blueprint);
         }
@@ -116,7 +118,8 @@ export function rollDropTable(
     return {
         scraps: totalScraps,
         blueprints: allBlueprints,
-        cards: allCards
+        cards: allCards,
+        xp: totalXp
     };
 }
 
