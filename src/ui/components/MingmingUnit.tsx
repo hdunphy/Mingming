@@ -12,6 +12,20 @@ const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
     Weakened: { icon: '⬇️', color: '#ff8888' },
     Strengthened: { icon: '⬆️', color: '#44ddff' },
     Sharp: { icon: '🛡️', color: '#aaaaaa' },
+    Regen: { icon: '💚', color: '#22cc88' },
+};
+
+/** Maps element names to neon accent colors */
+const ELEMENT_COLORS: Record<string, string> = {
+    fire: '#ff3333',
+    water: '#3399ff',
+    nature: '#33cc33',
+    earth: '#996633',
+    air: '#87ceeb',
+    ice: '#00ffff',
+    light: '#ffff80',
+    dark: '#8000ff',
+    none: '#888888',
 };
 
 interface MingmingUnitProps {
@@ -32,35 +46,24 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     onClick
 }) => {
     const controls = useAnimation();
-    const [damageSplatters, setDamageSplatters] = React.useState<{ id: number, amount: number }[]>([]);
+    const [damageSplatters, setDamageSplatters] = React.useState<{ id: number; amount: number }[]>([]);
     const [levelUpVisible, setLevelUpVisible] = React.useState(false);
     const prevHpRef = React.useRef(entity.currentHp);
     const prevLevelRef = React.useRef(entity.level);
 
-    // Trigger damage effects when HP changes
+    // Damage shake + splatter
     useEffect(() => {
         if (entity.currentHp < prevHpRef.current) {
             const damage = prevHpRef.current - entity.currentHp;
             const id = Date.now();
-
-            // Add splatter
             setDamageSplatters(prev => [...prev, { id, amount: damage }]);
-
-            // Shake animation
-            controls.start({
-                x: [0, -10, 10, -5, 5, 0],
-                transition: { duration: 0.4 }
-            });
-
-            // Cleanup splatter after animation
-            setTimeout(() => {
-                setDamageSplatters(prev => prev.filter(s => s.id !== id));
-            }, 1000);
+            controls.start({ x: [0, -8, 8, -4, 4, 0], transition: { duration: 0.35 } });
+            setTimeout(() => setDamageSplatters(prev => prev.filter(s => s.id !== id)), 1000);
         }
         prevHpRef.current = entity.currentHp;
     }, [entity.currentHp, controls]);
 
-    // Level Up detection
+    // Level-up pop
     useEffect(() => {
         if (entity.level > prevLevelRef.current) {
             setLevelUpVisible(true);
@@ -69,206 +72,172 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
         prevLevelRef.current = entity.level;
     }, [entity.level]);
 
-    const hpPercent = (entity.currentHp / entity.maxHp) * 100;
-    const previewPercent = Math.max(0, ((entity.currentHp - previewDamage) / entity.maxHp) * 100);
-
-    // XP Progress
     const currentLevelExp = getExpForLevel(entity.level);
     const nextLevelExp = getExpForLevel(entity.level + 1);
     const xpProgress = ((entity.experience - currentLevelExp) / (nextLevelExp - currentLevelExp)) * 100;
 
-    // Generate energy pips
-    const energyPips = [];
+    const hpPercent = (entity.currentHp / entity.maxHp) * 100;
+    const previewPercent = Math.max(0, ((entity.currentHp - previewDamage) / entity.maxHp) * 100);
+    const elKey = entity.primaryElement.toLowerCase();
+    const accent = ELEMENT_COLORS[elKey] ?? ELEMENT_COLORS.none;
+
+    // Chunky HP segments — 5 segments
+    const HP_SEGMENTS = 5;
+
+    // Energy pips (chunky bars)
+    const energyPips: React.ReactNode[] = [];
     for (let i = 0; i < entity.maxEnergy; i++) {
         energyPips.push(
             <div
                 key={i}
-                className={`energy-pip ${i >= entity.currentEnergy ? 'empty' : ''}`}
+                className={`hud-energy-pip ${i >= entity.currentEnergy ? 'empty' : ''}`}
             />
         );
     }
 
-    const elementColor = `var(--${entity.primaryElement.toLowerCase()})`;
-
     return (
         <motion.div
-            className={`unit-card ${isSelected ? 'selected' : ''} ${isTargeted ? 'targeted' : ''}`}
+            className={`hud-card ${isSelected ? 'hud-selected' : ''} ${isTargeted ? 'hud-targeted' : ''}`}
             data-side={isEnemy ? 'enemy' : 'player'}
             animate={controls}
             whileHover={{ scale: 1.02 }}
-            style={{
-                borderTop: `4px solid ${elementColor}`,
-                x: isSelected ? (isEnemy ? -20 : 20) : 0,
-                display: 'flex',
-                alignItems: 'stretch',
-                gap: '12px',
-                width: '320px', // Wider for horizontal layout
-                padding: '12px'
-            }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={onClick}
+            style={{
+                // Mirror layout for enemies
+                flexDirection: isEnemy ? 'row-reverse' : 'row',
+            }}
         >
+            {/* ── Sidebar: Art + Level ── */}
+            <div className="hud-sidebar" style={{ background: `linear-gradient(180deg, ${accent}55 0%, ${accent}22 100%)` }}>
+                {entity.artReference ? (
+                    <motion.img
+                        src={new URL(`../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
+                        alt={entity.name}
+                        className="hud-art"
+                        style={{ transform: isEnemy ? 'scaleX(-1)' : 'none' }}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.4 }}
+                    />
+                ) : (
+                    <div className="hud-art-placeholder" style={{ color: accent }}>
+                        {entity.primaryElement[0]}
+                    </div>
+                )}
+                <div className="hud-level-overlay">LV.{entity.level}</div>
+            </div>
+
+            {/* ── Main Body ── */}
+            <div className="hud-body">
+                {/* Top row: Name + Status badges */}
+                <div className="hud-top-row">
+                    <span
+                        className="hud-element-dot"
+                        style={{ background: accent }}
+                        title={entity.primaryElement}
+                    >
+                        {entity.primaryElement[0]}
+                    </span>
+                    <span className="hud-name">{entity.name.toUpperCase()}</span>
+                    <div className="hud-status-badges">
+                        {entity.statusEffects.map((se, i) => {
+                            const info = STATUS_ICONS[se.type] || { icon: '✦', color: '#ccc' };
+                            return (
+                                <div
+                                    key={`${se.type}-${i}`}
+                                    className="hud-status-badge"
+                                    style={{ borderColor: info.color, color: info.color }}
+                                    title={`${se.type} (${se.stacks} stacks)`}
+                                >
+                                    <span className="hud-status-icon">{info.icon}</span>
+                                    {se.stacks > 1 && <span className="hud-status-stacks">×{se.stacks}</span>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* HP Row */}
+                <div className="hud-bar-row">
+                    <span className="hud-bar-label">HP</span>
+                    <div className="hud-hp-track">
+                        {/* Segmented overlay */}
+                        <div className="hud-hp-segments">
+                            {Array.from({ length: HP_SEGMENTS - 1 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="hud-hp-segment-line"
+                                    style={{ left: `${((i + 1) / HP_SEGMENTS) * 100}%` }}
+                                />
+                            ))}
+                        </div>
+                        {/* Preview damage layer */}
+                        {previewDamage > 0 && (
+                            <div
+                                className="hud-hp-preview"
+                                style={{
+                                    left: `${previewPercent}%`,
+                                    width: `${hpPercent - previewPercent}%`,
+                                }}
+                            />
+                        )}
+                        {/* HP fill */}
+                        <motion.div
+                            className="hud-hp-fill"
+                            style={{ backgroundColor: hpPercent < 25 ? '#ef4444' : hpPercent < 50 ? '#ff8c00' : '#22c55e' }}
+                            initial={{ width: `${hpPercent}%` }}
+                            animate={{ width: `${hpPercent}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                        />
+                    </div>
+                    <span className="hud-hp-text">{entity.currentHp}/{entity.maxHp}</span>
+                </div>
+
+                {/* Energy Row */}
+                <div className="hud-bar-row">
+                    <span className="hud-bar-label">E</span>
+                    <div className="hud-energy-row">{energyPips}</div>
+                </div>
+
+                {/* XP Row */}
+                <div className="hud-bar-row">
+                    <span className="hud-bar-label">XP</span>
+                    <div className="hud-xp-track">
+                        <motion.div
+                            className="hud-xp-fill"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, Math.max(0, xpProgress))}%` }}
+                            transition={{ duration: 0.8, delay: 0.3 }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Floating FX ── */}
             <AnimatePresence>
                 {damageSplatters.map(s => (
                     <motion.div
                         key={s.id}
                         initial={{ opacity: 0, scale: 0.5, y: 0 }}
-                        animate={{ opacity: 1, scale: 1.5, y: -100 }}
+                        animate={{ opacity: 1, scale: 1.4, y: -80 }}
                         exit={{ opacity: 0 }}
-                        className="damage-splatter"
-                        style={{
-                            position: 'absolute',
-                            top: '20%',
-                            left: '40%',
-                            color: 'var(--hp-red)',
-                            fontWeight: 900,
-                            fontSize: '1.5rem',
-                            textShadow: '0 0 10px rgba(0,0,0,0.8)',
-                            pointerEvents: 'none',
-                            zIndex: 1000
-                        }}
+                        className="hud-damage-splatter"
                     >
                         -{s.amount}
                     </motion.div>
                 ))}
                 {levelUpVisible && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                        initial={{ opacity: 0, scale: 0.5, y: -10 }}
                         animate={{ opacity: 1, scale: 1.2, y: 0 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="level-up-pop"
-                        style={{
-                            position: 'absolute',
-                            top: '10%',
-                            left: '0',
-                            width: '100%',
-                            textAlign: 'center',
-                            zIndex: 1100,
-                            pointerEvents: 'none',
-                            fontSize: '2rem',
-                            letterSpacing: '2px',
-                            background: 'linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.2), transparent)'
-                        }}
+                        className="hud-level-up"
                     >
                         LEVEL UP!
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Left: Art Column */}
-            <div style={{
-                flex: '0 0 100px',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                position: 'relative',
-                background: 'rgba(255,255,255,0.03)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-                {entity.artReference && (
-                    <motion.img
-                        src={new URL(`../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
-                        alt={entity.name}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            filter: isEnemy ? 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' : 'drop-shadow(0 0 8px rgba(255,255,255,0.15))',
-                            transform: isEnemy ? 'scaleX(-1)' : 'none'
-                        }}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                    />
-                )}
-            </div>
-
-            {/* Right: Info Column */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className={`element-badge ${entity.primaryElement.toLowerCase()}`} style={{ fontSize: '0.6rem', width: '18px', height: '18px' }}>
-                        {entity.primaryElement[0]}
-                    </span>
-                    <div className="unit-name" style={{ fontSize: '1rem', margin: 0, textAlign: 'left', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {entity.name}
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 700 }}>
-                            Lv. {entity.level}
-                        </div>
-                        {/* XP Bar */}
-                        <div className="bar-container xp-bar-container" style={{ width: '60px', height: '3px', marginTop: '2px', background: 'rgba(255,255,255,0.1)' }}>
-                            <motion.div
-                                className="xp-bar"
-                                style={{
-                                    height: '100%',
-                                    backgroundColor: '#00d2ff',
-                                    boxShadow: '0 0 5px rgba(0, 210, 255, 0.5)'
-                                }}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${xpProgress}%` }}
-                                transition={{ duration: 1, delay: 0.5 }}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{ marginTop: '8px' }}>
-                    <div className="bar-container" style={{ margin: '4px 0' }}>
-                        {/* Preview Damage Layer */}
-                        {previewDamage > 0 && (
-                            <div
-                                className="hp-bar-preview"
-                                style={{
-                                    left: `${previewPercent}%`,
-                                    width: `${hpPercent - previewPercent}%`
-                                }}
-                            />
-                        )}
-                        <motion.div
-                            className="hp-bar"
-                            initial={{ width: `${hpPercent}%` }}
-                            animate={{
-                                width: `${hpPercent}%`,
-                                backgroundColor: hpPercent < 25 ? 'var(--hp-red)' : 'var(--hp-green)'
-                            }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                        />
-                    </div>
-                    <div style={{ fontSize: '0.65rem', textAlign: 'right', opacity: 0.8, fontVariantNumeric: 'tabular-nums', marginTop: '-2px' }}>
-                        {entity.currentHp} / {entity.maxHp}
-                    </div>
-                </div>
-
-                <div className="energy-row" style={{ marginTop: '4px', justifyContent: 'flex-start' }}>
-                    {energyPips}
-                </div>
-
-                {/* Status Effects */}
-                <div className="status-row" style={{ marginTop: '6px', justifyContent: 'flex-start', minHeight: '20px' }}>
-                    {entity.statusEffects.length > 0 ? (
-                        entity.statusEffects.map((se, i) => {
-                            const info = STATUS_ICONS[se.type] || { icon: '✦', color: '#ccc' };
-                            return (
-                                <div
-                                    key={`${se.type}-${i}`}
-                                    className="status-badge"
-                                    style={{ borderColor: info.color, color: info.color }}
-                                    title={`${se.type} (${se.stacks} stacks)`}
-                                >
-                                    <span className="status-icon" style={{ fontSize: '0.6rem' }}>{info.icon}</span>
-                                    {se.stacks > 1 && <span className="status-stacks" style={{ fontSize: '0.5rem' }}>×{se.stacks}</span>}
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <div style={{ fontSize: '0.6rem', opacity: 0.3 }}>No active effects</div>
-                    )}
-                </div>
-            </div>
         </motion.div>
     );
 };

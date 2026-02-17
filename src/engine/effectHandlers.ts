@@ -324,12 +324,12 @@ import { drawCards } from './deckLogic';
 
 // ... imports ...
 
-function handleDraw(state: IBattleState, payload: { targetId: string; count: number }): IBattleState {
-    const { targetId, count } = payload;
+function handleDraw(state: IBattleState, payload: { sourceId: string; targetId: string; count: number }): IBattleState {
+    const { count, sourceId } = payload;
 
-    // 1. Determine which deck to interact with
-    const isPlayer = state.playerParty.some(e => e.id === targetId);
-    const deckKey = isPlayer ? 'playerDeck' : 'enemyDeck';
+    // Draw into the deck of the side that owns the source (the caster)
+    const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
+    const deckKey = isPlayerSource ? 'playerDeck' : 'enemyDeck';
 
     // 2. Delegate to deckLogic (with Seed)
     const { state: newDeckState, nextSeed } = drawCards(state[deckKey], count, state.seed);

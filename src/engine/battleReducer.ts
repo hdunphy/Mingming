@@ -95,7 +95,6 @@ export function validateProgramConstraints(
                 // Usually target is required for Single, but not for Side/All (it iterates later).
                 // But for constraints, if it checks target, we need one.
                 if (constraint.target === 'TARGET') {
-                    console.warn(`Constraint ${constraint.type} requires a target.`);
                     return false;
                 }
                 continue;
@@ -105,7 +104,6 @@ export function validateProgramConstraints(
                 case 'HAS_STATUS':
                     const hasStatus = subject.statusEffects.some(s => s.type === constraint.value);
                     if (!hasStatus) {
-                        console.warn(`Constraint failed: ${constraint.target} must have ${constraint.value}`);
                         return false;
                     }
                     break;
@@ -118,11 +116,9 @@ export function validateProgramConstraints(
                     const hpPercent = (subject.currentHp / subject.maxHp) * 100;
 
                     if (op === 'LT' && hpPercent >= threshold) {
-                        console.warn(`Constraint failed: ${constraint.target} HP must be less than ${threshold}%`);
                         return false;
                     }
                     if (op === 'GT' && hpPercent <= threshold) {
-                        console.warn(`Constraint failed: ${constraint.target} HP must be greater than ${threshold}%`);
                         return false;
                     }
                     break;
@@ -130,7 +126,6 @@ export function validateProgramConstraints(
                 case 'BASE':
                     // 1. Base Energy Check
                     if (source.currentEnergy < cost) {
-                        console.warn("Insufficient Energy");
                         return false;
                     }
                     break;
@@ -425,8 +420,11 @@ function processPreTurn(state: IBattleState): IBattleState {
         currentEnergy: entity.maxEnergy
     }));
 
-    // 3. Draw Cards
-    const cardsToDraw = HAND_SIZE_LIMIT - activeDeck.hand.length;
+    // 3. Draw Cards — based on alive party members' cardDraw stats
+    const aliveMembers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);
+    const totalCardDraw = aliveMembers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveMembers.length + 1;
+    const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - activeDeck.hand.length);
+    console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
     const { state: newDeckState, nextSeed } = drawCards(activeDeck, cardsToDraw, state.seed);
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });

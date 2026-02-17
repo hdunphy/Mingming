@@ -1,7 +1,8 @@
-import type { IBattleEntity, ProgramEntity, IBattleState, IMingmingState } from '../types';
+import type { IBattleEntity, ProgramEntity, IBattleState, IMingmingState, IDeckState } from '../types';
 import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
+import { drawCards } from '../deckLogic';
 
 export function createMockEntity(name: string, mingmingId: string = 'fenrir', level: number = 10, experience: number = 0): IBattleEntity {
     const definition = GetMingmingData(mingmingId);
@@ -54,35 +55,44 @@ export function createInitialBattleState(): IBattleState {
     const pDeckCards = instantiateDeck(createMockDeck(true));
     const eDeckCards = instantiateDeck(createMockDeck());
 
-    // Draw initial hands (9 cards for 3v3)
-    const pHand = pDeckCards.slice(0, 9);
-    const pDraw = pDeckCards.slice(9);
+    // Calculate card draw using the formula: sum(cardDraw) - aliveCount + 1
+    const playerParty = [p1, p2, p3];
+    const enemyParty = [e1, e2, e3];
+    
+    const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
+    const enemyCardDraw = enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
 
-    const eHand = eDeckCards.slice(0, 9);
-    const eDraw = eDeckCards.slice(9);
+    const initialSeed = Date.now();
+    
+    // Use drawCards for proper deck cycling
+    const pInitialDeck: IDeckState = {
+        ownerId: 'PLAYER',
+        deck: [],
+        drawpile: pDeckCards,
+        hand: [],
+        discard: []
+    };
+    const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, initialSeed);
+
+    const eInitialDeck: IDeckState = {
+        ownerId: 'ENEMY',
+        deck: [],
+        drawpile: eDeckCards,
+        hand: [],
+        discard: []
+    };
+    const { state: eDeckState, nextSeed: seed3 } = drawCards(eInitialDeck, enemyCardDraw, seed2);
 
     return {
         sessionId: 'battle_' + Date.now(),
-        seed: Date.now(),
+        seed: seed3,
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
         logs: [],
-        playerParty: [p1, p2, p3],
-        enemyParty: [e1, e2, e3],
-        playerDeck: {
-            ownerId: 'PLAYER',
-            deck: [],
-            drawpile: pDraw,
-            hand: pHand,
-            discard: []
-        },
-        enemyDeck: {
-            ownerId: 'ENEMY',
-            deck: [],
-            drawpile: eDraw,
-            hand: eHand,
-            discard: []
-        }
+        playerParty: playerParty,
+        enemyParty: enemyParty,
+        playerDeck: pDeckState,
+        enemyDeck: eDeckState
     };
 }

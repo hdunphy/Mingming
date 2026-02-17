@@ -85,7 +85,7 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
  */
 export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, power: number): number {
   const levelBase = ((2 * attacker.level) / 5) + 2;
-  const rawHeal = levelBase * power * attacker.attack / 4;
+  const rawHeal = levelBase * power * attacker.attack / 8;
 
   const missingHp = target.maxHp - target.currentHp;
   return Math.floor(Math.min(rawHeal, missingHp));

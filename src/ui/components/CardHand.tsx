@@ -46,10 +46,13 @@ const CardHand: React.FC<{
 }> = ({ onTargetingStart }) => {
     const dispatch = useDispatch();
     const hand = useSelector((state: RootState) => state.battle.battle?.playerDeck.hand || []);
+    const playerParty = useSelector((state: RootState) => state.battle.battle?.playerParty || []);
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const isOurTurn = useSelector((state: RootState) => state.battle.battle?.activeSide === 'PLAYER');
+    const drawPileCount = useSelector((state: RootState) => state.battle.battle?.playerDeck.drawpile.length || 0);
+    const discardPileCount = useSelector((state: RootState) => state.battle.battle?.playerDeck.discard.length || 0);
     const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
     const handlePlay = () => {
@@ -73,7 +76,12 @@ const CardHand: React.FC<{
 
                         const centerOffset = index - (hand.length - 1) / 2;
                         const rotation = centerOffset * 5;
-                        const arcDip = Math.abs(centerOffset) * 4;
+                        const arcDip = Math.abs(centerOffset) * 12;
+
+                        // Ticket 14: unplayable check
+                        const isUnplayable = !playerParty.some(
+                            (u) => u.currentHp > 0 && u.currentEnergy >= card.currentCost
+                        );
 
                         const constraints = (data.constraints || [])
                             .map(formatConstraint)
@@ -84,14 +92,14 @@ const CardHand: React.FC<{
                                 key={card.id}
                                 initial={{ opacity: 0, y: 40, scale: 0.9 }}
                                 animate={{
-                                    opacity: 1,
-                                    y: isSelected ? -30 : arcDip,
-                                    scale: isSelected ? 1.08 : 1,
-                                    rotate: isSelected ? 0 : rotation,
+                                    opacity: isUnplayable ? 0.45 : 1,
+                                    y: isSelected ? -30 : (isHovered ? -30 : arcDip),
+                                    scale: isSelected ? 1.08 : (isHovered ? 1.05 : 1),
+                                    rotate: isSelected ? 0 : (isHovered ? 0 : rotation),
                                 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.2 }}
-                                className={`program-card ${isSelected ? 'selected' : ''}`}
+                                className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''}`}
                                 onClick={() => dispatch(selectCard(isSelected ? null : card.id))}
                                 onPointerDown={(e) => {
                                     dispatch(selectCard(card.id));
@@ -107,7 +115,8 @@ const CardHand: React.FC<{
                                     cursor: 'pointer',
                                     flexShrink: 0,
                                     transformOrigin: 'center bottom',
-                                    zIndex: isSelected ? 100 : (isHovered ? 99 : hand.length - Math.abs(centerOffset)),
+                                    zIndex: isSelected ? 100 : (isHovered ? 99 : index),
+                                    filter: isUnplayable ? 'grayscale(0.6)' : 'none',
                                 }}
                             >
                                 {/* Cost badge */}
@@ -139,7 +148,7 @@ const CardHand: React.FC<{
                                         >
                                             {constraints.length > 0 && (
                                                 <div className="tooltip-section">
-                                                    <div className="tooltip-label">Requires</div>
+                                                    <div className="tooltip-label">⚠️ Requirements</div>
                                                     {constraints.map((c, i) => (
                                                         <div key={i} className="tooltip-constraint">{c}</div>
                                                     ))}
@@ -160,21 +169,33 @@ const CardHand: React.FC<{
                 </AnimatePresence>
             </div>
 
-            <div className="battle-controls">
-                <button
-                    disabled={!isOurTurn || !selectedCardId || !selectedSourceId || !selectedTargetId}
-                    onClick={handlePlay}
-                    className="action-button"
-                >
-                    PLAY PROGRAM
-                </button>
-                <button
-                    disabled={!isOurTurn}
-                    onClick={() => dispatch(endTurn())}
-                    className="action-button end-turn"
-                >
-                    END TURN
-                </button>
+            <div className="hand-footer">
+                <div className="pile-indicator draw-pile">
+                    <span className="pile-icon">🃏</span>
+                    <span className="pile-count">{drawPileCount}</span>
+                    <span className="pile-label">DRAW</span>
+                </div>
+                <div className="battle-controls">
+                    <button
+                        disabled={!isOurTurn || !selectedCardId || !selectedSourceId || !selectedTargetId}
+                        onClick={handlePlay}
+                        className="action-button"
+                    >
+                        PLAY PROGRAM
+                    </button>
+                    <button
+                        disabled={!isOurTurn}
+                        onClick={() => dispatch(endTurn())}
+                        className="action-button end-turn"
+                    >
+                        END TURN
+                    </button>
+                </div>
+                <div className="pile-indicator discard-pile">
+                    <span className="pile-icon">🗑️</span>
+                    <span className="pile-count">{discardPileCount}</span>
+                    <span className="pile-label">DISCARD</span>
+                </div>
             </div>
         </div>
     );
