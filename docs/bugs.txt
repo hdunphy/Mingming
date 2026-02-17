@@ -21,11 +21,11 @@
 [x] First time, the card draw is 9. It should be 7.
 [x] I'm not convinced the draw pile, discard pile, and hand are being updated correctly.
 
-[] The battle view is very short. The main screen should be taller so we can make the mingming cards larger.
-[] The status icons are too small and the outline looks bad.
-[] XP bars didn't get updated upon mingming death.
-[] The constraint tooltip is not very helpful. It should only show if a constraint is not being met and why. 
-[] The Picture of the mingming is too small. Make the container a square and have the lvl text overlay the picture at the bottom.
-[] Cards are only disabled if the energy is too great. They need to check the constraints each time a new mingming is selected (ignoring the targeting).
-[] Draw and discard piles are hidden by cards. End turn button should also be moved to the right side of the screen.
-[] Side cards apply all actions for each target. So Whirlpool does damage to all mingmings and draws a card for each. Target should be on the card (Self, single, side) in case you want to do a large amount of damgae to one and then some to others. 
+[x] The battle view is very short. The main screen should be taller so we can make the mingming cards larger.
+[x] The status icons are too small and the outline looks bad.
+[x] XP bars didn't get updated upon mingming death.
+[x] The constraint tooltip is not very helpful. It should only show if a constraint is not being met and why. 
+[x] The Picture of the mingming is too small. Make the container a square and have the lvl text overlay the picture at the bottom.
+[x] Cards are only disabled if the energy is too great. They need to check the constraints each time a new mingming is selected (ignoring the targeting).
+[x] Draw and discard piles are hidden by cards. End turn button should also be moved to the right side of the screen.
+[x] Side cards apply all actions for each target. So Whirlpool does damage to all mingmings and draws a card for each. Target should be on the card (Self, single, side) in case you want to do a large amount of damgae to one and then some to others.

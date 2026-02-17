@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import { selectCard, playProgram, endTurn } from '../store/battleSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { validateSingleConstraint } from '../../engine/battleReducer';
+import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 
 // Helper to format an action for display
 const formatAction = (action: any): string => {
@@ -35,6 +37,8 @@ const formatConstraint = (c: any): string => {
             return `Requires: HP ${c.value}`;
         case 'BASE':
             return ''; // Don't display base energy check
+        case 'NOT_STATUS':
+            return `Requires: ${c.target === 'SELF' ? 'Self' : 'Target'} does not have ${c.value}`;
         default:
             return c.type;
     }
@@ -55,16 +59,6 @@ const CardHand: React.FC<{
     const discardPileCount = useSelector((state: RootState) => state.battle.battle?.playerDeck.discard.length || 0);
     const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
-    const handlePlay = () => {
-        if (selectedCardId && selectedSourceId && selectedTargetId) {
-            dispatch(playProgram({
-                sourceId: selectedSourceId,
-                targetId: selectedTargetId,
-                programId: selectedCardId
-            }));
-        }
-    };
-
     return (
         <div className="hand-container">
             <div className="hand-row">
@@ -79,13 +73,13 @@ const CardHand: React.FC<{
                         const arcDip = Math.abs(centerOffset) * 12;
 
                         // Ticket 14: unplayable check
-                        const isUnplayable = !playerParty.some(
-                            (u) => u.currentHp > 0 && u.currentEnergy >= card.currentCost
-                        );
 
+                        const source = playerParty.find(u => u.id === selectedSourceId);
                         const constraints = (data.constraints || [])
-                            .map(formatConstraint)
-                            .filter(Boolean);
+                            .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }))
+                            .map(formatConstraint);
+                        const isUnplayable = !selectedSourceId || constraints.length > 0;
+                        console.log(constraints);
 
                         return (
                             <motion.div
@@ -176,13 +170,6 @@ const CardHand: React.FC<{
                     <span className="pile-label">DRAW</span>
                 </div>
                 <div className="battle-controls">
-                    <button
-                        disabled={!isOurTurn || !selectedCardId || !selectedSourceId || !selectedTargetId}
-                        onClick={handlePlay}
-                        className="action-button"
-                    >
-                        PLAY PROGRAM
-                    </button>
                     <button
                         disabled={!isOurTurn}
                         onClick={() => dispatch(endTurn())}

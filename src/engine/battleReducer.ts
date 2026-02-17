@@ -7,7 +7,8 @@ import type {
     ProgramEntity,
     ProgramData,
     StatusType,
-    StatusEffectInstance
+    StatusEffectInstance,
+    ProgramConstraint
 } from './types';
 import { globalBattleEventBus, type BattleEvent } from './events';
 // We will import combatUtils later for card resolution
@@ -74,6 +75,58 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
 }
 
 // --- Action Handlers ---
+export function validateSingleConstraint(
+    constraint: ProgramConstraint,
+    source: IBattleEntity,
+    subject: IBattleEntity,
+    cost: number
+): boolean {
+
+
+    switch (constraint.type) {
+        case 'HAS_STATUS':
+            const hasStatus = subject.statusEffects.some(s => s.type === constraint.value);
+            if (!hasStatus) {
+                return false;
+            }
+            break;
+
+        case 'HEALTH_THRESHOLD':
+            // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
+            if (typeof constraint.value !== 'string') break;
+            const [op, valStr] = constraint.value.split(':');
+            const threshold = parseInt(valStr);
+            const hpPercent = (subject.currentHp / subject.maxHp) * 100;
+
+            if (op === 'LT' && hpPercent >= threshold) {
+                return false;
+            }
+            if (op === 'GT' && hpPercent <= threshold) {
+                return false;
+            }
+            break;
+
+        case 'BASE':
+            // 1. Base Energy Check
+            if (source.currentEnergy < cost) {
+                return false;
+            }
+            break;
+
+        case 'NOT_STATUS':
+            const hasBlockingStatus = subject.statusEffects.some(s => s.type === constraint.value);
+            if (hasBlockingStatus) {
+                return false;
+            }
+            break;
+
+        default:
+            console.warn(`Unknown constraint type: ${constraint.type}`);
+            break;
+    }
+
+    return true;
+}
 
 /**
  * Validates all play requirements for a program including energy and custom constraints.
@@ -99,43 +152,8 @@ export function validateProgramConstraints(
                 }
                 continue;
             }
-
-            switch (constraint.type) {
-                case 'HAS_STATUS':
-                    const hasStatus = subject.statusEffects.some(s => s.type === constraint.value);
-                    if (!hasStatus) {
-                        return false;
-                    }
-                    break;
-
-                case 'HEALTH_THRESHOLD':
-                    // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
-                    if (typeof constraint.value !== 'string') break;
-                    const [op, valStr] = constraint.value.split(':');
-                    const threshold = parseInt(valStr);
-                    const hpPercent = (subject.currentHp / subject.maxHp) * 100;
-
-                    if (op === 'LT' && hpPercent >= threshold) {
-                        return false;
-                    }
-                    if (op === 'GT' && hpPercent <= threshold) {
-                        return false;
-                    }
-                    break;
-
-                case 'BASE':
-                    // 1. Base Energy Check
-                    if (source.currentEnergy < cost) {
-                        return false;
-                    }
-                    break;
-
-                case 'NOT_STATUS':
-                    const hasBlockingStatus = subject.statusEffects.some(s => s.type === constraint.value);
-                    if (hasBlockingStatus) {
-                        return false;
-                    }
-                    break;
+            if (!validateSingleConstraint(constraint, source, subject, cost)) {
+                return false;
             }
         }
     }
@@ -234,13 +252,13 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             // Target Resolution
             let targetIds: string[] = [];
 
-            if (programData.target === 'Side' || programData.target === 'All') {
+            if (action.target === 'SELF' || action.target === 'Self') {
+                targetIds = [sourceId];
+            } else if (programData.target === 'Side' || programData.target === 'All') {
                 // Determine which side the lead target belongs to (use newState for consistency)
                 const isOnPlayerSide = newState.playerParty.some(e => e.id === targetId);
                 const targetParty = isOnPlayerSide ? newState.playerParty : newState.enemyParty;
                 targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
-            } else if (action.target === 'SELF' || action.target === 'Self') { //Why SELF and Self??
-                targetIds = [sourceId];
             } else {
                 targetIds = [targetId];
             }

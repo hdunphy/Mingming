@@ -24,6 +24,22 @@ export interface StatusEffectInstance {
   readonly stacks: number;
 }
 
+
+export const ProgramConstraintType = {
+  HasStatus: 'HAS_STATUS',
+  NotStatus: 'NOT_STATUS',
+  HealthThreshold: 'HEALTH_THRESHOLD',
+  Base: 'BASE'
+} as const;
+
+export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
+
+export interface ProgramConstraint {
+  readonly type: ProgramConstraintType;
+  readonly target: 'SELF' | 'TARGET';
+  readonly value: string | number;
+}
+
 // --- MingMing Definitions (Nested Immutable Pattern) ---
 
 /**
@@ -142,12 +158,6 @@ export function getExpForLevel(level: number): number {
 export interface ProgramAction {
   readonly type: string;
   readonly [key: string]: any; // Flat structure for JSON
-}
-
-export interface ProgramConstraint {
-  readonly type: 'HAS_STATUS' | 'NOT_STATUS' | 'HEALTH_THRESHOLD' | 'BASE';
-  readonly target: 'SELF' | 'TARGET';
-  readonly value: string | number;
 }
 
 export interface ProgramData {

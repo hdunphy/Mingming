@@ -46,17 +46,26 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 - **Milestone 6.2: Persistent Daemon Logic:** Create a new card class that installs background processes for battle-long buffs.
 - **Milestone 6.3: Modularity Balance:** Ensure AI accounts for installed Modules and active Daemons in its Min-Max scoring.
 
-## **Epic 7: The LAN Protocol (Positioning & Adjacency)**
-*Focus: Spatial strategy and team networking.*
-- **Milestone 7.1: Grid-Aware State:** Add `slotIndex` to `IBattleEntity` and update the Reducer to track 3v3 positioning.
-- **Milestone 7.2: Adjacency Logic:** Implement the "Networking" hook system where MingMings gain buffs based on neighbors (e.g., LAN Synergies).
-- **Milestone 7.3: Positional Programs:** Create cards that manipulate positioning (e.g., `Re-Route.dm` to swap slots).
-- **Milestone 7.4: Splash Damage Engine:** Update the Damage Processor to handle adjacency-based splash damage.
+## **Epic 3.5: The Terminal Gauntlet (Roguelike Loop)**
+*Focus: Creating a self-sustaining loop of Battle -> Rewards -> Management -> Battle using the current menu screens as the Hub.*
+- [ ] **Milestone 3.5.1: Small Start:** Update `createStarterSave` for 1 MingMing and 12-card decks.
+- [ ] **Milestone 3.5.2: Reward System:** Implement `RewardSystem.ts` for Scraps, Cards, and XP.
+- [ ] **Milestone 3.5.3: Post-Battle UI:** Create the report screen with XP bars and loot reveal.
+- [ ] **Milestone 3.5.4: Save/Load:** Implement `localStorage` persistence and auto-save.
+- [ ] **Milestone 3.5.5: Permadeath:** Implement save-wiping on defeat.
+- [ ] **Milestone 3.5.6: Main Menu:** Add title screen and starter selection (Fire/Water/Earth).
 
-## **Epic 8: The Developer Toolkit (Modding & Creation)**
+## **Epic 8: The LAN Protocol (Positioning & Adjacency)**
+*Focus: Spatial strategy and team networking.*
+- [ ] **Milestone 8.1: Grid-Aware State:** Add `slotIndex` to `IBattleEntity` and update the Reducer to track 3v3 positioning.
+- [ ] **Milestone 8.2: Adjacency Logic:** Implement the "Networking" hook system where MingMings gain buffs based on neighbors (e.g., LAN Synergies).
+- [ ] **Milestone 8.3: Positional Programs:** Create cards that manipulate positioning (e.g., `Re-Route.dm` to swap slots).
+- [ ] **Milestone 8.4: Splash Damage Engine:** Update the Damage Processor to handle adjacency-based splash damage.
+
+## **Epic 9: The Developer Toolkit (Modding & Creation)**
 *Focus: Community longevity and rapid iteration.*
-- **Milestone 8.1: The Blueprint Forge:** Visual UI for creating MingMings and adjusting IV scaling.
-- **Milestone 8.2: The Program Compiler:** Visual UI for stacking `actions` and `constraints` for new cards.
+- [ ] **Milestone 9.1: The Blueprint Forge:** Visual UI for creating MingMings and adjusting IV scaling.
+- [ ] **Milestone 9.2: The Program Compiler:** Visual UI for stacking `actions` and `constraints` for new cards.
 
 ---
 
