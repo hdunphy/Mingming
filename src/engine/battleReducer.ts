@@ -257,6 +257,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                         sourceId,
                         targetId: tId,
                         power: action.power || 0,
+                        count: action.count || 0,
                         element: action.element || programData.element,
                         status: action.status,
                         stacks: action.stacks || 1
