@@ -117,14 +117,14 @@ const MingmingRegistry: Record<string, IMingmingDefinition> = {
         id: "ratatoskr",
         name: "Ratatoskr",
         baseStats: {
-            hp: 55,
-            attack: 60,
-            defense: 50,
+            hp: 62,
+            attack: 55,
+            defense: 63,
             energy: 3
         },
         primaryElement: "Nature",
         secondaryElement: "None",
-        cardDraw: 5,
+        cardDraw: 4,
         artReference: "Ratatoskr.png"
     },
     "huldra": {
@@ -224,20 +224,6 @@ const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         artReference: "Nidhoggr.png"
-    },
-    "ratatoskr": {
-        id: "ratatoskr",
-        name: "Ratatoskr",
-        baseStats: {
-            hp: 62,
-            attack: 55,
-            defense: 63,
-            energy: 3
-        },
-        primaryElement: "Nature",
-        secondaryElement: "None",
-        cardDraw: 4,
-        artReference: "Ratatoskr.png"
     }
 }
 

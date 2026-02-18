@@ -40,11 +40,12 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 - **Milestone 5.2: Seeded Replays:** Replay system to verify 100% determinism.
 - **Milestone 5.3: Steam/Electron Wrap:** Packaging the web app as a native executable.
 
-## **Epic 6: The Augmentation Protocol**
-*Focus: Long-term strategic depth and synergies.*
-- **Milestone 6.1: Hardware Module System:** Implement physical "Relic" slots (max 3 per MingMing) with passive logic hooks.
-- **Milestone 6.2: Persistent Daemon Logic:** Create a new card class that installs background processes for battle-long buffs.
-- **Milestone 6.3: Modularity Balance:** Ensure AI accounts for installed Modules and active Daemons in its Min-Max scoring.
+## **Epic 6: The Augmentation Protocol (OS & Firmware)**
+*Focus: Long-term strategic depth and synergies via passive OS behaviors.*
+- [ ] **Milestone 6.1: Firmware Registry:** Define the 32 OS variants (16 MingMings x 2) in the data layer.
+- [ ] **Milestone 6.2: Synthesis Selection:** Update the Lab to allow OS choice upon creation.
+- [ ] **Milestone 6.3: Flashing Terminal:** Implement OS swapping at Terminals by consuming a MingMing Blueprint.
+- [ ] **Milestone 6.4: System Daemon Engine:** Integrate OS triggers (hooks) into the `battleReducer`.
 
 ## **Epic 3.5: The Terminal Gauntlet (Roguelike Loop)**
 *Focus: Creating a self-sustaining loop of Battle -> Rewards -> Management -> Battle using the current menu screens as the Hub.*
