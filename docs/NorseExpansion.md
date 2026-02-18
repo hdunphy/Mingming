@@ -22,7 +22,7 @@ This document defines sixteen MingMings inspired by Norse mythology, each repres
 
 ### **Kraken (The Deep Sea Terror)**
 *Narrative:* An underwater monstrosity that controls the very ecosystem of the deep seas. This is the true god of the seas.
-- **OS v1: `ABYSSAL_INK_SYS` (Disruption):** Whenever you draw a card outside of your normal Turn Phase, apply 1 stack of "Dazed" to a random enemy.
+- **OS v1: `ABYSSAL_INK_SYS` (Disruption):** Whenever you draw a card outside of your normal Draw Phase, apply 1 stack of "Dazed" to a random enemy.
 - **OS v2: `TIDAL_CRUSH_OS` (Big Spells):** Water cards that cost 3 or more Energy deal 30% more damage and cannot be dodged or blocked.
 
 ### **Jörmungandr (The World Serpent)**

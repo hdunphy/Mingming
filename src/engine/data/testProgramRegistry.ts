@@ -1,4 +1,5 @@
 import type { ProgramData } from '../types';
+import { StatusType } from '../types';
 import { STANDARD_CONSTRAINTS, ASLEEP_CONSTRAINT, BASE_CONSTRAINT, ALERT_CONSTRAINT } from './programRegistry';
 
 export const TestProgramRegistry: Record<string, ProgramData> = {
@@ -103,5 +104,60 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         actions: [
             { type: 'ATTACK', power: 10, target: 'TARGET', count: 3 }
         ],
+    },
+    'card_strike': {
+        id: 'card_strike',
+        name: 'Strike',
+        description: 'Basic strike.',
+        element: 'None',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }],
+    },
+    'card_0_cost_test': {
+        id: 'card_0_cost_test',
+        name: 'Freebie',
+        description: '0-cost test card.',
+        element: 'None',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 0,
+        constraints: [],
+        actions: [{ type: 'ATTACK', power: 0, target: 'TARGET' }],
+    },
+    'card_draw_test': {
+        id: 'card_draw_test',
+        name: 'Insight',
+        description: 'Draw 1 card.',
+        element: 'None',
+        target: 'Single',
+        category: 'Special',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'DRAW', count: 1, target: 'SELF' }],
+    },
+    'card_burn_test': {
+        id: 'card_burn_test',
+        name: 'Ignite',
+        description: 'Apply 1 Burn.',
+        element: 'Fire',
+        target: 'Single',
+        category: 'Status',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'STATUS', status: StatusType.Burn, stacks: 1, target: 'TARGET' }],
+    },
+    'card_water_blast': {
+        id: 'card_water_blast',
+        name: 'Tsunami',
+        description: 'Heavy water damage.',
+        element: 'Water',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 3,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'ATTACK', power: 100, target: 'TARGET' }],
     }
 };

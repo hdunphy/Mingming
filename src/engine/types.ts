@@ -57,6 +57,7 @@ export interface IMingmingDefinition {
   readonly primaryElement: Element;
   readonly secondaryElement?: Element;
   readonly cardDraw: number; // Base contribution
+  readonly availableOS: string[]; // IDs of OS variants
   readonly artReference?: string;
 }
 
@@ -73,6 +74,8 @@ export interface IMingmingState {
   readonly attackIV?: number;
   readonly defenseIV?: number;
   readonly hpIV?: number;
+  readonly huntLevel?: number; // For future hunt mechanics
+  readonly activeOS?: string; // Current Operating System ID
 }
 
 /**
@@ -98,6 +101,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly tempHp: number; // Shields
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
+  readonly activeOS?: string; // Current Operating System ID
   readonly artReference?: string;
 }
 
@@ -142,6 +146,7 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     tempHp: 0,
     statusEffects: [],
     hooks: [],
+    activeOS: instance.activeOS || definition.availableOS[0], // Default to first available OS
     artReference: definition.artReference
   };
 }

@@ -4,6 +4,7 @@ import { calculateDamage, calculateHeal } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { GetMingmingData } from './data/mingmingRegistry';
+import { drawCards } from './deckLogic';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -110,7 +111,7 @@ function addExperience(state: IBattleState, entityId: string, amount: number): I
 }
 
 
-function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number }): IBattleState {
+function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number; program?: ProgramData }): IBattleState {
     const { sourceId, targetId, power, element, damageOverride } = payload;
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
@@ -125,8 +126,8 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     if (damageOverride !== undefined) {
         damage = damageOverride;
     } else if (source) {
-        const mockProgram = { element: element } as ProgramData;
-        damage = calculateDamage(source, target, mockProgram, power, state);
+        const programToUse = payload.program || ({ element: element } as ProgramData);
+        damage = calculateDamage(source, target, programToUse, power, state);
     }
 
     // Apply Damage
@@ -363,7 +364,6 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     return newState;
 }
 
-import { drawCards } from './deckLogic';
 
 // ... imports ...
 

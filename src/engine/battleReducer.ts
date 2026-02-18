@@ -16,6 +16,7 @@ import { HookPriority, type MutationRequest, type HookContext, type HookDefiniti
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
+import { getOSBehavior } from './data/firmwareRegistry';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { drawCards, discardHand } from './deckLogic';
 
@@ -168,103 +169,7 @@ export function validateProgramConstraints(
 /**
  * Applies a list of mutations to the state in a single atomic update.
  */
-function applyMutations(state: IBattleState, mutations: MutationRequest[]): IBattleState {
-    let newState = state;
-
-    for (const mutation of mutations) {
-        switch (mutation.type) {
-            case 'HP':
-                newState = effectHandlers['ATTACK'](newState, {
-                    sourceId: 'SYSTEM', // System-level mutation
-                    targetId: mutation.targetId,
-                    power: 0,
-                    damageOverride: mutation.payload.amount, // We might need to update ATTACK to support override
-                    element: mutation.payload.element || 'None'
-                });
-                break;
-            case 'ENERGY':
-                newState = {
-                    ...newState,
-                    playerParty: newState.playerParty.map(e =>
-                        e.id === mutation.targetId ? {
-                            ...e,
-                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
-                        } : e
-                    ),
-                    enemyParty: newState.enemyParty.map(e =>
-                        e.id === mutation.targetId ? {
-                            ...e,
-                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
-                        } : e
-                    )
-                };
-                break;
-            case 'STATUS':
-                newState = effectHandlers['APPLY_STATUS'](newState, {
-                    targetId: mutation.targetId,
-                    status: mutation.payload.status,
-                    stacks: mutation.payload.stacks
-                });
-                break;
-            case 'LOG':
-                newState = addLog(newState, mutation.payload);
-                break;
-            case 'EVENT':
-                globalBattleEventBus.emit(mutation.payload);
-                break;
-        }
-    }
-
-    return newState;
-}
-
-/**
- * Gathers and executes hooks for a specific lifecycle phase.
- */
-function executeResolutionStack(
-    state: IBattleState,
-    phase: keyof HookDefinition,
-    initialContext: HookContext
-): { state: IBattleState; isCancelled: boolean } {
-    let currentState = state;
-    let isCancelled = false;
-
-    if (initialContext.triggerDepth > 5) {
-        console.warn("CRITICAL_EVENT_OVERFLOW: Max trigger depth reached.");
-        return { state: currentState, isCancelled: true };
-    }
-
-    // 1. Collect Hooks
-    const entities = [initialContext.source, initialContext.target].filter((e): e is IBattleEntity => !!e);
-    const hookIds = new Set<string>();
-    entities.forEach(e => e.hooks?.forEach(h => hookIds.add(h)));
-
-    const hooks: HookDefinition[] = Array.from(hookIds)
-        .map(id => getHook(id))
-        .filter((h): h is HookDefinition => !!h && !!h[phase]);
-
-    // 2. Sort by Priority
-    hooks.sort((a, b) => b.priority - a.priority);
-
-    // 3. Execute Hooks
-    for (const hook of hooks) {
-        const handler = hook[phase] as any;
-        if (!handler) continue;
-
-        const result: HookResult = handler({ ...initialContext, state: currentState });
-
-        if (result.mutations.length > 0) {
-            currentState = applyMutations(currentState, result.mutations);
-        }
-
-        if (result.isCancelled) {
-            isCancelled = true;
-            break;
-        }
-    }
-
-    return { state: currentState, isCancelled };
-}
+import { applyMutations, executeResolutionStack, executeDraw } from './resolutionEngine';
 
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
@@ -376,17 +281,51 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     finalState = afterMod;
 
                     // Execution
-                    const handler = effectHandlers[action.type];
-                    if (handler) {
-                        finalState = handler(finalState, {
-                            sourceId,
+                    if (action.type === 'DRAW') {
+                        const isPlayerSource = snapshot.playerParty.some(e => e.id === sourceId);
+                        const side = isPlayerSource ? 'PLAYER' : 'ENEMY';
+                        finalState = executeDraw(finalState, side, action.count || 1, false);
+                    } else if (action.type === 'STATUS') {
+                        finalState = applyMutations(finalState, [{
+                            type: 'STATUS',
                             targetId: tId,
-                            power: action.power || 0,
-                            count: 1, // Single discrete hit
-                            element: action.element || programData.element,
-                            status: action.status,
-                            stacks: action.stacks || 1
-                        });
+                            sourceId: sourceId,
+                            payload: {
+                                status: action.status,
+                                stacks: action.stacks || 1
+                            }
+                        }]);
+                    } else if (action.type === 'ATTACK') {
+                        // For ATTACK, we still want to use handleAttack for all the logic?
+                        // Actually, handleAttack already has a lot of logic.
+                        // But we want it to be a mutation.
+                        // Let's just use effectHandlers for now but ensure onActionStart covers others.
+                        // Wait, Fenrir v2 is specifically about STATUS.
+                        const handler = effectHandlers[action.type];
+                        if (handler) {
+                            finalState = handler(finalState, {
+                                sourceId,
+                                targetId: tId,
+                                power: action.power || 0,
+                                count: 1, // Single discrete hit
+                                element: action.element || programData.element,
+                                program: programData
+                            });
+                        }
+                    } else {
+                        const handler = effectHandlers[action.type];
+                        if (handler) {
+                            finalState = handler(finalState, {
+                                sourceId,
+                                targetId: tId,
+                                power: action.power || 0,
+                                count: 1, // Single discrete hit
+                                element: action.element || programData.element,
+                                status: action.status,
+                                stacks: action.stacks || 1,
+                                program: programData
+                            });
+                        }
                     }
 
                     // Post-Damage Phase
@@ -574,17 +513,16 @@ function processPreTurn(state: IBattleState): IBattleState {
     const totalCardDraw = aliveMembers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveMembers.length + 1;
     const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - activeDeck.hand.length);
     console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
-    const { state: newDeckState, nextSeed } = drawCards(activeDeck, cardsToDraw, state.seed);
+
+    let newState = executeDraw(state, nextSide, cardsToDraw, true);
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    let newState = {
-        ...state,
-        seed: nextSeed,
+    newState = {
+        ...newState,
         activeSide: nextSide,
         turn: nextTurn,
         [activePartyKey]: refreshedParty,
-        [activeDeckKey]: newDeckState
     };
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);

@@ -13,6 +13,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Fire",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["fenrir_v1", "fenrir_v2"],
         artReference: "Fenrir.png"
     },
     "kraken": {
@@ -27,6 +28,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Water",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["kraken_v1", "kraken_v2"],
         artReference: "Kraken.png"
     },
     "fafnir": {
@@ -41,6 +43,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Earth",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["fafnir_v1", "fafnir_v2"],
         artReference: "Fafnir.png"
     },
     "skoll": {
@@ -55,6 +58,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Fire",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["skoll_v1", "skoll_v2"],
         artReference: "Skoll.png"
     },
     "jormungandr": {
@@ -69,6 +73,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Water",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["jormungandr_v1", "jormungandr_v2"],
         artReference: "Jormungandr.png"
     },
     "gullinbursti": {
@@ -83,6 +88,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Earth",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["gullinbursti_v1", "gullinbursti_v2"],
         artReference: "Gullinbursti.png"
     },
     "hraesvelgr": {
@@ -97,6 +103,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Air",
         secondaryElement: "None",
         cardDraw: 4,
+        availableOS: ["hraesvelgr_v1", "hraesvelgr_v2"],
         artReference: "Hraesvelgr.png"
     },
     "sleipnir": {
@@ -111,6 +118,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Air",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["sleipnir_v1", "sleipnir_v2"],
         artReference: "Sleipnir.png"
     },
     "ratatoskr": {
@@ -125,6 +133,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Nature",
         secondaryElement: "None",
         cardDraw: 4,
+        availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
         artReference: "Ratatoskr.png"
     },
     "huldra": {
@@ -139,6 +148,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Nature",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["huldra_v1", "huldra_v2"],
         artReference: "Huldra.png"
     },
     "ymir": {
@@ -153,6 +163,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Ice",
         secondaryElement: "None",
         cardDraw: 2,
+        availableOS: ["ymir_v1", "ymir_v2"],
         artReference: "Ymir.png"
     },
     "draugr": {
@@ -167,6 +178,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Ice",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["draugr_v1", "draugr_v2"],
         artReference: "Draugr.png"
     },
     "valkyrie": {
@@ -181,6 +193,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Light",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["valkyrie_v1", "valkyrie_v2"],
         artReference: "Valkyrie.png"
     },
     "audhumbla": {
@@ -195,6 +208,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Light",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["audhumbla_v1", "audhumbla_v2"],
         artReference: "Audhumbla.png"
     },
     "hel": {
@@ -209,6 +223,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Dark",
         secondaryElement: "None",
         cardDraw: 4,
+        availableOS: ["hel_v1", "hel_v2"],
         artReference: "Hel.png"
     },
     "nidhoggr": {
@@ -223,6 +238,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         primaryElement: "Dark",
         secondaryElement: "None",
         cardDraw: 3,
+        availableOS: ["nidhoggr_v1", "nidhoggr_v2"],
         artReference: "Nidhoggr.png"
     }
 }
@@ -246,6 +262,7 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
             primaryElement: 'None',
             secondaryElement: 'None',
             cardDraw: 1,
+            availableOS: [],
             artReference: ''
         };
     }

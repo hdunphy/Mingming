@@ -1,50 +1,13 @@
-import type { IBattleState, IBattleEntity, ProgramData } from '../types';
+import type { IBattleEntity } from '../types';
+import {
+    type HookDefinition,
+    type HookContext,
+    type HookResult,
+    HookPriority
+} from './HookTypes';
+import { getOSBehavior } from '../data/firmwareRegistry';
 
-export enum HookPriority {
-    SYSTEM = 100,
-    GLOBAL = 75,
-    ATTACKER = 50,
-    PROGRAM = 40,
-    DEFENDER = 25,
-    LOGGING = 0
-}
-
-export type MutationRequest = {
-    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT';
-    targetId: string;
-    payload: any;
-};
-
-export type HookResult = {
-    mutations: MutationRequest[];
-    isCancelled?: boolean;
-};
-
-export type HookContext = {
-    source?: IBattleEntity;
-    target?: IBattleEntity;
-    program?: ProgramData;
-    state: IBattleState;
-    triggerDepth: number;
-};
-
-export type DamageModifierHook = (
-    currentDamage: number,
-    context: HookContext
-) => number;
-
-export type EventHook = (
-    context: HookContext
-) => HookResult;
-
-export type HookDefinition = {
-    id: string;
-    priority: number;
-    onDamageCalculated?: DamageModifierHook;
-    onActionStart?: EventHook;
-    onModifierPhase?: EventHook;
-    onPostDamage?: EventHook;
-};
+export * from './HookTypes';
 
 const hookRegistry: Record<string, HookDefinition> = {};
 
@@ -65,10 +28,16 @@ export const applyDamageModifiers = (
 
     // 1. Collect Hooks
     const hookIds = new Set<string>();
-    entities.forEach(e => e.hooks?.forEach(h => hookIds.add(h)));
+    entities.forEach(e => {
+        if (e.hooks) e.hooks.forEach(h => hookIds.add(h));
+        if (e.activeOS) {
+            const os = getOSBehavior(e.activeOS);
+            if (os) os.hooks.forEach(h => hookIds.add(h.id));
+        }
+    });
 
     const hooks: HookDefinition[] = Array.from(hookIds)
-        .map(id => hookRegistry[id])
+        .map(id => getHook(id as string))
         .filter((h): h is HookDefinition => !!h && !!h.onDamageCalculated);
 
     // 2. Sort by Priority
