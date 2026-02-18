@@ -1,8 +1,10 @@
 import type { IBattleEntity, ProgramEntity, IBattleState, IMingmingState, IDeckState } from '../types';
+import type { IPlayerSave } from '../gameTypes';
 import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
 import { drawCards } from '../deckLogic';
+import { PRNG } from '../core/PRNG';
 
 export function createMockEntity(name: string, mingmingId: string = 'fenrir', level: number = 10, experience: number = 0): IBattleEntity {
     const definition = GetMingmingData(mingmingId);
@@ -43,23 +45,54 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
     }));
 }
 
-export function createInitialBattleState(): IBattleState {
-    const p1 = createMockEntity('Hero-Water 1', 'kraken', 5);
-    const e1 = createMockEntity('Villain-Fire 1', 'fenrir', 5);
+export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattleState {
+    const playerPartyMembers = save.activeParty
+        .map(id => save.roster.find(m => m.id === id))
+        .filter(Boolean) as IMingmingState[];
 
-    const pDeckCards = instantiateDeck(createMockDeck(true).slice(0, 12));
-    const eDeckCards = instantiateDeck(createMockDeck().slice(0, 12));
+    if (playerPartyMembers.length === 0) throw new Error("No active Mingming found in save!");
 
-    // Calculate card draw using the formula: sum(cardDraw) - aliveCount + 1
-    const playerParty = [p1];
-    const enemyParty = [e1];
+    const playerParty = playerPartyMembers.map(mm => initializeBattleEntity(mm, GetMingmingData(mm.definitionId)));
+    const enemyLevel = Math.max(...playerParty.map(p => p.level));
+    const enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel));
 
+    // Get program IDs from save's active deck
+    const deckInstanceIds = save.activeDeck?.cards || [];
+    const deckIds = deckInstanceIds.map(instId => save.cardInventory.find(c => c.instanceId === instId)?.dataId).filter(Boolean) as string[];
+
+    const pDeckCardsRaw = instantiateDeck(deckIds);
+    const initialSeed = Date.now();
+    const { shuffled: pDeckCards, nextSeed: seedAfterPlayerShuffle } = new PRNG(initialSeed).shuffle(pDeckCardsRaw);
+
+    // Enemy gets the same starter deck logic for now but based on their type
+    const enemyDeckIds = enemyIds.map(enemyId => {
+        const isEnemyWater = GetMingmingData(enemyId).primaryElement === 'Water';
+        const isEnemyNature = GetMingmingData(enemyId).primaryElement === 'Nature';
+
+        let enemyDeckIds = [
+            'spicy_breath', 'flamethrower', 'erupt', 'rage', 'charge',
+            'toats', 'roast', 'preheat', 'flash', 'fire_punch',
+            'ignite_pipeline', 'combustion'
+        ];
+        if (isEnemyWater) enemyDeckIds = [
+            'squirt', 'water_jet', 'whirlpool', 'bathe', 'scald',
+            'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
+            'rain', 'drink_tea'
+        ];
+        if (isEnemyNature) enemyDeckIds = [
+            'quick_leaf', 'forage', 'squirrel_scurry', 'nature_bond',
+            'acorn_shot', 'quick_leaf', 'forage', 'squirrel_scurry'
+        ];
+        return enemyDeckIds.slice(0, 12);
+    })
+
+    const eDeckCardsRaw = instantiateDeck(enemyDeckIds.flat());
+    const { shuffled: eDeckCards, nextSeed: seedAfterEnemyShuffle } = new PRNG(seedAfterPlayerShuffle).shuffle(eDeckCardsRaw);
+
+    //Keep this we will also use this for 3v3s
     const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
     const enemyCardDraw = enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
 
-    const initialSeed = Date.now();
-
-    // Use drawCards for proper deck cycling
     const pInitialDeck: IDeckState = {
         ownerId: 'PLAYER',
         deck: [],
@@ -67,7 +100,7 @@ export function createInitialBattleState(): IBattleState {
         hand: [],
         discard: []
     };
-    const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, initialSeed);
+    const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle);
 
     const eInitialDeck: IDeckState = {
         ownerId: 'ENEMY',
@@ -88,6 +121,7 @@ export function createInitialBattleState(): IBattleState {
         playerParty: playerParty,
         enemyParty: enemyParty,
         playerDeck: pDeckState,
-        enemyDeck: eDeckState
+        enemyDeck: eDeckState,
+        levelUpQueue: []
     };
 }

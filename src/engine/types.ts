@@ -106,15 +106,15 @@ export interface IBattleEntity extends IMingmingState {
 /**
  * Calculates a standard stat (Attack/Defense) using the Unity Legacy Formula.
  */
-function calculateStandardStat(base: number, modifier: number, level: number): number {
-  return Math.floor(((2 * base) + modifier) * level / 100) + 5;
+export function calculateStandardStat(base: number, modifier: number, level: number): number {
+  return Math.floor(((2 * base) + modifier + 25) * level / 100) + 5;
 }
 
 /**
  * Calculates Health using the Unity Legacy Formula.
  */
-function calculateHealth(base: number, modifier: number, level: number): number {
-  return calculateStandardStat(base, modifier, level) + level + 5;
+export function calculateHealth(base: number, modifier: number, level: number): number {
+  return calculateStandardStat(base, modifier, level) + level + 20;
 }
 
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {
@@ -182,6 +182,15 @@ export interface ProgramEntity {
 
 // --- Deck & State Definitions ---
 
+export interface LevelUpEvent {
+  readonly entityId: string;
+  readonly nickname: string;
+  readonly oldLevel: number;
+  readonly newLevel: number;
+  readonly oldStats: { hp: number; attack: number; defense: number };
+  readonly newStats: { hp: number; attack: number; defense: number };
+}
+
 export interface IDeckState {
   readonly ownerId: string;
   readonly deck: ReadonlyArray<string>; // Array of ProgramData IDs
@@ -204,4 +213,5 @@ export interface IBattleState {
   readonly enemyDeck: IDeckState;
 
   readonly logs: ReadonlyArray<string>;
+  readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

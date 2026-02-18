@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
-import { StatusType, getExpForLevel } from './types';
+import { StatusType, getExpForLevel, calculateStandardStat, calculateHealth } from './types';
 import { calculateDamage, calculateHeal } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
@@ -27,13 +27,17 @@ function calculateDeathXp(defeatedUnit: IBattleEntity): number {
     return Math.floor(getExpForLevel(defeatedUnit.level + 1) / 5);
 }
 
-function handleLevelUp(entity: IBattleEntity): IBattleEntity {
-    // Check if current XP exceeds threshold for next level
+interface LevelUpResult {
+    entity: IBattleEntity;
+    events: any[];
+}
+
+function handleLevelUp(entity: IBattleEntity, events: any[] = []): LevelUpResult {
     const xpNeeded = getExpForLevel(entity.level + 1);
     if (entity.experience >= xpNeeded) {
+        const oldLevel = entity.level;
         const newLevel = entity.level + 1;
 
-        // Lookup base stats from registry
         const definition = GetMingmingData(entity.definitionId);
         const baseHp = definition.baseStats.hp;
         const baseAtk = definition.baseStats.attack;
@@ -43,33 +47,47 @@ function handleLevelUp(entity: IBattleEntity): IBattleEntity {
         const atkIV = entity.attackIV ?? 0;
         const defIV = entity.defenseIV ?? 0;
 
-        // Recalculate stats using the Unity Legacy Formula
-        const newMaxHp = Math.floor(((2 * baseHp) + hpIV) * newLevel / 100) + newLevel + 10;
-        const newAttack = Math.floor(((2 * baseAtk) + atkIV) * newLevel / 100) + 5;
-        const newDefense = Math.floor(((2 * baseDef) + defIV) * newLevel / 100) + 5;
+        const newMaxHp = calculateHealth(definition.baseStats.hp, hpIV, newLevel);
+        const newAttack = calculateStandardStat(definition.baseStats.attack, atkIV, newLevel);
+        const newDefense = calculateStandardStat(definition.baseStats.defense, defIV, newLevel);
 
         const hpDiff = newMaxHp - entity.maxHp;
+
+        const oldStats = { hp: entity.maxHp, attack: entity.attack, defense: entity.defense };
+        const newStats = { hp: newMaxHp, attack: newAttack, defense: newDefense };
 
         const leveledEntity: IBattleEntity = {
             ...entity,
             level: newLevel,
             maxHp: newMaxHp,
-            currentHp: entity.currentHp + hpDiff, // Heal by the amount gained
+            currentHp: entity.currentHp + hpDiff,
             attack: newAttack,
             defense: newDefense
         };
 
-        return handleLevelUp(leveledEntity); // Recursive level up
+        events.push({
+            entityId: entity.id,
+            nickname: entity.name,
+            oldLevel,
+            newLevel,
+            oldStats,
+            newStats
+        });
+
+        return handleLevelUp(leveledEntity, events);
     }
-    return entity;
+    return { entity, events };
 }
 
 function addExperience(state: IBattleState, entityId: string, amount: number): IBattleState {
+    let levelUpEvents: any[] = [];
+
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => {
             if (e.id !== entityId) return e;
-            const updated = handleLevelUp({ ...e, experience: e.experience + amount });
-            if (updated.level > e.level) {
+            const { entity: updated, events } = handleLevelUp({ ...e, experience: e.experience + amount });
+            if (events.length > 0) {
+                levelUpEvents = [...levelUpEvents, ...events];
                 globalBattleEventBus.emit({
                     type: 'LEVEL_UP',
                     targetId: e.id,
@@ -80,10 +98,14 @@ function addExperience(state: IBattleState, entityId: string, amount: number): I
             return updated;
         });
 
+    const newPlayerParty = updateParty(state.playerParty);
+    const newEnemyParty = updateParty(state.enemyParty);
+
     return {
         ...state,
-        playerParty: updateParty(state.playerParty),
-        enemyParty: updateParty(state.enemyParty)
+        playerParty: newPlayerParty,
+        enemyParty: newEnemyParty,
+        levelUpQueue: [...state.levelUpQueue, ...levelUpEvents]
     };
 }
 

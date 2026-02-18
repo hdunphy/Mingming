@@ -501,7 +501,52 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Hover Tooltip */
+/* ProgramCard Polish */
+.program-card-container:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  /* Ensure hovered card pops above headers */
+}
+
+.card-hover-preview {
+  position: fixed;
+  width: 240px;
+  background: #1a1a2e;
+  border: 1px solid var(--accent-primary);
+  border-radius: 10px;
+  padding: 15px;
+  pointer-events: none;
+  z-index: 10000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  /* The portal handles visibility via JS, but we want it to look nice */
+  animation: tooltip-fade-in 0.2s ease-out;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ensure parents don't clip tooltips */
+.inventory-panel,
+.synthesis-panel {
+  overflow: hidden !important;
+  /* Force clip everything */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hover Tooltip - Battle Deck */
 .card-tooltip {
   position: absolute;
   bottom: calc(100% + 10px);
@@ -915,10 +960,15 @@ body {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
-  max-height: 400px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  max-height: 500px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  margin: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .deck-card {

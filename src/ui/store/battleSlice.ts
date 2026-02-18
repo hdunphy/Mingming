@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { IBattleState } from '../../engine/types';
-import { createInitialBattleState } from '../../engine/data/battleFactories';
+import { createBattleState } from '../../engine/data/battleFactories';
 import { battleReducer } from '../../engine/battleReducer';
+import type { IPlayerSave } from '../../engine/gameTypes';
 
 export interface BattleUIState {
     battle: IBattleState | null;
@@ -12,7 +13,7 @@ export interface BattleUIState {
 }
 
 const initialState: BattleUIState = {
-    battle: createInitialBattleState(),
+    battle: null,
     selectedSourceId: null,
     selectedTargetId: null,
     selectedCardId: null
@@ -52,8 +53,19 @@ const battleSlice = createSlice({
         selectSource: (state, action: PayloadAction<string | null>) => {
             state.selectedSourceId = action.payload;
         },
-        setBattleState: (state, action: PayloadAction<IBattleState>) => {
+        setBattleState: (state, action: PayloadAction<IBattleState | null>) => {
             state.battle = action.payload as any;
+        },
+        startBattle: (state, action: PayloadAction<{ save: IPlayerSave; enemyIds: string[] }>) => {
+            state.battle = createBattleState(action.payload.save, action.payload.enemyIds) as any;
+            state.selectedSourceId = null;
+            state.selectedTargetId = null;
+            state.selectedCardId = null;
+        },
+        dismissLevelUp: (state) => {
+            if (state.battle) {
+                state.battle.levelUpQueue = state.battle.levelUpQueue.slice(1);
+            }
         }
     }
 });
@@ -65,7 +77,9 @@ export const {
     selectCard,
     selectTarget,
     selectSource,
-    setBattleState
+    setBattleState,
+    startBattle,
+    dismissLevelUp
 } = battleSlice.actions;
 
 export default battleSlice.reducer;

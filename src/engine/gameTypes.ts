@@ -5,6 +5,7 @@
 
 import { createMockEntity } from "./data/battleFactories";
 import type { IMingmingState } from "./types";
+import { getExpForLevel } from "./types";
 
 // --- Card Inventory ---
 
@@ -22,6 +23,7 @@ export interface IActiveDeck {
 }
 
 export const DECK_SIZE = 40;
+export const MIN_DECK_SIZE = 10;
 
 // --- Blueprint ---
 
@@ -91,7 +93,7 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
         definitionId: starterId,
         nickname: nickname,
         level: 5,
-        experience: 0,
+        experience: getExpForLevel(5),
         attackIV: 10 + Math.floor(Math.random() * 6),
         defenseIV: 10 + Math.floor(Math.random() * 6),
         hpIV: 10 + Math.floor(Math.random() * 6)
@@ -114,9 +116,14 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
         'nature_bond', 'acorn_shot', 'quick_leaf', 'forage'
     ];
 
-    let starterCardIds = waterStarterIds;
-    if (isFire) starterCardIds = fireStarterIds;
-    if (isNature) starterCardIds = natureStarterIds;
+    let starterCardIds: string[] = [];
+    const baseCards = isFire ? fireStarterIds : isWater ? waterStarterIds : natureStarterIds;
+
+    // Fill to 40 cards
+    while (starterCardIds.length < MIN_DECK_SIZE) {
+        starterCardIds.push(...baseCards);
+    }
+    starterCardIds = starterCardIds.slice(0, MIN_DECK_SIZE);
 
     const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => ({
         instanceId: crypto.randomUUID(),
@@ -146,7 +153,7 @@ export function createMingmingInstance(
         id: crypto.randomUUID(),
         definitionId,
         level,
-        experience: 0,
+        experience: getExpForLevel(level),
         attackIV: Math.floor(Math.random() * 16),
         defenseIV: Math.floor(Math.random() * 16),
         hpIV: Math.floor(Math.random() * 16)

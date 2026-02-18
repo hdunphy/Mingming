@@ -5,7 +5,8 @@ import { getBestAction } from './ai/TacticalAI';
 import { globalBattleEventBus } from './events';
 import { GetProgramData } from './data/programRegistry';
 
-import { createInitialBattleState } from './data/battleFactories';
+import { createBattleState } from './data/battleFactories';
+import { createStarterSave } from './gameTypes';
 
 // --- Simulation Logic ---
 
@@ -17,7 +18,8 @@ export interface SimResult {
 }
 
 export function runSimulation(): SimResult {
-    let state = createInitialBattleState();
+    const mockSave = createStarterSave('kraken');
+    let state = createBattleState(mockSave, ['fenrir']);
     const logBuffer: string[] = [];
     const MAX_TURNS = 50;
 

@@ -3,8 +3,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
 import { addCardToDeck, removeCardFromDeck, setActiveDeck } from '../store/gameSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { DECK_SIZE } from '../../engine/gameTypes';
+import { DECK_SIZE, MIN_DECK_SIZE } from '../../engine/gameTypes';
 import type { Element, ProgramCategory } from '../../engine/types';
+import ProgramCard from '../components/ProgramCard';
 
 type FilterElement = Element | 'All';
 type FilterCategory = ProgramCategory | 'All';
@@ -26,7 +27,7 @@ export default function DeckTerminal() {
 
     const deckCardIds = new Set(activeDeck?.cards ?? []);
     const deckCount = activeDeck?.cards.length ?? 0;
-    const isValid = deckCount === DECK_SIZE;
+    const isValid = deckCount >= MIN_DECK_SIZE && deckCount <= DECK_SIZE;
 
     // Enriched inventory with program data
     const enrichedCards = useMemo(() => {
@@ -36,32 +37,48 @@ export default function DeckTerminal() {
         }));
     }, [cardInventory]);
 
-    // Filtered + sorted cards
-    const filteredCards = useMemo(() => {
-        let cards = enrichedCards;
+    // Filtered + sorted cards grouped by dataId
+    const groupedInventory = useMemo(() => {
+        const groups: Record<string, { dataId: string; instances: string[]; data: any }> = {};
+
+        enrichedCards.forEach(c => {
+            if (!groups[c.dataId]) {
+                groups[c.dataId] = { dataId: c.dataId, instances: [], data: c.data };
+            }
+            groups[c.dataId].instances.push(c.instanceId);
+        });
+
+        const list = Object.values(groups);
+        let filtered = list;
         if (elementFilter !== 'All') {
-            cards = cards.filter(c => c.data.element === elementFilter);
+            filtered = filtered.filter(g => g.data.element === elementFilter);
         }
         if (categoryFilter !== 'All') {
-            cards = cards.filter(c => c.data.category === categoryFilter);
+            filtered = filtered.filter(g => g.data.category === categoryFilter);
         }
-        return cards.sort((a, b) => {
+
+        return filtered.sort((a, b) => {
             if (sortBy === 'cost') return a.data.baseCost - b.data.baseCost;
             if (sortBy === 'element') return a.data.element.localeCompare(b.data.element);
             return a.data.name.localeCompare(b.data.name);
         });
     }, [enrichedCards, elementFilter, categoryFilter, sortBy]);
 
-    // Deck cards enriched
-    const deckCards = useMemo(() => {
+    // Deck cards stacked
+    const stackedDeck = useMemo(() => {
         if (!activeDeck) return [];
-        return activeDeck.cards
-            .map(instanceId => {
-                const owned = cardInventory.find(c => c.instanceId === instanceId);
-                if (!owned) return null;
-                return { ...owned, data: GetProgramData(owned.dataId) };
-            })
-            .filter(Boolean) as typeof enrichedCards;
+        const groups: Record<string, { dataId: string; instances: string[]; data: any }> = {};
+
+        activeDeck.cards.forEach(instanceId => {
+            const owned = cardInventory.find(c => c.instanceId === instanceId);
+            if (!owned) return;
+            const data = GetProgramData(owned.dataId);
+            if (!groups[owned.dataId]) {
+                groups[owned.dataId] = { dataId: owned.dataId, instances: [], data };
+            }
+            groups[owned.dataId].instances.push(instanceId);
+        });
+        return Object.values(groups);
     }, [activeDeck, cardInventory]);
 
     const elementColor = (el: string) => {
@@ -78,8 +95,9 @@ export default function DeckTerminal() {
             <div className="deck-terminal-header">
                 <h1>⚡ Deck Terminal</h1>
                 <div className="deck-counter" style={{ color: isValid ? 'var(--hp-green)' : 'var(--hp-red)' }}>
-                    {deckCount} / {DECK_SIZE}
+                    {deckCount} / {MIN_DECK_SIZE}
                     {isValid && <span className="valid-badge">✓ VALID</span>}
+                    {!isValid && deckCount < MIN_DECK_SIZE && <span className="invalid-badge" style={{ fontSize: '0.8rem', marginLeft: '10px' }}> (Min {MIN_DECK_SIZE} req.)</span>}
                 </div>
             </div>
 
@@ -87,6 +105,9 @@ export default function DeckTerminal() {
                 {/* Left: Inventory */}
                 <div className="deck-panel inventory-panel">
                     <h2>📦 Inventory</h2>
+                    <p className="synthesis-hint">
+                        Left Click: Add to deck | Right Click: Remove from deck
+                    </p>
 
                     <div className="filter-bar">
                         <select value={elementFilter} onChange={e => setElementFilter(e.target.value as FilterElement)}>
@@ -109,32 +130,35 @@ export default function DeckTerminal() {
                     </div>
 
                     <div className="card-grid">
-                        {filteredCards.length === 0 && (
+                        {groupedInventory.length === 0 && (
                             <div className="empty-state">No cards in inventory. Win battles to earn cards!</div>
                         )}
-                        {filteredCards.map(card => {
-                            const inDeck = deckCardIds.has(card.instanceId);
+                        {groupedInventory.map(group => {
+                            const inDeckCount = group.instances.filter(id => deckCardIds.has(id)).length;
+                            const isFullyInDeck = inDeckCount === group.instances.length;
+
                             return (
-                                <div
-                                    key={card.instanceId}
-                                    className={`deck-card ${inDeck ? 'in-deck' : ''}`}
-                                    style={{ borderColor: elementColor(card.data.element) }}
+                                <ProgramCard
+                                    key={group.dataId}
+                                    data={group.data}
+                                    count={group.instances.length}
+                                    showBadge={inDeckCount > 0 ? `${inDeckCount} IN DECK` : undefined}
                                     onClick={() => {
-                                        if (inDeck) {
-                                            dispatch(removeCardFromDeck(card.instanceId));
-                                        } else if (deckCount < DECK_SIZE) {
-                                            dispatch(addCardToDeck(card.instanceId));
+                                        // Find first instance NOT in deck
+                                        const nextId = group.instances.find(id => !deckCardIds.has(id));
+                                        if (nextId && deckCount < DECK_SIZE) {
+                                            dispatch(addCardToDeck(nextId));
                                         }
                                     }}
-                                >
-                                    <div className="deck-card-cost">{card.data.baseCost}</div>
-                                    <div className="deck-card-name">{card.data.name}</div>
-                                    <div className="deck-card-element" style={{ color: elementColor(card.data.element) }}>
-                                        {card.data.element}
-                                    </div>
-                                    <div className="deck-card-category">{card.data.category}</div>
-                                    {inDeck && <div className="deck-card-badge">IN DECK</div>}
-                                </div>
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        // Find first instance IN deck
+                                        const inDeckId = group.instances.find(id => deckCardIds.has(id));
+                                        if (inDeckId) {
+                                            dispatch(removeCardFromDeck(inDeckId));
+                                        }
+                                    }}
+                                />
                             );
                         })}
                     </div>
@@ -143,20 +167,25 @@ export default function DeckTerminal() {
                 {/* Right: Current Deck */}
                 <div className="deck-panel deck-list-panel">
                     <h2>🃏 Active Deck</h2>
-                    <div className="deck-list">
-                        {deckCards.length === 0 && (
+                    <div className="deck-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {stackedDeck.length === 0 && (
                             <div className="empty-state">Click cards from inventory to add them</div>
                         )}
-                        {deckCards.map((card, i) => (
+                        {stackedDeck.map((group) => (
                             <div
-                                key={card.instanceId}
-                                className="deck-list-item"
-                                onClick={() => dispatch(removeCardFromDeck(card.instanceId))}
+                                key={group.dataId}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}
                             >
-                                <span className="deck-list-num">{i + 1}.</span>
-                                <span className="deck-list-cost" style={{ color: elementColor(card.data.element) }}>{card.data.baseCost}⚡</span>
-                                <span className="deck-list-name">{card.data.name}</span>
-                                <span className="deck-list-remove">✕</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ fontWeight: 'bold', color: 'var(--accent-primary)' }}>{group.instances.length}x</span>
+                                    <span>{group.data.name}</span>
+                                </div>
+                                <button
+                                    onClick={() => dispatch(removeCardFromDeck(group.instances[0]))}
+                                    style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer' }}
+                                >
+                                    REMOVE
+                                </button>
                             </div>
                         ))}
                     </div>

@@ -11,37 +11,54 @@ import {
 import { getScrapYield } from '../../engine/RewardSystem';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { createMingmingInstance } from '../../engine/gameTypes';
+import ProgramCard from '../components/ProgramCard';
 
 export default function SynthesisLab() {
     const dispatch = useDispatch();
     const { cardInventory, scrapCount, blueprints } = useSelector((s: RootState) => s.game);
-    const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+    const [selectedCards, setSelectedCards] = useState<Map<string, string[]>>(new Map()); // dataId -> instanceIds
     const [lastCompiled, setLastCompiled] = useState<string | null>(null);
 
-    // Calculate total scrap from selected cards
     const selectedScrap = useMemo(() => {
         let total = 0;
-        for (const id of selectedCards) {
-            total += getScrapYield(); // Default Common for now
-        }
+        selectedCards.forEach(ids => {
+            total += ids.length * getScrapYield();
+        });
         return total;
     }, [selectedCards]);
 
-    const toggleCard = (instanceId: string) => {
+    const addOne = (dataId: string, availableIds: string[]) => {
         setSelectedCards(prev => {
-            const next = new Set(prev);
-            if (next.has(instanceId)) next.delete(instanceId);
-            else next.add(instanceId);
+            const next = new Map(prev);
+            const current = next.get(dataId) || [];
+            if (current.length < availableIds.length) {
+                // Find an ID not already selected
+                const nextId = availableIds.find(id => !current.includes(id));
+                if (nextId) next.set(dataId, [...current, nextId]);
+            }
+            return next;
+        });
+    };
+
+    const removeOne = (dataId: string) => {
+        setSelectedCards(prev => {
+            const next = new Map(prev);
+            const current = next.get(dataId) || [];
+            if (current.length > 0) {
+                const updated = current.slice(0, -1);
+                if (updated.length === 0) next.delete(dataId);
+                else next.set(dataId, updated);
+            }
             return next;
         });
     };
 
     const scrapSelected = () => {
-        for (const instanceId of selectedCards) {
-            dispatch(removeCardFromInventory(instanceId));
-        }
+        selectedCards.forEach(ids => {
+            ids.forEach(id => dispatch(removeCardFromInventory(id)));
+        });
         dispatch(addScrap(selectedScrap));
-        setSelectedCards(new Set());
+        setSelectedCards(new Map());
     };
 
     const compileMingming = (architectureId: string, cost: number) => {
@@ -53,8 +70,15 @@ export default function SynthesisLab() {
         setTimeout(() => setLastCompiled(null), 2000);
     };
 
-    const enrichedCards = useMemo(() => {
-        return cardInventory.map(c => ({ ...c, data: GetProgramData(c.dataId) }));
+    const groupedCardInventory = useMemo(() => {
+        const groups: Record<string, { dataId: string; instances: string[]; data: any }> = {};
+        cardInventory.forEach(c => {
+            if (!groups[c.dataId]) {
+                groups[c.dataId] = { dataId: c.dataId, instances: [], data: GetProgramData(c.dataId) };
+            }
+            groups[c.dataId].instances.push(c.instanceId);
+        });
+        return Object.values(groups);
     }, [cardInventory]);
 
     return (
@@ -75,29 +99,36 @@ export default function SynthesisLab() {
                     <p className="synthesis-hint">Select cards to scrap for materials</p>
 
                     <div className="card-grid">
-                        {enrichedCards.length === 0 && (
+                        {groupedCardInventory.length === 0 && (
                             <div className="empty-state">No cards to scrap</div>
                         )}
-                        {enrichedCards.map(card => {
-                            const isSelected = selectedCards.has(card.instanceId);
+                        {groupedCardInventory.map(group => {
+                            const selectedIds = selectedCards.get(group.dataId) || [];
                             return (
-                                <div
-                                    key={card.instanceId}
-                                    className={`deck-card scrap-card ${isSelected ? 'selected-scrap' : ''}`}
-                                    onClick={() => toggleCard(card.instanceId)}
-                                >
-                                    <div className="deck-card-cost">{card.data.baseCost}</div>
-                                    <div className="deck-card-name">{card.data.name}</div>
-                                    <div className="deck-card-category">{card.data.category}</div>
-                                    {isSelected && <div className="deck-card-badge scrap-badge">SCRAP</div>}
-                                </div>
+                                <ProgramCard
+                                    key={group.dataId}
+                                    data={group.data}
+                                    count={group.instances.length}
+                                    showBadge={selectedIds.length > 0 ? `${selectedIds.length} MARKED` : undefined}
+                                    onClick={() => {
+                                        addOne(group.dataId, group.instances);
+                                    }}
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        removeOne(group.dataId);
+                                    }}
+                                />
                             );
                         })}
                     </div>
 
-                    {selectedCards.size > 0 && (
+                    <p style={{ fontSize: '0.8rem', opacity: 0.5, textAlign: 'center' }}>
+                        Left Click: Add to scrap | Right Click: Remove from scrap
+                    </p>
+
+                    {selectedScrap > 0 && (
                         <button className="scrap-button" onClick={scrapSelected}>
-                            🔥 Scrap {selectedCards.size} cards → +{selectedScrap} ⚙️
+                            🔥 Scrap Identified Programs → +{selectedScrap} ⚙️
                         </button>
                     )}
                 </div>

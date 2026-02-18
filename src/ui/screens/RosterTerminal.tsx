@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
 import { setActiveParty } from '../store/gameSlice';
+import { getExpForLevel } from '../../engine/types';
 
 export default function RosterTerminal() {
     const dispatch = useDispatch();
@@ -81,7 +82,19 @@ export default function RosterTerminal() {
                                         <span>🛡 {mm.defenseIV}</span>
                                         <span>💚 {mm.hpIV}</span>
                                     </div>
-                                    <div className="roster-card-xp">XP: {mm.experience}</div>
+                                    <div className="roster-card-xp" style={{ marginTop: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '4px' }}>
+                                            <span>XP</span>
+                                            <span>{mm.experience} / {getExpForLevel(mm.level + 1)}</span>
+                                        </div>
+                                        <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${(mm.experience / getExpForLevel(mm.level + 1)) * 100}%`,
+                                                background: 'linear-gradient(90deg, #00d2ff, #3a7bd5)'
+                                            }} />
+                                        </div>
+                                    </div>
                                     {isActive && <div className="roster-card-badge">ACTIVE</div>}
                                 </div>
                             );

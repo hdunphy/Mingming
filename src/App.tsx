@@ -5,24 +5,26 @@ import BattleArena from './ui/components/BattleArena'
 import DeckTerminal from './ui/screens/DeckTerminal'
 import RosterTerminal from './ui/screens/RosterTerminal'
 import SynthesisLab from './ui/screens/SynthesisLab'
+import HubScreen from './ui/screens/HubScreen'
 import MainMenuView from './ui/components/MainMenuView'
 import { loadGame } from './engine/SaveSystem'
 import { loadSave } from './ui/store/gameSlice'
 import type { RootState } from './ui/store/store'
 
-type Tab = 'battle' | 'deck' | 'roster' | 'lab';
+type Tab = 'hub' | 'battle' | 'deck' | 'roster' | 'lab';
 
 const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
-  { id: 'battle', label: 'Battle', icon: '⚔️' },
+  { id: 'hub', label: 'Hub', icon: '🏠' },
   { id: 'deck', label: 'Deck', icon: '🃏' },
   { id: 'roster', label: 'Roster', icon: '🤖' },
   { id: 'lab', label: 'Lab', icon: '🔬' },
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('battle');
+  const [activeTab, setActiveTab] = useState<Tab>('hub');
   const dispatch = useDispatch();
   const rosterSize = useSelector((state: RootState) => state.game.roster.length);
+  const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
 
   useEffect(() => {
     const result = loadGame();
@@ -33,6 +35,10 @@ function App() {
 
   if (rosterSize === 0) {
     return <MainMenuView />;
+  }
+
+  if (isInBattle) {
+    return <BattleArena />;
   }
 
   return (
@@ -53,7 +59,7 @@ function App() {
 
       {/* Screen Content */}
       <div className="screen-content">
-        {activeTab === 'battle' && <BattleArena />}
+        {activeTab === 'hub' && <HubScreen />}
         {activeTab === 'deck' && <DeckTerminal />}
         {activeTab === 'roster' && <RosterTerminal />}
         {activeTab === 'lab' && <SynthesisLab />}

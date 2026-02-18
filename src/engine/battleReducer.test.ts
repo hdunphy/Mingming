@@ -42,7 +42,8 @@ function createMockState(): IBattleState {
             drawpile: [],
             hand: [],
             discard: []
-        }
+        },
+        levelUpQueue: []
     };
 }
 

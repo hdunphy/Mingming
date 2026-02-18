@@ -33,7 +33,8 @@ function createMockState(): IBattleState {
         playerParty: [p1], enemyParty: [e1],
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [] },
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [] },
-        logs: []
+        logs: [],
+        levelUpQueue: []
     };
 }
 

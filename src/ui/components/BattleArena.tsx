@@ -5,7 +5,7 @@ import type { RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -13,6 +13,7 @@ import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
+import LevelUpOverlay from './LevelUpOverlay';
 import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
 import type { IRewardBundle } from '../../engine/gameTypes';
@@ -250,6 +251,7 @@ const BattleArena: React.FC = () => {
     }, [isVictory, battleState?.enemyParty, battleState?.seed, rewardBundle]);
 
     const handleDefeatReset = () => {
+        deleteSave();
         dispatch(resetSave());
         window.location.reload();
     };
@@ -400,6 +402,12 @@ const BattleArena: React.FC = () => {
                         bundle={rewardBundle}
                         winners={battleState.playerParty as any}
                         onContinue={handleContinue}
+                    />
+                )}
+                {battleState.levelUpQueue.length > 0 && (
+                    <LevelUpOverlay
+                        event={battleState.levelUpQueue[0]}
+                        onDismiss={() => dispatch(dismissLevelUp())}
                     />
                 )}
             </AnimatePresence>

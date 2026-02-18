@@ -59,10 +59,10 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   const levelBase = Math.floor((2 * attacker.level) / 5) + 2;
 
   // Step 2: Scaled Damage
-  const scaled = levelBase * power * attacker.attack / target.defense;
+  const scaled = Math.floor(levelBase * power * attacker.attack / target.defense);
 
   // Step 3: Reduction
-  const reduced = (scaled / 50) + 2;
+  const reduced = Math.floor(scaled / 50) + 2;
 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);
