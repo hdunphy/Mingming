@@ -21,7 +21,7 @@ export interface IActiveDeck {
     readonly cards: ReadonlyArray<string>; // Array of IOwnedProgram.instanceId
 }
 
-export const DECK_SIZE = 12;
+export const DECK_SIZE = 40;
 
 // --- Blueprint ---
 
@@ -37,7 +37,6 @@ export interface IRewardBundle {
     readonly scraps: number;
     readonly blueprints: ReadonlyArray<IBlueprint>;
     readonly cards: ReadonlyArray<IOwnedProgram>;
-    readonly xp: number;
 }
 
 // --- Drop Table ---
@@ -76,15 +75,16 @@ export function createDefaultSave(): IPlayerSave {
     };
 }
 
+//TODO does this get used? or does the battle factory get used?
 export function createStarterSave(starterId: 'kraken' | 'fenrir' = 'kraken'): IPlayerSave {
     const isWater = starterId === 'kraken';
 
-    // Starter MingMing (Level 1)
+    // Starter MingMing (Level 5)
     const starter: IMingmingState = {
         id: crypto.randomUUID(),
         definitionId: starterId,
         nickname: isWater ? 'Bubbles' : 'Iggy',
-        level: 1,
+        level: 5,
         experience: 0,
         attackIV: 10 + Math.floor(Math.random() * 6),
         defenseIV: 10 + Math.floor(Math.random() * 6),
@@ -126,7 +126,7 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' = 'kraken'): IP
 
 export function createMingmingInstance(
     definitionId: string,
-    level: number = 1
+    level: number = 5
 ): IMingmingState {
     return {
         id: crypto.randomUUID(),

@@ -13,7 +13,7 @@ import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
-import { applyRewardBundle as applyRewardAction, resetSave } from '../store/gameSlice';
+import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
 import type { IRewardBundle } from '../../engine/gameTypes';
 
@@ -231,10 +231,8 @@ const BattleArena: React.FC = () => {
         setOriginPoint(null);
     };
 
-    if (!battleState) return <div className="battle-screen">Loading Battle...</div>;
-
-    const isVictory = battleState.enemyParty.every(e => e.currentHp <= 0);
-    const isDefeat = battleState.playerParty.every(p => p.currentHp <= 0);
+    const isVictory = battleState?.enemyParty.every(e => e.currentHp <= 0) ?? false;
+    const isDefeat = battleState?.playerParty.every(p => p.currentHp <= 0) ?? false;
 
     // Epic 3.5: Wipe save on defeat
     useEffect(() => {
@@ -243,25 +241,30 @@ const BattleArena: React.FC = () => {
         }
     }, [isDefeat]);
 
+    // Roll rewards on victory
+    useEffect(() => {
+        if (isVictory && !rewardBundle && battleState) {
+            const bundle = rollDropTable(battleState.enemyParty, battleState.seed);
+            setRewardBundle(bundle);
+        }
+    }, [isVictory, battleState?.enemyParty, battleState?.seed, rewardBundle]);
+
     const handleDefeatReset = () => {
         dispatch(resetSave());
         window.location.reload();
     };
 
-    // Roll rewards on victory
-    useEffect(() => {
-        if (isVictory && !rewardBundle) {
-            const bundle = rollDropTable(battleState.enemyParty, battleState.seed);
-            setRewardBundle(bundle);
-        }
-    }, [isVictory, battleState.enemyParty, battleState.seed, rewardBundle]);
-
     const handleContinue = () => {
+        if (battleState) {
+            dispatch(syncPartyStats(battleState.playerParty));
+        }
         if (rewardBundle) {
             dispatch(applyRewardAction(rewardBundle));
         }
         dispatch(setBattleState(null as any));
     };
+
+    if (!battleState) return <div className="battle-screen">Loading Battle...</div>;
 
     // Helper: get the currently selected card's program data
     const getSelectedCardData = () => {

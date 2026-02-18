@@ -8,7 +8,7 @@ import type {
     IRewardBundle
 } from '../../engine/gameTypes';
 import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
-import type { IMingmingState } from '../../engine/types';
+import type { IMingmingState, IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
 
 const initialState: IPlayerSave = createDefaultSave();
@@ -133,29 +133,22 @@ const gameSlice = createSlice({
             for (const card of bundle.cards) {
                 (state.cardInventory as IOwnedProgram[]).push(card);
             }
-
-            // XP Distribution
-            if (bundle.xp > 0 && state.activeParty.length > 0) {
-                const xpPerMember = Math.floor(bundle.xp / state.activeParty.length);
-                state.roster = state.roster.map(member => {
-                    if (state.activeParty.includes(member.id)) {
-                        let newXp = member.experience + xpPerMember;
-                        let newLevel = member.level;
-
-                        // Level up loop
-                        while (newXp >= getExpForLevel(newLevel + 1)) {
-                            newLevel++;
-                        }
-
-                        return {
-                            ...member,
-                            experience: newXp,
-                            level: newLevel
-                        };
-                    }
-                    return member;
-                });
-            }
+        },
+        syncPartyStats: (state, action: PayloadAction<ReadonlyArray<IBattleEntity>>) => {
+            const party = action.payload;
+            state.roster = state.roster.map(member => {
+                const match = party.find(p => p.id === member.id);
+                if (match) {
+                    return {
+                        ...member,
+                        level: match.level,
+                        experience: match.experience
+                        // Note: actual HP/Temp stats aren't persisted to the roster yet in this version,
+                        // but level and XP definitely should be.
+                    };
+                }
+                return member;
+            });
         },
         startNewGauntlet: (_state, action: PayloadAction<'kraken' | 'fenrir'>) => {
             return createStarterSave(action.payload);
@@ -185,6 +178,7 @@ export const {
     healParty,
     loadSave,
     applyRewardBundle,
+    syncPartyStats,
     startNewGauntlet,
     resetSave
 } = gameSlice.actions;

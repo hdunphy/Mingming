@@ -15,7 +15,7 @@ import { globalBattleEventBus, type BattleEvent } from './events';
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
-import { effectHandlers } from './effectHandlers';
+import { effectHandlers, checkDefeat } from './effectHandlers';
 import { drawCards, discardHand } from './deckLogic';
 
 // --- Helpers ---
@@ -352,10 +352,14 @@ function processPostTurn(state: IBattleState): IBattleState {
 
     // Process each entity's status effects via behavior.endTurn()
     const statusLogs: string[] = [];
+    const defeatedThisTurn: string[] = [];
+
     const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
         let currentHp = entity.currentHp;
         let defense = entity.defense;
         const newEffects: StatusEffectInstance[] = [];
+
+        if (currentHp <= 0) return entity;
 
         for (const effect of entity.statusEffects) {
             const behavior = getStatusBehavior(effect.type);
@@ -364,6 +368,11 @@ function processPostTurn(state: IBattleState): IBattleState {
             // Apply damage
             if (result.damage > 0) {
                 currentHp = Math.max(0, currentHp - result.damage);
+
+                if (currentHp <= 0) {
+                    defeatedThisTurn.push(entity.id);
+                }
+
                 globalBattleEventBus.emit({
                     type: 'DAMAGE_TAKEN',
                     targetId: entity.id,
@@ -402,12 +411,21 @@ function processPostTurn(state: IBattleState): IBattleState {
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'POST_TURN', timestamp: Date.now() });
 
-    return {
+    let nextState: IBattleState = {
         ...state,
         [activePartyKey]: processedActiveParty,
         [activeDeckKey]: newDeckState,
         logs: [...state.logs, ...statusLogs],
     };
+
+    // Award XP for status effect deaths
+    for (const dId of defeatedThisTurn) {
+        nextState = checkDefeat(nextState, dId);
+        const name = nextState.playerParty.find(e => e.id === dId)?.name || nextState.enemyParty.find(e => e.id === dId)?.name;
+        nextState = addLog(nextState, `  ☠️ ${name} DEFEATED BY STATUS`);
+    }
+
+    return nextState;
 }
 
 function processPreTurn(state: IBattleState): IBattleState {

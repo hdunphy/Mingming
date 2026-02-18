@@ -153,22 +153,31 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
 
     newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
 
-    // Death / XP Handling: Award XP to the entire opposing side
+    // Death / XP Handling
     if (newCurrentHp <= 0) {
-        const xpYield = calculateDeathXp(target);
+        newState = checkDefeat(newState, targetId);
+    }
 
-        // Determine which side the defeated target belongs to
-        const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
-        const opposingSide = targetIsPlayer ? newState.enemyParty : newState.playerParty;
-        const aliveOpponents = opposingSide.filter(e => e.currentHp > 0);
+    return newState;
+}
 
-        if (aliveOpponents.length > 0) {
-            const xpPerUnit = Math.floor(xpYield / aliveOpponents.length);
-            newState = addLog(newState, `  ✨ ${xpYield} XP split among ${aliveOpponents.length} allies (${xpPerUnit} each)`);
+export function checkDefeat(state: IBattleState, targetId: string): IBattleState {
+    const target = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
+    if (!target) return state;
 
-            for (const ally of aliveOpponents) {
-                newState = addExperience(newState, ally.id, xpPerUnit);
-            }
+    const xpYield = calculateDeathXp(target);
+    const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
+    const opposingSideKey = targetIsPlayer ? 'enemyParty' : 'playerParty';
+    const opposingSide = state[opposingSideKey];
+    const aliveOpponents = opposingSide.filter(e => e.currentHp > 0);
+
+    let newState = state;
+    if (aliveOpponents.length > 0) {
+        const xpPerUnit = Math.floor(xpYield / aliveOpponents.length);
+        newState = addLog(newState, `  ✨ ${xpYield} XP split among ${aliveOpponents.length} allies (${xpPerUnit} each)`);
+
+        for (const ally of aliveOpponents) {
+            newState = addExperience(newState, ally.id, xpPerUnit);
         }
     }
 
@@ -291,6 +300,13 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
         playerParty: updateParty(state.playerParty),
         enemyParty: updateParty(state.enemyParty)
     };
+
+    // 4.5 Check Defeat (from immediate damage if any)
+    const currentTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+    if (currentTarget && currentTarget.currentHp <= 0) {
+        newState = checkDefeat(newState, targetId);
+        newState = addLog(newState, `  ☠️ ${currentTarget.name} DEFEATED`);
+    }
 
     // 5. Logging & Events
     for (const log of dualityLogs) newState = addLog(newState, log);

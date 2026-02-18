@@ -44,26 +44,21 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
 }
 
 export function createInitialBattleState(): IBattleState {
-    const p1 = createMockEntity('Hero-Water 1', 'kraken');
-    const p2 = createMockEntity('Hero-Water 2', 'kraken');
-    const p3 = createMockEntity('Hero-Water 3', 'kraken');
+    const p1 = createMockEntity('Hero-Water 1', 'kraken', 5);
+    const e1 = createMockEntity('Villain-Fire 1', 'fenrir', 5);
 
-    const e1 = createMockEntity('Villain-Fire 1', 'fenrir');
-    const e2 = createMockEntity('Villain-Fire 2', 'fenrir');
-    const e3 = createMockEntity('Villain-Fire 3', 'fenrir');
-
-    const pDeckCards = instantiateDeck(createMockDeck(true));
-    const eDeckCards = instantiateDeck(createMockDeck());
+    const pDeckCards = instantiateDeck(createMockDeck(true).slice(0, 12));
+    const eDeckCards = instantiateDeck(createMockDeck().slice(0, 12));
 
     // Calculate card draw using the formula: sum(cardDraw) - aliveCount + 1
-    const playerParty = [p1, p2, p3];
-    const enemyParty = [e1, e2, e3];
-    
+    const playerParty = [p1];
+    const enemyParty = [e1];
+
     const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
     const enemyCardDraw = enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
 
     const initialSeed = Date.now();
-    
+
     // Use drawCards for proper deck cycling
     const pInitialDeck: IDeckState = {
         ownerId: 'PLAYER',

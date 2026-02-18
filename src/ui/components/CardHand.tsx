@@ -79,7 +79,6 @@ const CardHand: React.FC<{
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }))
                             .map(formatConstraint);
                         const isUnplayable = !selectedSourceId || constraints.length > 0;
-                        console.log(constraints);
 
                         return (
                             <motion.div
