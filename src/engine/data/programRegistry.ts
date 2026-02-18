@@ -525,19 +525,19 @@ const ProgramRegistry: Record<string, ProgramData> = {
     'acorn_shot': {
         id: 'acorn_shot',
         name: 'Acorn Shot',
-        description: 'Deal 10 damage 3 times.',
+        description: 'Deal damage 3 times (10, 5, 2).',
         element: 'Nature', target: 'Single', category: 'Attack', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 10, target: 'TARGET' },
-            { type: 'ATTACK', power: 10, target: 'TARGET' },
-            { type: 'ATTACK', power: 10, target: 'TARGET' }
+            { type: 'ATTACK', power: 5, target: 'TARGET' },
+            { type: 'ATTACK', power: 2, target: 'TARGET' }
         ],
     },
     'quick_leaf': {
         id: 'quick_leaf',
         name: 'Quick Leaf',
         description: 'Deal 5 damage. Draw 1.',
-        element: 'Nature', target: 'Single', category: 'Attack', baseCost: 0, constraints: [...STANDARD_CONSTRAINTS],
+        element: 'Nature', target: 'Single', category: 'Attack', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 5, target: 'TARGET' },
             { type: 'DRAW', count: 1, target: 'SELF' }
@@ -603,63 +603,6 @@ const ProgramRegistry: Record<string, ProgramData> = {
         description: 'Revive a fainted MingMing with 1 HP.',
         element: 'Dark', target: 'Single', category: 'Special', baseCost: 5, constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'REVIVE', target: 'TARGET' }],
-    },
-
-    // --- Legacy / Test ---
-    'card_ember': {
-        id: 'card_ember',
-        name: 'Ember',
-        description: 'Deal 10 damage.',
-        element: 'Fire',
-        target: 'Single',
-        category: 'Attack',
-        baseCost: 1,
-        constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'ATTACK', power: 10, element: 'Fire', target: 'TARGET' }],
-    },
-    'card_vine_whip': {
-        id: 'card_vine_whip',
-        name: 'Vine Whip',
-        description: 'Deal 15 damage.',
-        element: 'Nature',
-        target: 'Single',
-        category: 'Attack',
-        baseCost: 1,
-        constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'ATTACK', power: 15, element: 'Nature', target: 'TARGET' }],
-    },
-    'card_bubble': {
-        id: 'card_bubble',
-        name: 'Bubble',
-        description: 'Deal 8 damage. Draw 1.',
-        element: 'Water',
-        target: 'Single',
-        category: 'Attack',
-        baseCost: 1,
-        constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'ATTACK', power: 8, element: 'Water', target: 'TARGET' }, { type: 'DRAW', count: 1, target: 'SELF' }],
-    },
-    'card_fireball': {
-        id: 'card_fireball',
-        name: 'Fireball',
-        description: 'Deal 25 damage. Apply Burn 1.',
-        element: 'Fire',
-        target: 'Single',
-        category: 'Attack',
-        baseCost: 2,
-        constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'ATTACK', power: 25, element: 'Fire', target: 'TARGET' }, { type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }],
-    },
-    'card_earthquake': {
-        id: 'card_earthquake',
-        name: 'Earthquake',
-        description: 'Deal 15 damage to all enemies.',
-        element: 'Earth',
-        target: 'Side',
-        category: 'Attack',
-        baseCost: 3,
-        constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'ATTACK', power: 15, element: 'Earth', target: 'TARGET' }],
     }
 };
 

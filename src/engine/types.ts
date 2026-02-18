@@ -114,7 +114,7 @@ export function calculateStandardStat(base: number, modifier: number, level: num
  * Calculates Health using the Unity Legacy Formula.
  */
 export function calculateHealth(base: number, modifier: number, level: number): number {
-  return calculateStandardStat(base, modifier, level) + level + 20;
+  return calculateStandardStat(base, modifier, level) + level + 30;
 }
 
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {
