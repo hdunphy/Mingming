@@ -5,19 +5,11 @@ import {
     type HookResult,
     HookPriority
 } from './HookTypes';
+import { getHook } from './HookRegistry';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
 export * from './HookTypes';
-
-const hookRegistry: Record<string, HookDefinition> = {};
-
-export const registerHook = (definition: HookDefinition) => {
-    hookRegistry[definition.id] = definition;
-};
-
-export const getHook = (id: string): HookDefinition | undefined => {
-    return hookRegistry[id];
-};
+export { getHook, registerHook } from './HookRegistry';
 
 export const applyDamageModifiers = (
     initialDamage: number,
@@ -26,27 +18,31 @@ export const applyDamageModifiers = (
     let damage = initialDamage;
     const entities = [context.source, context.target].filter((e): e is IBattleEntity => !!e);
 
-    // 1. Collect Hooks
-    const hookIds = new Set<string>();
+    // 1. Collect Hooks as Pairs
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
     entities.forEach(e => {
-        if (e.hooks) e.hooks.forEach(h => hookIds.add(h));
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
         if (e.activeOS) {
             const os = getOSBehavior(e.activeOS);
-            if (os) os.hooks.forEach(h => hookIds.add(h.id));
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
         }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered.onDamageCalculated) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
     });
 
-    const hooks: HookDefinition[] = Array.from(hookIds)
-        .map(id => getHook(id as string))
-        .filter((h): h is HookDefinition => !!h && !!h.onDamageCalculated);
-
     // 2. Sort by Priority
-    hooks.sort((a, b) => b.priority - a.priority);
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
 
     // 3. Apply Modifiers
-    hooks.forEach(hook => {
-        if (hook.onDamageCalculated) {
-            damage = hook.onDamageCalculated(damage, context);
+    hookPairs.forEach(pair => {
+        if (pair.hook.onDamageCalculated) {
+            damage = pair.hook.onDamageCalculated(damage, context, pair.owner);
         }
     });
 

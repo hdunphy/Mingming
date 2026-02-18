@@ -65,17 +65,16 @@ export interface IMingmingDefinition {
  * Persistent Instance: The unit in the player's save file.
  */
 export interface IMingmingState {
-  readonly id: string; // Unique Instance UUID
-  readonly definitionId: string; // Ref to Definition
-  readonly nickname?: string;
-  readonly level: number;
-  readonly experience: number;
-  // IVs or potential modifiers could go here
-  readonly attackIV?: number;
-  readonly defenseIV?: number;
-  readonly hpIV?: number;
-  readonly huntLevel?: number; // For future hunt mechanics
-  readonly activeOS?: string; // Current Operating System ID
+  id: string; // instance ID
+  definitionId: string; // architecture name (e.g. 'fenrir')
+  nickname?: string;
+  level: number;
+  experience: number;
+  activeOS?: string;
+  blueprintsCollected: number; // For OS swapping
+  attackIV: number;
+  defenseIV: number;
+  hpIV: number;
 }
 
 /**
@@ -206,7 +205,7 @@ export interface IDeckState {
 
 export interface IBattleState {
   readonly sessionId: string;
-  readonly seed: number;
+  readonly seed: string;
   readonly turn: number;
   readonly phase: TurnPhase;
   readonly activeSide: 'PLAYER' | 'ENEMY';
@@ -218,5 +217,7 @@ export interface IBattleState {
   readonly enemyDeck: IDeckState;
 
   readonly logs: ReadonlyArray<string>;
+  readonly osLogs: ReadonlyArray<string>;
+  readonly procs: ReadonlyArray<{ id: number; entityId: string; text: string }>;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

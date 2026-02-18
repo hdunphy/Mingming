@@ -10,7 +10,10 @@ import {
 } from '../store/gameSlice';
 import { getScrapYield } from '../../engine/RewardSystem';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { createMingmingInstance } from '../../engine/gameTypes';
+import type { IBlueprint } from '../../engine/gameTypes';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import ProgramCard from '../components/ProgramCard';
 
 export default function SynthesisLab() {
@@ -18,6 +21,8 @@ export default function SynthesisLab() {
     const { cardInventory, scrapCount, blueprints } = useSelector((s: RootState) => s.game);
     const [selectedCards, setSelectedCards] = useState<Map<string, string[]>>(new Map()); // dataId -> instanceIds
     const [lastCompiled, setLastCompiled] = useState<string | null>(null);
+    const [isInstalling, setIsInstalling] = useState<IBlueprint | null>(null);
+    const [selectedOS, setSelectedOS] = useState<string | null>(null);
 
     const selectedScrap = useMemo(() => {
         let total = 0;
@@ -61,12 +66,17 @@ export default function SynthesisLab() {
         setSelectedCards(new Map());
     };
 
-    const compileMingming = (architectureId: string, cost: number) => {
+    const compileMingming = (architectureId: string, cost: number, activeOS: string) => {
         if (scrapCount < cost) return;
         dispatch(spendScrap(cost));
-        const newMm = createMingmingInstance(architectureId, 1);
+        const newMm = {
+            ...createMingmingInstance(architectureId, 1),
+            activeOS
+        };
         dispatch(addToRoster(newMm));
         setLastCompiled(architectureId);
+        setIsInstalling(null);
+        setSelectedOS(null);
         setTimeout(() => setLastCompiled(null), 2000);
     };
 
@@ -148,7 +158,7 @@ export default function SynthesisLab() {
                                 <div
                                     key={bp.architectureId}
                                     className={`blueprint-card ${canAfford ? 'affordable' : 'locked'}`}
-                                    onClick={() => canAfford && compileMingming(bp.architectureId, bp.compileCost)}
+                                    onClick={() => canAfford && setIsInstalling(bp)}
                                 >
                                     <div className="bp-name">{bp.name}</div>
                                     <div className="bp-cost">
@@ -163,6 +173,63 @@ export default function SynthesisLab() {
                     </div>
                 </div>
             </div>
+
+            {/* Installation Wizard Overlay */}
+            {isInstalling && (
+                <div className="wizard-overlay">
+                    <div className="wizard-modal">
+                        <div className="wizard-header">
+                            <h2>INSTALLATION WIZARD v1.4.2</h2>
+                            <button className="close-wizard" onClick={() => setIsInstalling(null)}>×</button>
+                        </div>
+                        <div className="wizard-step-container">
+                            <div className="wizard-title">SELECT OPERATING SYSTEM</div>
+                            <div className="wizard-subtitle">Determining kernel architecture for {isInstalling.name}...</div>
+
+                            <div className="os-choice-grid">
+                                {['v1', 'v2'].map(v => {
+                                    const osId = `${isInstalling.architectureId}_${v}`;
+                                    const behavior = getOSBehavior(osId);
+                                    const isSelected = selectedOS === osId;
+
+                                    return (
+                                        <div
+                                            key={v}
+                                            className={`os-choice-card ${isSelected ? 'selected' : ''}`}
+                                            onClick={() => setSelectedOS(osId)}
+                                        >
+                                            <div className="os-choice-header">
+                                                <span className="os-version-tag">{v.toUpperCase()} ARCH</span>
+                                                <span className="os-name-tag">{behavior?.name}</span>
+                                            </div>
+                                            <div className="os-description">
+                                                {behavior?.description}
+                                            </div>
+                                            <div className="os-select-indicator">
+                                                {isSelected ? '✓ SELECTED' : 'SELECT CORE'}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="wizard-actions">
+                                <button className="wizard-cancel" onClick={() => setIsInstalling(null)}>ABORT</button>
+                                <button
+                                    className="wizard-confirm"
+                                    disabled={!selectedOS}
+                                    onClick={() => compileMingming(isInstalling.architectureId, isInstalling.compileCost, selectedOS!)}
+                                >
+                                    INITIALIZE COMPILATION
+                                </button>
+                            </div>
+                        </div>
+                        <div className="wizard-footer">
+                            READY TO FLASH // SCRAP COST: {isInstalling.compileCost}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

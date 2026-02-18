@@ -11,7 +11,7 @@ const HAND_SIZE_LIMIT = 9;
  * Automatically shuffles discard into drawpile if drawpile is empty.
  * Emits CARD_DRAWN and DECK_SHUFFLED events.
  */
-export function drawCards(deckState: IDeckState, count: number, seed: number): { state: IDeckState; nextSeed: number } {
+export function drawCards(deckState: IDeckState, count: number, seed: string): { state: IDeckState; nextSeed: string } {
     let currentHand = [...deckState.hand];
     let currentDrawpile = [...deckState.drawpile];
     let currentDiscard = [...deckState.discard];
@@ -27,7 +27,7 @@ export function drawCards(deckState: IDeckState, count: number, seed: number): {
             // Seeded Fisher-Yates Shuffle
             const prng = new PRNG(currentSeed);
             const { shuffled, nextSeed } = prng.shuffle(currentDiscard);
-            
+
             currentDrawpile = shuffled;
             currentDiscard = [];
             currentSeed = nextSeed;
@@ -49,7 +49,7 @@ export function drawCards(deckState: IDeckState, count: number, seed: number): {
             drawpile: currentDrawpile,
             discard: currentDiscard
         },
-        nextSeed: currentSeed
+        nextSeed: currentSeed.toString()
     };
 }
 

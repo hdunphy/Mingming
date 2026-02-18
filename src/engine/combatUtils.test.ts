@@ -17,10 +17,15 @@ vi.mock('./data/programRegistry', async (importOriginal) => {
 function createMockEntity(id: string, primary: Element, secondary?: Element, level = 50, attack = 100, defense = 100): IBattleEntity {
     return {
         id,
+        nickname: id,
         definitionId: 'def_' + id,
         name: id,
         level,
         experience: 0,
+        blueprintsCollected: 0,
+        hpIV: 0,
+        attackIV: 0,
+        defenseIV: 0,
         primaryElement: primary,
         secondaryElement: secondary,
         baseStats: { hp: 100, attack, defense, energy: 10, cardDraw: 1 }, // Dummy
@@ -34,7 +39,7 @@ function createMockEntity(id: string, primary: Element, secondary?: Element, lev
         defense,
         speed: 10,
         cardDraw: 1,
-    } as IBattleEntity; // Cast to satisfy readonly requirements if needed, or just match interface
+    } as IBattleEntity;
 }
 
 function createMockProgram(element: Element): ProgramData {

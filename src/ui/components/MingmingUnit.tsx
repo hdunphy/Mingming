@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 
 const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
     Burn: { icon: '🔥', color: '#ff6633' },
@@ -35,6 +37,7 @@ interface MingmingUnitProps {
     isTargeted?: boolean;
     previewDamage?: number;
     onClick?: () => void;
+    procs?: { id: number; text: string }[]; // New prop for floating text
 }
 
 const MingmingUnit: React.FC<MingmingUnitProps> = ({
@@ -43,11 +46,14 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     isSelected = false,
     isTargeted = false,
     previewDamage = 0,
-    onClick
+    onClick,
+    procs = []
 }) => {
     const controls = useAnimation();
     const [damageSplatters, setDamageSplatters] = React.useState<{ id: number; amount: number }[]>([]);
     const [levelUpVisible, setLevelUpVisible] = React.useState(false);
+    const [showOSTooltip, setShowOSTooltip] = React.useState(false);
+    const osIconRef = React.useRef<HTMLDivElement>(null);
     const prevHpRef = React.useRef(entity.currentHp);
     const prevLevelRef = React.useRef(entity.level);
 
@@ -140,6 +146,48 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         {entity.primaryElement[0]}
                     </span>
                     <span className="hud-name">{entity.name.toUpperCase()}</span>
+                    {entity.activeOS && (() => {
+                        const behavior = getOSBehavior(entity.activeOS);
+                        return (
+                            <div
+                                ref={osIconRef}
+                                className="hud-os-icon-container"
+                                onMouseEnter={() => setShowOSTooltip(true)}
+                                onMouseLeave={() => setShowOSTooltip(false)}
+                            >
+                                <span className="hud-os-icon">💾</span>
+                                <span className="hud-os-version">{entity.activeOS.includes('_v2') ? 'V2' : 'V1'}</span>
+
+                                {showOSTooltip && createPortal(
+                                    <div
+                                        className="os-tooltip-portal"
+                                        style={osIconRef.current ? (() => {
+                                            const rect = osIconRef.current.getBoundingClientRect();
+                                            const isRightSide = rect.left > window.innerWidth / 2;
+                                            return {
+                                                position: 'fixed',
+                                                left: isRightSide ? 'auto' : rect.right + 15,
+                                                right: isRightSide ? (window.innerWidth - rect.left) + 15 : 'auto',
+                                                top: rect.top,
+                                                transform: 'translateY(-30%)'
+                                            };
+                                        })() : {}}
+                                    >
+                                        <div className="tooltip-header">
+                                            <span className="tooltip-os-name">{behavior?.name}</span>
+                                            <span className="tooltip-os-version">{entity.activeOS.includes('_v2') ? 'v2.0' : 'v1.0'}</span>
+                                        </div>
+                                        <div className="tooltip-divider" />
+                                        <div className="tooltip-body">
+                                            {behavior?.description}
+                                        </div>
+                                        <div className="tooltip-footer">TECHNICAL READOUT // SECTOR 0</div>
+                                    </div>,
+                                    document.body
+                                )}
+                            </div>
+                        );
+                    })()}
                     <div className="hud-status-badges">
                         {entity.statusEffects.map((se, i) => {
                             const info = STATUS_ICONS[se.type] || { icon: '✦', color: '#ccc' };
@@ -237,6 +285,17 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         LEVEL UP!
                     </motion.div>
                 )}
+                {procs.map(proc => (
+                    <motion.div
+                        key={proc.id}
+                        initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, y: -120, scale: 1.5 }}
+                        exit={{ opacity: 0 }}
+                        className="hud-proc-text"
+                    >
+                        {proc.text}
+                    </motion.div>
+                ))}
             </AnimatePresence>
         </motion.div>
     );

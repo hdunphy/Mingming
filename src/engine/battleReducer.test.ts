@@ -16,14 +16,16 @@ vi.mock('./data/programRegistry', async (importOriginal) => {
 function createMockState(): IBattleState {
     return {
         sessionId: 'test-session',
-        seed: 123,
+        seed: '123',
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
         logs: [],
+        osLogs: [],
+        procs: [],
         playerParty: [
-            { id: 'p1', currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Hero', hpIV: 0, attackIV: 0, defenseIV: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Fire', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0 } as IBattleEntity,
-            { id: 'p2', currentEnergy: 5, maxEnergy: 10, statusEffects: [], name: 'Ally', hpIV: 0, attackIV: 0, defenseIV: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Water', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0 } as IBattleEntity
+            { id: 'p1', currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Hero', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Fire', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0 } as IBattleEntity,
+            { id: 'p2', currentEnergy: 5, maxEnergy: 10, statusEffects: [], name: 'Ally', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Water', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0 } as IBattleEntity
         ],
         enemyParty: [],
         playerDeck: {

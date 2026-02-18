@@ -94,6 +94,7 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
         nickname: nickname,
         level: 5,
         experience: getExpForLevel(5),
+        blueprintsCollected: 0,
         attackIV: 10 + Math.floor(Math.random() * 6),
         defenseIV: 10 + Math.floor(Math.random() * 6),
         hpIV: 10 + Math.floor(Math.random() * 6)
@@ -150,13 +151,14 @@ export function createMingmingInstance(
     level: number = 5
 ): IMingmingState {
     return {
-        id: crypto.randomUUID(),
-        definitionId,
-        level,
+        id: Math.random().toString(36).substring(7),
+        definitionId: definitionId,
+        level: level,
         experience: getExpForLevel(level),
-        attackIV: Math.floor(Math.random() * 16),
-        defenseIV: Math.floor(Math.random() * 16),
-        hpIV: Math.floor(Math.random() * 16)
+        blueprintsCollected: 0,
+        attackIV: Math.floor(Math.random() * 32),
+        defenseIV: Math.floor(Math.random() * 32),
+        hpIV: Math.floor(Math.random() * 32),
     };
 }
 

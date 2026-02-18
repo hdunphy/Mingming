@@ -284,8 +284,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     if (action.type === 'DRAW') {
                         const isPlayerSource = snapshot.playerParty.some(e => e.id === sourceId);
                         const side = isPlayerSource ? 'PLAYER' : 'ENEMY';
-                        finalState = executeDraw(finalState, side, action.count || 1, false);
-                    } else if (action.type === 'STATUS') {
+                        finalState = executeDraw(finalState, side, action.count || 1, false, sourceId);
+                    } else if (action.type === 'STATUS' || action.type === 'APPLY_STATUS') {
                         finalState = applyMutations(finalState, [{
                             type: 'STATUS',
                             targetId: tId,

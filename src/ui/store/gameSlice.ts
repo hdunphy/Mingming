@@ -154,6 +154,14 @@ const gameSlice = createSlice({
             return createStarterSave(action.payload);
         },
 
+        // --- OS Management ---
+        updateMingmingOS: (state, action: PayloadAction<{ id: string, activeOS: string }>) => {
+            const { id, activeOS } = action.payload;
+            const mm = state.roster.find(m => m.id === id);
+            if (mm) {
+                mm.activeOS = activeOS;
+            }
+        },
         // --- Reset ---
         resetSave: (state) => {
             void state;
@@ -180,6 +188,7 @@ export const {
     applyRewardBundle,
     syncPartyStats,
     startNewGauntlet,
+    updateMingmingOS,
     resetSave
 } = gameSlice.actions;
 

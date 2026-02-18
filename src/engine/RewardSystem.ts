@@ -91,15 +91,15 @@ function rollForEntity(
  * Uses seeded PRNG for deterministic results (replays, testing).
  */
 export function rollDropTable(
-    defeatedParty: ReadonlyArray<IBattleEntity>,
-    seed: number
+    defeatedEntities: ReadonlyArray<IBattleEntity>,
+    seed: string
 ): IRewardBundle {
     let totalScraps = 0;
     const allBlueprints: IBlueprint[] = [];
     const allCards: IOwnedProgram[] = [];
     let currentSeed = seed;
 
-    for (const entity of defeatedParty) {
+    for (const entity of defeatedEntities) {
         if (entity.currentHp > 0) continue; // Only loot defeated units
 
         const prng = new PRNG(currentSeed);
@@ -110,7 +110,7 @@ export function rollDropTable(
             allBlueprints.push(result.blueprint);
         }
         allCards.push(...result.cards);
-        currentSeed = result.nextSeed;
+        currentSeed = result.nextSeed.toString();
     }
 
     return {

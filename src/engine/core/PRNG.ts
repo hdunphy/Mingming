@@ -5,31 +5,39 @@
  */
 export class PRNG {
     private seed: number;
+    private isStringSeed: boolean;
 
-    constructor(seed: number) {
-        this.seed = seed;
+    constructor(seed: string | number) {
+        this.isStringSeed = typeof seed === 'string';
+        if (typeof seed === 'string') {
+            let hash = 0;
+            for (let i = 0; i < seed.length; i++) {
+                hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                hash |= 0;
+            }
+            this.seed = Math.abs(hash);
+        } else {
+            this.seed = seed;
+        }
     }
 
-    /**
-     * Returns a random float between 0 and 1
-     */
-    public next(): { value: number; nextSeed: number } {
-        // LCG Parameters (Numerical Recipes)
-        const m = 0x80000000; // 2^31
+    private formatSeed(newSeed: number): string | number {
+        return this.isStringSeed ? newSeed.toString() : newSeed;
+    }
+
+    public next(): { value: number; nextSeed: any } {
+        const m = 0x80000000;
         const a = 1103515245;
         const c = 12345;
 
         this.seed = (a * this.seed + c) % m;
         return {
             value: this.seed / (m - 1),
-            nextSeed: this.seed
+            nextSeed: this.formatSeed(this.seed)
         };
     }
 
-    /**
-     * Returns a random integer between min and max (inclusive)
-     */
-    public nextInt(min: number, max: number): { value: number; nextSeed: number } {
+    public nextInt(min: number, max: number): { value: number; nextSeed: any } {
         const { value, nextSeed } = this.next();
         const range = max - min + 1;
         return {
@@ -38,12 +46,9 @@ export class PRNG {
         };
     }
 
-    /**
-     * Seeded Fisher-Yates Shuffle
-     */
-    public shuffle<T>(array: T[]): { shuffled: T[]; nextSeed: number } {
+    public shuffle<T>(array: T[]): { shuffled: T[]; nextSeed: any } {
         const result = [...array];
-        let currentSeed = this.seed;
+        let currentSeed: any = this.formatSeed(this.seed);
 
         for (let i = result.length - 1; i > 0; i--) {
             const { value: j, nextSeed } = new PRNG(currentSeed).nextInt(0, i);

@@ -1,7 +1,10 @@
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
 import { setActiveParty } from '../store/gameSlice';
 import { getExpForLevel } from '../../engine/types';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import FirmwareTerminal from '../components/FirmwareTerminal';
 
 export default function RosterTerminal() {
     const dispatch = useDispatch();
@@ -19,12 +22,19 @@ export default function RosterTerminal() {
         }
     };
 
+    const [showFirmware, setShowFirmware] = useState(false);
+
     return (
         <div className="roster-terminal">
             <div className="roster-header">
                 <h1>🤖 Roster Terminal</h1>
-                <div className="party-counter">
-                    Active Party: {activeParty.length} / 3
+                <div className="header-actions">
+                    <button className="firmware-boot-btn" onClick={() => setShowFirmware(true)}>
+                        💾 BOOT FIRMWARE TERMINAL
+                    </button>
+                    <div className="party-counter">
+                        Active Party: {activeParty.length} / 3
+                    </div>
                 </div>
             </div>
 
@@ -95,6 +105,12 @@ export default function RosterTerminal() {
                                             }} />
                                         </div>
                                     </div>
+                                    {mm.activeOS && (
+                                        <div className="roster-os-info">
+                                            <div className="roster-os-name">OS: {getOSBehavior(mm.activeOS)?.name}</div>
+                                            <div className="roster-os-desc">{getOSBehavior(mm.activeOS)?.description}</div>
+                                        </div>
+                                    )}
                                     {isActive && <div className="roster-card-badge">ACTIVE</div>}
                                 </div>
                             );
@@ -102,6 +118,8 @@ export default function RosterTerminal() {
                     </div>
                 </div>
             </div>
+
+            {showFirmware && <FirmwareTerminal onClose={() => setShowFirmware(false)} />}
         </div>
     );
 }

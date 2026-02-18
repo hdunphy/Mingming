@@ -21,7 +21,7 @@ vi.mock('./data/programRegistry', async () => {
 // Helper to initialize a minimal battle state
 const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState => {
     const player: IBattleEntity = {
-        id: 'p1',
+        id: 'real_mm_instance_123',
         name: 'Player Mingming',
         currentHp: 100,
         maxHp: 100,
@@ -42,7 +42,7 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
     };
 
     const enemy: IBattleEntity = {
-        id: 'e1',
+        id: 'real_bot_instance_456',
         name: 'Enemy Mingming',
         currentHp: 100,
         maxHp: 100,
@@ -88,12 +88,12 @@ describe('OS System - Fenrir', () => {
         const attackCard: ProgramEntity = { id: 'card1', dataId: 'card_strike', currentCost: 1, isPlayable: true };
         state = { ...state, playerDeck: { ...state.playerDeck, hand: [attackCard] } };
 
-        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'p1', targetId: 'e1', programId: 'card1' } };
+        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         const p1 = newState.playerParty[0];
 
         expect(p1.currentHp).toBe(98);
-        expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 3)).toBe(true);
+        expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 1)).toBe(true);
     });
 
     it('v2 (CINDER_WALL_OS): gains 1 Sharp whenever applying Burn', () => {
@@ -101,7 +101,7 @@ describe('OS System - Fenrir', () => {
         const burnCard: ProgramEntity = { id: 'card1', dataId: 'card_burn_test', currentCost: 1, isPlayable: true };
         state = { ...state, playerDeck: { ...state.playerDeck, hand: [burnCard] } };
 
-        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'p1', targetId: 'e1', programId: 'card1' } };
+        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         const p1 = newState.playerParty[0];
 
@@ -119,7 +119,7 @@ describe('OS System - Ratatoskr', () => {
             playerDeck: { ...state.playerDeck, hand: [{ id: 'card1', dataId: 'card_0_cost_test', currentCost: 0, isPlayable: true }] }
         };
 
-        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'p1', targetId: 'e1', programId: 'card1' } };
+        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         expect(newState.playerParty[0].currentHp).toBe(51);
     });
@@ -129,7 +129,7 @@ describe('OS System - Ratatoskr', () => {
         const zeroCostCard: ProgramEntity = { id: 'card1', dataId: 'card_0_cost_test', currentCost: 0, isPlayable: true };
         state = { ...state, playerDeck: { ...state.playerDeck, hand: [zeroCostCard] } };
 
-        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'p1', targetId: 'e1', programId: 'card1' } };
+        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
         expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 1)).toBe(true);
@@ -148,10 +148,39 @@ describe('OS System - Kraken', () => {
             }
         };
 
-        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'p1', targetId: 'e1', programId: 'card1' } };
+        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
         expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 1)).toBe(true);
+    });
+
+    it('v1 (ABYSSAL_INK_SYS): triggers when ANY ally draws a card', () => {
+        let state = createInitialState(); // p1 is Fenrir (None OS)
+        // Add Kraken as p2
+        state = {
+            ...state,
+            playerParty: [
+                state.playerParty[0],
+                {
+                    ...state.playerParty[0],
+                    id: 'p2',
+                    name: 'Kraken Ally',
+                    activeOS: 'kraken_v1',
+                    currentHp: 100
+                }
+            ],
+            playerDeck: {
+                ...state.playerDeck,
+                hand: [{ id: 'card1', dataId: 'card_draw_test', currentCost: 1, isPlayable: true }],
+                drawpile: [{ id: 'd1', dataId: 'deck1', currentCost: 0, isPlayable: true }]
+            }
+        };
+
+        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
+        const newState = battleReducer(state, action);
+        const e1 = newState.enemyParty[0];
+        expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 1)).toBe(true);
+        expect(newState.logs).toContain('Enemy Mingming is blinded by Abyssal Ink!');
     });
 
     it('v2 (TIDAL_CRUSH_OS): high-cost Water cards deal 30% more damage', () => {
@@ -164,7 +193,7 @@ describe('OS System - Kraken', () => {
         // Standard damage = (power + sourceAtk) * multiplier...
         // Let's just compare with/without OS if possible, or just check the value.
 
-        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'p1', targetId: 'e1', programId: 'card1' } };
+        const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
 

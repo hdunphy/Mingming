@@ -212,16 +212,17 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     return newState;
 }
 
-function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number }): IBattleState {
-    const { sourceId, targetId, power } = payload;
+function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; healOverride?: number }): IBattleState {
+    const { sourceId, targetId, power, healOverride } = payload;
     // ... find entities ...
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
     let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
     let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
-    if (!source || !target) return state;
+    if (!target) return state;
+    if (!source && healOverride === undefined) return state;
 
-    const healAmount = calculateHeal(source, target, power);
+    const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
     // ...
     // Standard Heal Logic
     // ...
@@ -231,7 +232,7 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
         type: 'HEAL',
         targetId: target.id,
         amount: healAmount,
-        sourceId: source.id,
+        sourceId: source?.id || sourceId,
         timestamp: Date.now()
     });
 

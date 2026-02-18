@@ -14,7 +14,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [
             { type: 'ATTACK', power: 20, target: 'TARGET' },
-            { type: 'HEAL', power: 10, target: 'SELF' }
+            { type: 'HEAL', power: 40, target: 'SELF' }
         ],
     },
     'prog_adrenaline': {

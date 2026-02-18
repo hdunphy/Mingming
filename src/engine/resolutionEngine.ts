@@ -18,13 +18,22 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
     for (const mutation of mutations) {
         switch (mutation.type) {
             case 'HP':
-                newState = effectHandlers['ATTACK'](newState, {
-                    sourceId: 'SYSTEM',
-                    targetId: mutation.targetId,
-                    power: 0,
-                    damageOverride: mutation.payload.isHeal ? -mutation.payload.amount : mutation.payload.amount,
-                    element: mutation.payload.element || 'None'
-                });
+                if (mutation.payload.isHeal) {
+                    newState = effectHandlers['HEAL'](newState, {
+                        sourceId: mutation.sourceId || 'SYSTEM',
+                        targetId: mutation.targetId,
+                        power: 0,
+                        healOverride: mutation.payload.amount
+                    });
+                } else {
+                    newState = effectHandlers['ATTACK'](newState, {
+                        sourceId: 'SYSTEM',
+                        targetId: mutation.targetId,
+                        power: 0,
+                        damageOverride: mutation.payload.amount,
+                        element: mutation.payload.element || 'None'
+                    });
+                }
                 break;
             case 'ENERGY':
                 newState = {
@@ -97,34 +106,36 @@ export function executeResolutionStack(
         return { state: currentState, isCancelled: true };
     }
 
-    // 1. Collect Hooks
-    const entities = [initialContext.source, initialContext.target].filter((e): e is IBattleEntity => !!e);
-    const hookIds = new Set<string>();
+    // 1. Collect Hooks as Pairs (hook, owner)
+    // We check all alive entities so that "side-wide" or "global" passives work.
+    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
+
     entities.forEach(e => {
-        if (e.hooks) e.hooks.forEach(h => hookIds.add(h));
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
         if (e.activeOS) {
             const os = getOSBehavior(e.activeOS);
-            if (os) os.hooks.forEach(h => hookIds.add(h.id));
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
         }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered[phase]) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
     });
 
-    const hooks: HookDefinition[] = Array.from(hookIds)
-        .map(id => {
-            const registered = getHook(id as string);
-            if (registered) return registered;
-            return undefined;
-        })
-        .filter((h): h is HookDefinition => !!h && !!h[phase]);
-
     // 2. Sort by Priority
-    hooks.sort((a, b) => b.priority - a.priority);
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
 
     // 3. Execute Hooks
-    for (const hook of hooks) {
-        const handler = hook[phase] as any;
+    for (const pair of hookPairs) {
+        const handler = pair.hook[phase] as any;
         if (!handler) continue;
 
-        const result: HookResult = handler({ ...initialContext, state: currentState });
+        const result: HookResult = handler({ ...initialContext, state: currentState }, pair.owner);
 
         if (result.mutations.length > 0) {
             currentState = applyMutations(currentState, result.mutations);
@@ -142,7 +153,7 @@ export function executeResolutionStack(
 /**
  * Helper to handle card draws with hook triggers.
  */
-export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean): IBattleState {
+export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean, sourceId?: string): IBattleState {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const { state: newDeck, nextSeed } = drawCards(state[deckKey], count, state.seed);
 
@@ -151,7 +162,9 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
     if (cardsDrawnCount > 0) {
         const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
-        const owner = newState[partyKey].find(e => e.id.startsWith(side === 'PLAYER' ? 'p' : 'e'));
+        const owner = sourceId
+            ? newState[partyKey].find(e => e.id === sourceId)
+            : newState[partyKey][0]; // Replaced ID prefix check with a simple party membership check (first entity in party)
 
         const context: HookContext = {
             source: owner,

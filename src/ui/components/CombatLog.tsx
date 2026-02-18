@@ -5,6 +5,7 @@ import type { RootState } from '../store/store';
 
 const CombatLog: React.FC = () => {
     const logs = useSelector((state: RootState) => state.battle.battle?.logs || []);
+    const osLogs = useSelector((state: RootState) => state.battle.battle?.osLogs || []);
     const logEndRef = useRef<HTMLDivElement>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -34,16 +35,19 @@ const CombatLog: React.FC = () => {
                         transition={{ duration: 0.2 }}
                     >
                         <AnimatePresence>
-                            {logs.map((log, index) => (
-                                <motion.div
-                                    key={`${index}-${log}`}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className="log-entry"
-                                >
-                                    <span className="log-timestamp">[{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span> {log}
-                                </motion.div>
-                            ))}
+                            {[...logs, ...osLogs.map(l => `[OS] ${l}`)].map((log, index) => {
+                                const isOS = log.startsWith('[OS]');
+                                return (
+                                    <motion.div
+                                        key={`${index}-${log}`}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className={`log-entry ${isOS ? 'os-proc' : ''}`}
+                                    >
+                                        <span className="log-timestamp">[{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span> {isOS ? log.replace('[OS] ', '') : log}
+                                    </motion.div>
+                                );
+                            })}
                         </AnimatePresence>
                         <div ref={logEndRef} />
                     </motion.div>

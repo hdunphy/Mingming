@@ -20,7 +20,7 @@ vi.mock('./data/programRegistry', async (importOriginal) => {
 function createMockState(): IBattleState {
     const p1: IBattleEntity = {
         id: 'p1', name: 'Hero', level: 10, experience: 0,
-        hpIV: 0, attackIV: 0, defenseIV: 0,
+        hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Fire', statusEffects: [],
@@ -29,7 +29,7 @@ function createMockState(): IBattleState {
 
     const e1: IBattleEntity = {
         id: 'e1', name: 'Villain', level: 10, experience: 0,
-        hpIV: 0, attackIV: 0, defenseIV: 0,
+        hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Nature', statusEffects: [],
@@ -37,11 +37,13 @@ function createMockState(): IBattleState {
     };
 
     return {
-        sessionId: 'test', seed: 123, turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
+        sessionId: 'test', seed: '123', turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
         playerParty: [p1], enemyParty: [e1],
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [] },
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [] },
         logs: [],
+        osLogs: [],
+        procs: [],
         levelUpQueue: []
     };
 }

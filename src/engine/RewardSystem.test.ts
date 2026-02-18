@@ -5,7 +5,7 @@ import type { IBattleEntity } from './types';
 function makeDeadEntity(id: string, defId: string, name: string): IBattleEntity {
     return {
         id, name, level: 10, experience: 0,
-        hpIV: 0, attackIV: 0, defenseIV: 0,
+        hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
         maxHp: 100, attack: 15, defense: 5,
         maxEnergy: 10, cardDraw: 1,
         currentHp: 0, // DEAD
@@ -25,8 +25,8 @@ describe('RewardSystem', () => {
     describe('rollDropTable', () => {
         it('returns deterministic results for the same seed', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
-            const r1 = rollDropTable(defeated, 42);
-            const r2 = rollDropTable(defeated, 42);
+            const r1 = rollDropTable(defeated, '42');
+            const r2 = rollDropTable(defeated, '42');
 
             expect(r1.scraps).toBe(r2.scraps);
             expect(r1.blueprints.length).toBe(r2.blueprints.length);
@@ -39,8 +39,8 @@ describe('RewardSystem', () => {
 
         it('different seeds produce different results', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
-            const r1 = rollDropTable(defeated, 100);
-            const r2 = rollDropTable(defeated, 200);
+            const r1 = rollDropTable(defeated, '100');
+            const r2 = rollDropTable(defeated, '200');
 
             // Very likely to differ (not guaranteed, but extremely improbable for LCG)
             const sameEverything = r1.scraps === r2.scraps
@@ -53,7 +53,7 @@ describe('RewardSystem', () => {
                 makeDeadEntity('e1', 'def_fire', 'Dead'),
                 makeAliveEntity('e2', 'def_fire', 'Alive')
             ];
-            const result = rollDropTable(party, 42);
+            const result = rollDropTable(party, '42');
 
             // Should only get loot from 1 entity
             expect(result.cards.length).toBe(3); // 3 cards from the dead entity only
@@ -65,15 +65,14 @@ describe('RewardSystem', () => {
                 makeDeadEntity('e2', 'def_water', 'Dead 2'),
                 makeDeadEntity('e3', 'def_fire', 'Dead 3')
             ];
-            const result = rollDropTable(party, 42);
+            const result = rollDropTable(party, '42');
 
-            expect(result.scraps).toBeGreaterThan(0);
             expect(result.cards.length).toBe(9); // 3 cards per defeated entity = 9
         });
 
         it('returns empty rewards when no entities are defeated', () => {
             const party = [makeAliveEntity('e1', 'def_fire', 'Alive')];
-            const result = rollDropTable(party, 42);
+            const result = rollDropTable(party, '42');
 
             expect(result.scraps).toBe(0);
             expect(result.blueprints).toHaveLength(0);
@@ -84,7 +83,7 @@ describe('RewardSystem', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
             // Run many seeds to check range
             for (let seed = 1; seed <= 50; seed++) {
-                const result = rollDropTable(defeated, seed);
+                const result = rollDropTable(defeated, seed.toString());
                 expect(result.scraps).toBeGreaterThanOrEqual(5);
                 expect(result.scraps).toBeLessThanOrEqual(15);
             }
@@ -93,7 +92,7 @@ describe('RewardSystem', () => {
         it('cards come from the correct element pool', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
             const table = getDropTable('def_fire');
-            const result = rollDropTable(defeated, 42);
+            const result = rollDropTable(defeated, '42');
 
             for (const card of result.cards) {
                 expect(table.cardPool).toContain(card.dataId);

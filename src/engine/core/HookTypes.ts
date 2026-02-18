@@ -33,11 +33,13 @@ export type HookContext = {
 
 export type DamageModifierHook = (
     currentDamage: number,
-    context: HookContext
+    context: HookContext,
+    owner: IBattleEntity
 ) => number;
 
 export type EventHook = (
-    context: HookContext
+    context: HookContext,
+    owner: IBattleEntity
 ) => HookResult;
 
 export type HookDefinition = {

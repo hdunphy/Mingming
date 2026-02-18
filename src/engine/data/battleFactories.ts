@@ -15,6 +15,7 @@ export function createMockEntity(name: string, mingmingId: string = 'fenrir', le
         nickname: name,
         level: level,
         experience: experience,
+        blueprintsCollected: 0,
         hpIV: Math.floor(Math.random() * 32),
         attackIV: Math.floor(Math.random() * 32),
         defenseIV: Math.floor(Math.random() * 32),
@@ -61,7 +62,7 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
     const deckIds = deckInstanceIds.map(instId => save.cardInventory.find(c => c.instanceId === instId)?.dataId).filter(Boolean) as string[];
 
     const pDeckCardsRaw = instantiateDeck(deckIds);
-    const initialSeed = Date.now();
+    const initialSeed = Date.now().toString();
     const { shuffled: pDeckCards, nextSeed: seedAfterPlayerShuffle } = new PRNG(initialSeed).shuffle(pDeckCardsRaw);
 
     // Enemy gets the same starter deck logic for now but based on their type
@@ -87,7 +88,7 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
     })
 
     const eDeckCardsRaw = instantiateDeck(enemyDeckIds.flat());
-    const { shuffled: eDeckCards, nextSeed: seedAfterEnemyShuffle } = new PRNG(seedAfterPlayerShuffle).shuffle(eDeckCardsRaw);
+    const { shuffled: eDeckCards, nextSeed: seedAfterEnemyShuffle } = new PRNG(seedAfterPlayerShuffle.toString()).shuffle(eDeckCardsRaw);
 
     //Keep this we will also use this for 3v3s
     const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
@@ -100,7 +101,7 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
         hand: [],
         discard: []
     };
-    const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle);
+    const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle.toString());
 
     const eInitialDeck: IDeckState = {
         ownerId: 'ENEMY',
@@ -118,6 +119,8 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
         phase: 'ACTION',
         activeSide: 'PLAYER',
         logs: [],
+        osLogs: [],
+        procs: [],
         playerParty: playerParty,
         enemyParty: enemyParty,
         playerDeck: pDeckState,
