@@ -150,7 +150,7 @@ const gameSlice = createSlice({
                 return member;
             });
         },
-        startNewGauntlet: (_state, action: PayloadAction<'kraken' | 'fenrir'>) => {
+        startNewGauntlet: (_state, action: PayloadAction<'kraken' | 'fenrir' | 'ratatoskr'>) => {
             return createStarterSave(action.payload);
         },
 

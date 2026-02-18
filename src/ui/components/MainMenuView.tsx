@@ -4,13 +4,32 @@ import { useDispatch } from 'react-redux';
 import { startNewGauntlet } from '../store/gameSlice';
 
 const StarterCard: React.FC<{
-    id: 'kraken' | 'fenrir';
+    id: 'kraken' | 'fenrir' | 'ratatoskr';
     name: string;
     element: string;
     description: string;
     onSelect: () => void;
 }> = ({ id, name, element, description, onSelect }) => {
     const isWater = id === 'kraken';
+    const isFire = id === 'fenrir';
+    const isNature = id === 'ratatoskr';
+
+    let borderColor = '#0088ff';
+    if (isFire) borderColor = '#ff4400';
+    if (isNature) borderColor = '#00ffaa';
+
+    let glowColor = 'rgba(0,136,255,0.2)';
+    if (isFire) glowColor = 'rgba(255,68,0,0.2)';
+    if (isNature) glowColor = 'rgba(0,255,170,0.2)';
+
+    let titleColor = '#00ccff';
+    if (isFire) titleColor = '#ff8800';
+    if (isNature) titleColor = '#00ffa3';
+
+    let starterCardName = 'SQUIRT';
+    if (isFire) starterCardName = 'SPICY BREATH';
+    if (isNature) starterCardName = 'QUICK LEAF';
+
     return (
         <motion.div
             whileHover={{ scale: 1.05, y: -10 }}
@@ -20,20 +39,20 @@ const StarterCard: React.FC<{
                 background: '#1a1a1a',
                 borderRadius: '15px',
                 padding: '30px',
-                border: `2px solid ${isWater ? '#0088ff' : '#ff4400'}`,
+                border: `2px solid ${borderColor}`,
                 cursor: 'pointer',
                 textAlign: 'center',
-                boxShadow: `0 10px 30px rgba(0,0,0,0.5), 0 0 20px ${isWater ? 'rgba(0,136,255,0.2)' : 'rgba(255,68,0,0.2)'}`
+                boxShadow: `0 10px 30px rgba(0,0,0,0.5), 0 0 20px ${glowColor}`
             }}
             onClick={onSelect}
         >
-            <div style={{ fontSize: '1.2rem', color: isWater ? '#00ccff' : '#ff8800', fontWeight: 'bold', marginBottom: '10px' }}>
+            <div style={{ fontSize: '1.2rem', color: titleColor, fontWeight: 'bold', marginBottom: '10px' }}>
                 {element.toUpperCase()} UNIT
             </div>
             <h2 style={{ fontSize: '2.5rem', margin: '10px 0', letterSpacing: '2px' }}>{name}</h2>
             <p style={{ color: '#888', minHeight: '60px', margin: '20px 0' }}>{description}</p>
             <div style={{ marginTop: '20px', padding: '10px', background: '#222', borderRadius: '8px', fontSize: '0.9rem' }}>
-                STARTER CARD: {isWater ? 'SQUIRT' : 'SPICY BREATH'}
+                STARTER CARD: {starterCardName}
             </div>
         </motion.div>
     );
@@ -87,6 +106,13 @@ const MainMenuView: React.FC = () => {
                     element="Fire"
                     description="Aggressive and high-impact. Focuses on status upgrades and overwhelming power."
                     onSelect={() => dispatch(startNewGauntlet('fenrir'))}
+                />
+                <StarterCard
+                    id="ratatoskr"
+                    name="RATATOSKR"
+                    element="Nature"
+                    description="Fast and relentless. Low-energy agro attacks combined with massive card draw loops."
+                    onSelect={() => dispatch(startNewGauntlet('ratatoskr'))}
                 />
             </motion.div>
 

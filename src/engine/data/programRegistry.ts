@@ -533,6 +533,43 @@ const ProgramRegistry: Record<string, ProgramData> = {
             { type: 'ATTACK', power: 10, target: 'TARGET' }
         ],
     },
+    'quick_leaf': {
+        id: 'quick_leaf',
+        name: 'Quick Leaf',
+        description: 'Deal 5 damage. Draw 1.',
+        element: 'Nature', target: 'Single', category: 'Attack', baseCost: 0, constraints: [...STANDARD_CONSTRAINTS],
+        actions: [
+            { type: 'ATTACK', power: 5, target: 'TARGET' },
+            { type: 'DRAW', count: 1, target: 'SELF' }
+        ],
+    },
+    'forage': {
+        id: 'forage',
+        name: 'Forage',
+        description: 'Draw 1 card.',
+        element: 'Nature', target: 'Self', category: 'Special', baseCost: 0, constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'DRAW', count: 1, target: 'SELF' }],
+    },
+    'squirrel_scurry': {
+        id: 'squirrel_scurry',
+        name: 'Squirrel Scurry',
+        description: 'Deal 5 damage to all enemies. Draw 1.',
+        element: 'Nature', target: 'Side', category: 'Attack', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
+        actions: [
+            { type: 'ATTACK', power: 5, target: 'TARGET' },
+            { type: 'DRAW', count: 1, target: 'SELF' }
+        ],
+    },
+    'nature_bond': {
+        id: 'nature_bond',
+        name: 'Nature Bond',
+        description: 'Heal 10 and draw 1.',
+        element: 'Nature', target: 'Self', category: 'Heal', baseCost: 1, constraints: [...STANDARD_CONSTRAINTS],
+        actions: [
+            { type: 'HEAL', power: 10, target: 'TARGET' },
+            { type: 'DRAW', count: 1, target: 'SELF' }
+        ],
+    },
 
     // Ymir (Ice)
     'glacial_age': {

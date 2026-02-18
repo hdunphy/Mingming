@@ -76,14 +76,20 @@ export function createDefaultSave(): IPlayerSave {
 }
 
 //TODO does this get used? or does the battle factory get used?
-export function createStarterSave(starterId: 'kraken' | 'fenrir' = 'kraken'): IPlayerSave {
+export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' = 'kraken'): IPlayerSave {
     const isWater = starterId === 'kraken';
+    const isFire = starterId === 'fenrir';
+    const isNature = starterId === 'ratatoskr';
 
     // Starter MingMing (Level 5)
+    let nickname = 'Bubbles';
+    if (isFire) nickname = 'Iggy';
+    if (isNature) nickname = 'Nutty';
+
     const starter: IMingmingState = {
         id: crypto.randomUUID(),
         definitionId: starterId,
-        nickname: isWater ? 'Bubbles' : 'Iggy',
+        nickname: nickname,
         level: 5,
         experience: 0,
         attackIV: 10 + Math.floor(Math.random() * 6),
@@ -102,8 +108,16 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' = 'kraken'): IP
         'toats', 'roast', 'preheat', 'flash', 'fire_punch',
         'ignite_pipeline', 'combustion'
     ];
+    const natureStarterIds = [
+        'quick_leaf', 'forage', 'squirrel_scurry', 'nature_bond',
+        'acorn_shot', 'quick_leaf', 'forage', 'squirrel_scurry',
+        'nature_bond', 'acorn_shot', 'quick_leaf', 'forage'
+    ];
 
-    const starterCardIds = isWater ? waterStarterIds : fireStarterIds;
+    let starterCardIds = waterStarterIds;
+    if (isFire) starterCardIds = fireStarterIds;
+    if (isNature) starterCardIds = natureStarterIds;
+
     const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => ({
         instanceId: crypto.randomUUID(),
         dataId

@@ -42,6 +42,20 @@ const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         artReference: "Fafnir.png"
+    },
+    "ratatoskr": {
+        id: "ratatoskr",
+        name: "Ratatoskr",
+        baseStats: {
+            hp: 62,
+            attack: 55,
+            defense: 63,
+            energy: 3
+        },
+        primaryElement: "Nature",
+        secondaryElement: "None",
+        cardDraw: 4,
+        artReference: "Ratatoskr.png"
     }
 }
 
