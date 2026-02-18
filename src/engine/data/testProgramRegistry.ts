@@ -90,5 +90,18 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
             { type: 'ATTACK', power: 20, target: 'TARGET' },
             { type: 'ATTACK', power: 20, target: 'TARGET' }
         ],
+    },
+    'card_multihit': {
+        id: 'card_multihit',
+        name: 'Multi-Hit',
+        description: '3-hit attack.',
+        element: 'None',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 2,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [
+            { type: 'ATTACK', power: 10, target: 'TARGET', count: 3 }
+        ],
     }
 };

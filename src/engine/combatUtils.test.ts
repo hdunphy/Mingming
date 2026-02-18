@@ -132,28 +132,27 @@ describe('Combat Utils - Damage Formula', () => {
 describe('Combat Utils - Heal Formula', () => {
     it('should calculate clamped heal', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 50, 10, 10);
-        // Level 50 -> LevelMod 22.
-        // Attack 10. Power 5.
-        // Raw = 22 * 5 * 10 / 2 = 550.
+        // Level 50 -> levelBase 22.
+        // Atk 10. Power 5.
+        // Raw = ((22 * 5 * 10) / 50) + 2 = 24.
 
         const target = createMockEntity('def', 'Water', undefined, 50, 10, 10);
         const damagedTarget = { ...target, currentHp: 50 }; // 50 missing.
 
         const heal = calculateHeal(attacker, damagedTarget, 5);
-        expect(heal).toBe(50);
+        expect(heal).toBe(24);
     });
 
     it('should calculate raw heal correctly when not capped', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 10, 5, 5);
-        // Level 10 -> LevelMod = ((20)/5)+2 = 6.
-        // Attack 5. Power 5.
-        // Raw = 6 * 5 * 5 / 2 = 75.
+        // Level 10 -> levelBase 6.
+        // Atk 5. Power 5.
+        // Raw = ((6 * 5 * 5) / 50) + 2 = 5.
 
         const target = createMockEntity('def', 'Water', undefined, 50, 100, 100);
         const injuredTarget = { ...target, maxHp: 200, currentHp: 100 }; // 100 missing.
 
         const heal = calculateHeal(attacker, injuredTarget, 5);
-        // rawHeal = 6 * 5 * 5 / 4 = 37.5. Floor is 37.
-        expect(heal).toBe(37);
+        expect(heal).toBe(5);
     });
 });

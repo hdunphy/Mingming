@@ -1,10 +1,31 @@
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
 
+export enum HookPriority {
+    SYSTEM = 100,
+    GLOBAL = 75,
+    ATTACKER = 50,
+    PROGRAM = 40,
+    DEFENDER = 25,
+    LOGGING = 0
+}
+
+export type MutationRequest = {
+    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT';
+    targetId: string;
+    payload: any;
+};
+
+export type HookResult = {
+    mutations: MutationRequest[];
+    isCancelled?: boolean;
+};
+
 export type HookContext = {
     source?: IBattleEntity;
     target?: IBattleEntity;
     program?: ProgramData;
     state: IBattleState;
+    triggerDepth: number;
 };
 
 export type DamageModifierHook = (
@@ -12,10 +33,17 @@ export type DamageModifierHook = (
     context: HookContext
 ) => number;
 
+export type EventHook = (
+    context: HookContext
+) => HookResult;
+
 export type HookDefinition = {
     id: string;
+    priority: number;
     onDamageCalculated?: DamageModifierHook;
-    // Add more hooks here (onHeal, onTurnStart, etc.)
+    onActionStart?: EventHook;
+    onModifierPhase?: EventHook;
+    onPostDamage?: EventHook;
 };
 
 const hookRegistry: Record<string, HookDefinition> = {};
@@ -35,18 +63,20 @@ export const applyDamageModifiers = (
     let damage = initialDamage;
     const entities = [context.source, context.target].filter((e): e is IBattleEntity => !!e);
 
-    // Collect all hook IDs from participating entities
-    // In the future, we might check Global State hooks too
-    const hookIds: string[] = [];
-    entities.forEach(e => {
-        if (e.hooks) hookIds.push(...e.hooks);
-        // Also check status effects for hooks? 
-        // For now, let's assume hooks are explicitly in the 'hooks' array.
-    });
+    // 1. Collect Hooks
+    const hookIds = new Set<string>();
+    entities.forEach(e => e.hooks?.forEach(h => hookIds.add(h)));
 
-    hookIds.forEach(id => {
-        const hook = hookRegistry[id];
-        if (hook && hook.onDamageCalculated) {
+    const hooks: HookDefinition[] = Array.from(hookIds)
+        .map(id => hookRegistry[id])
+        .filter((h): h is HookDefinition => !!h && !!h.onDamageCalculated);
+
+    // 2. Sort by Priority
+    hooks.sort((a, b) => b.priority - a.priority);
+
+    // 3. Apply Modifiers
+    hooks.forEach(hook => {
+        if (hook.onDamageCalculated) {
             damage = hook.onDamageCalculated(damage, context);
         }
     });

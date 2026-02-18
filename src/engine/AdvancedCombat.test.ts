@@ -80,6 +80,7 @@ describe('Advanced Combat Mechanics', () => {
         const hookId = 'hook_double_damage';
         registerHook({
             id: hookId,
+            priority: 50, // ATTACKER
             onDamageCalculated: (dmg) => dmg * 2
         });
 

@@ -11,6 +11,7 @@ import type {
     ProgramConstraint
 } from './types';
 import { globalBattleEventBus, type BattleEvent } from './events';
+import { HookPriority, type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
 // We will import combatUtils later for card resolution
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
@@ -164,6 +165,107 @@ export function validateProgramConstraints(
     return true;
 }
 
+/**
+ * Applies a list of mutations to the state in a single atomic update.
+ */
+function applyMutations(state: IBattleState, mutations: MutationRequest[]): IBattleState {
+    let newState = state;
+
+    for (const mutation of mutations) {
+        switch (mutation.type) {
+            case 'HP':
+                newState = effectHandlers['ATTACK'](newState, {
+                    sourceId: 'SYSTEM', // System-level mutation
+                    targetId: mutation.targetId,
+                    power: 0,
+                    damageOverride: mutation.payload.amount, // We might need to update ATTACK to support override
+                    element: mutation.payload.element || 'None'
+                });
+                break;
+            case 'ENERGY':
+                newState = {
+                    ...newState,
+                    playerParty: newState.playerParty.map(e =>
+                        e.id === mutation.targetId ? {
+                            ...e,
+                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
+                        } : e
+                    ),
+                    enemyParty: newState.enemyParty.map(e =>
+                        e.id === mutation.targetId ? {
+                            ...e,
+                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
+                        } : e
+                    )
+                };
+                break;
+            case 'STATUS':
+                newState = effectHandlers['APPLY_STATUS'](newState, {
+                    targetId: mutation.targetId,
+                    status: mutation.payload.status,
+                    stacks: mutation.payload.stacks
+                });
+                break;
+            case 'LOG':
+                newState = addLog(newState, mutation.payload);
+                break;
+            case 'EVENT':
+                globalBattleEventBus.emit(mutation.payload);
+                break;
+        }
+    }
+
+    return newState;
+}
+
+/**
+ * Gathers and executes hooks for a specific lifecycle phase.
+ */
+function executeResolutionStack(
+    state: IBattleState,
+    phase: keyof HookDefinition,
+    initialContext: HookContext
+): { state: IBattleState; isCancelled: boolean } {
+    let currentState = state;
+    let isCancelled = false;
+
+    if (initialContext.triggerDepth > 5) {
+        console.warn("CRITICAL_EVENT_OVERFLOW: Max trigger depth reached.");
+        return { state: currentState, isCancelled: true };
+    }
+
+    // 1. Collect Hooks
+    const entities = [initialContext.source, initialContext.target].filter((e): e is IBattleEntity => !!e);
+    const hookIds = new Set<string>();
+    entities.forEach(e => e.hooks?.forEach(h => hookIds.add(h)));
+
+    const hooks: HookDefinition[] = Array.from(hookIds)
+        .map(id => getHook(id))
+        .filter((h): h is HookDefinition => !!h && !!h[phase]);
+
+    // 2. Sort by Priority
+    hooks.sort((a, b) => b.priority - a.priority);
+
+    // 3. Execute Hooks
+    for (const hook of hooks) {
+        const handler = hook[phase] as any;
+        if (!handler) continue;
+
+        const result: HookResult = handler({ ...initialContext, state: currentState });
+
+        if (result.mutations.length > 0) {
+            currentState = applyMutations(currentState, result.mutations);
+        }
+
+        if (result.isCancelled) {
+            isCancelled = true;
+            break;
+        }
+    }
+
+    return { state: currentState, isCancelled };
+}
+
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
         console.warn(`Attempted to play program during ${state.phase} phase.`);
@@ -172,120 +274,130 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
     const { sourceId, targetId, programId } = payload;
 
-    // 1. Identify Source Entity
+    // 1. Identify Source & Card
     const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
     const sourceIndex = state[activePartyKey].findIndex(e => e.id === sourceId);
     if (sourceIndex === -1) return state;
 
     const sourceEntity = state[activePartyKey][sourceIndex];
-
-    // 2. Identify Card in Hand
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const hand = state[activeDeckKey].hand;
     const cardIndex = hand.findIndex(c => c.id === programId);
 
-    if (cardIndex === -1) {
-        console.warn("Card not found in hand");
-        return state;
-    }
+    if (cardIndex === -1) return state;
 
     const card = hand[cardIndex];
     const programData = GetProgramData(card.dataId);
-
-    // 3. Identify Primary Target (for validation)
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
-    // 4. Validate Constraints & Energy
+    // 2. Validate Constraints
     if (!validateProgramConstraints(state, sourceEntity, targetEntity, programData, card.currentCost)) {
         return state;
     }
 
-    // 5. Pay Energy
-    const newSourceEntity = {
-        ...sourceEntity,
-        currentEnergy: sourceEntity.currentEnergy - card.currentCost
-    };
+    // --- The Snapshot Pattern ---
+    let snapshot = state;
 
-    const newParty = [...state[activePartyKey]];
-    newParty[sourceIndex] = newSourceEntity;
-
-    // 5. Remove Card from Hand (Move to Discard or Limbo? Post-turn moves to discard.
-    // Spec says: "POST_TURN: Discard: discardPile.push(...hand)".
-    // Usually played cards go to discard immediately, or "Resolution Stack".
-    // For MVP let's move to discard immediately or just remove from hand?
-    // Spec 3.1: "PRE_TURN: ... draw to 9". "POST_TURN: Discard hand".
-    // Usually played cards are discarded.
-    // Let's move to discard.
-    const newHand = [...hand];
+    // 3. Pay Cost (Snapshot Mutation)
+    const newHand = [...snapshot[activeDeckKey].hand];
     newHand.splice(cardIndex, 1);
+    const newDiscard = [...snapshot[activeDeckKey].discard, card];
 
-    const newDiscard = [...state[activeDeckKey].discard, card];
-
-    // 6. Emit Event
-    globalBattleEventBus.emit({
-        type: 'PROGRAM_PLAYED',
-        sourceId,
-        targetId,
-        programId: card.dataId,
-        timestamp: Date.now()
-    });
-
-    // 7. Resolve Effect
-    let newState = {
-        ...state,
-        [activePartyKey]: newParty,
+    snapshot = {
+        ...snapshot,
+        [activePartyKey]: snapshot[activePartyKey].map(e =>
+            e.id === sourceId ? { ...e, currentEnergy: e.currentEnergy - card.currentCost } : e
+        ),
         [activeDeckKey]: {
-            ...state[activeDeckKey],
+            ...snapshot[activeDeckKey],
             hand: newHand,
             discard: newDiscard
         }
     };
 
-    // Log the action
-    const sourceName = sourceEntity.name;
-    const targetName = targetEntity?.name || 'unknown';
-    newState = addLog(newState, `${sourceName} plays ${programData.name} → ${targetName}`);
+    // 4. Initial Context
+    const context: HookContext = {
+        source: sourceEntity,
+        target: targetEntity,
+        program: programData,
+        state: snapshot,
+        triggerDepth: 0
+    };
 
-    if (programData && programData.actions) {
-        // Iterate through actions and apply them
+    // 5. System Layer: onActionStart
+    const { state: afterStart, isCancelled } = executeResolutionStack(snapshot, 'onActionStart', context);
+    if (isCancelled) return afterStart;
+    snapshot = afterStart;
+
+    // 6. Logging Layer: Emission (Priority 0)
+    snapshot = applyMutations(snapshot, [{
+        type: 'EVENT',
+        targetId: '',
+        payload: {
+            type: 'PROGRAM_PLAYED',
+            sourceId,
+            targetId,
+            programId: card.dataId,
+            timestamp: Date.now()
+        }
+    }, {
+        type: 'LOG',
+        targetId: '',
+        payload: `${sourceEntity.name} plays ${programData.name} → ${targetEntity?.name || 'unknown'}`
+    }]);
+
+    // 7. Iterative Multi-Hit Resolution
+    let finalState = snapshot;
+    if (programData.actions) {
         for (const action of programData.actions) {
-            // Target Resolution
-            let targetIds: string[] = [];
+            const hits = action.count || 1;
 
-            if (action.target === 'SELF' || action.target === 'Self') {
-                targetIds = [sourceId];
-            } else if (programData.target === 'Side' || programData.target === 'All') {
-                // Determine which side the lead target belongs to (use newState for consistency)
-                const isOnPlayerSide = newState.playerParty.some(e => e.id === targetId);
-                const targetParty = isOnPlayerSide ? newState.playerParty : newState.enemyParty;
-                targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
-            } else {
-                targetIds = [targetId];
-            }
+            for (let i = 0; i < hits; i++) {
+                // Target Resolution (per hit)
+                let targetIds: string[] = [];
+                if (action.target === 'SELF' || action.target === 'Self') {
+                    targetIds = [sourceId];
+                } else if (programData.target === 'Side' || programData.target === 'All') {
+                    const isOnPlayerSide = finalState.playerParty.some(e => e.id === targetId);
+                    const targetParty = isOnPlayerSide ? finalState.playerParty : finalState.enemyParty;
+                    targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
+                } else {
+                    targetIds = [targetId];
+                }
 
-            // Execute action for each target
-            for (const tId of targetIds) {
-                // Check if target is still alive (relevant for multi-hit single target, less for Side)
-                const targetEntity = newState.playerParty.find(e => e.id === tId) || newState.enemyParty.find(e => e.id === tId);
-                if (targetEntity && targetEntity.currentHp <= 0) continue;
+                for (const tId of targetIds) {
+                    const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
+                    if (!currentTarget || currentTarget.currentHp <= 0) continue;
 
-                const handler = effectHandlers[action.type];
-                if (handler) {
-                    newState = handler(newState, {
-                        sourceId,
-                        targetId: tId,
-                        power: action.power || 0,
-                        count: action.count || 0,
-                        element: action.element || programData.element,
-                        status: action.status,
-                        stacks: action.stacks || 1
-                    });
+                    // Modifier Phase
+                    const hitContext = { ...context, target: currentTarget, state: finalState };
+                    const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                    if (hitCancelled) continue;
+                    finalState = afterMod;
+
+                    // Execution
+                    const handler = effectHandlers[action.type];
+                    if (handler) {
+                        finalState = handler(finalState, {
+                            sourceId,
+                            targetId: tId,
+                            power: action.power || 0,
+                            count: 1, // Single discrete hit
+                            element: action.element || programData.element,
+                            status: action.status,
+                            stacks: action.stacks || 1
+                        });
+                    }
+
+                    // Post-Damage Phase
+                    const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                    finalState = afterPost;
                 }
             }
         }
     }
 
-    return newState;
+    return finalState;
 }
 
 function handleTransferEnergy(state: IBattleState, payload: { sourceId: string; targetId: string }): IBattleState {

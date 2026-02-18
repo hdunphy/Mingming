@@ -110,19 +110,24 @@ function addExperience(state: IBattleState, entityId: string, amount: number): I
 }
 
 
-function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any }): IBattleState {
-    const { sourceId, targetId, power, element } = payload;
+function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number }): IBattleState {
+    const { sourceId, targetId, power, element, damageOverride } = payload;
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
 
     let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
     let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
-    if (!source || !target) return state;
+    if (!target) return state;
 
     // Calculate Damage
-    const mockProgram = { element: element } as ProgramData;
-    const damage = calculateDamage(source, target, mockProgram, power, state);
+    let damage = 0;
+    if (damageOverride !== undefined) {
+        damage = damageOverride;
+    } else if (source) {
+        const mockProgram = { element: element } as ProgramData;
+        damage = calculateDamage(source, target, mockProgram, power, state);
+    }
 
     // Apply Damage
     const newCurrentHp = Math.max(0, target.currentHp - damage);

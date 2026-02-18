@@ -62,7 +62,7 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   const scaled = Math.floor(levelBase * power * attacker.attack / target.defense);
 
   // Step 3: Reduction
-  const reduced = Math.floor(scaled / 50) + 2;
+  const reduced = (scaled / 50) + 2;
 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);
@@ -72,20 +72,20 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
     source: attacker,
     target,
     program,
-    state
+    state,
+    triggerDepth: 0 // Base damage calculation is depth 0
   });
 
   return Math.max(0, damage);
 }
 
-/**
- * Calculates Heal Amount from legacy Rules.cs
- * Formula: LevelMod * Power * Attack / 4  (halved for balance)
- * Clamped to target's missing health.
- */
 export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, power: number): number {
   const levelBase = ((2 * attacker.level) / 5) + 2;
-  const rawHeal = levelBase * power * attacker.attack / 8;
+
+  // Dividing by 50 offsets the unmitigated 'attack' multiplier 
+  // and brings the curve in line with the damage formula's pacing.
+  // We add +2 at the end to guarantee a minimum heal amount.
+  const rawHeal = ((levelBase * power * attacker.attack) / 50) + 2;
 
   const missingHp = target.maxHp - target.currentHp;
   return Math.floor(Math.min(rawHeal, missingHp));
