@@ -1,6 +1,6 @@
 import type { IMingmingDefinition } from "../types";
 
-const MingmingRegistry: Record<string, IMingmingDefinition> = {
+export const MingmingRegistry: Record<string, IMingmingDefinition> = {
     "fenrir": {
         id: "fenrir",
         name: "Fenrir",
