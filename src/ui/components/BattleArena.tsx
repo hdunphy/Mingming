@@ -16,7 +16,7 @@ import BattleReport from './BattleReport';
 import LevelUpOverlay from './LevelUpOverlay';
 import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
-import type { IRewardBundle } from '../../engine/gameTypes';
+import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -242,13 +242,15 @@ const BattleArena: React.FC = () => {
         }
     }, [isDefeat]);
 
+    const rosterSize = useSelector((state: RootState) => state.game.roster.length);
+
     // Roll rewards on victory
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
-            const bundle = rollDropTable(battleState.enemyParty, battleState.seed);
+            const bundle = rollDropTable(battleState.enemyParty, rosterSize, battleState.seed);
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState?.enemyParty, battleState?.seed, rewardBundle]);
+    }, [isVictory, battleState?.enemyParty, battleState?.seed, rewardBundle, rosterSize]);
 
     const handleDefeatReset = () => {
         deleteSave();
@@ -256,12 +258,16 @@ const BattleArena: React.FC = () => {
         window.location.reload();
     };
 
-    const handleContinue = () => {
+    const handleContinue = (chosenCards: IOwnedProgram[]) => {
         if (battleState) {
             dispatch(syncPartyStats(battleState.playerParty));
         }
         if (rewardBundle) {
-            dispatch(applyRewardAction(rewardBundle));
+            const finalBundle: IRewardBundle = {
+                ...rewardBundle,
+                cards: chosenCards
+            };
+            dispatch(applyRewardAction(finalBundle));
         }
         dispatch(setBattleState(null as any));
     };

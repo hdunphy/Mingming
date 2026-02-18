@@ -16,6 +16,7 @@ const MingmingInstanceSchema = z.object({
     nickname: z.string().optional(),
     level: z.number().int().min(1),
     experience: z.number().int().min(0),
+    activeOS: z.string().optional(),
     blueprintsCollected: z.number().int().min(0),
     attackIV: z.number().int().min(0).max(31),
     defenseIV: z.number().int().min(0).max(31),

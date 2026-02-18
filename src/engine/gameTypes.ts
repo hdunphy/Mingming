@@ -33,12 +33,19 @@ export interface IBlueprint {
     readonly compileCost: number;     // Scrap cost to compile
 }
 
+export interface ICardChoice {
+    readonly sourceEntityName: string;
+    readonly options: ReadonlyArray<IOwnedProgram>;
+}
+
 // --- Reward Bundle (returned by RewardSystem) ---
 
 export interface IRewardBundle {
     readonly scraps: number;
     readonly blueprints: ReadonlyArray<IBlueprint>;
-    readonly cards: ReadonlyArray<IOwnedProgram>;
+    readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
+    readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
+    readonly totalXP: number;
 }
 
 // --- Drop Table ---

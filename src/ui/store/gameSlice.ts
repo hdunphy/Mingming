@@ -129,9 +129,25 @@ const gameSlice = createSlice({
                 }
             }
 
-            // Cards
+            // Cards (Guaranteed or Chosen)
             for (const card of bundle.cards) {
                 (state.cardInventory as IOwnedProgram[]).push(card);
+            }
+
+            // XP Distribution
+            if (bundle.totalXP > 0 && state.activeParty.length > 0) {
+                const xpPerMember = Math.floor(bundle.totalXP / state.activeParty.length);
+                state.roster = state.roster.map(member => {
+                    if (state.activeParty.includes(member.id)) {
+                        return {
+                            ...member,
+                            experience: member.experience + xpPerMember
+                            // Note: Leveling logic should ideally happen here or be handled by a selector/observer
+                            // but for now we'll just add XP and let the sync/engine handle the rest if needed.
+                        };
+                    }
+                    return member;
+                });
             }
         },
         syncPartyStats: (state, action: PayloadAction<ReadonlyArray<IBattleEntity>>) => {

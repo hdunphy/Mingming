@@ -3,18 +3,35 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { applyRewardBundle } from '../store/gameSlice';
 import { setBattleState } from '../store/battleSlice';
-import type { IRewardBundle } from '../../engine/gameTypes';
-import type { IMingmingState } from '../../engine/types';
+import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
+import type { IMingmingState, IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 
 interface BattleReportProps {
     bundle: IRewardBundle;
-    winners: IMingmingState[];
-    onContinue: () => void;
+    winners: ReadonlyArray<IBattleEntity>;
+    onContinue: (chosenCards: IOwnedProgram[]) => void;
 }
 
-const BattleReport: React.FC<BattleReportProps> = ({ bundle, onContinue }) => {
+const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
+    const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
+
+    const totalChoices = bundle.cardChoices.length;
+    const selectedCount = Object.values(selections).filter(s => !!s).length;
+    const allSelected = selectedCount === totalChoices;
+
+    const xpPerMember = winners.length > 0 ? Math.floor(bundle.totalXP / winners.length) : 0;
+
+    const handleSelect = (choiceIndex: number, card: IOwnedProgram) => {
+        setSelections(prev => ({ ...prev, [choiceIndex]: card }));
+    };
+
+    const handleFinalize = () => {
+        const chosen = Object.values(selections).filter((s): s is IOwnedProgram => !!s);
+        onContinue(chosen);
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -23,85 +40,132 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, onContinue }) => {
             style={{
                 position: 'fixed',
                 inset: 0,
-                background: 'rgba(0,0,0,0.9)',
-                backdropFilter: 'blur(10px)',
+                background: 'rgba(5, 5, 10, 0.95)',
+                backdropFilter: 'blur(15px)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 3000,
-                padding: '20px'
+                padding: '20px',
+                overflowY: 'auto'
             }}
         >
             <motion.div
-                initial={{ y: 50, scale: 0.9 }}
-                animate={{ y: 0, scale: 1 }}
+                initial={{ y: 50, scale: 0.9, opacity: 0 }}
+                animate={{ y: 0, scale: 1, opacity: 1 }}
                 style={{
                     width: '100%',
-                    maxWidth: '450px',
-                    background: '#1a1a1a',
-                    borderRadius: '20px',
-                    padding: '40px',
-                    border: '1px solid #333',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                    maxWidth: '800px',
+                    background: 'linear-gradient(135deg, #151520 0%, #0a0a10 100%)',
+                    borderRadius: '12px',
+                    padding: '30px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(0, 210, 255, 0.05)'
                 }}
             >
-                <h1 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '30px', background: 'linear-gradient(to bottom, #fff, #888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    BATTLE RECAP
-                </h1>
+                <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                    <h1 style={{ margin: 0, fontSize: '2.4rem', fontWeight: 900, color: '#fff', letterSpacing: '2px' }}>
+                        BATTLE ANALYSIS COMPLETE
+                    </h1>
+                    <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #00d2ff, transparent)', width: '80%', margin: '15px auto 0' }} />
+                </div>
 
-                <div className="report-sections">
-                    <div className="loot-report">
-                        <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '10px', color: '#ffcc00' }}>LOOT ACQUIRED</h3>
-                        <div style={{ marginTop: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                <span>Scraps</span>
-                                <span style={{ color: '#00ffaa', fontWeight: 'bold' }}>+{bundle.scraps}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '30px' }}>
+                    {/* Left: Summary & XP */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div className="report-summary-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                            <h3 style={{ margin: '0 0 15px', fontSize: '0.9rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Yield</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <span style={{ color: '#ccc' }}>Scraps Recovered</span>
+                                <span style={{ color: '#00ffaa', fontWeight: 'bold', fontSize: '1.2rem' }}>+{bundle.scraps}</span>
                             </div>
+                            {bundle.blueprints.map((bp, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <span style={{ color: '#ccc', fontSize: '0.85rem' }}>{bp.name}</span>
+                                    <span style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '0.8rem' }}>ACQUIRED</span>
+                                </div>
+                            ))}
+                        </div>
 
-                            {bundle.cards.length > 0 && (
-                                <div style={{ marginTop: '20px' }}>
-                                    <p style={{ fontSize: '0.9rem', color: '#888', marginBottom: '8px' }}>PROGRAMS:</p>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                        {bundle.cards.map((c, i) => (
-                                            <div key={i} style={{ background: '#333', padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem' }}>
-                                                {GetProgramData(c.dataId).name}
-                                            </div>
-                                        ))}
+                        <div className="xp-distribution-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                            <h3 style={{ margin: '0 0 15px', fontSize: '0.9rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Efficiency Logs</h3>
+                            {winners.map(mm => (
+                                <div key={mm.id} style={{ marginBottom: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                        <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: '800' }}>{mm.name.toUpperCase()}</span>
+                                        <span style={{ color: '#00d2ff', fontSize: '0.8rem', fontWeight: 'bold' }}>+{xpPerMember} XP</span>
+                                    </div>
+                                    <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', background: '#00d2ff', width: '60%' }} /> {/* Visual filler for now */}
                                     </div>
                                 </div>
-                            )}
-
-                            {bundle.blueprints.length > 0 && (
-                                <div style={{ marginTop: '20px' }}>
-                                    <p style={{ fontSize: '0.9rem', color: '#888', marginBottom: '8px' }}>BLUEPRINTS:</p>
-                                    {bundle.blueprints.map((b, i) => (
-                                        <div key={i} style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                                            {b.name}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            ))}
                         </div>
                     </div>
 
-                    {/* TODO: Still good to show final XP bar */}
-                    {/* <div className="right-report">
-                        <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '10px', color: '#ffcc00' }}>PROGRESSION</h3>
-                        <div style={{ marginTop: '15px' }}>
-                            {winners.map(m => (
-                                <XpBar key={m.id} member={m} xpGained={xpPerMember} />
+                    {/* Right: Card Selections */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffcc00', letterSpacing: '1px' }}>DECONSTRUCTED PROGRAMS</h3>
+                        <p style={{ margin: '-10px 0 10px', fontSize: '0.8rem', color: '#666' }}>PICK ONE PER DEFEATED UNIT</p>
+
+                        <div style={{ flex: 1, overflowY: 'auto', maxHeight: '400px', paddingRight: '10px' }}>
+                            {bundle.cardChoices.map((choice, choiceIdx) => (
+                                <div key={choiceIdx} style={{ marginBottom: '25px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase' }}>Source: {choice.sourceEntityName}</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                        {choice.options.map((opt, optIdx) => {
+                                            const data = GetProgramData(opt.dataId);
+                                            const isSelected = selections[choiceIdx]?.instanceId === opt.instanceId;
+                                            return (
+                                                <div
+                                                    key={optIdx}
+                                                    onClick={() => handleSelect(choiceIdx, opt)}
+                                                    style={{
+                                                        padding: '10px',
+                                                        background: isSelected ? 'rgba(0, 210, 255, 0.15)' : '#222',
+                                                        border: `1px solid ${isSelected ? '#00d2ff' : 'rgba(255,255,255,0.1)'}`,
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        textAlign: 'center',
+                                                        transition: 'all 0.2s',
+                                                        boxShadow: isSelected ? '0 0 10px rgba(0, 210, 255, 0.3)' : 'none'
+                                                    }}
+                                                >
+                                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: isSelected ? '#00d2ff' : '#ccc' }}>{data.name}</div>
+                                                    <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '4px' }}>{data.element}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             ))}
                         </div>
-                    </div> */}
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px', gap: '10px' }}>
+                    {!allSelected && totalChoices > 0 && (
+                        <div style={{ color: '#ff4444', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            UNRESOLVED CHOICE: {totalChoices - selectedCount} UNITS REMAINING
+                        </div>
+                    )}
                     <button
-                        onClick={onContinue}
+                        onClick={handleFinalize}
+                        disabled={!allSelected && totalChoices > 0}
                         className="action-button"
-                        style={{ padding: '15px 60px', fontSize: '1.2rem', background: '#0088ff' }}
+                        style={{
+                            padding: '15px 80px',
+                            fontSize: '1.4rem',
+                            fontWeight: '900',
+                            background: allSelected || totalChoices === 0 ? '#00d2ff' : '#333',
+                            color: allSelected || totalChoices === 0 ? '#000' : '#666',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: allSelected || totalChoices === 0 ? 'pointer' : 'not-allowed',
+                            boxShadow: allSelected ? '0 0 20px rgba(0, 210, 255, 0.4)' : 'none'
+                        }}
                     >
-                        CONTINUE
+                        CONTINUE SYNCHRONIZATION
                     </button>
                 </div>
             </motion.div>

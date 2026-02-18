@@ -22,7 +22,7 @@ function makeValidSave(): IPlayerSave {
     return {
         version: 1,
         roster: [
-            { id: 'mm1', definitionId: 'def_fire', level: 5, experience: 100, attackIV: 10, defenseIV: 8, hpIV: 12 }
+            { id: 'mm1', definitionId: 'def_fire', level: 5, experience: 100, blueprintsCollected: 0, attackIV: 10, defenseIV: 8, hpIV: 12 }
         ],
         activeParty: ['mm1'],
         cardInventory: [

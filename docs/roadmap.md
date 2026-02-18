@@ -57,6 +57,14 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 - [ ] **Milestone 3.5.6: Permadeath:** Implement save-wiping on defeat.
 - [ ] **Milestone 3.5.7: Main Menu:** Add title screen and selection for 3 starters (Fire/Water/Earth).
 
+## **Epic 7: The Daemon Protocol (Power Cards & Expansion)**
+*Focus: Implementing persistent Power Cards (Daemons) and expanding the card pool to support Norse archetypes.*
+- [ ] **Milestone 7.1: Daemon Card Logic:** Implement the "Install" mechanic for battle-long persistent buffs.
+- [ ] **Milestone 7.2: Archetype Card Dump:** Add the remaining 50+ cards to the registry for Fire, Water, Earth, and Nature.
+- [ ] **Milestone 7.3: The Encounter Tier System:** Create randomized Grunt, Elite, and Boss encounters.
+
+---
+
 ## **Epic 8: The LAN Protocol (Positioning & Adjacency)**
 *Focus: Spatial strategy and team networking.*
 - [ ] **Milestone 8.1: Grid-Aware State:** Add `slotIndex` to `IBattleEntity` and update the Reducer to track 3v3 positioning.

@@ -5,7 +5,7 @@
 
 import { PRNG } from './core/PRNG';
 import { GetProgramData } from './data/programRegistry';
-import type { IRewardBundle, IDropTableEntry, IBlueprint, IOwnedProgram } from './gameTypes';
+import type { IRewardBundle, IDropTableEntry, IBlueprint, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
 import type { IBattleEntity, Element } from './types';
 
@@ -49,21 +49,32 @@ export function getDropTable(definitionId: string): IDropTableEntry {
 }
 
 /**
+ * Calculate dynamic blueprint drop rate based on roster size
+ */
+function getBlueprintRate(rosterSize: number): number {
+    if (rosterSize <= 1) return 0.25; // 25% for first teammate
+    if (rosterSize === 2) return 0.15; // 15% for completing party
+    return 0.05; // 5% for upgrades
+}
+
+/**
  * Roll rewards for a single defeated entity
  */
 function rollForEntity(
     entity: IBattleEntity,
+    rosterSize: number,
     prng: PRNG
-): { scraps: number; blueprint: IBlueprint | null; cards: IOwnedProgram[]; nextSeed: number } {
+): { scraps: number; blueprint: IBlueprint | null; cardChoice: ICardChoice; xp: number; nextSeed: number } {
     const table = getDropTable(entity.definitionId);
 
     // 1. Roll scrap yield
     const scrapRoll = prng.nextInt(table.scrapMin, table.scrapMax);
     const scraps = scrapRoll.value;
 
-    // 2. Roll blueprint drop
+    // 2. Roll blueprint drop (Scaled by roster size)
+    const bpRate = getBlueprintRate(rosterSize);
     const bpRoll = new PRNG(scrapRoll.nextSeed).next();
-    const blueprint = bpRoll.value < table.blueprintDropRate
+    const blueprint = bpRoll.value < bpRate
         ? {
             architectureId: table.architectureId,
             name: `${entity.name} Blueprint`,
@@ -71,52 +82,65 @@ function rollForEntity(
         }
         : null;
 
-    // 3. Roll 3 random cards from the pool
-    const cards: IOwnedProgram[] = [];
+    // 3. Roll 3 random cards for the "Choice" array
+    const options: IOwnedProgram[] = [];
     let currentSeed = bpRoll.nextSeed;
 
-    const cardCount = Math.min(3, table.cardPool.length);
-    for (let i = 0; i < cardCount; i++) {
+    const optionsCount = 3;
+    for (let i = 0; i < optionsCount; i++) {
         const cardRoll = new PRNG(currentSeed).nextInt(0, table.cardPool.length - 1);
         const cardId = table.cardPool[cardRoll.value];
-        cards.push(createOwnedProgram(cardId));
+        options.push(createOwnedProgram(cardId));
         currentSeed = cardRoll.nextSeed;
     }
 
-    return { scraps, blueprint, cards, nextSeed: currentSeed };
+    const cardChoice: ICardChoice = {
+        sourceEntityName: entity.name,
+        options
+    };
+
+    // 4. XP Calculation: Defeated_Level * 20
+    const xp = entity.level * 20;
+
+    return { scraps, blueprint, cardChoice, xp, nextSeed: currentSeed };
 }
 
 /**
  * Roll the complete reward bundle for a victorious battle.
- * Uses seeded PRNG for deterministic results (replays, testing).
+ * Uses seeded PRNG for deterministic results.
  */
 export function rollDropTable(
     defeatedEntities: ReadonlyArray<IBattleEntity>,
+    rosterSize: number,
     seed: string
 ): IRewardBundle {
     let totalScraps = 0;
+    let totalXP = 0;
     const allBlueprints: IBlueprint[] = [];
-    const allCards: IOwnedProgram[] = [];
+    const allCardChoices: ICardChoice[] = [];
     let currentSeed = seed;
 
     for (const entity of defeatedEntities) {
-        if (entity.currentHp > 0) continue; // Only loot defeated units
+        if (entity.currentHp > 0) continue;
 
         const prng = new PRNG(currentSeed);
-        const result = rollForEntity(entity, prng);
+        const result = rollForEntity(entity, rosterSize, prng);
 
         totalScraps += result.scraps;
+        totalXP += result.xp;
         if (result.blueprint) {
             allBlueprints.push(result.blueprint);
         }
-        allCards.push(...result.cards);
+        allCardChoices.push(result.cardChoice);
         currentSeed = result.nextSeed.toString();
     }
 
     return {
         scraps: totalScraps,
         blueprints: allBlueprints,
-        cards: allCards
+        cards: [], // No guaranteed cards in this version
+        cardChoices: allCardChoices,
+        totalXP
     };
 }
 

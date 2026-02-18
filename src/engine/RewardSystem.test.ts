@@ -25,26 +25,29 @@ describe('RewardSystem', () => {
     describe('rollDropTable', () => {
         it('returns deterministic results for the same seed', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
-            const r1 = rollDropTable(defeated, '42');
-            const r2 = rollDropTable(defeated, '42');
+            const r1 = rollDropTable(defeated, 1, '42');
+            const r2 = rollDropTable(defeated, 1, '42');
 
             expect(r1.scraps).toBe(r2.scraps);
             expect(r1.blueprints.length).toBe(r2.blueprints.length);
-            expect(r1.cards.length).toBe(r2.cards.length);
-            // Card dataIds should match (instanceIds will differ due to UUID)
-            for (let i = 0; i < r1.cards.length; i++) {
-                expect(r1.cards[i].dataId).toBe(r2.cards[i].dataId);
+            expect(r1.cardChoices.length).toBe(r2.cardChoices.length);
+            // Card options should match (instanceIds will differ due to UUID)
+            for (let i = 0; i < r1.cardChoices.length; i++) {
+                expect(r1.cardChoices[i].options.length).toBe(3);
+                for (let j = 0; j < 3; j++) {
+                    expect(r1.cardChoices[i].options[j].dataId).toBe(r2.cardChoices[i].options[j].dataId);
+                }
             }
         });
 
         it('different seeds produce different results', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
-            const r1 = rollDropTable(defeated, '100');
-            const r2 = rollDropTable(defeated, '200');
+            const r1 = rollDropTable(defeated, 1, '100');
+            const r2 = rollDropTable(defeated, 1, '200');
 
-            // Very likely to differ (not guaranteed, but extremely improbable for LCG)
+            // Very likely to differ
             const sameEverything = r1.scraps === r2.scraps
-                && r1.cards.every((c, i) => c.dataId === r2.cards[i]?.dataId);
+                && r1.cardChoices[0].options[0].dataId === r2.cardChoices[0].options[0].dataId;
             expect(sameEverything).toBe(false);
         });
 
@@ -53,10 +56,11 @@ describe('RewardSystem', () => {
                 makeDeadEntity('e1', 'def_fire', 'Dead'),
                 makeAliveEntity('e2', 'def_fire', 'Alive')
             ];
-            const result = rollDropTable(party, '42');
+            const result = rollDropTable(party, 1, '42');
 
             // Should only get loot from 1 entity
-            expect(result.cards.length).toBe(3); // 3 cards from the dead entity only
+            expect(result.cardChoices.length).toBe(1);
+            expect(result.cardChoices[0].options.length).toBe(3);
         });
 
         it('accumulates rewards from multiple defeated entities', () => {
@@ -65,37 +69,52 @@ describe('RewardSystem', () => {
                 makeDeadEntity('e2', 'def_water', 'Dead 2'),
                 makeDeadEntity('e3', 'def_fire', 'Dead 3')
             ];
-            const result = rollDropTable(party, '42');
+            const result = rollDropTable(party, 1, '42');
 
-            expect(result.cards.length).toBe(9); // 3 cards per defeated entity = 9
+            expect(result.cardChoices.length).toBe(3);
+            expect(result.totalXP).toBe(party.length * 10 * 20); // 3 * 200 = 600
         });
 
         it('returns empty rewards when no entities are defeated', () => {
             const party = [makeAliveEntity('e1', 'def_fire', 'Alive')];
-            const result = rollDropTable(party, '42');
+            const result = rollDropTable(party, 1, '42');
 
             expect(result.scraps).toBe(0);
             expect(result.blueprints).toHaveLength(0);
-            expect(result.cards).toHaveLength(0);
+            expect(result.cardChoices).toHaveLength(0);
+            expect(result.totalXP).toBe(0);
         });
 
         it('scrap value falls within drop table range', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
             // Run many seeds to check range
             for (let seed = 1; seed <= 50; seed++) {
-                const result = rollDropTable(defeated, seed.toString());
+                const result = rollDropTable(defeated, 1, seed.toString());
                 expect(result.scraps).toBeGreaterThanOrEqual(5);
                 expect(result.scraps).toBeLessThanOrEqual(15);
             }
         });
 
-        it('cards come from the correct element pool', () => {
+        it('calculates XP based on levels', () => {
+            const defeated = [makeDeadEntity('e1', 'def_fire', 'Lv10 Mon')];
+            defeated[0].level = 10;
+            const result = rollDropTable(defeated, 1, '42');
+            expect(result.totalXP).toBe(200);
+
+            defeated[0].level = 5;
+            const result2 = rollDropTable(defeated, 1, '43');
+            expect(result2.totalXP).toBe(100);
+        });
+
+        it('cards in choices come from the correct element pool', () => {
             const defeated = [makeDeadEntity('e1', 'def_fire', 'Fire Mon')];
             const table = getDropTable('def_fire');
-            const result = rollDropTable(defeated, '42');
+            const result = rollDropTable(defeated, 1, '42');
 
-            for (const card of result.cards) {
-                expect(table.cardPool).toContain(card.dataId);
+            for (const choice of result.cardChoices) {
+                for (const option of choice.options) {
+                    expect(table.cardPool).toContain(option.dataId);
+                }
             }
         });
     });
