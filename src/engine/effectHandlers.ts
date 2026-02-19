@@ -200,6 +200,17 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     const aliveOpponents = opposingSide.filter(e => e.currentHp > 0);
 
     let newState = state;
+
+    // Clear Daemons upon fainting
+    const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+        party.map(e => e.id === targetId ? { ...e, daemons: [] } : e);
+
+    newState = {
+        ...newState,
+        playerParty: updateParty(newState.playerParty),
+        enemyParty: updateParty(newState.enemyParty)
+    };
+
     if (aliveOpponents.length > 0) {
         const xpPerUnit = Math.floor(xpYield / aliveOpponents.length);
         newState = addLog(newState, `  ✨ ${xpYield} XP split among ${aliveOpponents.length} allies (${xpPerUnit} each)`);

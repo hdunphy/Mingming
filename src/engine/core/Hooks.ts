@@ -11,6 +11,8 @@ import { getOSBehavior } from '../data/firmwareRegistry';
 export * from './HookTypes';
 export { getHook, registerHook } from './HookRegistry';
 
+import { GetProgramData } from '../data/programRegistry';
+
 export const applyDamageModifiers = (
     initialDamage: number,
     context: HookContext
@@ -26,6 +28,15 @@ export const applyDamageModifiers = (
         if (e.activeOS) {
             const os = getOSBehavior(e.activeOS);
             if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        // Scan Daemons
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) {
+                    data.hooks.forEach(h => entityHooks.add(h));
+                }
+            });
         }
 
         entityHooks.forEach(id => {

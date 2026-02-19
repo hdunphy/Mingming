@@ -4,6 +4,7 @@ import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { GetProgramData } from '../../engine/data/programRegistry';
 
 const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
     Burn: { icon: '🔥', color: '#ff6633' },
@@ -205,6 +206,25 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         })}
                     </div>
                 </div>
+
+                {/* Daemons Row */}
+                {entity.daemons && entity.daemons.length > 0 && (
+                    <div className="hud-daemons-row">
+                        {entity.daemons.map((daemon) => {
+                            const data = GetProgramData(daemon.dataId);
+                            return (
+                                <div
+                                    key={daemon.id}
+                                    className="hud-daemon-tag"
+                                    title={data.description}
+                                >
+                                    <span className="hud-daemon-icon">⚙️</span>
+                                    <span className="hud-daemon-name">{data.name}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* HP Row */}
                 <div className="hud-bar-row">

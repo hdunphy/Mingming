@@ -24,7 +24,7 @@ function createMockState(): IBattleState {
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Fire', statusEffects: [],
-        definitionId: 'def1', tempHp: 0, speed: 10
+        definitionId: 'def1', tempHp: 0, speed: 10, daemons: []
     };
 
     const e1: IBattleEntity = {
@@ -33,7 +33,7 @@ function createMockState(): IBattleState {
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Nature', statusEffects: [],
-        definitionId: 'def2', tempHp: 0, speed: 10
+        definitionId: 'def2', tempHp: 0, speed: 10, daemons: []
     };
 
     return {

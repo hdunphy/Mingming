@@ -1,7 +1,7 @@
-import { HookPriority, type HookDefinition, type HookResult, type HookContext } from '../core/HookTypes';
-import { PRNG } from '../core/PRNG';
-import { StatusType, type IBattleEntity } from '../types';
+import { HookPriority, type HookDefinition } from '../core/HookTypes';
 import { registerHook } from '../core/HookRegistry';
+import { HookFactory } from '../core/HookFactory';
+import { StatusType } from '../types';
 
 export interface OSDefinition {
     id: string;
@@ -10,43 +10,21 @@ export interface OSDefinition {
     hooks: HookDefinition[];
 }
 
-export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {
+const FIRMWARE_DATA: Record<string, { id: string, name: string, description: string, hooks: any[] }> = {
     'fenrir_v1': {
         id: 'fenrir_v1',
         name: 'UNBOUND_KERNEL',
         description: 'Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage.',
         hooks: [{
             id: 'fenrir_v1_hook',
+            trigger: 'onActionStart',
             priority: HookPriority.PROGRAM,
-            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                // Ensure hook only runs for its owner
-                if (owner.id !== context.source?.id) return { mutations: [] };
-
-                if (context.program?.category === 'Attack') {
-                    const maxHp = owner.maxHp || 0;
-                    const recoil = Math.max(1, Math.floor(maxHp * 0.02));
-                    return {
-                        mutations: [
-                            {
-                                type: 'STATUS',
-                                targetId: owner.id,
-                                payload: { status: StatusType.Strengthened, stacks: 1 }
-                            },
-                            {
-                                type: 'HP',
-                                targetId: owner.id,
-                                payload: { amount: recoil }
-                            },
-                            {
-                                type: 'LOG',
-                                targetId: owner.id,
-                                payload: `${owner.name} pushes its core to the limit!`
-                            }
-                        ]
-                    };
-                }
-                return { mutations: [] };
-            }
+            when: { source: 'SELF', programCategory: 'Attack' },
+            do: [
+                { type: 'STATUS', target: 'SELF', status: StatusType.Strengthened, stacks: 1 },
+                { type: 'HP', target: 'SELF', percentMaxHP: 2 },
+                { type: 'LOG', text: '{owner} pushes its core to the limit!' }
+            ]
         }]
     },
     'fenrir_v2': {
@@ -55,30 +33,13 @@ export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {
         description: 'Whenever Fenrir applies the Burn status to an enemy, he gains a stack of Sharp.',
         hooks: [{
             id: 'fenrir_v2_hook',
+            trigger: 'onStatusApplied',
             priority: HookPriority.PROGRAM,
-            onStatusApplied: (context: HookContext, owner: IBattleEntity): HookResult => {
-                // Only trigger if owner is the one applying the status
-                if (owner.id !== context.source?.id) return { mutations: [] };
-
-                if (context.statusApplied === StatusType.Burn) {
-                    return {
-                        mutations: [
-                            {
-                                type: 'STATUS',
-                                targetId: owner.id,
-                                sourceId: 'SYSTEM',
-                                payload: { status: StatusType.Sharp, stacks: 1 }
-                            },
-                            {
-                                type: 'LOG',
-                                targetId: owner.id,
-                                payload: `${owner.name} feeds on the flames!`
-                            }
-                        ]
-                    };
-                }
-                return { mutations: [] };
-            }
+            when: { source: 'SELF', statusApplied: StatusType.Burn },
+            do: [
+                { type: 'STATUS', target: 'SELF', status: StatusType.Sharp, stacks: 1 },
+                { type: 'LOG', text: '{owner} feeds on the flames!' }
+            ]
         }]
     },
     'kraken_v1': {
@@ -87,47 +48,13 @@ export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {
         description: 'Drawing a card outside the draw phase applies 1 Dazed to a random enemy.',
         hooks: [{
             id: 'kraken_v1_hook',
+            trigger: 'onCardDraw',
             priority: HookPriority.PROGRAM,
-            onCardDraw: (context: HookContext, owner: IBattleEntity): HookResult => {
-                // Determine which side the owner is on
-                const isOwnerPlayer = context.state.playerParty.some(e => e.id === owner.id);
-                const ownerSide = isOwnerPlayer ? 'PLAYER' : 'ENEMY';
-
-                // Determine which side the drawing entity is on
-                const drawingEntityId = context.source?.id;
-                if (!drawingEntityId) return { mutations: [] };
-                const isDrawerPlayer = context.state.playerParty.some(e => e.id === drawingEntityId);
-                const drawSide = isDrawerPlayer ? 'PLAYER' : 'ENEMY';
-
-                // Only trigger if a card is drawn by the owner's side
-                if (ownerSide !== drawSide) return { mutations: [] };
-
-                if (context.isNaturalDraw) return { mutations: [] };
-
-                const opponentPartyKey = isOwnerPlayer ? 'enemyParty' : 'playerParty';
-                const liveOpponents = (context.state[opponentPartyKey] as any[]).filter(e => e.currentHp > 0);
-
-                if (liveOpponents.length === 0) return { mutations: [] };
-
-                const prng = new PRNG(context.state.seed);
-                const { value: index } = prng.nextInt(0, liveOpponents.length - 1);
-                const target = liveOpponents[index];
-
-                return {
-                    mutations: [
-                        {
-                            type: 'STATUS',
-                            targetId: target.id,
-                            payload: { status: StatusType.Dazed, stacks: 1 }
-                        },
-                        {
-                            type: 'LOG',
-                            targetId: target.id,
-                            payload: `${target.name} is blinded by Abyssal Ink!`
-                        }
-                    ]
-                };
-            }
+            when: { isNaturalDraw: false },
+            do: [
+                { type: 'STATUS', target: 'RANDOM_ENEMY', status: StatusType.Dazed, stacks: 1 },
+                { type: 'LOG', text: '{target} is blinded by Abyssal Ink!' }
+            ]
         }]
     },
     'kraken_v2': {
@@ -136,15 +63,10 @@ export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {
         description: 'Water cards that cost 3 or more Energy deal 30% more damage.',
         hooks: [{
             id: 'kraken_v2_hook',
+            trigger: 'onDamageCalculated',
             priority: HookPriority.PROGRAM,
-            onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
-                if (owner.id !== context.source?.id) return currentDamage;
-
-                if (context.program?.element === 'Water' && context.program.baseCost >= 3) {
-                    return Math.floor(currentDamage * 1.3);
-                }
-                return currentDamage;
-            }
+            when: { source: 'SELF', programElement: 'Water', baseCost: { operator: 'GTE', value: 3 } },
+            multiplier: 1.3
         }]
     },
     'ratatoskr_v1': {
@@ -153,32 +75,13 @@ export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {
         description: '0-cost programs heal all allies for 1 HP.',
         hooks: [{
             id: 'ratatoskr_v1_hook',
+            trigger: 'onActionStart',
             priority: HookPriority.PROGRAM,
-            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                if (owner.id !== context.source?.id) return { mutations: [] };
-
-                if (context.program?.baseCost === 0) {
-                    const isPlayer = context.state.playerParty.some(e => e.id === owner.id);
-                    const allySideKey = isPlayer ? 'playerParty' : 'enemyParty';
-                    const allies = (context.state[allySideKey] as IBattleEntity[]).filter(e => e.currentHp > 0);
-
-                    const mutations: any[] = allies.map(ally => ({
-                        type: 'HP' as const,
-                        targetId: ally.id,
-                        sourceId: owner.id,
-                        payload: { amount: 1, isHeal: true }
-                    }));
-
-                    mutations.push({
-                        type: 'LOG' as const,
-                        targetId: owner.id,
-                        payload: `${owner.name} spreads positive rumors!`
-                    });
-
-                    return { mutations };
-                }
-                return { mutations: [] };
-            }
+            when: { source: 'SELF', baseCost: 0 },
+            do: [
+                { type: 'HP', target: 'ALLIES', amount: 1, isHeal: true },
+                { type: 'LOG', text: '{owner} spreads positive rumors!' }
+            ]
         }]
     },
     'ratatoskr_v2': {
@@ -187,31 +90,26 @@ export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {
         description: 'Whenever Ratatoskr plays a 0-cost card, he applies 1 stack of Dazed to the target.',
         hooks: [{
             id: 'ratatoskr_v2_hook',
+            trigger: 'onActionStart',
             priority: HookPriority.PROGRAM,
-            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                if (owner.id !== context.source?.id) return { mutations: [] };
-
-                if (context.program?.baseCost === 0 && context.target) {
-                    return {
-                        mutations: [
-                            {
-                                type: 'STATUS',
-                                targetId: context.target.id,
-                                sourceId: owner.id,
-                                payload: { status: StatusType.Dazed, stacks: 1 }
-                            }
-                        ]
-                    };
-                }
-                return { mutations: [] };
-            }
+            when: { source: 'SELF', baseCost: 0 },
+            do: [
+                { type: 'STATUS', target: 'TARGET', status: StatusType.Dazed, stacks: 1 }
+            ]
         }]
     }
 };
 
-// Register all hooks at startup
-Object.values(FIRMWARE_REGISTRY).forEach(os => {
-    os.hooks.forEach(hook => registerHook(hook));
+export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {};
+
+// Build and register all hooks
+Object.entries(FIRMWARE_DATA).forEach(([key, data]) => {
+    const hooks = data.hooks.map(h => HookFactory.createHook(h));
+    FIRMWARE_REGISTRY[key] = {
+        ...data,
+        hooks
+    };
+    hooks.forEach(hook => registerHook(hook));
 });
 
 export const getOSBehavior = (osId: string): OSDefinition | undefined => {

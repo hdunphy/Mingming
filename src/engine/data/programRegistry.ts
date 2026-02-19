@@ -8,7 +8,35 @@ export const BASE_CONSTRAINT = { type: 'BASE' as const, target: 'SELF' as const,
 
 export const STANDARD_CONSTRAINTS = [ALERT_CONSTRAINT, AWAKE_CONSTRAINT, BASE_CONSTRAINT];
 
-const ProgramRegistry: Record<string, ProgramData> = {
+import { THERMAL_OVERLOAD_HOOK_ID, THERMAL_OVERLOAD_LOGIC_ID, RECURSION_DAEMON_HOOK_ID } from './daemonHooks';
+
+export const ProgramRegistry: Record<string, ProgramData> = {
+    // --- DAEMONS ---
+    'recursion_daemon': {
+        id: 'recursion_daemon',
+        name: 'RECURSION_DAEMON',
+        description: 'Passive: Whenever you draw a card from an effect, heal 5 HP.',
+        element: 'None',
+        target: 'Self',
+        category: 'Daemon',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [],
+        hooks: [RECURSION_DAEMON_HOOK_ID]
+    },
+    'thermal_overload': {
+        id: 'thermal_overload',
+        name: 'THERMAL_OVERLOAD',
+        description: 'Passive: Deal 25% more damage. Host takes 5 Fire damage at turn end.',
+        element: 'Fire',
+        target: 'Self',
+        category: 'Daemon',
+        baseCost: 2,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [],
+        hooks: [THERMAL_OVERLOAD_HOOK_ID, THERMAL_OVERLOAD_LOGIC_ID]
+    },
+
     // --- GDD CORE CARDS (34) ---
     'rest': {
         id: 'rest',

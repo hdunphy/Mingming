@@ -289,6 +289,35 @@ body {
   font-weight: 700;
 }
 
+/* ── Daemons Row ── */
+.hud-daemons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: -2px;
+  margin-bottom: 2px;
+}
+
+.hud-daemon-tag {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.55rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hud-daemon-icon {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
 /* ── Bar rows ── */
 .hud-bar-row {
   display: flex;

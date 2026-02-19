@@ -1,7 +1,7 @@
 
 export type Element = 'Fire' | 'Water' | 'Earth' | 'Air' | 'Nature' | 'Ice' | 'Light' | 'Dark' | 'None';
 export type TargetType = 'Single' | 'Self' | 'Side' | 'All';
-export type ProgramCategory = 'Attack' | 'Heal' | 'Status' | 'Special';
+export type ProgramCategory = 'Attack' | 'Heal' | 'Status' | 'Special' | 'Daemon';
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
 
 export const StatusType = {
@@ -101,6 +101,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
   readonly activeOS?: string; // Current Operating System ID
+  readonly daemons: ReadonlyArray<ProgramEntity>; // Persistent "installed" software
   readonly artReference?: string;
 }
 
@@ -146,6 +147,7 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     statusEffects: [],
     hooks: [],
     activeOS: instance.activeOS || definition.availableOS[0], // Default to first available OS
+    daemons: [],
     artReference: definition.artReference
   };
 }
@@ -174,6 +176,7 @@ export interface ProgramData {
   readonly baseCost: number;
   readonly constraints: ReadonlyArray<ProgramConstraint>;
   readonly actions: ReadonlyArray<ProgramAction>;
+  readonly hooks?: ReadonlyArray<string>; // IDs of active hooks for Daemons
   readonly artReference?: string;
 }
 

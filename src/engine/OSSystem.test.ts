@@ -38,7 +38,12 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         activeOS: playerOS,
         hooks: [],
         speed: 10,
-        primaryElement: 'None'
+        primaryElement: 'None',
+        daemons: [],
+        blueprintsCollected: 0,
+        hpIV: 0,
+        attackIV: 0,
+        defenseIV: 0
     };
 
     const enemy: IBattleEntity = {
@@ -59,7 +64,12 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         activeOS: enemyOS,
         hooks: [],
         speed: 10,
-        primaryElement: 'None'
+        primaryElement: 'None',
+        daemons: [],
+        blueprintsCollected: 0,
+        hpIV: 0,
+        attackIV: 0,
+        defenseIV: 0
     };
 
     return {
@@ -72,7 +82,9 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         playerDeck: { ownerId: 'PLAYER', hand: [], drawpile: [], discard: [], deck: [] },
         enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], deck: [] },
         logs: [],
-        seed: 12345,
+        osLogs: [],
+        procs: [],
+        seed: '12345',
         levelUpQueue: []
     };
 };

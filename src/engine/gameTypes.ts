@@ -109,7 +109,7 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
 
     // Starter deck cards (12 cards)
     const waterStarterIds = [
-        'squirt', 'water_jet', 'whirlpool', 'bathe', 'scald',
+        'squirt', 'recursion_daemon', 'water_jet', 'whirlpool', 'bathe', 'scald',
         'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
         'rain', 'drink_tea'
     ];

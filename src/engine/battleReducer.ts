@@ -206,13 +206,22 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // 3. Pay Cost (Snapshot Mutation)
     const newHand = [...snapshot[activeDeckKey].hand];
     newHand.splice(cardIndex, 1);
-    const newDiscard = [...snapshot[activeDeckKey].discard, card];
+
+    const isDaemon = programData.category === 'Daemon';
+    const newDiscard = isDaemon ? [...snapshot[activeDeckKey].discard] : [...snapshot[activeDeckKey].discard, card];
 
     snapshot = {
         ...snapshot,
-        [activePartyKey]: snapshot[activePartyKey].map(e =>
-            e.id === sourceId ? { ...e, currentEnergy: e.currentEnergy - card.currentCost } : e
-        ),
+        [activePartyKey]: snapshot[activePartyKey].map(e => {
+            if (e.id === sourceId) {
+                const updatedEntity = { ...e, currentEnergy: e.currentEnergy - card.currentCost };
+                if (isDaemon) {
+                    return { ...updatedEntity, daemons: [...updatedEntity.daemons, card] };
+                }
+                return updatedEntity;
+            }
+            return e;
+        }),
         [activeDeckKey]: {
             ...snapshot[activeDeckKey],
             hand: newHand,
@@ -474,6 +483,17 @@ function processPostTurn(state: IBattleState): IBattleState {
         nextState = checkDefeat(nextState, dId);
         const name = nextState.playerParty.find(e => e.id === dId)?.name || nextState.enemyParty.find(e => e.id === dId)?.name;
         nextState = addLog(nextState, `  ☠️ ${name} DEFEATED BY STATUS`);
+    }
+
+    // 3. Trigger onTurnEnd Hooks
+    const entities = [...nextState.playerParty, ...nextState.enemyParty].filter(e => e.currentHp > 0);
+    for (const entity of entities) {
+        const { state: afterTurnEnd } = executeResolutionStack(nextState, 'onTurnEnd', {
+            source: entity,
+            state: nextState,
+            triggerDepth: 0
+        });
+        nextState = afterTurnEnd;
     }
 
     return nextState;

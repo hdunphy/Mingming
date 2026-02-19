@@ -31,6 +31,45 @@ export type HookContext = {
     statusApplied?: StatusType; // For Fenrir's OS
 };
 
+export type HookCondition = {
+    source?: 'SELF' | 'ALLY' | 'OPPONENT';
+    target?: 'SELF' | 'ALLY' | 'OPPONENT';
+    programCategory?: 'Attack' | 'Heal' | 'Status' | 'Special';
+    programElement?: string;
+    baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
+    statusApplied?: StatusType;
+    isNaturalDraw?: boolean;
+};
+
+export type HookAction = {
+    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'DRAW';
+    target?: 'SELF' | 'TARGET' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
+    status?: StatusType;
+    stacks?: number;
+    amount?: number;
+    percentMaxHP?: number;
+    isHeal?: boolean; // Explicit heal flag
+    text?: string;
+    count?: number;
+};
+
+export type DataHookDefinition = {
+    id: string;
+    trigger: keyof Omit<HookDefinition, 'id' | 'priority' | 'onDamageCalculated'>;
+    priority: HookPriority;
+    when?: HookCondition;
+    do: HookAction[];
+};
+
+export type ModifierDataHookDefinition = {
+    id: string;
+    trigger: 'onDamageCalculated';
+    priority: HookPriority;
+    when?: HookCondition;
+    multiplier?: number;
+    bonus?: number;
+};
+
 export type DamageModifierHook = (
     currentDamage: number,
     context: HookContext,
@@ -51,4 +90,6 @@ export type HookDefinition = {
     onPostDamage?: EventHook;
     onCardDraw?: EventHook;
     onStatusApplied?: EventHook;
+    onTurnEnd?: EventHook;
+    data?: DataHookDefinition | ModifierDataHookDefinition; // Reference to original data
 };

@@ -39,6 +39,7 @@ function createMockEntity(id: string, primary: Element, secondary?: Element, lev
         defense,
         speed: 10,
         cardDraw: 1,
+        daemons: []
     } as IBattleEntity;
 }
 

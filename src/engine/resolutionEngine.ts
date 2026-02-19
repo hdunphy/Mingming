@@ -90,6 +90,8 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
     return newState;
 }
 
+import { GetProgramData } from './data/programRegistry';
+
 /**
  * Gathers and executes hooks for a specific lifecycle phase.
  */
@@ -117,6 +119,15 @@ export function executeResolutionStack(
         if (e.activeOS) {
             const os = getOSBehavior(e.activeOS);
             if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        // Scan Daemons
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) {
+                    data.hooks.forEach(h => entityHooks.add(h));
+                }
+            });
         }
 
         entityHooks.forEach(id => {
