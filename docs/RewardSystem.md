@@ -10,9 +10,13 @@ Loot is tied to the architecture and element of the defeated enemy. This encoura
 
 ### **1.1. Card Rewards (The "Pick 1 of 3" Pattern)**
 Instead of receiving all cards from a defeated party, the player is presented with a choice for each enemy defeated.
-- **Pool Generation:** For each defeated MingMing, the system generates 3 random `Program` IDs from that MingMing's elemental pool (e.g., Fire MingMing = Fire Card Pool).
+- **Pool Generation:** For each defeated MingMing, the system generates 3 random `Program` IDs from that MingMing's elemental pool (Element + None).
+- **Rarity Weights:** Card selection is weighted by rarity:
+    - **Common:** 70%
+    - **Uncommon:** 20%
+    - **Rare:** 8%
+    - **Epic:** 2%
 - **Player Choice:** The player selects **one** of the three cards to add to their inventory.
-- **Incentive:** Players must use Type Advantage (Water vs Fire) to efficiently farm the elements they need for their own deck builds.
 
 ### **1.2. Blueprint Drop Scaling**
 To ensure the player fills their roster early but faces a challenging grind for upgrades, the drop rate scales based on the current roster size.
@@ -25,14 +29,14 @@ To ensure the player fills their roster early but faces a challenging grind for 
 
 ---
 
-## **2. Drop Table Definitions**
+## **2. Drop Table Logic (Dynamic)**
 
-The `RewardSystem` utilizes a mapping of `architectureId` to a specific `DropTable`.
+The `RewardSystem` no longer uses static drop tables. It filters the global `ProgramRegistry` on-the-fly.
 
-### **2.1. Table Structure**
-- **Scrap Yield:** 5-15 (Common), 20-50 (Elite/Boss).
-- **Blueprint ID:** The ID of the MingMing that was defeated.
-- **Card Pool:** A list of all `ProgramData` IDs matching the unit's primary element.
+### **2.1. Generation Logic**
+- **Scrap Yield:** Randomized between 5-15 scraps per unit.
+- **Card Pool:** Dynamically filtered from `ProgramRegistry` based on the unit's `primaryElement` and the neutral `None` element.
+- **Weighted Selection:** Uses a tiered roll (Rarity first, then random card within tier).
 
 ### **2.2. Experience (XP) Calculation**
 - **Base XP:** Defeated_Unit_Level * 20.

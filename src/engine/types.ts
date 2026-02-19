@@ -166,6 +166,8 @@ export interface ProgramAction {
   readonly [key: string]: any; // Flat structure for JSON
 }
 
+export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
+
 export interface ProgramData {
   readonly id: string;
   readonly name: string;
@@ -173,6 +175,7 @@ export interface ProgramData {
   readonly element: Element;
   readonly target: TargetType;
   readonly category: ProgramCategory;
+  readonly rarity: Rarity;
   readonly baseCost: number;
   readonly constraints: ReadonlyArray<ProgramConstraint>;
   readonly actions: ReadonlyArray<ProgramAction>;

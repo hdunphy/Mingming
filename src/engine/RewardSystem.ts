@@ -1,52 +1,21 @@
 /**
  * Epic 3: Reward / Drop Table Engine
- * Handles post-battle loot rolls using seeded PRNG for deterministic results.
+ * Handles post-battle loot rolls using dynamic pooling and rarity-weighted logic.
  */
 
 import { PRNG } from './core/PRNG';
-import { GetProgramData } from './data/programRegistry';
-import type { IRewardBundle, IDropTableEntry, IBlueprint, IOwnedProgram, ICardChoice } from './gameTypes';
+import { ProgramRegistry } from './data/programRegistry';
+import type { IRewardBundle, IBlueprint, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
-import type { IBattleEntity, Element } from './types';
+import type { IBattleEntity, Element, Rarity } from './types';
 
-// --- Default Drop Tables ---
-
-const DEFAULT_DROP_TABLES: Record<string, IDropTableEntry> = {
-    'def_fire': {
-        architectureId: 'def_fire',
-        blueprintDropRate: 0.05,
-        scrapMin: 5,
-        scrapMax: 15,
-        cardPool: ['reckless', 'flamethrower', 'erupt', 'rage', 'charge', 'radiate', 'fired_up', 'toats', 'roast', 'spicy_breath', 'preheat', 'flash', 'fire_punch']
-    },
-    'def_water': {
-        architectureId: 'def_water',
-        blueprintDropRate: 0.05,
-        scrapMin: 5,
-        scrapMax: 15,
-        cardPool: ['squirt', 'water_jet', 'whirlpool', 'bathe', 'scald', 'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate', 'rain', 'drink_tea', 'hydro_pump', 'cannon_ball', 'hot_springs']
-    },
-    'def_neutral': {
-        architectureId: 'def_neutral',
-        blueprintDropRate: 0.03,
-        scrapMin: 3,
-        scrapMax: 10,
-        cardPool: ['rest', 'scratch', 'cleanse']
-    }
+// --- Rarity Distribution Constants ---
+const RARITY_WEIGHTS: Record<Rarity, number> = {
+    'Common': 70,
+    'Uncommon': 20,
+    'Rare': 8,
+    'Epic': 2
 };
-
-/**
- * Get or create a drop table entry for a given definition ID
- */
-export function getDropTable(definitionId: string): IDropTableEntry {
-    return DEFAULT_DROP_TABLES[definitionId] ?? {
-        architectureId: definitionId,
-        blueprintDropRate: 0.05,
-        scrapMin: 5,
-        scrapMax: 15,
-        cardPool: ['scratch', 'rest'] // Fallback pool
-    };
-}
 
 /**
  * Calculate dynamic blueprint drop rate based on roster size
@@ -58,6 +27,51 @@ function getBlueprintRate(rosterSize: number): number {
 }
 
 /**
+ * Filter the registry for cards matching an element (includes 'None' as neutral)
+ */
+function getPoolForElement(element: Element): string[] {
+    return Object.values(ProgramRegistry)
+        .filter(p => p.element === element || p.element === 'None')
+        .map(p => p.id);
+}
+
+/**
+ * Roll a card from an elemental pool based on rarity weights.
+ */
+function rollCardFromPool(poolIds: string[], prng: PRNG): { cardId: string; nextSeed: number } {
+    // 1. Determine rarity tier
+    const rarityRoll = prng.nextInt(1, 100);
+    let currentSeed = rarityRoll.nextSeed;
+    let selectedRarity: Rarity = 'Common';
+
+    let cumulative = 0;
+    for (const [rarity, weight] of Object.entries(RARITY_WEIGHTS)) {
+        cumulative += weight;
+        if (rarityRoll.value <= cumulative) {
+            selectedRarity = rarity as Rarity;
+            break;
+        }
+    }
+
+    // 2. Filter pool by rarity
+    let filteredPool = poolIds.filter(id => ProgramRegistry[id].rarity === selectedRarity);
+
+    // Fallback if rarity tier is empty in this pool (ensure we always have something)
+    if (filteredPool.length === 0) {
+        filteredPool = poolIds.filter(id => ProgramRegistry[id].rarity === 'Common');
+    }
+
+    // Final fallback to absolute pool if still empty
+    if (filteredPool.length === 0) {
+        filteredPool = poolIds;
+    }
+
+    // 3. Pick random card from filtered cohort
+    const cardPick = new PRNG(currentSeed).nextInt(0, filteredPool.length - 1);
+    return { cardId: filteredPool[cardPick.value], nextSeed: cardPick.nextSeed };
+}
+
+/**
  * Roll rewards for a single defeated entity
  */
 function rollForEntity(
@@ -65,33 +79,31 @@ function rollForEntity(
     rosterSize: number,
     prng: PRNG
 ): { scraps: number; blueprint: IBlueprint | null; cardChoice: ICardChoice; xp: number; nextSeed: number } {
-    const table = getDropTable(entity.definitionId);
-
-    // 1. Roll scrap yield
-    const scrapRoll = prng.nextInt(table.scrapMin, table.scrapMax);
-    const scraps = scrapRoll.value;
+    // 1. Roll scrap yield: 5-15 default
+    const scrapRoll = prng.nextInt(5, 15);
+    let currentSeed = scrapRoll.nextSeed;
 
     // 2. Roll blueprint drop (Scaled by roster size)
     const bpRate = getBlueprintRate(rosterSize);
-    const bpRoll = new PRNG(scrapRoll.nextSeed).next();
+    const bpRoll = new PRNG(currentSeed).next();
+    currentSeed = bpRoll.nextSeed;
+
     const blueprint = bpRoll.value < bpRate
         ? {
-            architectureId: table.architectureId,
+            architectureId: entity.definitionId,
             name: `${entity.name} Blueprint`,
             compileCost: 100
         }
         : null;
 
     // 3. Roll 3 random cards for the "Choice" array
+    const pool = getPoolForElement(entity.primaryElement);
     const options: IOwnedProgram[] = [];
-    let currentSeed = bpRoll.nextSeed;
 
-    const optionsCount = 3;
-    for (let i = 0; i < optionsCount; i++) {
-        const cardRoll = new PRNG(currentSeed).nextInt(0, table.cardPool.length - 1);
-        const cardId = table.cardPool[cardRoll.value];
+    for (let i = 0; i < 3; i++) {
+        const { cardId, nextSeed } = rollCardFromPool(pool, new PRNG(currentSeed));
         options.push(createOwnedProgram(cardId));
-        currentSeed = cardRoll.nextSeed;
+        currentSeed = nextSeed;
     }
 
     const cardChoice: ICardChoice = {
@@ -102,12 +114,11 @@ function rollForEntity(
     // 4. XP Calculation: Defeated_Level * 20
     const xp = entity.level * 20;
 
-    return { scraps, blueprint, cardChoice, xp, nextSeed: currentSeed };
+    return { scraps: scrapRoll.value, blueprint, cardChoice, xp, nextSeed: currentSeed };
 }
 
 /**
  * Roll the complete reward bundle for a victorious battle.
- * Uses seeded PRNG for deterministic results.
  */
 export function rollDropTable(
     defeatedEntities: ReadonlyArray<IBattleEntity>,
@@ -121,6 +132,7 @@ export function rollDropTable(
     let currentSeed = seed;
 
     for (const entity of defeatedEntities) {
+        // Only get rewards for fainted enemies
         if (entity.currentHp > 0) continue;
 
         const prng = new PRNG(currentSeed);
@@ -138,7 +150,7 @@ export function rollDropTable(
     return {
         scraps: totalScraps,
         blueprints: allBlueprints,
-        cards: [], // No guaranteed cards in this version
+        cards: [],
         cardChoices: allCardChoices,
         totalXP
     };
@@ -146,7 +158,7 @@ export function rollDropTable(
 
 // --- Scrap Economy Helpers ---
 
-/** Scrap values by rarity (future: read from ProgramData) */
+/** Scrap values by rarity */
 const SCRAP_YIELDS: Record<string, number> = {
     'Common': 10,
     'Uncommon': 25,
