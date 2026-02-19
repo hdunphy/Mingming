@@ -18,7 +18,9 @@ export const effectHandlers: Record<string, EffectHandler> = {
     'ATTACK': handleAttack,
     'HEAL': handleHealEffect,
     'APPLY_STATUS': handleApplyStatus,
-    'DRAW': handleDraw
+    'DRAW': handleDraw,
+    'REMOVE_STATUS': handleRemoveStatus,
+    'GENERATE_CARD': handleGenerateCard
 };
 
 // --- XP Helpers ---
@@ -111,7 +113,7 @@ function addExperience(state: IBattleState, entityId: string, amount: number): I
 }
 
 
-function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number; program?: ProgramData }): IBattleState {
+function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number; program?: ProgramData; action?: any }): IBattleState {
     const { sourceId, targetId, power, element, damageOverride } = payload;
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
@@ -128,6 +130,14 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     } else if (source) {
         const programToUse = payload.program || ({ element: element } as ProgramData);
         damage = calculateDamage(source, target, programToUse, power, state);
+
+        //Is this the best place to keep scaling logic? We might end up with more. TBD
+        // Scaling logic (e.g., Seed Bomb)
+        if (payload.action?.scaling === 'CARDS_PLAYED') {
+            const multiplier = state.cardsPlayedThisTurn;
+            damage = Math.floor(damage * multiplier);
+            // Use addLog indirectly or just track for logging if needed
+        }
     }
 
     // Apply Damage
@@ -393,5 +403,53 @@ function handleDraw(state: IBattleState, payload: { sourceId: string; targetId: 
         ...state,
         seed: nextSeed,
         [deckKey]: newDeckState
+    };
+}
+
+function handleRemoveStatus(state: IBattleState, payload: { targetId: string; status: string }): IBattleState {
+    const { targetId, status } = payload;
+
+    const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+        party.map(e => {
+            if (e.id !== targetId) return e;
+            return {
+                ...e,
+                statusEffects: e.statusEffects.filter(s => s.type !== status)
+            };
+        });
+
+    let newState: IBattleState = {
+        ...state,
+        playerParty: updateParty(state.playerParty),
+        enemyParty: updateParty(state.enemyParty)
+    };
+
+    newState = addLog(newState, `  ✨ ${status} removed from target`);
+    return newState;
+}
+
+function handleGenerateCard(state: IBattleState, payload: { sourceId: string; dataId: string }): IBattleState {
+    const { sourceId, dataId } = payload;
+    const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
+    const deckKey = isPlayerSource ? 'playerDeck' : 'enemyDeck';
+    const deck = state[deckKey];
+
+    if (deck.hand.length >= HAND_SIZE_LIMIT) {
+        return addLog(state, `  ⚠️ Hand full, cannot generate ${dataId}`);
+    }
+
+    const newCard = {
+        id: crypto.randomUUID(),
+        dataId: dataId,
+        currentCost: 0, // Generated tokens are usually 0 cost
+        isPlayable: true
+    };
+
+    return {
+        ...state,
+        [deckKey]: {
+            ...deck,
+            hand: [...deck.hand, newCard]
+        }
     };
 }

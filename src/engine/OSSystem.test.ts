@@ -85,7 +85,8 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         osLogs: [],
         procs: [],
         seed: '12345',
-        levelUpQueue: []
+        levelUpQueue: [],
+        cardsPlayedThisTurn: 0
     };
 };
 

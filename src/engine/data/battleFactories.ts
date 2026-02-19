@@ -57,37 +57,45 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
     const enemyLevel = Math.max(...playerParty.map(p => p.level));
     const enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel));
 
-    // Get program IDs from save's active deck
-    const deckInstanceIds = save.activeDeck?.cards || [];
-    const deckIds = deckInstanceIds.map(instId => save.cardInventory.find(c => c.instanceId === instId)?.dataId).filter(Boolean) as string[];
+    // Updated Deck Logic: Pick a random subset of 9 cards + the Daemon for the archetype
+    const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
+        const lists = {
+            FENRIR: {
+                daemon: 'thermal_overload',
+                cards: ['singularity', 'solar_flare', 'solar_flare', 'ignite_pipeline', 'ignite_pipeline', 'flash', 'preheat', 'ash_to_ash', 'fire_punch', 'fire_punch', 'reckless']
+            },
+            KRAKEN: {
+                daemon: 'recursion_daemon',
+                cards: ['squirt', 'squirt', 'deep_pressure', 'deep_pressure', 'whirlpool', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis']
+            },
+            RATATOSKR: {
+                daemon: 'echo_chamber_daemon',
+                cards: ['gossip', 'gossip', 'pruning', 'pruning', 'nettle_lash', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'seed_bomb', 'root_bind']
+            }
+        };
 
-    const pDeckCardsRaw = instantiateDeck(deckIds);
+        const list = lists[archetype];
+        const prng = new PRNG(Date.now().toString());
+        const { shuffled } = prng.shuffle(list.cards);
+        return [list.daemon, ...shuffled.slice(0, 9)];
+    };
+
+    const playerArchetype = playerParty[0].definitionId.toUpperCase() as any;
+    const playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
+
+    const pDeckCardsRaw = instantiateDeck(playerDeckIds);
     const initialSeed = Date.now().toString();
     const { shuffled: pDeckCards, nextSeed: seedAfterPlayerShuffle } = new PRNG(initialSeed).shuffle(pDeckCardsRaw);
 
-    // Enemy gets the same starter deck logic for now but based on their type
     const enemyDeckIds = enemyIds.map(enemyId => {
-        const isEnemyWater = GetMingmingData(enemyId).primaryElement === 'Water';
-        const isEnemyNature = GetMingmingData(enemyId).primaryElement === 'Nature';
+        const def = GetMingmingData(enemyId);
+        let archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR' = 'FENRIR';
+        if (def.primaryElement === 'Water') archetype = 'KRAKEN';
+        if (def.primaryElement === 'Nature') archetype = 'RATATOSKR';
+        return getArchetypeDeck(archetype);
+    }).flat();
 
-        let enemyDeckIds = [
-            'spicy_breath', 'flamethrower', 'erupt', 'rage', 'charge',
-            'toats', 'roast', 'preheat', 'flash', 'fire_punch',
-            'ignite_pipeline', 'combustion'
-        ];
-        if (isEnemyWater) enemyDeckIds = [
-            'squirt', 'water_jet', 'whirlpool', 'bathe', 'scald',
-            'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
-            'rain', 'drink_tea'
-        ];
-        if (isEnemyNature) enemyDeckIds = [
-            'quick_leaf', 'forage', 'squirrel_scurry', 'nature_bond',
-            'acorn_shot', 'quick_leaf', 'forage', 'squirrel_scurry'
-        ];
-        return enemyDeckIds.slice(0, 12);
-    })
-
-    const eDeckCardsRaw = instantiateDeck(enemyDeckIds.flat());
+    const eDeckCardsRaw = instantiateDeck(enemyDeckIds);
     const { shuffled: eDeckCards, nextSeed: seedAfterEnemyShuffle } = new PRNG(seedAfterPlayerShuffle.toString()).shuffle(eDeckCardsRaw);
 
     //Keep this we will also use this for 3v3s
@@ -125,6 +133,7 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
         enemyParty: enemyParty,
         playerDeck: pDeckState,
         enemyDeck: eDeckState,
+        cardsPlayedThisTurn: 0,
         levelUpQueue: []
     };
 }

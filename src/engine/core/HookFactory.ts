@@ -41,7 +41,7 @@ export const HookFactory = {
                 id,
                 priority,
                 [eventData.trigger]: (context: HookContext, owner: IBattleEntity): HookResult => {
-                    if (this.checkCondition(eventData.when, context, owner)) {
+                    if (this.checkCondition(eventData.when, context, owner) && (!eventData.condition || eventData.condition(context, owner))) {
                         return {
                             mutations: this.executeActions(eventData.do, context, owner)
                         };
@@ -180,6 +180,15 @@ export const HookFactory = {
                         type: 'EVENT',
                         targetId: owner.id,
                         payload: { type: 'DRAW_CARDS', side: this.getSide(owner, context), count: action.count ?? 1 }
+                    });
+                    break;
+
+                case 'GENERATE_CARD':
+                    mutations.push({
+                        type: 'GENERATE_CARD',
+                        targetId: owner.id,
+                        sourceId: owner.id,
+                        payload: { dataId: action.dataId }
                     });
                     break;
             }

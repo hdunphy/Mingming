@@ -20,7 +20,7 @@ import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
 
 function makeMingming(id: string): IMingmingState {
-    return { id, definitionId: 'def_fire', level: 5, experience: 0, attackIV: 5, defenseIV: 5, hpIV: 5 };
+    return { id, definitionId: 'def_fire', level: 5, experience: 0, attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
 }
 
 function makeCard(instanceId: string, dataId: string = 'flamethrower'): IOwnedProgram {

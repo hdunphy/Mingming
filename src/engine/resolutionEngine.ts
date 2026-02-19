@@ -162,6 +162,61 @@ export function executeResolutionStack(
 }
 
 /**
+ * Specifically for status damage scaling (unaffected by isCancelled usually).
+ */
+export function executeStatusDamageCalculated(
+    state: IBattleState,
+    target: IBattleEntity,
+    initialDamage: number,
+    _statusType: string
+): { state: IBattleState; damage: number } {
+    let currentState = state;
+    let damage = initialDamage;
+
+    // Use full party search for global/side-wide hooks
+    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
+
+    entities.forEach(e => {
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
+        if (e.activeOS) {
+            const os = getOSBehavior(e.activeOS);
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) data.hooks.forEach(h => entityHooks.add(h));
+            });
+        }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered.onStatusDamageCalculated) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
+    });
+
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
+
+    const context: HookContext = {
+        target,
+        state: currentState,
+        triggerDepth: 0
+    };
+
+    for (const pair of hookPairs) {
+        if (pair.hook.onStatusDamageCalculated) {
+            damage = pair.hook.onStatusDamageCalculated(damage, context, pair.owner);
+        }
+    }
+
+    return { state: currentState, damage: Math.floor(damage) };
+}
+
+/**
  * Helper to handle card draws with hook triggers.
  */
 export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean, sourceId?: string): IBattleState {

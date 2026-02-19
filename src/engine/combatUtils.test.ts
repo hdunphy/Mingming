@@ -54,7 +54,8 @@ function createMockProgram(element: Element): ProgramData {
         baseCost: 1,
         constraints: [],
         actions: [],
-        artReference: ''
+        artReference: '',
+        rarity: 'Common'
     };
 }
 

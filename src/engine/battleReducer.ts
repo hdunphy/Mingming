@@ -169,7 +169,7 @@ export function validateProgramConstraints(
 /**
  * Applies a list of mutations to the state in a single atomic update.
  */
-import { applyMutations, executeResolutionStack, executeDraw } from './resolutionEngine';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated } from './resolutionEngine';
 
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
@@ -226,7 +226,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             ...snapshot[activeDeckKey],
             hand: newHand,
             discard: newDiscard
-        }
+        },
+        cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1
     };
 
     // 4. Initial Context
@@ -283,6 +284,19 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
                     if (!currentTarget || currentTarget.currentHp <= 0) continue;
 
+                    // Action-level Conditionals
+                    if (action.conditionals) {
+                        let allMet = true;
+                        for (const constraint of action.conditionals) {
+                            const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
+                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                                allMet = false;
+                                break;
+                            }
+                        }
+                        if (!allMet) continue;
+                    }
+
                     // Modifier Phase
                     const hitContext = { ...context, target: currentTarget, state: finalState };
                     const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
@@ -304,23 +318,6 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                                 stacks: action.stacks || 1
                             }
                         }]);
-                    } else if (action.type === 'ATTACK') {
-                        // For ATTACK, we still want to use handleAttack for all the logic?
-                        // Actually, handleAttack already has a lot of logic.
-                        // But we want it to be a mutation.
-                        // Let's just use effectHandlers for now but ensure onActionStart covers others.
-                        // Wait, Fenrir v2 is specifically about STATUS.
-                        const handler = effectHandlers[action.type];
-                        if (handler) {
-                            finalState = handler(finalState, {
-                                sourceId,
-                                targetId: tId,
-                                power: action.power || 0,
-                                count: 1, // Single discrete hit
-                                element: action.element || programData.element,
-                                program: programData
-                            });
-                        }
                     } else {
                         const handler = effectHandlers[action.type];
                         if (handler) {
@@ -332,7 +329,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                                 element: action.element || programData.element,
                                 status: action.status,
                                 stacks: action.stacks || 1,
-                                program: programData
+                                program: programData,
+                                action: action // Pass full action for scaling etc
                             });
                         }
                     }
@@ -388,7 +386,7 @@ function handleEndTurn(state: IBattleState): IBattleState {
     newState = processPreTurn(newState);
 
     // Set Phase to ACTION for the next player
-    newState = { ...newState, phase: 'ACTION' as TurnPhase };
+    newState = { ...newState, phase: 'ACTION' as TurnPhase, cardsPlayedThisTurn: 0 };
 
     return newState;
 }
@@ -425,9 +423,26 @@ function processPostTurn(state: IBattleState): IBattleState {
             const behavior = getStatusBehavior(effect.type);
             const result = behavior.endTurn(effect, entity);
 
+            let damage = result.damage;
+
+            // Apply scaling hooks (e.g., Thermal Overload boosting Burn damage)
+            if (damage > 0) {
+                const context: HookContext = {
+                    source: undefined, // System or self?
+                    target: entity,
+                    state: state,
+                    triggerDepth: 0
+                };
+
+                // We use calculateStatusDamage naming or just reuse the logic
+                // For simplicity, let's call it 'onStatusDamageCalculated'
+                const { state: _, damage: finalDamage } = executeStatusDamageCalculated(state, entity, damage, effect.type);
+                damage = finalDamage;
+            }
+
             // Apply damage
-            if (result.damage > 0) {
-                currentHp = Math.max(0, currentHp - result.damage);
+            if (damage > 0) {
+                currentHp = Math.max(0, currentHp - damage);
 
                 if (currentHp <= 0) {
                     defeatedThisTurn.push(entity.id);
@@ -436,7 +451,7 @@ function processPostTurn(state: IBattleState): IBattleState {
                 globalBattleEventBus.emit({
                     type: 'DAMAGE_TAKEN',
                     targetId: entity.id,
-                    amount: result.damage,
+                    amount: damage,
                     element: effect.type === 'Burn' ? 'Fire' : 'None',
                     timestamp: Date.now()
                 });

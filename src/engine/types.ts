@@ -163,6 +163,7 @@ export function getExpForLevel(level: number): number {
 
 export interface ProgramAction {
   readonly type: string;
+  readonly conditionals?: ReadonlyArray<ProgramConstraint>;
   readonly [key: string]: any; // Flat structure for JSON
 }
 
@@ -225,5 +226,6 @@ export interface IBattleState {
   readonly logs: ReadonlyArray<string>;
   readonly osLogs: ReadonlyArray<string>;
   readonly procs: ReadonlyArray<{ id: number; entityId: string; text: string }>;
+  readonly cardsPlayedThisTurn: number;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

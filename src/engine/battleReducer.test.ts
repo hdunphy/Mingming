@@ -45,6 +45,7 @@ function createMockState(): IBattleState {
             hand: [],
             discard: []
         },
+        cardsPlayedThisTurn: 0,
         levelUpQueue: []
     };
 }

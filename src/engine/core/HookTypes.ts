@@ -10,7 +10,7 @@ export enum HookPriority {
 }
 
 export type MutationRequest = {
-    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT';
+    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD';
     targetId: string;
     sourceId?: string; // Optional source of the mutation
     payload: any;
@@ -42,7 +42,7 @@ export type HookCondition = {
 };
 
 export type HookAction = {
-    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'DRAW';
+    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'DRAW' | 'GENERATE_CARD';
     target?: 'SELF' | 'TARGET' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
     status?: StatusType;
     stacks?: number;
@@ -51,19 +51,21 @@ export type HookAction = {
     isHeal?: boolean; // Explicit heal flag
     text?: string;
     count?: number;
+    dataId?: string; // For GENERATE_CARD
 };
 
 export type DataHookDefinition = {
     id: string;
-    trigger: keyof Omit<HookDefinition, 'id' | 'priority' | 'onDamageCalculated'>;
+    trigger: keyof Omit<HookDefinition, 'id' | 'priority' | 'onDamageCalculated' | 'onStatusDamageCalculated'>;
     priority: HookPriority;
     when?: HookCondition;
+    condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     do: HookAction[];
 };
 
 export type ModifierDataHookDefinition = {
     id: string;
-    trigger: 'onDamageCalculated';
+    trigger: 'onDamageCalculated' | 'onStatusDamageCalculated';
     priority: HookPriority;
     when?: HookCondition;
     multiplier?: number;
@@ -85,6 +87,7 @@ export type HookDefinition = {
     id: string;
     priority: number;
     onDamageCalculated?: DamageModifierHook;
+    onStatusDamageCalculated?: DamageModifierHook; // New hook for Burn/Poison scaling
     onActionStart?: EventHook;
     onModifierPhase?: EventHook;
     onPostDamage?: EventHook;
