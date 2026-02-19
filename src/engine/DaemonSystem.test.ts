@@ -8,7 +8,7 @@ const TestProgramRegistry: Record<string, any> = {
     'scratch': { id: 'scratch', name: 'Scratch', power: 40, element: 'None', category: 'Attack', target: 'Single', baseCost: 1, actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }] },
     'whirlpool': { id: 'whirlpool', name: 'Whirlpool', power: 30, element: 'Water', category: 'Attack', target: 'Single', baseCost: 2, actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }, { type: 'DRAW', count: 1 }] },
     'recursion_daemon': { id: 'recursion_daemon', name: 'RECURSION_DAEMON', category: 'Daemon', hooks: ['recursion_daemon_hook'] },
-    'thermal_overload': { id: 'thermal_overload', name: 'THERMAL_OVERLOAD', category: 'Daemon', hooks: ['thermal_overload_hook'] }
+    'thermal_overload': { id: 'thermal_overload', name: 'THERMAL_OVERLOAD', category: 'Daemon', hooks: ['thermal_overload_hook', 'thermal_overload_logic', 'thermal_overload_burn_boost'] }
 };
 
 vi.mock('./data/programRegistry', async (importOriginal) => {

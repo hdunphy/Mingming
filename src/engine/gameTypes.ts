@@ -3,7 +3,6 @@
  * Persistent data structures for the player's save file.
  */
 
-import { createMockEntity } from "./data/battleFactories";
 import type { IMingmingState } from "./types";
 import { getExpForLevel } from "./types";
 
@@ -109,19 +108,13 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
 
     // Starter deck cards (12 cards)
     const waterStarterIds = [
-        'squirt', 'recursion_daemon', 'water_jet', 'whirlpool', 'bathe', 'scald',
-        'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
-        'rain', 'drink_tea'
+        'squirt', 'recursion_daemon', 'deep_pressure', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis'
     ];
     const fireStarterIds = [
-        'spicy_breath', 'flamethrower', 'erupt', 'rage', 'charge',
-        'toats', 'roast', 'preheat', 'flash', 'fire_punch',
-        'ignite_pipeline', 'combustion'
+        'singularity', 'solar_flare', 'thermal_overload', 'ignite_pipeline', 'flash', 'preheat', 'ash_to_ash', 'fire_punch', 'reckless'
     ];
     const natureStarterIds = [
-        'quick_leaf', 'forage', 'squirrel_scurry', 'nature_bond',
-        'acorn_shot', 'quick_leaf', 'forage', 'squirrel_scurry',
-        'nature_bond', 'acorn_shot', 'quick_leaf', 'forage'
+        'gossip', 'echo_chamber_daemon', 'pruning', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'root_bind'
     ];
 
     let starterCardIds: string[] = [];

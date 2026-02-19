@@ -189,6 +189,15 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         enemyParty: updateParty(state.enemyParty)
     } as IBattleState;
 
+    if (wakesUp) {
+        // Apply Awoken immediately
+        newState = handleApplyStatus(newState, {
+            targetId: target.id,
+            status: 'Awoken',
+            stacks: 1
+        });
+    }
+
     newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
 
     // Death / XP Handling

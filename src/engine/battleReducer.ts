@@ -208,7 +208,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     newHand.splice(cardIndex, 1);
 
     const isDaemon = programData.category === 'Daemon';
-    const newDiscard = isDaemon ? [...snapshot[activeDeckKey].discard] : [...snapshot[activeDeckKey].discard, card];
+    const isExhaust = programData.exhaust || programData.isToken;
+    const newDiscard = (isDaemon || isExhaust) ? [...snapshot[activeDeckKey].discard] : [...snapshot[activeDeckKey].discard, card];
 
     snapshot = {
         ...snapshot,
@@ -448,11 +449,24 @@ function processPostTurn(state: IBattleState): IBattleState {
                     defeatedThisTurn.push(entity.id);
                 }
 
+                statusLogs.push(`  → ${entity.name} takes ${damage} damage from ${effect.type}`);
+
                 globalBattleEventBus.emit({
                     type: 'DAMAGE_TAKEN',
                     targetId: entity.id,
                     amount: damage,
                     element: effect.type === 'Burn' ? 'Fire' : 'None',
+                    timestamp: Date.now()
+                });
+            }
+
+            // Apply healing
+            if (result.healing && result.healing > 0) {
+                currentHp = Math.min(entity.maxHp, currentHp + result.healing);
+                globalBattleEventBus.emit({
+                    type: 'HEAL',
+                    targetId: entity.id,
+                    amount: result.healing,
                     timestamp: Date.now()
                 });
             }
@@ -472,6 +486,14 @@ function processPostTurn(state: IBattleState): IBattleState {
                     status: effect.type,
                     timestamp: Date.now()
                 });
+
+                // If Asleep wore off naturally, apply Awoken protection
+                if (effect.type === 'Asleep') {
+                    const awokenBehavior = getStatusBehavior('Awoken');
+                    const awokenApply = awokenBehavior.onApply(newEffects, 1, entity);
+                    newEffects.push(...awokenApply.updatedEffects.filter(s => s.type === 'Awoken'));
+                    statusLogs.push(...awokenApply.logs);
+                }
             }
 
             // Collect logs
@@ -500,9 +522,9 @@ function processPostTurn(state: IBattleState): IBattleState {
         nextState = addLog(nextState, `  ☠️ ${name} DEFEATED BY STATUS`);
     }
 
-    // 3. Trigger onTurnEnd Hooks
-    const entities = [...nextState.playerParty, ...nextState.enemyParty].filter(e => e.currentHp > 0);
-    for (const entity of entities) {
+    // 3. Trigger onTurnEnd Hooks (ONLY for the side whose turn just ended)
+    const candidates = [...nextState[activePartyKey]].filter(e => e.currentHp > 0);
+    for (const entity of candidates) {
         const { state: afterTurnEnd } = executeResolutionStack(nextState, 'onTurnEnd', {
             source: entity,
             state: nextState,
@@ -536,12 +558,17 @@ function processPreTurn(state: IBattleState): IBattleState {
     });
 
     // 2. Reset Energy & Handle Statuses
-    //Todo: Asleep still has energy and can use cards. Most cards will have the constraint on them that the 
-    // unit must not be asleep to play them. 
-    const refreshedParty = activeParty.map(entity => ({
-        ...entity,
-        currentEnergy: entity.maxEnergy
-    }));
+    // Refill to max, then add Energized bonuses
+    const refreshedParty = activeParty.map(entity => {
+        const energizedEffect = entity.statusEffects.find(s => s.type === 'Energized');
+        const bonusEnergy = energizedEffect ? energizedEffect.stacks : 0;
+
+        return {
+            ...entity,
+            currentEnergy: entity.maxEnergy + bonusEnergy,
+            statusEffects: entity.statusEffects.filter(s => s.type !== 'Energized')
+        };
+    });
 
     // 3. Draw Cards — based on alive party members' cardDraw stats
     const aliveMembers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);

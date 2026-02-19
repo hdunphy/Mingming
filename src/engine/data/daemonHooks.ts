@@ -26,7 +26,7 @@ registerHook(HookFactory.createHook({
     trigger: 'onDamageCalculated',
     priority: HookPriority.ATTACKER,
     when: { source: 'SELF' },
-    multiplier: 1.10 // Reduced standard boost to compensate for Burn focus? Or leave 1.25. 
+    multiplier: 1.25
 }));
 
 // NEW: Burn specific damage boost
@@ -72,7 +72,7 @@ registerHook(HookFactory.createHook({
     trigger: 'onActionStart',
     priority: HookPriority.PROGRAM,
     when: { source: 'SELF' },
-    condition: (context: HookContext) => context.program?.baseCost === 0,
+    condition: (context: HookContext) => context.program?.baseCost === 0 && !context.program?.isToken,
     do: [
         { type: 'GENERATE_CARD', dataId: 'feedback_token', target: 'SELF' },
         { type: 'LOG', text: "{owner}'s ECHO_CHAMBER_DAEMON generates Feedback!" }

@@ -13,7 +13,9 @@ export const StatusType = {
   Dazed: 'Dazed',
   Sharp: 'Sharp',
   Stunned: 'Stunned',
-  Regen: 'Regen'
+  Regen: 'Regen',
+  Awoken: 'Awoken',
+  Energized: 'Energized'
 } as const;
 
 export type StatusType = typeof StatusType[keyof typeof StatusType];
@@ -181,6 +183,8 @@ export interface ProgramData {
   readonly constraints: ReadonlyArray<ProgramConstraint>;
   readonly actions: ReadonlyArray<ProgramAction>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks for Daemons
+  readonly isToken?: boolean; // If true, this is a generated token card
+  readonly exhaust?: boolean; // If true, card is removed from battle after use
   readonly artReference?: string;
 }
 

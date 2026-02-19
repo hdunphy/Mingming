@@ -79,12 +79,27 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                 <span style={{ color: '#ccc' }}>Scraps Recovered</span>
                                 <span style={{ color: '#00ffaa', fontWeight: 'bold', fontSize: '1.2rem' }}>+{bundle.scraps}</span>
                             </div>
-                            {bundle.blueprints.map((bp, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <span style={{ color: '#ccc', fontSize: '0.85rem' }}>{bp.name}</span>
-                                    <span style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '0.8rem' }}>ACQUIRED</span>
+                            {bundle.blueprints.length > 0 && (
+                                <div style={{
+                                    marginTop: '15px',
+                                    padding: '12px',
+                                    background: 'rgba(255, 0, 255, 0.1)',
+                                    border: '1px solid #ff00ff',
+                                    borderRadius: '6px',
+                                    animation: 'pulse-glow 2s infinite'
+                                }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#ff00ff', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
+                                        New Blueprint Detected
+                                    </div>
+                                    {bundle.blueprints.map((bp, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{bp.name}</span>
+                                            <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>ACQUIRED</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+
                         </div>
 
                         <div className="xp-distribution-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>

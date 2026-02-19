@@ -84,6 +84,12 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
             case 'EVENT':
                 globalBattleEventBus.emit(mutation.payload);
                 break;
+            case 'GENERATE_CARD':
+                newState = effectHandlers['GENERATE_CARD'](newState, {
+                    sourceId: mutation.sourceId || 'SYSTEM',
+                    dataId: mutation.payload.dataId
+                });
+                break;
         }
     }
 

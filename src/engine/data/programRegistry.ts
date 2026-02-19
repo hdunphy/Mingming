@@ -25,6 +25,7 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         element: 'None',
         target: 'Self',
         category: 'Daemon',
+        exhaust: true,
         rarity: 'Rare',
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
@@ -34,10 +35,11 @@ export const ProgramRegistry: Record<string, ProgramData> = {
     'thermal_overload': {
         id: 'thermal_overload',
         name: 'THERMAL_OVERLOAD',
-        description: 'Passive: Increase Burn damage by 50%.',
+        description: 'Passive: Increase Burn damage by 50%. Take 5 damage at the end of each turn.',
         element: 'Fire',
         target: 'Self',
         category: 'Daemon',
+        exhaust: true,
         rarity: 'Rare',
         baseCost: 2,
         constraints: [...STANDARD_CONSTRAINTS],
@@ -51,6 +53,7 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         element: 'Nature',
         target: 'Self',
         category: 'Daemon',
+        exhaust: true,
         rarity: 'Rare',
         baseCost: 2,
         constraints: [...STANDARD_CONSTRAINTS],
@@ -60,15 +63,17 @@ export const ProgramRegistry: Record<string, ProgramData> = {
     'feedback_token': {
         id: 'feedback_token',
         name: 'Feedback',
-        description: 'Deals 2 Nature damage. (Token)',
+        description: 'Deals 5 Nature damage. (Token)',
         element: 'Nature',
         target: 'Single',
         category: 'Attack',
         rarity: 'Common',
         baseCost: 0,
+        isToken: true,
+        exhaust: true,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [
-            { type: 'ATTACK', power: 2, target: 'TARGET' }
+            { type: 'ATTACK', power: 5, target: 'TARGET' }
         ]
     },
 
@@ -196,6 +201,19 @@ export const ProgramRegistry: Record<string, ProgramData> = {
             { type: 'APPLY_STATUS', status: 'Stunned', stacks: 1, target: 'SELF' }
         ]
     },
+    'combustion': {
+        id: 'combustion',
+        name: 'Combustion',
+        description: 'Fire attack (50 power)',
+        element: 'Fire',
+        target: 'Single',
+        category: 'Attack',
+        rarity: 'Uncommon',
+        baseCost: 2,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'ATTACK', power: 50, target: 'TARGET' }]
+    },
+
     // --- KRAKEN DECK ---
     'squirt': {
         id: 'squirt',
@@ -302,6 +320,118 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'APPLY_STATUS', status: 'Asleep', stacks: 1, target: 'TARGET' }]
     },
+    'water_jet': {
+        id: 'water_jet',
+        name: 'Water Jet',
+        description: 'Water attack (20 power)',
+        element: 'Water',
+        target: 'Single',
+        category: 'Attack',
+        rarity: 'Common',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'ATTACK', power: 20, target: 'TARGET' }]
+    },
+    'bathe': {
+        id: 'bathe',
+        name: 'Bathe',
+        description: 'Heal 10 HP',
+        element: 'Water',
+        target: 'Self',
+        category: 'Heal',
+        rarity: 'Common',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'HEAL', target: 'SELF', power: 10 }]
+    },
+    'scald': {
+        id: 'scald',
+        name: 'Scald',
+        description: 'Water attack (15 power), applies Burn',
+        element: 'Water',
+        target: 'Single',
+        category: 'Attack',
+        rarity: 'Uncommon',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [
+            { type: 'ATTACK', power: 15, target: 'TARGET' },
+            { type: 'APPLY_STATUS', status: 'Burn', stacks: 1, target: 'TARGET' }
+        ]
+    },
+    'toxic_water': {
+        id: 'toxic_water',
+        name: 'Toxic Water',
+        description: 'Target gains Poison (2 stacks)',
+        element: 'Water',
+        target: 'Single',
+        category: 'Status',
+        rarity: 'Common',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'APPLY_STATUS', status: 'Poison', stacks: 2, target: 'TARGET' }]
+    },
+    'reguvinate': {
+        id: 'reguvinate',
+        name: 'Reguvinate',
+        description: 'Target gains Regen (2 stacks)',
+        element: 'Water',
+        target: 'Single',
+        category: 'Status',
+        rarity: 'Common',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'APPLY_STATUS', status: 'Regen', stacks: 2, target: 'TARGET' }]
+    },
+    'rain': {
+        id: 'rain',
+        name: 'Rain',
+        description: 'Draw 2 cards',
+        element: 'Water',
+        target: 'Self',
+        category: 'Special',
+        rarity: 'Uncommon',
+        baseCost: 2,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'DRAW', count: 2, target: 'SELF' }]
+    },
+    'cannon_ball': {
+        id: 'cannon_ball',
+        name: 'Cannon Ball',
+        description: 'Water attack (15 power to side)',
+        element: 'Water',
+        target: 'Side',
+        category: 'Attack',
+        rarity: 'Common',
+        baseCost: 2,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'ATTACK', power: 15, target: 'TARGET' }]
+    },
+    'hot_springs': {
+        id: 'hot_springs',
+        name: 'Hot Springs',
+        description: 'Heal all allies (10 HP)',
+        element: 'Water',
+        target: 'Side',
+        category: 'Heal',
+        rarity: 'Uncommon',
+        baseCost: 2,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'HEAL', target: 'TARGET', power: 10 }]
+    },
+    'nightmare': {
+        id: 'nightmare',
+        name: 'Nightmare',
+        description: 'Attack target (30 power) if Asleep',
+        element: 'Dark',
+        target: 'Single',
+        category: 'Attack',
+        rarity: 'Uncommon',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS, ASLEEP_CONSTRAINT],
+        actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }]
+    },
+
     // --- RATATOSKR DECK ---
     'gossip': {
         id: 'gossip',
@@ -355,7 +485,7 @@ export const ProgramRegistry: Record<string, ProgramData> = {
         rarity: 'Common',
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'APPLY_STATUS', status: 'Regen', stacks: 2, target: 'SELF' }]
+        actions: [{ type: 'APPLY_STATUS', status: 'Energized', stacks: 1, target: 'SELF' }]
     },
     'grafting': {
         id: 'grafting',
@@ -398,7 +528,47 @@ export const ProgramRegistry: Record<string, ProgramData> = {
             { type: 'ATTACK', power: 40, target: 'TARGET' },
             { type: 'APPLY_STATUS', status: 'Stunned', stacks: 1, target: 'TARGET' }
         ]
+    },
+    'forage': {
+        id: 'forage',
+        name: 'Forage',
+        description: 'Draw 1 card',
+        element: 'Nature',
+        target: 'Self',
+        category: 'Special',
+        rarity: 'Common',
+        baseCost: 0,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'DRAW', count: 1, target: 'SELF' }]
+    },
+    'squirrel_scurry': {
+        id: 'squirrel_scurry',
+        name: 'Squirrel Scurry',
+        description: 'Multi-hit Nature attack (5 power x4)',
+        element: 'Nature',
+        target: 'Single',
+        category: 'Attack',
+        rarity: 'Uncommon',
+        baseCost: 2,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'ATTACK', power: 5, count: 4, target: 'TARGET' }]
+    },
+    'nature_bond': {
+        id: 'nature_bond',
+        name: 'Nature Bond',
+        description: 'Heal target and self (5 HP)',
+        element: 'Nature',
+        target: 'Single',
+        category: 'Heal',
+        rarity: 'Common',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [
+            { type: 'HEAL', target: 'TARGET', power: 5 },
+            { type: 'HEAL', target: 'SELF', power: 5 }
+        ]
     }
+
 };
 
 export const GetProgramData = (id: string): ProgramData => {

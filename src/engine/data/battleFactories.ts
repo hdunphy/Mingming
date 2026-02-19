@@ -24,19 +24,6 @@ export function createMockEntity(name: string, mingmingId: string = 'fenrir', le
     return initializeBattleEntity(instance, definition);
 }
 
-export function createMockDeck(isWater: boolean = false): string[] {
-    // Using original 34-card core deck IDs from Registry
-    return isWater ? [
-        'squirt', 'water_jet', 'whirlpool', 'bathe', 'scald',
-        'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
-        'rain', 'drink_tea', 'hydro_pump', 'cannon_ball', 'hot_springs', 'nightmare'
-    ]
-        : [
-            'reckless', 'flamethrower', 'erupt', 'rage', 'charge', 'radiate', 'fired_up',
-            'toats', 'roast', 'spicy_breath', 'preheat', 'flash', 'fire_punch'
-        ];
-}
-
 export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
     return deckIds.map(id => ({
         id: crypto.randomUUID(),

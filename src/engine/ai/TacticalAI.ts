@@ -7,15 +7,15 @@ import { GetProgramData } from '../data/programRegistry';
 // Weights for scoring
 // Weights for scoring specific statuses
 const STATUS_SCORES: Record<string, number> = {
-    'Regen': 5,
+    'Regen': 3,
     'Strengthened': 5,
     'Sharp': 5,
     'Burn': -3,
     'Poison': -3,
     'Weakened': -3,
     'Dazed': -5,
-    'Stunned': -10,
-    'Asleep': -8
+    'Stunned': -8,
+    'Asleep': -6
 };
 
 /**
