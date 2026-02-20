@@ -1,7 +1,13 @@
 
 export type Element = 'Fire' | 'Water' | 'Earth' | 'Air' | 'Nature' | 'Ice' | 'Light' | 'Dark' | 'None';
+export const ELEMENTS: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', 'Ice', 'Light', 'Dark', 'None'];
+
 export type TargetType = 'Single' | 'Self' | 'Side' | 'All';
+export const TARGET_TYPES: TargetType[] = ['Single', 'Self', 'Side', 'All'];
+
 export type ProgramCategory = 'Attack' | 'Heal' | 'Status' | 'Special' | 'Daemon';
+export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Heal', 'Status', 'Special', 'Daemon'];
+
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
 
 export const StatusType = {
@@ -175,16 +181,18 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY';
 
 export interface ProgramAction {
   readonly id?: string;
-  readonly type: string;
+  readonly type: ActionType;
   readonly conditionals?: ReadonlyArray<ProgramConstraint>;
   readonly error?: string; // Validation error
   readonly [key: string]: any; // Flat structure for JSON
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
+export const RARITIES: Rarity[] = ['Common', 'Uncommon', 'Rare', 'Epic'];
 
 export interface ProgramData {
   readonly id: string;

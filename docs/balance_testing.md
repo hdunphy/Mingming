@@ -21,7 +21,18 @@ To ensure cards are balanced before they hit the simulation, we use a weighted v
 - **Card Draw:** 4.0 per card.
 - **Energy Gain:** 6.0 per Energy.
 
-#### **Conditional Modifiers (Complexity Discount)**
+#### **Status & Utility Weights (Dynamic Adjustments)**
+- **Card Draw:** 
+    - 1st Card: +4.0
+    - 2nd Card (on same program): +2.5
+    - 3rd+ Card: +1.0 (Accounts for Hand Limit risk).
+- **Crowd Control (Sleep/Stun):**
+    - 1st Stack: +5.0 (High value for turn skip).
+    - Additional Stacks: +0.5 (Diminishing returns as target is already incapacitated).
+- **Exhaust/Token Penalty:** 
+    - Apply a **0.9x multiplier** (Discount) to the card's final score if it has the `Exhaust` keyword or is a generated `Token`.
+
+#### **Complexity Modifiers (Setup Discount)**
 To account for the "Setup Cost" of conditional effects, we apply multipliers to the bonus value of the effect:
 - **Condition (Target Has Status):** 0.7x multiplier to the conditional action's value (e.g., Solar Flare's bonus damage).
 - **Condition (Self Has Status):** 0.8x multiplier.
@@ -31,8 +42,7 @@ To account for the "Setup Cost" of conditional effects, we apply multipliers to 
 For cards that scale, we assume a "Standard Mid-Turn" state for calculation:
 - **CARDS_PLAYED Scaling:**
     - Assume **Average = 2.5 cards** for calculation.
-    - **Single-Unit Constraint:** If scaling is based on *global* cards played, apply a **1.5x "Risk" Multiplier** to the score (flagging it for high variability).
-    - **Local-Unit Constraint:** If scaling is restricted to the *specific MingMing's* card plays, apply a **1.0x** multiplier (preferred for balance).
+    - **Local-Unit Constraint:** Scaling must be restricted to the *specific MingMing's* card plays (1.0x baseline). Global scaling is flagged as a high-risk balance outlier (1.5x multiplier).
 - **HP_PERCENT Scaling:** Assume **50% HP** as the calculation baseline.
 
 ### 1.3. Target Thresholds
