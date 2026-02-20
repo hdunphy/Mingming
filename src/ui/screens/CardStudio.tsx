@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { InflatedProgramRegistry } from '../../engine/data/programRegistry';
-import type { ProgramData, ProgramAction, ProgramConstraint } from '../../engine/types';
+import type { ProgramData } from '../../engine/types';
+import CardForm from './CardForm';
 import './CardStudio.css';
 
 interface PowerscaleResult {
@@ -32,7 +33,6 @@ const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
         if (action.type === 'ATTACK' || action.type === 'HEAL') {
             actionScore = (action.power || action.healOverride || 0) * baseWeight;
 
-            // Recoil is a penalty
             if (action.type === 'ATTACK' && action.target === 'SELF') {
                 actionScore *= -1;
             }
@@ -42,7 +42,6 @@ const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
             const isBuff = BUFFS.includes(action.status);
             const isDebuff = DEBUFFS.includes(action.status);
 
-            // Only apply penalty inversion to offensive cards
             if (isAttackCard) {
                 if (isDebuff && action.target === 'SELF') actionScore *= -1;
                 if (isBuff && action.target === 'TARGET') actionScore *= -1;
@@ -53,18 +52,13 @@ const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
             const amount = action.amount || 0;
             actionScore = Math.abs(amount) * baseWeight;
 
-            // Penalty for losing own energy, or giving energy to enemy (if ever applicable)
-            // But usually positive amount is 'gain' and negative is 'lose'.
             if (amount < 0 && action.target === 'SELF') actionScore *= -1;
-            if (amount > 0 && action.target === 'TARGET' && isAttackCard) actionScore *= -1; // Giving energy to enemy is bad
-
-            // Minor bonus for being able to target others with energy (utility)
+            if (amount > 0 && action.target === 'TARGET' && isAttackCard) actionScore *= -1;
             if (action.target === 'TARGET' && !isAttackCard) actionScore *= 1.2;
         } else {
             actionScore = baseWeight;
         }
 
-        // Multi-hit scaling
         if (action.count && action.count > 1) {
             actionScore *= (1 + (action.count - 1) * 0.5);
         }
@@ -72,18 +66,12 @@ const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
         score += actionScore;
     });
 
-    // Hooks
     if (card.hooks) {
         score += card.hooks.length * 15;
     }
 
-    // Constraints (Subtractive)
-    // We don't subtract for BASE or standard constraints that are always there
     const meaningfulConstraints = card.constraints.filter(c => c.type !== 'BASE' && c.type !== 'NOT_STATUS');
     score -= meaningfulConstraints.length * 10;
-
-    // Exhaust penalty/bonus? 
-    // Usually Exhaust is used on powerful cards to prevent abuse, so maybe it doesn't affect raw power score but affects balance.
 
     const costFactor = Math.pow(Math.max(card.baseCost, 0.5), 1.25);
     const perEnergy = score / costFactor;
@@ -99,6 +87,7 @@ type SortKey = keyof ProgramData | 'powerscale' | 'perEnergy';
 const CardStudio: React.FC = () => {
     const [sortKey, setSortKey] = useState<SortKey>('name');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const [showForm, setShowForm] = useState(false);
 
     const cards = useMemo(() => Object.values(InflatedProgramRegistry) as ProgramData[], []);
 
@@ -171,6 +160,14 @@ const CardStudio: React.FC = () => {
         document.body.removeChild(link);
     };
 
+    const handleSaveCard = (newCard: ProgramData) => {
+        console.log('--- GENERATED CARD JSON ---');
+        console.log(JSON.stringify(newCard, null, 4));
+        console.log('--- END JSON ---');
+        alert('Card JSON generated! Antigravity will now persist this to programs.json.');
+        setShowForm(false);
+    };
+
     return (
         <div className="card-studio">
             <header className="studio-header">
@@ -178,9 +175,14 @@ const CardStudio: React.FC = () => {
                     <h1>CARD STUDIO</h1>
                     <p>Advanced balancing and powerscale analysis.</p>
                 </div>
-                <button className="export-button" onClick={exportToCSV}>
-                    EXPORT CSV
-                </button>
+                <div className="header-actions">
+                    <button className="add-button" onClick={() => setShowForm(true)}>
+                        + ADD NEW CARD
+                    </button>
+                    <button className="export-button" onClick={exportToCSV}>
+                        EXPORT CSV
+                    </button>
+                </div>
             </header>
 
             <div className="studio-table-container">
@@ -233,7 +235,7 @@ const CardStudio: React.FC = () => {
                                                 className={`pill action-pill ${a.error ? 'pill-error' : ''}`}
                                                 title={a.error || ''}
                                             >
-                                                {a.error ? 'MISSING' : a.type}
+                                                {a.error ? 'MISSING' : (a.id || a.type)}
                                             </span>
                                         ))}
                                     </td>
@@ -244,7 +246,7 @@ const CardStudio: React.FC = () => {
                                                 className={`pill constraint-pill ${c.error ? 'pill-error' : ''}`}
                                                 title={c.error || ''}
                                             >
-                                                {c.error ? 'MISSING' : c.type}
+                                                {c.error ? 'MISSING' : (c.id || c.type)}
                                             </span>
                                         ))}
                                     </td>
@@ -261,6 +263,13 @@ const CardStudio: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            {showForm && (
+                <CardForm
+                    onSave={handleSaveCard}
+                    onCancel={() => setShowForm(false)}
+                />
+            )}
         </div>
     );
 };

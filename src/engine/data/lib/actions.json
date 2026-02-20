@@ -44,6 +44,12 @@
         "amount": 1,
         "target": "SELF"
     },
+    "apply_stun": {
+        "type": "APPLY_STATUS",
+        "status": "Stunned",
+        "stacks": 1,
+        "target": "TARGET"
+    },
     "remove_status": {
         "type": "REMOVE_STATUS",
         "status": "",

@@ -1255,4 +1255,24 @@
             }
         ]
     }
+    },
+    " thunder_clap\: {
+ \id\: \thunder_clap\,
+ \name\: \Thunder Clap\,
+ \description\: \Powerful electric attack that can stun the target.\,
+ \element\: \None\,
+ \target\: \Single\,
+ \category\: \Attack\,
+ \rarity\: \Rare\,
+ \baseCost\: 2,
+ \constraints\: [
+ { \id\: \energy_base\ },
+ { \id\: \not_stunned\ },
+ { \id\: \not_asleep\ }
+ ],
+ \actions\: [
+ { \id\: \basic_attack\, \power\: 35 },
+ { \id\: \apply_stun\, \stacks\: 1 }
+ ]
+ }
 }

@@ -9,15 +9,31 @@ This document defines the strategy for maintaining competitive integrity and str
 To ensure cards are balanced before they hit the simulation, we use a weighted value formula.
 
 ### 1.1. The Formula
-`Score = (Power / 10) + (Status_Weight * Stacks) + (Utility_Bonus)`
+`Score = (Power / 10) * Multiplier_Bonus + (Status_Weight * Stacks) + (Utility_Bonus)`
 
-### 1.2. Weighting Constants
+### 1.2. Weighting Constants & Modifiers
+
+#### **Base Weights**
 - **Damage:** 1.0 per 10 Power.
 - **Burn/Poison:** 1.5 per stack (Dot value).
 - **Dazed/Weakened:** 2.0 per stack (Mitigation value).
 - **Stun/Sleep:** 5.0 (Turn-skip value).
 - **Card Draw:** 4.0 per card.
 - **Energy Gain:** 6.0 per Energy.
+
+#### **Conditional Modifiers (Complexity Discount)**
+To account for the "Setup Cost" of conditional effects, we apply multipliers to the bonus value of the effect:
+- **Condition (Target Has Status):** 0.7x multiplier to the conditional action's value (e.g., Solar Flare's bonus damage).
+- **Condition (Self Has Status):** 0.8x multiplier.
+- **Condition (Positioning/Adjacency):** 0.6x multiplier.
+
+#### **Scaling Logic (Estimated Value)**
+For cards that scale, we assume a "Standard Mid-Turn" state for calculation:
+- **CARDS_PLAYED Scaling:**
+    - Assume **Average = 2.5 cards** for calculation.
+    - **Single-Unit Constraint:** If scaling is based on *global* cards played, apply a **1.5x "Risk" Multiplier** to the score (flagging it for high variability).
+    - **Local-Unit Constraint:** If scaling is restricted to the *specific MingMing's* card plays, apply a **1.0x** multiplier (preferred for balance).
+- **HP_PERCENT Scaling:** Assume **50% HP** as the calculation baseline.
 
 ### 1.3. Target Thresholds
 | Energy Cost | Target Score |
@@ -46,7 +62,7 @@ Using the `SimRunner.ts` in a headless environment, we execute thousands of matc
 
 ### 2.3. OS Variance Audit
 - **Setup:** Same deck, different OS.
-- **Goal:** OS v1 and OS v2 should offer different *playstyles*, not different *power levels*. If one OS consistently outperforms the other by >15%, the weaker one needs a buff or a lower cost.
+- **Goal:** OS v1 and OS v2 should offer different *playstyles*, not different *power levels*. If one OS consistently outperforms the other by >15%, the weaker one needs one buff or a lower cost.
 
 ---
 
