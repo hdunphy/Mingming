@@ -1,3 +1,4 @@
+import { object } from "zod";
 
 export type Element = 'Fire' | 'Water' | 'Earth' | 'Air' | 'Nature' | 'Ice' | 'Light' | 'Dark' | 'None';
 export const ELEMENTS: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', 'Ice', 'Light', 'Dark', 'None'];
@@ -5,8 +6,8 @@ export const ELEMENTS: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', '
 export type TargetType = 'Single' | 'Self' | 'Side' | 'All';
 export const TARGET_TYPES: TargetType[] = ['Single', 'Self', 'Side', 'All'];
 
-export type ProgramCategory = 'Attack' | 'Heal' | 'Status' | 'Special' | 'Daemon';
-export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Heal', 'Status', 'Special', 'Daemon'];
+export type ProgramCategory = 'Attack' | 'Skill' | 'Daemon';
+export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Skill', 'Daemon'];
 
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
 
@@ -23,6 +24,7 @@ export const StatusType = {
   Awoken: 'Awoken',
   Energized: 'Energized'
 } as const;
+export const Statuses: StatusType[] = Object.values(StatusType);
 
 export type StatusType = typeof StatusType[keyof typeof StatusType];
 
