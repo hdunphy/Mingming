@@ -65,6 +65,7 @@ describe('Damage Calculation with Status Modifiers', () => {
             sessionId: 'test',
             turn: 1,
             activeSide: 'PLAYER',
+            activeRelics: [],
             phase: 'ACTION',
             playerParty: [attacker],
             enemyParty: [defender],

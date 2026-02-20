@@ -57,6 +57,22 @@ export interface IDropTableEntry {
     readonly cardPool: ReadonlyArray<string>; // ProgramData IDs from this element
 }
 
+// --- Gauntlet State ---
+
+export interface IGauntletEntityState {
+    readonly id: string;
+    readonly hp: number;
+    readonly energy: number;
+}
+
+export interface IGauntletState {
+    readonly type: 'Gym' | 'Sector';
+    readonly element: string;
+    readonly currentBattle: number;
+    readonly totalBattles: number;
+    readonly entityStates: ReadonlyArray<IGauntletEntityState>;
+}
+
 // --- Root Save Object ---
 
 export interface IPlayerSave {
@@ -67,6 +83,8 @@ export interface IPlayerSave {
     readonly activeDeck: IActiveDeck | null;
     readonly scrapCount: number;
     readonly blueprints: ReadonlyArray<IBlueprint>;
+    readonly relics: ReadonlyArray<string>;
+    readonly gauntlet: IGauntletState | null;
 }
 
 // --- Factory Helpers ---
@@ -79,7 +97,9 @@ export function createDefaultSave(): IPlayerSave {
         cardInventory: [],
         activeDeck: null,
         scrapCount: 0,
-        blueprints: []
+        blueprints: [],
+        relics: [],
+        gauntlet: null
     };
 }
 
@@ -142,7 +162,9 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
             cards: starterCards.map(c => c.instanceId)
         },
         scrapCount: 50,
-        blueprints: []
+        blueprints: [],
+        relics: [],
+        gauntlet: null
     };
 }
 

@@ -26,6 +26,7 @@ function createMockState(): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
+        activeRelics: [],
         logs: [],
         osLogs: [],
         procs: [],

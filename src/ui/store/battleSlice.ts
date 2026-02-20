@@ -56,8 +56,8 @@ const battleSlice = createSlice({
         setBattleState: (state, action: PayloadAction<IBattleState | null>) => {
             state.battle = action.payload as any;
         },
-        startBattle: (state, action: PayloadAction<{ save: IPlayerSave; enemyIds: string[] }>) => {
-            state.battle = createBattleState(action.payload.save, action.payload.enemyIds) as any;
+        startBattle: (state, action: PayloadAction<{ save: IPlayerSave; enemyIds: string[]; sectorElement?: any }>) => {
+            state.battle = createBattleState(action.payload.save, action.payload.enemyIds, action.payload.sectorElement) as any;
             state.selectedSourceId = null;
             state.selectedTargetId = null;
             state.selectedCardId = null;

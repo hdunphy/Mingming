@@ -3,6 +3,7 @@ import type { IPlayerSave } from '../gameTypes';
 import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
+import { GetRelic } from './relicRegistry';
 import { drawCards } from '../deckLogic';
 import { PRNG } from '../core/PRNG';
 
@@ -33,18 +34,102 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
     }));
 }
 
-export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattleState {
+import { generateEncounter } from './EncounterGenerator';
+import type { Element } from '../types';
+
+export function createBattleState(
+    save: IPlayerSave,
+    enemyIds: string[],
+    sectorElement?: Element
+): IBattleState {
     const playerPartyMembers = save.activeParty
         .map(id => save.roster.find(m => m.id === id))
         .filter(Boolean) as IMingmingState[];
 
     if (playerPartyMembers.length === 0) throw new Error("No active Mingming found in save!");
 
-    const playerParty = playerPartyMembers.map(mm => initializeBattleEntity(mm, GetMingmingData(mm.definitionId)));
-    const enemyLevel = Math.max(...playerParty.map(p => p.level));
-    const enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel));
+    const playerParty = playerPartyMembers.map(mm => {
+        let entity = initializeBattleEntity(mm, GetMingmingData(mm.definitionId));
 
-    // Updated Deck Logic: Pick a random subset of 9 cards + the Daemon for the archetype
+        // Milestone 8.3: Gauntlet Persistence
+        if (save.gauntlet) {
+            const persistentState = save.gauntlet.entityStates.find(s => s.id === mm.id);
+            if (persistentState) {
+                entity = {
+                    ...entity,
+                    currentHp: persistentState.hp,
+                    currentEnergy: persistentState.energy
+                };
+            }
+        }
+
+        // Milestone 8.4: Relic Application
+        save.relics.forEach(relicId => {
+            const relic = GetRelic(relicId);
+            if (relic.effect === 'ENERGY_CAP_BONUS') {
+                entity = {
+                    ...entity,
+                    maxEnergy: entity.maxEnergy + 5,
+                    currentEnergy: entity.currentEnergy + 5
+                };
+            }
+            if (relic.effect === 'DRAW_BONUS') {
+                entity = {
+                    ...entity,
+                    cardDraw: entity.cardDraw + 1
+                };
+            }
+            if (relic.effect === 'ATTACK_MULTIPLIER') {
+                entity = {
+                    ...entity,
+                    relicBonuses: {
+                        ...entity.relicBonuses!,
+                        attackMod: entity.relicBonuses!.attackMod * 1.1
+                    }
+                };
+            }
+        });
+
+        return entity;
+    });
+
+    let enemyParty: IBattleEntity[] = [];
+    let enemyDeckIds: string[] = [];
+
+    if (sectorElement) {
+        // Epic 8: Logic transition to Encounter Generator
+        const encounter = generateEncounter({
+            sectorElement,
+            playerParty,
+            seed: Date.now().toString()
+        });
+        enemyParty = encounter.enemyParty;
+        enemyDeckIds = encounter.enemyDeckIds;
+    } else {
+        // Fallback or fixed encounters (e.g. Gym Bosses)
+        const enemyLevel = Math.max(...playerParty.map(p => p.level));
+        enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel));
+
+        // Use the old archetype logic for fixed encounters if needed, or simple direct IDs
+        enemyDeckIds = enemyIds.map(enemyId => {
+            const def = GetMingmingData(enemyId);
+            let archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR' = 'FENRIR';
+            if (def.primaryElement === 'Water') archetype = 'KRAKEN';
+            if (def.primaryElement === 'Nature') archetype = 'RATATOSKR';
+
+            const lists = {
+                FENRIR: { daemon: 'thermal_overload', cards: ['singularity', 'solar_flare', 'ignite_pipeline', 'flash', 'fire_punch', 'reckless'] },
+                KRAKEN: { daemon: 'recursion_daemon', cards: ['squirt', 'deep_pressure', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis'] },
+                RATATOSKR: { daemon: 'echo_chamber_daemon', cards: ['gossip', 'pruning', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'root_bind'] }
+            };
+            const list = lists[archetype];
+            return [list.daemon, ...list.cards.slice(0, 9)];
+        }).flat();
+    }
+
+    // --- SHARED DECK INITIALIZATION ---
+
+    // Updated Player Deck Logic: Archetype pick from starter
     const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
         const lists = {
             FENRIR: {
@@ -74,18 +159,9 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
     const initialSeed = Date.now().toString();
     const { shuffled: pDeckCards, nextSeed: seedAfterPlayerShuffle } = new PRNG(initialSeed).shuffle(pDeckCardsRaw);
 
-    const enemyDeckIds = enemyIds.map(enemyId => {
-        const def = GetMingmingData(enemyId);
-        let archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR' = 'FENRIR';
-        if (def.primaryElement === 'Water') archetype = 'KRAKEN';
-        if (def.primaryElement === 'Nature') archetype = 'RATATOSKR';
-        return getArchetypeDeck(archetype);
-    }).flat();
-
     const eDeckCardsRaw = instantiateDeck(enemyDeckIds);
     const { shuffled: eDeckCards, nextSeed: seedAfterEnemyShuffle } = new PRNG(seedAfterPlayerShuffle.toString()).shuffle(eDeckCardsRaw);
 
-    //Keep this we will also use this for 3v3s
     const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
     const enemyCardDraw = enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
 
@@ -121,6 +197,7 @@ export function createBattleState(save: IPlayerSave, enemyIds: string[]): IBattl
         playerDeck: pDeckState,
         enemyDeck: eDeckState,
         cardsPlayedThisTurn: 0,
-        levelUpQueue: []
+        levelUpQueue: [],
+        activeRelics: save.relics || []
     };
 }

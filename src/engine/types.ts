@@ -79,6 +79,15 @@ export interface IMingmingState {
   hpIV: number;
 }
 
+// --- System Deemons / Relics ---
+
+export interface IRelic {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly effect: string; // Internal ID for logic
+}
+
 /**
  * Volatile Combat State: Existing only during battle.
  */
@@ -100,6 +109,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentHp: number;
   readonly currentEnergy: number;
   readonly tempHp: number; // Shields
+  readonly relicBonuses?: { draw: number; energy: number; attackMod: number };
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
   readonly activeOS?: string; // Current Operating System ID
@@ -150,7 +160,8 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     hooks: [],
     activeOS: instance.activeOS || definition.availableOS[0], // Default to first available OS
     daemons: [],
-    artReference: definition.artReference
+    artReference: definition.artReference,
+    relicBonuses: { draw: 0, energy: 0, attackMod: 1 }
   };
 }
 
@@ -220,6 +231,7 @@ export interface IBattleState {
   readonly turn: number;
   readonly phase: TurnPhase;
   readonly activeSide: 'PLAYER' | 'ENEMY';
+  readonly activeRelics: ReadonlyArray<string>;
 
   readonly playerParty: ReadonlyArray<IBattleEntity>;
   readonly enemyParty: ReadonlyArray<IBattleEntity>;

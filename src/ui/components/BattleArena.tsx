@@ -14,7 +14,7 @@ import { battleReducer } from '../../engine/battleReducer';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import LevelUpOverlay from './LevelUpOverlay';
-import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats } from '../store/gameSlice';
+import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats, updateGauntlet, completeGauntlet } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 
@@ -96,6 +96,7 @@ const BattleArena: React.FC = () => {
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
+    const save = useSelector((state: RootState) => state.game);
 
     const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
     const [showTurnBanner, setShowTurnBanner] = useState(false);
@@ -261,6 +262,20 @@ const BattleArena: React.FC = () => {
     const handleContinue = (chosenCards: IOwnedProgram[]) => {
         if (battleState) {
             dispatch(syncPartyStats(battleState.playerParty));
+
+            if (save.gauntlet) {
+                const entityStates = battleState.playerParty.map(p => ({
+                    id: p.id,
+                    hp: p.currentHp,
+                    energy: p.currentEnergy
+                }));
+                dispatch(updateGauntlet({ entityStates }));
+
+                // Auto-complete if finished
+                if (save.gauntlet.currentBattle >= save.gauntlet.totalBattles) {
+                    dispatch(completeGauntlet());
+                }
+            }
         }
         if (rewardBundle) {
             const finalBundle: IRewardBundle = {

@@ -5,7 +5,9 @@ import type {
     IOwnedProgram,
     IActiveDeck,
     IBlueprint,
-    IRewardBundle
+    IRewardBundle,
+    IGauntletState,
+    IGauntletEntityState
 } from '../../engine/gameTypes';
 import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
@@ -150,6 +152,33 @@ const gameSlice = createSlice({
                 });
             }
         },
+        updateGauntlet: (state, action: PayloadAction<{ entityStates: IGauntletEntityState[] }>) => {
+            if (state.gauntlet) {
+                state.gauntlet = {
+                    ...state.gauntlet,
+                    currentBattle: state.gauntlet.currentBattle + 1,
+                    entityStates: action.payload.entityStates
+                };
+            }
+        },
+        startGauntlet: (state, action: PayloadAction<{ type: 'Gym' | 'Sector', element: string, totalBattles: number }>) => {
+            const initialEntityStates: IGauntletEntityState[] = state.activeParty.map(id => ({
+                id,
+                hp: 0, // Will be set to max in battle factories if initializing first time, but actually battleFactories already handles max if no persistent state
+                energy: 0
+            }));
+
+            state.gauntlet = {
+                type: action.payload.type,
+                element: action.payload.element,
+                currentBattle: 1,
+                totalBattles: action.payload.totalBattles,
+                entityStates: initialEntityStates
+            };
+        },
+        completeGauntlet: (state) => {
+            state.gauntlet = null;
+        },
         syncPartyStats: (state, action: PayloadAction<ReadonlyArray<IBattleEntity>>) => {
             const party = action.payload;
             state.roster = state.roster.map(member => {
@@ -202,6 +231,9 @@ export const {
     healParty,
     loadSave,
     applyRewardBundle,
+    updateGauntlet,
+    startGauntlet,
+    completeGauntlet,
     syncPartyStats,
     startNewGauntlet,
     updateMingmingOS,
