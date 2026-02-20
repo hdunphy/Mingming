@@ -50,7 +50,7 @@ Relics are permanent "Hardware Modules" that provide passive, run-wide bonuses d
 - **Execution:** Relics are treated as "Global Daemons." They use the **System Daemon** pattern to hook into battle events via the `resolutionEngine`.
 - **Example Relics:**
     - `Expansion Slot`: Start every battle with +1 Max Energy.
-    - `Heatsink`: Reduces the recoil damage from Fire OS by 50%.
+    - `Heatsink`: Reduces the recoil damage by 50%.
     - `Buffer Cache`: Draw +1 additional card at the start of every turn.
 
 ---
