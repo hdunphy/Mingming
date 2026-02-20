@@ -12,29 +12,29 @@
     },
     "draw_card": {
         "type": "DRAW",
-        "count": 1,
-        "target": "SELF"
+        "target": "SELF",
+        "amount": 1
     },
     "apply_burn": {
-        "type": "APPLY_STATUS",
+        "type": "STATUS",
         "status": "Burn",
         "stacks": 1,
         "target": "TARGET"
     },
     "apply_poison": {
-        "type": "APPLY_STATUS",
+        "type": "STATUS",
         "status": "Poison",
         "stacks": 1,
         "target": "TARGET"
     },
     "apply_regen": {
-        "type": "APPLY_STATUS",
+        "type": "STATUS",
         "status": "Regen",
         "stacks": 1,
         "target": "TARGET"
     },
     "apply_strengthened": {
-        "type": "APPLY_STATUS",
+        "type": "STATUS",
         "status": "Strengthened",
         "stacks": 1,
         "target": "SELF"
@@ -45,14 +45,15 @@
         "target": "SELF"
     },
     "apply_stun": {
-        "type": "APPLY_STATUS",
+        "type": "STATUS",
         "status": "Stunned",
         "stacks": 1,
         "target": "TARGET"
     },
     "remove_status": {
-        "type": "REMOVE_STATUS",
+        "type": "STATUS",
         "status": "",
-        "target": "SELF"
+        "target": "SELF",
+        "stacks": -1
     }
 }

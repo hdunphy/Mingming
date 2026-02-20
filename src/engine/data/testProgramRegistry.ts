@@ -109,7 +109,9 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 2,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [
-            { type: 'ATTACK', power: 10, target: 'TARGET', count: 3 }
+            { type: 'ATTACK', power: 10, target: 'TARGET' },
+            { type: 'ATTACK', power: 10, target: 'TARGET' },
+            { type: 'ATTACK', power: 10, target: 'TARGET' }
         ],
         rarity: 'Common'
     },
@@ -143,10 +145,10 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         description: 'Draw 1 card.',
         element: 'None',
         target: 'Single',
-        category: 'Special',
+        category: 'Skill',
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'DRAW', count: 1, target: 'SELF' }],
+        actions: [{ type: 'DRAW', amount: 1, target: 'SELF' }],
         rarity: 'Common'
     },
     'card_burn_test': {
@@ -155,7 +157,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         description: 'Apply 1 Burn.',
         element: 'Fire',
         target: 'Single',
-        category: 'Status',
+        category: 'Skill',
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'STATUS', status: StatusType.Burn, stacks: 1, target: 'TARGET' }],

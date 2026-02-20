@@ -18,8 +18,6 @@ export const effectHandlers: Record<string, EffectHandler> = {
     'ATTACK': handleAttack,
     'HEAL': handleHealEffect,
     'APPLY_STATUS': handleApplyStatus,
-    'DRAW': handleDraw,
-    'REMOVE_STATUS': handleRemoveStatus,
     'GENERATE_CARD': handleGenerateCard
 };
 
@@ -396,46 +394,7 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 }
 
 
-// ... imports ...
-
-function handleDraw(state: IBattleState, payload: { sourceId: string; targetId: string; count: number }): IBattleState {
-    const { count, sourceId } = payload;
-
-    // Draw into the deck of the side that owns the source (the caster)
-    const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
-    const deckKey = isPlayerSource ? 'playerDeck' : 'enemyDeck';
-
-    // 2. Delegate to deckLogic (with Seed)
-    const { state: newDeckState, nextSeed } = drawCards(state[deckKey], count, state.seed);
-
-    return {
-        ...state,
-        seed: nextSeed,
-        [deckKey]: newDeckState
-    };
-}
-
-function handleRemoveStatus(state: IBattleState, payload: { targetId: string; status: string }): IBattleState {
-    const { targetId, status } = payload;
-
-    const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
-        party.map(e => {
-            if (e.id !== targetId) return e;
-            return {
-                ...e,
-                statusEffects: e.statusEffects.filter(s => s.type !== status)
-            };
-        });
-
-    let newState: IBattleState = {
-        ...state,
-        playerParty: updateParty(state.playerParty),
-        enemyParty: updateParty(state.enemyParty)
-    };
-
-    newState = addLog(newState, `  ✨ ${status} removed from target`);
-    return newState;
-}
+// Removing dead code `handleDraw` and `handleRemoveStatus`
 
 function handleGenerateCard(state: IBattleState, payload: { sourceId: string; dataId: string }): IBattleState {
     const { sourceId, dataId } = payload;

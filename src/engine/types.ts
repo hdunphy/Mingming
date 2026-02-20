@@ -183,14 +183,49 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD';
 
 export interface ProgramAction {
   readonly id?: string;
   readonly type: ActionType;
   readonly conditionals?: ReadonlyArray<ProgramConstraint>;
+  readonly target?: TargetType | string; // Often target is defined on Action or on Program
   readonly error?: string; // Validation error
   readonly [key: string]: any; // Flat structure for JSON
+}
+
+export interface AttackActionData extends ProgramAction {
+  readonly type: 'ATTACK';
+  readonly power: number;
+  readonly element?: Element;
+  readonly scaling?: string;
+}
+
+export interface StatusActionData extends ProgramAction {
+  readonly type: 'STATUS';
+  readonly status: StatusType;
+  readonly stacks: number; // Negative value means remove stacks
+}
+
+export interface HealActionData extends ProgramAction {
+  readonly type: 'HEAL';
+  readonly power: number;
+  readonly healOverride?: number;
+}
+
+export interface DrawActionData extends ProgramAction {
+  readonly type: 'DRAW';
+  readonly amount: number;
+}
+
+export interface EnergyActionData extends ProgramAction {
+  readonly type: 'ENERGY';
+  readonly amount: number;
+}
+
+export interface GenerateCardActionData extends ProgramAction {
+  readonly type: 'GENERATE_CARD';
+  readonly dataId: string; // ID of the ProgramData to generate
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';

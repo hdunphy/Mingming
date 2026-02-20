@@ -19,6 +19,7 @@ import { GetProgramData } from './data/programRegistry';
 import { getOSBehavior } from './data/firmwareRegistry';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { drawCards, discardHand } from './deckLogic';
+import { ActionExecutorRegistry } from './actions/ActionExecutors';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -266,80 +267,52 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     let finalState = snapshot;
     if (programData.actions) {
         for (const action of programData.actions) {
-            const hits = action.count || 1;
+            // Target Resolution (per hit)
+            let targetIds: string[] = [];
+            if (action.target === 'SELF' || action.target === 'Self') {
+                targetIds = [sourceId];
+            } else if (programData.target === 'Side' || programData.target === 'All') {
+                const isOnPlayerSide = finalState.playerParty.some(e => e.id === targetId);
+                const targetParty = isOnPlayerSide ? finalState.playerParty : finalState.enemyParty;
+                targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
+            } else {
+                targetIds = [targetId];
+            }
 
-            for (let i = 0; i < hits; i++) {
-                // Target Resolution (per hit)
-                let targetIds: string[] = [];
-                if (action.target === 'SELF' || action.target === 'Self') {
-                    targetIds = [sourceId];
-                } else if (programData.target === 'Side' || programData.target === 'All') {
-                    const isOnPlayerSide = finalState.playerParty.some(e => e.id === targetId);
-                    const targetParty = isOnPlayerSide ? finalState.playerParty : finalState.enemyParty;
-                    targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
+            for (const tId of targetIds) {
+                const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
+                if (!currentTarget || currentTarget.currentHp <= 0) continue;
+
+                // Action-level Conditionals
+                if (action.conditionals) {
+                    let allMet = true;
+                    for (const constraint of action.conditionals) {
+                        const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
+                        if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                            allMet = false;
+                            break;
+                        }
+                    }
+                    if (!allMet) continue;
+                }
+
+                // Modifier Phase
+                const hitContext = { ...context, target: currentTarget, state: finalState };
+                const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                if (hitCancelled) continue;
+                finalState = afterMod;
+
+                // Execution
+                const executor = ActionExecutorRegistry[action.type];
+                if (executor) {
+                    finalState = executor.execute(finalState, sourceId, tId, action as any, programData, hitContext);
                 } else {
-                    targetIds = [targetId];
+                    console.warn(`[BattleReducer] No executor found for action type: ${action.type}`);
                 }
 
-                for (const tId of targetIds) {
-                    const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
-                    if (!currentTarget || currentTarget.currentHp <= 0) continue;
-
-                    // Action-level Conditionals
-                    if (action.conditionals) {
-                        let allMet = true;
-                        for (const constraint of action.conditionals) {
-                            const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
-                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
-                                allMet = false;
-                                break;
-                            }
-                        }
-                        if (!allMet) continue;
-                    }
-
-                    // Modifier Phase
-                    const hitContext = { ...context, target: currentTarget, state: finalState };
-                    const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
-                    if (hitCancelled) continue;
-                    finalState = afterMod;
-
-                    // Execution
-                    if (action.type === 'DRAW') {
-                        const isPlayerSource = snapshot.playerParty.some(e => e.id === sourceId);
-                        const side = isPlayerSource ? 'PLAYER' : 'ENEMY';
-                        finalState = executeDraw(finalState, side, action.count || 1, false, sourceId);
-                    } else if (action.type === 'STATUS' || action.type === 'APPLY_STATUS') {
-                        finalState = applyMutations(finalState, [{
-                            type: 'STATUS',
-                            targetId: tId,
-                            sourceId: sourceId,
-                            payload: {
-                                status: action.status,
-                                stacks: action.stacks || 1
-                            }
-                        }]);
-                    } else {
-                        const handler = effectHandlers[action.type];
-                        if (handler) {
-                            finalState = handler(finalState, {
-                                sourceId,
-                                targetId: tId,
-                                power: action.power || 0,
-                                count: 1, // Single discrete hit
-                                element: action.element || programData.element,
-                                status: action.status,
-                                stacks: action.stacks || 1,
-                                program: programData,
-                                action: action // Pass full action for scaling etc
-                            });
-                        }
-                    }
-
-                    // Post-Damage Phase
-                    const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
-                    finalState = afterPost;
-                }
+                // Post-Damage Phase
+                const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                finalState = afterPost;
             }
         }
     }

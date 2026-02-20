@@ -130,7 +130,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Asleep",
                 "stacks": 1,
                 "target": "TARGET"
@@ -164,7 +164,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Burn",
                 "stacks": 1,
                 "target": "TARGET"
@@ -233,7 +233,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Burn",
                 "stacks": 2,
                 "target": "TARGET"
@@ -262,7 +262,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Dazed",
                 "stacks": 1,
                 "target": "TARGET"
@@ -291,7 +291,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Strengthened",
                 "stacks": 1,
                 "target": "SELF"
@@ -331,9 +331,10 @@
         ],
         "actions": [
             {
-                "type": "REMOVE_STATUS",
+                "type": "STATUS",
                 "status": "Burn",
-                "target": "TARGET"
+                "target": "TARGET",
+                "stacks": -1
             },
             {
                 "type": "HEAL",
@@ -397,7 +398,7 @@
                 "target": "TARGET"
             },
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Stunned",
                 "stacks": 1,
                 "target": "SELF"
@@ -491,7 +492,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Stunned",
                 "stacks": 1,
                 "target": "TARGET"
@@ -522,11 +523,15 @@
             {
                 "type": "ATTACK",
                 "power": 10,
-                "count": 2,
                 "target": "TARGET"
             },
             {
-                "type": "APPLY_STATUS",
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
                 "status": "Dazed",
                 "stacks": 1,
                 "target": "TARGET"
@@ -673,7 +678,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Asleep",
                 "stacks": 1,
                 "target": "TARGET"
@@ -762,7 +767,7 @@
                 "target": "TARGET"
             },
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Burn",
                 "stacks": 1,
                 "target": "TARGET"
@@ -845,8 +850,10 @@
         ],
         "actions": [
             {
-                "id": "draw_card",
-                "count": 2
+                "id": "draw_card"
+            },
+            {
+                "id": "draw_card"
             }
         ]
     },
@@ -996,14 +1003,16 @@
         ],
         "actions": [
             {
-                "type": "REMOVE_STATUS",
+                "type": "STATUS",
                 "status": "Weakened",
-                "target": "SELF"
+                "target": "SELF",
+                "stacks": -1
             },
             {
-                "type": "REMOVE_STATUS",
+                "type": "STATUS",
                 "status": "Dazed",
-                "target": "SELF"
+                "target": "SELF",
+                "stacks": -1
             }
         ]
     },
@@ -1034,7 +1043,7 @@
                 "target": "TARGET"
             },
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Poison",
                 "stacks": 2,
                 "target": "TARGET"
@@ -1063,7 +1072,7 @@
         ],
         "actions": [
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Energized",
                 "stacks": 1,
                 "target": "SELF"
@@ -1092,12 +1101,13 @@
         ],
         "actions": [
             {
-                "type": "REMOVE_STATUS",
+                "type": "STATUS",
                 "status": "Strengthened",
-                "target": "SELF"
+                "target": "SELF",
+                "stacks": -1
             },
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Strengthened",
                 "stacks": 1,
                 "target": "TARGET"
@@ -1160,7 +1170,7 @@
                 "target": "TARGET"
             },
             {
-                "type": "APPLY_STATUS",
+                "type": "STATUS",
                 "status": "Stunned",
                 "stacks": 1,
                 "target": "TARGET"
@@ -1217,7 +1227,21 @@
             {
                 "type": "ATTACK",
                 "power": 5,
-                "count": 4,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 5,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 5,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 5,
                 "target": "TARGET"
             }
         ]
