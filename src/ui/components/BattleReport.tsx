@@ -1,12 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDispatch, useSelector } from 'react-redux';
-import { applyRewardBundle } from '../store/gameSlice';
-import { setBattleState } from '../store/battleSlice';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
-import type { IMingmingState, IBattleEntity } from '../../engine/types';
-import { getExpForLevel } from '../../engine/types';
+import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import ProgramCard from './ProgramCard';
 
 interface BattleReportProps {
     bundle: IRewardBundle;
@@ -128,27 +125,16 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                 <div key={choiceIdx} style={{ marginBottom: '25px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                     <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase' }}>Source: {choice.sourceEntityName}</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                        {choice.options.map((opt, optIdx) => {
+                                        {choice.options.map((opt) => {
                                             const data = GetProgramData(opt.dataId);
                                             const isSelected = selections[choiceIdx]?.instanceId === opt.instanceId;
                                             return (
-                                                <div
-                                                    key={optIdx}
+                                                <ProgramCard
+                                                    key={opt.instanceId}
+                                                    data={data}
+                                                    isSelected={isSelected}
                                                     onClick={() => handleSelect(choiceIdx, opt)}
-                                                    style={{
-                                                        padding: '10px',
-                                                        background: isSelected ? 'rgba(0, 210, 255, 0.15)' : '#222',
-                                                        border: `1px solid ${isSelected ? '#00d2ff' : 'rgba(255,255,255,0.1)'}`,
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        textAlign: 'center',
-                                                        transition: 'all 0.2s',
-                                                        boxShadow: isSelected ? '0 0 10px rgba(0, 210, 255, 0.3)' : 'none'
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: isSelected ? '#00d2ff' : '#ccc' }}>{data.name}</div>
-                                                    <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '4px' }}>{data.element}</div>
-                                                </div>
+                                                />
                                             );
                                         })}
                                     </div>
