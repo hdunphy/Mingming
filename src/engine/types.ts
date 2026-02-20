@@ -37,9 +37,11 @@ export const ProgramConstraintType = {
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
 
 export interface ProgramConstraint {
+  readonly id?: string;
   readonly type: ProgramConstraintType;
   readonly target: 'SELF' | 'TARGET';
   readonly value: string | number;
+  readonly error?: string; // Validation error
 }
 
 // --- MingMing Definitions (Nested Immutable Pattern) ---
@@ -175,8 +177,10 @@ export function getExpForLevel(level: number): number {
 // --- Program (Card) Definitions (Preserving previous work) ---
 
 export interface ProgramAction {
+  readonly id?: string;
   readonly type: string;
   readonly conditionals?: ReadonlyArray<ProgramConstraint>;
+  readonly error?: string; // Validation error
   readonly [key: string]: any; // Flat structure for JSON
 }
 

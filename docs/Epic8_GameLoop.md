@@ -35,9 +35,16 @@ Gyms act as "Gates" to new content and provide permanent Relic rewards. They tes
     - **Battle 3:** System Admin (Gym Leader - Curated Deck + Boss OS + Daemons).
 
 ### **2.2. Unlock Progression**
-- **Initial State:** Only Fire, Water, and Earth sectors are unlocked.
+- **Initial State:** Only the Training Hub is accessible with a single, scripted "Initiation" battle.
+- **The "Initiation" Protocol (Tutorial):** Before unlocking the Training Sectors, the player must defeat an easy, scripted opponent. 
+    - **Scripted Counter:** This opponent's element is always the weakness of the player's chosen starter (e.g., if you picked Kraken/Water, the opponent uses Nature).
+    - **Purpose:** Teaches basic combat and demonstrates the importance of the Type Matrix.
+- **Unlock Progression:**
+    - **Step 1:** Defeat Initiation Opponent -> Unlock Fire, Water, and Nature sectors.
+    - **Step 2:** Defeat a Gym Gauntlet (Grunt -> Elite -> Gym Leader) -> Unlock a new Sector + receive a Relic.
+    - **The "Mirror Rival" Protocol:** Periodically, a Rival AI will intercept the player to test their deck's versatility.
 - **The Reward:** Defeating a Gym Leader unlocks a new elemental sector for Training and grants a **Relic**.
-    - *Example:* Defeating the Air Gym unlocks the Air Sector and grants the "Gale Core" Relic.
+    - *Example:* Defeating the Earth Gym unlocks the Earth Sector and grants the "Dense Alloy" Relic.
 
 ---
 

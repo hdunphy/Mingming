@@ -1,0 +1,52 @@
+{
+    "basic_attack": {
+        "type": "ATTACK",
+        "power": 10,
+        "target": "TARGET"
+    },
+    "heal_self": {
+        "type": "HEAL",
+        "power": 0,
+        "healOverride": 15,
+        "target": "SELF"
+    },
+    "draw_card": {
+        "type": "DRAW",
+        "count": 1,
+        "target": "SELF"
+    },
+    "apply_burn": {
+        "type": "APPLY_STATUS",
+        "status": "Burn",
+        "stacks": 1,
+        "target": "TARGET"
+    },
+    "apply_poison": {
+        "type": "APPLY_STATUS",
+        "status": "Poison",
+        "stacks": 1,
+        "target": "TARGET"
+    },
+    "apply_regen": {
+        "type": "APPLY_STATUS",
+        "status": "Regen",
+        "stacks": 1,
+        "target": "TARGET"
+    },
+    "apply_strengthened": {
+        "type": "APPLY_STATUS",
+        "status": "Strengthened",
+        "stacks": 1,
+        "target": "SELF"
+    },
+    "gain_energy": {
+        "type": "ENERGY",
+        "amount": 1,
+        "target": "SELF"
+    },
+    "remove_status": {
+        "type": "REMOVE_STATUS",
+        "status": "",
+        "target": "SELF"
+    }
+}

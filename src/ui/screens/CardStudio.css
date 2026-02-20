@@ -1,0 +1,256 @@
+.card-studio {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+}
+
+.studio-header {
+    padding: 1.5rem 2rem;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.studio-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    color: #60a5fa;
+    text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
+.studio-header p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
+
+.export-button {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.export-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.export-button:active {
+    transform: translateY(0);
+}
+
+.studio-table-container {
+    flex: 1;
+    min-height: 0;
+    /* Essential for flexbox scrolling */
+    overflow: auto;
+    padding: 0 2rem 2rem 2rem;
+}
+
+.studio-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8125rem;
+    /* Slightly smaller for density */
+    table-layout: auto;
+}
+
+.studio-table th {
+    position: sticky;
+    top: 0;
+    background: #1e293b;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #cbd5e1;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.2s;
+}
+
+.studio-table th:hover {
+    background: #334155;
+}
+
+.studio-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(30, 41, 59, 0.4);
+    vertical-align: middle;
+}
+
+.studio-table tr:hover td {
+    background: rgba(51, 65, 85, 0.6);
+}
+
+.card-name-cell {
+    min-width: 150px;
+}
+
+.card-name {
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+.card-id {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-family: monospace;
+}
+
+.pill {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.element-fire {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.element-water {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.element-nature {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.element-light {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.element-dark {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.element-none {
+    background: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.action-pill {
+    background: rgba(139, 92, 246, 0.1);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.constraint-pill {
+    background: rgba(244, 63, 94, 0.1);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+.hook-pill {
+    background: rgba(20, 184, 166, 0.1);
+    color: #2dd4bf;
+    border: 1px solid rgba(20, 184, 166, 0.2);
+}
+
+.rarity-common {
+    color: #94a3b8;
+}
+
+.rarity-uncommon {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.rarity-rare {
+    color: #3b82f6;
+    font-weight: 600;
+    text-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.rarity-epic {
+    color: #a855f7;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+.cost-cell {
+    font-weight: 700;
+    color: #60a5fa;
+    text-align: center;
+}
+
+.score-cell {
+    font-weight: 700;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.per-energy {
+    color: #10b981;
+}
+
+.desc-cell {
+    max-width: 300px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.center-cell {
+    text-align: center;
+}
+
+.studio-table td.pills-cell {
+    max-width: 250px;
+}
+
+/* Custom Scrollbar */
+.studio-table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.studio-table-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.studio-table-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.studio-table-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
