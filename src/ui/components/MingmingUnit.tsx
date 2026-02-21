@@ -2,9 +2,11 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity } from '../../engine/types';
+import type { IBattleState } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { calculateDamage } from '../../engine/combatUtils';
 
 const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
     Burn: { icon: '🔥', color: '#ff6633' },
@@ -39,6 +41,7 @@ interface MingmingUnitProps {
     previewDamage?: number;
     onClick?: () => void;
     procs?: { id: number; text: string }[]; // New prop for floating text
+    battleState?: IBattleState;
 }
 
 const MingmingUnit: React.FC<MingmingUnitProps> = ({
@@ -48,13 +51,16 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     isTargeted = false,
     previewDamage = 0,
     onClick,
-    procs = []
+    procs = [],
+    battleState
 }) => {
     const controls = useAnimation();
     const [damageSplatters, setDamageSplatters] = React.useState<{ id: number; amount: number }[]>([]);
     const [levelUpVisible, setLevelUpVisible] = React.useState(false);
     const [showOSTooltip, setShowOSTooltip] = React.useState(false);
+    const [showIntentTooltip, setShowIntentTooltip] = React.useState(false);
     const osIconRef = React.useRef<HTMLDivElement>(null);
+    const intentIconRef = React.useRef<HTMLDivElement>(null);
     const prevHpRef = React.useRef(entity.currentHp);
     const prevLevelRef = React.useRef(entity.level);
 
@@ -87,6 +93,32 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     const previewPercent = Math.max(0, ((entity.currentHp - previewDamage) / entity.maxHp) * 100);
     const elKey = entity.primaryElement.toLowerCase();
     const accent = ELEMENT_COLORS[elKey] ?? ELEMENT_COLORS.none;
+
+    // Intent Prediction Logic
+    let predictedDamage = 0;
+    let targetName = 'Unknown Target';
+
+    if (isEnemy && entity.currentIntent && battleState) {
+        const alivePlayers = battleState.playerParty.filter(e => e.currentHp > 0);
+        if (alivePlayers.length > 0) {
+            // Target is typically lowest HP player
+            const sortedPlayers = [...alivePlayers].sort((a, b) => {
+                if (a.currentHp !== b.currentHp) return a.currentHp - b.currentHp;
+                return a.id.localeCompare(b.id);
+            });
+            const target = sortedPlayers[0];
+            targetName = target.name;
+
+            entity.currentIntent.actions.forEach(act => {
+                if (act.type === 'ATTACK') {
+                    const dummyProgram = { element: (act as any).element } as any;
+                    const dmg = calculateDamage(entity, target, dummyProgram, (act as any).power, battleState);
+                    const hitCount = (act as any).count || 1;
+                    predictedDamage += Math.floor(dmg * hitCount);
+                }
+            });
+        }
+    }
 
     // Chunky HP segments — 5 segments
     const HP_SEGMENTS = 5;
@@ -151,14 +183,70 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     {/* Intent Indicator (Enemies Only) */}
                     {isEnemy && entity.currentIntent && (
                         <div
-                            className="hud-intent-icon"
-                            title={`Intent: ${entity.currentIntent.name} (${entity.currentIntent.intentType})`}
-                            style={{ marginLeft: 'auto', fontSize: '1.2rem' }}
+                            className="hud-intent-container"
+                            style={{ marginLeft: 'auto', position: 'relative' }}
+                            onMouseEnter={() => setShowIntentTooltip(true)}
+                            onMouseLeave={() => setShowIntentTooltip(false)}
+                            ref={intentIconRef}
                         >
-                            {entity.currentIntent.intentType === 'Attack' ? '⚔️' :
-                                entity.currentIntent.intentType === 'Defend' ? '🛡️' :
-                                    entity.currentIntent.intentType === 'Debuff' ? '☠️' :
-                                        entity.currentIntent.intentType === 'Buff' ? '✨' : '❓'}
+                            <motion.div
+                                className="hud-intent-wrapper"
+                                initial={{ scale: 0, opacity: 0, y: 10 }}
+                                animate={{ scale: 1, opacity: 1, y: [0, -4, 0] }}
+                                transition={{
+                                    y: {
+                                        duration: 2,
+                                        repeat: Infinity,
+                                        repeatType: "reverse",
+                                        ease: "easeInOut"
+                                    },
+                                    scale: { duration: 0.3 },
+                                    opacity: { duration: 0.3 }
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0 0.25rem' }}
+                            >
+                                <span style={{ fontSize: '1.2rem', textShadow: '0 0 5px rgba(0,0,0,0.5)' }}>{
+                                    entity.currentIntent.intentType === 'Attack' ? '⚔️' :
+                                        entity.currentIntent.intentType === 'Defend' ? '🛡️' :
+                                            entity.currentIntent.intentType === 'Debuff' ? '🧪' : '🌟'
+                                }</span>
+                                {predictedDamage > 0 && <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '1.1rem', textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' }}>{predictedDamage}</span>}
+                            </motion.div>
+
+                            {showIntentTooltip && createPortal(
+                                <div
+                                    className="os-tooltip-portal"
+                                    style={intentIconRef.current ? (() => {
+                                        const rect = intentIconRef.current.getBoundingClientRect();
+                                        const isRightSide = rect.left > window.innerWidth / 2;
+                                        return {
+                                            position: 'fixed',
+                                            left: isRightSide ? 'auto' : rect.right + 15,
+                                            right: isRightSide ? (window.innerWidth - rect.left) + 15 : 'auto',
+                                            top: rect.top,
+                                            transform: 'translateY(-30%)'
+                                        };
+                                    })() : {}}
+                                >
+                                    <div className="tooltip-header">
+                                        <span className="tooltip-os-name">{entity.currentIntent.name}</span>
+                                    </div>
+                                    <div className="tooltip-divider" />
+                                    <div className="tooltip-body">
+                                        {entity.currentIntent.actions.map((act, idx) => {
+                                            if (act.type === 'ATTACK') return <div key={idx}>Deals {predictedDamage} damage.</div>;
+                                            if (act.type === 'STATUS') return <div key={idx}>Applies {act.stacks} {(act as any).status}.</div>;
+                                            if (act.type === 'HEAL') return <div key={idx}>Heals for {act.power}.</div>;
+                                            return null;
+                                        })}
+                                        <div style={{ marginTop: '0.5rem', color: '#888', fontStyle: 'italic' }}>
+                                            Targeting: {targetName}
+                                        </div>
+                                    </div>
+                                    <div className="tooltip-footer">TELEMETRY PREDICTION</div>
+                                </div>,
+                                document.body
+                            )}
                         </div>
                     )}
 

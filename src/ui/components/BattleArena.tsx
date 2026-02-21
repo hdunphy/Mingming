@@ -375,6 +375,7 @@ const BattleArena: React.FC = () => {
                             isTargeted={isTargeted}
                             previewDamage={previewDamage}
                             procs={battleState.procs.filter(p => p.entityId === entity.id)}
+                            battleState={battleState}
                             onClick={() => {
                                 if (isDead) return;
 

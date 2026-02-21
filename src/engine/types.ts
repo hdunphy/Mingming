@@ -21,7 +21,6 @@ export const StatusType = {
   Sharp: 'Sharp',
   Stunned: 'Stunned',
   Regen: 'Regen',
-  Awoken: 'Awoken',
   Energized: 'Energized',
   StableOS: 'StableOS'
 } as const;
