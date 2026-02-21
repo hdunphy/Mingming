@@ -40,6 +40,17 @@ const BlueprintSchema = z.object({
     compileCost: z.number().int().min(0),
 });
 
+const GauntletStateSchema = z.object({
+    type: z.enum(['Gym', 'Sector']),
+    element: z.string(),
+    currentBattleIndex: z.number(),
+    totalBattles: z.number(),
+    persistedStats: z.record(z.string(), z.object({
+        hp: z.number(),
+        energy: z.number()
+    }))
+});
+
 export const PlayerSaveSchema = z.object({
     version: z.number().int().min(1),
     roster: z.array(MingmingInstanceSchema),
@@ -48,6 +59,9 @@ export const PlayerSaveSchema = z.object({
     activeDeck: ActiveDeckSchema.nullable(),
     scrapCount: z.number().int().min(0),
     blueprints: z.array(BlueprintSchema),
+    relics: z.array(z.string()).catch([]),
+    gauntlet: GauntletStateSchema.nullable().catch(null),
+    unlockedSectors: z.array(z.string()).catch([])
 });
 
 // --- Save/Load Functions ---

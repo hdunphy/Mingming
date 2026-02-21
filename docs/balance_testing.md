@@ -38,12 +38,36 @@ To account for the "Setup Cost" of conditional effects, we apply multipliers to 
 - **Condition (Self Has Status):** 0.8x multiplier.
 - **Condition (Positioning/Adjacency):** 0.6x multiplier.
 
+#### **Target Scope Modifiers (AOE vs Single)**
+The score must reflect how many entities an action affects:
+- **Single Target:** 1.0x (Baseline).
+- **Self:** 0.9x (Small discount as it doesn't advance board state directly).
+- **Side (3 units):** 2.2x multiplier (Reflects that hitting 3 targets is powerful but often hits overkill or lower-value targets).
+- **All (6 units):** 4.0x multiplier.
+
+#### **Persistence & Duration Modifiers**
+- **Daemon (Persistent Power):** Final card score receives a **1.5x "Longevity" Multiplier**. These cards are slow to play but provide value every turn.
+- **Exhaust/Token Penalty:** Apply a **0.9x multiplier** (Discount) to the card's final score if it has the `Exhaust` keyword or is a generated `Token`.
+
 #### **Scaling Logic (Estimated Value)**
 For cards that scale, we assume a "Standard Mid-Turn" state for calculation:
-- **CARDS_PLAYED Scaling:**
-    - Assume **Average = 2.5 cards** for calculation.
-    - **Local-Unit Constraint:** Scaling must be restricted to the *specific MingMing's* card plays (1.0x baseline). Global scaling is flagged as a high-risk balance outlier (1.5x multiplier).
+- **CARDS_PLAYED Scaling:** Assume **Average = 2.5 cards** for calculation.
 - **HP_PERCENT Scaling:** Assume **50% HP** as the calculation baseline.
+- **DISCARD_SIZE Scaling:** Assume **Average = 8 cards** in discard.
+- **STAT_BASED Scaling:** Assume **Level 10 Stat Baseline** (e.g., Attack = 25).
+
+#### **Status Weights (Budgeting Strategy)**
+To maintain balance across costs, use the following "Net Status" targets (where 1 Net Status ≈ 2.0 Score points). 
+
+- **0 Energy:** 0.5 Net Status (e.g., 1 Good + 1 Bad, or 1 weak stack like Dazed).
+- **1 Energy:** 2.0 Net Status (e.g., 2 Stacks of Poison, or 1 Stun with a downside).
+- **2 Energy:** 4.5 Net Status (e.g., 3 stacks of Burn + 1 Weakened).
+- **3 Energy:** 8.0+ Net Status (e.g., AOE Status or 2-turn hard CC).
+
+#### **Hard CC Exceptions (Sleep/Stun)**
+Crowd Control affects the "Action Economy" and must be budgeted differently:
+- **Stun (1 turn):** Costs **5.0 points**. It should almost never appear on a 0-cost card without a massive penalty (e.g., "Stun target, but Stun self").
+- **Sleep:** Costs **4.0 points**. Cheaper than Stun because it can be broken by damage. This allows for "Dream-Eater" archetypes where you sleep a target to set up a non-damaging debuff.
 
 ### 1.3. Target Thresholds
 | Energy Cost | Target Score |

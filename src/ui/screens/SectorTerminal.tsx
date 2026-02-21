@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { startBattle } from '../store/battleSlice';
+import { startGauntlet } from '../store/gameSlice';
 import type { Element } from '../../engine/types';
 
 /**
@@ -27,7 +28,26 @@ const SectorTerminal: React.FC = () => {
     const [selectedSector, setSelectedSector] = useState<Element | null>(null);
 
     const handleStartSector = (element: Element) => {
-        dispatch(startBattle({ save, enemyIds: [], sectorElement: element }));
+        const sector = SECTORS.find(s => s.id === element);
+        if (sector?.unlocked) {
+            dispatch(startBattle({ save, enemyIds: [], sectorElement: element }));
+        } else {
+            // Start gym gauntlet to unlock it
+            dispatch(startGauntlet({ type: 'Gym', element, totalBattles: 3 }));
+
+            // Pass explicitly updated save to avoid React state staleness
+            const newSave = {
+                ...save,
+                gauntlet: {
+                    type: 'Gym' as const,
+                    element,
+                    currentBattleIndex: 0,
+                    totalBattles: 3,
+                    persistedStats: Object.fromEntries(save.activeParty.map(id => [id, { hp: 0, energy: 0 }]))
+                }
+            };
+            dispatch(startBattle({ save: newSave, enemyIds: [] }));
+        }
     };
 
     return (
@@ -56,18 +76,18 @@ const SectorTerminal: React.FC = () => {
                     {SECTORS.map((sector) => (
                         <motion.div
                             key={sector.id}
-                            whileHover={sector.unlocked ? { scale: 1.02, y: -5 } : {}}
-                            whileTap={sector.unlocked ? { scale: 0.98 } : {}}
-                            onClick={() => sector.unlocked && setSelectedSector(sector.id)}
+                            whileHover={{ scale: 1.02, y: -5 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setSelectedSector(sector.id)}
                             style={{
                                 background: 'rgba(255,255,255,0.03)',
                                 border: `1px solid ${selectedSector === sector.id ? sector.color : sector.unlocked ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)'}`,
                                 borderRadius: '12px',
                                 padding: '25px',
-                                cursor: sector.unlocked ? 'pointer' : 'not-allowed',
+                                cursor: 'pointer',
                                 position: 'relative',
                                 overflow: 'hidden',
-                                opacity: sector.unlocked ? 1 : 0.4,
+                                opacity: sector.unlocked ? 1 : 0.7,
                                 transition: 'border-color 0.2s'
                             }}
                         >
@@ -127,16 +147,27 @@ const SectorTerminal: React.FC = () => {
 
                                 <div style={{ flex: 1 }}>
                                     <p style={{ fontSize: '1rem', opacity: 0.8, marginBottom: '20px' }}>
-                                        Deploying to {selectedSector} Sector. Expect enemy groups matching this element.
-                                        High density of localized Blueprints detected.
+                                        {SECTORS.find(s => s.id === selectedSector)?.unlocked
+                                            ? `Deploying to ${selectedSector} Sector. Expect enemy groups matching this element. High density of localized Blueprints detected.`
+                                            : `CHALLENGE GYM GAUNTLET: Defeat the ${selectedSector} Gym Leader to unlock this sector. Prepare for a grueling 3-tier endurance battle.`}
                                     </p>
 
                                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
                                         <div style={{ fontSize: '0.8rem', opacity: 0.5, marginBottom: '10px' }}>EXPECTED REWARDS</div>
                                         <ul style={{ padding: '0 0 0 20px', margin: 0, fontSize: '0.9rem', color: '#7c3aed' }}>
-                                            <li>Elemental Program Data</li>
-                                            <li>Core Level XP</li>
-                                            <li>Randomized Hardware Fragments</li>
+                                            {SECTORS.find(s => s.id === selectedSector)?.unlocked ? (
+                                                <>
+                                                    <li>Elemental Program Data</li>
+                                                    <li>Core Level XP</li>
+                                                    <li>Randomized Hardware Fragments</li>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <li>Sector Unlock</li>
+                                                    <li>Rare Relic Selection</li>
+                                                    <li>Boss Data</li>
+                                                </>
+                                            )}
                                         </ul>
                                     </div>
                                 </div>
@@ -157,7 +188,7 @@ const SectorTerminal: React.FC = () => {
                                         boxShadow: `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
                                     }}
                                 >
-                                    INITIATE DEPLOYMENT
+                                    {SECTORS.find(s => s.id === selectedSector)?.unlocked ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
                                 </button>
                             </motion.div>
                         ) : (

@@ -15,11 +15,11 @@ function addLog(state: IBattleState, message: string): IBattleState {
  * Pure execution logic mapping state + pure-data -> new state.
  */
 export abstract class ActionExecutor<T extends ProgramAction> {
-    abstract execute(state: IBattleState, sourceId: string, targetId: string, actionData: T, program: ProgramData, context: HookContext): IBattleState;
+    abstract execute(state: IBattleState, sourceId: string, targetId: string, actionData: T, program: ProgramData | undefined, context: HookContext): IBattleState;
 }
 
 export class AttackExecutor extends ActionExecutor<AttackActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: AttackActionData, program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: AttackActionData, program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { power, element, scaling } = actionData;
 
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
@@ -52,14 +52,14 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             payload: {
                 amount: damage,
                 isHeal: false,
-                element: element || program.element
+                element: element || program?.element
             }
         }]);
     }
 }
 
 export class StatusExecutor extends ActionExecutor<StatusActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: StatusActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: StatusActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { status, stacks, consume } = actionData;
 
         if (consume) {
@@ -94,6 +94,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
                 enemyParty: updateParty(state.enemyParty)
             };
             newState = addLog(newState, `  ✨ ${status} removed from target`);
+            //TODO: yes lets use applyMutations here
             return newState; // Or you could use applyMutations with stacks: -stacks here, but this is the existing simple logic
         }
 
@@ -108,7 +109,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
 }
 
 export class HealExecutor extends ActionExecutor<HealActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: HealActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: HealActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { power, healOverride } = actionData;
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
         let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
@@ -132,7 +133,7 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
 }
 
 export class DrawExecutor extends ActionExecutor<DrawActionData> {
-    execute(state: IBattleState, sourceId: string, _targetId: string, actionData: DrawActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, _targetId: string, actionData: DrawActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount } = actionData;
         const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
         const side = isPlayerSource ? 'PLAYER' : 'ENEMY';
@@ -142,7 +143,7 @@ export class DrawExecutor extends ActionExecutor<DrawActionData> {
 }
 
 export class EnergyExecutor extends ActionExecutor<EnergyActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: EnergyActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: EnergyActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount } = actionData;
         return applyMutations(state, [{
             type: 'ENERGY',
@@ -154,7 +155,7 @@ export class EnergyExecutor extends ActionExecutor<EnergyActionData> {
 }
 
 export class GenerateCardExecutor extends ActionExecutor<GenerateCardActionData> {
-    execute(state: IBattleState, sourceId: string, _targetId: string, actionData: GenerateCardActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, _targetId: string, actionData: GenerateCardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { dataId } = actionData;
         return applyMutations(state, [{
             type: 'GENERATE_CARD',
@@ -166,7 +167,7 @@ export class GenerateCardExecutor extends ActionExecutor<GenerateCardActionData>
 }
 
 export class CleanseExecutor extends ActionExecutor<CleanseActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: CleanseActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: CleanseActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { statusTarget } = actionData;
         return applyMutations(state, [{
             type: 'CLEANSE',
@@ -178,7 +179,7 @@ export class CleanseExecutor extends ActionExecutor<CleanseActionData> {
 }
 
 export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: DiscardActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: DiscardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount, isRandom } = actionData;
         return applyMutations(state, [{
             type: 'DISCARD',
@@ -190,7 +191,7 @@ export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
 }
 
 export class ExhaustExecutor extends ActionExecutor<ExhaustActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ExhaustActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ExhaustActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount } = actionData;
         return applyMutations(state, [{
             type: 'EXHAUST',
@@ -202,7 +203,7 @@ export class ExhaustExecutor extends ActionExecutor<ExhaustActionData> {
 }
 
 export class ReturnExecutor extends ActionExecutor<ReturnActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ReturnActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ReturnActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount, sourcePile, destinationPile } = actionData;
         return applyMutations(state, [{
             type: 'RETURN',
@@ -214,7 +215,7 @@ export class ReturnExecutor extends ActionExecutor<ReturnActionData> {
 }
 
 export class SearchExecutor extends ActionExecutor<SearchActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: SearchActionData, _program: ProgramData, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: SearchActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount, criteria } = actionData;
         return applyMutations(state, [{
             type: 'SEARCH',

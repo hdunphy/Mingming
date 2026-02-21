@@ -1,6 +1,6 @@
 import type { ProgramData } from '../types';
 import programsData from './programs.json';
-import './daemonHooks';
+import { initDaemonHooks } from './daemonHooks';
 
 export const BURNED_CONSTRAINT = { type: 'HAS_STATUS' as const, target: 'TARGET' as const, value: 'Burn' }
 export const DAZED_CONSTRAINT = { type: 'HAS_STATUS' as const, target: 'TARGET' as const, value: 'Dazed' }
@@ -68,9 +68,11 @@ const inflateConstraint = (constraint: any, parentId: string): any => {
 };
 
 export const GetProgramData = (id: string): ProgramData => {
+    initDaemonHooks();
     const rawData = ProgramRegistry[id] || InternalTestRegistry[id];
     if (!rawData) {
         console.warn(`Program ID not found: ${id}`);
+        if (!id) console.trace();
         return {
             id: 'missing',
             name: 'Missing Program',
@@ -107,7 +109,13 @@ export const GetProgramData = (id: string): ProgramData => {
  * A registry of all programs, pre-inflated with library data.
  * Used primarily for UI and inventory listings.
  */
-export const InflatedProgramRegistry: Record<string, ProgramData> = Object.keys(ProgramRegistry).reduce((acc, key) => {
-    acc[key] = GetProgramData(key);
-    return acc;
-}, {} as Record<string, ProgramData>);
+let inflatedCache: Record<string, ProgramData> | null = null;
+export const getInflatedProgramRegistry = (): Record<string, ProgramData> => {
+    if (!inflatedCache) {
+        inflatedCache = Object.keys(ProgramRegistry).reduce((acc, key) => {
+            acc[key] = GetProgramData(key);
+            return acc;
+        }, {} as Record<string, ProgramData>);
+    }
+    return inflatedCache;
+};

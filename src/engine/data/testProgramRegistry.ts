@@ -139,6 +139,18 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         actions: [{ type: 'ATTACK', power: 0, target: 'TARGET' }],
         rarity: 'Common'
     },
+    'whirlpool': {
+        id: 'whirlpool',
+        name: 'Whirlpool',
+        description: 'Draw 2 cards.',
+        element: 'Water',
+        target: 'Single',
+        category: 'Skill',
+        baseCost: 1,
+        constraints: [],
+        actions: [{ type: 'DRAW', amount: 2 }],
+        rarity: 'Common'
+    },
     'card_draw_test': {
         id: 'card_draw_test',
         name: 'Insight',

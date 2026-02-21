@@ -22,6 +22,7 @@ describe('EncounterGenerator', () => {
 
         encounter.enemyDeckIds.forEach(id => {
             const data = GetProgramData(id);
+            expect(data.id).not.toBe('missing');
             expect(data.element === 'Fire' || data.element === 'None').toBe(true);
         });
     });

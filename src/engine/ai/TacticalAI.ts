@@ -95,7 +95,7 @@ function findBestSequence(
 
         if (programData.target === 'Self') {
             potentialTargets = [...myParty]; // Self cards target own units
-        } else if (programData.category === 'Heal' && programData.target !== 'Side') {
+        } else if (programData.actions.some(a => a.type === 'HEAL') && programData.target !== 'Side') {
             potentialTargets = [...myParty]; // Heal cards target allies
         } else if (programData.target === 'Side' || programData.target === 'All') {
             // Side/All can target either side; try both

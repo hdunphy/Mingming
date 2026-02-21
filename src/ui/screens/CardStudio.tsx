@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { InflatedProgramRegistry } from '../../engine/data/programRegistry';
+import { GetProgramData, getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 import CardForm from './CardForm';
 import './CardStudio.css';
@@ -12,7 +12,7 @@ interface PowerscaleResult {
 const ACTION_WEIGHTS: Record<string, number> = {
     'ATTACK': 1,
     'HEAL': 1.5,
-    'APPLY_STATUS': 12,
+    'STATUS': 12,
     'REMOVE_STATUS': 8,
     'DRAW': 15,
     'ENERGY': 20,
@@ -37,7 +37,7 @@ const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
             if (action.type === 'ATTACK' && action.target === 'SELF') {
                 actionScore *= -1;
             }
-        } else if (action.type === 'APPLY_STATUS') {
+        } else if (action.type === 'STATUS') {
             actionScore = (action.stacks || 1) * baseWeight;
 
             const isBuff = BUFFS.includes(action.status);
@@ -100,7 +100,7 @@ const CardStudio: React.FC = () => {
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
     const [showForm, setShowForm] = useState(false);
 
-    const cards = useMemo(() => Object.values(InflatedProgramRegistry) as ProgramData[], []);
+    const cards = useMemo(() => Object.values(getInflatedProgramRegistry()) as ProgramData[], []);
 
     const sortedCards = useMemo(() => {
         return [...cards].sort((a, b) => {

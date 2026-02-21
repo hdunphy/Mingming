@@ -1,0 +1,13 @@
+﻿src/engine/ai/TacticalAI.ts(98,20): error TS2367: This comparison appears to be unintentional because the types 'ProgramCategory' and '"Heal"' have no overlap.
+src/ui/components/BattleArena.tsx(316,76): error TS2367: This comparison appears to be unintentional because the types 'ActionType' and '"DAMAGE"' have no overlap.
+src/ui/components/BattleArena.tsx(344,46): error TS2367: This comparison appears to be unintentional because the types 'ProgramCategory' and '"Heal"' have no overlap.
+src/ui/components/BattleArena.tsx(372,58): error TS2367: This comparison appears to be unintentional because the types 'ProgramCategory' and '"Heal"' have no overlap.
+src/engine/sim/Simulator.ts(54,9): error TS2741: Property 'exhaust' is missing in type '{ ownerId: string; deck: never[]; drawpile: never[]; hand: never[]; discard: never[]; }' but required in type 'IDeckState'.
+src/engine/sim/Simulator.ts(55,9): error TS2741: Property 'exhaust' is missing in type '{ ownerId: string; deck: never[]; drawpile: never[]; hand: never[]; discard: never[]; }' but required in type 'IDeckState'.
+src/ui/screens/CardForm.tsx(234,86): error TS2322: Type 'string' is not assignable to type 'ActionType | undefined'.
+src/engine/SnapshotPattern.test.ts(55,13): error TS2322: Type '(_context: HookContext) => { mutations: never[]; isCancelled: true; }' is not assignable to type 'EventHook'.
+  Property 'state' is missing in type '{ mutations: never[]; isCancelled: true; }' but required in type 'HookResult'.
+src/engine/SnapshotPattern.test.ts(94,13): error TS2322: Type '(context: HookContext) => { mutations: { type: string; targetId: string; payload: { amount: number; }; }[]; }' is not assignable to type 'EventHook'.
+  Property 'state' is missing in type '{ mutations: { type: string; targetId: string; payload: { amount: number; }; }[]; }' but required in type 'HookResult'.
+src/engine/SnapshotPattern.test.ts(134,13): error TS2322: Type '(_context: HookContext) => { mutations: never[]; }' is not assignable to type 'EventHook'.
+  Property 'state' is missing in type '{ mutations: never[]; }' but required in type 'HookResult'.

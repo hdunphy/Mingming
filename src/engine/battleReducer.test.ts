@@ -36,17 +36,18 @@ function createMockState(): IBattleState {
                 { id: 'h2', dataId: 'card2', currentCost: 1, isPlayable: true }
             ] as ProgramEntity[],
             drawpile: [], // Empty for this test? Or populated?
-            discard: []
+            discard: [], exhaust: []
         },
         enemyDeck: {
             ownerId: 'ENEMY',
             deck: [],
             drawpile: [],
             hand: [],
-            discard: []
+            discard: [], exhaust: []
         },
         cardsPlayedThisTurn: 0,
-        levelUpQueue: []
+        levelUpQueue: [],
+        activeRelics: []
     };
 }
 

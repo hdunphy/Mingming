@@ -33,7 +33,10 @@ function makeValidSave(): IPlayerSave {
         scrapCount: 250,
         blueprints: [
             { architectureId: 'arch_fire', name: 'Fire Blueprint', compileCost: 100 }
-        ]
+        ],
+        relics: [],
+        gauntlet: null,
+        unlockedSectors: ['Fire', 'Water', 'Nature']
     };
 }
 

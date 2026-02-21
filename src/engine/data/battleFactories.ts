@@ -26,12 +26,15 @@ export function createMockEntity(name: string, mingmingId: string = 'fenrir', le
 }
 
 export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
-    return deckIds.map(id => ({
-        id: crypto.randomUUID(),
-        dataId: id,
-        currentCost: GetProgramData(id).baseCost,
-        isPlayable: true
-    }));
+    return deckIds.map((id, index) => {
+        if (!id) console.error(`instantiateDeck got undefined at index ${index} in deckIds:`, deckIds);
+        return {
+            id: crypto.randomUUID(),
+            dataId: id,
+            currentCost: GetProgramData(id).baseCost,
+            isPlayable: true
+        };
+    });
 }
 
 import { generateEncounter } from './EncounterGenerator';
@@ -53,7 +56,7 @@ export function createBattleState(
 
         // Milestone 8.3: Gauntlet Persistence
         if (save.gauntlet) {
-            const persistentState = save.gauntlet.entityStates.find(s => s.id === mm.id);
+            const persistentState = save.gauntlet.persistedStats[mm.id];
             if (persistentState) {
                 entity = {
                     ...entity,
@@ -96,7 +99,65 @@ export function createBattleState(
     let enemyParty: IBattleEntity[] = [];
     let enemyDeckIds: string[] = [];
 
-    if (sectorElement) {
+    if (save.gauntlet && save.gauntlet.type === 'Gym') {
+        const battleIndex = save.gauntlet.currentBattleIndex;
+        const gymElement = save.gauntlet.element as Element;
+
+        // Multi-Element Synergy
+        const synergyMap: Record<string, Element[]> = {
+            Fire: ['Fire', 'Earth'],
+            Water: ['Water', 'Nature'],
+            Ice: ['Ice', 'Dark'],
+            Nature: ['Nature', 'Water']
+        };
+        const elementsToUse = synergyMap[gymElement] || [gymElement];
+        const primaryElement = elementsToUse[0];
+        const secondaryElement = elementsToUse[1] || primaryElement;
+
+        const playerLevel = Math.max(...playerParty.map(p => p.level), 1);
+
+        if (battleIndex === 0) {
+            // Tier 1 (Grunt): Procedural 1-2 enemies
+            const count = Math.random() > 0.5 ? 2 : 1;
+            const encounter = generateEncounter({
+                sectorElement: primaryElement,
+                playerParty,
+                seed: Date.now().toString()
+            });
+            enemyParty = encounter.enemyParty.slice(0, count);
+            enemyDeckIds = encounter.enemyDeckIds;
+        } else if (battleIndex === 1) {
+            // Tier 2 (Elite): Procedural 3 enemies + synergistic deck
+            const encounter = generateEncounter({
+                sectorElement: secondaryElement,
+                playerParty,
+                seed: Date.now().toString()
+            });
+            enemyParty = encounter.enemyParty;
+            enemyDeckIds = encounter.enemyDeckIds;
+        } else {
+            // Tier 3 (Gym Leader): Hand-crafted boss party
+            let bossId = 'fenrir';
+            let guardId = 'fenrir';
+            if (primaryElement === 'Water') { bossId = 'kraken'; guardId = 'kraken'; }
+            if (primaryElement === 'Nature') { bossId = 'ratatoskr'; guardId = 'ratatoskr'; }
+
+            const boss = createMockEntity(`Gym Leader (${gymElement})`, bossId, playerLevel + 2);
+            const superBoss = { ...boss, maxHp: boss.maxHp * 1.5, currentHp: boss.maxHp * 1.5 };
+            const guard1 = createMockEntity('Elite Guard', guardId, playerLevel);
+            const guard2 = createMockEntity('Elite Guard', guardId, playerLevel);
+
+            enemyParty = [guard1, superBoss, guard2]; // Boss in middle
+
+            if (primaryElement === 'Water') {
+                enemyDeckIds = ['recursion_daemon', 'tidal_crush', 'whirlpool', 'whirlpool', 'renew', 'hypnosis', 'hypnosis'];
+            } else if (primaryElement === 'Nature') {
+                enemyDeckIds = ['echo_chamber_daemon', 'seed_bomb', 'seed_bomb', 'root_bind', 'photosynthesis', 'photosynthesis'];
+            } else {
+                enemyDeckIds = ['thermal_overload', 'solar_flare', 'solar_flare', 'ignite_pipeline', 'fire_punch', 'reckless'];
+            }
+        }
+    } else if (sectorElement) {
         // Epic 8: Logic transition to Encounter Generator
         const encounter = generateEncounter({
             sectorElement,
@@ -106,7 +167,7 @@ export function createBattleState(
         enemyParty = encounter.enemyParty;
         enemyDeckIds = encounter.enemyDeckIds;
     } else {
-        // Fallback or fixed encounters (e.g. Gym Bosses)
+        // Fallback or fixed encounters (e.g. initial dev test)
         const enemyLevel = Math.max(...playerParty.map(p => p.level));
         enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel));
 

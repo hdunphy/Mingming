@@ -17,7 +17,7 @@ export type MutationRequest = {
 };
 
 export type HookResult = {
-    mutations: MutationRequest[];
+    state: IBattleState;
     isCancelled?: boolean;
 };
 
@@ -39,6 +39,7 @@ export type HookCondition = {
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;
     isNaturalDraw?: boolean;
+    isToken?: boolean;
 };
 
 export type HookAction = {

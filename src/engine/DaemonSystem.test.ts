@@ -3,7 +3,9 @@ import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { globalBattleEventBus } from './events';
 import { GetProgramData } from './data/programRegistry';
+import { initDaemonHooks } from './data/daemonHooks';
 
+initDaemonHooks();
 const TestProgramRegistry: Record<string, any> = {
     'scratch': { id: 'scratch', name: 'Scratch', power: 40, element: 'None', category: 'Attack', target: 'Single', baseCost: 1, actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }] },
     'whirlpool': { id: 'whirlpool', name: 'Whirlpool', power: 30, element: 'Water', category: 'Attack', target: 'Single', baseCost: 2, actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }, { type: 'DRAW', amount: 1 }] },
@@ -92,16 +94,14 @@ function createMockState(): IBattleState {
             drawpile: [
                 { id: 'h4', dataId: 'scratch', currentCost: 1, isPlayable: true }
             ],
-            discard: [],
-            exhaust: []
+            discard: [], exhaust: []
         },
         enemyDeck: {
             ownerId: 'ENEMY',
             deck: [],
             drawpile: [],
             hand: [],
-            discard: [],
-            exhaust: []
+            discard: [], exhaust: []
         },
         levelUpQueue: []
     };

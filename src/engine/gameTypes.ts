@@ -45,6 +45,7 @@ export interface IRewardBundle {
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
     readonly totalXP: number;
+    readonly relicChoices?: ReadonlyArray<string>;
 }
 
 // --- Drop Table ---
@@ -59,18 +60,13 @@ export interface IDropTableEntry {
 
 // --- Gauntlet State ---
 
-export interface IGauntletEntityState {
-    readonly id: string;
-    readonly hp: number;
-    readonly energy: number;
-}
 
 export interface IGauntletState {
     readonly type: 'Gym' | 'Sector';
     readonly element: string;
-    readonly currentBattle: number;
+    readonly currentBattleIndex: number;
     readonly totalBattles: number;
-    readonly entityStates: ReadonlyArray<IGauntletEntityState>;
+    readonly persistedStats: Record<string, { hp: number, energy: number }>;
 }
 
 // --- Root Save Object ---
@@ -85,6 +81,7 @@ export interface IPlayerSave {
     readonly blueprints: ReadonlyArray<IBlueprint>;
     readonly relics: ReadonlyArray<string>;
     readonly gauntlet: IGauntletState | null;
+    readonly unlockedSectors: ReadonlyArray<string>;
 }
 
 // --- Factory Helpers ---
@@ -99,7 +96,8 @@ export function createDefaultSave(): IPlayerSave {
         scrapCount: 0,
         blueprints: [],
         relics: [],
-        gauntlet: null
+        gauntlet: null,
+        unlockedSectors: ['Fire', 'Water', 'Nature']
     };
 }
 
@@ -164,7 +162,8 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
         scrapCount: 50,
         blueprints: [],
         relics: [],
-        gauntlet: null
+        gauntlet: null,
+        unlockedSectors: ['Fire', 'Water', 'Nature']
     };
 }
 

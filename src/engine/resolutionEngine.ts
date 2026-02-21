@@ -241,9 +241,7 @@ export function executeResolutionStack(
 
         const result: HookResult = handler({ ...initialContext, state: currentState }, pair.owner);
 
-        if (result.mutations.length > 0) {
-            currentState = applyMutations(currentState, result.mutations);
-        }
+        currentState = result.state;
 
         if (result.isCancelled) {
             isCancelled = true;

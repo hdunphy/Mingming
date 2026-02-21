@@ -3,10 +3,12 @@ import type { ProgramData, Element, TargetType, ProgramCategory, ProgramAction, 
 import { ELEMENTS, TARGET_TYPES, PROGRAM_CATEGORIES, RARITIES } from '../../engine/types';
 import actionsLib from '../../engine/data/lib/actions.json';
 import constraintsLib from '../../engine/data/lib/constraints.json';
+import hooksLib from '../../engine/data/lib/hooks.json';
 import './CardForm.css';
 
 const ACTIONS_LIB = actionsLib as Record<string, any>;
 const CONSTRAINTS_LIB = constraintsLib as Record<string, any>;
+const AVAILABLE_HOOKS = Object.values(hooksLib as Record<string, any>).flatMap(root => root.hooks?.map((h: any) => h.id) || []);
 
 
 
@@ -229,7 +231,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
                                                     type="text"
                                                     placeholder="Type"
                                                     value={action.type}
-                                                    onChange={e => updateAction(i, { type: e.target.value })}
+                                                    onChange={e => updateAction(i, { type: e.target.value as any })}
                                                 />
                                                 <input
                                                     type="number"
@@ -301,11 +303,15 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
                                 <h3>Daemon Hooks</h3>
                                 <button type="button" className="add-btn" onClick={addHook}>+ Add Hook</button>
                             </div>
+                            <datalist id="available-hooks">
+                                {AVAILABLE_HOOKS.map(h => <option key={h} value={h} />)}
+                            </datalist>
                             <div className="list-container">
                                 {card.hooks?.map((hook, i) => (
                                     <div key={i} className="item-row">
                                         <input
                                             type="text"
+                                            list="available-hooks"
                                             placeholder="Hook ID (e.g. recursion_daemon_hook)"
                                             value={hook}
                                             onChange={e => updateHook(i, e.target.value)}
