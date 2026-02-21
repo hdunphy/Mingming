@@ -81,5 +81,14 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 
 ---
 
+## **Epic 10: The Intent Protocol (Enemy AI)**
+*Focus: Implementing telegraphed enemy moves and preventing stun-lock loops.*
+- [ ] **Milestone 10.1: Move-Set Registry:** Define curated "Moves" for enemies in the registry.
+- [ ] **Milestone 10.2: Intent Engine:** Implement the telegraphing logic (Pre-Turn calculation).
+- [ ] **Milestone 10.3: Intent UI HUD:** Add visual icons and damage previews above enemies.
+- [ ] **Milestone 10.4: CC Resilience:** Implement `STABLE_OS` to prevent infinite stun-locking.
+
+---
+
 ## **Current Priority: Epic 8 (The Gauntlet & The Gym)**
-**Next Task:** Implement Milestone 8.1 (Elemental Encounter Generator).
+**Next Task:** Implement Milestone 8.3 (Gym Gauntlet System).
