@@ -77,15 +77,17 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
+        activeRelics: [],
         playerParty: [player],
         enemyParty: [enemy],
-        playerDeck: { ownerId: 'PLAYER', hand: [], drawpile: [], discard: [], deck: [] },
-        enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], deck: [] },
+        playerDeck: { ownerId: 'PLAYER', hand: [], drawpile: [], discard: [], exhaust: [], deck: [] },
+        enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], exhaust: [], deck: [] },
         logs: [],
         osLogs: [],
         procs: [],
         seed: '12345',
-        levelUpQueue: []
+        levelUpQueue: [],
+        cardsPlayedThisTurn: 0
     };
 };
 

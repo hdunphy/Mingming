@@ -5,7 +5,8 @@ import type {
     IOwnedProgram,
     IActiveDeck,
     IBlueprint,
-    IRewardBundle
+    IRewardBundle,
+    IGauntletState
 } from '../../engine/gameTypes';
 import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
@@ -150,6 +151,33 @@ const gameSlice = createSlice({
                 });
             }
         },
+        updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number, energy: number }> }>) => {
+            if (state.gauntlet) {
+                state.gauntlet = {
+                    ...state.gauntlet,
+                    currentBattleIndex: state.gauntlet.currentBattleIndex + 1,
+                    persistedStats: action.payload.persistedStats
+                };
+            }
+        },
+        startGauntlet: (state, action: PayloadAction<{ type: 'Gym' | 'Sector', element: string, totalBattles: number }>) => {
+            state.gauntlet = {
+                type: action.payload.type,
+                element: action.payload.element,
+                currentBattleIndex: 0,
+                totalBattles: action.payload.totalBattles,
+                persistedStats: {}
+            };
+        },
+        completeGauntlet: (state) => {
+            if (state.gauntlet && state.gauntlet.type === 'Gym') {
+                const element = state.gauntlet.element;
+                if (!state.unlockedSectors.includes(element)) {
+                    (state.unlockedSectors as string[]).push(element);
+                }
+            }
+            state.gauntlet = null;
+        },
         syncPartyStats: (state, action: PayloadAction<ReadonlyArray<IBattleEntity>>) => {
             const party = action.payload;
             state.roster = state.roster.map(member => {
@@ -178,10 +206,14 @@ const gameSlice = createSlice({
                 mm.activeOS = activeOS;
             }
         },
-        // --- Reset ---
         resetSave: (state) => {
             void state;
             return createDefaultSave();
+        },
+        addRelic: (state, action: PayloadAction<string>) => {
+            if (!state.relics.includes(action.payload)) {
+                (state.relics as string[]).push(action.payload);
+            }
         }
     }
 });
@@ -202,10 +234,14 @@ export const {
     healParty,
     loadSave,
     applyRewardBundle,
+    updateGauntlet,
+    startGauntlet,
+    completeGauntlet,
     syncPartyStats,
     startNewGauntlet,
     updateMingmingOS,
-    resetSave
+    resetSave,
+    addRelic
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

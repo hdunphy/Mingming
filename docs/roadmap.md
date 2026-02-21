@@ -65,19 +65,30 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 
 ---
 
-## **Epic 8: The LAN Protocol (Positioning & Adjacency)**
-*Focus: Spatial strategy and team networking.*
-- [ ] **Milestone 8.1: Grid-Aware State:** Add `slotIndex` to `IBattleEntity` and update the Reducer to track 3v3 positioning.
-- [ ] **Milestone 8.2: Adjacency Logic:** Implement the "Networking" hook system where MingMings gain buffs based on neighbors (e.g., LAN Synergies).
-- [ ] **Milestone 8.3: Positional Programs:** Create cards that manipulate positioning (e.g., `Re-Route.dm` to swap slots).
-- [ ] **Milestone 8.4: Splash Damage Engine:** Update the Damage Processor to handle adjacency-based splash damage.
+## **Epic 8: The Gauntlet & The Gym (Game Loop)**
+*Focus: Establishing the core loop of elemental farming and tiered boss challenges.*
+- [ ] **Milestone 8.1: Elemental Encounter Generator:** Logic to spawn random enemies based on a selected type.
+- [ ] **Milestone 8.2: Terminal Hub UI:** Navigation between Training (Encounters) and The Breach (Gyms).
+- [ ] **Milestone 8.3: Gym Gauntlet System:** Multi-stage battles with persistent HP/Energy.
+- [ ] **Milestone 8.4: Relic Reward System:** Implementing permanent hardware bonuses for the player save.
 
-## **Epic 9: The Developer Toolkit (Modding & Creation)**
-*Focus: Community longevity and rapid iteration.*
-- [ ] **Milestone 9.1: The Blueprint Forge:** Visual UI for creating MingMings and adjusting IV scaling.
-- [ ] **Milestone 9.2: The Program Compiler:** Visual UI for stacking `actions` and `constraints` for new cards.
+## **Epic 9: The Developer Toolkit (Card Editor & Balancing)**
+*Focus: Creating a data-driven studio for rapid card creation and mathematical balance verification.*
+- [ ] **Milestone 9.1: JSON Registry Migration:** Refactor the registry to load from external JSON files.
+- [ ] **Milestone 9.2: Card Studio UI:** Build the visual editor with real-time HUD previews.
+- [ ] **Milestone 9.3: The Heuristic Auditor:** Implement the mathematical "Budget Score" engine to detect overpowered cards.
+- [ ] **Milestone 9.4: Local File IO:** Setup the bridge to save editor changes directly to the project source.
 
 ---
 
-## **Current Priority: Epic 2 (The Interface Layer)**
-**Next Task:** Deconstruct Milestone 2.1 implementation requirements.
+## **Epic 10: The Intent Protocol (Enemy AI)**
+*Focus: Implementing telegraphed enemy moves and preventing stun-lock loops.*
+- [ ] **Milestone 10.1: Move-Set Registry:** Define curated "Moves" for enemies in the registry.
+- [ ] **Milestone 10.2: Intent Engine:** Implement the telegraphing logic (Pre-Turn calculation).
+- [ ] **Milestone 10.3: Intent UI HUD:** Add visual icons and damage previews above enemies.
+- [ ] **Milestone 10.4: CC Resilience:** Implement `STABLE_OS` to prevent infinite stun-locking.
+
+---
+
+## **Current Priority: Epic 8 (The Gauntlet & The Gym)**
+**Next Task:** Implement Milestone 8.3 (Gym Gauntlet System).

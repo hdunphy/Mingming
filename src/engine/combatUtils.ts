@@ -67,6 +67,11 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);
 
+  // Milestone 8.4: Relic Attack Multiplier
+  if (attacker.relicBonuses?.attackMod) {
+    damage = Math.floor(damage * attacker.relicBonuses.attackMod);
+  }
+
   // Step 5: Hooks
   damage = applyDamageModifiers(damage, {
     source: attacker,

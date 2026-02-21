@@ -1,7 +1,14 @@
+import { object } from "zod";
 
 export type Element = 'Fire' | 'Water' | 'Earth' | 'Air' | 'Nature' | 'Ice' | 'Light' | 'Dark' | 'None';
+export const ELEMENTS: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', 'Ice', 'Light', 'Dark', 'None'];
+
 export type TargetType = 'Single' | 'Self' | 'Side' | 'All';
-export type ProgramCategory = 'Attack' | 'Heal' | 'Status' | 'Special' | 'Daemon';
+export const TARGET_TYPES: TargetType[] = ['Single', 'Self', 'Side', 'All'];
+
+export type ProgramCategory = 'Attack' | 'Skill' | 'Daemon';
+export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Skill', 'Daemon'];
+
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
 
 export const StatusType = {
@@ -13,8 +20,11 @@ export const StatusType = {
   Dazed: 'Dazed',
   Sharp: 'Sharp',
   Stunned: 'Stunned',
-  Regen: 'Regen'
+  Regen: 'Regen',
+  Awoken: 'Awoken',
+  Energized: 'Energized'
 } as const;
+export const Statuses: StatusType[] = Object.values(StatusType);
 
 export type StatusType = typeof StatusType[keyof typeof StatusType];
 
@@ -35,9 +45,11 @@ export const ProgramConstraintType = {
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
 
 export interface ProgramConstraint {
+  readonly id?: string;
   readonly type: ProgramConstraintType;
   readonly target: 'SELF' | 'TARGET';
   readonly value: string | number;
+  readonly error?: string; // Validation error
 }
 
 // --- MingMing Definitions (Nested Immutable Pattern) ---
@@ -77,6 +89,15 @@ export interface IMingmingState {
   hpIV: number;
 }
 
+// --- System Deemons / Relics ---
+
+export interface IRelic {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly effect: string; // Internal ID for logic
+}
+
 /**
  * Volatile Combat State: Existing only during battle.
  */
@@ -98,6 +119,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentHp: number;
   readonly currentEnergy: number;
   readonly tempHp: number; // Shields
+  readonly relicBonuses?: { draw: number; energy: number; attackMod: number };
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
   readonly activeOS?: string; // Current Operating System ID
@@ -148,7 +170,8 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     hooks: [],
     activeOS: instance.activeOS || definition.availableOS[0], // Default to first available OS
     daemons: [],
-    artReference: definition.artReference
+    artReference: definition.artReference,
+    relicBonuses: { draw: 0, energy: 0, attackMod: 1 }
   };
 }
 
@@ -160,13 +183,86 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
 
 export interface ProgramAction {
-  readonly type: string;
+  readonly id?: string;
+  readonly type: ActionType;
+  readonly conditionals?: ReadonlyArray<ProgramConstraint>;
+  readonly target?: TargetType | string; // Often target is defined on Action or on Program
+  readonly error?: string; // Validation error
   readonly [key: string]: any; // Flat structure for JSON
 }
 
+export interface AttackActionData extends ProgramAction {
+  readonly type: 'ATTACK';
+  readonly power: number;
+  readonly element?: Element;
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT';
+}
+
+export interface StatusActionData extends ProgramAction {
+  readonly type: 'STATUS';
+  readonly status: StatusType;
+  readonly stacks: number; // Negative value means remove stacks
+  readonly consume?: boolean; // If true, completely removes status and returns stacks
+}
+
+export interface HealActionData extends ProgramAction {
+  readonly type: 'HEAL';
+  readonly power: number;
+  readonly healOverride?: number;
+}
+
+export interface DrawActionData extends ProgramAction {
+  readonly type: 'DRAW';
+  readonly amount: number;
+}
+
+export interface EnergyActionData extends ProgramAction {
+  readonly type: 'ENERGY';
+  readonly amount: number;
+}
+
+export interface GenerateCardActionData extends ProgramAction {
+  readonly type: 'GENERATE_CARD';
+  readonly dataId: string; // ID of the ProgramData to generate
+}
+
+export interface CleanseActionData extends ProgramAction {
+  readonly type: 'CLEANSE';
+  readonly statusTarget?: StatusType; // If omitted, cleanses all negative status effects
+}
+
+export interface DiscardActionData extends ProgramAction {
+  readonly type: 'DISCARD';
+  readonly amount: number;
+  readonly isRandom?: boolean; // If true, discards randomly instead of player choice (or first N cards)
+}
+
+export interface ExhaustActionData extends ProgramAction {
+  readonly type: 'EXHAUST';
+  readonly amount: number;
+}
+
+export interface ReturnActionData extends ProgramAction {
+  readonly type: 'RETURN';
+  readonly amount: number;
+  readonly sourcePile?: 'DISCARD' | 'EXHAUST'; // Default: DISCARD
+  readonly destinationPile?: 'HAND' | 'DRAW'; // Default: HAND
+}
+
+export interface SearchActionData extends ProgramAction {
+  readonly type: 'SEARCH';
+  readonly amount: number;
+  readonly criteria?: {
+    element?: Element;
+    category?: ProgramCategory;
+  };
+}
+
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
+export const RARITIES: Rarity[] = ['Common', 'Uncommon', 'Rare', 'Epic'];
 
 export interface ProgramData {
   readonly id: string;
@@ -180,6 +276,8 @@ export interface ProgramData {
   readonly constraints: ReadonlyArray<ProgramConstraint>;
   readonly actions: ReadonlyArray<ProgramAction>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks for Daemons
+  readonly isToken?: boolean; // If true, this is a generated token card
+  readonly exhaust?: boolean; // If true, card is removed from battle after use
   readonly artReference?: string;
 }
 
@@ -207,6 +305,7 @@ export interface IDeckState {
   readonly drawpile: ReadonlyArray<ProgramEntity>;
   readonly hand: ReadonlyArray<ProgramEntity>;
   readonly discard: ReadonlyArray<ProgramEntity>;
+  readonly exhaust: ReadonlyArray<ProgramEntity>;
 }
 
 export interface IBattleState {
@@ -215,6 +314,7 @@ export interface IBattleState {
   readonly turn: number;
   readonly phase: TurnPhase;
   readonly activeSide: 'PLAYER' | 'ENEMY';
+  readonly activeRelics: ReadonlyArray<string>;
 
   readonly playerParty: ReadonlyArray<IBattleEntity>;
   readonly enemyParty: ReadonlyArray<IBattleEntity>;
@@ -225,5 +325,6 @@ export interface IBattleState {
   readonly logs: ReadonlyArray<string>;
   readonly osLogs: ReadonlyArray<string>;
   readonly procs: ReadonlyArray<{ id: number; entityId: string; text: string }>;
+  readonly cardsPlayedThisTurn: number;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

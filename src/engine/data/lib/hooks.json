@@ -1,0 +1,262 @@
+{
+    "fenrir_v1": {
+        "id": "fenrir_v1",
+        "name": "UNBOUND_KERNEL",
+        "description": "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage.",
+        "hooks": [
+            {
+                "id": "fenrir_v1_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "percentMaxHP": -2
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner} pushes its core to the limit!"
+                    }
+                ]
+            }
+        ]
+    },
+    "fenrir_v2": {
+        "id": "fenrir_v2",
+        "name": "CINDER_WALL_OS",
+        "description": "Whenever Fenrir applies the Burn status to an enemy, he gains a stack of Sharp.",
+        "hooks": [
+            {
+                "id": "fenrir_v2_hook",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "statusApplied": "Burn"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Sharp",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner} feeds on the flames!"
+                    }
+                ]
+            }
+        ]
+    },
+    "kraken_v1": {
+        "id": "kraken_v1",
+        "name": "ABYSSAL_INK_SYS",
+        "description": "Drawing a card outside the draw phase applies 1 Dazed to a random enemy.",
+        "hooks": [
+            {
+                "id": "kraken_v1_hook",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "isNaturalDraw": false
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "RANDOM_ENEMY",
+                        "status": "Dazed",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{target} is blinded by Abyssal Ink!"
+                    }
+                ]
+            }
+        ]
+    },
+    "kraken_v2": {
+        "id": "kraken_v2",
+        "name": "TIDAL_CRUSH_OS",
+        "description": "Water cards that cost 3 or more Energy deal 30% more damage.",
+        "hooks": [
+            {
+                "id": "kraken_v2_hook",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Water",
+                    "baseCost": {
+                        "operator": "GTE",
+                        "value": 3
+                    }
+                },
+                "multiplier": 1.3
+            }
+        ]
+    },
+    "ratatoskr_v1": {
+        "id": "ratatoskr_v1",
+        "name": "GOSSIP_NODE",
+        "description": "0-cost programs heal all allies for 1 HP.",
+        "hooks": [
+            {
+                "id": "ratatoskr_v1_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0
+                },
+                "do": [
+                    {
+                        "type": "HEAL",
+                        "target": "ALLIES",
+                        "healOverride": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner} spreads positive rumors!"
+                    }
+                ]
+            }
+        ]
+    },
+    "ratatoskr_v2": {
+        "id": "ratatoskr_v2",
+        "name": "INSTIGATOR_OS",
+        "description": "Whenever Ratatoskr plays a 0-cost card, he applies 1 stack of Dazed to the target.",
+        "hooks": [
+            {
+                "id": "ratatoskr_v2_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Dazed",
+                        "stacks": 1
+                    }
+                ]
+            }
+        ]
+    },
+    "recursion_daemon": {
+        "id": "recursion_daemon",
+        "name": "RECURSION_DAEMON",
+        "description": "Whenever you draw a card from an effect, heal 5 HP.",
+        "hooks": [
+            {
+                "id": "recursion_daemon_hook",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "isNaturalDraw": false
+                },
+                "do": [
+                    {
+                        "type": "HEAL",
+                        "target": "SELF",
+                        "healOverride": 5
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s RECURSION_DAEMON repairs 5 HP!"
+                    }
+                ]
+            }
+        ]
+    },
+    "thermal_overload": {
+        "id": "thermal_overload",
+        "name": "THERMAL_OVERLOAD",
+        "description": "Increase your damage by 25%. Your burns deal 50% more damage. Host takes 5 Fire damage at turn end.",
+        "hooks": [
+            {
+                "id": "thermal_overload_hook",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 1.25
+            },
+            {
+                "id": "thermal_overload_burn_boost",
+                "trigger": "onStatusDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "target": "OPPONENT"
+                },
+                "multiplier": 1.5
+            },
+            {
+                "id": "thermal_overload_logic",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "amount": -5,
+                        "element": "Fire"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s THERMAL_OVERLOAD causes 5 overheat damage!"
+                    }
+                ]
+            }
+        ]
+    },
+    "echo_chamber": {
+        "id": "echo_chamber",
+        "name": "ECHO_CHAMBER_DAEMON",
+        "description": "Whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+        "hooks": [
+            {
+                "id": "echo_chamber_daemon_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false
+                },
+                "do": [
+                    {
+                        "type": "GENERATE_CARD",
+                        "dataId": "feedback_token",
+                        "target": "SELF"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s ECHO_CHAMBER_DAEMON generates Feedback!"
+                    }
+                ]
+            }
+        ]
+    }
+}

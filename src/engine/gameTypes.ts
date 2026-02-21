@@ -3,7 +3,6 @@
  * Persistent data structures for the player's save file.
  */
 
-import { createMockEntity } from "./data/battleFactories";
 import type { IMingmingState } from "./types";
 import { getExpForLevel } from "./types";
 
@@ -46,6 +45,7 @@ export interface IRewardBundle {
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
     readonly totalXP: number;
+    readonly relicChoices?: ReadonlyArray<string>;
 }
 
 // --- Drop Table ---
@@ -58,6 +58,17 @@ export interface IDropTableEntry {
     readonly cardPool: ReadonlyArray<string>; // ProgramData IDs from this element
 }
 
+// --- Gauntlet State ---
+
+
+export interface IGauntletState {
+    readonly type: 'Gym' | 'Sector';
+    readonly element: string;
+    readonly currentBattleIndex: number;
+    readonly totalBattles: number;
+    readonly persistedStats: Record<string, { hp: number, energy: number }>;
+}
+
 // --- Root Save Object ---
 
 export interface IPlayerSave {
@@ -68,6 +79,9 @@ export interface IPlayerSave {
     readonly activeDeck: IActiveDeck | null;
     readonly scrapCount: number;
     readonly blueprints: ReadonlyArray<IBlueprint>;
+    readonly relics: ReadonlyArray<string>;
+    readonly gauntlet: IGauntletState | null;
+    readonly unlockedSectors: ReadonlyArray<string>;
 }
 
 // --- Factory Helpers ---
@@ -80,7 +94,10 @@ export function createDefaultSave(): IPlayerSave {
         cardInventory: [],
         activeDeck: null,
         scrapCount: 0,
-        blueprints: []
+        blueprints: [],
+        relics: [],
+        gauntlet: null,
+        unlockedSectors: ['Fire', 'Water', 'Nature']
     };
 }
 
@@ -109,19 +126,13 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
 
     // Starter deck cards (12 cards)
     const waterStarterIds = [
-        'squirt', 'recursion_daemon', 'water_jet', 'whirlpool', 'bathe', 'scald',
-        'toxic_water', 'renew', 'wave', 'hypnosis', 'reguvinate',
-        'rain', 'drink_tea'
+        'squirt', 'recursion_daemon', 'deep_pressure', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis'
     ];
     const fireStarterIds = [
-        'spicy_breath', 'flamethrower', 'erupt', 'rage', 'charge',
-        'toats', 'roast', 'preheat', 'flash', 'fire_punch',
-        'ignite_pipeline', 'combustion'
+        'singularity', 'solar_flare', 'thermal_overload', 'ignite_pipeline', 'flash', 'preheat', 'ash_to_ash', 'fire_punch', 'reckless'
     ];
     const natureStarterIds = [
-        'quick_leaf', 'forage', 'squirrel_scurry', 'nature_bond',
-        'acorn_shot', 'quick_leaf', 'forage', 'squirrel_scurry',
-        'nature_bond', 'acorn_shot', 'quick_leaf', 'forage'
+        'gossip', 'echo_chamber_daemon', 'pruning', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'root_bind'
     ];
 
     let starterCardIds: string[] = [];
@@ -149,7 +160,10 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
             cards: starterCards.map(c => c.instanceId)
         },
         scrapCount: 50,
-        blueprints: []
+        blueprints: [],
+        relics: [],
+        gauntlet: null,
+        unlockedSectors: ['Fire', 'Water', 'Nature']
     };
 }
 

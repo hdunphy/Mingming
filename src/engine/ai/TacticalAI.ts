@@ -7,15 +7,15 @@ import { GetProgramData } from '../data/programRegistry';
 // Weights for scoring
 // Weights for scoring specific statuses
 const STATUS_SCORES: Record<string, number> = {
-    'Regen': 5,
+    'Regen': 3,
     'Strengthened': 5,
     'Sharp': 5,
     'Burn': -3,
     'Poison': -3,
     'Weakened': -3,
     'Dazed': -5,
-    'Stunned': -10,
-    'Asleep': -8
+    'Stunned': -8,
+    'Asleep': -6
 };
 
 /**
@@ -95,7 +95,7 @@ function findBestSequence(
 
         if (programData.target === 'Self') {
             potentialTargets = [...myParty]; // Self cards target own units
-        } else if (programData.category === 'Heal' && programData.target !== 'Side') {
+        } else if (programData.actions.some(a => a.type === 'HEAL') && programData.target !== 'Side') {
             potentialTargets = [...myParty]; // Heal cards target allies
         } else if (programData.target === 'Side' || programData.target === 'All') {
             // Side/All can target either side; try both

@@ -3,12 +3,14 @@ import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { globalBattleEventBus } from './events';
 import { GetProgramData } from './data/programRegistry';
+import { initDaemonHooks } from './data/daemonHooks';
 
+initDaemonHooks();
 const TestProgramRegistry: Record<string, any> = {
     'scratch': { id: 'scratch', name: 'Scratch', power: 40, element: 'None', category: 'Attack', target: 'Single', baseCost: 1, actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }] },
-    'whirlpool': { id: 'whirlpool', name: 'Whirlpool', power: 30, element: 'Water', category: 'Attack', target: 'Single', baseCost: 2, actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }, { type: 'DRAW', count: 1 }] },
+    'whirlpool': { id: 'whirlpool', name: 'Whirlpool', power: 30, element: 'Water', category: 'Attack', target: 'Single', baseCost: 2, actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }, { type: 'DRAW', amount: 1 }] },
     'recursion_daemon': { id: 'recursion_daemon', name: 'RECURSION_DAEMON', category: 'Daemon', hooks: ['recursion_daemon_hook'] },
-    'thermal_overload': { id: 'thermal_overload', name: 'THERMAL_OVERLOAD', category: 'Daemon', hooks: ['thermal_overload_hook'] }
+    'thermal_overload': { id: 'thermal_overload', name: 'THERMAL_OVERLOAD', category: 'Daemon', hooks: ['thermal_overload_hook', 'thermal_overload_logic', 'thermal_overload_burn_boost'] }
 };
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
@@ -26,9 +28,11 @@ function createMockState(): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
+        activeRelics: [],
         logs: [],
         osLogs: [],
         procs: [],
+        cardsPlayedThisTurn: 0,
         playerParty: [
             {
                 id: 'p1',
@@ -90,14 +94,14 @@ function createMockState(): IBattleState {
             drawpile: [
                 { id: 'h4', dataId: 'scratch', currentCost: 1, isPlayable: true }
             ],
-            discard: []
+            discard: [], exhaust: []
         },
         enemyDeck: {
             ownerId: 'ENEMY',
             deck: [],
             drawpile: [],
             hand: [],
-            discard: []
+            discard: [], exhaust: []
         },
         levelUpQueue: []
     };

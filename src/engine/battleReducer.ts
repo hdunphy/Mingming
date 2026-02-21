@@ -19,6 +19,8 @@ import { GetProgramData } from './data/programRegistry';
 import { getOSBehavior } from './data/firmwareRegistry';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { drawCards, discardHand } from './deckLogic';
+import { ActionExecutorRegistry } from './actions/ActionExecutors';
+import { ConditionValidator } from './core/ConditionValidator';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -83,51 +85,7 @@ export function validateSingleConstraint(
     subject: IBattleEntity,
     cost: number
 ): boolean {
-
-
-    switch (constraint.type) {
-        case 'HAS_STATUS':
-            const hasStatus = subject.statusEffects.some(s => s.type === constraint.value);
-            if (!hasStatus) {
-                return false;
-            }
-            break;
-
-        case 'HEALTH_THRESHOLD':
-            // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
-            if (typeof constraint.value !== 'string') break;
-            const [op, valStr] = constraint.value.split(':');
-            const threshold = parseInt(valStr);
-            const hpPercent = (subject.currentHp / subject.maxHp) * 100;
-
-            if (op === 'LT' && hpPercent >= threshold) {
-                return false;
-            }
-            if (op === 'GT' && hpPercent <= threshold) {
-                return false;
-            }
-            break;
-
-        case 'BASE':
-            // 1. Base Energy Check
-            if (source.currentEnergy < cost) {
-                return false;
-            }
-            break;
-
-        case 'NOT_STATUS':
-            const hasBlockingStatus = subject.statusEffects.some(s => s.type === constraint.value);
-            if (hasBlockingStatus) {
-                return false;
-            }
-            break;
-
-        default:
-            console.warn(`Unknown constraint type: ${constraint.type}`);
-            break;
-    }
-
-    return true;
+    return ConditionValidator.evaluateCardConstraint(constraint, source, subject, cost);
 }
 
 /**
@@ -169,7 +127,7 @@ export function validateProgramConstraints(
 /**
  * Applies a list of mutations to the state in a single atomic update.
  */
-import { applyMutations, executeResolutionStack, executeDraw } from './resolutionEngine';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated } from './resolutionEngine';
 
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
@@ -208,7 +166,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     newHand.splice(cardIndex, 1);
 
     const isDaemon = programData.category === 'Daemon';
-    const newDiscard = isDaemon ? [...snapshot[activeDeckKey].discard] : [...snapshot[activeDeckKey].discard, card];
+    const isExhaust = programData.exhaust || programData.isToken;
+    const newDiscard = (isDaemon || isExhaust) ? [...snapshot[activeDeckKey].discard] : [...snapshot[activeDeckKey].discard, card];
 
     snapshot = {
         ...snapshot,
@@ -226,7 +185,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             ...snapshot[activeDeckKey],
             hand: newHand,
             discard: newDiscard
-        }
+        },
+        cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1
     };
 
     // 4. Initial Context
@@ -264,9 +224,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     let finalState = snapshot;
     if (programData.actions) {
         for (const action of programData.actions) {
-            const hits = action.count || 1;
+            //TODO: we don't need a hit count we can just loop through the actions array.
+            const hitCount = (action as any).count || 1;
 
-            for (let i = 0; i < hits; i++) {
+            for (let i = 0; i < hitCount; i++) {
                 // Target Resolution (per hit)
                 let targetIds: string[] = [];
                 if (action.target === 'SELF' || action.target === 'Self') {
@@ -283,6 +244,19 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
                     if (!currentTarget || currentTarget.currentHp <= 0) continue;
 
+                    // Action-level Conditionals
+                    if (action.conditionals) {
+                        let allMet = true;
+                        for (const constraint of action.conditionals) {
+                            const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
+                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                                allMet = false;
+                                break;
+                            }
+                        }
+                        if (!allMet) continue;
+                    }
+
                     // Modifier Phase
                     const hitContext = { ...context, target: currentTarget, state: finalState };
                     const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
@@ -290,51 +264,11 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     finalState = afterMod;
 
                     // Execution
-                    if (action.type === 'DRAW') {
-                        const isPlayerSource = snapshot.playerParty.some(e => e.id === sourceId);
-                        const side = isPlayerSource ? 'PLAYER' : 'ENEMY';
-                        finalState = executeDraw(finalState, side, action.count || 1, false, sourceId);
-                    } else if (action.type === 'STATUS' || action.type === 'APPLY_STATUS') {
-                        finalState = applyMutations(finalState, [{
-                            type: 'STATUS',
-                            targetId: tId,
-                            sourceId: sourceId,
-                            payload: {
-                                status: action.status,
-                                stacks: action.stacks || 1
-                            }
-                        }]);
-                    } else if (action.type === 'ATTACK') {
-                        // For ATTACK, we still want to use handleAttack for all the logic?
-                        // Actually, handleAttack already has a lot of logic.
-                        // But we want it to be a mutation.
-                        // Let's just use effectHandlers for now but ensure onActionStart covers others.
-                        // Wait, Fenrir v2 is specifically about STATUS.
-                        const handler = effectHandlers[action.type];
-                        if (handler) {
-                            finalState = handler(finalState, {
-                                sourceId,
-                                targetId: tId,
-                                power: action.power || 0,
-                                count: 1, // Single discrete hit
-                                element: action.element || programData.element,
-                                program: programData
-                            });
-                        }
+                    const executor = ActionExecutorRegistry[action.type];
+                    if (executor) {
+                        finalState = executor.execute(finalState, sourceId, tId, action as any, programData, hitContext);
                     } else {
-                        const handler = effectHandlers[action.type];
-                        if (handler) {
-                            finalState = handler(finalState, {
-                                sourceId,
-                                targetId: tId,
-                                power: action.power || 0,
-                                count: 1, // Single discrete hit
-                                element: action.element || programData.element,
-                                status: action.status,
-                                stacks: action.stacks || 1,
-                                program: programData
-                            });
-                        }
+                        console.warn(`[BattleReducer] No executor found for action type: ${action.type}`);
                     }
 
                     // Post-Damage Phase
@@ -388,7 +322,7 @@ function handleEndTurn(state: IBattleState): IBattleState {
     newState = processPreTurn(newState);
 
     // Set Phase to ACTION for the next player
-    newState = { ...newState, phase: 'ACTION' as TurnPhase };
+    newState = { ...newState, phase: 'ACTION' as TurnPhase, cardsPlayedThisTurn: 0 };
 
     return newState;
 }
@@ -425,19 +359,49 @@ function processPostTurn(state: IBattleState): IBattleState {
             const behavior = getStatusBehavior(effect.type);
             const result = behavior.endTurn(effect, entity);
 
+            let damage = result.damage;
+
+            // Apply scaling hooks (e.g., Thermal Overload boosting Burn damage)
+            if (damage > 0) {
+                const context: HookContext = {
+                    source: undefined, // System or self?
+                    target: entity,
+                    state: state,
+                    triggerDepth: 0
+                };
+
+                // We use calculateStatusDamage naming or just reuse the logic
+                // For simplicity, let's call it 'onStatusDamageCalculated'
+                const { state: _, damage: finalDamage } = executeStatusDamageCalculated(state, entity, damage, effect.type);
+                damage = finalDamage;
+            }
+
             // Apply damage
-            if (result.damage > 0) {
-                currentHp = Math.max(0, currentHp - result.damage);
+            if (damage > 0) {
+                currentHp = Math.max(0, currentHp - damage);
 
                 if (currentHp <= 0) {
                     defeatedThisTurn.push(entity.id);
                 }
 
+                statusLogs.push(`  → ${entity.name} takes ${damage} damage from ${effect.type}`);
+
                 globalBattleEventBus.emit({
                     type: 'DAMAGE_TAKEN',
                     targetId: entity.id,
-                    amount: result.damage,
+                    amount: damage,
                     element: effect.type === 'Burn' ? 'Fire' : 'None',
+                    timestamp: Date.now()
+                });
+            }
+
+            // Apply healing
+            if (result.healing && result.healing > 0) {
+                currentHp = Math.min(entity.maxHp, currentHp + result.healing);
+                globalBattleEventBus.emit({
+                    type: 'HEAL',
+                    targetId: entity.id,
+                    amount: result.healing,
                     timestamp: Date.now()
                 });
             }
@@ -457,6 +421,14 @@ function processPostTurn(state: IBattleState): IBattleState {
                     status: effect.type,
                     timestamp: Date.now()
                 });
+
+                // If Asleep wore off naturally, apply Awoken protection
+                if (effect.type === 'Asleep') {
+                    const awokenBehavior = getStatusBehavior('Awoken');
+                    const awokenApply = awokenBehavior.onApply(newEffects, 1, entity);
+                    newEffects.push(...awokenApply.updatedEffects.filter(s => s.type === 'Awoken'));
+                    statusLogs.push(...awokenApply.logs);
+                }
             }
 
             // Collect logs
@@ -485,9 +457,9 @@ function processPostTurn(state: IBattleState): IBattleState {
         nextState = addLog(nextState, `  ☠️ ${name} DEFEATED BY STATUS`);
     }
 
-    // 3. Trigger onTurnEnd Hooks
-    const entities = [...nextState.playerParty, ...nextState.enemyParty].filter(e => e.currentHp > 0);
-    for (const entity of entities) {
+    // 3. Trigger onTurnEnd Hooks (ONLY for the side whose turn just ended)
+    const candidates = [...nextState[activePartyKey]].filter(e => e.currentHp > 0);
+    for (const entity of candidates) {
         const { state: afterTurnEnd } = executeResolutionStack(nextState, 'onTurnEnd', {
             source: entity,
             state: nextState,
@@ -521,12 +493,17 @@ function processPreTurn(state: IBattleState): IBattleState {
     });
 
     // 2. Reset Energy & Handle Statuses
-    //Todo: Asleep still has energy and can use cards. Most cards will have the constraint on them that the 
-    // unit must not be asleep to play them. 
-    const refreshedParty = activeParty.map(entity => ({
-        ...entity,
-        currentEnergy: entity.maxEnergy
-    }));
+    // Refill to max, then add Energized bonuses
+    const refreshedParty = activeParty.map(entity => {
+        const energizedEffect = entity.statusEffects.find(s => s.type === 'Energized');
+        const bonusEnergy = energizedEffect ? energizedEffect.stacks : 0;
+
+        return {
+            ...entity,
+            currentEnergy: entity.maxEnergy + bonusEnergy,
+            statusEffects: entity.statusEffects.filter(s => s.type !== 'Energized')
+        };
+    });
 
     // 3. Draw Cards — based on alive party members' cardDraw stats
     const aliveMembers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);

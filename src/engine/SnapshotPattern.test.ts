@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
-import { type IBattleState, type IBattleEntity, type ProgramData } from './types';
+import type { TurnPhase, IBattleEntity, ProgramEntity, IBattleState, ProgramData } from './types';
+import { globalBattleEventBus } from './events';
 import { registerHook, HookPriority } from './core/Hooks';
+import { applyMutations } from './resolutionEngine';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
@@ -33,13 +35,15 @@ function createMockState(): IBattleState {
 
     return {
         sessionId: 'test', seed: '123', turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
+        activeRelics: [],
         playerParty: [p1], enemyParty: [e1],
-        playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [] },
-        enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [] },
+        playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
+        enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         logs: [],
         osLogs: [],
         procs: [],
-        levelUpQueue: []
+        levelUpQueue: [],
+        cardsPlayedThisTurn: 0
     };
 }
 
@@ -50,8 +54,8 @@ describe('Snapshot Pattern & Priority Layers', () => {
         registerHook({
             id: cancelHook,
             priority: HookPriority.SYSTEM,
-            onActionStart: (_context) => {
-                return { mutations: [], isCancelled: true };
+            onActionStart: (context) => {
+                return { mutations: [], isCancelled: true, state: context.state };
             }
         });
 
@@ -92,11 +96,11 @@ describe('Snapshot Pattern & Priority Layers', () => {
             onPostDamage: (context) => {
                 thornsTriggered++;
                 return {
-                    mutations: [{
+                    state: applyMutations(context.state, [{
                         type: 'HP',
                         targetId: context.source!.id,
-                        payload: { amount: 5 }
-                    }],
+                        payload: { amount: 5, isHeal: false }
+                    }])
                 };
             }
         });
@@ -129,11 +133,11 @@ describe('Snapshot Pattern & Priority Layers', () => {
         registerHook({
             id: loopHook,
             priority: HookPriority.PROGRAM,
-            onActionStart: (_context) => {
+            onActionStart: (context) => {
                 executionCount++;
                 // Simulate manual recursion by calling handlePlayProgram or just verify depth check
                 // In a unit test, we can just call executeResolutionStack with high depth
-                return { mutations: [] };
+                return { mutations: [], state: context.state };
             }
         });
 

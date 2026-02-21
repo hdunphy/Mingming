@@ -32,13 +32,15 @@ function createMockState(): IBattleState {
 
     return {
         sessionId: 'test', seed: '123', turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
+        activeRelics: [],
         playerParty: [p1], enemyParty: [e1],
-        playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [] },
-        enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [] },
+        playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
+        enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         logs: [],
         osLogs: [],
         procs: [],
-        levelUpQueue: []
+        levelUpQueue: [],
+        cardsPlayedThisTurn: 0
     };
 }
 

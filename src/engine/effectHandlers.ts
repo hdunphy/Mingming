@@ -18,7 +18,8 @@ export const effectHandlers: Record<string, EffectHandler> = {
     'ATTACK': handleAttack,
     'HEAL': handleHealEffect,
     'APPLY_STATUS': handleApplyStatus,
-    'DRAW': handleDraw
+    'GENERATE_CARD': handleGenerateCard,
+    'CLEANSE': handleCleanse
 };
 
 // --- XP Helpers ---
@@ -111,7 +112,7 @@ function addExperience(state: IBattleState, entityId: string, amount: number): I
 }
 
 
-function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number; program?: ProgramData }): IBattleState {
+function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number; program?: ProgramData; action?: any }): IBattleState {
     const { sourceId, targetId, power, element, damageOverride } = payload;
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
@@ -128,6 +129,14 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     } else if (source) {
         const programToUse = payload.program || ({ element: element } as ProgramData);
         damage = calculateDamage(source, target, programToUse, power, state);
+
+        //Is this the best place to keep scaling logic? We might end up with more. TBD
+        // Scaling logic (e.g., Seed Bomb)
+        if (payload.action?.scaling === 'CARDS_PLAYED') {
+            const multiplier = state.cardsPlayedThisTurn;
+            damage = Math.floor(damage * multiplier);
+            // Use addLog indirectly or just track for logging if needed
+        }
     }
 
     // Apply Damage
@@ -178,6 +187,15 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         playerParty: updateParty(state.playerParty),
         enemyParty: updateParty(state.enemyParty)
     } as IBattleState;
+
+    if (wakesUp) {
+        // Apply Awoken immediately
+        newState = handleApplyStatus(newState, {
+            targetId: target.id,
+            status: 'Awoken',
+            stacks: 1
+        });
+    }
 
     newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
 
@@ -377,21 +395,62 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 }
 
 
-// ... imports ...
+// Removing dead code `handleDraw` and `handleRemoveStatus`
 
-function handleDraw(state: IBattleState, payload: { sourceId: string; targetId: string; count: number }): IBattleState {
-    const { count, sourceId } = payload;
+function handleCleanse(state: IBattleState, payload: { targetId: string; statusTarget?: StatusType }): IBattleState {
+    const { targetId, statusTarget } = payload;
+    let newState = state;
 
-    // Draw into the deck of the side that owns the source (the caster)
+    const isDebuff = (status: StatusType) => {
+        return ['Poison', 'Burn', 'Weakened', 'Bleed', 'Dazed', 'Stunned', 'Asleep'].includes(status);
+    };
+
+    const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+        party.map(e => {
+            if (e.id !== targetId) return e;
+            const newStatus = e.statusEffects.filter(s => {
+                if (statusTarget) return s.type !== statusTarget;
+                return !isDebuff(s.type); // If none specified, cleanse all debuffs
+            });
+            return { ...e, statusEffects: newStatus };
+        });
+
+    newState = {
+        ...state,
+        playerParty: updateParty(state.playerParty),
+        enemyParty: updateParty(state.enemyParty)
+    };
+
+    const target = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+    if (target) {
+        newState = addLog(newState, `  ✨ ${target.name} was cleansed!`);
+    }
+
+    return newState;
+}
+
+function handleGenerateCard(state: IBattleState, payload: { sourceId: string; dataId: string }): IBattleState {
+    const { sourceId, dataId } = payload;
     const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
     const deckKey = isPlayerSource ? 'playerDeck' : 'enemyDeck';
+    const deck = state[deckKey];
 
-    // 2. Delegate to deckLogic (with Seed)
-    const { state: newDeckState, nextSeed } = drawCards(state[deckKey], count, state.seed);
+    if (deck.hand.length >= HAND_SIZE_LIMIT) {
+        return addLog(state, `  ⚠️ Hand full, cannot generate ${dataId}`);
+    }
+
+    const newCard = {
+        id: crypto.randomUUID(),
+        dataId: dataId,
+        currentCost: 0, // Generated tokens are usually 0 cost
+        isPlayable: true
+    };
 
     return {
         ...state,
-        seed: nextSeed,
-        [deckKey]: newDeckState
+        [deckKey]: {
+            ...deck,
+            hand: [...deck.hand, newCard]
+        }
     };
 }

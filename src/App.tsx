@@ -8,19 +8,23 @@ import SynthesisLab from './ui/screens/SynthesisLab'
 import HubScreen from './ui/screens/HubScreen'
 import MainMenuView from './ui/components/MainMenuView'
 import BalanceTester from './ui/screens/BalanceTester'
+import SectorTerminal from './ui/screens/SectorTerminal'
+import CardStudio from './ui/screens/CardStudio'
 
 import { loadGame } from './engine/SaveSystem'
 import { loadSave } from './ui/store/gameSlice'
 import type { RootState } from './ui/store/store'
 
-type Tab = 'hub' | 'battle' | 'deck' | 'roster' | 'lab' | 'balance';
+type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'balance' | 'studio';
 
 const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'hub', label: 'Hub', icon: '🏠' },
+  { id: 'terminal', label: 'Terminal', icon: '📟' },
   { id: 'deck', label: 'Deck', icon: '🃏' },
   { id: 'roster', label: 'Roster', icon: '🤖' },
   { id: 'lab', label: 'Lab', icon: '🔬' },
   { id: 'balance', label: 'Balance', icon: '⚖️' },
+  { id: 'studio', label: 'Studio', icon: '🏗️' },
 ];
 
 function App() {
@@ -63,10 +67,12 @@ function App() {
       {/* Screen Content */}
       <div className="screen-content">
         {activeTab === 'hub' && <HubScreen />}
+        {activeTab === 'terminal' && <SectorTerminal />}
         {activeTab === 'deck' && <DeckTerminal />}
         {activeTab === 'roster' && <RosterTerminal />}
         {activeTab === 'lab' && <SynthesisLab />}
         {activeTab === 'balance' && <BalanceTester />}
+        {activeTab === 'studio' && <CardStudio />}
       </div>
     </main>
   );

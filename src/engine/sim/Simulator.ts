@@ -43,16 +43,20 @@ export function simulate1v1(
     // Mock State for calculateDamage
     const mockState: IBattleState = {
         sessionId: 'sim',
-        seed: 0,
+        seed: '0',
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
+        activeRelics: [],
         logs: [],
         playerParty: [entityA],
         enemyParty: [entityB],
-        playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [] },
-        enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [] },
-        levelUpQueue: []
+        playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
+        enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
+        levelUpQueue: [],
+        cardsPlayedThisTurn: 0,
+        osLogs: [],
+        procs: []
     };
 
     // Assume attack element matches attacker's primary element
@@ -65,7 +69,8 @@ export function simulate1v1(
         category: 'Attack',
         baseCost: 1,
         constraints: [],
-        actions: []
+        actions: [],
+        rarity: 'Common'
     };
 
     const programB: ProgramData = {
@@ -77,7 +82,8 @@ export function simulate1v1(
         category: 'Attack',
         baseCost: 1,
         constraints: [],
-        actions: []
+        actions: [],
+        rarity: 'Common'
     };
 
     const damageA = calculateDamage(entityA, entityB, programA, power, mockState);

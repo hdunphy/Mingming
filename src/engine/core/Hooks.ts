@@ -57,5 +57,29 @@ export const applyDamageModifiers = (
         }
     });
 
+    // 4. Scans for Status Modifiers (Strengthened, Weakened, Sharp, Dazed)
+    // Source side (Attacker)
+    if (context.source) {
+        for (const effect of context.source.statusEffects) {
+            if (effect.type === 'Strengthened') {
+                damage *= (1 + (effect.stacks * 0.2));
+            } else if (effect.type === 'Weakened') {
+                damage *= Math.max(0.1, 1 - (effect.stacks * 0.2));
+            }
+        }
+    }
+
+    // Target side (Defender)
+    if (context.target) {
+        for (const effect of context.target.statusEffects) {
+            if (effect.type === 'Dazed') {
+                damage *= (1 + (effect.stacks * 0.2));
+            } else if (effect.type === 'Sharp') {
+                //sharp reduces incoming damage.
+                damage *= Math.max(0.1, 1 - (effect.stacks * 0.2));
+            }
+        }
+    }
+
     return Math.floor(damage);
 };

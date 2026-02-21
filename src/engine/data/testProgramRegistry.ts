@@ -16,6 +16,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
             { type: 'ATTACK', power: 20, target: 'TARGET' },
             { type: 'HEAL', power: 40, target: 'SELF' }
         ],
+        rarity: 'Common'
     },
     'prog_adrenaline': {
         id: 'prog_adrenaline',
@@ -30,6 +31,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
             ...STANDARD_CONSTRAINTS
         ],
         actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }],
+        rarity: 'Common'
     },
     'prog_kick': {
         id: 'prog_kick',
@@ -44,6 +46,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
             ...STANDARD_CONSTRAINTS
         ],
         actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }],
+        rarity: 'Common'
     },
     'card1': {
         id: 'card1',
@@ -55,6 +58,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 2,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }],
+        rarity: 'Common'
     },
     'card2': {
         id: 'card2',
@@ -66,6 +70,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }],
+        rarity: 'Common'
     },
     'card_e1': {
         id: 'card_e1',
@@ -77,6 +82,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }],
+        rarity: 'Common'
     },
     'card_fireball': {
         id: 'card_fireball',
@@ -91,6 +97,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
             { type: 'ATTACK', power: 20, target: 'TARGET' },
             { type: 'ATTACK', power: 20, target: 'TARGET' }
         ],
+        rarity: 'Common'
     },
     'card_multihit': {
         id: 'card_multihit',
@@ -102,8 +109,11 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 2,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [
-            { type: 'ATTACK', power: 10, target: 'TARGET', count: 3 }
+            { type: 'ATTACK', power: 10, target: 'TARGET' },
+            { type: 'ATTACK', power: 10, target: 'TARGET' },
+            { type: 'ATTACK', power: 10, target: 'TARGET' }
         ],
+        rarity: 'Common'
     },
     'card_strike': {
         id: 'card_strike',
@@ -115,6 +125,7 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }],
+        rarity: 'Common'
     },
     'card_0_cost_test': {
         id: 'card_0_cost_test',
@@ -126,6 +137,19 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 0,
         constraints: [],
         actions: [{ type: 'ATTACK', power: 0, target: 'TARGET' }],
+        rarity: 'Common'
+    },
+    'whirlpool': {
+        id: 'whirlpool',
+        name: 'Whirlpool',
+        description: 'Draw 2 cards.',
+        element: 'Water',
+        target: 'Single',
+        category: 'Skill',
+        baseCost: 1,
+        constraints: [],
+        actions: [{ type: 'DRAW', amount: 2 }],
+        rarity: 'Common'
     },
     'card_draw_test': {
         id: 'card_draw_test',
@@ -133,10 +157,11 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         description: 'Draw 1 card.',
         element: 'None',
         target: 'Single',
-        category: 'Special',
+        category: 'Skill',
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'DRAW', count: 1, target: 'SELF' }],
+        actions: [{ type: 'DRAW', amount: 1, target: 'SELF' }],
+        rarity: 'Common'
     },
     'card_burn_test': {
         id: 'card_burn_test',
@@ -144,10 +169,11 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         description: 'Apply 1 Burn.',
         element: 'Fire',
         target: 'Single',
-        category: 'Status',
+        category: 'Skill',
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'STATUS', status: StatusType.Burn, stacks: 1, target: 'TARGET' }],
+        rarity: 'Common'
     },
     'card_water_blast': {
         id: 'card_water_blast',
@@ -159,5 +185,6 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         baseCost: 3,
         constraints: [...STANDARD_CONSTRAINTS],
         actions: [{ type: 'ATTACK', power: 100, target: 'TARGET' }],
+        rarity: 'Rare'
     }
 };

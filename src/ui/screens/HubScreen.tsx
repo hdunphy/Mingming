@@ -14,9 +14,16 @@ const HubScreen: React.FC = () => {
     const deckCount = save.activeDeck?.cards.length || 0;
     const isDeckValid = deckCount >= MIN_DECK_SIZE;
 
+    const isGauntletActive = !!save.gauntlet;
+
     const handleStartEncounter = () => {
         const deckCount = save.activeDeck?.cards.length || 0;
         if (!activeMingming || deckCount < MIN_DECK_SIZE) return;
+
+        if (isGauntletActive) {
+            dispatch(startBattle({ save, enemyIds: [] }));
+            return;
+        }
 
         // Advantage logic: Fire -> Nature -> Water -> Fire
         // We spawn the one WEAK against the player
@@ -79,7 +86,7 @@ const HubScreen: React.FC = () => {
                         opacity: isDeckValid ? 1 : 0.5
                     }}
                 >
-                    {isDeckValid ? 'START ENCOUNTER' : `DECK TOO SMALL (${save.activeDeck?.cards.length || 0}/${MIN_DECK_SIZE})`}
+                    {isDeckValid ? (isGauntletActive ? `CONTINUE GAUNTLET (${save.gauntlet!.currentBattleIndex + 1}/${save.gauntlet!.totalBattles})` : 'START ENCOUNTER') : `DECK TOO SMALL (${save.activeDeck?.cards.length || 0}/${MIN_DECK_SIZE})`}
                 </motion.button>
 
                 {/* Info Panel */}

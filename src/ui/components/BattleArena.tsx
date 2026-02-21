@@ -14,8 +14,10 @@ import { battleReducer } from '../../engine/battleReducer';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import LevelUpOverlay from './LevelUpOverlay';
-import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats } from '../store/gameSlice';
+import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats, updateGauntlet, completeGauntlet, addRelic } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
+import { RelicRegistry } from '../../engine/data/relicRegistry';
+import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
@@ -96,6 +98,7 @@ const BattleArena: React.FC = () => {
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
+    const save = useSelector((state: RootState) => state.game);
 
     const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
     const [showTurnBanner, setShowTurnBanner] = useState(false);
@@ -247,10 +250,23 @@ const BattleArena: React.FC = () => {
     // Roll rewards on victory
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
-            const bundle = rollDropTable(battleState.enemyParty, rosterSize, battleState.seed);
+            let bundle = rollDropTable(battleState.enemyParty, rosterSize, battleState.seed);
+
+            // Check for Gauntlet completion to add Relic choices
+            if (save.gauntlet && save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
+                const allRelics = Object.keys(RelicRegistry);
+                const available = allRelics.filter(r => !save.relics.includes(r));
+
+                if (available.length > 0) {
+                    const prng = new PRNG(Date.now().toString());
+                    const { shuffled } = prng.shuffle(available);
+                    bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
+                }
+            }
+
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState?.enemyParty, battleState?.seed, rewardBundle, rosterSize]);
+    }, [isVictory, battleState?.enemyParty, battleState?.seed, rewardBundle, rosterSize, save.gauntlet, save.relics]);
 
     const handleDefeatReset = () => {
         deleteSave();
@@ -258,9 +274,22 @@ const BattleArena: React.FC = () => {
         window.location.reload();
     };
 
-    const handleContinue = (chosenCards: IOwnedProgram[]) => {
+    const handleContinue = (chosenCards: IOwnedProgram[], chosenRelic?: string) => {
         if (battleState) {
             dispatch(syncPartyStats(battleState.playerParty));
+
+            if (save.gauntlet) {
+                const persistedStats: Record<string, { hp: number, energy: number }> = {};
+                battleState.playerParty.forEach(p => {
+                    persistedStats[p.id] = { hp: p.currentHp, energy: p.currentEnergy };
+                });
+                dispatch(updateGauntlet({ persistedStats }));
+
+                // Auto-complete if finished
+                if (save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
+                    dispatch(completeGauntlet());
+                }
+            }
         }
         if (rewardBundle) {
             const finalBundle: IRewardBundle = {
@@ -268,6 +297,9 @@ const BattleArena: React.FC = () => {
                 cards: chosenCards
             };
             dispatch(applyRewardAction(finalBundle));
+            if (chosenRelic) {
+                dispatch(addRelic(chosenRelic));
+            }
         }
         dispatch(setBattleState(null as any));
     };
@@ -298,7 +330,7 @@ const BattleArena: React.FC = () => {
 
                     if (source && card) {
                         const programData = GetProgramData(card.dataId);
-                        const attackAction = programData.actions.find(a => a.type === 'DAMAGE');
+                        const attackAction = programData.actions.find(a => a.type === 'ATTACK');
                         if (attackAction) {
                             previewDamage = calculateDamage(source, entity, programData, attackAction.power || 0, battleState);
                         }
@@ -326,7 +358,7 @@ const BattleArena: React.FC = () => {
                             const isValidTarget =
                                 (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
                                 (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                (!isEnemy && cardData.category === 'Heal');
+                                (!isEnemy && cardData.actions.some(a => a.type === 'HEAL'));
 
                             if (isValidTarget) {
                                 // For Self cards, always target the source
@@ -354,7 +386,7 @@ const BattleArena: React.FC = () => {
                                         const canTarget =
                                             (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
                                             (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                            (!isEnemy && cardData.category === 'Heal');
+                                            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL'));
 
                                         if (canTarget) {
                                             dispatch(selectTarget(isTargeted ? null : entity.id));

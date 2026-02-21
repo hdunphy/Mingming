@@ -1,25 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDispatch, useSelector } from 'react-redux';
-import { applyRewardBundle } from '../store/gameSlice';
-import { setBattleState } from '../store/battleSlice';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
-import type { IMingmingState, IBattleEntity } from '../../engine/types';
-import { getExpForLevel } from '../../engine/types';
+import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { GetRelic } from '../../engine/data/relicRegistry';
+import ProgramCard from './ProgramCard';
 
 interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
-    onContinue: (chosenCards: IOwnedProgram[]) => void;
+    onContinue: (chosenCards: IOwnedProgram[], chosenRelic?: string) => void;
 }
 
 const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
+    const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
 
     const totalChoices = bundle.cardChoices.length;
     const selectedCount = Object.values(selections).filter(s => !!s).length;
-    const allSelected = selectedCount === totalChoices;
+    const allCardsSelected = selectedCount === totalChoices;
+
+    const needsRelic = !!bundle.relicChoices && bundle.relicChoices.length > 0;
+    const relicSelected = !needsRelic || selectedRelic !== null;
+    const canContinue = allCardsSelected && relicSelected;
 
     const xpPerMember = winners.length > 0 ? Math.floor(bundle.totalXP / winners.length) : 0;
 
@@ -28,8 +31,9 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     };
 
     const handleFinalize = () => {
+        if (!canContinue) return;
         const chosen = Object.values(selections).filter((s): s is IOwnedProgram => !!s);
-        onContinue(chosen);
+        onContinue(chosen, selectedRelic || undefined);
     };
 
     return (
@@ -79,12 +83,27 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                 <span style={{ color: '#ccc' }}>Scraps Recovered</span>
                                 <span style={{ color: '#00ffaa', fontWeight: 'bold', fontSize: '1.2rem' }}>+{bundle.scraps}</span>
                             </div>
-                            {bundle.blueprints.map((bp, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <span style={{ color: '#ccc', fontSize: '0.85rem' }}>{bp.name}</span>
-                                    <span style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '0.8rem' }}>ACQUIRED</span>
+                            {bundle.blueprints.length > 0 && (
+                                <div style={{
+                                    marginTop: '15px',
+                                    padding: '12px',
+                                    background: 'rgba(255, 0, 255, 0.1)',
+                                    border: '1px solid #ff00ff',
+                                    borderRadius: '6px',
+                                    animation: 'pulse-glow 2s infinite'
+                                }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#ff00ff', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
+                                        New Blueprint Detected
+                                    </div>
+                                    {bundle.blueprints.map((bp, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{bp.name}</span>
+                                            <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>ACQUIRED</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+
                         </div>
 
                         <div className="xp-distribution-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
@@ -109,31 +128,51 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                         <p style={{ margin: '-10px 0 10px', fontSize: '0.8rem', color: '#666' }}>PICK ONE PER DEFEATED UNIT</p>
 
                         <div style={{ flex: 1, overflowY: 'auto', maxHeight: '400px', paddingRight: '10px' }}>
+                            {/* Relic Choices */}
+                            {needsRelic && (
+                                <div style={{ marginBottom: '25px', padding: '15px', background: 'rgba(255,165,0,0.1)', borderRadius: '8px', border: '1px solid rgba(255,165,0,0.5)' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#ffa500', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase' }}>CHOOSE ONE SECTOR RELIC</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                        {bundle.relicChoices!.map((relicId) => {
+                                            const relic = GetRelic(relicId);
+                                            const isSelected = selectedRelic === relicId;
+                                            return (
+                                                <div
+                                                    key={relicId}
+                                                    onClick={() => setSelectedRelic(relicId)}
+                                                    style={{
+                                                        padding: '15px',
+                                                        background: isSelected ? 'rgba(255,165,0,0.3)' : 'rgba(0,0,0,0.4)',
+                                                        border: `2px solid ${isSelected ? '#ffa500' : 'rgba(255,255,255,0.1)'}`,
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        textAlign: 'center'
+                                                    }}
+                                                >
+                                                    <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>🏆</div>
+                                                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px' }}>{relic.name}</div>
+                                                    <div style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: '1.4' }}>{relic.description}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {bundle.cardChoices.map((choice, choiceIdx) => (
                                 <div key={choiceIdx} style={{ marginBottom: '25px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                     <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase' }}>Source: {choice.sourceEntityName}</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                        {choice.options.map((opt, optIdx) => {
+                                        {choice.options.map((opt) => {
                                             const data = GetProgramData(opt.dataId);
                                             const isSelected = selections[choiceIdx]?.instanceId === opt.instanceId;
                                             return (
-                                                <div
-                                                    key={optIdx}
+                                                <ProgramCard
+                                                    key={opt.instanceId}
+                                                    data={data}
+                                                    isSelected={isSelected}
                                                     onClick={() => handleSelect(choiceIdx, opt)}
-                                                    style={{
-                                                        padding: '10px',
-                                                        background: isSelected ? 'rgba(0, 210, 255, 0.15)' : '#222',
-                                                        border: `1px solid ${isSelected ? '#00d2ff' : 'rgba(255,255,255,0.1)'}`,
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        textAlign: 'center',
-                                                        transition: 'all 0.2s',
-                                                        boxShadow: isSelected ? '0 0 10px rgba(0, 210, 255, 0.3)' : 'none'
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: isSelected ? '#00d2ff' : '#ccc' }}>{data.name}</div>
-                                                    <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '4px' }}>{data.element}</div>
-                                                </div>
+                                                />
                                             );
                                         })}
                                     </div>
@@ -144,25 +183,25 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px', gap: '10px' }}>
-                    {!allSelected && totalChoices > 0 && (
+                    {!canContinue && totalChoices > 0 && (
                         <div style={{ color: '#ff4444', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                            UNRESOLVED CHOICE: {totalChoices - selectedCount} UNITS REMAINING
+                            UNRESOLVED CHOICES REMAINING
                         </div>
                     )}
                     <button
                         onClick={handleFinalize}
-                        disabled={!allSelected && totalChoices > 0}
+                        disabled={!canContinue}
                         className="action-button"
                         style={{
                             padding: '15px 80px',
                             fontSize: '1.4rem',
                             fontWeight: '900',
-                            background: allSelected || totalChoices === 0 ? '#00d2ff' : '#333',
-                            color: allSelected || totalChoices === 0 ? '#000' : '#666',
+                            background: canContinue ? '#00d2ff' : '#333',
+                            color: canContinue ? '#000' : '#666',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: allSelected || totalChoices === 0 ? 'pointer' : 'not-allowed',
-                            boxShadow: allSelected ? '0 0 20px rgba(0, 210, 255, 0.4)' : 'none'
+                            cursor: canContinue ? 'pointer' : 'not-allowed',
+                            boxShadow: canContinue ? '0 0 20px rgba(0, 210, 255, 0.4)' : 'none'
                         }}
                     >
                         CONTINUE SYNCHRONIZATION

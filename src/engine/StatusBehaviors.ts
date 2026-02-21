@@ -25,6 +25,8 @@ export interface EndTurnResult {
     readonly updatedInstance: StatusEffectInstance | null;
     /** Damage dealt this tick */
     readonly damage: number;
+    /** Healing received this tick */
+    readonly healing?: number;
     /** Defense shred amount */
     readonly defenseShred: number;
     /** Log messages */
@@ -98,7 +100,7 @@ class PermanentStatusBehavior extends StatusBehavior {
 
     endTurn(instance: StatusEffectInstance, _entity: IBattleEntity): EndTurnResult {
         // Permanent — no change, no damage
-        return { updatedInstance: instance, damage: 0, defenseShred: 0, logs: [] };
+        return { updatedInstance: instance, damage: 0, healing: 0, defenseShred: 0, logs: [] };
     }
 }
 
@@ -161,7 +163,7 @@ class BurnBehavior extends StatusBehavior {
         }
 
         // Permanent — never removed
-        return { updatedInstance: instance, damage, defenseShred, logs };
+        return { updatedInstance: instance, damage, healing: 0, defenseShred, logs };
     }
 }
 
@@ -199,12 +201,13 @@ class PoisonBehavior extends StatusBehavior {
 
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — Poison wore off`);
-            return { updatedInstance: null, damage, defenseShred: 0, logs };
+            return { updatedInstance: null, damage, healing: 0, defenseShred: 0, logs };
         }
 
         return {
             updatedInstance: { ...instance, stacks: newStacks },
             damage,
+            healing: 0,
             defenseShred: 0,
             logs
         };
@@ -218,7 +221,11 @@ const ASLEEP_INITIAL_STACKS = 3;
 class AsleepBehavior extends StatusBehavior {
     readonly type = 'Asleep' as const;
 
-    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        if (target.statusEffects.some(s => s.type === 'Awoken')) {
+            return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  ✨ ${target.name} is Awoken and cannot be put to sleep!`] };
+        }
+
         const effects = [...currentEffects];
         const existingIdx = effects.findIndex(s => s.type === 'Asleep');
 
@@ -238,15 +245,46 @@ class AsleepBehavior extends StatusBehavior {
 
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — woke up!`);
-            return { updatedInstance: null, damage: 0, defenseShred: 0, logs };
+            // When waking up naturally, we don't apply Awoken here (usually handled by endTurn process applying new statuses?)
+            // Actually, let's return a mutation or apply it in endTurn? 
+            // Better to handle it in battleReducer or effectHandlers when the status is removed.
+            return { updatedInstance: null, damage: 0, healing: 0, defenseShred: 0, logs };
         }
 
         logs.push(`  💤 ${entity.name} — Asleep (${newStacks} turn${newStacks !== 1 ? 's' : ''} left)`);
         return {
             updatedInstance: { ...instance, stacks: newStacks },
             damage: 0,
+            healing: 0,
             defenseShred: 0,
             logs
+        };
+    }
+}
+
+// --- Awoken (1-turn immunity to Sleep) ---
+
+class AwokenBehavior extends StatusBehavior {
+    readonly type = 'Awoken' as const;
+
+    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const effects = [...currentEffects];
+        const existingIdx = effects.findIndex(s => s.type === 'Awoken');
+
+        if (existingIdx === -1) {
+            effects.push(this.createInstance(1));
+        }
+
+        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
+    }
+
+    endTurn(_instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
+        return {
+            updatedInstance: null,
+            damage: 0,
+            healing: 0,
+            defenseShred: 0,
+            logs: [`  ✨ ${entity.name}'s Awoken protection wore off`]
         };
     }
 }
@@ -274,9 +312,76 @@ class StunnedBehavior extends StatusBehavior {
         return {
             updatedInstance: null,
             damage: 0,
+            healing: 0,
             defenseShred: 0,
             logs: [`  ✅ ${entity.name} — Stunned wore off`]
         };
+    }
+}
+
+// --- Regen (Decrementing + Healing) ---
+
+class RegenBehavior extends StatusBehavior {
+    readonly type = 'Regen' as const;
+
+    onApply(currentEffects: StatusEffectInstance[], incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const effects = [...currentEffects];
+        const existingIdx = effects.findIndex(s => s.type === 'Regen');
+
+        if (existingIdx !== -1) {
+            const existing = effects[existingIdx];
+            effects[existingIdx] = { ...existing, stacks: existing.stacks + incomingStacks };
+        } else {
+            effects.push(this.createInstance(incomingStacks));
+        }
+
+        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
+    }
+
+    endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
+        const healAmount = 5; // 5 HP per stack? Or just 5 total? User said "it should give HP every turn". 
+        // Let's do 5 HP per stack as a baseline for scaling.
+        const healing = healAmount * instance.stacks;
+        const newStacks = instance.stacks - 1;
+        const logs: string[] = [`  💚 ${entity.name} — Regen heals ${healing} HP (${instance.stacks} → ${newStacks} stacks)`];
+
+        if (newStacks <= 0) {
+            logs.push(`  ✅ ${entity.name} — Regen wore off`);
+            return { updatedInstance: null, damage: 0, healing, defenseShred: 0, logs };
+        }
+
+        return {
+            updatedInstance: { ...instance, stacks: newStacks },
+            damage: 0,
+            healing,
+            defenseShred: 0,
+            logs
+        };
+    }
+}
+
+// --- Energized (Persistent stacking, consumed at turn start) ---
+
+class EnergizedBehavior extends StatusBehavior {
+    readonly type = 'Energized' as const;
+
+    onApply(currentEffects: StatusEffectInstance[], incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const effects = [...currentEffects];
+        const existingIdx = effects.findIndex(s => s.type === 'Energized');
+
+        if (existingIdx !== -1) {
+            const existing = effects[existingIdx];
+            effects[existingIdx] = { ...existing, stacks: existing.stacks + incomingStacks };
+        } else {
+            effects.push(this.createInstance(incomingStacks));
+        }
+
+        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
+    }
+
+    endTurn(instance: StatusEffectInstance, _entity: IBattleEntity): EndTurnResult {
+        // Persistent until naturally consumed at turn start
+        return { updatedInstance: instance, damage: 0, healing: 0, defenseShred: 0, logs: [] };
     }
 }
 
@@ -291,7 +396,9 @@ const BEHAVIOR_REGISTRY: Record<StatusType, StatusBehavior> = {
     'Weakened': new PermanentStatusBehavior('Weakened'),
     'Dazed': new PermanentStatusBehavior('Dazed'),
     'Sharp': new PermanentStatusBehavior('Sharp'),
-    'Regen': new PermanentStatusBehavior('Regen'),
+    'Regen': new RegenBehavior(),
+    'Awoken': new AwokenBehavior(),
+    'Energized': new EnergizedBehavior(),
 };
 
 export function getStatusBehavior(type: StatusType): StatusBehavior {

@@ -3,7 +3,8 @@ import { globalBattleEventBus } from './events';
 import { HookPriority, type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
-import { drawCards } from './deckLogic';
+import { drawCards, discardCard, exhaustCard, returnCard, searchCard } from './deckLogic';
+import { PRNG } from './core/PRNG';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -26,11 +27,33 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                         healOverride: mutation.payload.amount
                     });
                 } else {
+                    const target = newState.playerParty.find(e => e.id === mutation.targetId) || newState.enemyParty.find(e => e.id === mutation.targetId);
+                    let amount = mutation.payload.amount;
+
+                    if (target && target.currentHp - amount <= 0 && newState.activeRelics.includes('buffer_cache')) {
+                        // Check if it's a player unit (optional? description says "a Mingming")
+                        const isPlayerUnit = newState.playerParty.some(e => e.id === target.id);
+                        if (isPlayerUnit) {
+                            amount = target.currentHp - 1;
+                            newState = addLog(newState, `🛡️ [BUFFER CACHE] ${target.name} stayed at 1 HP!`);
+
+                            // To make it once per battle, we could remove it from activeRelics, 
+                            // but the description says "The first time a Mingming would be knocked out".
+                            // If we have 3 Mingmings, does it apply to each? 
+                            // "The first time A Mingming" usually means the first one to hit 0.
+                            // Let's remove it from activeRelics to make it truly once-per-battle.
+                            newState = {
+                                ...newState,
+                                activeRelics: newState.activeRelics.filter(r => r !== 'buffer_cache')
+                            };
+                        }
+                    }
+
                     newState = effectHandlers['ATTACK'](newState, {
                         sourceId: 'SYSTEM',
                         targetId: mutation.targetId,
                         power: 0,
-                        damageOverride: mutation.payload.amount,
+                        damageOverride: amount,
                         element: mutation.payload.element || 'None'
                     });
                 }
@@ -84,6 +107,76 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
             case 'EVENT':
                 globalBattleEventBus.emit(mutation.payload);
                 break;
+            case 'GENERATE_CARD':
+                newState = effectHandlers['GENERATE_CARD'](newState, {
+                    sourceId: mutation.sourceId || 'SYSTEM',
+                    dataId: mutation.payload.dataId
+                });
+                break;
+            case 'CLEANSE':
+                newState = effectHandlers['CLEANSE'](newState, {
+                    targetId: mutation.targetId,
+                    statusTarget: mutation.payload.statusTarget
+                });
+                break;
+            case 'DISCARD': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+                const amount = mutation.payload.amount;
+                const isRandom = mutation.payload.isRandom;
+
+                let toDiscard = [...deck.hand];
+                if (isRandom) {
+                    const prng = new PRNG(newState.seed);
+                    const { shuffled, nextSeed } = prng.shuffle(toDiscard);
+                    toDiscard = shuffled.slice(0, amount);
+                    newState = { ...newState, seed: nextSeed };
+                } else {
+                    toDiscard = toDiscard.slice(0, amount); // Top N cards
+                }
+
+                toDiscard.forEach(c => {
+                    deck = discardCard(deck, c.id);
+                });
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'EXHAUST': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+
+                let toExhaust = deck.hand.slice(0, mutation.payload.amount);
+                toExhaust.forEach(c => {
+                    deck = exhaustCard(deck, c.id, 'HAND');
+                });
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'RETURN': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+
+                let sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
+                let sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
+                let toReturn = sourcePile.slice(0, mutation.payload.amount);
+
+                toReturn.forEach(c => {
+                    deck = returnCard(deck, c.id, sourcePileStr as any, mutation.payload.destinationPile || 'HAND');
+                });
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'SEARCH': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+                deck = searchCard(deck, mutation.payload.amount, mutation.payload.criteria, true);
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
         }
     }
 
@@ -148,9 +241,7 @@ export function executeResolutionStack(
 
         const result: HookResult = handler({ ...initialContext, state: currentState }, pair.owner);
 
-        if (result.mutations.length > 0) {
-            currentState = applyMutations(currentState, result.mutations);
-        }
+        currentState = result.state;
 
         if (result.isCancelled) {
             isCancelled = true;
@@ -159,6 +250,61 @@ export function executeResolutionStack(
     }
 
     return { state: currentState, isCancelled };
+}
+
+/**
+ * Specifically for status damage scaling (unaffected by isCancelled usually).
+ */
+export function executeStatusDamageCalculated(
+    state: IBattleState,
+    target: IBattleEntity,
+    initialDamage: number,
+    _statusType: string
+): { state: IBattleState; damage: number } {
+    let currentState = state;
+    let damage = initialDamage;
+
+    // Use full party search for global/side-wide hooks
+    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
+
+    entities.forEach(e => {
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
+        if (e.activeOS) {
+            const os = getOSBehavior(e.activeOS);
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) data.hooks.forEach(h => entityHooks.add(h));
+            });
+        }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered.onStatusDamageCalculated) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
+    });
+
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
+
+    const context: HookContext = {
+        target,
+        state: currentState,
+        triggerDepth: 0
+    };
+
+    for (const pair of hookPairs) {
+        if (pair.hook.onStatusDamageCalculated) {
+            damage = pair.hook.onStatusDamageCalculated(damage, context, pair.owner);
+        }
+    }
+
+    return { state: currentState, damage: Math.floor(damage) };
 }
 
 /**

@@ -1,0 +1,32 @@
+{
+    "not_stunned": {
+        "type": "NOT_STATUS",
+        "target": "SELF",
+        "value": "Stunned"
+    },
+    "not_asleep": {
+        "type": "NOT_STATUS",
+        "target": "SELF",
+        "value": "Asleep"
+    },
+    "energy_base": {
+        "type": "BASE",
+        "target": "SELF",
+        "value": ""
+    },
+    "target_burned": {
+        "type": "HAS_STATUS",
+        "target": "TARGET",
+        "value": "Burn"
+    },
+    "target_dazed": {
+        "type": "HAS_STATUS",
+        "target": "TARGET",
+        "value": "Dazed"
+    },
+    "self_asleep": {
+        "type": "HAS_STATUS",
+        "target": "SELF",
+        "value": "Asleep"
+    }
+}
