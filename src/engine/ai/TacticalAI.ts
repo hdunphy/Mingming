@@ -148,6 +148,22 @@ function findBestSequence(
 }
 
 export function getBestAction(state: IBattleState): BattleAction {
+    // 1. First check if any entity on the active side has an intent to execute
+    // (Intents are generated in PRE_TURN for enemies)
+    const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const activeParty = state[activePartyKey];
+
+    // Find first alive unit with an intent that hasn't executed yet
+    for (const entity of activeParty) {
+        if (entity.currentHp > 0 && entity.currentIntent) {
+            return {
+                type: 'EXECUTE_INTENT',
+                payload: { sourceId: entity.id }
+            };
+        }
+    }
+
+    // 2. Fallback to normal tactical simulation if no intents, or if it's the Player's turn
     const MAX_DEPTH = 3; // Limit recursion to prevent hangs
 
     // Silence events during AI simulation to prevent log spam and side effects

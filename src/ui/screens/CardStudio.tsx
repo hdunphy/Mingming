@@ -18,7 +18,7 @@ const ACTION_WEIGHTS: Record<string, number> = {
     'ENERGY': 20,
 };
 
-const BUFFS = ['Strengthened', 'Regen', 'Energized', 'Awoken', 'Haste', 'Protected'];
+const BUFFS = ['Strengthened', 'Regen', 'Energized', 'Haste', 'Protected'];
 const DEBUFFS = ['Burn', 'Poison', 'Dazed', 'Stunned', 'Weakened', 'Asleep', 'Vulnerable'];
 
 const calculatePowerscale = (card: ProgramData): PowerscaleResult => {

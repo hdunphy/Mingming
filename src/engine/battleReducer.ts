@@ -21,6 +21,8 @@ import { effectHandlers, checkDefeat } from './effectHandlers';
 import { drawCards, discardHand } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
+import { PRNG } from './core/PRNG';
+import { GetMingmingData } from './data/mingmingRegistry';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -39,7 +41,8 @@ export type BattleAction =
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
-    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number } };
+    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number } }
+    | { type: 'EXECUTE_INTENT'; payload: { sourceId: string } };
 
 // --- Constants ---
 
@@ -72,6 +75,9 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
         case 'APPLY_STATUS':
             // Direct application via action (for testing or game logic)
             return effectHandlers['APPLY_STATUS'](state, action.payload);
+
+        case 'EXECUTE_INTENT':
+            return handleExecuteIntent(state, action.payload);
 
         default:
             return state;
@@ -282,6 +288,115 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     return finalState;
 }
 
+function handleExecuteIntent(state: IBattleState, payload: { sourceId: string }): IBattleState {
+    if (state.phase !== 'ACTION') return state;
+
+    const { sourceId } = payload;
+    const sourceIndex = state.enemyParty.findIndex(e => e.id === sourceId);
+    if (sourceIndex === -1) return state;
+
+    const sourceEntity = state.enemyParty[sourceIndex];
+    if (sourceEntity.currentHp <= 0 || !sourceEntity.currentIntent) return state;
+
+    const intent = sourceEntity.currentIntent;
+
+    // 1. Initial State Updates (clear the intent)
+    let snapshot: IBattleState = {
+        ...state,
+        enemyParty: state.enemyParty.map((e, idx) => idx === sourceIndex ? { ...e, currentIntent: null } : e) as ReadonlyArray<IBattleEntity>
+    };
+
+    // 2. Logging
+    snapshot = applyMutations(snapshot, [{
+        type: 'LOG',
+        targetId: '',
+        payload: `⚠️ ${sourceEntity.name} executes ${intent.name}!`
+    }]);
+
+    // Dummy ProgramData for hooks (if needed)
+    const dummyProgram: ProgramData = {
+        id: intent.id,
+        name: intent.name,
+        description: intent.intentType,
+        element: sourceEntity.primaryElement,
+        target: 'Single',
+        category: 'Attack',
+        rarity: 'Common',
+        baseCost: 0,
+        constraints: [],
+        actions: intent.actions
+    };
+
+    // 3. Action Execution loop
+    let finalState = snapshot;
+    for (const action of intent.actions) {
+        const hitCount = (action as any).count || 1;
+
+        for (let i = 0; i < hitCount; i++) {
+            // Target Selection Helper (Deterministic via lowest HP for single, Side/Self logic)
+            let targetIds: string[] = [];
+            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp'].includes((action as any).status));
+
+            if (action.target === 'SELF' || action.target === 'Self') {
+                targetIds = [sourceId];
+            } else if (action.target === 'Side' || action.target === 'All') {
+                const targetParty = isHealOrBuff ? finalState.enemyParty : finalState.playerParty;
+                targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
+            } else {
+                // Select single target -- Deterministic "Lowest HP" for enemies targeting player, or Lowest HP ally for heals
+                const targetParty = isHealOrBuff ? finalState.enemyParty : finalState.playerParty;
+                const aliveMembers = targetParty.filter(e => e.currentHp > 0);
+                if (aliveMembers.length > 0) {
+                    // Sorting by current HP (lowest first), then by ID to break ties deterministically
+                    const sorted = [...aliveMembers].sort((a, b) => {
+                        if (a.currentHp !== b.currentHp) return a.currentHp - b.currentHp;
+                        return a.id.localeCompare(b.id);
+                    });
+                    targetIds = [sorted[0].id];
+                }
+            }
+
+            for (const tId of targetIds) {
+                const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
+                if (!currentTarget || currentTarget.currentHp <= 0) continue;
+
+                // Action-level Conditionals
+                if (action.conditionals) {
+                    let allMet = true;
+                    for (const constraint of action.conditionals) {
+                        const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
+                        if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                            allMet = false;
+                            break;
+                        }
+                    }
+                    if (!allMet) continue;
+                }
+
+                // Modifier Phase
+                const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0 };
+                const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                if (hitCancelled) continue;
+                finalState = afterMod;
+
+                // Execution
+                const executor = ActionExecutorRegistry[action.type];
+                if (executor) {
+                    finalState = executor.execute(finalState, sourceId, tId, action as any, dummyProgram, hitContext);
+                } else {
+                    console.warn(`[BattleReducer] No executor found for intent action type: ${action.type}`);
+                }
+
+                // Post-Damage Phase
+                const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                finalState = afterPost;
+            }
+        }
+    }
+
+    return finalState;
+}
+
 function handleTransferEnergy(state: IBattleState, payload: { sourceId: string; targetId: string }): IBattleState {
     if (state.phase !== 'ACTION') return state;
 
@@ -422,12 +537,12 @@ function processPostTurn(state: IBattleState): IBattleState {
                     timestamp: Date.now()
                 });
 
-                // If Asleep wore off naturally, apply Awoken protection
-                if (effect.type === 'Asleep') {
-                    const awokenBehavior = getStatusBehavior('Awoken');
-                    const awokenApply = awokenBehavior.onApply(newEffects, 1, entity);
-                    newEffects.push(...awokenApply.updatedEffects.filter(s => s.type === 'Awoken'));
-                    statusLogs.push(...awokenApply.logs);
+                // Hard CC Recovery Logic -> 1 turn StableOS Immunity
+                if (effect.type === 'Asleep' || effect.type === 'Stunned') {
+                    const stableBehavior = getStatusBehavior('StableOS');
+                    const stableApply = stableBehavior.onApply(newEffects, 1, entity);
+                    newEffects.push(...stableApply.updatedEffects.filter(s => s.type === 'StableOS'));
+                    statusLogs.push(`  🛡️ ${entity.name} gained CC Immunity (StableOS)`);
                 }
             }
 
@@ -505,21 +620,55 @@ function processPreTurn(state: IBattleState): IBattleState {
         };
     });
 
-    // 3. Draw Cards — based on alive party members' cardDraw stats
+    // 3. Draw Cards for Player OR Generate Intents for Enemy
     const aliveMembers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);
-    const totalCardDraw = aliveMembers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveMembers.length + 1;
-    const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - activeDeck.hand.length);
-    console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
+    let newState = executeDraw(state, nextSide, 0, true);
 
-    let newState = executeDraw(state, nextSide, cardsToDraw, true);
+    if (nextSide === 'PLAYER') {
+        const totalCardDraw = aliveMembers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveMembers.length + 1;
+        const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - activeDeck.hand.length);
+        console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
+        newState = executeDraw(newState, nextSide, cardsToDraw, true);
+    }
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
+
+    // Deterministic PRNG for Intent selection based on seed and turn
+    const intentPrng = new PRNG(`${state.seed}_target_${nextTurn}`);
+
+    const finalParty = refreshedParty.map((entity: IBattleEntity) => {
+        if (nextSide === 'PLAYER' || entity.currentHp <= 0) return entity;
+
+        // Pick an Intent for the enemy
+        const definition = GetMingmingData(entity.definitionId);
+        const moves = definition.moves;
+        if (moves && moves.length > 0) {
+            // Pick a move pseudo-randomly using priority weighting
+            const prngResult = intentPrng.next(); // 0 to 1
+            const randVal = prngResult.value;
+
+            const totalWeight = moves.reduce((sum, move) => sum + move.priority, 0);
+            let threshold = randVal * totalWeight;
+            let selectedIntent = moves[moves.length - 1]; // Fallback to last move
+
+            for (const move of moves) {
+                threshold -= move.priority;
+                if (threshold <= 0) {
+                    selectedIntent = move;
+                    break;
+                }
+            }
+
+            return { ...entity, currentIntent: selectedIntent };
+        }
+        return entity;
+    });
 
     newState = {
         ...newState,
         activeSide: nextSide,
         turn: nextTurn,
-        [activePartyKey]: refreshedParty,
+        [activePartyKey]: finalParty,
     };
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);

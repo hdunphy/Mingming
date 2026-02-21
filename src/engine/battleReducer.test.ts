@@ -226,34 +226,30 @@ describe('Battle Reducer State Machine', () => {
         expect(p1.statusEffects[0].stacks).toBe(2); // 4 - 2 (remaining dazed)
     });
 
-    it('should draw cards from drawpile on PRE_TURN', () => {
-        // Setup state where Enemy has 1 card in drawpile
-        const enemyDrawpileCard: ProgramEntity = { id: 'd1', dataId: 'card_e1', currentCost: 1, isPlayable: true };
+    it('should generate intents for ENEMY on PRE_TURN', () => {
+        // Setup state where Enemy has a unit with moves
         const testState: IBattleState = {
             ...initialState,
-            enemyDeck: {
-                ...initialState.enemyDeck,
-                drawpile: [enemyDrawpileCard],
-                hand: []
-            }
+            enemyParty: [
+                {
+                    id: 'e1',
+                    currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Boss', hpIV: 0, attackIV: 0, defenseIV: 0,
+                    blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'fenrir', primaryElement: 'Fire',
+                    currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: []
+                } as IBattleEntity
+            ]
         };
 
-        // Player ends turn -> Enemy PRE_TURN -> Draw
+        // Player ends turn -> Enemy PRE_TURN -> Generate Intent
         const newState = battleReducer(testState, { type: 'END_TURN' } as BattleAction);
 
         // Enemy active
         expect(newState.activeSide).toBe('ENEMY');
-        // Check Enemy Hand
-        expect(newState.enemyDeck.hand.length).toBe(1);
-        expect(newState.enemyDeck.hand[0].id).toBe('d1');
-        // Check Enemy Drawpile empty
-        expect(newState.enemyDeck.drawpile.length).toBe(0);
 
-        // Check event
-        expect(globalBattleEventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'CARD_DRAWN',
-            ownerId: 'ENEMY',
-            cardId: 'card_e1'
-        }));
+        // Check Intent
+        const enemy = newState.enemyParty[0];
+        expect(enemy.currentIntent).toBeDefined();
+        expect(enemy.currentIntent).not.toBeNull();
+        expect(['fenrir_bite', 'fenrir_howl', 'fenrir_pounce']).toContain(enemy.currentIntent?.id);
     });
 });

@@ -22,7 +22,8 @@ export const StatusType = {
   Stunned: 'Stunned',
   Regen: 'Regen',
   Awoken: 'Awoken',
-  Energized: 'Energized'
+  Energized: 'Energized',
+  StableOS: 'StableOS'
 } as const;
 export const Statuses: StatusType[] = Object.values(StatusType);
 
@@ -70,6 +71,7 @@ export interface IMingmingDefinition {
   readonly secondaryElement?: Element;
   readonly cardDraw: number; // Base contribution
   readonly availableOS: string[]; // IDs of OS variants
+  readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
 }
 
@@ -124,6 +126,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
   readonly activeOS?: string; // Current Operating System ID
   readonly daemons: ReadonlyArray<ProgramEntity>; // Persistent "installed" software
+  readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
 }
 
@@ -184,6 +187,16 @@ export function getExpForLevel(level: number): number {
 
 // --- Program (Card) Definitions (Preserving previous work) ---
 export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
+
+export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
+
+export interface IMove {
+  readonly id: string;
+  readonly name: string;
+  readonly intentType: IntentType;
+  readonly priority: number;
+  readonly actions: ReadonlyArray<ProgramAction>;
+}
 
 export interface ProgramAction {
   readonly id?: string;

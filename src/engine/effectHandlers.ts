@@ -188,15 +188,6 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         enemyParty: updateParty(state.enemyParty)
     } as IBattleState;
 
-    if (wakesUp) {
-        // Apply Awoken immediately
-        newState = handleApplyStatus(newState, {
-            targetId: target.id,
-            status: 'Awoken',
-            stacks: 1
-        });
-    }
-
     newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
 
     // Death / XP Handling
@@ -301,6 +292,11 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 
     const initialTarget = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
     if (!initialTarget) return state;
+
+    // CC Immunity Check (StableOS)
+    if ((status === 'Stunned' || status === 'Asleep') && initialTarget.statusEffects.some(s => s.type === 'StableOS')) {
+        return addLog(state, `  🛡️ ${initialTarget.name} resisted ${status} (StableOS Active)`);
+    }
 
     // 1. Scaling
     const scaledStacks = behavior.getScaledStacks(stacks, sourceEntity, power);

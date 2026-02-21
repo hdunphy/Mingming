@@ -222,8 +222,8 @@ class AsleepBehavior extends StatusBehavior {
     readonly type = 'Asleep' as const;
 
     onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
-        if (target.statusEffects.some(s => s.type === 'Awoken')) {
-            return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  ✨ ${target.name} is Awoken and cannot be put to sleep!`] };
+        if (target.statusEffects.some(s => s.type === 'StableOS')) {
+            return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  ✨ ${target.name} cannot be put to sleep!`] };
         }
 
         const effects = [...currentEffects];
@@ -245,9 +245,7 @@ class AsleepBehavior extends StatusBehavior {
 
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — woke up!`);
-            // When waking up naturally, we don't apply Awoken here (usually handled by endTurn process applying new statuses?)
-            // Actually, let's return a mutation or apply it in endTurn? 
-            // Better to handle it in battleReducer or effectHandlers when the status is removed.
+            // BattleReducer must handle applying Awoken and StableOS upon natural wake-up.
             return { updatedInstance: null, damage: 0, healing: 0, defenseShred: 0, logs };
         }
 
@@ -258,33 +256,6 @@ class AsleepBehavior extends StatusBehavior {
             healing: 0,
             defenseShred: 0,
             logs
-        };
-    }
-}
-
-// --- Awoken (1-turn immunity to Sleep) ---
-
-class AwokenBehavior extends StatusBehavior {
-    readonly type = 'Awoken' as const;
-
-    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
-        const effects = [...currentEffects];
-        const existingIdx = effects.findIndex(s => s.type === 'Awoken');
-
-        if (existingIdx === -1) {
-            effects.push(this.createInstance(1));
-        }
-
-        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
-    }
-
-    endTurn(_instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        return {
-            updatedInstance: null,
-            damage: 0,
-            healing: 0,
-            defenseShred: 0,
-            logs: [`  ✨ ${entity.name}'s Awoken protection wore off`]
         };
     }
 }
@@ -385,6 +356,33 @@ class EnergizedBehavior extends StatusBehavior {
     }
 }
 
+// --- StableOS (1-turn Hard CC Immunity) ---
+
+class StableOSBehavior extends StatusBehavior {
+    readonly type = 'StableOS' as const;
+
+    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const effects = [...currentEffects];
+        const existingIdx = effects.findIndex(s => s.type === 'StableOS');
+
+        if (existingIdx === -1) {
+            effects.push(this.createInstance(1));
+        }
+
+        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
+    }
+
+    endTurn(_instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
+        return {
+            updatedInstance: null,
+            damage: 0,
+            healing: 0,
+            defenseShred: 0,
+            logs: [`  📉 ${entity.name}'s StableOS (CC Immunity) wore off`]
+        };
+    }
+}
+
 // --- Registry ---
 
 const BEHAVIOR_REGISTRY: Record<StatusType, StatusBehavior> = {
@@ -397,8 +395,8 @@ const BEHAVIOR_REGISTRY: Record<StatusType, StatusBehavior> = {
     'Dazed': new PermanentStatusBehavior('Dazed'),
     'Sharp': new PermanentStatusBehavior('Sharp'),
     'Regen': new RegenBehavior(),
-    'Awoken': new AwokenBehavior(),
     'Energized': new EnergizedBehavior(),
+    'StableOS': new StableOSBehavior(),
 };
 
 export function getStatusBehavior(type: StatusType): StatusBehavior {

@@ -147,6 +147,21 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         {entity.primaryElement[0]}
                     </span>
                     <span className="hud-name">{entity.name.toUpperCase()}</span>
+
+                    {/* Intent Indicator (Enemies Only) */}
+                    {isEnemy && entity.currentIntent && (
+                        <div
+                            className="hud-intent-icon"
+                            title={`Intent: ${entity.currentIntent.name} (${entity.currentIntent.intentType})`}
+                            style={{ marginLeft: 'auto', fontSize: '1.2rem' }}
+                        >
+                            {entity.currentIntent.intentType === 'Attack' ? '⚔️' :
+                                entity.currentIntent.intentType === 'Defend' ? '🛡️' :
+                                    entity.currentIntent.intentType === 'Debuff' ? '☠️' :
+                                        entity.currentIntent.intentType === 'Buff' ? '✨' : '❓'}
+                        </div>
+                    )}
+
                     {entity.activeOS && (() => {
                         const behavior = getOSBehavior(entity.activeOS);
                         return (

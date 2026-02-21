@@ -14,6 +14,29 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fenrir_v1", "fenrir_v2"],
+        moves: [
+            {
+                id: 'fenrir_bite',
+                name: 'Savage Bite',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 15, element: 'Fire', target: 'Single' }]
+            },
+            {
+                id: 'fenrir_howl',
+                name: 'Intimidating Howl',
+                intentType: 'Debuff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Weakened', stacks: 2, target: 'Side' }]
+            },
+            {
+                id: 'fenrir_pounce',
+                name: 'Pounce',
+                intentType: 'Attack',
+                priority: 8,
+                actions: [{ type: 'ATTACK', power: 10, element: 'None', target: 'Single' }, { type: 'STATUS', status: 'Strengthened', stacks: 1, target: 'Self' }] // Self buff
+            }
+        ],
         artReference: "Fenrir.png"
     },
     "kraken": {
@@ -29,6 +52,36 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["kraken_v1", "kraken_v2"],
+        moves: [
+            {
+                id: 'kraken_tentacle',
+                name: 'Tentacle Slap',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 12, element: 'Water', target: 'Single' }]
+            },
+            {
+                id: 'kraken_ink',
+                name: 'Ink Cloud',
+                intentType: 'Debuff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Dazed', stacks: 2, target: 'Side' }]
+            },
+            {
+                id: 'kraken_crush',
+                name: 'Crushing Grip',
+                intentType: 'Attack',
+                priority: 8,
+                actions: [{ type: 'ATTACK', power: 8, element: 'None', target: 'Single' }, { type: 'STATUS', status: 'Stunned', stacks: 1, target: 'Single' }]
+            },
+            {
+                id: 'kraken_regen',
+                name: 'Deep Regeneration',
+                intentType: 'Buff',
+                priority: 3,
+                actions: [{ type: 'HEAL', power: 20, target: 'Self' }, { type: 'STATUS', status: 'Regen', stacks: 2, target: 'Self' }]
+            }
+        ],
         artReference: "Kraken.png"
     },
     "fafnir": {
@@ -134,6 +187,29 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
+        moves: [
+            {
+                id: 'rata_nut',
+                name: 'Acorn Throw',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 8, element: 'Nature', target: 'Single' }, { type: 'ATTACK', power: 8, element: 'Nature', target: 'Single' }]
+            },
+            {
+                id: 'rata_gossip',
+                name: 'Malicious Gossip',
+                intentType: 'Debuff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Poison', stacks: 3, target: 'Single' }, { type: 'STATUS', status: 'Poison', stacks: 3, target: 'Single' }]
+            },
+            {
+                id: 'rata_scurry',
+                name: 'Scurry',
+                intentType: 'Buff',
+                priority: 3,
+                actions: [{ type: 'STATUS', status: 'Energized', stacks: 2, target: 'Self' }]
+            }
+        ],
         artReference: "Ratatoskr.png"
     },
     "huldra": {
