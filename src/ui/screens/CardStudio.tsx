@@ -23,74 +23,119 @@ const DEBUFFS = ['Burn', 'Poison', 'Dazed', 'Stunned', 'Weakened', 'Asleep', 'Vu
 
 const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
     let score = 0;
-    const isAttackCard = card.actions.some(a => a.type === 'ATTACK');
+
+    // Baseline assumptions
+    const ASSUMED_CARDS_PLAYED = 2.5;
+    const ASSUMED_HP_PERCENT = 0.5;
+    const ASSUMED_DISCARD_SIZE = 8;
+    const ASSUMED_STATUS_COUNT = 3;
 
     // Actions
     card.actions.forEach(action => {
-        const baseWeight = ACTION_WEIGHTS[action.type] || 5;
         let actionScore = 0;
 
-        if (action.type === 'ATTACK' || action.type === 'HEAL') {
-            actionScore = (action.power || action.healOverride || 0) * baseWeight;
+        if (action.type === 'ATTACK') {
+            let power = action.power || 0;
+            if (action.scaling === 'CARDS_PLAYED') power *= ASSUMED_CARDS_PLAYED;
+            else if (action.scaling === 'MISSING_HP' || action.scaling === 'HP_PERCENT') power *= ASSUMED_HP_PERCENT;
+            else if (action.scaling === 'DISCARD_SIZE') power *= ASSUMED_DISCARD_SIZE;
+            else if (action.scaling === 'STATUS_COUNT') power *= ASSUMED_STATUS_COUNT;
 
-            // Recoil is a penalty
-            if (action.type === 'ATTACK' && action.target === 'SELF') {
-                actionScore *= -1;
-            }
+            actionScore = (power / 10.0) * 1.0;
+        } else if (action.type === 'HEAL') {
+            let power = action.power || action.healOverride || 0;
+            actionScore = (power / 10.0) * 1.5;
         } else if (action.type === 'STATUS') {
-            actionScore = (action.stacks || 1) * baseWeight;
-
-            const isBuff = BUFFS.includes(action.status);
-            const isDebuff = DEBUFFS.includes(action.status);
-
-            // Only apply penalty inversion to offensive cards
-            if (isAttackCard) {
-                if (isDebuff && action.target === 'SELF') actionScore *= -1;
-                if (isBuff && action.target === 'TARGET') actionScore *= -1;
+            const stacks = action.stacks || 1;
+            if (['Burn', 'Poison'].includes(action.status)) {
+                actionScore = Math.abs(stacks) * 1.5;
+            } else if (['Weakened', 'Dazed', 'Vulnerable'].includes(action.status)) {
+                actionScore = Math.abs(stacks) * 2.0;
+            } else if (['Stunned', 'Asleep'].includes(action.status)) {
+                actionScore = 5.0 + Math.max(0, Math.abs(stacks) - 1) * 0.5;
+            } else {
+                actionScore = Math.abs(stacks) * 2.0;
             }
         } else if (action.type === 'DRAW') {
-            actionScore = (action.count || 1) * baseWeight;
+            const count = action.amount || action.count || 1;
+            for (let i = 1; i <= count; i++) {
+                if (i === 1) actionScore += 4.0;
+                else if (i === 2) actionScore += 2.5;
+                else actionScore += 1.0;
+            }
         } else if (action.type === 'ENERGY') {
             const amount = action.amount || 0;
-            actionScore = Math.abs(amount) * baseWeight;
-
-            // Penalty for losing own energy, or giving energy to enemy (if ever applicable)
-            // But usually positive amount is 'gain' and negative is 'lose'.
-            if (amount < 0 && action.target === 'SELF') actionScore *= -1;
-            if (amount > 0 && action.target === 'TARGET' && isAttackCard) actionScore *= -1;
-            if (action.target === 'TARGET' && !isAttackCard) actionScore *= 1.2;
-        } else {
-            actionScore = baseWeight;
+            actionScore = Math.abs(amount) * 6.0;
         }
 
         // Multi-hit scaling
-        if (action.count && action.count > 1) {
-            actionScore *= (1 + (action.count - 1) * 0.5);
+        const hitCount = action.count || 1;
+        if (hitCount > 1 && action.type === 'ATTACK') {
+            actionScore *= hitCount;
+        }
+
+        // Target Scope Multiplier
+        let scope = (action.target || card.target || '').toUpperCase();
+        if (scope === 'SELF') actionScore *= 0.9;
+        else if (scope === 'SIDE') actionScore *= 2.2;
+        else if (scope === 'ALL') actionScore *= 4.0;
+        else actionScore *= 1.0;
+
+        // Condition Discount
+        if (action.conditionals && action.conditionals.length > 0) {
+            actionScore *= 0.7;
+        }
+
+        // Penalties
+        if (action.type === 'ATTACK' && scope === 'SELF') {
+            actionScore *= -1;
+        } else if (action.type === 'STATUS') {
+            const isBuff = BUFFS.includes(action.status);
+            const isDebuff = DEBUFFS.includes(action.status);
+            if (isDebuff && scope === 'SELF') actionScore *= -1;
+            if (isBuff && scope !== 'SELF' && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
+        } else if (action.type === 'ENERGY') {
+            const amount = action.amount || 0;
+            if (amount < 0 && scope === 'SELF') actionScore *= -1;
+            if (amount > 0 && scope !== 'SELF' && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
         }
 
         score += actionScore;
     });
 
-    // Hooks
-    if (card.hooks) {
-        score += card.hooks.length * 15;
+    // Daemon Premium
+    if (card.category === 'Daemon') {
+        score *= 1.5;
     }
 
-    // Constraints (Subtractive)
-    // We don't subtract for BASE or standard constraints that are always there
-    const meaningfulConstraints = card.constraints.filter(c => c.type !== 'BASE' && c.type !== 'NOT_STATUS');
-    score -= meaningfulConstraints.length * 10;
-
-    // Exhaust penalty/bonus? 
-    // Usually Exhaust is used on powerful cards to prevent abuse, so maybe it doesn't affect raw power score but affects balance.
+    // Exhaust/Token Discount
+    if (card.exhaust || card.isToken) {
+        score *= 0.9;
+    }
 
     const costFactor = Math.pow(Math.max(card.baseCost, 0.5), 1.25);
     const perEnergy = score / costFactor;
 
     return {
-        score: Math.round(score),
+        score: Math.round(score * 10) / 10,
         perEnergy: Math.round(perEnergy * 10) / 10
     };
+};
+
+const getEfficiencyStyle = (cost: number, score: number): React.CSSProperties => {
+    if (cost === 0) {
+        if (score > 3.5) return { backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' };
+        if (score < 1.0) return { backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308' };
+    } else if (cost === 1) {
+        if (score > 7.0) return { backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' };
+        if (score < 4.0) return { backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308' };
+    } else if (cost === 2) {
+        if (score > 13.0) return { backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' };
+        if (score < 9.0) return { backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308' };
+    } else if (cost >= 3) {
+        if (score > 18.0) return { backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' };
+    }
+    return {};
 };
 
 type SortKey = keyof ProgramData | 'powerscale' | 'perEnergy';
@@ -266,8 +311,8 @@ const CardStudio: React.FC = () => {
                                             <span key={i} className="pill hook-pill">{h}</span>
                                         ))}
                                     </td>
-                                    <td className="score-cell">{score}</td>
-                                    <td className="score-cell per-energy">{perEnergy}</td>
+                                    <td className="score-cell" style={getEfficiencyStyle(card.baseCost, score)}>{score}</td>
+                                    <td className="score-cell per-energy" style={getEfficiencyStyle(card.baseCost, score)}>{perEnergy}</td>
                                 </tr>
                             );
                         })}
