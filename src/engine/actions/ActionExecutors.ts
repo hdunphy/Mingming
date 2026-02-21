@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -36,77 +36,49 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             if (scaling === 'CARDS_PLAYED') {
                 const multiplier = state.cardsPlayedThisTurn;
                 damage = Math.floor(damage * multiplier);
+            } else if (scaling === 'MISSING_HP') {
+                const missingHp = source.maxHp - source.currentHp;
+                damage += Math.floor(missingHp * 0.5); // Example: 50% of missing HP
+            } else if (scaling === 'STATUS_COUNT') {
+                const targetStatusCount = target.statusEffects.reduce((acc, s) => acc + s.stacks, 0);
+                damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
             }
         }
 
-        const newCurrentHp = Math.max(0, target.currentHp - damage);
-
-        let wakesUp = false;
-        if (damage > 0) {
-            const sleepIndex = target.statusEffects.findIndex(s => s.type === 'Asleep');
-            if (sleepIndex !== -1) {
-                wakesUp = true;
+        return applyMutations(state, [{
+            type: 'HP',
+            sourceId: sourceId,
+            targetId: targetId,
+            payload: {
+                amount: damage,
+                isHeal: false,
+                element: element || program.element
             }
-        }
-
-        globalBattleEventBus.emit({
-            type: 'DAMAGE_TAKEN',
-            targetId: target.id,
-            amount: damage,
-            element: element || program.element,
-            timestamp: Date.now()
-        });
-
-        if (wakesUp) {
-            globalBattleEventBus.emit({
-                type: 'STATUS_REMOVED',
-                targetId: target.id,
-                status: 'Asleep',
-                timestamp: Date.now()
-            });
-        }
-
-        const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
-            party.map(e => {
-                if (e.id !== targetId) return e;
-                let newStatus = e.statusEffects;
-                if (wakesUp) {
-                    newStatus = newStatus.filter(s => s.type !== 'Asleep');
-                }
-                return { ...e, currentHp: newCurrentHp, statusEffects: newStatus };
-            });
-
-        let newState = {
-            ...state,
-            playerParty: updateParty(state.playerParty),
-            enemyParty: updateParty(state.enemyParty)
-        } as IBattleState;
-
-        if (wakesUp) {
-            // Apply Awoken by mutating through Status execution logic directly or resolving.
-            newState = applyMutations(newState, [{
-                type: 'STATUS',
-                targetId: target.id,
-                sourceId: sourceId,
-                payload: { status: 'Awoken', stacks: 1 }
-            }]);
-        }
-
-        newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
-
-        if (newCurrentHp <= 0) {
-            newState = checkDefeat(newState, targetId);
-        }
-
-        return newState;
+        }]);
     }
 }
 
 export class StatusExecutor extends ActionExecutor<StatusActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: StatusActionData, _program: ProgramData, _context: HookContext): IBattleState {
-        const { status, stacks } = actionData;
+        const { status, stacks, consume } = actionData;
 
-        //TODO: negative stacks should decrement instead of remove compeltely. If its 0 or less, remove it. Although the dual-type statuses like strengthen/weaken will need to transition between eachother.
+        if (consume) {
+            const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
+            const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+            if (!target) return state;
+
+            const existingStatus = target.statusEffects.find(s => s.type === status);
+            if (existingStatus) {
+                return applyMutations(state, [{
+                    type: 'STATUS',
+                    targetId: targetId,
+                    sourceId: sourceId,
+                    payload: { status, stacks: -existingStatus.stacks }
+                }]);
+            }
+            return state;
+        }
+
         if (stacks < 0) {
             const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                 party.map(e => {
@@ -122,7 +94,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
                 enemyParty: updateParty(state.enemyParty)
             };
             newState = addLog(newState, `  ✨ ${status} removed from target`);
-            return newState;
+            return newState; // Or you could use applyMutations with stacks: -stacks here, but this is the existing simple logic
         }
 
         // Apply Status Logic
@@ -147,27 +119,15 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
 
         const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
 
-        const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
-
-        globalBattleEventBus.emit({
-            type: 'HEAL',
-            targetId: target.id,
-            amount: healAmount,
-            sourceId: source?.id || sourceId,
-            timestamp: Date.now()
-        });
-
-        const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
-            party.map(e => e.id === targetId ? { ...e, currentHp: newCurrentHp } : e);
-
-        let newState: IBattleState = {
-            ...state,
-            playerParty: updateParty(state.playerParty),
-            enemyParty: updateParty(state.enemyParty)
-        } as IBattleState;
-
-        newState = addLog(newState, `  → ${target.name} heals ${healAmount} HP`);
-        return newState;
+        return applyMutations(state, [{
+            type: 'HP',
+            sourceId: sourceId,
+            targetId: targetId,
+            payload: {
+                amount: healAmount,
+                isHeal: true
+            }
+        }]);
     }
 }
 
@@ -205,6 +165,66 @@ export class GenerateCardExecutor extends ActionExecutor<GenerateCardActionData>
     }
 }
 
+export class CleanseExecutor extends ActionExecutor<CleanseActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: CleanseActionData, _program: ProgramData, _context: HookContext): IBattleState {
+        const { statusTarget } = actionData;
+        return applyMutations(state, [{
+            type: 'CLEANSE',
+            sourceId,
+            targetId,
+            payload: { statusTarget }
+        }]);
+    }
+}
+
+export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: DiscardActionData, _program: ProgramData, _context: HookContext): IBattleState {
+        const { amount, isRandom } = actionData;
+        return applyMutations(state, [{
+            type: 'DISCARD',
+            sourceId,
+            targetId,
+            payload: { amount, isRandom }
+        }]);
+    }
+}
+
+export class ExhaustExecutor extends ActionExecutor<ExhaustActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ExhaustActionData, _program: ProgramData, _context: HookContext): IBattleState {
+        const { amount } = actionData;
+        return applyMutations(state, [{
+            type: 'EXHAUST',
+            sourceId,
+            targetId,
+            payload: { amount }
+        }]);
+    }
+}
+
+export class ReturnExecutor extends ActionExecutor<ReturnActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ReturnActionData, _program: ProgramData, _context: HookContext): IBattleState {
+        const { amount, sourcePile, destinationPile } = actionData;
+        return applyMutations(state, [{
+            type: 'RETURN',
+            sourceId,
+            targetId,
+            payload: { amount, sourcePile, destinationPile }
+        }]);
+    }
+}
+
+export class SearchExecutor extends ActionExecutor<SearchActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: SearchActionData, _program: ProgramData, _context: HookContext): IBattleState {
+        const { amount, criteria } = actionData;
+        return applyMutations(state, [{
+            type: 'SEARCH',
+            sourceId,
+            targetId,
+            payload: { amount, criteria }
+        }]);
+    }
+}
+
 // Registry to route ActionType to Executors
 export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'ATTACK': new AttackExecutor(),
@@ -212,5 +232,10 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'HEAL': new HealExecutor(),
     'DRAW': new DrawExecutor(),
     'ENERGY': new EnergyExecutor(),
-    'GENERATE_CARD': new GenerateCardExecutor()
+    'GENERATE_CARD': new GenerateCardExecutor(),
+    'CLEANSE': new CleanseExecutor(),
+    'DISCARD': new DiscardExecutor(),
+    'EXHAUST': new ExhaustExecutor(),
+    'RETURN': new ReturnExecutor(),
+    'SEARCH': new SearchExecutor()
 };

@@ -183,7 +183,7 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
 
 export interface ProgramAction {
   readonly id?: string;
@@ -198,13 +198,14 @@ export interface AttackActionData extends ProgramAction {
   readonly type: 'ATTACK';
   readonly power: number;
   readonly element?: Element;
-  readonly scaling?: string;
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT';
 }
 
 export interface StatusActionData extends ProgramAction {
   readonly type: 'STATUS';
   readonly status: StatusType;
   readonly stacks: number; // Negative value means remove stacks
+  readonly consume?: boolean; // If true, completely removes status and returns stacks
 }
 
 export interface HealActionData extends ProgramAction {
@@ -226,6 +227,38 @@ export interface EnergyActionData extends ProgramAction {
 export interface GenerateCardActionData extends ProgramAction {
   readonly type: 'GENERATE_CARD';
   readonly dataId: string; // ID of the ProgramData to generate
+}
+
+export interface CleanseActionData extends ProgramAction {
+  readonly type: 'CLEANSE';
+  readonly statusTarget?: StatusType; // If omitted, cleanses all negative status effects
+}
+
+export interface DiscardActionData extends ProgramAction {
+  readonly type: 'DISCARD';
+  readonly amount: number;
+  readonly isRandom?: boolean; // If true, discards randomly instead of player choice (or first N cards)
+}
+
+export interface ExhaustActionData extends ProgramAction {
+  readonly type: 'EXHAUST';
+  readonly amount: number;
+}
+
+export interface ReturnActionData extends ProgramAction {
+  readonly type: 'RETURN';
+  readonly amount: number;
+  readonly sourcePile?: 'DISCARD' | 'EXHAUST'; // Default: DISCARD
+  readonly destinationPile?: 'HAND' | 'DRAW'; // Default: HAND
+}
+
+export interface SearchActionData extends ProgramAction {
+  readonly type: 'SEARCH';
+  readonly amount: number;
+  readonly criteria?: {
+    element?: Element;
+    category?: ProgramCategory;
+  };
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
@@ -272,6 +305,7 @@ export interface IDeckState {
   readonly drawpile: ReadonlyArray<ProgramEntity>;
   readonly hand: ReadonlyArray<ProgramEntity>;
   readonly discard: ReadonlyArray<ProgramEntity>;
+  readonly exhaust: ReadonlyArray<ProgramEntity>;
 }
 
 export interface IBattleState {

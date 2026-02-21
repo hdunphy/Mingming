@@ -3,7 +3,8 @@ import { globalBattleEventBus } from './events';
 import { HookPriority, type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
-import { drawCards } from './deckLogic';
+import { drawCards, discardCard, exhaustCard, returnCard, searchCard } from './deckLogic';
+import { PRNG } from './core/PRNG';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -112,6 +113,70 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     dataId: mutation.payload.dataId
                 });
                 break;
+            case 'CLEANSE':
+                newState = effectHandlers['CLEANSE'](newState, {
+                    targetId: mutation.targetId,
+                    statusTarget: mutation.payload.statusTarget
+                });
+                break;
+            case 'DISCARD': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+                const amount = mutation.payload.amount;
+                const isRandom = mutation.payload.isRandom;
+
+                let toDiscard = [...deck.hand];
+                if (isRandom) {
+                    const prng = new PRNG(newState.seed);
+                    const { shuffled, nextSeed } = prng.shuffle(toDiscard);
+                    toDiscard = shuffled.slice(0, amount);
+                    newState = { ...newState, seed: nextSeed };
+                } else {
+                    toDiscard = toDiscard.slice(0, amount); // Top N cards
+                }
+
+                toDiscard.forEach(c => {
+                    deck = discardCard(deck, c.id);
+                });
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'EXHAUST': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+
+                let toExhaust = deck.hand.slice(0, mutation.payload.amount);
+                toExhaust.forEach(c => {
+                    deck = exhaustCard(deck, c.id, 'HAND');
+                });
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'RETURN': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+
+                let sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
+                let sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
+                let toReturn = sourcePile.slice(0, mutation.payload.amount);
+
+                toReturn.forEach(c => {
+                    deck = returnCard(deck, c.id, sourcePileStr as any, mutation.payload.destinationPile || 'HAND');
+                });
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'SEARCH': {
+                const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
+                const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+                let deck = newState[deckKey];
+                deck = searchCard(deck, mutation.payload.amount, mutation.payload.criteria, true);
+                newState = { ...newState, [deckKey]: deck };
+                break;
+            }
         }
     }
 

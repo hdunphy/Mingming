@@ -92,14 +92,16 @@ function createMockState(): IBattleState {
             drawpile: [
                 { id: 'h4', dataId: 'scratch', currentCost: 1, isPlayable: true }
             ],
-            discard: []
+            discard: [],
+            exhaust: []
         },
         enemyDeck: {
             ownerId: 'ENEMY',
             deck: [],
             drawpile: [],
             hand: [],
-            discard: []
+            discard: [],
+            exhaust: []
         },
         levelUpQueue: []
     };

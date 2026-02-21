@@ -170,7 +170,8 @@ export function createBattleState(
         deck: [],
         drawpile: pDeckCards,
         hand: [],
-        discard: []
+        discard: [],
+        exhaust: []
     };
     const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle.toString());
 
@@ -179,7 +180,8 @@ export function createBattleState(
         deck: [],
         drawpile: eDeckCards,
         hand: [],
-        discard: []
+        discard: [],
+        exhaust: []
     };
     const { state: eDeckState, nextSeed: seed3 } = drawCards(eInitialDeck, enemyCardDraw, seed2);
 

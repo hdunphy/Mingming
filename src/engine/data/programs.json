@@ -439,7 +439,7 @@
         "description": "0-cost, draw 1",
         "element": "Water",
         "target": "Self",
-        "category": "Special",
+        "category": "Skill",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -601,7 +601,7 @@
         "description": "Transfer 2 Energy to an ally",
         "element": "Water",
         "target": "Single",
-        "category": "Special",
+        "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 1,
         "constraints": [
@@ -834,7 +834,7 @@
         "description": "Draw 2 cards",
         "element": "Water",
         "target": "Self",
-        "category": "Special",
+        "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -987,7 +987,7 @@
         "description": "0-cost, remove 1 random debuff",
         "element": "Nature",
         "target": "Self",
-        "category": "Special",
+        "category": "Skill",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -1056,7 +1056,7 @@
         "description": "Gain 1 Energy next turn",
         "element": "Nature",
         "target": "Self",
-        "category": "Special",
+        "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -1085,7 +1085,7 @@
         "description": "Transfer Strengthened to ally",
         "element": "Nature",
         "target": "Single",
-        "category": "Special",
+        "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 1,
         "constraints": [
@@ -1183,7 +1183,7 @@
         "description": "Draw 1 card",
         "element": "Nature",
         "target": "Self",
-        "category": "Special",
+        "category": "Skill",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [

@@ -1,4 +1,4 @@
-import type { IBattleState, IBattleEntity, ProgramData, StatusType } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData, StatusType, ActionType } from '../types';
 
 export enum HookPriority {
     SYSTEM = 100,
@@ -10,7 +10,7 @@ export enum HookPriority {
 }
 
 export type MutationRequest = {
-    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD';
+    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
     targetId: string;
     sourceId?: string; // Optional source of the mutation
     payload: any;
@@ -34,7 +34,7 @@ export type HookContext = {
 export type HookCondition = {
     source?: 'SELF' | 'ALLY' | 'OPPONENT';
     target?: 'SELF' | 'ALLY' | 'OPPONENT';
-    programCategory?: 'Attack' | 'Heal' | 'Status' | 'Special';
+    actionType?: ActionType;
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;
@@ -42,13 +42,12 @@ export type HookCondition = {
 };
 
 export type HookAction = {
-    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'DRAW' | 'GENERATE_CARD';
+    type: ActionType | 'LOG'; // Hooks can perform actions or log
     target?: 'SELF' | 'TARGET' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
     status?: StatusType;
     stacks?: number;
     amount?: number;
     percentMaxHP?: number;
-    isHeal?: boolean; // Explicit heal flag
     text?: string;
     count?: number;
     dataId?: string; // For GENERATE_CARD

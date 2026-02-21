@@ -18,7 +18,8 @@ export const effectHandlers: Record<string, EffectHandler> = {
     'ATTACK': handleAttack,
     'HEAL': handleHealEffect,
     'APPLY_STATUS': handleApplyStatus,
-    'GENERATE_CARD': handleGenerateCard
+    'GENERATE_CARD': handleGenerateCard,
+    'CLEANSE': handleCleanse
 };
 
 // --- XP Helpers ---
@@ -395,6 +396,38 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 
 
 // Removing dead code `handleDraw` and `handleRemoveStatus`
+
+function handleCleanse(state: IBattleState, payload: { targetId: string; statusTarget?: StatusType }): IBattleState {
+    const { targetId, statusTarget } = payload;
+    let newState = state;
+
+    const isDebuff = (status: StatusType) => {
+        return ['Poison', 'Burn', 'Weakened', 'Bleed', 'Dazed', 'Stunned', 'Asleep'].includes(status);
+    };
+
+    const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+        party.map(e => {
+            if (e.id !== targetId) return e;
+            const newStatus = e.statusEffects.filter(s => {
+                if (statusTarget) return s.type !== statusTarget;
+                return !isDebuff(s.type); // If none specified, cleanse all debuffs
+            });
+            return { ...e, statusEffects: newStatus };
+        });
+
+    newState = {
+        ...state,
+        playerParty: updateParty(state.playerParty),
+        enemyParty: updateParty(state.enemyParty)
+    };
+
+    const target = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+    if (target) {
+        newState = addLog(newState, `  ✨ ${target.name} was cleansed!`);
+    }
+
+    return newState;
+}
 
 function handleGenerateCard(state: IBattleState, payload: { sourceId: string; dataId: string }): IBattleState {
     const { sourceId, dataId } = payload;
