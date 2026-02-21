@@ -43,7 +43,7 @@ const SectorTerminal: React.FC = () => {
                     element,
                     currentBattleIndex: 0,
                     totalBattles: 3,
-                    persistedStats: Object.fromEntries(save.activeParty.map(id => [id, { hp: 0, energy: 0 }]))
+                    persistedStats: {}
                 }
             };
             dispatch(startBattle({ save: newSave, enemyIds: [] }));

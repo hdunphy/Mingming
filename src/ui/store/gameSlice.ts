@@ -161,17 +161,12 @@ const gameSlice = createSlice({
             }
         },
         startGauntlet: (state, action: PayloadAction<{ type: 'Gym' | 'Sector', element: string, totalBattles: number }>) => {
-            const initialEntityStates: Record<string, { hp: number, energy: number }> = {};
-            state.activeParty.forEach(id => {
-                initialEntityStates[id] = { hp: 0, energy: 0 };
-            });
-
             state.gauntlet = {
                 type: action.payload.type,
                 element: action.payload.element,
                 currentBattleIndex: 0,
                 totalBattles: action.payload.totalBattles,
-                persistedStats: initialEntityStates
+                persistedStats: {}
             };
         },
         completeGauntlet: (state) => {
