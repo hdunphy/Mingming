@@ -11,19 +11,19 @@ import type { IBattleEntity, Element, Rarity } from './types';
 
 // --- Rarity Distribution Constants ---
 const RARITY_WEIGHTS: Record<Rarity, number> = {
-    'Common': 70,
-    'Uncommon': 20,
-    'Rare': 8,
-    'Epic': 2
+    'Common': 50,
+    'Uncommon': 30,
+    'Rare': 15,
+    'Epic': 5
 };
 
 /**
  * Calculate dynamic blueprint drop rate based on roster size
  */
 function getBlueprintRate(rosterSize: number): number {
-    if (rosterSize <= 1) return 0.25; // 25% for first teammate
-    if (rosterSize === 2) return 0.15; // 15% for completing party
-    return 0.05; // 5% for upgrades
+    if (rosterSize <= 1) return 0.75; // 25% for first teammate
+    if (rosterSize === 2) return 0.50; // 15% for completing party
+    return 0.15; // 5% for upgrades
 }
 
 /**

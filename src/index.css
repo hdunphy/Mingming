@@ -400,11 +400,39 @@ body {
   text-align: right;
 }
 
-/* ── Energy Pips (Chunky bars) ── */
+/* ── Energy Row (New Continuous Bar) ── */
 .hud-energy-row {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   flex: 1;
+}
+
+.hud-energy-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hud-energy-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.hud-energy-text {
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
 }
 
 .hud-energy-pip {

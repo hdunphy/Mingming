@@ -188,6 +188,9 @@ export function createBattleState(
         }).flat();
     }
 
+    // Epic 2/22/2026: Disable OS on enemies as they use intents now
+    enemyParty = enemyParty.map(e => ({ ...e, activeOS: undefined }));
+
     // --- SHARED DECK INITIALIZATION ---
 
     // Updated Player Deck Logic: Archetype pick from starter

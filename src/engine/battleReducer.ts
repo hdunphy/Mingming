@@ -298,6 +298,31 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
     const sourceEntity = state.enemyParty[sourceIndex];
     if (sourceEntity.currentHp <= 0 || !sourceEntity.currentIntent) return state;
 
+    // Check for CC status effects (Stunned or Asleep)
+    const isIncapacitated = sourceEntity.statusEffects.some(s => s.type === 'Stunned' || s.type === 'Asleep');
+    if (isIncapacitated) {
+        const stateWithLog = applyMutations(state, [
+            {
+                type: 'LOG',
+                targetId: '',
+                payload: `💤 ${sourceEntity.name} is incapacitated and cannot move!`
+            },
+            {
+                type: 'EVENT',
+                targetId: '',
+                payload: {
+                    type: 'INTENT_SKIPPED',
+                    sourceId: sourceEntity.id,
+                    timestamp: Date.now()
+                }
+            }
+        ]);
+        return {
+            ...stateWithLog,
+            enemyParty: stateWithLog.enemyParty.map((e, idx) => idx === sourceIndex ? { ...e, currentIntent: null } : e) as ReadonlyArray<IBattleEntity>
+        };
+    }
+
     const intent = sourceEntity.currentIntent;
 
     // 1. Initial State Updates (clear the intent)
@@ -620,12 +645,12 @@ function processPreTurn(state: IBattleState): IBattleState {
         };
     });
 
-    // 3. Draw Cards for Player OR Generate Intents for Enemy
-    const aliveMembers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);
+    // 3. Draw Cards for Player
     let newState = executeDraw(state, nextSide, 0, true);
 
     if (nextSide === 'PLAYER') {
-        const totalCardDraw = aliveMembers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveMembers.length + 1;
+        const alivePlayers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);
+        const totalCardDraw = alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
         const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - activeDeck.hand.length);
         console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
         newState = executeDraw(newState, nextSide, cardsToDraw, true);
@@ -633,23 +658,20 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    // Deterministic PRNG for Intent selection based on seed and turn
+    // Intent Generation: Always calculate intents for enemies at the start of a turn (so player can see them)
     const intentPrng = new PRNG(`${state.seed}_target_${nextTurn}`);
 
-    const finalParty = refreshedParty.map((entity: IBattleEntity) => {
-        if (nextSide === 'PLAYER' || entity.currentHp <= 0) return entity;
+    const generateIntents = (party: ReadonlyArray<IBattleEntity>) => party.map(entity => {
+        if (entity.currentHp <= 0 || entity.currentIntent) return entity;
 
-        // Pick an Intent for the enemy
         const definition = GetMingmingData(entity.definitionId);
         const moves = definition.moves;
         if (moves && moves.length > 0) {
-            // Pick a move pseudo-randomly using priority weighting
-            const prngResult = intentPrng.next(); // 0 to 1
+            const prngResult = intentPrng.next();
             const randVal = prngResult.value;
-
             const totalWeight = moves.reduce((sum, move) => sum + move.priority, 0);
             let threshold = randVal * totalWeight;
-            let selectedIntent = moves[moves.length - 1]; // Fallback to last move
+            let selectedIntent = moves[moves.length - 1];
 
             for (const move of moves) {
                 threshold -= move.priority;
@@ -658,18 +680,27 @@ function processPreTurn(state: IBattleState): IBattleState {
                     break;
                 }
             }
-
             return { ...entity, currentIntent: selectedIntent };
         }
         return entity;
     });
 
+    const isPlayerTurn = nextSide === 'PLAYER';
+    const finalPlayerParty = isPlayerTurn ? refreshedParty : state.playerParty;
+    let finalEnemyParty = isPlayerTurn ? state.enemyParty : refreshedParty;
+
+    // Apply intents to enemies
+    finalEnemyParty = generateIntents(finalEnemyParty);
+
     newState = {
         ...newState,
-        activeSide: nextSide,
         turn: nextTurn,
-        [activePartyKey]: finalParty,
-    };
+        phase: 'ACTION',
+        activeSide: nextSide,
+        playerParty: finalPlayerParty,
+        enemyParty: finalEnemyParty,
+        cardsPlayedThisTurn: 0
+    } as any;
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
 

@@ -105,6 +105,7 @@ const BattleArena: React.FC = () => {
     const [dragPoint, setDragPoint] = useState<{ x: number, y: number } | null>(null);
     const [originPoint, setOriginPoint] = useState<{ x: number, y: number } | null>(null);
     const [isTargeting, setIsTargeting] = useState(false);
+    const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null);
 
     // Epic 3.5: Post-battle state
     const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
@@ -319,23 +320,7 @@ const BattleArena: React.FC = () => {
             {party.map((entity, index) => {
                 const isSelected = selectedSourceId === entity.id;
                 const isTargeted = selectedTargetId === entity.id;
-                const isHovered = hoveredUnitId === entity.id;
                 const isDead = entity.currentHp <= 0;
-
-                let previewDamage = 0;
-                if (isHovered && !isDead && selectedCardId && selectedSourceId) {
-                    const source = battleState.playerParty.find(p => p.id === selectedSourceId) ||
-                        battleState.enemyParty.find(e => e.id === selectedSourceId);
-                    const card = battleState.playerDeck.hand.find(c => c.id === selectedCardId);
-
-                    if (source && card) {
-                        const programData = GetProgramData(card.dataId);
-                        const attackAction = programData.actions.find(a => a.type === 'ATTACK');
-                        if (attackAction) {
-                            previewDamage = calculateDamage(source, entity, programData, attackAction.power || 0, battleState);
-                        }
-                    }
-                }
 
                 const translateX = 0; // Removed manual offset to allow horizontal layout to breathe
 
@@ -346,8 +331,12 @@ const BattleArena: React.FC = () => {
                         animate={{ opacity: isDead ? 0.35 : 1, x: translateX }}
                         transition={{ delay: index * 0.1, type: 'spring' }}
                         style={{ pointerEvents: isDead ? 'none' : 'auto' }}
-                        onMouseEnter={() => !isDead && setHoveredUnitId(entity.id)}
-                        onMouseLeave={() => setHoveredUnitId(null)}
+                        onMouseEnter={() => {
+                            if (isTargeting) setHoveredEntityId(entity.id);
+                        }}
+                        onMouseLeave={() => {
+                            if (hoveredEntityId === entity.id) setHoveredEntityId(null);
+                        }}
                         onPointerUp={() => {
                             if (!selectedCardId || isDead) return;
                             const cardData = getSelectedCardData();
@@ -373,9 +362,9 @@ const BattleArena: React.FC = () => {
                             isEnemy={isEnemy}
                             isSelected={isSelected}
                             isTargeted={isTargeted}
-                            previewDamage={previewDamage}
-                            procs={battleState.procs.filter(p => p.entityId === entity.id)}
                             battleState={battleState}
+                            selectedCardId={selectedCardId}
+                            isHoveredTarget={hoveredEntityId === entity.id}
                             onClick={() => {
                                 if (isDead) return;
 
@@ -484,7 +473,6 @@ const BattleArena: React.FC = () => {
                 {renderParty(battleState.enemyParty, true)}
             </motion.div>
 
-            {/* Console: Bottom 30% */}
             <div
                 className="console-area"
                 onPointerUp={() => {
@@ -493,6 +481,7 @@ const BattleArena: React.FC = () => {
                 }}
             >
                 <CardHand
+                    hoveredEntityId={hoveredEntityId}
                     onTargetingStart={(point) => {
                         setOriginPoint(point);
                         setIsTargeting(true);
@@ -501,6 +490,7 @@ const BattleArena: React.FC = () => {
                         setIsTargeting(false);
                         setDragPoint(null);
                         setOriginPoint(null);
+                        setHoveredEntityId(null);
                     }}
                 />
             </div>
