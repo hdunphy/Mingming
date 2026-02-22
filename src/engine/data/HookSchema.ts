@@ -27,7 +27,8 @@ const HookActionSchema = z.object({
     amount: z.number().optional(),
     percentMaxHP: z.number().optional(),
     healOverride: z.number().optional(),
-    text: z.string().optional()
+    text: z.string().optional(),
+    dataId: z.string().optional()
 });
 
 const HookDefinitionSchema = z.object({

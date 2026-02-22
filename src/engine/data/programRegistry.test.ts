@@ -80,4 +80,11 @@ describe('ProgramRegistry Inflation', () => {
         const data = GetProgramData(mockId);
         expect(data.constraints[0].error).toContain('Missing constraint: non_existent_constraint');
     });
+
+    it('should load feedback_token from programs.json', () => {
+        const data = GetProgramData('feedback_token');
+        console.log("Feedback Token Data:", data);
+        expect(data.id).toBe('feedback_token');
+        expect(data.name).toBe('Feedback');
+    });
 });
