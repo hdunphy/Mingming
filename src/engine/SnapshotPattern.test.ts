@@ -43,7 +43,9 @@ function createMockState(): IBattleState {
         osLogs: [],
         procs: [],
         levelUpQueue: [],
-        cardsPlayedThisTurn: 0
+        cardsPlayedThisTurn: 0,
+        cardsDrawnThisTurn: 0,
+        lastProgramPlayed: null
     };
 }
 

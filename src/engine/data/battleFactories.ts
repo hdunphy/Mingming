@@ -263,6 +263,8 @@ export function createBattleState(
         playerDeck: pDeckState,
         enemyDeck: eDeckState,
         cardsPlayedThisTurn: 0,
+        cardsDrawnThisTurn: 0,
+        lastProgramPlayed: null,
         levelUpQueue: [],
         activeRelics: save.relics || []
     };

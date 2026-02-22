@@ -33,6 +33,8 @@ function createMockState(): IBattleState {
         osLogs: [],
         procs: [],
         cardsPlayedThisTurn: 0,
+        cardsDrawnThisTurn: 0,
+        lastProgramPlayed: null,
         playerParty: [
             {
                 id: 'p1',

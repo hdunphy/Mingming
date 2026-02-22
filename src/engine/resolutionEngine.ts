@@ -313,10 +313,14 @@ export function executeStatusDamageCalculated(
 export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean, sourceId?: string): IBattleState {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const { state: newDeck, nextSeed } = drawCards(state[deckKey], count, state.seed);
-
-    let newState = { ...state, [deckKey]: newDeck, seed: nextSeed };
-
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
+    let newState = {
+        ...state,
+        [deckKey]: newDeck,
+        seed: nextSeed,
+        cardsDrawnThisTurn: state.cardsDrawnThisTurn + cardsDrawnCount
+    };
+
     if (cardsDrawnCount > 0) {
         const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
         const owner = sourceId

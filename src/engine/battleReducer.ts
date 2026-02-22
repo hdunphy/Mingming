@@ -192,7 +192,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             hand: newHand,
             discard: newDiscard
         },
-        cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1
+        cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1,
+        lastProgramPlayed: card.dataId
     };
 
     // 4. Initial Context
@@ -285,7 +286,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         }
     }
 
-    return finalState;
+    return {
+        ...finalState,
+        lastProgramPlayed: card.dataId
+    };
 }
 
 function handleExecuteIntent(state: IBattleState, payload: { sourceId: string }): IBattleState {
@@ -588,6 +592,8 @@ function processPostTurn(state: IBattleState): IBattleState {
         [activePartyKey]: processedActiveParty,
         [activeDeckKey]: newDeckState,
         logs: [...state.logs, ...statusLogs],
+        cardsPlayedThisTurn: 0,
+        cardsDrawnThisTurn: 0
     };
 
     // Award XP for status effect deaths

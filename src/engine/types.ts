@@ -185,7 +185,7 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -210,7 +210,7 @@ export interface AttackActionData extends ProgramAction {
   readonly type: 'ATTACK';
   readonly power: number;
   readonly element?: Element;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN';
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -271,6 +271,21 @@ export interface SearchActionData extends ProgramAction {
     element?: Element;
     category?: ProgramCategory;
   };
+}
+
+export interface MultiplyStatusActionData extends ProgramAction {
+  readonly type: 'MULTIPLY_STATUS';
+  readonly status: StatusType;
+  readonly factor: number;
+}
+
+export interface TriggerStatusActionData extends ProgramAction {
+  readonly type: 'TRIGGER_STATUS';
+  readonly status: StatusType;
+}
+
+export interface PlayLastCardActionData extends ProgramAction {
+  readonly type: 'PLAY_LAST_CARD';
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
@@ -338,5 +353,7 @@ export interface IBattleState {
   readonly osLogs: ReadonlyArray<string>;
   readonly procs: ReadonlyArray<{ id: number; entityId: string; text: string }>;
   readonly cardsPlayedThisTurn: number;
+  readonly cardsDrawnThisTurn: number;
+  readonly lastProgramPlayed: string | null;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

@@ -1,9 +1,11 @@
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
-import { applyMutations, executeDraw } from '../resolutionEngine';
+import { applyMutations, executeDraw, executeStatusDamageCalculated } from '../resolutionEngine';
+import { GetProgramData } from '../data/programRegistry';
+import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -42,6 +44,9 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             } else if (scaling === 'STATUS_COUNT') {
                 const targetStatusCount = target.statusEffects.reduce((acc, s) => acc + s.stacks, 0);
                 damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
+            } else if (scaling === 'CARDS_DRAWN') {
+                const multiplier = state.cardsDrawnThisTurn;
+                damage = Math.floor(damage * multiplier);
             }
         }
 
@@ -226,6 +231,112 @@ export class SearchExecutor extends ActionExecutor<SearchActionData> {
     }
 }
 
+export class MultiplyStatusExecutor extends ActionExecutor<MultiplyStatusActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: MultiplyStatusActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const { status, factor } = actionData;
+        const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        if (!target) return state;
+
+        const existingStatus = target.statusEffects.find(s => s.type === status);
+        if (!existingStatus) return state;
+
+        const bonusStacks = Math.floor(existingStatus.stacks * (factor - 1));
+        if (bonusStacks <= 0) return state;
+
+        return applyMutations(state, [{
+            type: 'STATUS',
+            targetId: targetId,
+            sourceId: sourceId,
+            payload: { status, stacks: bonusStacks }
+        }]);
+    }
+}
+
+
+
+export class TriggerStatusExecutor extends ActionExecutor<TriggerStatusActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: TriggerStatusActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const { status } = actionData;
+        const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        if (!target) return state;
+
+        const effect = target.statusEffects.find(s => s.type === status);
+        if (!effect) return state;
+
+        const behavior = getStatusBehavior(effect.type);
+        const result = behavior.endTurn(effect, target);
+
+        let finalState = state;
+        let damage = result.damage;
+
+        if (damage > 0) {
+            const { damage: finalDamage } = executeStatusDamageCalculated(state, target, damage, effect.type);
+            damage = finalDamage;
+
+            finalState = addLog(finalState, `  ☣️ ${status} effect triggered for ${damage} damage!`);
+            finalState = applyMutations(finalState, [{
+                type: 'HP',
+                sourceId: sourceId,
+                targetId: targetId,
+                payload: {
+                    amount: damage,
+                    isHeal: false,
+                    element: status === 'Burn' ? 'Fire' : 'None'
+                }
+            }]);
+        }
+
+        if (result.healing && result.healing > 0) {
+            finalState = applyMutations(finalState, [{
+                type: 'HP',
+                sourceId: sourceId,
+                targetId: targetId,
+                payload: {
+                    amount: result.healing,
+                    isHeal: true
+                }
+            }]);
+        }
+
+        return finalState;
+    }
+}
+
+export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, _actionData: PlayLastCardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        if (!state.lastProgramPlayed) {
+            return applyMutations(state, [{
+                type: 'LOG',
+                targetId: '',
+                payload: '  ⚠️ No program was played previously!'
+            }]);
+        }
+
+        // Re-execute handlePlayProgram for the last card
+        // Note: This might cost energy again if we just call handlePlayProgram.
+        // The user said "Re-executes the actions of whatever card is in lastProgramPlayed".
+        // Usually "Echo" effects in card games don't re-pay cost.
+        // I will manually execute the actions of the last program to avoid re-paying cost.
+        const lastProgramData = GetProgramData(state.lastProgramPlayed);
+        let finalState = state;
+
+        if (lastProgramData.actions) {
+            finalState = addLog(finalState, `  🔁 Reprogramming: ${lastProgramData.name}`);
+            for (const action of lastProgramData.actions) {
+                const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[action.type];
+                if (executor) {
+                    // For simplicity, we use the current target for the repeated actions
+                    finalState = executor.execute(finalState, sourceId, targetId, action as any, lastProgramData, _context);
+                }
+            }
+        }
+
+        return finalState;
+    }
+}
+
 // Registry to route ActionType to Executors
 export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'ATTACK': new AttackExecutor(),
@@ -238,5 +349,8 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'DISCARD': new DiscardExecutor(),
     'EXHAUST': new ExhaustExecutor(),
     'RETURN': new ReturnExecutor(),
-    'SEARCH': new SearchExecutor()
+    'SEARCH': new SearchExecutor(),
+    'MULTIPLY_STATUS': new MultiplyStatusExecutor(),
+    'TRIGGER_STATUS': new TriggerStatusExecutor(),
+    'PLAY_LAST_CARD': new PlayLastCardExecutor()
 };
