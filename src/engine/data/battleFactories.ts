@@ -274,6 +274,7 @@ export function createBattleState(
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
+        counters: {},
         levelUpQueue: [],
         activeRelics: save.relics || []
     };

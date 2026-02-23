@@ -139,8 +139,26 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         }
     }
 
+    // Apply Status Post-Damage (Shields)
+    let finalDamage = damage;
+    let newStatus = [...target.statusEffects];
+    let statusLogs: string[] = [];
+
+    if (finalDamage > 0 && newStatus.length > 0) {
+        for (const effect of [...newStatus]) {
+            if (!newStatus.some(s => s.id === effect.id)) continue;
+            const behavior = getStatusBehavior(effect.type);
+            if (behavior) {
+                const result = behavior.onPostDamage(finalDamage, target, newStatus);
+                finalDamage = result.damage;
+                newStatus = result.updatedInstances;
+                statusLogs.push(...result.logs);
+            }
+        }
+    }
+
     // Apply Damage
-    const newCurrentHp = Math.max(0, target.currentHp - damage);
+    const newCurrentHp = Math.max(0, target.currentHp - finalDamage);
 
     // Wake up if Asleep and taken damage
     let wakesUp = false;
@@ -155,7 +173,7 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     globalBattleEventBus.emit({
         type: 'DAMAGE_TAKEN',
         targetId: target.id,
-        amount: damage,
+        amount: finalDamage,
         element: element,
         timestamp: Date.now()
     });
@@ -174,7 +192,6 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         party.map(e => {
             if (e.id !== targetId) return e;
 
-            let newStatus = e.statusEffects;
             if (wakesUp) {
                 newStatus = newStatus.filter(s => s.type !== 'Asleep');
             }
@@ -188,7 +205,10 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         enemyParty: updateParty(state.enemyParty)
     } as IBattleState;
 
-    newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+    newState = addLog(newState, `  → ${target.name} takes ${finalDamage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+    for (const log of statusLogs) {
+        newState = addLog(newState, log);
+    }
 
     // Death / XP Handling
     if (newCurrentHp <= 0) {

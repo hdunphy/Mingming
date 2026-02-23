@@ -34,9 +34,11 @@
 
 
 2/22/2026
-[ ] New enemy AI ignores Stun and was able to perform a move through the stun. We need to still have checks for stun and sleep status effects and ensure the "moves" still use the buffs/debuffs.
-[ ] I don't see the intenion of the enemy AI. It needs to calculate it's move on the beginning of the player's turn, not on its own turn.
-[ ] OS doesn't make sense on the enemy AI anymore. Kraken gains heal on card draw, but it doesn't use cards anymore. For now disable them on enemies.
+[x] New enemy AI ignores Stun and was able to perform a move through the stun. We need to still have checks for stun and sleep status effects and ensure the "moves" still use the buffs/debuffs.
+[x] I don't see the intenion of the enemy AI. It needs to calculate it's move on the beginning of the player's turn, not on its own turn.
+[x] OS doesn't make sense on the enemy AI anymore. Kraken gains heal on card draw, but it doesn't use cards anymore. For now disable them on enemies.
 [ ] Extra energy should be shown on the mingming card with a different color. Like ratatoskr gains energy the next turn but his bar shows 3/3 it should show 4/3.
-[ ] early on we need to increase the chance of a blueprint. If a player has < 3 mingmings available blueprint chances should be 75% chance of finding one.
-[ ] It would be nice to show the expected damage on the card when hovering over an enemy.
+[x] early on we need to increase the chance of a blueprint. If a player has < 3 mingmings available blueprint chances should be 75% chance of finding one.
+[x] It would be nice to show the expected damage on the card when hovering over an enemy.
+
+[x] I added a bunch of nature cards in the deck tab, but they don't show up in my battle deck.

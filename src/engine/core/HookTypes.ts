@@ -10,7 +10,7 @@ export enum HookPriority {
 }
 
 export type MutationRequest = {
-    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
+    type: 'HP' | 'ENERGY' | 'MAX_ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'COUNTER' | 'DRAW';
     targetId: string;
     sourceId?: string; // Optional source of the mutation
     payload: any;
@@ -40,10 +40,13 @@ export type HookCondition = {
     statusApplied?: StatusType;
     isNaturalDraw?: boolean;
     isToken?: boolean;
+    targetStatus?: { status: StatusType; minStacks?: number };
+    sourceStatus?: { status: StatusType; minStacks?: number };
+    counter?: { key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
 };
 
 export type HookAction = {
-    type: ActionType | 'LOG'; // Hooks can perform actions or log
+    type: ActionType | 'LOG' | 'COUNTER' | 'DRAW'; // Hooks can perform actions or log
     target?: 'SELF' | 'TARGET' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
     status?: StatusType;
     stacks?: number;
@@ -52,6 +55,8 @@ export type HookAction = {
     text?: string;
     count?: number;
     dataId?: string; // For GENERATE_CARD
+    key?: string; // For COUNTER key
+    operator?: 'ADD' | 'SET' | 'RESET'; // For COUNTER operation
 };
 
 export type DataHookDefinition = {
@@ -93,6 +98,7 @@ export type HookDefinition = {
     onPostDamage?: EventHook;
     onCardDraw?: EventHook;
     onStatusApplied?: EventHook;
+    onTurnStart?: EventHook;
     onTurnEnd?: EventHook;
     data?: DataHookDefinition | ModifierDataHookDefinition; // Reference to original data
 };

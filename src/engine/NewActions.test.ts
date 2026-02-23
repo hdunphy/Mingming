@@ -36,6 +36,7 @@ function createInitialState(): IBattleState {
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
+        counters: {},
         levelUpQueue: [],
         activeRelics: []
     };

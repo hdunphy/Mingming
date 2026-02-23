@@ -35,6 +35,7 @@ function createMockState(): IBattleState {
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
+        counters: {},
         playerParty: [
             {
                 id: 'p1',

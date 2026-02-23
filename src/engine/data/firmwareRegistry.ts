@@ -3,6 +3,7 @@ import { registerHook } from '../core/HookRegistry';
 import { HookFactory } from '../core/HookFactory';
 import HOOKS_DATA from './lib/hooks.json';
 import { HookLibrarySchema } from './HookSchema';
+import { CustomFirmware } from '../core/CustomFirmware';
 
 export interface OSDefinition {
     id: string;
@@ -17,7 +18,6 @@ let isInitialized = false;
 function initFirmwareHooks() {
     if (isInitialized) return;
 
-    const firmwareKeys = ['fenrir_v1', 'fenrir_v2', 'kraken_v1', 'kraken_v2', 'ratatoskr_v1', 'ratatoskr_v2'];
 
     // Validate JSON on boot
     let validatedData: any = {};
@@ -28,12 +28,25 @@ function initFirmwareHooks() {
         validatedData = HOOKS_DATA; // Fallback
     }
 
+    const firmwareKeys = Object.keys(validatedData).filter(key => key.endsWith('_v1') || key.endsWith('_v2'));
+
     firmwareKeys.forEach(key => {
         const data = validatedData[key];
+        let hooks: HookDefinition[] = [];
+
         if (data && data.hooks) {
-            const hooks = data.hooks.map((h: any) => HookFactory.createHook(h));
+            hooks = data.hooks.map((h: any) => HookFactory.createHook(h));
+        }
+
+        if (CustomFirmware[key]) {
+            hooks = [...hooks, ...CustomFirmware[key]];
+        }
+
+        if (data) {
             FIRMWARE_REGISTRY[key] = {
-                ...data,
+                id: data.id || key,
+                name: data.name || 'CUSTOM_OS',
+                description: data.description || 'Custom Firmware',
                 hooks
             };
             hooks.forEach((hook: any) => registerHook(hook));

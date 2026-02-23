@@ -169,12 +169,59 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 newState = { ...newState, [deckKey]: deck };
                 break;
             }
+            case 'MAX_ENERGY': {
+                const isPlayerTarget = newState.playerParty.some((e: IBattleEntity) => e.id === mutation.targetId);
+                const partyKey = isPlayerTarget ? 'playerParty' : 'enemyParty';
+                const party = newState[partyKey];
+                const entityIndex = party.findIndex((e: IBattleEntity) => e.id === mutation.targetId);
+                if (entityIndex > -1) {
+                    const e = party[entityIndex];
+                    const amount = mutation.payload.amount || 1;
+                    const newParty = [...party];
+                    newParty[entityIndex] = { ...e, maxEnergy: e.maxEnergy + amount, currentEnergy: e.currentEnergy + amount };
+                    newState = { ...newState, [partyKey]: newParty };
+                }
+                break;
+            }
             case 'SEARCH': {
                 const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
                 let deck = newState[deckKey];
                 deck = searchCard(deck, mutation.payload.amount, mutation.payload.criteria, true);
                 newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'DRAW': {
+                const isPlayerTarget = newState.playerParty.some((e: IBattleEntity) => e.id === mutation.targetId);
+                const side = isPlayerTarget ? 'PLAYER' : 'ENEMY';
+                newState = executeDraw(newState, side, mutation.payload.amount || 1, false, mutation.targetId);
+                break;
+            }
+            case 'COUNTER': {
+                const counterKey = mutation.payload.key;
+                if (!counterKey) break;
+
+                const op = mutation.payload.operator || 'ADD';
+                const val = mutation.payload.amount || 1;
+
+                const currentCounters = newState.counters || {};
+                let currentVal = currentCounters[counterKey] || 0;
+
+                if (op === 'ADD') {
+                    currentVal += val;
+                } else if (op === 'SET') {
+                    currentVal = val;
+                } else if (op === 'RESET') {
+                    currentVal = 0;
+                }
+
+                newState = {
+                    ...newState,
+                    counters: {
+                        ...currentCounters,
+                        [counterKey]: currentVal
+                    }
+                };
                 break;
             }
         }
@@ -312,7 +359,7 @@ export function executeStatusDamageCalculated(
  */
 export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean, sourceId?: string): IBattleState {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const { state: newDeck, nextSeed } = drawCards(state[deckKey], count, state.seed);
+    const { state: newDeck, nextSeed, shuffled } = drawCards(state[deckKey], count, state.seed);
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
     let newState = {
         ...state,
@@ -320,6 +367,13 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
         seed: nextSeed,
         cardsDrawnThisTurn: state.cardsDrawnThisTurn + cardsDrawnCount
     };
+
+    if (shuffled) {
+        newState = {
+            ...newState,
+            counters: { ...newState.counters, ['deck_shuffles']: (newState.counters['deck_shuffles'] || 0) + 1 }
+        };
+    }
 
     if (cardsDrawnCount > 0) {
         const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';

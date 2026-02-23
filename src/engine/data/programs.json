@@ -1707,5 +1707,41 @@
                 "target": "SELF"
             }
         ]
+    },
+    "hoof_strike": {
+        "id": "hoof_strike",
+        "name": "Hoof Strike",
+        "description": "A quick, momentum-driven strike from Sleipnir.",
+        "element": "Air",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Token",
+        "baseCost": 0,
+        "isToken": true,
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 12,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "feedback_token": {
+        "id": "feedback_token",
+        "name": "Feedback",
+        "description": "Ratatoskr's retaliatory damage token.",
+        "element": "None",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Token",
+        "baseCost": 0,
+        "isToken": true,
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 3,
+                "target": "TARGET"
+            }
+        ]
     }
 }

@@ -57,6 +57,7 @@ export function simulate1v1(
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
+        counters: {},
         osLogs: [],
         procs: []
     };

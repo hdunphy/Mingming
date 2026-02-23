@@ -27,6 +27,7 @@ describe('Advanced Archetypes Logic', () => {
             cardsPlayedThisTurn: 0,
             cardsDrawnThisTurn: 0,
             lastProgramPlayed: null,
+        counters: {},
             levelUpQueue: [],
             activeRelics: []
         };
@@ -80,10 +81,10 @@ describe('Advanced Archetypes Logic', () => {
     });
 
     it('PLAY_LAST_CARD should repeat the previous card actions', () => {
-        // 1. Mock a "Fire Punch" played previously
+        // 1. Mock a "Test Strike" played previously
         let state: IBattleState = {
             ...initialState,
-            lastProgramPlayed: 'fire_punch'
+            lastProgramPlayed: 'test_strike'
         };
 
         const action: any = {
@@ -93,9 +94,9 @@ describe('Advanced Archetypes Logic', () => {
         const executor = ActionExecutorRegistry['PLAY_LAST_CARD'];
         const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as any);
 
-        // Fire Punch deals damage. Check if enemy HP dropped.
+        // Test Strike deals damage. Check if enemy HP dropped.
         expect(nextState.enemyParty[0].currentHp).toBeLessThan(initialState.enemyParty[0].currentHp);
-        expect(nextState.logs.some(l => l.includes('🔁 Reprogramming: Fire Punch'))).toBe(true);
+        expect(nextState.logs.some(l => l.includes('🔁 Reprogramming: Test Strike'))).toBe(true);
     });
 
     it('CARDS_DRAWN scaling should increase damage', () => {

@@ -22,7 +22,8 @@ export const StatusType = {
   Stunned: 'Stunned',
   Regen: 'Regen',
   Energized: 'Energized',
-  StableOS: 'StableOS'
+  StableOS: 'StableOS',
+  BarkShield: 'BarkShield'
 } as const;
 export const Statuses: StatusType[] = Object.values(StatusType);
 
@@ -355,5 +356,6 @@ export interface IBattleState {
   readonly cardsPlayedThisTurn: number;
   readonly cardsDrawnThisTurn: number;
   readonly lastProgramPlayed: string | null;
+  readonly counters: Record<string, number>;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

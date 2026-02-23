@@ -14,7 +14,9 @@ const HookConditionSchema = z.object({
         z.number(),
         z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ', 'NEQ']), value: z.number() })
     ]).optional(),
-    triggerPhase: z.string().optional()
+    triggerPhase: z.string().optional(),
+    targetStatus: z.object({ status: z.string(), minStacks: z.number().optional() }).optional(),
+    sourceStatus: z.object({ status: z.string(), minStacks: z.number().optional() }).optional()
 });
 
 const HookActionSchema = z.object({
@@ -28,7 +30,9 @@ const HookActionSchema = z.object({
     percentMaxHP: z.number().optional(),
     healOverride: z.number().optional(),
     text: z.string().optional(),
-    dataId: z.string().optional()
+    dataId: z.string().optional(),
+    key: z.string().optional(),
+    operator: z.enum(['ADD', 'SET', 'RESET']).optional()
 });
 
 const HookDefinitionSchema = z.object({

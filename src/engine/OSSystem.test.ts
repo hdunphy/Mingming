@@ -89,7 +89,8 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
-        lastProgramPlayed: null
+        lastProgramPlayed: null,
+        counters: {}
     };
 };
 

@@ -82,6 +82,28 @@ export const HookFactory = {
                 continue;
             }
 
+            if (action.type === 'COUNTER') {
+                currentState = applyMutations(currentState, [{
+                    type: 'COUNTER',
+                    targetId: '',
+                    payload: {
+                        key: action.key,
+                        operator: action.operator,
+                        amount: action.amount
+                    }
+                }]);
+                continue;
+            }
+
+            if (action.type === 'DRAW') {
+                currentState = applyMutations(currentState, [{
+                    type: 'DRAW',
+                    targetId: owner.id,
+                    payload: { amount: action.amount || 1 }
+                }]);
+                continue;
+            }
+
             // To ensure scaling/percent max HP is respected (legacy Hook logic):
             if (action.type === 'HP' as any) {
                 const rawAmount = action.percentMaxHP

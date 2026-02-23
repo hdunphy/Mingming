@@ -651,21 +651,40 @@ function processPreTurn(state: IBattleState): IBattleState {
         };
     });
 
+    let nextState: IBattleState = {
+        ...state,
+        turn: nextTurn,
+        activeSide: nextSide,
+        [activePartyKey]: refreshedParty
+    };
+
+    // Execute onTurnStart hooks
+    const currentParty = nextState[activePartyKey];
+    for (const entity of currentParty) {
+        if (entity.currentHp <= 0) continue;
+        const { state: afterHook } = executeResolutionStack(nextState, 'onTurnStart', {
+            source: entity,
+            state: nextState,
+            triggerDepth: 0
+        });
+        nextState = afterHook;
+    }
+
     // 3. Draw Cards for Player
-    let newState = executeDraw(state, nextSide, 0, true);
+    nextState = executeDraw(nextState, nextSide, 0, true);
 
     if (nextSide === 'PLAYER') {
-        const alivePlayers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);
+        const alivePlayers = nextState.playerParty.filter((e: IBattleEntity) => e.currentHp > 0);
         const totalCardDraw = alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
-        const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - activeDeck.hand.length);
+        const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState.playerDeck.hand.length);
         console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
-        newState = executeDraw(newState, nextSide, cardsToDraw, true);
+        nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
     }
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
     // Intent Generation: Always calculate intents for enemies at the start of a turn (so player can see them)
-    const intentPrng = new PRNG(`${state.seed}_target_${nextTurn}`);
+    const intentPrng = new PRNG(`${nextState.seed}_target_${nextTurn}`);
 
     const generateIntents = (party: ReadonlyArray<IBattleEntity>) => party.map(entity => {
         if (entity.currentHp <= 0 || entity.currentIntent) return entity;
@@ -692,14 +711,14 @@ function processPreTurn(state: IBattleState): IBattleState {
     });
 
     const isPlayerTurn = nextSide === 'PLAYER';
-    const finalPlayerParty = isPlayerTurn ? refreshedParty : state.playerParty;
-    let finalEnemyParty = isPlayerTurn ? state.enemyParty : refreshedParty;
+    const finalPlayerParty = isPlayerTurn ? nextState.playerParty : nextState.playerParty;
+    let finalEnemyParty = isPlayerTurn ? nextState.enemyParty : nextState.enemyParty;
 
     // Apply intents to enemies
     finalEnemyParty = generateIntents(finalEnemyParty);
 
-    newState = {
-        ...newState,
+    let newState = {
+        ...nextState,
         turn: nextTurn,
         phase: 'ACTION',
         activeSide: nextSide,

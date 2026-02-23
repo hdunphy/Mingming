@@ -78,7 +78,8 @@ describe('Damage Calculation with Status Modifiers', () => {
             cardsPlayedThisTurn: 0,
             levelUpQueue: [],
             cardsDrawnThisTurn: 0,
-            lastProgramPlayed: null
+            lastProgramPlayed: null,
+        counters: {}
         };
     });
 

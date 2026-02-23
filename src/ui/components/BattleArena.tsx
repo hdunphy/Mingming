@@ -347,7 +347,7 @@ const BattleArena: React.FC = () => {
                             const isValidTarget =
                                 (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
                                 (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                (!isEnemy && cardData.actions.some(a => a.type === 'HEAL'));
+                                (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'));
 
                             if (isValidTarget) {
                                 // For Self cards, always target the source
@@ -376,7 +376,7 @@ const BattleArena: React.FC = () => {
                                         const canTarget =
                                             (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
                                             (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL'));
+                                            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'));
 
                                         if (canTarget) {
                                             dispatch(selectTarget(isTargeted ? null : entity.id));

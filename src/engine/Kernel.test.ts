@@ -48,7 +48,8 @@ function createMockState(): IBattleState {
         levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
-        lastProgramPlayed: null
+        lastProgramPlayed: null,
+        counters: {}
     };
 }
 

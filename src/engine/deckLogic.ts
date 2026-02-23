@@ -11,11 +11,12 @@ const HAND_SIZE_LIMIT = 9;
  * Automatically shuffles discard into drawpile if drawpile is empty.
  * Emits CARD_DRAWN and DECK_SHUFFLED events.
  */
-export function drawCards(deckState: IDeckState, count: number, seed: string): { state: IDeckState; nextSeed: string } {
+export function drawCards(deckState: IDeckState, count: number, seed: string): { state: IDeckState; nextSeed: string; shuffled: boolean } {
     let currentHand = [...deckState.hand];
     let currentDrawpile = [...deckState.drawpile];
     let currentDiscard = [...deckState.discard];
     let currentSeed = seed;
+    let didShuffle = false;
     const ownerId = deckState.ownerId;
 
     for (let i = 0; i < count; i++) {
@@ -31,6 +32,7 @@ export function drawCards(deckState: IDeckState, count: number, seed: string): {
             currentDrawpile = shuffled;
             currentDiscard = [];
             currentSeed = nextSeed;
+            didShuffle = true;
 
             globalBattleEventBus.emit({ type: 'DECK_SHUFFLED', ownerId, timestamp: Date.now() });
         }
@@ -49,7 +51,8 @@ export function drawCards(deckState: IDeckState, count: number, seed: string): {
             drawpile: currentDrawpile,
             discard: currentDiscard
         },
-        nextSeed: currentSeed.toString()
+        nextSeed: currentSeed.toString(),
+        shuffled: didShuffle
     };
 }
 
