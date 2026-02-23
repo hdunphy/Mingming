@@ -100,5 +100,6 @@ export type HookDefinition = {
     onStatusApplied?: EventHook;
     onTurnStart?: EventHook;
     onTurnEnd?: EventHook;
+    onDiscarded?: EventHook;
     data?: DataHookDefinition | ModifierDataHookDefinition; // Reference to original data
 };

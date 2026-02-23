@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -337,6 +337,56 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
     }
 }
 
+export class TauntExecutor extends ActionExecutor<TauntActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, _actionData: TauntActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
+        const enemyPartyKey = isPlayerSource ? 'enemyParty' : 'playerParty';
+        const sourceName = isPlayerSource ? state.playerParty.find(e => e.id === sourceId)?.name : state.enemyParty.find(e => e.id === sourceId)?.name;
+
+        let newState = state;
+        newState = addLog(newState, `  🤬 ${sourceName} uses Taunt! All enemies are forced to target them!`);
+
+        const updatedParty = newState[enemyPartyKey].map(e => ({
+            ...e,
+            forcedTargetId: sourceId
+        }));
+
+        newState = { ...newState, [enemyPartyKey]: updatedParty };
+        return newState;
+    }
+}
+
+export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: BuffNextProgramActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const isPlayerTarget = state.playerParty.some(e => e.id === targetId);
+        const partyKey = isPlayerTarget ? 'playerParty' : 'enemyParty';
+        let newState = state;
+
+        const party = newState[partyKey];
+        const targetIndex = party.findIndex(e => e.id === targetId);
+
+        if (targetIndex > -1) {
+            const target = party[targetIndex];
+            const newModifier = {
+                multiplier: actionData.multiplier ?? 1,
+                flatBonus: actionData.flatBonus ?? 0,
+                costReduction: actionData.costReduction ?? 0
+            };
+
+            const updatedParty = [...party];
+            updatedParty[targetIndex] = {
+                ...target,
+                nextProgramModifier: newModifier
+            };
+
+            newState = { ...newState, [partyKey]: updatedParty };
+            newState = addLog(newState, `  ✨ ${target.name} primes their next program!`);
+        }
+
+        return newState;
+    }
+}
+
 // Registry to route ActionType to Executors
 export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'ATTACK': new AttackExecutor(),
@@ -352,5 +402,7 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'SEARCH': new SearchExecutor(),
     'MULTIPLY_STATUS': new MultiplyStatusExecutor(),
     'TRIGGER_STATUS': new TriggerStatusExecutor(),
-    'PLAY_LAST_CARD': new PlayLastCardExecutor()
+    'PLAY_LAST_CARD': new PlayLastCardExecutor(),
+    'TAUNT': new TauntExecutor(),
+    'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor()
 };

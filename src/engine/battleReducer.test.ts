@@ -164,6 +164,42 @@ describe('Battle Reducer State Machine', () => {
         expect(newState.playerDeck.hand.length).toBe(2);
     });
 
+    it('should consume nextProgramModifier to reduce cost and boost power', () => {
+        // Setup initial modifier
+        const stateWithModifier = {
+            ...initialState,
+            playerParty: [
+                {
+                    ...initialState.playerParty[0],
+                    nextProgramModifier: { multiplier: 2, flatBonus: 10, costReduction: 2 }
+                },
+                initialState.playerParty[1]
+            ]
+        };
+
+        // Play card1 (cost 3, power 10 from TestProgramRegistry)
+        const action: BattleAction = {
+            type: 'PLAY_PROGRAM',
+            payload: { sourceId: 'p1', targetId: 'p2', programId: 'h1' } // h1 is card1
+        };
+
+        const newState = battleReducer(stateWithModifier, action);
+
+        const p1 = newState.playerParty.find(p => p.id === 'p1');
+        const p2 = newState.playerParty.find(p => p.id === 'p2'); // Target 
+
+        // Energy check: Cost 3 - 2 = 1. p1 started with 10 energy, so should have 9 left.
+        expect(p1?.currentEnergy).toBe(9);
+
+        // Power check: Card1 has 10 power. (10 + 10) * 2 = 40.
+        // Base damage formula: Math.floor((6 * 40 * 1) / 50) + 2 = 6 damage.
+        // P2 started with 100 HP, should have 94 HP.
+        expect(p2?.currentHp).toBe(94);
+
+        // Modifier should be consumed
+        expect(p1?.nextProgramModifier).toBeUndefined();
+    });
+
 
     it('should apply status effects additively', () => {
         // Initial: p1 has 2 stacks of 'Poison'
@@ -254,5 +290,41 @@ describe('Battle Reducer State Machine', () => {
         expect(enemy.currentIntent).toBeDefined();
         expect(enemy.currentIntent).not.toBeNull();
         expect(['fenrir_bite', 'fenrir_howl', 'fenrir_pounce']).toContain(enemy.currentIntent?.id);
+    });
+
+    it('should force enemy intent to target the entity that taunted', () => {
+        // Setup state where Player 2 has used Taunt on the enemy
+        const testState: IBattleState = {
+            ...initialState,
+            playerParty: [
+                { ...initialState.playerParty[0], id: 'p1', currentHp: 50 }, // Lower HP, normally targeted
+                { ...initialState.playerParty[0], id: 'p2', currentHp: 100 } // Higher HP, but taunted
+            ],
+            enemyParty: [
+                {
+                    ...initialState.playerParty[0],
+                    id: 'e1', currentHp: 100,
+                    forcedTargetId: 'p2', // P2 taunted the enemy!
+                    currentIntent: {
+                        id: 'test_attack',
+                        name: 'Test Attack',
+                        intentType: 'Attack',
+                        priority: 10,
+                        actions: [{ type: 'ATTACK', power: 10, target: 'Single' }]
+                    }
+                } as IBattleEntity
+            ]
+        };
+
+        const action: BattleAction = {
+            type: 'EXECUTE_INTENT',
+            payload: { sourceId: 'e1' }
+        };
+
+        const newState = battleReducer(testState, action);
+
+        // Enemy should have attacked p2 because of forcedTargetId, despite p1 having lower HP
+        expect(newState.playerParty[1].currentHp).toBeLessThan(100); // p2 got hit
+        expect(newState.playerParty[0].currentHp).toBe(50); // p1 was ignored
     });
 });

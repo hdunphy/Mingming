@@ -159,8 +159,12 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const programData = GetProgramData(card.dataId);
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
+    const modifier = sourceEntity.nextProgramModifier;
+    const appliedCostReduction = modifier?.costReduction || 0;
+    const finalCost = Math.max(0, card.currentCost - appliedCostReduction);
+
     // 2. Validate Constraints
-    if (!validateProgramConstraints(state, sourceEntity, targetEntity, programData, card.currentCost)) {
+    if (!validateProgramConstraints(state, sourceEntity, targetEntity, programData, finalCost)) {
         return state;
     }
 
@@ -179,7 +183,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         ...snapshot,
         [activePartyKey]: snapshot[activePartyKey].map(e => {
             if (e.id === sourceId) {
-                const updatedEntity = { ...e, currentEnergy: e.currentEnergy - card.currentCost };
+                const updatedEntity = { ...e, currentEnergy: e.currentEnergy - finalCost };
                 if (isDaemon) {
                     return { ...updatedEntity, daemons: [...updatedEntity.daemons, card] };
                 }
@@ -271,11 +275,24 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     finalState = afterMod;
 
                     // Execution
-                    const executor = ActionExecutorRegistry[action.type];
+                    let modifiedAction = { ...action };
+                    if (modifier) {
+                        if ((modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        }
+                        if (modifiedAction.type === 'STATUS' && (modifiedAction as any).stacks !== undefined) {
+                            (modifiedAction as any).stacks = Math.floor(((modifiedAction as any).stacks + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        }
+                        if (modifiedAction.type === 'HEAL' && (modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        }
+                    }
+
+                    const executor = ActionExecutorRegistry[modifiedAction.type];
                     if (executor) {
-                        finalState = executor.execute(finalState, sourceId, tId, action as any, programData, hitContext);
+                        finalState = executor.execute(finalState, sourceId, tId, modifiedAction as any, programData, hitContext);
                     } else {
-                        console.warn(`[BattleReducer] No executor found for action type: ${action.type}`);
+                        console.warn(`[BattleReducer] No executor found for action type: ${modifiedAction.type}`);
                     }
 
                     // Post-Damage Phase
@@ -286,8 +303,18 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         }
     }
 
+    // Clear the modifier since it has been consumed
+    const activePartyAfter = finalState[activePartyKey].map(e => {
+        if (e.id === sourceId && e.nextProgramModifier !== undefined) {
+            const { nextProgramModifier, ...rest } = e;
+            return rest;
+        }
+        return e;
+    });
+
     return {
         ...finalState,
+        [activePartyKey]: activePartyAfter,
         lastProgramPlayed: card.dataId
     };
 }
@@ -376,12 +403,21 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 const targetParty = isHealOrBuff ? finalState.enemyParty : finalState.playerParty;
                 const aliveMembers = targetParty.filter(e => e.currentHp > 0);
                 if (aliveMembers.length > 0) {
-                    // Sorting by current HP (lowest first), then by ID to break ties deterministically
-                    const sorted = [...aliveMembers].sort((a, b) => {
-                        if (a.currentHp !== b.currentHp) return a.currentHp - b.currentHp;
-                        return a.id.localeCompare(b.id);
-                    });
-                    targetIds = [sorted[0].id];
+                    if (!isHealOrBuff && sourceEntity.forcedTargetId) {
+                        const forcedTarget = aliveMembers.find(e => e.id === sourceEntity.forcedTargetId);
+                        if (forcedTarget) {
+                            targetIds = [forcedTarget.id];
+                        }
+                    }
+
+                    if (targetIds.length === 0) {
+                        // Sorting by current HP (lowest first), then by ID to break ties deterministically
+                        const sorted = [...aliveMembers].sort((a, b) => {
+                            if (a.currentHp !== b.currentHp) return a.currentHp - b.currentHp;
+                            return a.id.localeCompare(b.id);
+                        });
+                        targetIds = [sorted[0].id];
+                    }
                 }
             }
 

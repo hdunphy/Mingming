@@ -128,6 +128,8 @@ export interface IBattleEntity extends IMingmingState {
   readonly daemons: ReadonlyArray<ProgramEntity>; // Persistent "installed" software
   readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
+  readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
+  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number }; // Buffs the next card played
 }
 
 // --- Transformation Logic ---
@@ -186,7 +188,7 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -287,6 +289,17 @@ export interface TriggerStatusActionData extends ProgramAction {
 
 export interface PlayLastCardActionData extends ProgramAction {
   readonly type: 'PLAY_LAST_CARD';
+}
+
+export interface TauntActionData extends ProgramAction {
+  readonly type: 'TAUNT';
+}
+
+export interface BuffNextProgramActionData extends ProgramAction {
+  readonly type: 'BUFF_NEXT_PROGRAM';
+  readonly multiplier?: number;
+  readonly flatBonus?: number;
+  readonly costReduction?: number;
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';

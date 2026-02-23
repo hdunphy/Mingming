@@ -2,6 +2,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { IBattleState, ProgramEntity } from './types';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { createMockEntity } from './data/battleFactories';
+import { registerHook } from './core/HookRegistry';
+import { TestProgramRegistry } from './data/testProgramRegistry';
+import { vi } from 'vitest';
+
+vi.mock('./data/programRegistry', async (importOriginal) => {
+    const original = await importOriginal<typeof import('./data/programRegistry')>();
+    return {
+        ...original,
+        GetProgramData: vi.fn((id: string) => TestProgramRegistry[id] || original.GetProgramData(id))
+    };
+});
 
 function createInitialState(): IBattleState {
     return {
@@ -138,5 +149,42 @@ describe('New Utility Actions', () => {
         // Should draw 1 card since no criteria means any card
         expect(state.playerDeck.hand.length).toBe(3); // 2 original + 1 drawn
         expect(state.playerDeck.drawpile.length).toBe(1);
+    });
+
+    it('DISCARD should fire onDiscarded hook for the discarded card', () => {
+        // 1. Register a mock hook that adds a log when discarded
+        registerHook({
+            id: 'mock_discard_hook',
+            priority: 10,
+            onDiscarded: (context, owner) => {
+                return {
+                    state: {
+                        ...context.state,
+                        logs: [...context.state.logs, 'Mock Discard Hook Activated!']
+                    }
+                };
+            }
+        });
+
+        // 2. Add the test discard card to hand
+        const stateWithTestCard = {
+            ...initialState,
+            playerDeck: {
+                ...initialState.playerDeck,
+                hand: [
+                    { id: 'h1', dataId: 'test_discard_card', currentCost: 0, isPlayable: true },
+                    { id: 'h2', dataId: 'defend', currentCost: 1, isPlayable: true }
+                ] as ProgramEntity[]
+            }
+        };
+
+        // 3. Trigger DISCARD
+        const action: any = { type: 'DISCARD', amount: 1, isRandom: false };
+        const executor = ActionExecutorRegistry['DISCARD'];
+        const nextState = executor.execute(stateWithTestCard, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, {} as any);
+
+        // 4. Assert
+        expect(nextState.playerDeck.hand.length).toBe(1);
+        expect(nextState.logs.some(l => l.includes('Mock Discard Hook Activated!'))).toBe(true);
     });
 });

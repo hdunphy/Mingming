@@ -137,9 +137,42 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 }
 
                 toDiscard.forEach(c => {
-                    deck = discardCard(deck, c.id);
+                    // Update the state with the discarded card first to avoid stale state during hooks
+                    let currentDeck = newState[deckKey];
+                    currentDeck = discardCard(currentDeck, c.id);
+                    newState = { ...newState, [deckKey]: currentDeck };
+
+                    const discardedData = GetProgramData(c.dataId);
+                    const owner = isPlayerTarget
+                        ? newState.playerParty.find(e => e.id === mutation.targetId)
+                        : newState.enemyParty.find(e => e.id === mutation.targetId);
+
+                    if (owner) {
+                        const context: HookContext = {
+                            source: owner,
+                            program: discardedData,
+                            state: newState,
+                            triggerDepth: 0
+                        };
+
+                        // 1. Fire global/daemon onDiscarded listeners
+                        const { state: afterGlobalHooks } = executeResolutionStack(newState, 'onDiscarded', context);
+                        newState = afterGlobalHooks;
+                        context.state = newState;
+
+                        // 2. Fire the card's own explicit hooks (e.g. "Fragmented Code")
+                        if (discardedData.hooks) {
+                            discardedData.hooks.forEach(hookId => {
+                                const registered = getHook(hookId);
+                                if (registered && registered.onDiscarded) {
+                                    const result = registered.onDiscarded(context, owner);
+                                    newState = result.state;
+                                    context.state = newState;
+                                }
+                            });
+                        }
+                    }
                 });
-                newState = { ...newState, [deckKey]: deck };
                 break;
             }
             case 'EXHAUST': {

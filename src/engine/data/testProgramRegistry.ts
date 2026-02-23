@@ -60,6 +60,19 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }],
         rarity: 'Common'
     },
+    'test_discard_card': {
+        id: 'test_discard_card',
+        name: 'Test Discard Card',
+        description: 'Testing discard hooks.',
+        element: 'None',
+        target: 'Self',
+        category: 'Skill',
+        baseCost: 0,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [],
+        hooks: ['mock_discard_hook'],
+        rarity: 'Common'
+    },
     'card2': {
         id: 'card2',
         name: 'Test Card 2',
