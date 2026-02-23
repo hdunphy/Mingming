@@ -250,4 +250,39 @@ describe('Daemon System', () => {
         expect(p1?.currentHp).toBe(0);
         expect(p1?.daemons.length).toBe(0); // Should be cleared
     });
+
+    it('ECHO_CHAMBER_DAEMON should generate a Feedback token when a 0-cost card is played', () => {
+        // Override hand
+        let state = {
+            ...initialState,
+            playerDeck: {
+                ...initialState.playerDeck,
+                hand: [
+                    { id: 'h_daemon', dataId: 'echo_chamber_v2', currentCost: 2, isPlayable: true },
+                    { id: 'h_0cost', dataId: 'water_slap', currentCost: 0, isPlayable: true }
+                ] as any
+            }
+        };
+
+        // 1. Install Daemon
+        state = battleReducer(state, {
+            type: 'PLAY_PROGRAM',
+            payload: { sourceId: 'p1', targetId: 'p1', programId: 'h_daemon' }
+        });
+
+        // 2. Play a 0-cost card
+        const playAction = {
+            type: 'PLAY_PROGRAM' as const,
+            payload: { sourceId: 'p1', targetId: 'e1', programId: 'h_0cost' }
+        };
+        const nextState = battleReducer(state, playAction);
+
+        // 3. Verify that a feedback token was added to hand
+        const p1 = nextState.playerParty.find(p => p.id === 'p1');
+        // Check logs only if the hook triggers successfully and uses the actual string provided by the hook
+        expect(nextState.logs.some(l => l.includes('ECHO_CHAMBER'))).toBe(true);
+        const generatedToken = nextState.playerDeck.hand.find(c => c.dataId === 'feedback_token');
+        expect(generatedToken).toBeDefined();
+        expect(generatedToken?.currentCost).toBe(0);
+    });
 });

@@ -150,11 +150,11 @@ export function createBattleState(
             enemyParty = [guard1, superBoss, guard2]; // Boss in middle
 
             if (primaryElement === 'Water') {
-                enemyDeckIds = ['recursion_daemon', 'tidal_crush', 'whirlpool', 'whirlpool', 'renew', 'hypnosis', 'hypnosis'];
+                enemyDeckIds = ['feedback_loop_daemon', 'corrosive_bolt', 'toxic_surge', 'toxic_surge', 'surge_protection', 'poison_injection', 'acid_splash'];
             } else if (primaryElement === 'Nature') {
-                enemyDeckIds = ['echo_chamber_daemon', 'seed_bomb', 'seed_bomb', 'root_bind', 'photosynthesis', 'photosynthesis'];
+                enemyDeckIds = ['fertile_ground_daemon', 'seed_bomb_v2', 'seed_bomb_v2', 'crippling_vine', 'pollen_cloud', 'rejuvenation'];
             } else {
-                enemyDeckIds = ['thermal_overload', 'solar_flare', 'solar_flare', 'ignite_pipeline', 'fire_punch', 'reckless'];
+                enemyDeckIds = ['fenrir_v1_daemon', 'fire_punch_v2', 'fire_punch_v2', 'scorch', 'cinder_slash', 'fury_strike'];
             }
         }
     } else if (sectorElement) {
@@ -179,9 +179,9 @@ export function createBattleState(
             if (def.primaryElement === 'Nature') archetype = 'RATATOSKR';
 
             const lists = {
-                FENRIR: { daemon: 'thermal_overload', cards: ['singularity', 'solar_flare', 'ignite_pipeline', 'flash', 'fire_punch', 'reckless'] },
-                KRAKEN: { daemon: 'recursion_daemon', cards: ['squirt', 'deep_pressure', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis'] },
-                RATATOSKR: { daemon: 'echo_chamber_daemon', cards: ['gossip', 'pruning', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'root_bind'] }
+                FENRIR: { daemon: 'fenrir_v1_daemon', cards: ['fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch'] },
+                KRAKEN: { daemon: 'feedback_loop_daemon', cards: ['water_slap', 'whirlpool_v2', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'contagion'] },
+                RATATOSKR: { daemon: 'fertile_ground_daemon', cards: ['leaf_blade', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine'] }
             };
             const list = lists[archetype];
             return [list.daemon, ...list.cards.slice(0, 9)];
@@ -197,16 +197,16 @@ export function createBattleState(
     const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
         const lists = {
             FENRIR: {
-                daemon: 'thermal_overload',
-                cards: ['singularity', 'solar_flare', 'solar_flare', 'ignite_pipeline', 'ignite_pipeline', 'flash', 'preheat', 'ash_to_ash', 'fire_punch', 'fire_punch', 'reckless']
+                daemon: 'fenrir_v1_daemon',
+                cards: ['fire_poke', 'fire_punch_v2', 'fire_punch_v2', 'cinder_slash', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch', 'ignite', 'ignite', 'strength_burst']
             },
             KRAKEN: {
-                daemon: 'recursion_daemon',
-                cards: ['squirt', 'squirt', 'deep_pressure', 'deep_pressure', 'whirlpool', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis']
+                daemon: 'feedback_loop_daemon',
+                cards: ['water_slap', 'water_slap', 'whirlpool_v2', 'whirlpool_v2', 'surge_protection', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'contagion']
             },
             RATATOSKR: {
-                daemon: 'echo_chamber_daemon',
-                cards: ['gossip', 'gossip', 'pruning', 'pruning', 'nettle_lash', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'seed_bomb', 'root_bind']
+                daemon: 'fertile_ground_daemon',
+                cards: ['leaf_blade', 'leaf_blade', 'nettle_sting', 'nettle_sting', 'thistle_barrage', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'pollen_cloud', 'crippling_vine']
             }
         };
 
@@ -217,7 +217,16 @@ export function createBattleState(
     };
 
     const playerArchetype = playerParty[0].definitionId.toUpperCase() as any;
-    const playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
+
+    let playerDeckIds: string[] = [];
+    if (save.activeDeck && save.activeDeck.cards.length > 0) {
+        playerDeckIds = save.activeDeck.cards.map(instanceId => {
+            const card = save.cardInventory.find(c => c.instanceId === instanceId);
+            return card ? card.dataId : null;
+        }).filter(Boolean) as string[];
+    } else {
+        playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
+    }
 
     const pDeckCardsRaw = instantiateDeck(playerDeckIds);
     const initialSeed = Date.now().toString();

@@ -28,5 +28,10 @@
         "type": "HAS_STATUS",
         "target": "SELF",
         "value": "Asleep"
+    },
+    "self_sharp": {
+        "type": "HAS_STATUS",
+        "target": "SELF",
+        "value": "Sharp"
     }
 }

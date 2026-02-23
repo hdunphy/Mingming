@@ -9,9 +9,15 @@
         "exhaust": true,
         "rarity": "Rare",
         "baseCost": 3,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [],
-        "hooks": ["daemon_double_strength"]
+        "hooks": [
+            "daemon_double_strength"
+        ]
     },
     "strength_burst": {
         "id": "strength_burst",
@@ -23,9 +29,18 @@
         "exhaust": true,
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Strengthened", "stacks": 3, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 3,
+                "target": "SELF"
+            }
         ]
     },
     "brute_force": {
@@ -37,14 +52,28 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 70, "target": "TARGET" },
-            { 
-                "type": "ATTACK", 
-                "power": 30, 
+            {
+                "type": "ATTACK",
+                "power": 70,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 30,
                 "target": "TARGET",
-                "conditionals": [{ "type": "HAS_STATUS", "target": "SELF", "value": "Strengthened" }]
+                "conditionals": [
+                    {
+                        "type": "HAS_STATUS",
+                        "target": "SELF",
+                        "value": "Strengthened"
+                    }
+                ]
             }
         ]
     },
@@ -57,10 +86,24 @@
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Strengthened", "stacks": 1, "target": "SELF" },
-            { "type": "STATUS", "status": "Dazed", "stacks": 2, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "SELF"
+            }
         ]
     },
     "fury_strike": {
@@ -72,30 +115,57 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 20, "target": "TARGET" },
-            { "type": "STATUS", "status": "Strengthened", "stacks": 1, "target": "SELF" }
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 1,
+                "target": "SELF"
+            }
         ]
     },
     "cinder_slash": {
         "id": "cinder_slash",
         "name": "Cinder Slash",
-        "description": "1 Strength if target is burned. +7 power.",
+        "description": "1 Strength if target is burned. 35 power attack.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 7, "target": "TARGET" },
-            { 
-                "type": "STATUS", 
-                "status": "Strengthened", 
-                "stacks": 1, 
+            {
+                "type": "ATTACK",
+                "power": 35,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 1,
                 "target": "SELF",
-                "conditionals": [{ "type": "HAS_STATUS", "target": "TARGET", "value": "Burn" }]
+                "conditionals": [
+                    {
+                        "type": "HAS_STATUS",
+                        "target": "TARGET",
+                        "value": "Burn"
+                    }
+                ]
             }
         ]
     },
@@ -108,24 +178,46 @@
         "category": "Status",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Burn", "stacks": 6, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 6,
+                "target": "TARGET"
+            }
         ]
     },
     "overdrive": {
         "id": "overdrive",
         "name": "Overdrive",
-        "description": "Gain 2 Strength. Take 40 recoil damage.",
+        "description": "Gain 2 Strength. Deal 40 power.",
         "element": "Fire",
-        "target": "Self",
+        "target": "Single",
         "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Strengthened", "stacks": 2, "target": "SELF" },
-            { "type": "ATTACK", "power": 40, "target": "SELF", "damageOverride": 40 }
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 2,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            }
         ]
     },
     "desperate_strike": {
@@ -137,10 +229,24 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Strengthened", "stacks": 1, "target": "SELF" },
-            { "type": "ATTACK", "power": 10, "target": "SELF", "damageOverride": 10 }
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "SELF",
+                "damageOverride": 10
+            }
         ]
     },
     "fire_punch_v2": {
@@ -152,9 +258,17 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 40, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            }
         ]
     },
     "shield_shards": {
@@ -166,9 +280,18 @@
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Sharp", "stacks": 2, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 2,
+                "target": "SELF"
+            }
         ]
     },
     "inferno": {
@@ -180,9 +303,18 @@
         "category": "Status",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Burn", "stacks": 2, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 2,
+                "target": "TARGET"
+            }
         ]
     },
     "all_in": {
@@ -194,10 +326,24 @@
         "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Strengthened", "stacks": 4, "target": "SELF" },
-            { "type": "STATUS", "status": "Burn", "stacks": 2, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 4,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 2,
+                "target": "SELF"
+            }
         ]
     },
     "glass_cannon": {
@@ -209,10 +355,23 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 60, "target": "TARGET" },
-            { "type": "ATTACK", "power": 20, "target": "SELF", "damageOverride": 20 }
+            {
+                "type": "ATTACK",
+                "power": 60,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "SELF",
+                "damageOverride": 20
+            }
         ]
     },
     "ignite": {
@@ -224,9 +383,18 @@
         "category": "Status",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Burn", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "fire_poke": {
@@ -238,10 +406,23 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 30, "target": "TARGET" },
-            { "type": "STATUS", "status": "Burn", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 30,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "cinder_armor_daemon": {
@@ -254,23 +435,47 @@
         "exhaust": true,
         "rarity": "Rare",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [],
-        "hooks": ["daemon_burn_sharp_synergy"]
+        "hooks": [
+            "daemon_burn_sharp_synergy"
+        ]
     },
-    "molten_core_daemon": {
-        "id": "molten_core_daemon",
-        "name": "MOLTEN_CORE",
-        "description": "Daemon: Apply 2 Burn if host has Sharp. Otherwise 2 Burn.",
+    "molten_core": {
+        "id": "molten_core",
+        "name": "Molten Core",
+        "description": "Apply 4 Burn if host has Sharp. Otherwise 2 Burn.",
         "element": "Fire",
-        "target": "Self",
-        "category": "Daemon",
-        "exhaust": true,
-        "rarity": "Rare",
+        "target": "Single",
+        "category": "Skill",
+        "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
-        "actions": [],
-        "hooks": ["daemon_molten_conditional"]
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 2,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 2,
+                "target": "TARGET",
+                "conditionals": [
+                    "self_sharp"
+                ]
+            }
+        ]
     },
     "heat_wave": {
         "id": "heat_wave",
@@ -281,9 +486,18 @@
         "category": "Status",
         "rarity": "Rare",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "MULTIPLY_STATUS", "status": "Burn", "factor": 2, "target": "TARGET" }
+            {
+                "type": "MULTIPLY_STATUS",
+                "status": "Burn",
+                "factor": 2,
+                "target": "TARGET"
+            }
         ]
     },
     "ash_reclamation": {
@@ -295,10 +509,26 @@
         "category": "Heal",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base", "target_burned"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base",
+            "target_burned"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Burn", "consume": true, "target": "TARGET" },
-            { "type": "HEAL", "power": 0, "healOverride": 10, "scaling": "STATUS_CONSUMED", "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "consume": true,
+                "target": "TARGET"
+            },
+            {
+                "type": "HEAL",
+                "power": 0,
+                "healOverride": 10,
+                "scaling": "STATUS_CONSUMED",
+                "target": "SELF"
+            }
         ]
     },
     "spike_launch": {
@@ -310,9 +540,18 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 20, "scaling": "SHARP_STACKS", "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "scaling": "SHARP_STACKS",
+                "target": "TARGET"
+            }
         ]
     },
     "overheat": {
@@ -324,10 +563,23 @@
         "category": "Attack",
         "rarity": "Rare",
         "baseCost": 3,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 100, "target": "TARGET" },
-            { "type": "STATUS", "status": "Burn", "stacks": 1, "target": "SELF" }
+            {
+                "type": "ATTACK",
+                "power": 100,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "SELF"
+            }
         ]
     },
     "capacitor_daemon": {
@@ -340,9 +592,15 @@
         "exhaust": true,
         "rarity": "Rare",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [],
-        "hooks": ["daemon_next_turn_energy"]
+        "hooks": [
+            "daemon_next_turn_energy"
+        ]
     },
     "battery_pack": {
         "id": "battery_pack",
@@ -354,9 +612,17 @@
         "exhaust": true,
         "rarity": "Rare",
         "baseCost": 4,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ENERGY", "amount": 1, "target": "SELF" }
+            {
+                "type": "ENERGY",
+                "amount": 1,
+                "target": "SELF"
+            }
         ]
     },
     "hydro_blast": {
@@ -368,9 +634,17 @@
         "category": "Attack",
         "rarity": "Rare",
         "baseCost": 3,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 150, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 150,
+                "target": "TARGET"
+            }
         ]
     },
     "tidal_wave_v2": {
@@ -382,9 +656,17 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 3,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 50, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 50,
+                "target": "TARGET"
+            }
         ]
     },
     "toxic_cloud": {
@@ -396,10 +678,23 @@
         "category": "Attack",
         "rarity": "Rare",
         "baseCost": 3,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 40, "target": "TARGET" },
-            { "type": "STATUS", "status": "Poison", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "corrosive_leak": {
@@ -411,10 +706,23 @@
         "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Poison", "stacks": 2, "target": "SELF" },
-            { "type": "ENERGY", "amount": 1, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 2,
+                "target": "SELF"
+            },
+            {
+                "type": "ENERGY",
+                "amount": 1,
+                "target": "SELF"
+            }
         ]
     },
     "ink_stream": {
@@ -426,9 +734,18 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 20, "scaling": "CARDS_DRAWN", "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "scaling": "CARDS_DRAWN",
+                "target": "TARGET"
+            }
         ]
     },
     "pressure_point": {
@@ -440,14 +757,28 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 30, "target": "TARGET" },
-            { 
-                "type": "DRAW", 
-                "amount": 1, 
+            {
+                "type": "ATTACK",
+                "power": 30,
+                "target": "TARGET"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
                 "target": "SELF",
-                "conditionals": [{ "type": "HAS_STATUS", "target": "TARGET", "value": "Dazed" }]
+                "conditionals": [
+                    {
+                        "type": "HAS_STATUS",
+                        "target": "TARGET",
+                        "value": "Dazed"
+                    }
+                ]
             }
         ]
     },
@@ -460,9 +791,18 @@
         "category": "Status",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Dazed", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "ink_cloud": {
@@ -474,9 +814,18 @@
         "category": "Status",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Dazed", "stacks": 2, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "TARGET"
+            }
         ]
     },
     "scavenge_data": {
@@ -488,9 +837,20 @@
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "SEARCH", "amount": 1, "criteria": { "element": "Water" }, "target": "SELF" }
+            {
+                "type": "SEARCH",
+                "amount": 1,
+                "criteria": {
+                    "element": "Water"
+                },
+                "target": "SELF"
+            }
         ]
     },
     "reprogram": {
@@ -502,9 +862,16 @@
         "category": "Skill",
         "rarity": "Rare",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "PLAY_LAST_CARD", "target": "TARGET" }
+            {
+                "type": "PLAY_LAST_CARD",
+                "target": "TARGET"
+            }
         ]
     },
     "feedback_loop_daemon": {
@@ -517,9 +884,15 @@
         "exhaust": true,
         "rarity": "Rare",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [],
-        "hooks": ["daemon_draw_damage_proc"]
+        "hooks": [
+            "daemon_draw_damage_proc"
+        ]
     },
     "keen_edge": {
         "id": "keen_edge",
@@ -530,10 +903,23 @@
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Sharp", "stacks": 1, "target": "SELF" },
-            { "type": "DRAW", "amount": 1, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            }
         ]
     },
     "whirlpool_v2": {
@@ -545,10 +931,22 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 10, "target": "TARGET" },
-            { "type": "DRAW", "amount": 1, "target": "SELF" }
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            }
         ]
     },
     "surge_protection": {
@@ -560,14 +958,29 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 20, "target": "TARGET" },
-            { 
-                "type": "ENERGY", 
-                "amount": 1, 
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "ENERGY",
+                "amount": 1,
                 "target": "SELF",
-                "conditionals": [{ "id": "card_drawn_check", "type": "BASE", "target": "SELF", "value": "" }]
+                "conditionals": [
+                    {
+                        "id": "card_drawn_check",
+                        "type": "BASE",
+                        "target": "SELF",
+                        "value": ""
+                    }
+                ]
             }
         ]
     },
@@ -580,9 +993,17 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 10, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET"
+            }
         ]
     },
     "poison_injection": {
@@ -594,10 +1015,24 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 10, "element": "None", "target": "TARGET" },
-            { "type": "STATUS", "status": "Poison", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "element": "None",
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "corrosive_bolt": {
@@ -609,10 +1044,24 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 30, "element": "None", "target": "TARGET" },
-            { "type": "STATUS", "status": "Poison", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 30,
+                "element": "None",
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "acid_splash": {
@@ -624,11 +1073,30 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 20, "element": "None", "target": "TARGET" },
-            { "type": "STATUS", "status": "Poison", "stacks": 1, "target": "TARGET" },
-            { "type": "STATUS", "status": "Dazed", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "element": "None",
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "toxic_surge": {
@@ -640,10 +1108,24 @@
         "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base", "target_poisoned"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base",
+            "target_poisoned"
+        ],
         "actions": [
-            { "type": "TRIGGER_STATUS", "status": "Poison", "target": "TARGET" },
-            { "type": "ATTACK", "power": 10, "element": "None", "target": "TARGET" }
+            {
+                "type": "TRIGGER_STATUS",
+                "status": "Poison",
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "element": "None",
+                "target": "TARGET"
+            }
         ]
     },
     "contagion": {
@@ -655,9 +1137,18 @@
         "category": "Status",
         "rarity": "Rare",
         "baseCost": 3,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "MULTIPLY_STATUS", "status": "Poison", "factor": 2, "target": "TARGET" }
+            {
+                "type": "MULTIPLY_STATUS",
+                "status": "Poison",
+                "factor": 2,
+                "target": "TARGET"
+            }
         ]
     },
     "echo_chamber_v2": {
@@ -670,9 +1161,15 @@
         "exhaust": true,
         "rarity": "Rare",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [],
-        "hooks": ["daemon_token_generation"]
+        "hooks": [
+            "echo_chamber_daemon_hook"
+        ]
     },
     "healing_mist": {
         "id": "healing_mist",
@@ -683,9 +1180,18 @@
         "category": "Heal",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "HEAL", "power": 0, "healOverride": 5, "target": "SELF" }
+            {
+                "type": "HEAL",
+                "power": 0,
+                "healOverride": 5,
+                "target": "SELF"
+            }
         ]
     },
     "seed_bomb_v2": {
@@ -697,9 +1203,18 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 30, "scaling": "CARDS_PLAYED", "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 30,
+                "scaling": "CARDS_PLAYED",
+                "target": "TARGET"
+            }
         ]
     },
     "rejuvenation": {
@@ -711,10 +1226,23 @@
         "category": "Heal",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "DRAW", "amount": 1, "target": "SELF" },
-            { "type": "HEAL", "power": 0, "healOverride": 10, "target": "SELF" }
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "HEAL",
+                "power": 0,
+                "healOverride": 10,
+                "target": "SELF"
+            }
         ]
     },
     "soothe": {
@@ -726,10 +1254,24 @@
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Weakened", "stacks": -1, "target": "SELF" },
-            { "type": "STATUS", "status": "Dazed", "stacks": -1, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": -1,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": -1,
+                "target": "SELF"
+            }
         ]
     },
     "pollen_cloud": {
@@ -741,9 +1283,18 @@
         "category": "Status",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Weakened", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "natures_touch": {
@@ -755,9 +1306,18 @@
         "category": "Heal",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "HEAL", "power": 0, "healOverride": 15, "target": "TARGET" }
+            {
+                "type": "HEAL",
+                "power": 0,
+                "healOverride": 15,
+                "target": "TARGET"
+            }
         ]
     },
     "thistle_barrage": {
@@ -769,9 +1329,18 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 10, "count": 4, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "count": 4,
+                "target": "TARGET"
+            }
         ]
     },
     "equilibrium": {
@@ -783,15 +1352,37 @@
         "category": "Skill",
         "rarity": "Rare",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { 
-                "type": "STATUS", "status": "Strengthened", "stacks": 3, "target": "SELF",
-                "conditionals": [{ "type": "HEALTH_THRESHOLD", "target": "SELF", "value": "GT:50" }]
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 3,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "GT:50"
+                    }
+                ]
             },
-            { 
-                "type": "HEAL", "power": 0, "healOverride": 40, "target": "SELF",
-                "conditionals": [{ "type": "HEALTH_THRESHOLD", "target": "SELF", "value": "LT:51" }]
+            {
+                "type": "HEAL",
+                "power": 0,
+                "healOverride": 40,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "LT:51"
+                    }
+                ]
             }
         ]
     },
@@ -804,9 +1395,18 @@
         "category": "Status",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Asleep", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Asleep",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "crippling_vine": {
@@ -818,10 +1418,24 @@
         "category": "Status",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Weakened", "stacks": 2, "target": "TARGET" },
-            { "type": "STATUS", "status": "Dazed", "stacks": 2, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 2,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "TARGET"
+            }
         ]
     },
     "leaf_blade": {
@@ -833,9 +1447,17 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 10, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET"
+            }
         ]
     },
     "fertile_ground_daemon": {
@@ -848,9 +1470,15 @@
         "exhaust": true,
         "rarity": "Rare",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [],
-        "hooks": ["daemon_extra_draw"]
+        "hooks": [
+            "daemon_extra_draw"
+        ]
     },
     "photosynthesis_v2": {
         "id": "photosynthesis_v2",
@@ -861,9 +1489,18 @@
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Energized", "stacks": 1, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Energized",
+                "stacks": 1,
+                "target": "SELF"
+            }
         ]
     },
     "overgrowth": {
@@ -875,9 +1512,18 @@
         "category": "Status",
         "rarity": "Uncommon",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Regen", "stacks": 3, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Regen",
+                "stacks": 3,
+                "target": "TARGET"
+            }
         ]
     },
     "nettle_sting": {
@@ -889,11 +1535,29 @@
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 30, "target": "TARGET" },
-            { "type": "ATTACK", "power": 10, "element": "None", "target": "TARGET" },
-            { "type": "STATUS", "status": "Poison", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 30,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "element": "None",
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "supernova_v2": {
@@ -905,9 +1569,18 @@
         "category": "Attack",
         "rarity": "Rare",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 150, "scaling": "HP_PERCENT", "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 150,
+                "scaling": "HP_PERCENT",
+                "target": "TARGET"
+            }
         ]
     },
     "uplift": {
@@ -919,9 +1592,18 @@
         "category": "Status",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Strengthened", "stacks": 2, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 2,
+                "target": "TARGET"
+            }
         ]
     },
     "iron_bark": {
@@ -933,9 +1615,18 @@
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Sharp", "stacks": 3, "target": "SELF" }
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
+                "target": "SELF"
+            }
         ]
     },
     "stunning_strike": {
@@ -947,10 +1638,23 @@
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "ATTACK", "power": 40, "target": "TARGET" },
-            { "type": "STATUS", "status": "Stunned", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Stunned",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "entangle": {
@@ -962,9 +1666,18 @@
         "category": "Status",
         "rarity": "Rare",
         "baseCost": 3,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "STATUS", "status": "Stunned", "stacks": 1, "target": "TARGET" }
+            {
+                "type": "STATUS",
+                "status": "Stunned",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "scry": {
@@ -976,10 +1689,23 @@
         "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 2,
-        "constraints": ["not_stunned", "not_asleep", "energy_base"],
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
-            { "type": "DRAW", "amount": 2, "target": "SELF" },
-            { "type": "STATUS", "status": "Sharp", "stacks": 2, "target": "SELF" }
+            {
+                "type": "DRAW",
+                "amount": 2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 2,
+                "target": "SELF"
+            }
         ]
     }
 }
