@@ -361,11 +361,14 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                 {/* Daemons Row */}
                 {entity.daemons && entity.daemons.length > 0 && (
                     <div className="hud-daemons-row">
-                        {entity.daemons.map((daemon) => {
+                        {entity.daemons.map((daemon, idx) => {
+                            if (!daemon.id) {
+                                console.warn(`[MingmingUnit] Daemon at index ${idx} on ${entity.name} has an empty ID!`);
+                            }
                             const data = GetProgramData(daemon.dataId);
                             return (
                                 <div
-                                    key={daemon.id}
+                                    key={daemon.id || `daemon-${idx}`}
                                     className="hud-daemon-tag"
                                     title={data.description}
                                 >
@@ -475,17 +478,22 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         LEVEL UP!
                     </motion.div>
                 )}
-                {procs.map(proc => (
-                    <motion.div
-                        key={proc.id}
-                        initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, y: -120, scale: 1.5 }}
-                        exit={{ opacity: 0 }}
-                        className="hud-proc-text"
-                    >
-                        {proc.text}
-                    </motion.div>
-                ))}
+                {procs.map((proc, idx) => {
+                    if (!proc.id) {
+                        console.warn(`[MingmingUnit] Proc at index ${idx} on ${entity.name} has an empty ID!`);
+                    }
+                    return (
+                        <motion.div
+                            key={proc.id || `proc-${idx}`}
+                            initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, y: -120, scale: 1.5 }}
+                            exit={{ opacity: 0 }}
+                            className="hud-proc-text"
+                        >
+                            {proc.text}
+                        </motion.div>
+                    );
+                })}
             </AnimatePresence>
         </motion.div>
     );

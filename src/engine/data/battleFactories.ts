@@ -6,6 +6,7 @@ import { GetMingmingData } from './mingmingRegistry';
 import { GetRelic } from './relicRegistry';
 import { drawCards } from '../deckLogic';
 import { PRNG } from '../core/PRNG';
+import { generateIntents } from '../core/IntentUtils';
 
 export function createMockEntity(name: string, mingmingId: string = 'fenrir', level: number = 10, experience: number = 0): IBattleEntity {
     const definition = GetMingmingData(mingmingId);
@@ -264,6 +265,8 @@ export function createBattleState(
     };
     const { state: eDeckState, nextSeed: seed3 } = drawCards(eInitialDeck, enemyCardDraw, seed2);
 
+    const finalEnemyParty = generateIntents(enemyParty, seed3, 1);
+
     return {
         sessionId: 'battle_' + Date.now(),
         seed: seed3,
@@ -274,7 +277,7 @@ export function createBattleState(
         osLogs: [],
         procs: [],
         playerParty: playerParty,
-        enemyParty: enemyParty,
+        enemyParty: finalEnemyParty,
         playerDeck: pDeckState,
         enemyDeck: eDeckState,
         cardsPlayedThisTurn: 0,

@@ -322,11 +322,16 @@ const BattleArena: React.FC = () => {
                 const isTargeted = selectedTargetId === entity.id;
                 const isDead = entity.currentHp <= 0;
 
-                const translateX = 0; // Removed manual offset to allow horizontal layout to breathe
+                if (!entity.id) {
+                    console.warn(`[BattleArena] Entity at index ${index} (isEnemy: ${isEnemy}) has an empty ID!`);
+                }
+                const entityKey = entity.id || `entity-${isEnemy ? 'enemy' : 'player'}-${index}`;
+
+                const translateX = 0;
 
                 return (
                     <motion.div
-                        key={entity.id}
+                        key={entityKey}
                         initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
                         animate={{ opacity: isDead ? 0.35 : 1, x: translateX }}
                         transition={{ delay: index * 0.1, type: 'spring' }}

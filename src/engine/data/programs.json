@@ -582,24 +582,27 @@
             }
         ]
     },
-    "capacitor_daemon": {
-        "id": "capacitor_daemon",
-        "name": "CAPACITOR_CORE",
-        "description": "Daemon: Gain 2 Energy next turn.",
+    "capacitor": {
+        "id": "capacitor",
+        "name": "Capacitor",
+        "description": "Gain 2 Energy next turn.",
         "element": "Water",
         "target": "Self",
-        "category": "Daemon",
-        "exhaust": true,
-        "rarity": "Rare",
+        "category": "Skill",
+        "rarity": "Uncommon",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
             "not_asleep",
             "energy_base"
         ],
-        "actions": [],
-        "hooks": [
-            "daemon_next_turn_energy"
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Energy",
+                "stacks": 2,
+                "target": "SELF"
+            }
         ]
     },
     "battery_pack": {

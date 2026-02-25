@@ -3,26 +3,22 @@ import type {
     IBattleState,
     TurnPhase,
     IBattleEntity,
-    IDeckState,
-    ProgramEntity,
     ProgramData,
     StatusType,
     StatusEffectInstance,
     ProgramConstraint
 } from './types';
-import { globalBattleEventBus, type BattleEvent } from './events';
-import { HookPriority, type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
+import { globalBattleEventBus } from './events';
+import { type HookContext } from './core/Hooks';
 // We will import combatUtils later for card resolution
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
-import { getOSBehavior } from './data/firmwareRegistry';
 import { effectHandlers, checkDefeat } from './effectHandlers';
-import { drawCards, discardHand } from './deckLogic';
+import { discardHand } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
-import { PRNG } from './core/PRNG';
-import { GetMingmingData } from './data/mingmingRegistry';
+import { generateIntents } from './core/IntentUtils';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -742,38 +738,8 @@ function processPreTurn(state: IBattleState): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
     // Intent Generation: Always calculate intents for enemies at the start of a turn (so player can see them)
-    const intentPrng = new PRNG(`${nextState.seed}_target_${nextTurn}`);
-
-    const generateIntents = (party: ReadonlyArray<IBattleEntity>) => party.map(entity => {
-        if (entity.currentHp <= 0 || entity.currentIntent) return entity;
-
-        const definition = GetMingmingData(entity.definitionId);
-        const moves = entity.moves || definition.moves;
-        if (moves && moves.length > 0) {
-            const prngResult = intentPrng.next();
-            const randVal = prngResult.value;
-            const totalWeight = moves.reduce((sum, move) => sum + move.priority, 0);
-            let threshold = randVal * totalWeight;
-            let selectedIntent = moves[moves.length - 1];
-
-            for (const move of moves) {
-                threshold -= move.priority;
-                if (threshold <= 0) {
-                    selectedIntent = move;
-                    break;
-                }
-            }
-            return { ...entity, currentIntent: selectedIntent };
-        }
-        return entity;
-    });
-
-    const isPlayerTurn = nextSide === 'PLAYER';
-    const finalPlayerParty = isPlayerTurn ? nextState.playerParty : nextState.playerParty;
-    let finalEnemyParty = isPlayerTurn ? nextState.enemyParty : nextState.enemyParty;
-
-    // Apply intents to enemies
-    finalEnemyParty = generateIntents(finalEnemyParty);
+    const finalEnemyParty = generateIntents(nextState.enemyParty, nextState.seed, nextTurn);
+    const finalPlayerParty = nextState.playerParty;
 
     let newState = {
         ...nextState,
