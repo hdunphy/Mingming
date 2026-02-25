@@ -89,9 +89,10 @@ export function validateSingleConstraint(
     constraint: ProgramConstraint,
     source: IBattleEntity,
     subject: IBattleEntity,
-    cost: number
+    cost: number,
+    state?: IBattleState
 ): boolean {
-    return ConditionValidator.evaluateCardConstraint(constraint, source, subject, cost);
+    return ConditionValidator.evaluateCardConstraint(constraint, source, subject, cost, state);
 }
 
 /**
@@ -118,7 +119,7 @@ export function validateProgramConstraints(
                 }
                 continue;
             }
-            if (!validateSingleConstraint(constraint, source, subject, cost)) {
+            if (!validateSingleConstraint(constraint, source, subject, cost, _state)) {
                 return false;
             }
         }
@@ -133,7 +134,7 @@ export function validateProgramConstraints(
 /**
  * Applies a list of mutations to the state in a single atomic update.
  */
-import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated } from './resolutionEngine';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
 
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
@@ -161,15 +162,19 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
     const modifier = sourceEntity.nextProgramModifier;
     const appliedCostReduction = modifier?.costReduction || 0;
-    const finalCost = Math.max(0, card.currentCost - appliedCostReduction);
+    const baseCost = Math.max(0, card.currentCost - appliedCostReduction);
+
+    const costRes = executeCostCalculated(state, sourceEntity, targetEntity, programData, baseCost);
+    const finalCost = costRes.cost;
 
     // 2. Validate Constraints
-    if (!validateProgramConstraints(state, sourceEntity, targetEntity, programData, finalCost)) {
+    // Note: Use costRes.state if needed, but since cost calculations rarely mutate, we'll keep it clean.
+    if (!validateProgramConstraints(costRes.state, sourceEntity, targetEntity, programData, finalCost)) {
         return state;
     }
 
     // --- The Snapshot Pattern ---
-    let snapshot = state;
+    let snapshot = costRes.state;
 
     // 3. Pay Cost (Snapshot Mutation)
     const newHand = [...snapshot[activeDeckKey].hand];
@@ -527,6 +532,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     // Process each entity's status effects via behavior.endTurn()
     const statusLogs: string[] = [];
     const defeatedThisTurn: string[] = [];
+    const removedStatusQueue: { targetId: string, status: string }[] = [];
 
     const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
         let currentHp = entity.currentHp;
@@ -601,6 +607,7 @@ function processPostTurn(state: IBattleState): IBattleState {
                     status: effect.type,
                     timestamp: Date.now()
                 });
+                removedStatusQueue.push({ targetId: entity.id, status: effect.type });
 
                 // Hard CC Recovery Logic -> 1 turn StableOS Immunity
                 if (effect.type === 'Asleep' || effect.type === 'Stunned') {
@@ -631,6 +638,21 @@ function processPostTurn(state: IBattleState): IBattleState {
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0
     };
+
+    // 2.5 Dispatch onStatusRemoved Hooks
+    for (const item of removedStatusQueue) {
+        const afterTurnTarget = nextState.playerParty.find(e => e.id === item.targetId) || nextState.enemyParty.find(e => e.id === item.targetId);
+        if (afterTurnTarget) {
+            const context = {
+                target: afterTurnTarget,
+                statusApplied: item.status,
+                state: nextState,
+                triggerDepth: 0
+            };
+            const { state: afterHook } = executeResolutionStack(nextState, 'onStatusRemoved', context as any);
+            nextState = afterHook;
+        }
+    }
 
     // Award XP for status effect deaths
     for (const dId of defeatedThisTurn) {
@@ -726,7 +748,7 @@ function processPreTurn(state: IBattleState): IBattleState {
         if (entity.currentHp <= 0 || entity.currentIntent) return entity;
 
         const definition = GetMingmingData(entity.definitionId);
-        const moves = definition.moves;
+        const moves = entity.moves || definition.moves;
         if (moves && moves.length > 0) {
             const prngResult = intentPrng.next();
             const randVal = prngResult.value;

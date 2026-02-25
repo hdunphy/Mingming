@@ -156,7 +156,7 @@ describe('New Utility Actions', () => {
         registerHook({
             id: 'mock_discard_hook',
             priority: 10,
-            onDiscarded: (context, owner) => {
+            onDiscarded: (context, _owner) => {
                 return {
                     state: {
                         ...context.state,

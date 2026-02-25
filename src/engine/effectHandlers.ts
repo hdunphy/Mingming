@@ -12,6 +12,8 @@ function addLog(state: IBattleState, message: string): IBattleState {
 
 const HAND_SIZE_LIMIT = 9;
 
+import { executeResolutionStack } from './resolutionEngine';
+
 export type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
 
 export const effectHandlers: Record<string, EffectHandler> = {
@@ -205,6 +207,20 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         enemyParty: updateParty(state.enemyParty)
     } as IBattleState;
 
+    if (wakesUp) {
+        const afterDamageTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+        if (afterDamageTarget) {
+            const context = {
+                target: afterDamageTarget,
+                statusApplied: 'Asleep', // Reusing this property for the status name in hooks
+                state: newState,
+                triggerDepth: 0
+            };
+            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            newState = afterHook;
+        }
+    }
+
     newState = addLog(newState, `  → ${target.name} takes ${finalDamage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
     for (const log of statusLogs) {
         newState = addLog(newState, log);
@@ -249,6 +265,17 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
         }
     }
 
+    // Trigger onUnitFainted hook
+    {
+        const context = {
+            target: target,
+            state: newState,
+            triggerDepth: 0
+        };
+        const { state: afterHook } = executeResolutionStack(newState, 'onUnitFainted', context as any);
+        newState = afterHook;
+    }
+
     return newState;
 }
 
@@ -267,6 +294,7 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     // Standard Heal Logic
     // ...
     const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
+    const overheal = Math.max(0, target.currentHp + healAmount - target.maxHp);
 
     globalBattleEventBus.emit({
         type: 'HEAL',
@@ -282,10 +310,26 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     let newState: IBattleState = {
         ...state,
         playerParty: updateParty(state.playerParty),
-        enemyParty: updateParty(state.enemyParty)
+        enemyParty: updateParty(state.enemyParty),
+        counters: {
+            ...(state.counters || {}),
+            last_overheal: overheal
+        }
     } as IBattleState;
 
     newState = addLog(newState, `  → ${target.name} heals ${healAmount} HP`);
+
+    // Trigger onHeal hook
+    {
+        const context = {
+            source: source,
+            target: newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId),
+            state: newState,
+            triggerDepth: 0
+        };
+        const { state: afterHook } = executeResolutionStack(newState, 'onHeal', context as any);
+        newState = afterHook;
+    }
 
     return newState;
 }
@@ -421,6 +465,8 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
         return ['Poison', 'Burn', 'Weakened', 'Bleed', 'Dazed', 'Stunned', 'Asleep'].includes(status);
     };
 
+    const cleansedTracker: { entity: IBattleEntity, statuses: any[] }[] = [];
+
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => {
             if (e.id !== targetId) return e;
@@ -428,6 +474,8 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
                 if (statusTarget) return s.type !== statusTarget;
                 return !isDebuff(s.type); // If none specified, cleanse all debuffs
             });
+            const removed = e.statusEffects.filter(s => !newStatus.includes(s));
+            if (removed.length > 0) cleansedTracker.push({ entity: e, statuses: removed });
             return { ...e, statusEffects: newStatus };
         });
 
@@ -440,6 +488,21 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
     const target = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
     if (target) {
         newState = addLog(newState, `  ✨ ${target.name} was cleansed!`);
+    }
+
+    for (const { entity, statuses } of cleansedTracker) {
+        const afterCleanseEntity = newState.playerParty.find(e => e.id === entity.id) || newState.enemyParty.find(e => e.id === entity.id);
+        if (!afterCleanseEntity) continue;
+        for (const s of statuses) {
+            const context = {
+                target: afterCleanseEntity,
+                statusApplied: s.type, // Reusing this property for the status name in hooks
+                state: newState,
+                triggerDepth: 0
+            };
+            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            newState = afterHook;
+        }
     }
 
     return newState;

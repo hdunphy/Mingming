@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { useDispatch, useSelector } from 'react-redux'
 import BattleArena from './ui/components/BattleArena'
@@ -32,6 +32,7 @@ function App() {
   const dispatch = useDispatch();
   const rosterSize = useSelector((state: RootState) => state.game.roster.length);
   const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
+  const gauntlet = useSelector((state: RootState) => state.game.gauntlet);
 
   useEffect(() => {
     const result = loadGame();
@@ -39,6 +40,14 @@ function App() {
       dispatch(loadSave(result.data));
     }
   }, [dispatch]);
+
+  const prevInBattle = useRef(isInBattle);
+  useEffect(() => {
+    if (prevInBattle.current && !isInBattle && gauntlet) {
+      setActiveTab('hub');
+    }
+    prevInBattle.current = isInBattle;
+  }, [isInBattle, gauntlet]);
 
   if (rosterSize === 0) {
     return <MainMenuView />;

@@ -42,3 +42,5 @@
 [x] It would be nice to show the expected damage on the card when hovering over an enemy.
 
 [x] I added a bunch of nature cards in the deck tab, but they don't show up in my battle deck.
+
+[ ] Poison damage was understood as damage plus one poison stack. Poison should be calculated by the power.

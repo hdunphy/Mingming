@@ -129,7 +129,7 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
         'water_slap', 'whirlpool_v2', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'feedback_loop_daemon', 'contagion'
     ];
     const fireStarterIds = [
-        'fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch', 'molten_core_daemon', 'ignite', 'strength_burst'
+        'fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch', 'fenrir_v1_daemon', 'ignite', 'strength_burst'
     ];
     const natureStarterIds = [
         'leaf_blade', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine', 'fertile_ground_daemon', 'rejuvenation'

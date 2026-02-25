@@ -16,7 +16,9 @@ const HookConditionSchema = z.object({
     ]).optional(),
     triggerPhase: z.string().optional(),
     targetStatus: z.object({ status: z.string(), minStacks: z.number().optional() }).optional(),
-    sourceStatus: z.object({ status: z.string(), minStacks: z.number().optional() }).optional()
+    sourceStatus: z.object({ status: z.string(), minStacks: z.number().optional() }).optional(),
+    counter: z.object({ key: z.string(), operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional(),
+    currentEnergy: z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional()
 });
 
 const HookActionSchema = z.object({
@@ -28,11 +30,16 @@ const HookActionSchema = z.object({
     element: z.string().optional(),
     amount: z.number().optional(),
     percentMaxHP: z.number().optional(),
+    costReduction: z.number().optional(),
+    flatBonus: z.number().optional(),
+    multiplier: z.number().optional(),
     healOverride: z.number().optional(),
     text: z.string().optional(),
     dataId: z.string().optional(),
     key: z.string().optional(),
-    operator: z.enum(['ADD', 'SET', 'RESET']).optional()
+    operator: z.enum(['ADD', 'SET', 'RESET']).optional(),
+    scaling: z.enum(['CURRENT_ENERGY', 'SHARP_STACKS', 'ALIVE_ALLIES', 'MISSING_HP', 'OVERHEAL', 'BASE_COST', 'COUNTER']).optional(),
+    scalingKey: z.string().optional()
 });
 
 const HookDefinitionSchema = z.object({
@@ -43,7 +50,9 @@ const HookDefinitionSchema = z.object({
     condition: z.any().optional(),
     do: z.array(HookActionSchema).optional(),
     multiplier: z.number().optional(),
-    bonus: z.number().optional()
+    bonus: z.number().optional(),
+    scaling: z.enum(['CURRENT_ENERGY', 'SHARP_STACKS', 'ALIVE_ALLIES', 'MISSING_HP', 'OVERHEAL', 'BASE_COST', 'COUNTER']).optional(),
+    scalingKey: z.string().optional()
 });
 
 export const HookLibraryItemSchema = z.object({

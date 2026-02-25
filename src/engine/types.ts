@@ -40,7 +40,8 @@ export const ProgramConstraintType = {
   HasStatus: 'HAS_STATUS',
   NotStatus: 'NOT_STATUS',
   HealthThreshold: 'HEALTH_THRESHOLD',
-  Base: 'BASE'
+  Base: 'BASE',
+  CardsDrawn: 'CARDS_DRAWN'
 } as const;
 
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
@@ -130,6 +131,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly artReference?: string;
   readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
   readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number }; // Buffs the next card played
+  readonly moves?: ReadonlyArray<IMove>; // Custom moveset for this instance
 }
 
 // --- Transformation Logic ---

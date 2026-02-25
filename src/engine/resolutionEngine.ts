@@ -64,13 +64,13 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     playerParty: newState.playerParty.map(e =>
                         e.id === mutation.targetId ? {
                             ...e,
-                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
+                            currentEnergy: Math.max(0, e.currentEnergy + mutation.payload.amount)
                         } : e
                     ),
                     enemyParty: newState.enemyParty.map(e =>
                         e.id === mutation.targetId ? {
                             ...e,
-                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
+                            currentEnergy: Math.max(0, e.currentEnergy + mutation.payload.amount)
                         } : e
                     )
                 };
@@ -385,6 +385,64 @@ export function executeStatusDamageCalculated(
     }
 
     return { state: currentState, damage: Math.floor(damage) };
+}
+
+/**
+ * Specifically for resolving programmatic energy cost scaling.
+ */
+export function executeCostCalculated(
+    state: IBattleState,
+    source: IBattleEntity,
+    target: IBattleEntity | undefined,
+    program: ProgramData,
+    initialCost: number
+): { state: IBattleState; cost: number } {
+    let currentState = state;
+    let cost = initialCost;
+
+    // Use full party search for global/side-wide hooks
+    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
+
+    entities.forEach(e => {
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
+        if (e.activeOS) {
+            const os = getOSBehavior(e.activeOS);
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) data.hooks.forEach(h => entityHooks.add(h));
+            });
+        }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered.onCostCalculated) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
+    });
+
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
+
+    const context: HookContext = {
+        source,
+        target,
+        program,
+        state: currentState,
+        triggerDepth: 0
+    };
+
+    for (const pair of hookPairs) {
+        if (pair.hook.onCostCalculated) {
+            cost = pair.hook.onCostCalculated(cost, context, pair.owner);
+        }
+    }
+
+    return { state: currentState, cost: Math.max(0, parseFloat((cost).toPrecision(4))) }; // keep to 4 precision just in case but we'll probably just floor
 }
 
 /**

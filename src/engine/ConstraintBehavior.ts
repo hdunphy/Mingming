@@ -33,8 +33,17 @@ export class HealthThresholdConstraintBehavior implements ConstraintBehavior {
 
 export class BaseConstraintBehavior implements ConstraintBehavior {
     readonly type: ProgramConstraintType = ProgramConstraintType.Base;
-    validate(_constraint: ProgramConstraint, pkg: ConstraintPackage): boolean {
-        return pkg.source.currentEnergy >= pkg.cost;
+    validate(_constraint: ProgramConstraint, _pkg: ConstraintPackage): boolean {
+        return _pkg.source.currentEnergy >= _pkg.cost;
+    }
+}
+
+export class CardsDrawnConstraintBehavior implements ConstraintBehavior {
+    readonly type: ProgramConstraintType = ProgramConstraintType.CardsDrawn;
+    validate(_constraint: ProgramConstraint, _pkg: ConstraintPackage): boolean {
+        // Since we don't have state here, we might need to handle this differently or return true if unknown.
+        // For UI preview, it's safer to return true if we can't verify.
+        return true;
     }
 }
 
@@ -45,8 +54,9 @@ const CONSTRAINT_REGISTRY: Record<ProgramConstraintType, ConstraintBehavior> = {
     [ProgramConstraintType.NotStatus]: new NotStatusConstraintBehavior(),
     [ProgramConstraintType.HealthThreshold]: new HealthThresholdConstraintBehavior(),
     [ProgramConstraintType.Base]: new BaseConstraintBehavior(),
+    [ProgramConstraintType.CardsDrawn]: new CardsDrawnConstraintBehavior(),
 };
 
 export function getConstraintBehavior(type: ProgramConstraintType): ConstraintBehavior {
-    return CONSTRAINT_REGISTRY[type];
+    return CONSTRAINT_REGISTRY[type] || CONSTRAINT_REGISTRY[ProgramConstraintType.Base];
 }

@@ -33,5 +33,15 @@
         "type": "HAS_STATUS",
         "target": "SELF",
         "value": "Sharp"
+    },
+    "target_poisoned": {
+        "type": "HAS_STATUS",
+        "target": "TARGET",
+        "value": "Poison"
+    },
+    "card_drawn_check": {
+        "type": "CARDS_DRAWN",
+        "target": "SELF",
+        "value": 1
     }
 }

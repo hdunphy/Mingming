@@ -325,6 +325,11 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
         if (lastProgramData.actions) {
             finalState = addLog(finalState, `  🔁 Reprogramming: ${lastProgramData.name}`);
             for (const action of lastProgramData.actions) {
+                // Prevent infinite recursion: do not re-execute PlayLastCard actions
+                if (action.type === 'PLAY_LAST_CARD') {
+                    continue;
+                }
+
                 const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[action.type];
                 if (executor) {
                     // For simplicity, we use the current target for the repeated actions
@@ -338,7 +343,7 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
 }
 
 export class TauntExecutor extends ActionExecutor<TauntActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, _actionData: TauntActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+    execute(state: IBattleState, sourceId: string, _targetId: string, _actionData: TauntActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
         const enemyPartyKey = isPlayerSource ? 'enemyParty' : 'playerParty';
         const sourceName = isPlayerSource ? state.playerParty.find(e => e.id === sourceId)?.name : state.enemyParty.find(e => e.id === sourceId)?.name;
@@ -357,7 +362,7 @@ export class TauntExecutor extends ActionExecutor<TauntActionData> {
 }
 
 export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActionData> {
-    execute(state: IBattleState, sourceId: string, targetId: string, actionData: BuffNextProgramActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+    execute(state: IBattleState, _sourceId: string, targetId: string, actionData: BuffNextProgramActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const isPlayerTarget = state.playerParty.some(e => e.id === targetId);
         const partyKey = isPlayerTarget ? 'playerParty' : 'enemyParty';
         let newState = state;

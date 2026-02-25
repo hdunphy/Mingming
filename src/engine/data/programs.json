@@ -672,7 +672,7 @@
     "toxic_cloud": {
         "id": "toxic_cloud",
         "name": "Toxic Cloud",
-        "description": "40 power Poison to side.",
+        "description": "5 stacks of Poison to side.",
         "element": "Water",
         "target": "Side",
         "category": "Attack",
@@ -685,14 +685,9 @@
         ],
         "actions": [
             {
-                "type": "ATTACK",
-                "power": 40,
-                "target": "TARGET"
-            },
-            {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 1,
+                "stacks": 5,
                 "target": "TARGET"
             }
         ]
@@ -700,7 +695,7 @@
     "corrosive_leak": {
         "id": "corrosive_leak",
         "name": "Corrosive Leak",
-        "description": "Poison self 20 power. Gain 1 Energy.",
+        "description": "Poison self 2 stacks. Gain 1 Energy.",
         "element": "Water",
         "target": "Self",
         "category": "Skill",
@@ -1009,7 +1004,7 @@
     "poison_injection": {
         "id": "poison_injection",
         "name": "Poison Injection",
-        "description": "Deal 10 power of Poison.",
+        "description": "Add one stack of Poison.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1022,12 +1017,6 @@
         ],
         "actions": [
             {
-                "type": "ATTACK",
-                "power": 10,
-                "element": "None",
-                "target": "TARGET"
-            },
-            {
                 "type": "STATUS",
                 "status": "Poison",
                 "stacks": 1,
@@ -1038,7 +1027,7 @@
     "corrosive_bolt": {
         "id": "corrosive_bolt",
         "name": "Corrosive Bolt",
-        "description": "Deal 30 power of Poison.",
+        "description": "Add 3 stacks of Poison.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1051,15 +1040,9 @@
         ],
         "actions": [
             {
-                "type": "ATTACK",
-                "power": 30,
-                "element": "None",
-                "target": "TARGET"
-            },
-            {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 1,
+                "stacks": 3,
                 "target": "TARGET"
             }
         ]
@@ -1067,7 +1050,7 @@
     "acid_splash": {
         "id": "acid_splash",
         "name": "Acid Splash",
-        "description": "Deal 20 power of Poison + 1 Dazed.",
+        "description": "Add 2 stacks of Poison + 1 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1080,15 +1063,9 @@
         ],
         "actions": [
             {
-                "type": "ATTACK",
-                "power": 20,
-                "element": "None",
-                "target": "TARGET"
-            },
-            {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET"
             },
             {
@@ -1102,7 +1079,7 @@
     "toxic_surge": {
         "id": "toxic_surge",
         "name": "Toxic Surge",
-        "description": "Trigger Poison damage immediately, then add 10 poison damage.",
+        "description": "Add 1 stack of Poison, then trigger Poison damage immediately.",
         "element": "Water",
         "target": "Single",
         "category": "Skill",
@@ -1111,19 +1088,18 @@
         "constraints": [
             "not_stunned",
             "not_asleep",
-            "energy_base",
-            "target_poisoned"
+            "energy_base"
         ],
         "actions": [
             {
-                "type": "TRIGGER_STATUS",
+                "type": "STATUS",
                 "status": "Poison",
+                "stacks": 1,
                 "target": "TARGET"
             },
             {
-                "type": "ATTACK",
-                "power": 10,
-                "element": "None",
+                "type": "TRIGGER_STATUS",
+                "status": "Poison",
                 "target": "TARGET"
             }
         ]
@@ -1346,7 +1322,7 @@
     "equilibrium": {
         "id": "equilibrium",
         "name": "Equilibrium",
-        "description": "If health > 50%, 3 Strength. Else heal 40 HP.",
+        "description": "If health > 50%, 3 Strength. Else heal with 40 power.",
         "element": "Nature",
         "target": "Self",
         "category": "Skill",
@@ -1373,8 +1349,7 @@
             },
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 40,
+                "power": 40,
                 "target": "SELF",
                 "conditionals": [
                     {
@@ -1529,7 +1504,7 @@
     "nettle_sting": {
         "id": "nettle_sting",
         "name": "Nettle Sting",
-        "description": "30 power + 10 power Poison.",
+        "description": "30 power and 1 stack of Poison.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -1544,12 +1519,6 @@
             {
                 "type": "ATTACK",
                 "power": 30,
-                "target": "TARGET"
-            },
-            {
-                "type": "ATTACK",
-                "power": 10,
-                "element": "None",
                 "target": "TARGET"
             },
             {

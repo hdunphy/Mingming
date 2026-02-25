@@ -210,12 +210,12 @@ class PoisonBehavior extends StatusBehavior {
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        // 1 damage per stack
-        const damage = instance.stacks;
+        // 1% Max HP damage per stack
+        const damage = Math.max(1, Math.floor(entity.maxHp * (instance.stacks / 100)));
         const newStacks = instance.stacks - 1;
         const logs: string[] = [];
 
-        logs.push(`  ☠️ ${entity.name} — Poison deals ${damage} damage (${instance.stacks} → ${newStacks} stacks)`);
+        logs.push(`  ☠️ ${entity.name} — Poison deals ${damage} damage (${instance.stacks} stacks)`);
 
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — Poison wore off`);
