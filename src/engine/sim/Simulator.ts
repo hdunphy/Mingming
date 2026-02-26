@@ -55,6 +55,9 @@ export function simulate1v1(
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         levelUpQueue: [],
         cardsPlayedThisTurn: 0,
+        cardsDrawnThisTurn: 0,
+        lastProgramPlayed: null,
+        counters: {},
         osLogs: [],
         procs: []
     };

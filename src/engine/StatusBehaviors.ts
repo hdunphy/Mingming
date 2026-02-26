@@ -33,6 +33,12 @@ export interface EndTurnResult {
     readonly logs: string[];
 }
 
+export interface PostDamageResult {
+    readonly damage: number;
+    readonly updatedInstances: StatusEffectInstance[];
+    readonly logs: string[];
+}
+
 // --- Base Class ---
 
 export abstract class StatusBehavior {
@@ -57,6 +63,18 @@ export abstract class StatusBehavior {
         instance: StatusEffectInstance,
         entity: IBattleEntity
     ): EndTurnResult;
+
+    /**
+     * Called after damage has been calculated but before it's applied.
+     * Allows statues to absorb or modify incoming damage.
+     */
+    onPostDamage(
+        currentDamage: number,
+        _defender: IBattleEntity,
+        instances: StatusEffectInstance[]
+    ): PostDamageResult {
+        return { damage: currentDamage, updatedInstances: instances, logs: [] };
+    }
 
     /** Create a fresh instance */
     protected createInstance(stacks: number): StatusEffectInstance {
@@ -192,12 +210,12 @@ class PoisonBehavior extends StatusBehavior {
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        // 1 damage per stack
-        const damage = instance.stacks;
+        // 1% Max HP damage per stack
+        const damage = Math.max(1, Math.floor(entity.maxHp * (instance.stacks / 100)));
         const newStacks = instance.stacks - 1;
         const logs: string[] = [];
 
-        logs.push(`  ☠️ ${entity.name} — Poison deals ${damage} damage (${instance.stacks} → ${newStacks} stacks)`);
+        logs.push(`  ☠️ ${entity.name} — Poison deals ${damage} damage (${instance.stacks} stacks)`);
 
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — Poison wore off`);
@@ -222,8 +240,8 @@ class AsleepBehavior extends StatusBehavior {
     readonly type = 'Asleep' as const;
 
     onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
-        if (target.statusEffects.some(s => s.type === 'Awoken')) {
-            return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  ✨ ${target.name} is Awoken and cannot be put to sleep!`] };
+        if (target.statusEffects.some(s => s.type === 'StableOS')) {
+            return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  ✨ ${target.name} cannot be put to sleep!`] };
         }
 
         const effects = [...currentEffects];
@@ -245,9 +263,7 @@ class AsleepBehavior extends StatusBehavior {
 
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — woke up!`);
-            // When waking up naturally, we don't apply Awoken here (usually handled by endTurn process applying new statuses?)
-            // Actually, let's return a mutation or apply it in endTurn? 
-            // Better to handle it in battleReducer or effectHandlers when the status is removed.
+            // BattleReducer must handle applying Awoken and StableOS upon natural wake-up.
             return { updatedInstance: null, damage: 0, healing: 0, defenseShred: 0, logs };
         }
 
@@ -258,33 +274,6 @@ class AsleepBehavior extends StatusBehavior {
             healing: 0,
             defenseShred: 0,
             logs
-        };
-    }
-}
-
-// --- Awoken (1-turn immunity to Sleep) ---
-
-class AwokenBehavior extends StatusBehavior {
-    readonly type = 'Awoken' as const;
-
-    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
-        const effects = [...currentEffects];
-        const existingIdx = effects.findIndex(s => s.type === 'Awoken');
-
-        if (existingIdx === -1) {
-            effects.push(this.createInstance(1));
-        }
-
-        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
-    }
-
-    endTurn(_instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        return {
-            updatedInstance: null,
-            damage: 0,
-            healing: 0,
-            defenseShred: 0,
-            logs: [`  ✨ ${entity.name}'s Awoken protection wore off`]
         };
     }
 }
@@ -385,6 +374,92 @@ class EnergizedBehavior extends StatusBehavior {
     }
 }
 
+// --- StableOS (1-turn Hard CC Immunity) ---
+
+class StableOSBehavior extends StatusBehavior {
+    readonly type = 'StableOS' as const;
+
+    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const effects = [...currentEffects];
+        const existingIdx = effects.findIndex(s => s.type === 'StableOS');
+
+        if (existingIdx === -1) {
+            effects.push(this.createInstance(1));
+        }
+
+        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
+    }
+
+    endTurn(_instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
+        return {
+            updatedInstance: null,
+            damage: 0,
+            healing: 0,
+            defenseShred: 0,
+            logs: [`  📉 ${entity.name}'s StableOS (CC Immunity) wore off`]
+        };
+    }
+}
+
+// --- BarkShield (Temporary Health, Decays 20% flat logic) ---
+
+class BarkShieldBehavior extends StatusBehavior {
+    readonly type = 'BarkShield' as const;
+
+    onApply(currentEffects: StatusEffectInstance[], incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const effects = [...currentEffects];
+        const existingIdx = effects.findIndex(s => s.type === 'BarkShield');
+
+        if (existingIdx !== -1) {
+            const existing = effects[existingIdx];
+            effects[existingIdx] = { ...existing, stacks: existing.stacks + incomingStacks };
+        } else {
+            effects.push(this.createInstance(incomingStacks));
+        }
+
+        return { updatedEffects: effects, immediateDamage: 0, logs: [] };
+    }
+
+    onPostDamage(currentDamage: number, _defender: IBattleEntity, instances: StatusEffectInstance[]): PostDamageResult {
+        const logs: string[] = [];
+        let newDamage = currentDamage;
+        const shieldIndex = instances.findIndex(s => s.type === 'BarkShield');
+
+        if (shieldIndex !== -1 && currentDamage > 0) {
+            let shieldStacks = instances[shieldIndex].stacks;
+            const absorbed = Math.min(newDamage, shieldStacks);
+            newDamage -= absorbed;
+            shieldStacks -= absorbed;
+            logs.push(`  🛡️ Bark Shield absorbed ${absorbed} damage!`);
+
+            if (shieldStacks <= 0) {
+                logs.push(`  🛡️ Bark Shield broke!`);
+                instances = instances.filter((_, i) => i !== shieldIndex);
+            } else {
+                const newInstances = [...instances];
+                newInstances[shieldIndex] = { ...newInstances[shieldIndex], stacks: shieldStacks };
+                instances = newInstances;
+            }
+        }
+        return { damage: newDamage, updatedInstances: instances, logs };
+    }
+
+    endTurn(instance: StatusEffectInstance, _entity: IBattleEntity): EndTurnResult {
+        const logs: string[] = [];
+        const newStacks = Math.floor(instance.stacks * 0.8);
+        const lost = instance.stacks - newStacks;
+
+        if (lost > 0) {
+            logs.push(`  🛡️ Bark Shield decayed by ${lost}`);
+        }
+
+        if (newStacks <= 0) {
+            return { updatedInstance: null, damage: 0, defenseShred: 0, logs };
+        }
+        return { updatedInstance: { ...instance, stacks: newStacks }, damage: 0, defenseShred: 0, logs };
+    }
+}
+
 // --- Registry ---
 
 const BEHAVIOR_REGISTRY: Record<StatusType, StatusBehavior> = {
@@ -397,8 +472,9 @@ const BEHAVIOR_REGISTRY: Record<StatusType, StatusBehavior> = {
     'Dazed': new PermanentStatusBehavior('Dazed'),
     'Sharp': new PermanentStatusBehavior('Sharp'),
     'Regen': new RegenBehavior(),
-    'Awoken': new AwokenBehavior(),
     'Energized': new EnergizedBehavior(),
+    'StableOS': new StableOSBehavior(),
+    'BarkShield': new BarkShieldBehavior(),
 };
 
 export function getStatusBehavior(type: StatusType): StatusBehavior {

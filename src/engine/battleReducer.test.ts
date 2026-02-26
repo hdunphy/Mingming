@@ -23,6 +23,9 @@ function createMockState(): IBattleState {
         logs: [],
         osLogs: [],
         procs: [],
+        cardsDrawnThisTurn: 0,
+        lastProgramPlayed: null,
+        counters: {},
         playerParty: [
             { id: 'p1', currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Hero', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Fire', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: [] } as IBattleEntity,
             { id: 'p2', currentEnergy: 5, maxEnergy: 10, statusEffects: [], name: 'Ally', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Water', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: [] } as IBattleEntity
@@ -161,6 +164,42 @@ describe('Battle Reducer State Machine', () => {
         expect(newState.playerDeck.hand.length).toBe(2);
     });
 
+    it('should consume nextProgramModifier to reduce cost and boost power', () => {
+        // Setup initial modifier
+        const stateWithModifier = {
+            ...initialState,
+            playerParty: [
+                {
+                    ...initialState.playerParty[0],
+                    nextProgramModifier: { multiplier: 2, flatBonus: 10, costReduction: 2 }
+                },
+                initialState.playerParty[1]
+            ]
+        };
+
+        // Play card1 (cost 3, power 10 from TestProgramRegistry)
+        const action: BattleAction = {
+            type: 'PLAY_PROGRAM',
+            payload: { sourceId: 'p1', targetId: 'p2', programId: 'h1' } // h1 is card1
+        };
+
+        const newState = battleReducer(stateWithModifier, action);
+
+        const p1 = newState.playerParty.find(p => p.id === 'p1');
+        const p2 = newState.playerParty.find(p => p.id === 'p2'); // Target 
+
+        // Energy check: Cost 3 - 2 = 1. p1 started with 10 energy, so should have 9 left.
+        expect(p1?.currentEnergy).toBe(9);
+
+        // Power check: Card1 has 10 power. (10 + 10) * 2 = 40.
+        // Base damage formula: Math.floor((6 * 40 * 1) / 50) + 2 = 6 damage.
+        // P2 started with 100 HP, should have 94 HP.
+        expect(p2?.currentHp).toBe(94);
+
+        // Modifier should be consumed
+        expect(p1?.nextProgramModifier).toBeUndefined();
+    });
+
 
     it('should apply status effects additively', () => {
         // Initial: p1 has 2 stacks of 'Poison'
@@ -226,34 +265,66 @@ describe('Battle Reducer State Machine', () => {
         expect(p1.statusEffects[0].stacks).toBe(2); // 4 - 2 (remaining dazed)
     });
 
-    it('should draw cards from drawpile on PRE_TURN', () => {
-        // Setup state where Enemy has 1 card in drawpile
-        const enemyDrawpileCard: ProgramEntity = { id: 'd1', dataId: 'card_e1', currentCost: 1, isPlayable: true };
+    it('should generate intents for ENEMY on PRE_TURN', () => {
+        // Setup state where Enemy has a unit with moves
         const testState: IBattleState = {
             ...initialState,
-            enemyDeck: {
-                ...initialState.enemyDeck,
-                drawpile: [enemyDrawpileCard],
-                hand: []
-            }
+            enemyParty: [
+                {
+                    id: 'e1',
+                    currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Boss', hpIV: 0, attackIV: 0, defenseIV: 0,
+                    blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'fenrir', primaryElement: 'Fire',
+                    currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: []
+                } as IBattleEntity
+            ]
         };
 
-        // Player ends turn -> Enemy PRE_TURN -> Draw
+        // Player ends turn -> Enemy PRE_TURN -> Generate Intent
         const newState = battleReducer(testState, { type: 'END_TURN' } as BattleAction);
 
         // Enemy active
         expect(newState.activeSide).toBe('ENEMY');
-        // Check Enemy Hand
-        expect(newState.enemyDeck.hand.length).toBe(1);
-        expect(newState.enemyDeck.hand[0].id).toBe('d1');
-        // Check Enemy Drawpile empty
-        expect(newState.enemyDeck.drawpile.length).toBe(0);
 
-        // Check event
-        expect(globalBattleEventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'CARD_DRAWN',
-            ownerId: 'ENEMY',
-            cardId: 'card_e1'
-        }));
+        // Check Intent
+        const enemy = newState.enemyParty[0];
+        expect(enemy.currentIntent).toBeDefined();
+        expect(enemy.currentIntent).not.toBeNull();
+        expect(['fenrir_bite', 'fenrir_howl', 'fenrir_pounce']).toContain(enemy.currentIntent?.id);
+    });
+
+    it('should force enemy intent to target the entity that taunted', () => {
+        // Setup state where Player 2 has used Taunt on the enemy
+        const testState: IBattleState = {
+            ...initialState,
+            playerParty: [
+                { ...initialState.playerParty[0], id: 'p1', currentHp: 50 }, // Lower HP, normally targeted
+                { ...initialState.playerParty[0], id: 'p2', currentHp: 100 } // Higher HP, but taunted
+            ],
+            enemyParty: [
+                {
+                    ...initialState.playerParty[0],
+                    id: 'e1', currentHp: 100,
+                    forcedTargetId: 'p2', // P2 taunted the enemy!
+                    currentIntent: {
+                        id: 'test_attack',
+                        name: 'Test Attack',
+                        intentType: 'Attack',
+                        priority: 10,
+                        actions: [{ type: 'ATTACK', power: 10, target: 'Single' }]
+                    }
+                } as IBattleEntity
+            ]
+        };
+
+        const action: BattleAction = {
+            type: 'EXECUTE_INTENT',
+            payload: { sourceId: 'e1' }
+        };
+
+        const newState = battleReducer(testState, action);
+
+        // Enemy should have attacked p2 because of forcedTargetId, despite p1 having lower HP
+        expect(newState.playerParty[1].currentHp).toBeLessThan(100); // p2 got hit
+        expect(newState.playerParty[0].currentHp).toBe(50); // p1 was ignored
     });
 });

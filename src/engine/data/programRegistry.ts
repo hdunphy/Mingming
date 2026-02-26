@@ -56,15 +56,17 @@ const inflateAction = (action: any, parentId: string): any => {
  * Inflates a single constraint by merging it with its library definition if an ID is present.
  */
 const inflateConstraint = (constraint: any, parentId: string): any => {
-    if (constraint.id) {
-        if (CONSTRAINTS_LIB[constraint.id]) {
-            return { ...CONSTRAINTS_LIB[constraint.id], ...constraint };
+    const constraintObj = typeof constraint === 'string' ? { id: constraint } : constraint;
+
+    if (constraintObj.id) {
+        if (CONSTRAINTS_LIB[constraintObj.id]) {
+            return { ...CONSTRAINTS_LIB[constraintObj.id], ...constraintObj };
         } else {
-            console.error(`[ProgramRegistry] Missing constraint definition for ID: "${constraint.id}" in card: "${parentId}"`);
-            return { ...constraint, error: `Missing constraint: ${constraint.id}` };
+            console.error(`[ProgramRegistry] Missing constraint definition for ID: "${constraintObj.id}" in card: "${parentId}"`);
+            return { ...constraintObj, error: `Missing constraint: ${constraintObj.id}` };
         }
     }
-    return constraint;
+    return constraintObj;
 };
 
 export const GetProgramData = (id: string): ProgramData => {

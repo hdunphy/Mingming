@@ -12,6 +12,8 @@ function addLog(state: IBattleState, message: string): IBattleState {
 
 const HAND_SIZE_LIMIT = 9;
 
+import { executeResolutionStack } from './resolutionEngine';
+
 export type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
 
 export const effectHandlers: Record<string, EffectHandler> = {
@@ -139,8 +141,26 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         }
     }
 
+    // Apply Status Post-Damage (Shields)
+    let finalDamage = damage;
+    let newStatus = [...target.statusEffects];
+    let statusLogs: string[] = [];
+
+    if (finalDamage > 0 && newStatus.length > 0) {
+        for (const effect of [...newStatus]) {
+            if (!newStatus.some(s => s.id === effect.id)) continue;
+            const behavior = getStatusBehavior(effect.type);
+            if (behavior) {
+                const result = behavior.onPostDamage(finalDamage, target, newStatus);
+                finalDamage = result.damage;
+                newStatus = result.updatedInstances;
+                statusLogs.push(...result.logs);
+            }
+        }
+    }
+
     // Apply Damage
-    const newCurrentHp = Math.max(0, target.currentHp - damage);
+    const newCurrentHp = Math.max(0, target.currentHp - finalDamage);
 
     // Wake up if Asleep and taken damage
     let wakesUp = false;
@@ -155,7 +175,7 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     globalBattleEventBus.emit({
         type: 'DAMAGE_TAKEN',
         targetId: target.id,
-        amount: damage,
+        amount: finalDamage,
         element: element,
         timestamp: Date.now()
     });
@@ -174,7 +194,6 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         party.map(e => {
             if (e.id !== targetId) return e;
 
-            let newStatus = e.statusEffects;
             if (wakesUp) {
                 newStatus = newStatus.filter(s => s.type !== 'Asleep');
             }
@@ -189,15 +208,23 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     } as IBattleState;
 
     if (wakesUp) {
-        // Apply Awoken immediately
-        newState = handleApplyStatus(newState, {
-            targetId: target.id,
-            status: 'Awoken',
-            stacks: 1
-        });
+        const afterDamageTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+        if (afterDamageTarget) {
+            const context = {
+                target: afterDamageTarget,
+                statusApplied: 'Asleep', // Reusing this property for the status name in hooks
+                state: newState,
+                triggerDepth: 0
+            };
+            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            newState = afterHook;
+        }
     }
 
-    newState = addLog(newState, `  → ${target.name} takes ${damage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+    newState = addLog(newState, `  → ${target.name} takes ${finalDamage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+    for (const log of statusLogs) {
+        newState = addLog(newState, log);
+    }
 
     // Death / XP Handling
     if (newCurrentHp <= 0) {
@@ -238,6 +265,17 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
         }
     }
 
+    // Trigger onUnitFainted hook
+    {
+        const context = {
+            target: target,
+            state: newState,
+            triggerDepth: 0
+        };
+        const { state: afterHook } = executeResolutionStack(newState, 'onUnitFainted', context as any);
+        newState = afterHook;
+    }
+
     return newState;
 }
 
@@ -256,6 +294,7 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     // Standard Heal Logic
     // ...
     const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
+    const overheal = Math.max(0, target.currentHp + healAmount - target.maxHp);
 
     globalBattleEventBus.emit({
         type: 'HEAL',
@@ -271,10 +310,26 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     let newState: IBattleState = {
         ...state,
         playerParty: updateParty(state.playerParty),
-        enemyParty: updateParty(state.enemyParty)
+        enemyParty: updateParty(state.enemyParty),
+        counters: {
+            ...(state.counters || {}),
+            last_overheal: overheal
+        }
     } as IBattleState;
 
     newState = addLog(newState, `  → ${target.name} heals ${healAmount} HP`);
+
+    // Trigger onHeal hook
+    {
+        const context = {
+            source: source,
+            target: newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId),
+            state: newState,
+            triggerDepth: 0
+        };
+        const { state: afterHook } = executeResolutionStack(newState, 'onHeal', context as any);
+        newState = afterHook;
+    }
 
     return newState;
 }
@@ -294,6 +349,10 @@ const DUALITY_MAP: Partial<Record<StatusType, StatusType>> = {
 function handleApplyStatus(state: IBattleState, payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number }): IBattleState {
     const { targetId, status, stacks, sourceId, power } = payload;
     const behavior = getStatusBehavior(status);
+    if (!behavior) {
+        console.error(`[effectHandlers] No behavior found for status: ${status}. Payload:`, payload);
+        return addLog(state, `  ⚠️ Error: Status effect "${status}" is not defined in StatusBehaviors!`);
+    }
 
     const sourceEntity = sourceId
         ? (state.playerParty.find(e => e.id === sourceId) || state.enemyParty.find(e => e.id === sourceId))
@@ -301,6 +360,11 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 
     const initialTarget = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
     if (!initialTarget) return state;
+
+    // CC Immunity Check (StableOS)
+    if ((status === 'Stunned' || status === 'Asleep') && initialTarget.statusEffects.some(s => s.type === 'StableOS')) {
+        return addLog(state, `  🛡️ ${initialTarget.name} resisted ${status} (StableOS Active)`);
+    }
 
     // 1. Scaling
     const scaledStacks = behavior.getScaledStacks(stacks, sourceEntity, power);
@@ -405,6 +469,8 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
         return ['Poison', 'Burn', 'Weakened', 'Bleed', 'Dazed', 'Stunned', 'Asleep'].includes(status);
     };
 
+    const cleansedTracker: { entity: IBattleEntity, statuses: any[] }[] = [];
+
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => {
             if (e.id !== targetId) return e;
@@ -412,6 +478,8 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
                 if (statusTarget) return s.type !== statusTarget;
                 return !isDebuff(s.type); // If none specified, cleanse all debuffs
             });
+            const removed = e.statusEffects.filter(s => !newStatus.includes(s));
+            if (removed.length > 0) cleansedTracker.push({ entity: e, statuses: removed });
             return { ...e, statusEffects: newStatus };
         });
 
@@ -424,6 +492,21 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
     const target = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
     if (target) {
         newState = addLog(newState, `  ✨ ${target.name} was cleansed!`);
+    }
+
+    for (const { entity, statuses } of cleansedTracker) {
+        const afterCleanseEntity = newState.playerParty.find(e => e.id === entity.id) || newState.enemyParty.find(e => e.id === entity.id);
+        if (!afterCleanseEntity) continue;
+        for (const s of statuses) {
+            const context = {
+                target: afterCleanseEntity,
+                statusApplied: s.type, // Reusing this property for the status name in hooks
+                state: newState,
+                triggerDepth: 0
+            };
+            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            newState = afterHook;
+        }
     }
 
     return newState;

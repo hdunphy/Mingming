@@ -64,13 +64,13 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     playerParty: newState.playerParty.map(e =>
                         e.id === mutation.targetId ? {
                             ...e,
-                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
+                            currentEnergy: Math.max(0, e.currentEnergy + mutation.payload.amount)
                         } : e
                     ),
                     enemyParty: newState.enemyParty.map(e =>
                         e.id === mutation.targetId ? {
                             ...e,
-                            currentEnergy: Math.max(0, Math.min(e.maxEnergy, e.currentEnergy + mutation.payload.amount))
+                            currentEnergy: Math.max(0, e.currentEnergy + mutation.payload.amount)
                         } : e
                     )
                 };
@@ -137,9 +137,42 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 }
 
                 toDiscard.forEach(c => {
-                    deck = discardCard(deck, c.id);
+                    // Update the state with the discarded card first to avoid stale state during hooks
+                    let currentDeck = newState[deckKey];
+                    currentDeck = discardCard(currentDeck, c.id);
+                    newState = { ...newState, [deckKey]: currentDeck };
+
+                    const discardedData = GetProgramData(c.dataId);
+                    const owner = isPlayerTarget
+                        ? newState.playerParty.find(e => e.id === mutation.targetId)
+                        : newState.enemyParty.find(e => e.id === mutation.targetId);
+
+                    if (owner) {
+                        const context: HookContext = {
+                            source: owner,
+                            program: discardedData,
+                            state: newState,
+                            triggerDepth: 0
+                        };
+
+                        // 1. Fire global/daemon onDiscarded listeners
+                        const { state: afterGlobalHooks } = executeResolutionStack(newState, 'onDiscarded', context);
+                        newState = afterGlobalHooks;
+                        context.state = newState;
+
+                        // 2. Fire the card's own explicit hooks (e.g. "Fragmented Code")
+                        if (discardedData.hooks) {
+                            discardedData.hooks.forEach(hookId => {
+                                const registered = getHook(hookId);
+                                if (registered && registered.onDiscarded) {
+                                    const result = registered.onDiscarded(context, owner);
+                                    newState = result.state;
+                                    context.state = newState;
+                                }
+                            });
+                        }
+                    }
                 });
-                newState = { ...newState, [deckKey]: deck };
                 break;
             }
             case 'EXHAUST': {
@@ -169,12 +202,59 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 newState = { ...newState, [deckKey]: deck };
                 break;
             }
+            case 'MAX_ENERGY': {
+                const isPlayerTarget = newState.playerParty.some((e: IBattleEntity) => e.id === mutation.targetId);
+                const partyKey = isPlayerTarget ? 'playerParty' : 'enemyParty';
+                const party = newState[partyKey];
+                const entityIndex = party.findIndex((e: IBattleEntity) => e.id === mutation.targetId);
+                if (entityIndex > -1) {
+                    const e = party[entityIndex];
+                    const amount = mutation.payload.amount || 1;
+                    const newParty = [...party];
+                    newParty[entityIndex] = { ...e, maxEnergy: e.maxEnergy + amount, currentEnergy: e.currentEnergy + amount };
+                    newState = { ...newState, [partyKey]: newParty };
+                }
+                break;
+            }
             case 'SEARCH': {
                 const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
                 let deck = newState[deckKey];
                 deck = searchCard(deck, mutation.payload.amount, mutation.payload.criteria, true);
                 newState = { ...newState, [deckKey]: deck };
+                break;
+            }
+            case 'DRAW': {
+                const isPlayerTarget = newState.playerParty.some((e: IBattleEntity) => e.id === mutation.targetId);
+                const side = isPlayerTarget ? 'PLAYER' : 'ENEMY';
+                newState = executeDraw(newState, side, mutation.payload.amount || 1, false, mutation.targetId);
+                break;
+            }
+            case 'COUNTER': {
+                const counterKey = mutation.payload.key;
+                if (!counterKey) break;
+
+                const op = mutation.payload.operator || 'ADD';
+                const val = mutation.payload.amount || 1;
+
+                const currentCounters = newState.counters || {};
+                let currentVal = currentCounters[counterKey] || 0;
+
+                if (op === 'ADD') {
+                    currentVal += val;
+                } else if (op === 'SET') {
+                    currentVal = val;
+                } else if (op === 'RESET') {
+                    currentVal = 0;
+                }
+
+                newState = {
+                    ...newState,
+                    counters: {
+                        ...currentCounters,
+                        [counterKey]: currentVal
+                    }
+                };
                 break;
             }
         }
@@ -308,15 +388,84 @@ export function executeStatusDamageCalculated(
 }
 
 /**
+ * Specifically for resolving programmatic energy cost scaling.
+ */
+export function executeCostCalculated(
+    state: IBattleState,
+    source: IBattleEntity,
+    target: IBattleEntity | undefined,
+    program: ProgramData,
+    initialCost: number
+): { state: IBattleState; cost: number } {
+    let currentState = state;
+    let cost = initialCost;
+
+    // Use full party search for global/side-wide hooks
+    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
+
+    entities.forEach(e => {
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
+        if (e.activeOS) {
+            const os = getOSBehavior(e.activeOS);
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) data.hooks.forEach(h => entityHooks.add(h));
+            });
+        }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered.onCostCalculated) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
+    });
+
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
+
+    const context: HookContext = {
+        source,
+        target,
+        program,
+        state: currentState,
+        triggerDepth: 0
+    };
+
+    for (const pair of hookPairs) {
+        if (pair.hook.onCostCalculated) {
+            cost = pair.hook.onCostCalculated(cost, context, pair.owner);
+        }
+    }
+
+    return { state: currentState, cost: Math.max(0, parseFloat((cost).toPrecision(4))) }; // keep to 4 precision just in case but we'll probably just floor
+}
+
+/**
  * Helper to handle card draws with hook triggers.
  */
 export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean, sourceId?: string): IBattleState {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const { state: newDeck, nextSeed } = drawCards(state[deckKey], count, state.seed);
-
-    let newState = { ...state, [deckKey]: newDeck, seed: nextSeed };
-
+    const { state: newDeck, nextSeed, shuffled } = drawCards(state[deckKey], count, state.seed);
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
+    let newState = {
+        ...state,
+        [deckKey]: newDeck,
+        seed: nextSeed,
+        cardsDrawnThisTurn: state.cardsDrawnThisTurn + cardsDrawnCount
+    };
+
+    if (shuffled) {
+        newState = {
+            ...newState,
+            counters: { ...newState.counters, ['deck_shuffles']: (newState.counters['deck_shuffles'] || 0) + 1 }
+        };
+    }
+
     if (cardsDrawnCount > 0) {
         const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
         const owner = sourceId

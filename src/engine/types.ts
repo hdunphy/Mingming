@@ -21,8 +21,9 @@ export const StatusType = {
   Sharp: 'Sharp',
   Stunned: 'Stunned',
   Regen: 'Regen',
-  Awoken: 'Awoken',
-  Energized: 'Energized'
+  Energized: 'Energized',
+  StableOS: 'StableOS',
+  BarkShield: 'BarkShield'
 } as const;
 export const Statuses: StatusType[] = Object.values(StatusType);
 
@@ -39,7 +40,8 @@ export const ProgramConstraintType = {
   HasStatus: 'HAS_STATUS',
   NotStatus: 'NOT_STATUS',
   HealthThreshold: 'HEALTH_THRESHOLD',
-  Base: 'BASE'
+  Base: 'BASE',
+  CardsDrawn: 'CARDS_DRAWN'
 } as const;
 
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
@@ -70,6 +72,7 @@ export interface IMingmingDefinition {
   readonly secondaryElement?: Element;
   readonly cardDraw: number; // Base contribution
   readonly availableOS: string[]; // IDs of OS variants
+  readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
 }
 
@@ -124,7 +127,11 @@ export interface IBattleEntity extends IMingmingState {
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
   readonly activeOS?: string; // Current Operating System ID
   readonly daemons: ReadonlyArray<ProgramEntity>; // Persistent "installed" software
+  readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
+  readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
+  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number }; // Buffs the next card played
+  readonly moves?: ReadonlyArray<IMove>; // Custom moveset for this instance
 }
 
 // --- Transformation Logic ---
@@ -183,7 +190,17 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM';
+
+export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
+
+export interface IMove {
+  readonly id: string;
+  readonly name: string;
+  readonly intentType: IntentType;
+  readonly priority: number;
+  readonly actions: ReadonlyArray<ProgramAction>;
+}
 
 export interface ProgramAction {
   readonly id?: string;
@@ -198,7 +215,7 @@ export interface AttackActionData extends ProgramAction {
   readonly type: 'ATTACK';
   readonly power: number;
   readonly element?: Element;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN';
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -259,6 +276,32 @@ export interface SearchActionData extends ProgramAction {
     element?: Element;
     category?: ProgramCategory;
   };
+}
+
+export interface MultiplyStatusActionData extends ProgramAction {
+  readonly type: 'MULTIPLY_STATUS';
+  readonly status: StatusType;
+  readonly factor: number;
+}
+
+export interface TriggerStatusActionData extends ProgramAction {
+  readonly type: 'TRIGGER_STATUS';
+  readonly status: StatusType;
+}
+
+export interface PlayLastCardActionData extends ProgramAction {
+  readonly type: 'PLAY_LAST_CARD';
+}
+
+export interface TauntActionData extends ProgramAction {
+  readonly type: 'TAUNT';
+}
+
+export interface BuffNextProgramActionData extends ProgramAction {
+  readonly type: 'BUFF_NEXT_PROGRAM';
+  readonly multiplier?: number;
+  readonly flatBonus?: number;
+  readonly costReduction?: number;
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
@@ -326,5 +369,8 @@ export interface IBattleState {
   readonly osLogs: ReadonlyArray<string>;
   readonly procs: ReadonlyArray<{ id: number; entityId: string; text: string }>;
   readonly cardsPlayedThisTurn: number;
+  readonly cardsDrawnThisTurn: number;
+  readonly lastProgramPlayed: string | null;
+  readonly counters: Record<string, number>;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

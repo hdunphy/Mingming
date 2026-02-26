@@ -126,13 +126,13 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
 
     // Starter deck cards (12 cards)
     const waterStarterIds = [
-        'squirt', 'recursion_daemon', 'deep_pressure', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis'
+        'water_slap', 'whirlpool_v2', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'feedback_loop_daemon', 'contagion'
     ];
     const fireStarterIds = [
-        'singularity', 'solar_flare', 'thermal_overload', 'ignite_pipeline', 'flash', 'preheat', 'ash_to_ash', 'fire_punch', 'reckless'
+        'fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch', 'fenrir_v1_daemon', 'ignite', 'strength_burst'
     ];
     const natureStarterIds = [
-        'gossip', 'echo_chamber_daemon', 'pruning', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'root_bind'
+        'leaf_blade', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine', 'fertile_ground_daemon', 'rejuvenation'
     ];
 
     let starterCardIds: string[] = [];

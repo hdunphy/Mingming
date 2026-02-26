@@ -172,23 +172,30 @@ const SectorTerminal: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {save.gauntlet && (
+                                    <div style={{ color: '#ef4444', marginBottom: '15px', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'center' }}>
+                                        ⚠️ WARNING: ACTIVE GAUNTLET DETECTED. RETURN TO HUB TO CONTINUE.
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={() => handleStartSector(selectedSector)}
                                     className="terminal-button primary"
+                                    disabled={!!save.gauntlet}
                                     style={{
                                         width: '100%',
                                         padding: '18px',
-                                        background: SECTORS.find(s => s.id === selectedSector)?.color,
+                                        background: save.gauntlet ? '#333' : SECTORS.find(s => s.id === selectedSector)?.color,
                                         border: 'none',
                                         borderRadius: '8px',
-                                        color: '#fff',
+                                        color: save.gauntlet ? '#888' : '#fff',
                                         fontWeight: 'bold',
                                         fontSize: '1rem',
-                                        cursor: 'pointer',
-                                        boxShadow: `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
+                                        cursor: save.gauntlet ? 'not-allowed' : 'pointer',
+                                        boxShadow: save.gauntlet ? 'none' : `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
                                     }}
                                 >
-                                    {SECTORS.find(s => s.id === selectedSector)?.unlocked ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
+                                    {save.gauntlet ? 'SYSTEM LOCKED' : SECTORS.find(s => s.id === selectedSector)?.unlocked ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
                                 </button>
                             </motion.div>
                         ) : (

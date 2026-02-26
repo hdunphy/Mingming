@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import { selectCard, playProgram, endTurn } from '../store/battleSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { calculateDamage } from '../../engine/combatUtils';
+import type { IBattleState } from '../../engine/types';
 import { validateSingleConstraint } from '../../engine/battleReducer';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 
@@ -45,18 +47,20 @@ const formatConstraint = (c: any): string => {
 };
 
 const CardHand: React.FC<{
+    hoveredEntityId?: string | null;
     onTargetingStart?: (point: { x: number, y: number }) => void;
     onTargetingEnd?: () => void;
-}> = ({ onTargetingStart }) => {
+}> = ({ hoveredEntityId, onTargetingStart }) => {
     const dispatch = useDispatch();
-    const hand = useSelector((state: RootState) => state.battle.battle?.playerDeck.hand || []);
-    const playerParty = useSelector((state: RootState) => state.battle.battle?.playerParty || []);
+    const battleState = useSelector((state: RootState) => state.battle.battle);
+    const hand = battleState?.playerDeck.hand || [];
+    const playerParty = battleState?.playerParty || [];
+    const enemyParty = battleState?.enemyParty || [];
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
-    const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
-    const isOurTurn = useSelector((state: RootState) => state.battle.battle?.activeSide === 'PLAYER');
-    const drawPileCount = useSelector((state: RootState) => state.battle.battle?.playerDeck.drawpile.length || 0);
-    const discardPileCount = useSelector((state: RootState) => state.battle.battle?.playerDeck.discard.length || 0);
+    const isOurTurn = battleState?.activeSide === 'PLAYER';
+    const drawPileCount = battleState?.playerDeck.drawpile.length || 0;
+    const discardPileCount = battleState?.playerDeck.discard.length || 0;
     const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
     return (
@@ -72,13 +76,21 @@ const CardHand: React.FC<{
                         const rotation = centerOffset * 5;
                         const arcDip = Math.abs(centerOffset) * 12;
 
-                        // Ticket 14: unplayable check
-
                         const source = playerParty.find(u => u.id === selectedSourceId);
                         const constraints = (data.constraints || [])
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }))
                             .map(formatConstraint);
                         const isUnplayable = !selectedSourceId || constraints.length > 0;
+
+                        // Damage Preview on Card logic
+                        let cardPreviewDamage = 0;
+                        if (isSelected && hoveredEntityId && battleState) {
+                            const target = enemyParty.find(e => e.id === hoveredEntityId);
+                            const attackAction = data.actions.find(a => a.type === 'ATTACK');
+                            if (target && source && attackAction) {
+                                cardPreviewDamage = calculateDamage(source, target, data, attackAction.power || 0, battleState);
+                            }
+                        }
 
                         return (
                             <motion.div
@@ -124,7 +136,18 @@ const CardHand: React.FC<{
                                 </div>
 
                                 {/* Description */}
-                                <div className="card-description">{data.description}</div>
+                                <div className="card-description">
+                                    {data.description}
+                                    {cardPreviewDamage > 0 && (
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            style={{ color: '#ff4444', fontWeight: 'bold', marginTop: '10px', fontSize: '0.8rem' }}
+                                        >
+                                            PREVIEW: {cardPreviewDamage} DMG
+                                        </motion.div>
+                                    )}
+                                </div>
 
                                 {/* Target type */}
                                 <div className="card-target">{data.target}</div>

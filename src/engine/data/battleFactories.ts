@@ -6,6 +6,7 @@ import { GetMingmingData } from './mingmingRegistry';
 import { GetRelic } from './relicRegistry';
 import { drawCards } from '../deckLogic';
 import { PRNG } from '../core/PRNG';
+import { generateIntents } from '../core/IntentUtils';
 
 export function createMockEntity(name: string, mingmingId: string = 'fenrir', level: number = 10, experience: number = 0): IBattleEntity {
     const definition = GetMingmingData(mingmingId);
@@ -143,19 +144,25 @@ export function createBattleState(
             if (primaryElement === 'Nature') { bossId = 'ratatoskr'; guardId = 'ratatoskr'; }
 
             const boss = createMockEntity(`Gym Leader (${gymElement})`, bossId, playerLevel + 2);
-            const superBoss = { ...boss, maxHp: boss.maxHp * 1.5, currentHp: boss.maxHp * 1.5 };
+            const superBoss: IBattleEntity = {
+                ...boss,
+                maxHp: boss.maxHp * 1.5,
+                currentHp: boss.maxHp * 1.5,
+                // Assign Boss Relic
+                activeOS: primaryElement === 'Water' || primaryElement === 'Nature' ? 'boss_relic_water' :
+                    primaryElement === 'Ice' || primaryElement === 'Dark' ? 'boss_relic_ice' : 'boss_relic_fire',
+                moves: [
+                    { id: 'boss_slam', name: 'Titan Slam', intentType: 'Attack', priority: 10, actions: [{ type: 'ATTACK', power: 25, element: primaryElement, target: 'Single' }] },
+                    { id: 'boss_surge', name: 'System Surge', intentType: 'Buff', priority: 5, actions: [{ type: 'STATUS', status: 'Strengthened', stacks: 2, target: 'Self' }] },
+                    { id: 'boss_blast', name: 'Core Blast', intentType: 'Attack', priority: 8, actions: [{ type: 'ATTACK', power: 15, element: 'None', target: 'Side' }] }
+                ]
+            };
             const guard1 = createMockEntity('Elite Guard', guardId, playerLevel);
             const guard2 = createMockEntity('Elite Guard', guardId, playerLevel);
 
             enemyParty = [guard1, superBoss, guard2]; // Boss in middle
 
-            if (primaryElement === 'Water') {
-                enemyDeckIds = ['recursion_daemon', 'tidal_crush', 'whirlpool', 'whirlpool', 'renew', 'hypnosis', 'hypnosis'];
-            } else if (primaryElement === 'Nature') {
-                enemyDeckIds = ['echo_chamber_daemon', 'seed_bomb', 'seed_bomb', 'root_bind', 'photosynthesis', 'photosynthesis'];
-            } else {
-                enemyDeckIds = ['thermal_overload', 'solar_flare', 'solar_flare', 'ignite_pipeline', 'fire_punch', 'reckless'];
-            }
+            enemyDeckIds = []; // No longer using decks for bosses, logic now relies on 'moves'
         }
     } else if (sectorElement) {
         // Epic 8: Logic transition to Encounter Generator
@@ -179,14 +186,17 @@ export function createBattleState(
             if (def.primaryElement === 'Nature') archetype = 'RATATOSKR';
 
             const lists = {
-                FENRIR: { daemon: 'thermal_overload', cards: ['singularity', 'solar_flare', 'ignite_pipeline', 'flash', 'fire_punch', 'reckless'] },
-                KRAKEN: { daemon: 'recursion_daemon', cards: ['squirt', 'deep_pressure', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis'] },
-                RATATOSKR: { daemon: 'echo_chamber_daemon', cards: ['gossip', 'pruning', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'root_bind'] }
+                FENRIR: { daemon: 'fenrir_v1_daemon', cards: ['fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch'] },
+                KRAKEN: { daemon: 'feedback_loop_daemon', cards: ['water_slap', 'whirlpool_v2', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'contagion'] },
+                RATATOSKR: { daemon: 'fertile_ground_daemon', cards: ['leaf_blade', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine'] }
             };
             const list = lists[archetype];
             return [list.daemon, ...list.cards.slice(0, 9)];
         }).flat();
     }
+
+    // Epic 2/22/2026: Disable OS on enemies as they use intents now
+    enemyParty = enemyParty.map(e => ({ ...e, activeOS: undefined }));
 
     // --- SHARED DECK INITIALIZATION ---
 
@@ -194,16 +204,16 @@ export function createBattleState(
     const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
         const lists = {
             FENRIR: {
-                daemon: 'thermal_overload',
-                cards: ['singularity', 'solar_flare', 'solar_flare', 'ignite_pipeline', 'ignite_pipeline', 'flash', 'preheat', 'ash_to_ash', 'fire_punch', 'fire_punch', 'reckless']
+                daemon: 'fenrir_v1_daemon',
+                cards: ['fire_poke', 'fire_punch_v2', 'fire_punch_v2', 'cinder_slash', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch', 'ignite', 'ignite', 'strength_burst']
             },
             KRAKEN: {
-                daemon: 'recursion_daemon',
-                cards: ['squirt', 'squirt', 'deep_pressure', 'deep_pressure', 'whirlpool', 'whirlpool', 'renew', 'tidal_crush', 'ebb_and_flow', 'wave', 'hypnosis']
+                daemon: 'feedback_loop_daemon',
+                cards: ['water_slap', 'water_slap', 'whirlpool_v2', 'whirlpool_v2', 'surge_protection', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'contagion']
             },
             RATATOSKR: {
-                daemon: 'echo_chamber_daemon',
-                cards: ['gossip', 'gossip', 'pruning', 'pruning', 'nettle_lash', 'nettle_lash', 'photosynthesis', 'grafting', 'seed_bomb', 'seed_bomb', 'root_bind']
+                daemon: 'fertile_ground_daemon',
+                cards: ['leaf_blade', 'leaf_blade', 'nettle_sting', 'nettle_sting', 'thistle_barrage', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'pollen_cloud', 'crippling_vine']
             }
         };
 
@@ -214,7 +224,16 @@ export function createBattleState(
     };
 
     const playerArchetype = playerParty[0].definitionId.toUpperCase() as any;
-    const playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
+
+    let playerDeckIds: string[] = [];
+    if (save.activeDeck && save.activeDeck.cards.length > 0) {
+        playerDeckIds = save.activeDeck.cards.map(instanceId => {
+            const card = save.cardInventory.find(c => c.instanceId === instanceId);
+            return card ? card.dataId : null;
+        }).filter(Boolean) as string[];
+    } else {
+        playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
+    }
 
     const pDeckCardsRaw = instantiateDeck(playerDeckIds);
     const initialSeed = Date.now().toString();
@@ -246,6 +265,8 @@ export function createBattleState(
     };
     const { state: eDeckState, nextSeed: seed3 } = drawCards(eInitialDeck, enemyCardDraw, seed2);
 
+    const finalEnemyParty = generateIntents(enemyParty, seed3, 1);
+
     return {
         sessionId: 'battle_' + Date.now(),
         seed: seed3,
@@ -256,10 +277,13 @@ export function createBattleState(
         osLogs: [],
         procs: [],
         playerParty: playerParty,
-        enemyParty: enemyParty,
+        enemyParty: finalEnemyParty,
         playerDeck: pDeckState,
         enemyDeck: eDeckState,
         cardsPlayedThisTurn: 0,
+        cardsDrawnThisTurn: 0,
+        lastProgramPlayed: null,
+        counters: {},
         levelUpQueue: [],
         activeRelics: save.relics || []
     };

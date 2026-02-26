@@ -90,5 +90,13 @@ A complete architectural migration of **Mingming** from Unity/C# to a high-perfo
 
 ---
 
+## **Epic 11: Advanced Interaction Layers**
+*Focus: Discard triggers, aggro management (taunt), and sequential card modifiers.*
+- [ ] **Milestone 11.1: Discard Hook:** Implement `onDiscarded` triggers for passive hand effects.
+- [ ] **Milestone 11.2: Aggro Control:** Implement `FORCED_TARGET` logic for Taunt mechanics.
+- [ ] **Milestone 11.3: Sequential State:** Add one-time modifiers for the "Next" program played.
+
+---
+
 ## **Current Priority: Epic 8 (The Gauntlet & The Gym)**
 **Next Task:** Implement Milestone 8.3 (Gym Gauntlet System).

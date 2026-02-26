@@ -1,4 +1,69 @@
 {
+    "fafnir_v1": {
+        "id": "fafnir_v1",
+        "name": "HOARD_PROTOCOL",
+        "description": "At the end of your turn, store unused Energy as Energized, but take 1% Max HP damage per point.",
+        "hooks": [
+            {
+                "id": "fafnir_v1_hoard",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "currentEnergy": {
+                        "operator": "GT",
+                        "value": 0
+                    }
+                },
+                "do": [
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "percentMaxHP": -1,
+                        "scaling": "CURRENT_ENERGY"
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Energized",
+                        "stacks": 1,
+                        "scaling": "CURRENT_ENERGY"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s HOARD_PROTOCOL retains unused Energy but burns its core!"
+                    }
+                ]
+            }
+        ]
+    },
+    "fafnir_v2": {
+        "id": "fafnir_v2",
+        "name": "CORRUPTED_GOLD_OS",
+        "description": "Whenever Fafnir receives a debuff, it gains +1 Energy.",
+        "hooks": [
+            {
+                "id": "fafnir_v2_corrupted",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "target": "SELF"
+                },
+                "condition": "(context) => ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned'].includes(context.statusApplied || '')",
+                "do": [
+                    {
+                        "type": "ENERGY",
+                        "target": "SELF",
+                        "amount": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s CORRUPTED_GOLD_OS gains 1 Energy from the debuff!"
+                    }
+                ]
+            }
+        ]
+    },
     "fenrir_v1": {
         "id": "fenrir_v1",
         "name": "UNBOUND_KERNEL",
@@ -256,6 +321,733 @@
                         "text": "{owner}'s ECHO_CHAMBER_DAEMON generates Feedback!"
                     }
                 ]
+            }
+        ]
+    },
+    "skoll_v1": {
+        "id": "skoll_v1",
+        "name": "TREACHERY_KERNEL",
+        "description": "Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 stack of Strengthened.",
+        "hooks": [
+            {
+                "id": "skoll_v1_hook",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
+                    }
+                ]
+            }
+        ]
+    },
+    "skoll_v2": {
+        "id": "skoll_v2",
+        "name": "SOLAR_FLARE_OS",
+        "description": "Whenever you play a Fire card against a target with 3 or more stacks of Burn, refund 1 Energy.",
+        "hooks": [
+            {
+                "id": "skoll_v2_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Fire",
+                    "targetStatus": {
+                        "status": "Burn",
+                        "minStacks": 3
+                    }
+                },
+                "do": [
+                    {
+                        "type": "ENERGY",
+                        "target": "SELF",
+                        "amount": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SOLAR_FLARE_OS refunds 1 Energy!"
+                    }
+                ]
+            }
+        ]
+    },
+    "jormungandr_v1": {
+        "id": "jormungandr_v1",
+        "name": "OUROBOROS_LOOP",
+        "description": "Every 3rd Water card you play in a single turn grants 1 Energy and draws 1 card.",
+        "hooks": [
+            {
+                "id": "jorm_v1_count",
+                "trigger": "onActionStart",
+                "priority": 50,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Water"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "key": "jorm_water",
+                        "operator": "ADD",
+                        "amount": 1
+                    }
+                ]
+            },
+            {
+                "id": "jorm_v1_trigger",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Water",
+                    "counter": {
+                        "key": "jorm_water",
+                        "operator": "EQ",
+                        "value": 3
+                    }
+                },
+                "do": [
+                    {
+                        "type": "ENERGY",
+                        "target": "SELF",
+                        "amount": 1
+                    },
+                    {
+                        "type": "DRAW",
+                        "amount": 1
+                    },
+                    {
+                        "type": "COUNTER",
+                        "key": "jorm_water",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s OUROBOROS_LOOP triggers!"
+                    }
+                ]
+            },
+            {
+                "id": "jorm_v1_reset",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "key": "jorm_water",
+                        "operator": "RESET"
+                    }
+                ]
+            }
+        ]
+    },
+    "jormungandr_v2": {
+        "id": "jormungandr_v2",
+        "name": "VENOM_TRENCH_OS",
+        "description": "At the end of the turn, Jörmungandr heals 2 HP.",
+        "hooks": [
+            {
+                "id": "jorm_v2_heal",
+                "trigger": "onTurnEnd",
+                "priority": 50,
+                "do": [
+                    {
+                        "type": "HEAL",
+                        "target": "SELF",
+                        "healOverride": 2
+                    }
+                ]
+            }
+        ]
+    },
+    "gullinbursti_v1": {
+        "id": "gullinbursti_v1",
+        "name": "UNSTOPPABLE_MASS",
+        "description": "Playing a defensive Status card reduces the Energy cost of the next Attack card you play this turn by 1.",
+        "hooks": [
+            {
+                "id": "gullin_v1_prepare",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "STATUS"
+                },
+                "do": [
+                    {
+                        "type": "BUFF_NEXT_PROGRAM",
+                        "target": "SELF",
+                        "costReduction": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s UNSTOPPABLE_MASS gains momentum!"
+                    }
+                ]
+            }
+        ]
+    },
+    "gullinbursti_v2": {
+        "id": "gullinbursti_v2",
+        "name": "KINETIC_RAM_OS",
+        "description": "Earth Attack cards deal additional damage equal to Gullinbursti's current stacks of Sharp.",
+        "hooks": [
+            {
+                "id": "gullin_v2_ram",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Earth"
+                },
+                "bonus": 1,
+                "scaling": "SHARP_STACKS"
+            }
+        ]
+    },
+    "hraesvelgr_v1": {
+        "id": "hraesvelgr_v1",
+        "name": "GALE_FORCE_OS",
+        "description": "Whenever you voluntarily discard a card from your hand, deal moderate Air damage to a random enemy.",
+        "hooks": [
+            {
+                "id": "hraes_v1_gale",
+                "trigger": "onDiscarded",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 10,
+                        "element": "Air"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s GALE_FORCE_OS creates a retaliatory updraft!"
+                    }
+                ]
+            }
+        ]
+    },
+    "hraesvelgr_v2": {
+        "id": "hraesvelgr_v2",
+        "name": "UPDRAFT_KERNEL",
+        "description": "The first time you cycle through your entire deck and shuffle your discard pile, permanently gain +1 max Energy for the rest of the battle.",
+        "hooks": [
+            {
+                "id": "hraes_v2_updraft",
+                "trigger": "onDeckShuffled",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "counter": {
+                        "key": "deck_shuffles",
+                        "operator": "EQ",
+                        "value": 1
+                    }
+                },
+                "do": [
+                    {
+                        "type": "MAX_ENERGY",
+                        "target": "SELF",
+                        "amount": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s UPDRAFT_KERNEL reaches critical velocity! Max Energy increased!"
+                    }
+                ]
+            }
+        ]
+    },
+    "sleipnir_v1": {
+        "id": "sleipnir_v1",
+        "name": "MOMENTUM_DRIVE",
+        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened.",
+        "hooks": [
+            {
+                "id": "sleipnir_v1_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
+                    }
+                ]
+            }
+        ]
+    },
+    "sleipnir_v2": {
+        "id": "sleipnir_v2",
+        "name": "WAR_STEED_OS",
+        "description": "Whenever Sleipnir plays an Air Attack card, generate a 0-cost Hoof Strike token card in your hand.",
+        "hooks": [
+            {
+                "id": "sleipnir_v2_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Air",
+                    "actionType": "ATTACK"
+                },
+                "do": [
+                    {
+                        "type": "GENERATE_CARD",
+                        "target": "SELF",
+                        "dataId": "hoof_strike"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s WAR_STEED_OS generates a Hoof Strike!"
+                    }
+                ]
+            }
+        ]
+    },
+    "huldra_v1": {
+        "id": "huldra_v1",
+        "name": "ALLURE_PROXY",
+        "description": "Whenever Huldra applies a buff to herself or an ally, she mirrors it by applying 1 stack of Weakened to a random enemy.",
+        "hooks": [
+            {
+                "id": "huldra_v1_hook",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "target": "ALLY"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "RANDOM_ENEMY",
+                        "status": "Weakened",
+                        "stacks": 1
+                    }
+                ]
+            }
+        ]
+    },
+    "huldra_v2": {
+        "id": "huldra_v2",
+        "name": "BARK_SHIELD_OS",
+        "description": "Huldra starts every battle with a massive, temporary shield.",
+        "hooks": []
+    },
+    "ymir_v1": {
+        "id": "ymir_v1",
+        "name": "RIME_HEART_SYS",
+        "description": "Enemies that deal damage to the Jötunn automatically receive 1 stack of Weakened.",
+        "hooks": [
+            {
+                "id": "ymir_v1_hook",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "target": "SELF",
+                    "source": "OPPONENT"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Weakened",
+                        "stacks": 1
+                    }
+                ]
+            }
+        ]
+    },
+    "ymir_v2": {
+        "id": "ymir_v2",
+        "name": "GLACIAL_PACE_OS",
+        "description": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 50% more base damage.",
+        "hooks": []
+    },
+    "draugr_v1": {
+        "id": "draugr_v1",
+        "name": "PERMAFROST_WAKE",
+        "description": "Whenever a Draugr recovers from the Asleep status or is revived, it gains 3 strength.",
+        "hooks": [
+            {
+                "id": "draugr_v1_wake",
+                "trigger": "onStatusRemoved",
+                "priority": 40,
+                "when": {
+                    "target": "SELF",
+                    "statusApplied": "Asleep"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 3
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s PERMAFROST_WAKE activates! Gain 3 Strengthened."
+                    }
+                ]
+            }
+        ]
+    },
+    "draugr_v2": {
+        "id": "draugr_v2",
+        "name": "GRAVE_CHILL_OS",
+        "description": "Enemies afflicted with 2 or more negative status effects cost 1 additional Energy to execute their attacks against the Draugr.",
+        "hooks": [
+            {
+                "id": "draugr_v2_chill",
+                "trigger": "onCostCalculated",
+                "priority": 40,
+                "when": {
+                    "target": "SELF",
+                    "source": "OPPONENT"
+                },
+                "condition": "(context) => { const debuffs = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed']; return context.source && context.source.statusEffects.filter(s => debuffs.includes(s.type)).length >= 2; }",
+                "bonus": 1
+            }
+        ]
+    },
+    "valkyrie_v1": {
+        "id": "valkyrie_v1",
+        "name": "VALHALLA_UPLINK",
+        "description": "Whenever a Valkyrie applies a positive status to an ally, that ally also heals for 5% of their max HP.",
+        "hooks": [
+            {
+                "id": "valkyrie_v1_uplink",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "target": "ALLY"
+                },
+                "condition": "(context) => ['Energized', 'Strengthened', 'Sharp', 'StableOS'].includes(context.statusApplied || '')",
+                "do": [
+                    {
+                        "type": "HP",
+                        "target": "TARGET",
+                        "percentMaxHP": 5
+                    }
+                ]
+            }
+        ]
+    },
+    "valkyrie_v2": {
+        "id": "valkyrie_v2",
+        "name": "EINHERJAR_RALLY",
+        "description": "For every other active Mingming currently on your side of the field, Valkyrie's Light attacks deal +10% damage.",
+        "hooks": [
+            {
+                "id": "valkyrie_v2_rally",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Light"
+                },
+                "multiplier": 1.1,
+                "scaling": "ALIVE_ALLIES"
+            }
+        ]
+    },
+    "audhumbla_v1": {
+        "id": "audhumbla_v1",
+        "name": "GENESIS_FIRMWARE",
+        "description": "Every 3rd Heal or Spell card played permanently increases Audhumbla's maximum Energy pool by 1 for the remainder of the battle.",
+        "hooks": [
+            {
+                "id": "aud_v1_count",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "condition": "(context) => context.program && ['Heal', 'Skill'].includes(context.program.category)",
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "audhumbla_genesis",
+                        "amount": 1
+                    }
+                ]
+            },
+            {
+                "id": "aud_v1_reward",
+                "trigger": "onActionStart",
+                "priority": 41,
+                "when": {
+                    "source": "SELF",
+                    "counter": {
+                        "key": "audhumbla_genesis",
+                        "operator": "GTE",
+                        "value": 3
+                    }
+                },
+                "do": [
+                    {
+                        "type": "MAX_ENERGY",
+                        "amount": 1,
+                        "target": "SELF"
+                    },
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "audhumbla_genesis",
+                        "amount": -3
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s GENESIS_FIRMWARE activates! Max Energy +1."
+                    }
+                ]
+            }
+        ]
+    },
+    "audhumbla_v2": {
+        "id": "audhumbla_v2",
+        "name": "NOURISH_ROUTINE",
+        "description": "Any healing applied to Audhumbla that exceeds her maximum HP is automatically converted into an offensive Light attack against a random enemy.",
+        "hooks": [
+            {
+                "id": "aud_v2_nourish",
+                "trigger": "onHeal",
+                "priority": 40,
+                "when": {
+                    "target": "SELF"
+                },
+                "condition": "(context) => context.state.counters && context.state.counters.last_overheal > 0",
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "element": "Light",
+                        "power": 1,
+                        "scaling": "OVERHEAL"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s NOURISH_ROUTINE converts {amount} Overheal into Light damage!"
+                    }
+                ]
+            }
+        ]
+    },
+    "hel_v1": {
+        "id": "hel_v1",
+        "name": "EQUINOX_TOGGLE",
+        "description": "Hel shifts stances based on the cards she plays.",
+        "hooks": [
+            {
+                "id": "hel_v1_equinox_dark",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "equinox_stance",
+                        "amount": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner} shifts into DarkStance!"
+                    }
+                ]
+            },
+            {
+                "id": "hel_v1_equinox_light",
+                "trigger": "onActionStart",
+                "priority": 41,
+                "when": {
+                    "source": "SELF"
+                },
+                "condition": "(context) => context.program && context.program.category !== 'Attack'",
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "equinox_stance",
+                        "amount": -1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner} shifts into LightStance!"
+                    }
+                ]
+            }
+        ]
+    },
+    "hel_v2": {
+        "id": "hel_v2",
+        "name": "UNDERWORLD_GATEWAY",
+        "description": "Hel's Dark spells cost HP instead of Energy.",
+        "hooks": [
+            {
+                "id": "hel_v2_underworld",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Dark"
+                },
+                "condition": "(context) => context.program && context.program.category !== 'Attack' && context.program.baseCost > 0",
+                "do": [
+                    {
+                        "type": "ENERGY",
+                        "target": "SELF",
+                        "amount": 1,
+                        "scaling": "BASE_COST"
+                    },
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "amount": -1,
+                        "scaling": "BASE_COST"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s UNDERWORLD_GATEWAY paid HP instead of Energy!"
+                    }
+                ]
+            }
+        ]
+    },
+    "nidhoggr_v1": {
+        "id": "nidhoggr_v1",
+        "name": "ROOT_CORRUPTION",
+        "description": "Poison applied by Níðhöggr does not decrease in stacks at the end of the turn.",
+        "hooks": [
+            {
+                "id": "nidhoggr_v1_root",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "sourceStatus": {
+                        "status": "Poison",
+                        "minStacks": 1
+                    }
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Poison",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s ROOT_CORRUPTION maintains Poison on {source}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "nidhoggr_v2": {
+        "id": "nidhoggr_v2",
+        "name": "FALLEN_FEAST_OS",
+        "description": "Whenever any Mingming is defeated, Níðhöggr gains 3 stacks of Strengthened and 3 stacks of Sharp.",
+        "hooks": [
+            {
+                "id": "nidhoggr_v2_feast",
+                "trigger": "onUnitFainted",
+                "priority": 40,
+                "when": {
+                    "target": "ANY"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 3
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Sharp",
+                        "stacks": 3
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s FALLEN_FEAST_OS feeds on the defeated!"
+                    }
+                ]
+            }
+        ],
+        "boss_relic_fire": [
+            {
+                "id": "boss_relic_fire_end",
+                "trigger": "onTurnEnd",
+                "priority": "SYSTEM",
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "ENEMIES",
+                        "power": 5,
+                        "element": "Fire",
+                        "scaling": "SHARP_STACKS",
+                        "text": "{owner}'s FIRE RELIC ignites the field!"
+                    }
+                ]
+            }
+        ],
+        "boss_relic_water": [
+            {
+                "id": "boss_relic_water_reactive",
+                "trigger": "onPostDamage",
+                "priority": "SYSTEM",
+                "do": [
+                    {
+                        "type": "HEAL",
+                        "target": "ALLIES",
+                        "percentMaxHP": 5,
+                        "text": "{owner}'s WATER RELIC soothes the team!"
+                    }
+                ]
+            }
+        ],
+        "boss_relic_ice": [
+            {
+                "id": "boss_relic_ice_tax",
+                "trigger": "onCostCalculated",
+                "priority": "SYSTEM",
+                "when": {
+                    "source": "OPPONENT",
+                    "targetStatus": {
+                        "status": "Poison",
+                        "minStacks": 1
+                    }
+                },
+                "bonus": 1,
+                "text": "{owner}'s ICE RELIC taxes the poisoned!"
             }
         ]
     }

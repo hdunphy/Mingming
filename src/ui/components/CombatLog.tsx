@@ -39,7 +39,7 @@ const CombatLog: React.FC = () => {
                                 const isOS = log.startsWith('[OS]');
                                 return (
                                     <motion.div
-                                        key={`${index}-${log}`}
+                                        key={`log-${index}-${log.slice(0, 15)}`}
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         className={`log-entry ${isOS ? 'os-proc' : ''}`}

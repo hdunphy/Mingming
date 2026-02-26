@@ -65,13 +65,50 @@ export const ConditionValidator = {
         // 6. Token Check
         if (condition.isToken !== undefined && (context.program?.isToken ?? false) !== condition.isToken) return false;
 
+        // 7. Target Status Check
+        if (condition.targetStatus && context.target) {
+            const targetStat = context.target.statusEffects.find(s => s.type === condition.targetStatus!.status);
+            if (!targetStat) return false;
+            if (condition.targetStatus.minStacks !== undefined && targetStat.stacks < condition.targetStatus.minStacks) return false;
+        }
+
+        // 8. Source Status Check
+        if (condition.sourceStatus && context.source) {
+            const sourceStat = context.source.statusEffects.find(s => s.type === condition.sourceStatus!.status);
+            if (!sourceStat) return false;
+            if (condition.sourceStatus.minStacks !== undefined && sourceStat.stacks < condition.sourceStatus.minStacks) return false;
+        }
+
+        // 9. Counter Check
+        if (condition.counter) {
+            const { key, operator, value } = condition.counter;
+            const currentCounters = context.state.counters || {};
+            const currentVal = currentCounters[key] || 0;
+            if (operator === 'LT' && !(currentVal < value)) return false;
+            if (operator === 'GT' && !(currentVal > value)) return false;
+            if (operator === 'LTE' && !(currentVal <= value)) return false;
+            if (operator === 'GTE' && !(currentVal >= value)) return false;
+            if (operator === 'EQ' && !(currentVal === value)) return false;
+        }
+
+        // 10. Current Energy Check
+        if (condition.currentEnergy) {
+            const { operator, value } = condition.currentEnergy;
+            const currentVal = owner.currentEnergy;
+            if (operator === 'LT' && !(currentVal < value)) return false;
+            if (operator === 'GT' && !(currentVal > value)) return false;
+            if (operator === 'LTE' && !(currentVal <= value)) return false;
+            if (operator === 'GTE' && !(currentVal >= value)) return false;
+            if (operator === 'EQ' && !(currentVal === value)) return false;
+        }
+
         return true;
     },
 
     /**
      * Evaluates a ProgramConstraint (usually found on Cards directly) against the target.
      */
-    evaluateCardConstraint(constraint: ProgramConstraint, source: IBattleEntity, subject: IBattleEntity, cost: number): boolean {
+    evaluateCardConstraint(constraint: ProgramConstraint, source: IBattleEntity, subject: IBattleEntity, cost: number, state?: IBattleState): boolean {
         switch (constraint.type) {
             case 'HAS_STATUS':
                 if (!subject.statusEffects.some(s => s.type === constraint.value)) {
@@ -93,6 +130,12 @@ export const ConditionValidator = {
             case 'BASE':
                 // Base Energy Check
                 if (source.currentEnergy < cost) return false;
+                break;
+
+            case 'CARDS_DRAWN':
+                // Check if enough cards were drawn this turn
+                if (!state) return true; // Fail safe
+                if (state.cardsDrawnThisTurn < (constraint.value as number)) return false;
                 break;
 
             case 'NOT_STATUS':

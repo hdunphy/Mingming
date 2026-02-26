@@ -10,7 +10,7 @@ export enum HookPriority {
 }
 
 export type MutationRequest = {
-    type: 'HP' | 'ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH';
+    type: 'HP' | 'ENERGY' | 'MAX_ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'COUNTER' | 'DRAW';
     targetId: string;
     sourceId?: string; // Optional source of the mutation
     payload: any;
@@ -40,18 +40,31 @@ export type HookCondition = {
     statusApplied?: StatusType;
     isNaturalDraw?: boolean;
     isToken?: boolean;
+    targetStatus?: { status: StatusType; minStacks?: number };
+    sourceStatus?: { status: StatusType; minStacks?: number };
+    counter?: { key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
+    currentEnergy?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
 };
 
 export type HookAction = {
-    type: ActionType | 'LOG'; // Hooks can perform actions or log
-    target?: 'SELF' | 'TARGET' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
+    type: ActionType | 'LOG' | 'COUNTER' | 'DRAW' | 'MAX_ENERGY'; // Hooks can perform actions or log
+    target?: 'SELF' | 'TARGET' | 'SOURCE' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
     status?: StatusType;
     stacks?: number;
     amount?: number;
+    power?: number;
+    element?: Element;
     percentMaxHP?: number;
+    costReduction?: number;
+    flatBonus?: number;
+    multiplier?: number;
     text?: string;
     count?: number;
     dataId?: string; // For GENERATE_CARD
+    key?: string; // For COUNTER key
+    operator?: 'ADD' | 'SET' | 'RESET'; // For COUNTER operation
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scalingKey?: string; // e.g., the key if scaling is 'COUNTER'
 };
 
 export type DataHookDefinition = {
@@ -70,6 +83,8 @@ export type ModifierDataHookDefinition = {
     when?: HookCondition;
     multiplier?: number;
     bonus?: number;
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scalingKey?: string;
 };
 
 export type DamageModifierHook = (
@@ -88,11 +103,18 @@ export type HookDefinition = {
     priority: number;
     onDamageCalculated?: DamageModifierHook;
     onStatusDamageCalculated?: DamageModifierHook; // New hook for Burn/Poison scaling
+    onCostCalculated?: DamageModifierHook; // Same signature as damage hook (returns a number)
     onActionStart?: EventHook;
     onModifierPhase?: EventHook;
     onPostDamage?: EventHook;
     onCardDraw?: EventHook;
     onStatusApplied?: EventHook;
+    onStatusRemoved?: EventHook;
+    onTurnStart?: EventHook;
     onTurnEnd?: EventHook;
+    onDeckShuffled?: EventHook;
+    onHeal?: EventHook;
+    onUnitFainted?: EventHook;
+    onDiscarded?: EventHook;
     data?: DataHookDefinition | ModifierDataHookDefinition; // Reference to original data
 };

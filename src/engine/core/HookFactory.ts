@@ -23,7 +23,7 @@ export const HookFactory = {
         const priority = data.priority;
         const id = data.id;
 
-        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated') {
+        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated') {
             const modifierData = data as ModifierDataHookDefinition;
             return {
                 id,
@@ -31,8 +31,13 @@ export const HookFactory = {
                 [data.trigger]: (damage: number, context: HookContext, owner: IBattleEntity) => {
                     if (this.checkCondition(modifierData.when, context, owner)) {
                         let newDamage = damage;
-                        if (modifierData.multiplier) newDamage *= modifierData.multiplier;
-                        if (modifierData.bonus) newDamage += modifierData.bonus;
+
+                        const scaleFactor = modifierData.scaling
+                            ? this.resolveScaling(modifierData.scaling, modifierData.scalingKey, context, owner)
+                            : 1;
+
+                        if (modifierData.multiplier) newDamage *= (1 + ((modifierData.multiplier - 1) * scaleFactor));
+                        if (modifierData.bonus) newDamage += (modifierData.bonus * scaleFactor);
                         return Math.floor(newDamage);
                     }
                     return damage;
@@ -61,6 +66,37 @@ export const HookFactory = {
         return ConditionValidator.evaluateHookCondition(condition, context, owner);
     },
 
+    resolveScaling(scaling: string, scalingKey: string | undefined, context: HookContext, owner: IBattleEntity, targetId?: string): number {
+        let targetEntity = context.target;
+        if (targetId) {
+            targetEntity = context.state.playerParty.find(e => e.id === targetId) || context.state.enemyParty.find(e => e.id === targetId) || targetEntity;
+        }
+
+        switch (scaling) {
+            case 'CURRENT_ENERGY':
+                return owner.currentEnergy;
+            case 'SHARP_STACKS':
+                return owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
+            case 'ALIVE_ALLIES': {
+                const isPlayer = context.state.playerParty.some((e: IBattleEntity) => e.id === owner.id);
+                const party = isPlayer ? context.state.playerParty : context.state.enemyParty;
+                return party.filter((e: IBattleEntity) => e.currentHp > 0 && e.id !== owner.id).length;
+            }
+            case 'MISSING_HP':
+                if (targetEntity) return targetEntity.maxHp - targetEntity.currentHp;
+                return 0;
+            case 'OVERHEAL':
+                return context.state.counters['last_overheal'] || 0; // We will need to set this counter in Heal logic
+            case 'BASE_COST':
+                return context.program?.baseCost || 0;
+            case 'COUNTER':
+                if (scalingKey) return context.state.counters[scalingKey] || 0;
+                return 0;
+            default:
+                return 1;
+        }
+    },
+
     executeActions(actions: HookAction[], context: HookContext, owner: IBattleEntity): IBattleState {
         let currentState = context.state;
         let resolvedTargetName: string | undefined = undefined;
@@ -82,13 +118,41 @@ export const HookFactory = {
                 continue;
             }
 
+            let scaleFactor = 1;
+            if (action.scaling) {
+                scaleFactor = this.resolveScaling(action.scaling, action.scalingKey, context, owner, Array.isArray(targetId) ? targetId[0] : (targetId ?? undefined));
+            }
+
+            if (action.type === 'COUNTER') {
+                currentState = applyMutations(currentState, [{
+                    type: 'COUNTER',
+                    targetId: '',
+                    payload: {
+                        key: action.key,
+                        operator: action.operator,
+                        amount: (action.amount || 1) * scaleFactor
+                    }
+                }]);
+                continue;
+            }
+
+            if (action.type === 'DRAW') {
+                currentState = applyMutations(currentState, [{
+                    type: 'DRAW',
+                    targetId: owner.id,
+                    payload: { amount: (action.amount || 1) * scaleFactor }
+                }]);
+                continue;
+            }
+
             // To ensure scaling/percent max HP is respected (legacy Hook logic):
             if (action.type === 'HP' as any) {
                 const rawAmount = action.percentMaxHP
-                    ? Math.max(1, Math.floor(owner.maxHp * (Math.abs(action.percentMaxHP) / 100)))
-                    : (action.amount ?? 0);
+                    ? Math.max(1, Math.floor(owner.maxHp * (Math.abs(action.percentMaxHP) / 100))) * scaleFactor
+                    : (action.amount ?? 0) * scaleFactor;
 
                 const finalIsHeal = (action.percentMaxHP ? action.percentMaxHP : (action.amount ?? 0)) > 0;
+
 
                 if (Array.isArray(targetId)) {
                     const mutations: any[] = targetId.map(tId => ({
@@ -115,12 +179,30 @@ export const HookFactory = {
                 continue;
             }
 
+            // Dynamically scale action parameters before execution
+            const scaledAction = { ...action };
+            if (scaledAction.amount !== undefined) scaledAction.amount *= scaleFactor;
+            if (scaledAction.power !== undefined) scaledAction.power *= scaleFactor;
+            if (scaledAction.stacks !== undefined) scaledAction.stacks *= scaleFactor;
+
+            if (scaledAction.type === 'MAX_ENERGY') {
+                for (const tId of (Array.isArray(targetId) ? targetId : [targetId])) {
+                    if (!tId) continue;
+                    currentState = {
+                        ...currentState,
+                        playerParty: currentState.playerParty.map(e => e.id === tId ? { ...e, maxEnergy: e.maxEnergy + (scaledAction.amount || 0) } : e),
+                        enemyParty: currentState.enemyParty.map(e => e.id === tId ? { ...e, maxEnergy: e.maxEnergy + (scaledAction.amount || 0) } : e)
+                    };
+                }
+                continue;
+            }
+
             if (Array.isArray(targetId)) {
                 for (const tId of targetId) {
-                    currentState = executor.execute(currentState, owner.id, tId, action as any, context.program, { ...context, state: currentState });
+                    currentState = executor.execute(currentState, owner.id, tId, scaledAction as any, context.program, { ...context, state: currentState });
                 }
             } else if (targetId) {
-                currentState = executor.execute(currentState, owner.id, targetId, action as any, context.program, { ...context, state: currentState });
+                currentState = executor.execute(currentState, owner.id, targetId, scaledAction as any, context.program, { ...context, state: currentState });
             }
         }
 
@@ -134,6 +216,7 @@ export const HookFactory = {
         switch (target) {
             case 'SELF': return owner.id;
             case 'TARGET': return context.target?.id ?? null;
+            case 'SOURCE': return context.source?.id ?? null;
             case 'ALLIES':
                 return (isOwnerPlayer ? context.state.playerParty : context.state.enemyParty)
                     .filter(e => e.currentHp > 0)

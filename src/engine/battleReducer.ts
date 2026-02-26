@@ -3,24 +3,22 @@ import type {
     IBattleState,
     TurnPhase,
     IBattleEntity,
-    IDeckState,
-    ProgramEntity,
     ProgramData,
     StatusType,
     StatusEffectInstance,
     ProgramConstraint
 } from './types';
-import { globalBattleEventBus, type BattleEvent } from './events';
-import { HookPriority, type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
+import { globalBattleEventBus } from './events';
+import { type HookContext } from './core/Hooks';
 // We will import combatUtils later for card resolution
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
-import { getOSBehavior } from './data/firmwareRegistry';
 import { effectHandlers, checkDefeat } from './effectHandlers';
-import { drawCards, discardHand } from './deckLogic';
+import { discardHand } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
+import { generateIntents } from './core/IntentUtils';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -39,7 +37,8 @@ export type BattleAction =
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
-    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number } };
+    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number } }
+    | { type: 'EXECUTE_INTENT'; payload: { sourceId: string } };
 
 // --- Constants ---
 
@@ -73,6 +72,9 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
             // Direct application via action (for testing or game logic)
             return effectHandlers['APPLY_STATUS'](state, action.payload);
 
+        case 'EXECUTE_INTENT':
+            return handleExecuteIntent(state, action.payload);
+
         default:
             return state;
     }
@@ -83,9 +85,10 @@ export function validateSingleConstraint(
     constraint: ProgramConstraint,
     source: IBattleEntity,
     subject: IBattleEntity,
-    cost: number
+    cost: number,
+    state?: IBattleState
 ): boolean {
-    return ConditionValidator.evaluateCardConstraint(constraint, source, subject, cost);
+    return ConditionValidator.evaluateCardConstraint(constraint, source, subject, cost, state);
 }
 
 /**
@@ -112,7 +115,7 @@ export function validateProgramConstraints(
                 }
                 continue;
             }
-            if (!validateSingleConstraint(constraint, source, subject, cost)) {
+            if (!validateSingleConstraint(constraint, source, subject, cost, _state)) {
                 return false;
             }
         }
@@ -127,13 +130,17 @@ export function validateProgramConstraints(
 /**
  * Applies a list of mutations to the state in a single atomic update.
  */
-import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated } from './resolutionEngine';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
 
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
         console.warn(`Attempted to play program during ${state.phase} phase.`);
         return state;
     }
+
+    // Safety: check if battle is over
+    const isOver = state.playerParty.every(p => p.currentHp <= 0) || state.enemyParty.every(e => e.currentHp <= 0);
+    if (isOver) return state;
 
     const { sourceId, targetId, programId } = payload;
 
@@ -153,13 +160,21 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const programData = GetProgramData(card.dataId);
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
+    const modifier = sourceEntity.nextProgramModifier;
+    const appliedCostReduction = modifier?.costReduction || 0;
+    const baseCost = Math.max(0, card.currentCost - appliedCostReduction);
+
+    const costRes = executeCostCalculated(state, sourceEntity, targetEntity, programData, baseCost);
+    const finalCost = costRes.cost;
+
     // 2. Validate Constraints
-    if (!validateProgramConstraints(state, sourceEntity, targetEntity, programData, card.currentCost)) {
+    // Note: Use costRes.state if needed, but since cost calculations rarely mutate, we'll keep it clean.
+    if (!validateProgramConstraints(costRes.state, sourceEntity, targetEntity, programData, finalCost)) {
         return state;
     }
 
     // --- The Snapshot Pattern ---
-    let snapshot = state;
+    let snapshot = costRes.state;
 
     // 3. Pay Cost (Snapshot Mutation)
     const newHand = [...snapshot[activeDeckKey].hand];
@@ -173,7 +188,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         ...snapshot,
         [activePartyKey]: snapshot[activePartyKey].map(e => {
             if (e.id === sourceId) {
-                const updatedEntity = { ...e, currentEnergy: e.currentEnergy - card.currentCost };
+                const updatedEntity = { ...e, currentEnergy: e.currentEnergy - finalCost };
                 if (isDaemon) {
                     return { ...updatedEntity, daemons: [...updatedEntity.daemons, card] };
                 }
@@ -186,7 +201,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             hand: newHand,
             discard: newDiscard
         },
-        cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1
+        cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1,
+        lastProgramPlayed: card.dataId
     };
 
     // 4. Initial Context
@@ -264,17 +280,190 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     finalState = afterMod;
 
                     // Execution
-                    const executor = ActionExecutorRegistry[action.type];
+                    let modifiedAction = { ...action };
+                    if (modifier) {
+                        if ((modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        }
+                        if (modifiedAction.type === 'STATUS' && (modifiedAction as any).stacks !== undefined) {
+                            (modifiedAction as any).stacks = Math.floor(((modifiedAction as any).stacks + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        }
+                        if (modifiedAction.type === 'HEAL' && (modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        }
+                    }
+
+                    const executor = ActionExecutorRegistry[modifiedAction.type];
                     if (executor) {
-                        finalState = executor.execute(finalState, sourceId, tId, action as any, programData, hitContext);
+                        finalState = executor.execute(finalState, sourceId, tId, modifiedAction as any, programData, hitContext);
                     } else {
-                        console.warn(`[BattleReducer] No executor found for action type: ${action.type}`);
+                        console.warn(`[BattleReducer] No executor found for action type: ${modifiedAction.type}`);
                     }
 
                     // Post-Damage Phase
                     const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
                     finalState = afterPost;
                 }
+            }
+        }
+    }
+
+    // Clear the modifier since it has been consumed
+    const activePartyAfter = finalState[activePartyKey].map(e => {
+        if (e.id === sourceId && e.nextProgramModifier !== undefined) {
+            const { nextProgramModifier, ...rest } = e;
+            return rest;
+        }
+        return e;
+    });
+
+    return {
+        ...finalState,
+        [activePartyKey]: activePartyAfter,
+        lastProgramPlayed: card.dataId
+    };
+}
+
+function handleExecuteIntent(state: IBattleState, payload: { sourceId: string }): IBattleState {
+    if (state.phase !== 'ACTION') return state;
+
+    // Safety: check if battle is over
+    const isOver = state.playerParty.every(p => p.currentHp <= 0) || state.enemyParty.every(e => e.currentHp <= 0);
+    if (isOver) return state;
+
+    const { sourceId } = payload;
+    const sourceIndex = state.enemyParty.findIndex(e => e.id === sourceId);
+    if (sourceIndex === -1) return state;
+
+    const sourceEntity = state.enemyParty[sourceIndex];
+    if (sourceEntity.currentHp <= 0 || !sourceEntity.currentIntent) return state;
+
+    // Check for CC status effects (Stunned or Asleep)
+    const isIncapacitated = sourceEntity.statusEffects.some(s => s.type === 'Stunned' || s.type === 'Asleep');
+    if (isIncapacitated) {
+        const stateWithLog = applyMutations(state, [
+            {
+                type: 'LOG',
+                targetId: '',
+                payload: `💤 ${sourceEntity.name} is incapacitated and cannot move!`
+            },
+            {
+                type: 'EVENT',
+                targetId: '',
+                payload: {
+                    type: 'INTENT_SKIPPED',
+                    sourceId: sourceEntity.id,
+                    timestamp: Date.now()
+                }
+            }
+        ]);
+        return {
+            ...stateWithLog,
+            enemyParty: stateWithLog.enemyParty.map((e, idx) => idx === sourceIndex ? { ...e, currentIntent: null } : e) as ReadonlyArray<IBattleEntity>
+        };
+    }
+
+    const intent = sourceEntity.currentIntent;
+
+    // 1. Initial State Updates (clear the intent)
+    let snapshot: IBattleState = {
+        ...state,
+        enemyParty: state.enemyParty.map((e, idx) => idx === sourceIndex ? { ...e, currentIntent: null } : e) as ReadonlyArray<IBattleEntity>
+    };
+
+    // 2. Logging
+    snapshot = applyMutations(snapshot, [{
+        type: 'LOG',
+        targetId: '',
+        payload: `⚠️ ${sourceEntity.name} executes ${intent.name}!`
+    }]);
+
+    // Dummy ProgramData for hooks (if needed)
+    const dummyProgram: ProgramData = {
+        id: intent.id,
+        name: intent.name,
+        description: intent.intentType,
+        element: sourceEntity.primaryElement,
+        target: 'Single',
+        category: 'Attack',
+        rarity: 'Common',
+        baseCost: 0,
+        constraints: [],
+        actions: intent.actions
+    };
+
+    // 3. Action Execution loop
+    let finalState = snapshot;
+    for (const action of intent.actions) {
+        const hitCount = (action as any).count || 1;
+
+        for (let i = 0; i < hitCount; i++) {
+            // Target Selection Helper (Deterministic via lowest HP for single, Side/Self logic)
+            let targetIds: string[] = [];
+            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp'].includes((action as any).status));
+
+            if (action.target === 'SELF' || action.target === 'Self') {
+                targetIds = [sourceId];
+            } else if (action.target === 'Side' || action.target === 'All') {
+                const targetParty = isHealOrBuff ? finalState.enemyParty : finalState.playerParty;
+                targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
+            } else {
+                // Select single target -- Deterministic "Lowest HP" for enemies targeting player, or Lowest HP ally for heals
+                const targetParty = isHealOrBuff ? finalState.enemyParty : finalState.playerParty;
+                const aliveMembers = targetParty.filter(e => e.currentHp > 0);
+                if (aliveMembers.length > 0) {
+                    if (!isHealOrBuff && sourceEntity.forcedTargetId) {
+                        const forcedTarget = aliveMembers.find(e => e.id === sourceEntity.forcedTargetId);
+                        if (forcedTarget) {
+                            targetIds = [forcedTarget.id];
+                        }
+                    }
+
+                    if (targetIds.length === 0) {
+                        // Sorting by current HP (lowest first), then by ID to break ties deterministically
+                        const sorted = [...aliveMembers].sort((a, b) => {
+                            if (a.currentHp !== b.currentHp) return a.currentHp - b.currentHp;
+                            return a.id.localeCompare(b.id);
+                        });
+                        targetIds = [sorted[0].id];
+                    }
+                }
+            }
+
+            for (const tId of targetIds) {
+                const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
+                if (!currentTarget || currentTarget.currentHp <= 0) continue;
+
+                // Action-level Conditionals
+                if (action.conditionals) {
+                    let allMet = true;
+                    for (const constraint of action.conditionals) {
+                        const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
+                        if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                            allMet = false;
+                            break;
+                        }
+                    }
+                    if (!allMet) continue;
+                }
+
+                // Modifier Phase
+                const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0 };
+                const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                if (hitCancelled) continue;
+                finalState = afterMod;
+
+                // Execution
+                const executor = ActionExecutorRegistry[action.type];
+                if (executor) {
+                    finalState = executor.execute(finalState, sourceId, tId, action as any, dummyProgram, hitContext);
+                } else {
+                    console.warn(`[BattleReducer] No executor found for intent action type: ${action.type}`);
+                }
+
+                // Post-Damage Phase
+                const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                finalState = afterPost;
             }
         }
     }
@@ -347,6 +536,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     // Process each entity's status effects via behavior.endTurn()
     const statusLogs: string[] = [];
     const defeatedThisTurn: string[] = [];
+    const removedStatusQueue: { targetId: string, status: string }[] = [];
 
     const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
         let currentHp = entity.currentHp;
@@ -421,13 +611,14 @@ function processPostTurn(state: IBattleState): IBattleState {
                     status: effect.type,
                     timestamp: Date.now()
                 });
+                removedStatusQueue.push({ targetId: entity.id, status: effect.type });
 
-                // If Asleep wore off naturally, apply Awoken protection
-                if (effect.type === 'Asleep') {
-                    const awokenBehavior = getStatusBehavior('Awoken');
-                    const awokenApply = awokenBehavior.onApply(newEffects, 1, entity);
-                    newEffects.push(...awokenApply.updatedEffects.filter(s => s.type === 'Awoken'));
-                    statusLogs.push(...awokenApply.logs);
+                // Hard CC Recovery Logic -> 1 turn StableOS Immunity
+                if (effect.type === 'Asleep' || effect.type === 'Stunned') {
+                    const stableBehavior = getStatusBehavior('StableOS');
+                    const stableApply = stableBehavior.onApply(newEffects, 1, entity);
+                    newEffects.push(...stableApply.updatedEffects.filter(s => s.type === 'StableOS'));
+                    statusLogs.push(`  🛡️ ${entity.name} gained CC Immunity (StableOS)`);
                 }
             }
 
@@ -448,7 +639,24 @@ function processPostTurn(state: IBattleState): IBattleState {
         [activePartyKey]: processedActiveParty,
         [activeDeckKey]: newDeckState,
         logs: [...state.logs, ...statusLogs],
+        cardsPlayedThisTurn: 0,
+        cardsDrawnThisTurn: 0
     };
+
+    // 2.5 Dispatch onStatusRemoved Hooks
+    for (const item of removedStatusQueue) {
+        const afterTurnTarget = nextState.playerParty.find(e => e.id === item.targetId) || nextState.enemyParty.find(e => e.id === item.targetId);
+        if (afterTurnTarget) {
+            const context = {
+                target: afterTurnTarget,
+                statusApplied: item.status,
+                state: nextState,
+                triggerDepth: 0
+            };
+            const { state: afterHook } = executeResolutionStack(nextState, 'onStatusRemoved', context as any);
+            nextState = afterHook;
+        }
+    }
 
     // Award XP for status effect deaths
     for (const dId of defeatedThisTurn) {
@@ -505,22 +713,51 @@ function processPreTurn(state: IBattleState): IBattleState {
         };
     });
 
-    // 3. Draw Cards — based on alive party members' cardDraw stats
-    const aliveMembers = refreshedParty.filter((e: IBattleEntity) => e.currentHp > 0);
-    const totalCardDraw = aliveMembers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveMembers.length + 1;
-    const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - activeDeck.hand.length);
-    console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
+    let nextState: IBattleState = {
+        ...state,
+        turn: nextTurn,
+        activeSide: nextSide,
+        [activePartyKey]: refreshedParty
+    };
 
-    let newState = executeDraw(state, nextSide, cardsToDraw, true);
+    // Execute onTurnStart hooks
+    const currentParty = nextState[activePartyKey];
+    for (const entity of currentParty) {
+        if (entity.currentHp <= 0) continue;
+        const { state: afterHook } = executeResolutionStack(nextState, 'onTurnStart', {
+            source: entity,
+            state: nextState,
+            triggerDepth: 0
+        });
+        nextState = afterHook;
+    }
+
+    // 3. Draw Cards for Player
+    nextState = executeDraw(nextState, nextSide, 0, true);
+
+    if (nextSide === 'PLAYER') {
+        const alivePlayers = nextState.playerParty.filter((e: IBattleEntity) => e.currentHp > 0);
+        const totalCardDraw = alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
+        const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState.playerDeck.hand.length);
+        console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
+        nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
+    }
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    newState = {
-        ...newState,
-        activeSide: nextSide,
+    // Intent Generation: Always calculate intents for enemies at the start of a turn (so player can see them)
+    const finalEnemyParty = generateIntents(nextState.enemyParty, nextState.seed, nextTurn);
+    const finalPlayerParty = nextState.playerParty;
+
+    let newState = {
+        ...nextState,
         turn: nextTurn,
-        [activePartyKey]: refreshedParty,
-    };
+        phase: 'ACTION',
+        activeSide: nextSide,
+        playerParty: finalPlayerParty,
+        enemyParty: finalEnemyParty,
+        cardsPlayedThisTurn: 0
+    } as any;
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
 
