@@ -44,6 +44,14 @@ const battleSlice = createSlice({
                 }) as any;
             }
         },
+        executeIntent: (state, action: PayloadAction<{ sourceId: string }>) => {
+            if (state.battle) {
+                state.battle = battleReducer(state.battle, {
+                    type: 'EXECUTE_INTENT',
+                    payload: action.payload
+                }) as any;
+            }
+        },
         selectCard: (state, action: PayloadAction<string | null>) => {
             state.selectedCardId = action.payload;
         },
@@ -74,6 +82,7 @@ export const {
     playProgram,
     endTurn,
     transferEnergy,
+    executeIntent,
     selectCard,
     selectTarget,
     selectSource,

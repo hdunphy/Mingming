@@ -599,7 +599,7 @@
         "actions": [
             {
                 "type": "STATUS",
-                "status": "Energy",
+                "status": "Energized",
                 "stacks": 2,
                 "target": "SELF"
             }

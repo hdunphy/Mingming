@@ -138,6 +138,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         return state;
     }
 
+    // Safety: check if battle is over
+    const isOver = state.playerParty.every(p => p.currentHp <= 0) || state.enemyParty.every(e => e.currentHp <= 0);
+    if (isOver) return state;
+
     const { sourceId, targetId, programId } = payload;
 
     // 1. Identify Source & Card
@@ -322,6 +326,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
 function handleExecuteIntent(state: IBattleState, payload: { sourceId: string }): IBattleState {
     if (state.phase !== 'ACTION') return state;
+
+    // Safety: check if battle is over
+    const isOver = state.playerParty.every(p => p.currentHp <= 0) || state.enemyParty.every(e => e.currentHp <= 0);
+    if (isOver) return state;
 
     const { sourceId } = payload;
     const sourceIndex = state.enemyParty.findIndex(e => e.id === sourceId);

@@ -349,6 +349,10 @@ const DUALITY_MAP: Partial<Record<StatusType, StatusType>> = {
 function handleApplyStatus(state: IBattleState, payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number }): IBattleState {
     const { targetId, status, stacks, sourceId, power } = payload;
     const behavior = getStatusBehavior(status);
+    if (!behavior) {
+        console.error(`[effectHandlers] No behavior found for status: ${status}. Payload:`, payload);
+        return addLog(state, `  ⚠️ Error: Status effect "${status}" is not defined in StatusBehaviors!`);
+    }
 
     const sourceEntity = sourceId
         ? (state.playerParty.find(e => e.id === sourceId) || state.enemyParty.find(e => e.id === sourceId))

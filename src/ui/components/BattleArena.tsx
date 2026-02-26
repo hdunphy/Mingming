@@ -5,7 +5,7 @@ import type { RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -180,7 +180,12 @@ const BattleArena: React.FC = () => {
 
     // Enemy AI Turn Automation
     useEffect(() => {
-        if (!battleState || battleState.activeSide !== 'ENEMY') return;
+        if (!battleState || battleState.activeSide !== 'ENEMY') {
+            if (prevSideRef.current !== battleState?.activeSide) {
+                prevSideRef.current = battleState?.activeSide;
+            }
+            return;
+        }
 
         // Check if battle is over
         const isOver = battleState.playerParty.every(p => p.currentHp <= 0) ||
@@ -190,36 +195,32 @@ const BattleArena: React.FC = () => {
         let cancelled = false;
 
         const runAI = async () => {
-            // Wait for turn banner to display
-            await new Promise(r => setTimeout(r, 1200));
-            if (cancelled) return;
-
-            let currentState = battleState;
-            let safety = 0;
-
-            while (safety < 20) {
-                safety++;
-                const action = getBestAction(currentState);
-
-                // Apply the action
-                currentState = battleReducer(currentState, action);
-
-                // Update the UI
-                dispatch(setBattleState(currentState as any));
-
-                // If AI chose END_TURN, we're done
-                if (action.type === 'END_TURN') break;
-
-                // Small delay between AI actions for visibility
+            // Wait for turn banner if this is the start of the enemy turn
+            if (prevSideRef.current !== 'ENEMY') {
+                await new Promise(r => setTimeout(r, 1200));
+            } else {
+                // Delay between actions
                 await new Promise(r => setTimeout(r, 600));
-                if (cancelled) return;
+            }
+
+            if (cancelled) return;
+            prevSideRef.current = 'ENEMY';
+
+            const action = getBestAction(battleState);
+
+            if (action.type === 'PLAY_PROGRAM') {
+                dispatch(playProgram(action.payload));
+            } else if (action.type === 'EXECUTE_INTENT') {
+                dispatch(executeIntent(action.payload));
+            } else if (action.type === 'END_TURN') {
+                dispatch(endTurn());
             }
         };
 
         runAI();
 
         return () => { cancelled = true; };
-    }, [battleState?.activeSide, battleState?.turn]);
+    }, [battleState, dispatch]);
 
     const handlePlay = (cardId: string, targetId: string) => {
         if (!battleState || !selectedSourceId) return;
