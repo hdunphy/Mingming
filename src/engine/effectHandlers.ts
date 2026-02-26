@@ -216,7 +216,7 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
                 state: newState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
             newState = afterHook;
         }
     }
@@ -272,7 +272,7 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack(newState, 'onUnitFainted', context as any);
+        const { state: afterHook } = executeResolutionStack('onUnitFainted', context as any);
         newState = afterHook;
     }
 
@@ -327,7 +327,7 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack(newState, 'onHeal', context as any);
+        const { state: afterHook } = executeResolutionStack('onHeal', context as any);
         newState = afterHook;
     }
 
@@ -350,13 +350,14 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     const { targetId, status, stacks, sourceId, power } = payload;
     const behavior = getStatusBehavior(status);
     if (!behavior) {
-        console.error(`[effectHandlers] No behavior found for status: ${status}. Payload:`, payload);
         return addLog(state, `  ⚠️ Error: Status effect "${status}" is not defined in StatusBehaviors!`);
     }
 
     const sourceEntity = sourceId
         ? (state.playerParty.find(e => e.id === sourceId) || state.enemyParty.find(e => e.id === sourceId))
         : undefined;
+
+    let newState = state;
 
     const initialTarget = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
     if (!initialTarget) return state;
@@ -408,8 +409,6 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     }
 
     // 4. Update State
-    let newState = state;
-
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => {
             if (e.id !== targetId) return e;
@@ -418,9 +417,9 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
         });
 
     newState = {
-        ...state,
-        playerParty: updateParty(state.playerParty),
-        enemyParty: updateParty(state.enemyParty)
+        ...newState,
+        playerParty: updateParty(newState.playerParty),
+        enemyParty: updateParty(newState.enemyParty)
     };
 
     // 4.5 Check Defeat (from immediate damage if any)
@@ -453,6 +452,22 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
             element: 'None',
             timestamp: Date.now()
         });
+    }
+
+    // Trigger onStatusApplied hook
+    {
+        const postTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+        if (postTarget) {
+            const context = {
+                source: sourceEntity,
+                target: postTarget,
+                state: newState,
+                triggerDepth: 0,
+                statusApplied: status
+            };
+            const { state: afterHook } = executeResolutionStack('onStatusApplied', context as any);
+            newState = afterHook;
+        }
     }
 
     return newState;
@@ -504,7 +519,7 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
                 state: newState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
             newState = afterHook;
         }
     }

@@ -19,6 +19,7 @@ import { discardHand } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -37,7 +38,7 @@ export type BattleAction =
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
-    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number } }
+    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string } }
     | { type: 'EXECUTE_INTENT'; payload: { sourceId: string } };
 
 // --- Constants ---
@@ -130,7 +131,6 @@ export function validateProgramConstraints(
 /**
  * Applies a list of mutations to the state in a single atomic update.
  */
-import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
 
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
@@ -139,7 +139,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     }
 
     // Safety: check if battle is over
-    const isOver = state.playerParty.every(p => p.currentHp <= 0) || state.enemyParty.every(e => e.currentHp <= 0);
+    const isOver = (state.playerParty.length > 0 && state.playerParty.every(p => p.currentHp <= 0)) ||
+        (state.enemyParty.length > 0 && state.enemyParty.every(e => e.currentHp <= 0));
     if (isOver) return state;
 
     const { sourceId, targetId, programId } = payload;
@@ -147,14 +148,18 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // 1. Identify Source & Card
     const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
     const sourceIndex = state[activePartyKey].findIndex(e => e.id === sourceId);
-    if (sourceIndex === -1) return state;
+    if (sourceIndex === -1) {
+        return state;
+    }
 
     const sourceEntity = state[activePartyKey][sourceIndex];
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const hand = state[activeDeckKey].hand;
     const cardIndex = hand.findIndex(c => c.id === programId);
 
-    if (cardIndex === -1) return state;
+    if (cardIndex === -1) {
+        return state;
+    }
 
     const card = hand[cardIndex];
     const programData = GetProgramData(card.dataId);
@@ -189,9 +194,6 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         [activePartyKey]: snapshot[activePartyKey].map(e => {
             if (e.id === sourceId) {
                 const updatedEntity = { ...e, currentEnergy: e.currentEnergy - finalCost };
-                if (isDaemon) {
-                    return { ...updatedEntity, daemons: [...updatedEntity.daemons, card] };
-                }
                 return updatedEntity;
             }
             return e;
@@ -206,8 +208,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     };
 
     // 4. Initial Context
+    const currentSource = snapshot[activePartyKey].find(e => e.id === sourceId)!;
     const context: HookContext = {
-        source: sourceEntity,
+        source: currentSource,
         target: targetEntity,
         program: programData,
         state: snapshot,
@@ -215,7 +218,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     };
 
     // 5. System Layer: onActionStart
-    const { state: afterStart, isCancelled } = executeResolutionStack(snapshot, 'onActionStart', context);
+    const { state: afterStart, isCancelled } = executeResolutionStack('onActionStart', context);
     if (isCancelled) return afterStart;
     snapshot = afterStart;
 
@@ -274,8 +277,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     }
 
                     // Modifier Phase
-                    const hitContext = { ...context, target: currentTarget, state: finalState };
-                    const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                    const latestSource = finalState[activePartyKey].find(e => e.id === sourceId)!;
+                    const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
+                    const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                     if (hitCancelled) continue;
                     finalState = afterMod;
 
@@ -301,8 +305,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     }
 
                     // Post-Damage Phase
-                    const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                    const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
                     finalState = afterPost;
+
                 }
             }
         }
@@ -317,11 +322,13 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         return e;
     });
 
-    return {
+    finalState = {
         ...finalState,
         [activePartyKey]: activePartyAfter,
         lastProgramPlayed: card.dataId
     };
+
+    return finalState;
 }
 
 function handleExecuteIntent(state: IBattleState, payload: { sourceId: string }): IBattleState {
@@ -449,7 +456,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
 
                 // Modifier Phase
                 const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0 };
-                const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                 if (hitCancelled) continue;
                 finalState = afterMod;
 
@@ -462,7 +469,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 }
 
                 // Post-Damage Phase
-                const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
                 finalState = afterPost;
             }
         }
@@ -653,7 +660,7 @@ function processPostTurn(state: IBattleState): IBattleState {
                 state: nextState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack(nextState, 'onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
             nextState = afterHook;
         }
     }
@@ -668,7 +675,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     // 3. Trigger onTurnEnd Hooks (ONLY for the side whose turn just ended)
     const candidates = [...nextState[activePartyKey]].filter(e => e.currentHp > 0);
     for (const entity of candidates) {
-        const { state: afterTurnEnd } = executeResolutionStack(nextState, 'onTurnEnd', {
+        const { state: afterTurnEnd } = executeResolutionStack('onTurnEnd', {
             source: entity,
             state: nextState,
             triggerDepth: 0
@@ -724,7 +731,7 @@ function processPreTurn(state: IBattleState): IBattleState {
     const currentParty = nextState[activePartyKey];
     for (const entity of currentParty) {
         if (entity.currentHp <= 0) continue;
-        const { state: afterHook } = executeResolutionStack(nextState, 'onTurnStart', {
+        const { state: afterHook } = executeResolutionStack('onTurnStart', {
             source: entity,
             state: nextState,
             triggerDepth: 0

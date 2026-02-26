@@ -1,4 +1,24 @@
 {
+    "harden_daemon": {
+        "id": "harden_daemon",
+        "name": "Harden",
+        "description": "Daemon: Gain 1 Sharp.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "defensive_daemon"
+        ]
+    },
     "fenrir_v1_daemon": {
         "id": "fenrir_v1_daemon",
         "name": "CORE_OVERCLOCK",
@@ -22,7 +42,7 @@
     "strength_burst": {
         "id": "strength_burst",
         "name": "Strength Burst",
-        "description": "Gain 3 Strength. (Exhaust)",
+        "description": "Gain 5 Strength. (Exhaust)",
         "element": "Fire",
         "target": "Self",
         "category": "Skill",
@@ -38,7 +58,7 @@
             {
                 "type": "STATUS",
                 "status": "Strengthened",
-                "stacks": 3,
+                "stacks": 5,
                 "target": "SELF"
             }
         ]
@@ -653,7 +673,7 @@
     "tidal_wave_v2": {
         "id": "tidal_wave_v2",
         "name": "Tidal Wave",
-        "description": "50 power to side.",
+        "description": "60 power to side.",
         "element": "Water",
         "target": "Side",
         "category": "Attack",
@@ -667,7 +687,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 50,
+                "power": 60,
                 "target": "TARGET"
             }
         ]
@@ -1148,6 +1168,29 @@
         "actions": [],
         "hooks": [
             "echo_chamber_daemon_hook"
+        ]
+    },
+    "growth": {
+        "id": "growth",
+        "name": "Growth",
+        "description": "Add 1 Sharp",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 1,
+                "target": "TARGET"
+            }
         ]
     },
     "healing_mist": {

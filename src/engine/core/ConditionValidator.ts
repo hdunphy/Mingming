@@ -20,7 +20,7 @@ export const ConditionValidator = {
                 return false;
             }
             const isSourcePlayer = context.source ? context.state.playerParty.some((e: IBattleEntity) => e.id === context.source?.id) : false;
-            if (condition.source === 'ALLY' && (isOwnerPlayer !== isSourcePlayer || context.source?.id === owner.id)) return false;
+            if (condition.source === 'ALLY' && isOwnerPlayer !== isSourcePlayer) return false;
             if (condition.source === 'OPPONENT' && isOwnerPlayer === isSourcePlayer) return false;
         }
 
@@ -29,7 +29,7 @@ export const ConditionValidator = {
                 return false;
             }
             const isTargetPlayer = context.target ? context.state.playerParty.some((e: IBattleEntity) => e.id === context.target?.id) : false;
-            if (condition.target === 'ALLY' && (isOwnerPlayer !== isTargetPlayer || context.target?.id === owner.id)) return false;
+            if (condition.target === 'ALLY' && isOwnerPlayer !== isTargetPlayer) return false;
             if (condition.target === 'OPPONENT' && isOwnerPlayer === isTargetPlayer) return false;
         }
 

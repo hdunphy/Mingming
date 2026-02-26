@@ -251,6 +251,29 @@
             }
         ]
     },
+    "defensive_daemon": {
+        "id": "defensive_daemon",
+        "name": "DEFENSIVE_DAEMON",
+        "description": "Add 1 Sharp",
+        "hooks": [
+            {
+                "id": "defensive_daemon_hook",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Sharp",
+                        "stacks": 1
+                    }
+                ]
+            }
+        ]
+    },
     "thermal_overload": {
         "id": "thermal_overload",
         "name": "THERMAL_OVERLOAD",

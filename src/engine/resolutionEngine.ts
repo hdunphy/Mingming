@@ -1,10 +1,11 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { globalBattleEventBus } from './events';
-import { HookPriority, type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
+import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
 import { drawCards, discardCard, exhaustCard, returnCard, searchCard } from './deckLogic';
 import { PRNG } from './core/PRNG';
+import { GetProgramData } from './data/programRegistry';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -83,23 +84,6 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     sourceId: mutation.sourceId
                 });
 
-                // Trigger onStatusApplied hook
-                {
-                    const target = newState.playerParty.find(e => e.id === mutation.targetId) || newState.enemyParty.find(e => e.id === mutation.targetId);
-                    const source = mutation.sourceId
-                        ? (newState.playerParty.find(e => e.id === mutation.sourceId) || newState.enemyParty.find(e => e.id === mutation.sourceId))
-                        : undefined;
-
-                    const context: HookContext = {
-                        source: source,
-                        target: target,
-                        state: newState,
-                        triggerDepth: 0,
-                        statusApplied: mutation.payload.status
-                    };
-                    const { state: afterHook } = executeResolutionStack(newState, 'onStatusApplied', context);
-                    newState = afterHook;
-                }
                 break;
             case 'LOG':
                 newState = addLog(newState, mutation.payload);
@@ -156,7 +140,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                         };
 
                         // 1. Fire global/daemon onDiscarded listeners
-                        const { state: afterGlobalHooks } = executeResolutionStack(newState, 'onDiscarded', context);
+                        const { state: afterGlobalHooks } = executeResolutionStack('onDiscarded', context);
                         newState = afterGlobalHooks;
                         context.state = newState;
 
@@ -263,27 +247,24 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
     return newState;
 }
 
-import { GetProgramData } from './data/programRegistry';
-
 /**
  * Gathers and executes hooks for a specific lifecycle phase.
  */
 export function executeResolutionStack(
-    state: IBattleState,
     phase: keyof HookDefinition,
     initialContext: HookContext
 ): { state: IBattleState; isCancelled: boolean } {
-    let currentState = state;
+    let currentState = initialContext.state;
     let isCancelled = false;
 
     if (initialContext.triggerDepth > 5) {
         console.warn("CRITICAL_EVENT_OVERFLOW: Max trigger depth reached.");
-        return { state: currentState, isCancelled: true };
+        return { state: initialContext.state, isCancelled: true };
     }
 
     // 1. Collect Hooks as Pairs (hook, owner)
     // We check all alive entities so that "side-wide" or "global" passives work.
-    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const entities = [...currentState.playerParty, ...currentState.enemyParty].filter(e => e.currentHp > 0);
     const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
 
     entities.forEach(e => {
@@ -320,7 +301,6 @@ export function executeResolutionStack(
         if (!handler) continue;
 
         const result: HookResult = handler({ ...initialContext, state: currentState }, pair.owner);
-
         currentState = result.state;
 
         if (result.isCancelled) {
@@ -345,7 +325,7 @@ export function executeStatusDamageCalculated(
     let damage = initialDamage;
 
     // Use full party search for global/side-wide hooks
-    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const entities = [...currentState.playerParty, ...currentState.enemyParty].filter(e => e.currentHp > 0);
     const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
 
     entities.forEach(e => {
@@ -401,7 +381,7 @@ export function executeCostCalculated(
     let cost = initialCost;
 
     // Use full party search for global/side-wide hooks
-    const entities = [...state.playerParty, ...state.enemyParty].filter(e => e.currentHp > 0);
+    const entities = [...currentState.playerParty, ...currentState.enemyParty].filter(e => e.currentHp > 0);
     const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
 
     entities.forEach(e => {
@@ -480,7 +460,7 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
         };
 
         for (let i = 0; i < cardsDrawnCount; i++) {
-            const { state: afterHook } = executeResolutionStack(newState, 'onCardDraw', context);
+            const { state: afterHook } = executeResolutionStack('onCardDraw', context);
             newState = afterHook;
         }
     }
