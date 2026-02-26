@@ -281,9 +281,9 @@ const BattleArena: React.FC = () => {
             dispatch(syncPartyStats(battleState.playerParty));
 
             if (save.gauntlet) {
-                const persistedStats: Record<string, { hp: number, energy: number }> = {};
+                const persistedStats: Record<string, { hp: number }> = {};
                 battleState.playerParty.forEach(p => {
-                    persistedStats[p.id] = { hp: p.currentHp, energy: p.currentEnergy };
+                    persistedStats[p.id] = { hp: p.currentHp };
                 });
                 dispatch(updateGauntlet({ persistedStats }));
 

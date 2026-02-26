@@ -66,7 +66,7 @@ export interface IGauntletState {
     readonly element: string;
     readonly currentBattleIndex: number;
     readonly totalBattles: number;
-    readonly persistedStats: Record<string, { hp: number, energy: number }>;
+    readonly persistedStats: Record<string, { hp: number }>;
 }
 
 // --- Root Save Object ---

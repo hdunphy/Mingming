@@ -61,8 +61,7 @@ export function createBattleState(
             if (persistentState) {
                 entity = {
                     ...entity,
-                    currentHp: persistentState.hp,
-                    currentEnergy: persistentState.energy
+                    currentHp: persistentState.hp
                 };
             }
         }

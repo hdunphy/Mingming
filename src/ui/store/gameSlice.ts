@@ -151,7 +151,7 @@ const gameSlice = createSlice({
                 });
             }
         },
-        updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number, energy: number }> }>) => {
+        updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number }> }>) => {
             if (state.gauntlet) {
                 state.gauntlet = {
                     ...state.gauntlet,
