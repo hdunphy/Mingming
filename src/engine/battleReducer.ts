@@ -193,7 +193,11 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         ...snapshot,
         [activePartyKey]: snapshot[activePartyKey].map(e => {
             if (e.id === sourceId) {
-                const updatedEntity = { ...e, currentEnergy: e.currentEnergy - finalCost };
+                const updatedEntity: IBattleEntity = {
+                    ...e,
+                    currentEnergy: e.currentEnergy - finalCost,
+                    daemons: isDaemon ? [...e.daemons, card] : e.daemons
+                };
                 return updatedEntity;
             }
             return e;
