@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { RootState } from '../store/store';
+import { store, type RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent, startBattle } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -287,11 +287,6 @@ const BattleArena: React.FC = () => {
                     persistedStats[p.id] = { hp: p.currentHp };
                 });
                 dispatch(updateGauntlet({ persistedStats }));
-
-                // Auto-complete if finished
-                if (save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
-                    dispatch(completeGauntlet());
-                }
             }
         }
         if (rewardBundle) {
@@ -304,7 +299,21 @@ const BattleArena: React.FC = () => {
                 dispatch(addRelic(chosenRelic));
             }
         }
-        dispatch(setBattleState(null as any));
+
+        if (save.gauntlet) {
+            if (save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
+                dispatch(completeGauntlet());
+                dispatch(setBattleState(null as any));
+            } else {
+                const updatedSave = (store.getState() as RootState).game;
+                dispatch(startBattle({ save: updatedSave, enemyIds: [] }));
+
+                setRewardBundle(null);
+                setShowReport(false);
+            }
+        } else {
+            dispatch(setBattleState(null as any));
+        }
     };
 
     if (!battleState) return <div className="battle-screen">Loading Battle...</div>;

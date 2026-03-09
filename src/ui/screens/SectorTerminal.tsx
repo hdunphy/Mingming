@@ -28,8 +28,8 @@ const SectorTerminal: React.FC = () => {
     const [selectedSector, setSelectedSector] = useState<Element | null>(null);
 
     const handleStartSector = (element: Element) => {
-        const sector = SECTORS.find(s => s.id === element);
-        if (sector?.unlocked) {
+        const isUnlocked = save.unlockedSectors.includes(element);
+        if (isUnlocked) {
             dispatch(startBattle({ save, enemyIds: [], sectorElement: element }));
         } else {
             // Start gym gauntlet to unlock it
@@ -81,13 +81,13 @@ const SectorTerminal: React.FC = () => {
                             onClick={() => setSelectedSector(sector.id)}
                             style={{
                                 background: 'rgba(255,255,255,0.03)',
-                                border: `1px solid ${selectedSector === sector.id ? sector.color : sector.unlocked ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)'}`,
+                                border: `1px solid ${selectedSector === sector.id ? sector.color : save.unlockedSectors.includes(sector.id) ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)'}`,
                                 borderRadius: '12px',
                                 padding: '25px',
                                 cursor: 'pointer',
                                 position: 'relative',
                                 overflow: 'hidden',
-                                opacity: sector.unlocked ? 1 : 0.7,
+                                opacity: save.unlockedSectors.includes(sector.id) ? 1 : 0.7,
                                 transition: 'border-color 0.2s'
                             }}
                         >
@@ -107,11 +107,11 @@ const SectorTerminal: React.FC = () => {
                                     fontSize: '0.7rem',
                                     fontWeight: 'bold',
                                     padding: '4px 8px',
-                                    background: sector.unlocked ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)',
+                                    background: save.unlockedSectors.includes(sector.id) ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)',
                                     borderRadius: '4px',
-                                    color: sector.unlocked ? '#fff' : '#ff4444'
+                                    color: save.unlockedSectors.includes(sector.id) ? '#fff' : '#ff4444'
                                 }}>
-                                    {sector.unlocked ? 'AVAILABLE' : 'LOCKED'}
+                                    {save.unlockedSectors.includes(sector.id) ? 'AVAILABLE' : 'LOCKED'}
                                 </span>
                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: sector.color, boxShadow: `0 0 10px ${sector.color}` }} />
                             </div>
@@ -147,7 +147,7 @@ const SectorTerminal: React.FC = () => {
 
                                 <div style={{ flex: 1 }}>
                                     <p style={{ fontSize: '1rem', opacity: 0.8, marginBottom: '20px' }}>
-                                        {SECTORS.find(s => s.id === selectedSector)?.unlocked
+                                        {save.unlockedSectors.includes(selectedSector)
                                             ? `Deploying to ${selectedSector} Sector. Expect enemy groups matching this element. High density of localized Blueprints detected.`
                                             : `CHALLENGE GYM GAUNTLET: Defeat the ${selectedSector} Gym Leader to unlock this sector. Prepare for a grueling 3-tier endurance battle.`}
                                     </p>
@@ -155,7 +155,7 @@ const SectorTerminal: React.FC = () => {
                                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
                                         <div style={{ fontSize: '0.8rem', opacity: 0.5, marginBottom: '10px' }}>EXPECTED REWARDS</div>
                                         <ul style={{ padding: '0 0 0 20px', margin: 0, fontSize: '0.9rem', color: '#7c3aed' }}>
-                                            {SECTORS.find(s => s.id === selectedSector)?.unlocked ? (
+                                            {save.unlockedSectors.includes(selectedSector) ? (
                                                 <>
                                                     <li>Elemental Program Data</li>
                                                     <li>Core Level XP</li>
@@ -195,7 +195,7 @@ const SectorTerminal: React.FC = () => {
                                         boxShadow: save.gauntlet ? 'none' : `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
                                     }}
                                 >
-                                    {save.gauntlet ? 'SYSTEM LOCKED' : SECTORS.find(s => s.id === selectedSector)?.unlocked ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
+                                    {save.gauntlet ? 'SYSTEM LOCKED' : save.unlockedSectors.includes(selectedSector) ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
                                 </button>
                             </motion.div>
                         ) : (
