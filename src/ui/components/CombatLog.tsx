@@ -34,17 +34,19 @@ const CombatLog: React.FC = () => {
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <AnimatePresence>
+                        <AnimatePresence initial={false}>
                             {[...logs, ...osLogs.map(l => `[OS] ${l}`)].map((log, index) => {
                                 const isOS = log.startsWith('[OS]');
+                                // Use a combination of index and content for a more stable key, 
+                                // but note that logs are appended so index is mostly stable.
                                 return (
                                     <motion.div
-                                        key={`log-${index}-${log.slice(0, 15)}`}
+                                        key={`${index}-${log.length}`}
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         className={`log-entry ${isOS ? 'os-proc' : ''}`}
                                     >
-                                        <span className="log-timestamp">[{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span> {isOS ? log.replace('[OS] ', '') : log}
+                                        <span className="log-timestamp">{'>>'}</span> {isOS ? log.replace('[OS] ', '') : log}
                                     </motion.div>
                                 );
                             })}

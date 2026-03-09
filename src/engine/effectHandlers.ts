@@ -84,6 +84,7 @@ function handleLevelUp(entity: IBattleEntity, events: any[] = []): LevelUpResult
 }
 
 function addExperience(state: IBattleState, entityId: string, amount: number): IBattleState {
+    console.log(`[addExperience] Distributing ${amount} XP to ${entityId}.`);
     let levelUpEvents: any[] = [];
 
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
@@ -240,6 +241,7 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
 
     const xpYield = calculateDeathXp(target);
     const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
+    console.log(`[checkDefeat] Checking defeat for ${target.name} (${targetId}) (Internal side: ${targetIsPlayer ? 'PLAYER' : 'ENEMY'}).`);
     const opposingSideKey = targetIsPlayer ? 'enemyParty' : 'playerParty';
     const opposingSide = state[opposingSideKey];
     const aliveOpponents = opposingSide.filter(e => e.currentHp > 0);

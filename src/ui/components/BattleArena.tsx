@@ -235,6 +235,7 @@ const BattleArena: React.FC = () => {
         dispatch(selectCard(null));
         setDragPoint(null);
         setOriginPoint(null);
+        setIsTargeting(false);
     };
 
     const isVictory = battleState?.enemyParty.every(e => e.currentHp <= 0) ?? false;
@@ -336,7 +337,9 @@ const BattleArena: React.FC = () => {
                         initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
                         animate={{ opacity: isDead ? 0.35 : 1, x: translateX }}
                         transition={{ delay: index * 0.1, type: 'spring' }}
-                        style={{ pointerEvents: isDead ? 'none' : 'auto' }}
+                        // Pointer events must stay 'auto' even for dead units, 
+                        // so they can correctly receive the 'onPointerUp' to clear targeting state.
+                        style={{ pointerEvents: 'auto', filter: isDead ? 'grayscale(100%) brightness(50%)' : 'none' }}
                         onMouseEnter={() => {
                             if (isTargeting) setHoveredEntityId(entity.id);
                         }}
@@ -419,21 +422,24 @@ const BattleArena: React.FC = () => {
             }}
         >
             <AnimatePresence>
-                {showTurnBanner && <TurnBanner side={battleState.activeSide} />}
+                {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
                 {isVictory && !showReport && (
                     <WinLossOverlay
+                        key="win-overlay"
                         result="WIN"
                         onShowReport={() => setShowReport(true)}
                     />
                 )}
                 {isDefeat && (
                     <WinLossOverlay
+                        key="loss-overlay"
                         result="LOSS"
                         onDefeatReset={handleDefeatReset}
                     />
                 )}
                 {isVictory && showReport && rewardBundle && (
                     <BattleReport
+                        key="battle-report"
                         bundle={rewardBundle}
                         winners={battleState.playerParty as any}
                         onContinue={handleContinue}
@@ -441,6 +447,7 @@ const BattleArena: React.FC = () => {
                 )}
                 {battleState.levelUpQueue.length > 0 && (
                     <LevelUpOverlay
+                        key={`level-up-${battleState.levelUpQueue[0].entityId}-${battleState.levelUpQueue[0].newLevel}`}
                         event={battleState.levelUpQueue[0]}
                         onDismiss={() => dispatch(dismissLevelUp())}
                     />
