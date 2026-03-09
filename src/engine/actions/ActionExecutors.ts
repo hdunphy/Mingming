@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -7,6 +7,7 @@ import { applyMutations, executeDraw, executeStatusDamageCalculated } from '../r
 import { GetProgramData } from '../data/programRegistry';
 import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
+import { PRNG } from '../core/PRNG';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -46,6 +47,10 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
                 damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
             } else if (scaling === 'CARDS_DRAWN') {
                 const multiplier = state.cardsDrawnThisTurn;
+                damage = Math.floor(damage * multiplier);
+            } else if (scaling === 'ELEMENT_PLAYED') {
+                const elementPlayed = element || programToUse.element;
+                const multiplier = state.elementPlays?.[elementPlayed] || 1;
                 damage = Math.floor(damage * multiplier);
             }
         }
@@ -186,12 +191,49 @@ export class CleanseExecutor extends ActionExecutor<CleanseActionData> {
 export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: DiscardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount, isRandom } = actionData;
-        return applyMutations(state, [{
+        const isPlayerTarget = state.playerParty.some(e => e.id === targetId);
+        const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+
+        const oldDiscardLength = state[deckKey].discard.length;
+
+        let newState = applyMutations(state, [{
             type: 'DISCARD',
             sourceId,
             targetId,
             payload: { amount, isRandom }
         }]);
+
+        const newDiscardLength = newState[deckKey].discard.length;
+        if (newDiscardLength > oldDiscardLength) {
+            // Need to peek at the cards that were just placed on top of the discard pile
+            // Since discard pushes to the end of the array, we can slice from the old length.
+            const discardedCards = newState[deckKey].discard.slice(oldDiscardLength, newDiscardLength);
+
+            for (const c of discardedCards) {
+                const discardedData = GetProgramData(c.dataId);
+                if (discardedData.discardEffect && discardedData.discardEffect.length > 0) {
+                    newState = addLog(newState, `  ✨ ${discardedData.name} discard effect triggered!`);
+
+                    const owner = isPlayerTarget
+                        ? newState.playerParty.find(e => e.id === targetId)
+                        : newState.enemyParty.find(e => e.id === targetId);
+
+                    if (owner) {
+                        for (const effectAction of discardedData.discardEffect) {
+                            const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[effectAction.type];
+                            if (executor) {
+                                // For discard effects, source and target are the owner of the deck
+                                newState = executor.execute(newState, targetId, targetId, effectAction as any, discardedData, _context);
+                            } else {
+                                console.warn(`[DiscardExecutor] No executor found for discard effect type: ${effectAction.type}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return newState;
     }
 }
 
@@ -392,6 +434,68 @@ export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActio
     }
 }
 
+export class RedirectTargetExecutor extends ActionExecutor<RedirectTargetActionData> {
+    execute(state: IBattleState, _sourceId: string, targetId: string, actionData: RedirectTargetActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const { newTargetId, isRandom } = actionData;
+
+        let finalTargetId = newTargetId;
+        let newState = state;
+
+        if (isRandom) {
+            const prng = new PRNG(newState.seed);
+
+            // Redirect to a random ally of the originally targeted entity
+            const isPlayerTarget = newState.playerParty.some(e => e.id === targetId);
+            const targetParty = isPlayerTarget ? newState.playerParty : newState.enemyParty;
+            const validTargets = targetParty.filter(e => e.currentHp > 0 && e.id !== targetId);
+
+            if (validTargets.length > 0) {
+                const { value: randIndex, nextSeed } = prng.nextInt(0, validTargets.length - 1);
+                finalTargetId = validTargets[randIndex].id;
+                newState = { ...newState, seed: nextSeed };
+            } else {
+                return newState; // No valid other targets
+            }
+        }
+
+        if (!finalTargetId) return newState;
+
+        const isPlayerActualTarget = newState.playerParty.some(e => e.id === targetId);
+        const actualTargetPartyKey = isPlayerActualTarget ? 'playerParty' : 'enemyParty';
+
+        const party = newState[actualTargetPartyKey];
+        const index = party.findIndex(e => e.id === targetId);
+
+        if (index > -1) {
+            const updatedParty = [...party];
+            updatedParty[index] = {
+                ...party[index],
+                forcedTargetId: finalTargetId
+            };
+
+            const targetName = party[index].name;
+            const newTargetName = newState.playerParty.find(e => e.id === finalTargetId)?.name || newState.enemyParty.find(e => e.id === finalTargetId)?.name || 'someone else';
+
+            newState = { ...newState, [actualTargetPartyKey]: updatedParty };
+            newState = addLog(newState, `  🎯 ${targetName} is forced to target ${newTargetName}!`);
+            return newState;
+        }
+
+        return newState;
+    }
+}
+
+export class ForceDiscardExecutor extends ActionExecutor<ForceDiscardActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ForceDiscardActionData, program: ProgramData | undefined, context: HookContext): IBattleState {
+        // Delegate to DiscardExecutor so we don't duplicate discardEffect logic
+        const discardExecutor = ActionExecutorRegistry['DISCARD'];
+        return discardExecutor.execute(state, sourceId, targetId, {
+            ...actionData,
+            type: 'DISCARD'
+        }, program, context);
+    }
+}
+
 // Registry to route ActionType to Executors
 export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'ATTACK': new AttackExecutor(),
@@ -409,5 +513,7 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'TRIGGER_STATUS': new TriggerStatusExecutor(),
     'PLAY_LAST_CARD': new PlayLastCardExecutor(),
     'TAUNT': new TauntExecutor(),
-    'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor()
+    'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor(),
+    'REDIRECT_TARGET': new RedirectTargetExecutor(),
+    'FORCE_DISCARD': new ForceDiscardExecutor()
 };

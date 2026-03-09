@@ -282,6 +282,10 @@ export function createBattleState(
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
+        elementPlays: {
+            'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
+            'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
+        },
         counters: {},
         levelUpQueue: [],
         activeRelics: save.relics || []

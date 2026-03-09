@@ -208,6 +208,11 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             discard: newDiscard
         },
         cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1,
+        elementPlays: {
+            'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
+            ...(snapshot.elementPlays || {}),
+            [programData.element]: (snapshot.elementPlays?.[programData.element] || 0) + 1
+        },
         lastProgramPlayed: card.dataId
     };
 
@@ -767,7 +772,11 @@ function processPreTurn(state: IBattleState): IBattleState {
         activeSide: nextSide,
         playerParty: finalPlayerParty,
         enemyParty: finalEnemyParty,
-        cardsPlayedThisTurn: 0
+        cardsPlayedThisTurn: 0,
+        elementPlays: {
+            'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
+            'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
+        }
     } as any;
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);

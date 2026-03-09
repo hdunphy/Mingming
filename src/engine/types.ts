@@ -190,7 +190,7 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -215,7 +215,7 @@ export interface AttackActionData extends ProgramAction {
   readonly type: 'ATTACK';
   readonly power: number;
   readonly element?: Element;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'ELEMENT_PLAYED';
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -304,6 +304,18 @@ export interface BuffNextProgramActionData extends ProgramAction {
   readonly costReduction?: number;
 }
 
+export interface RedirectTargetActionData extends ProgramAction {
+  readonly type: 'REDIRECT_TARGET';
+  readonly newTargetId?: string;
+  readonly isRandom?: boolean;
+}
+
+export interface ForceDiscardActionData extends ProgramAction {
+  readonly type: 'FORCE_DISCARD';
+  readonly amount: number;
+  readonly isRandom?: boolean;
+}
+
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
 export const RARITIES: Rarity[] = ['Common', 'Uncommon', 'Rare', 'Epic'];
 
@@ -318,6 +330,7 @@ export interface ProgramData {
   readonly baseCost: number;
   readonly constraints: ReadonlyArray<ProgramConstraint>;
   readonly actions: ReadonlyArray<ProgramAction>;
+  readonly discardEffect?: ReadonlyArray<ProgramAction>; // Actions triggered automatically when this card is discarded from hand
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks for Daemons
   readonly isToken?: boolean; // If true, this is a generated token card
   readonly exhaust?: boolean; // If true, card is removed from battle after use
@@ -371,6 +384,7 @@ export interface IBattleState {
   readonly cardsPlayedThisTurn: number;
   readonly cardsDrawnThisTurn: number;
   readonly lastProgramPlayed: string | null;
+  readonly elementPlays?: Record<Element, number>;
   readonly counters: Record<string, number>;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }
