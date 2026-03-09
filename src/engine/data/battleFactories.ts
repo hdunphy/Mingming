@@ -72,8 +72,8 @@ export function createBattleState(
             if (relic.effect === 'ENERGY_CAP_BONUS') {
                 entity = {
                     ...entity,
-                    maxEnergy: entity.maxEnergy + 5,
-                    currentEnergy: entity.currentEnergy + 5
+                    maxEnergy: entity.maxEnergy + 1,
+                    currentEnergy: entity.currentEnergy + 1
                 };
             }
             if (relic.effect === 'DRAW_BONUS') {
