@@ -384,6 +384,8 @@ export interface IBattleState {
   readonly cardsPlayedThisTurn: number;
   readonly cardsDrawnThisTurn: number;
   readonly lastProgramPlayed: string | null;
+  /** Stacks removed by the most recent STATUS consume action (for STATUS_CONSUMED heal scaling). Reset each card play. */
+  readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;
   readonly counters: Record<string, number>;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;

@@ -163,9 +163,10 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     // Apply Damage
     const newCurrentHp = Math.max(0, target.currentHp - finalDamage);
 
-    // Wake up if Asleep and taken damage
+    // Wake up if Asleep and actually taken damage (a shield that absorbs the
+    // full hit should not wake the sleeper, so check post-mitigation damage).
     let wakesUp = false;
-    if (damage > 0) {
+    if (finalDamage > 0) {
         const sleepIndex = target.statusEffects.findIndex(s => s.type === 'Asleep');
         if (sleepIndex !== -1) {
             wakesUp = true;
@@ -378,7 +379,7 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     let remainingStacks = scaledStacks;
     let dualityLogs: string[] = [];
 
-    if (oppositeStatus) {
+    if (oppositeStatus && remainingStacks > 0) {
         const oppositeIndex = currentEffects.findIndex(s => s.type === oppositeStatus);
         if (oppositeIndex !== -1) {
             const opposite = currentEffects[oppositeIndex];
@@ -424,9 +425,11 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
         enemyParty: updateParty(newState.enemyParty)
     };
 
-    // 4.5 Check Defeat (from immediate damage if any)
+    // 4.5 Check Defeat (from immediate damage if any). Only trigger when this
+    // application actually killed the target — applying a status to an entity
+    // that was already dead must not re-award death XP / re-fire faint hooks.
     const currentTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
-    if (currentTarget && currentTarget.currentHp <= 0) {
+    if (currentTarget && currentTarget.currentHp <= 0 && initialTarget.currentHp > 0) {
         newState = checkDefeat(newState, targetId);
         newState = addLog(newState, `  ☠️ ${currentTarget.name} DEFEATED`);
     }

@@ -250,6 +250,13 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
 /**
  * Gathers and executes hooks for a specific lifecycle phase.
  */
+// Module-level re-entrancy counter. Contexts are frequently rebuilt with
+// triggerDepth: 0 mid-cascade, which made the context-based check ineffective —
+// this counter tracks ACTUAL synchronous nesting regardless of context plumbing,
+// so a hook cycle (A triggers B triggers A...) terminates instead of hanging.
+let resolutionStackDepth = 0;
+const MAX_RESOLUTION_DEPTH = 12;
+
 export function executeResolutionStack(
     phase: keyof HookDefinition,
     initialContext: HookContext
@@ -257,10 +264,24 @@ export function executeResolutionStack(
     let currentState = initialContext.state;
     let isCancelled = false;
 
-    if (initialContext.triggerDepth > 5) {
-        console.warn("CRITICAL_EVENT_OVERFLOW: Max trigger depth reached.");
+    if (initialContext.triggerDepth > 5 || resolutionStackDepth >= MAX_RESOLUTION_DEPTH) {
+        console.warn(`CRITICAL_EVENT_OVERFLOW: Max trigger depth reached (phase: ${phase}).`);
         return { state: initialContext.state, isCancelled: true };
     }
+    resolutionStackDepth++;
+    try {
+        return executeResolutionStackInner(phase, initialContext, currentState, isCancelled);
+    } finally {
+        resolutionStackDepth--;
+    }
+}
+
+function executeResolutionStackInner(
+    phase: keyof HookDefinition,
+    initialContext: HookContext,
+    currentState: IBattleState,
+    isCancelled: boolean
+): { state: IBattleState; isCancelled: boolean } {
 
     // 1. Collect Hooks as Pairs (hook, owner)
     // We check all alive entities so that "side-wide" or "global" passives work.
@@ -448,18 +469,21 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
 
     if (cardsDrawnCount > 0) {
         const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
-        const owner = sourceId
-            ? newState[partyKey].find(e => e.id === sourceId)
-            : newState[partyKey][0]; // Replaced ID prefix check with a simple party membership check (first entity in party)
-
-        const context: HookContext = {
-            source: owner,
-            state: newState,
-            triggerDepth: 0,
-            isNaturalDraw: isNatural
-        };
 
         for (let i = 0; i < cardsDrawnCount; i++) {
+            // Rebuild the context each iteration: reusing a stale context would
+            // make every onCardDraw resolution start from the pre-loop snapshot,
+            // discarding the effects of earlier iterations (e.g. Kraken applying
+            // 1 Dazed instead of N on a multi-card draw).
+            const currentOwner = sourceId
+                ? newState[partyKey].find(e => e.id === sourceId)
+                : newState[partyKey][0];
+            const context: HookContext = {
+                source: currentOwner,
+                state: newState,
+                triggerDepth: 0,
+                isNaturalDraw: isNatural
+            };
             const { state: afterHook } = executeResolutionStack('onCardDraw', context);
             newState = afterHook;
         }

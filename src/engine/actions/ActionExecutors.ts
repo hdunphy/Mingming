@@ -73,29 +73,51 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
         const { status, stacks, consume } = actionData;
 
         if (consume) {
+            // Remove ALL stacks of the status and record how many were consumed
+            // so a follow-up action with scaling: 'STATUS_CONSUMED' can use it
+            // (e.g. Ash Reclamation: "Consume Burn to heal 10 HP per stack").
             const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
             const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
             if (!target) return state;
 
             const existingStatus = target.statusEffects.find(s => s.type === status);
-            if (existingStatus) {
-                return applyMutations(state, [{
-                    type: 'STATUS',
+            const consumedStacks = existingStatus ? existingStatus.stacks : 0;
+
+            let newState: IBattleState = { ...state, lastStatusConsumed: consumedStacks };
+            if (consumedStacks > 0) {
+                const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+                    party.map(e => {
+                        if (e.id !== targetId) return e;
+                        return { ...e, statusEffects: e.statusEffects.filter(s => s.type !== status) };
+                    });
+                newState = {
+                    ...newState,
+                    playerParty: updateParty(newState.playerParty),
+                    enemyParty: updateParty(newState.enemyParty)
+                };
+                newState = addLog(newState, `  🔥 ${target.name}'s ${status} consumed (${consumedStacks} stacks)`);
+                globalBattleEventBus.emit({
+                    type: 'STATUS_REMOVED',
                     targetId: targetId,
-                    sourceId: sourceId,
-                    payload: { status, stacks: -existingStatus.stacks }
-                }]);
+                    status: status,
+                    timestamp: Date.now()
+                });
             }
-            return state;
+            return newState;
         }
 
         if (stacks < 0) {
+            // Contract (types.ts): negative stacks removes that many stacks,
+            // deleting the status only when it reaches 0.
+            const removeCount = -stacks;
             const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                 party.map(e => {
                     if (e.id !== targetId) return e;
                     return {
                         ...e,
-                        statusEffects: e.statusEffects.filter(s => s.type !== status)
+                        statusEffects: e.statusEffects
+                            .map(s => s.type === status ? { ...s, stacks: s.stacks - removeCount } : s)
+                            .filter(s => !(s.type === status && s.stacks <= 0))
                     };
                 });
             let newState: IBattleState = {
@@ -103,9 +125,8 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
                 playerParty: updateParty(state.playerParty),
                 enemyParty: updateParty(state.enemyParty)
             };
-            newState = addLog(newState, `  ✨ ${status} removed from target`);
-            //TODO: yes lets use applyMutations here
-            return newState; // Or you could use applyMutations with stacks: -stacks here, but this is the existing simple logic
+            newState = addLog(newState, `  ✨ ${removeCount} stack(s) of ${status} removed from target`);
+            return newState;
         }
 
         // Apply Status Logic
@@ -128,7 +149,12 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
         if (!target) return state;
         if (!source && healOverride === undefined) return state;
 
-        const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+        const baseHeal = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+        // STATUS_CONSUMED scaling: heal per stack removed by a preceding
+        // consume action in the same card (e.g. Ash Reclamation).
+        const healAmount = actionData.scaling === 'STATUS_CONSUMED'
+            ? baseHeal * (state.lastStatusConsumed ?? 0)
+            : baseHeal;
 
         return applyMutations(state, [{
             type: 'HP',

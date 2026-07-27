@@ -153,6 +153,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     }
 
     const sourceEntity = state[activePartyKey][sourceIndex];
+    // Defeated units cannot act (their selection may linger in the UI).
+    if (sourceEntity.currentHp <= 0) {
+        return state;
+    }
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const hand = state[activeDeckKey].hand;
     const cardIndex = hand.findIndex(c => c.id === programId);
@@ -188,6 +192,12 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const isDaemon = programData.category === 'Daemon';
     const isExhaust = programData.exhaust || programData.isToken;
     const newDiscard = (isDaemon || isExhaust) ? [...snapshot[activeDeckKey].discard] : [...snapshot[activeDeckKey].discard, card];
+    // Exhausted cards (and tokens) go to the exhaust pile instead of vanishing,
+    // so RETURN-from-EXHAUST effects can actually recover them. Daemons live on
+    // the entity (installed) and are excluded.
+    const newExhaustPile = (isExhaust && !isDaemon)
+        ? [...snapshot[activeDeckKey].exhaust, card]
+        : snapshot[activeDeckKey].exhaust;
 
     snapshot = {
         ...snapshot,
@@ -205,15 +215,20 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         [activeDeckKey]: {
             ...snapshot[activeDeckKey],
             hand: newHand,
-            discard: newDiscard
+            discard: newDiscard,
+            exhaust: newExhaustPile
         },
         cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1,
+        lastStatusConsumed: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
             ...(snapshot.elementPlays || {}),
             [programData.element]: (snapshot.elementPlays?.[programData.element] || 0) + 1
-        },
-        lastProgramPlayed: card.dataId
+        }
+        // NOTE: lastProgramPlayed is intentionally NOT updated here. During action
+        // resolution it must still refer to the PREVIOUS card so PLAY_LAST_CARD
+        // (Reprogram) echoes the prior play instead of seeing itself. It is
+        // updated once resolution completes (end of this function).
     };
 
     // 4. Initial Context
@@ -586,7 +601,9 @@ function processPostTurn(state: IBattleState): IBattleState {
             if (damage > 0) {
                 currentHp = Math.max(0, currentHp - damage);
 
-                if (currentHp <= 0) {
+                // Only record the defeat once, even if a second DoT (e.g. Burn +
+                // Poison) ticks on the already-dead entity in the same end-turn.
+                if (currentHp <= 0 && !defeatedThisTurn.includes(entity.id)) {
                     defeatedThisTurn.push(entity.id);
                 }
 
@@ -719,6 +736,9 @@ function processPreTurn(state: IBattleState): IBattleState {
     // 2. Reset Energy & Handle Statuses
     // Refill to max, then add Energized bonuses
     const refreshedParty = activeParty.map(entity => {
+        // Defeated units get no energy refill — they cannot act.
+        if (entity.currentHp <= 0) return entity;
+
         const energizedEffect = entity.statusEffects.find(s => s.type === 'Energized');
         const bonusEnergy = energizedEffect ? energizedEffect.stacks : 0;
 
@@ -753,7 +773,9 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     if (nextSide === 'PLAYER') {
         const alivePlayers = nextState.playerParty.filter((e: IBattleEntity) => e.currentHp > 0);
-        const totalCardDraw = alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
+        const totalCardDraw = alivePlayers.length === 0
+            ? 0
+            : alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
         const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState.playerDeck.hand.length);
         console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
         nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
