@@ -45,11 +45,15 @@ const GauntletStateSchema = z.object({
     element: z.string(),
     currentBattleIndex: z.number(),
     totalBattles: z.number(),
+    // Design decision: only HP persists between gauntlet battles (health is the
+    // resource you manage across the run). Energy, statuses, and everything else
+    // reset fresh each battle, so only `hp` is stored.
     persistedStats: z.record(z.string(), z.object({
-        hp: z.number(),
-        energy: z.number()
+        hp: z.number()
     }))
 });
+
+export const CURRENT_SAVE_VERSION = 2;
 
 export const PlayerSaveSchema = z.object({
     version: z.number().int().min(1),
@@ -58,11 +62,35 @@ export const PlayerSaveSchema = z.object({
     cardInventory: z.array(OwnedProgramSchema),
     activeDeck: ActiveDeckSchema.nullable(),
     scrapCount: z.number().int().min(0),
-    blueprints: z.array(BlueprintSchema),
+    blueprints: z.array(BlueprintSchema).catch([]),
     relics: z.array(z.string()).catch([]),
     gauntlet: GauntletStateSchema.nullable().catch(null),
     unlockedSectors: z.array(z.string()).catch([])
 });
+
+/**
+ * Version-keyed migration of raw (already JSON-parsed) save data.
+ * Runs BEFORE schema validation so older save shapes load instead of
+ * being rejected wholesale (which previously caused the save to be
+ * treated as missing and then overwritten by the next autosave).
+ */
+export function migrateSave(raw: unknown): unknown {
+    if (raw === null || typeof raw !== 'object') return raw;
+    const save = { ...(raw as Record<string, unknown>) };
+
+    if (typeof save.version !== 'number') save.version = 1;
+
+    if ((save.version as number) < 2) {
+        // v1 -> v2: fields added after the earliest saves get safe defaults.
+        if (!Array.isArray(save.blueprints)) save.blueprints = [];
+        if (!Array.isArray(save.relics)) save.relics = [];
+        if (!Array.isArray(save.unlockedSectors)) save.unlockedSectors = [];
+        if (save.gauntlet === undefined) save.gauntlet = null;
+        save.version = 2;
+    }
+
+    return save;
+}
 
 // --- Save/Load Functions ---
 
@@ -90,7 +118,7 @@ export function loadGame(): { data: IPlayerSave | null; error?: string } {
         const raw = localStorage.getItem(SAVE_KEY);
         if (!raw) return { data: null };
 
-        const parsed = JSON.parse(raw);
+        const parsed = migrateSave(JSON.parse(raw));
         const validated = PlayerSaveSchema.parse(parsed);
         return { data: validated as IPlayerSave };
     } catch (err) {

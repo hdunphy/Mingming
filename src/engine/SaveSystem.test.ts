@@ -14,7 +14,7 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-import { saveGame, loadGame, deleteSave, hasSave, PlayerSaveSchema } from './SaveSystem';
+import { saveGame, loadGame, deleteSave, hasSave, PlayerSaveSchema, migrateSave } from './SaveSystem';
 
 // Vitest uses jsdom/happy-dom which provides localStorage mock
 
@@ -164,5 +164,68 @@ describe('SaveSystem', () => {
                 expect(paths.some(p => p.includes('level'))).toBe(true);
             }
         });
+    });
+});
+
+describe('Gauntlet persistence (HP-only by design)', () => {
+    it('accepts persistedStats with hp only — matches what the game writes', () => {
+        const save: IPlayerSave = {
+            ...makeValidSave(),
+            gauntlet: {
+                type: 'Gym',
+                element: 'Fire',
+                currentBattleIndex: 1,
+                totalBattles: 3,
+                persistedStats: { mm1: { hp: 42 } }
+            }
+        };
+        expect(saveGame(save).success).toBe(true);
+
+        const loaded = loadGame();
+        expect(loaded.data).not.toBeNull();
+        expect(loaded.data!.gauntlet).not.toBeNull();
+        expect(loaded.data!.gauntlet!.persistedStats['mm1'].hp).toBe(42);
+    });
+
+    it('still loads old saves whose persistedStats carried energy (ignored)', () => {
+        const raw = {
+            ...makeValidSave(),
+            gauntlet: {
+                type: 'Gym',
+                element: 'Fire',
+                currentBattleIndex: 1,
+                totalBattles: 3,
+                persistedStats: { mm1: { hp: 42, energy: 3 } }
+            }
+        };
+        localStorage.setItem('mingming_save', JSON.stringify(raw));
+        const loaded = loadGame();
+        expect(loaded.data).not.toBeNull();
+        expect(loaded.data!.gauntlet!.persistedStats['mm1'].hp).toBe(42);
+    });
+});
+
+describe('Save migration', () => {
+    it('loads a legacy v1 save missing blueprints/relics/gauntlet/unlockedSectors', () => {
+        const legacy: any = makeValidSave();
+        delete legacy.blueprints;
+        delete legacy.relics;
+        delete legacy.gauntlet;
+        delete legacy.unlockedSectors;
+        localStorage.setItem('mingming_save', JSON.stringify(legacy));
+
+        const loaded = loadGame();
+        expect(loaded.data).not.toBeNull();
+        expect(loaded.data!.blueprints).toEqual([]);
+        expect(loaded.data!.relics).toEqual([]);
+        expect(loaded.data!.gauntlet).toBeNull();
+        expect(loaded.data!.unlockedSectors).toEqual([]);
+        expect(loaded.data!.version).toBe(2);
+        expect(loaded.data!.scrapCount).toBe(250);
+    });
+
+    it('migrateSave upgrades version and leaves modern saves intact', () => {
+        const modern = { ...makeValidSave(), version: 2 };
+        expect(migrateSave(modern)).toEqual(modern);
     });
 });

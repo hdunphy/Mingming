@@ -20,7 +20,12 @@ let prevGameState = store.getState().game;
 store.subscribe(() => {
     const state = store.getState();
     if (state.game !== prevGameState) {
-        saveGame(state.game);
+        const result = saveGame(state.game);
+        if (!result.success) {
+            // A failed autosave means player progress is silently not persisting.
+            // Shout so it gets caught in development instead of surfacing as data loss.
+            console.error('[AutoSave] FAILED — progress is NOT being saved:', result.error);
+        }
         prevGameState = state.game;
     }
 });

@@ -88,7 +88,7 @@ export interface IPlayerSave {
 
 export function createDefaultSave(): IPlayerSave {
     return {
-        version: 1,
+        version: 2,
         roster: [],
         activeParty: [],
         cardInventory: [],
@@ -150,7 +150,7 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
     }));
 
     return {
-        version: 1,
+        version: 2,
         roster: [starter],
         activeParty: [starter.id],
         cardInventory: starterCards,
