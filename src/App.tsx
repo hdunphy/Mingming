@@ -44,9 +44,19 @@ function App() {
   }, [dispatch]);
 
   const prevInBattle = useRef(isInBattle);
+  // Remember that the current battle belongs to a gauntlet: completeGauntlet()
+  // (nulls gauntlet) and setBattleState(null) land in the same React batch, so
+  // by the time this effect fires after the final battle, `gauntlet` is already null.
+  const wasGauntletBattle = useRef(false);
   useEffect(() => {
-    if (prevInBattle.current && !isInBattle && gauntlet) {
-      setActiveTab('hub');
+    if (isInBattle && gauntlet) {
+      wasGauntletBattle.current = true;
+    }
+    if (prevInBattle.current && !isInBattle) {
+      if (gauntlet || wasGauntletBattle.current) {
+        setActiveTab('hub');
+      }
+      wasGauntletBattle.current = false;
     }
     prevInBattle.current = isInBattle;
   }, [isInBattle, gauntlet]);

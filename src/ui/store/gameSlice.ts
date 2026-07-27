@@ -135,21 +135,8 @@ const gameSlice = createSlice({
                 (state.cardInventory as IOwnedProgram[]).push(card);
             }
 
-            // XP Distribution
-            if (bundle.totalXP > 0 && state.activeParty.length > 0) {
-                const xpPerMember = Math.floor(bundle.totalXP / state.activeParty.length);
-                state.roster = state.roster.map(member => {
-                    if (state.activeParty.includes(member.id)) {
-                        return {
-                            ...member,
-                            experience: member.experience + xpPerMember
-                            // Note: Leveling logic should ideally happen here or be handled by a selector/observer
-                            // but for now we'll just add XP and let the sync/engine handle the rest if needed.
-                        };
-                    }
-                    return member;
-                });
-            }
+            // NOTE: The reward bundle intentionally grants NO XP. Roster XP comes
+            // exclusively from the in-battle death-XP system, persisted via syncPartyStats.
         },
         updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number }> }>) => {
             if (state.gauntlet) {

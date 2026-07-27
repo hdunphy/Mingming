@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
@@ -62,6 +62,9 @@ const CardHand: React.FC<{
     const drawPileCount = battleState?.playerDeck.drawpile.length || 0;
     const discardPileCount = battleState?.playerDeck.discard.length || 0;
     const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+    // Tracks whether the pointerdown that precedes a click just selected this card,
+    // so the click handler doesn't immediately toggle the selection back off.
+    const justSelectedRef = useRef(false);
 
     return (
         <div className="hand-container">
@@ -80,7 +83,7 @@ const CardHand: React.FC<{
                         const constraints = (data.constraints || [])
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }))
                             .map(formatConstraint);
-                        const isUnplayable = !selectedSourceId || constraints.length > 0;
+                        const isUnplayable = !source || source.currentHp <= 0 || constraints.length > 0;
 
                         // Damage Preview on Card logic
                         let cardPreviewDamage = 0;
@@ -105,8 +108,17 @@ const CardHand: React.FC<{
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.2 }}
                                 className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''}`}
-                                onClick={() => dispatch(selectCard(isSelected ? null : card.id))}
+                                onClick={() => {
+                                    // If the preceding pointerdown just selected this card,
+                                    // skip the toggle so a single click leaves it selected.
+                                    if (justSelectedRef.current) {
+                                        justSelectedRef.current = false;
+                                        return;
+                                    }
+                                    dispatch(selectCard(isSelected ? null : card.id));
+                                }}
                                 onPointerDown={(e) => {
+                                    justSelectedRef.current = !isSelected;
                                     dispatch(selectCard(card.id));
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     onTargetingStart?.({

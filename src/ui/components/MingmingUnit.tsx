@@ -69,6 +69,15 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     const intentIconRef = React.useRef<HTMLDivElement>(null);
     const prevHpRef = React.useRef(entity.currentHp);
     const prevLevelRef = React.useRef(entity.level);
+    // Pending timeouts, cleared on unmount so we never setState on an unmounted component.
+    const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
+
+    useEffect(() => {
+        const timeouts = pendingTimeoutsRef.current;
+        return () => {
+            timeouts.forEach(clearTimeout);
+        };
+    }, []);
 
     // Damage shake + splatter
     useEffect(() => {
@@ -77,7 +86,8 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             const id = Date.now();
             setDamageSplatters(prev => [...prev, { id, amount: damage }]);
             controls.start({ x: [0, -8, 8, -4, 4, 0], transition: { duration: 0.35 } });
-            setTimeout(() => setDamageSplatters(prev => prev.filter(s => s.id !== id)), 1000);
+            const timeout = setTimeout(() => setDamageSplatters(prev => prev.filter(s => s.id !== id)), 1000);
+            pendingTimeoutsRef.current.push(timeout);
         }
         prevHpRef.current = entity.currentHp;
     }, [entity.currentHp, controls]);
@@ -86,7 +96,8 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     useEffect(() => {
         if (entity.level > prevLevelRef.current) {
             setLevelUpVisible(true);
-            setTimeout(() => setLevelUpVisible(false), 3000);
+            const timeout = setTimeout(() => setLevelUpVisible(false), 3000);
+            pendingTimeoutsRef.current.push(timeout);
         }
         prevLevelRef.current = entity.level;
     }, [entity.level]);

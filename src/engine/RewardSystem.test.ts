@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { rollDropTable, getScrapYield } from './RewardSystem';
 import { ProgramRegistry } from './data/programRegistry';
 import type { IBattleEntity } from './types';
+import { ELEMENTS } from './types';
 
 function makeDeadEntity(id: string, defId: string, name: string, element: any = 'Fire'): IBattleEntity {
     return {
@@ -50,16 +51,16 @@ describe('RewardSystem', () => {
             expect(result.cardChoices).toHaveLength(1);
         });
 
-        it('calculates XP correctly (Level * 20)', () => {
+        it('grants no XP in the reward bundle (XP comes from the in-battle death-XP system)', () => {
             const e1 = makeDeadEntity('e1', 'fyrbot', 'Lv10');
             e1.level = 10;
             const result = rollDropTable([e1], 1, 'seed');
-            expect(result.totalXP).toBe(200);
+            expect(result.totalXP).toBe(0);
 
             const e2 = makeDeadEntity('e2', 'fyrbot', 'Lv5');
             e2.level = 5;
             const result2 = rollDropTable([e1, e2], 1, 'seed');
-            expect(result2.totalXP).toBe(300);
+            expect(result2.totalXP).toBe(0);
         });
     });
 
@@ -72,6 +73,24 @@ describe('RewardSystem', () => {
                 for (const option of choice.options) {
                     const data = ProgramRegistry[option.dataId];
                     expect(['Fire', 'None']).toContain(data.element);
+                }
+            }
+        });
+
+        it('never offers token cards (isToken or rarity Token) for any element', () => {
+            for (const element of ELEMENTS) {
+                for (let i = 0; i < 25; i++) {
+                    const defeated = [makeDeadEntity('e1', 'fyrbot', `${element} Mon`, element)];
+                    const result = rollDropTable(defeated, 1, `token-seed-${element}-${i}`);
+
+                    for (const choice of result.cardChoices) {
+                        for (const option of choice.options) {
+                            const data = ProgramRegistry[option.dataId];
+                            expect(data, `unknown card ${option.dataId}`).toBeDefined();
+                            expect(data.isToken ?? false, `${option.dataId} is a token (element ${element})`).toBe(false);
+                            expect(data.rarity as string, `${option.dataId} has Token rarity (element ${element})`).not.toBe('Token');
+                        }
+                    }
                 }
             }
         });

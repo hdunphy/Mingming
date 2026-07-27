@@ -112,6 +112,18 @@ const BattleArena: React.FC = () => {
     const [showReport, setShowReport] = useState(false);
 
     const prevSideRef = useRef(battleState?.activeSide);
+    // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect
+    // (sharing prevSideRef meant the "wait for banner" branch never triggered).
+    const aiPrevSideRef = useRef(battleState?.activeSide);
+
+    // Clear the selected source if that unit dies
+    useEffect(() => {
+        if (!selectedSourceId || !battleState) return;
+        const selected = battleState.playerParty.find(p => p.id === selectedSourceId);
+        if (!selected || selected.currentHp <= 0) {
+            dispatch(selectSource(null));
+        }
+    }, [battleState, selectedSourceId, dispatch]);
 
     // Hotkeys implementation
     useEffect(() => {
@@ -127,10 +139,14 @@ const BattleArena: React.FC = () => {
                 }
             }
 
-            // W, E, R: Select Player Units
-            if (e.key.toLowerCase() === 'w') dispatch(selectSource(battleState.playerParty[0]?.id));
-            if (e.key.toLowerCase() === 'e') dispatch(selectSource(battleState.playerParty[1]?.id));
-            if (e.key.toLowerCase() === 'r') dispatch(selectSource(battleState.playerParty[2]?.id));
+            // W, E, R: Select Player Units (skip dead units)
+            const selectAliveUnit = (index: number) => {
+                const unit = battleState.playerParty[index];
+                if (unit && unit.currentHp > 0) dispatch(selectSource(unit.id));
+            };
+            if (e.key.toLowerCase() === 'w') selectAliveUnit(0);
+            if (e.key.toLowerCase() === 'e') selectAliveUnit(1);
+            if (e.key.toLowerCase() === 'r') selectAliveUnit(2);
 
             // Space: End Turn
             if (e.key === ' ') {
@@ -151,14 +167,16 @@ const BattleArena: React.FC = () => {
 
         const handleWheel = (e: WheelEvent) => {
             if (!battleState || battleState.activeSide !== 'PLAYER' || !selectedSourceId) return;
-            const currentIndex = battleState.playerParty.findIndex(p => p.id === selectedSourceId);
+            const aliveParty = battleState.playerParty.filter(p => p.currentHp > 0);
+            if (aliveParty.length === 0) return;
+            const currentIndex = aliveParty.findIndex(p => p.id === selectedSourceId);
             if (currentIndex === -1) return;
 
             let nextIndex = currentIndex + (e.deltaY > 0 ? 1 : -1);
-            if (nextIndex < 0) nextIndex = battleState.playerParty.length - 1;
-            if (nextIndex >= battleState.playerParty.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = aliveParty.length - 1;
+            if (nextIndex >= aliveParty.length) nextIndex = 0;
 
-            dispatch(selectSource(battleState.playerParty[nextIndex].id));
+            dispatch(selectSource(aliveParty[nextIndex].id));
         };
 
         window.addEventListener('keydown', handleKeyDown);
@@ -181,8 +199,8 @@ const BattleArena: React.FC = () => {
     // Enemy AI Turn Automation
     useEffect(() => {
         if (!battleState || battleState.activeSide !== 'ENEMY') {
-            if (prevSideRef.current !== battleState?.activeSide) {
-                prevSideRef.current = battleState?.activeSide;
+            if (aiPrevSideRef.current !== battleState?.activeSide) {
+                aiPrevSideRef.current = battleState?.activeSide;
             }
             return;
         }
@@ -196,7 +214,7 @@ const BattleArena: React.FC = () => {
 
         const runAI = async () => {
             // Wait for turn banner if this is the start of the enemy turn
-            if (prevSideRef.current !== 'ENEMY') {
+            if (aiPrevSideRef.current !== 'ENEMY') {
                 await new Promise(r => setTimeout(r, 1200));
             } else {
                 // Delay between actions
@@ -204,7 +222,7 @@ const BattleArena: React.FC = () => {
             }
 
             if (cancelled) return;
-            prevSideRef.current = 'ENEMY';
+            aiPrevSideRef.current = 'ENEMY';
 
             const action = getBestAction(battleState);
 
@@ -239,14 +257,16 @@ const BattleArena: React.FC = () => {
     };
 
     const isVictory = battleState?.enemyParty.every(e => e.currentHp <= 0) ?? false;
-    const isDefeat = battleState?.playerParty.every(p => p.currentHp <= 0) ?? false;
+    // Victory takes precedence: if both sides fall in the same resolution, count it as a win
+    // so the defeat overlay never renders and the save is never wiped.
+    const isDefeat = !isVictory && (battleState?.playerParty.every(p => p.currentHp <= 0) ?? false);
 
-    // Epic 3.5: Wipe save on defeat
+    // Epic 3.5: Wipe save on defeat (never on victory)
     useEffect(() => {
-        if (isDefeat) {
+        if (isDefeat && !isVictory) {
             deleteSave();
         }
-    }, [isDefeat]);
+    }, [isDefeat, isVictory]);
 
     const rosterSize = useSelector((state: RootState) => state.game.roster.length);
 

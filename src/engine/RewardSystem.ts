@@ -27,12 +27,20 @@ function getBlueprintRate(rosterSize: number): number {
 }
 
 /**
- * Filter the registry for cards matching an element (includes 'None' as neutral)
+ * Filter the registry for cards matching an element (includes 'None' as neutral).
+ * Tokens (isToken or rarity 'Token') are never valid rewards — mirrors the
+ * EncounterGenerator exclusion logic, minus the daemon exclusion (daemons are
+ * legitimate reward cards). If an element has no real (non-token) cards, fall
+ * back to the full non-token pool instead of awarding internal tokens.
  */
 function getPoolForElement(element: Element): string[] {
-    return Object.values(ProgramRegistry)
-        .filter(p => p.element === element || p.element === 'None')
-        .map(p => p.id);
+    const nonTokenPool = Object.values(ProgramRegistry)
+        .filter(p => !p.isToken && (p.rarity as string) !== 'Token');
+
+    const elementalPool = nonTokenPool
+        .filter(p => p.element === element || p.element === 'None');
+
+    return (elementalPool.length > 0 ? elementalPool : nonTokenPool).map(p => p.id);
 }
 
 /**
@@ -78,7 +86,7 @@ function rollForEntity(
     entity: IBattleEntity,
     rosterSize: number,
     prng: PRNG
-): { scraps: number; blueprint: IBlueprint | null; cardChoice: ICardChoice; xp: number; nextSeed: number } {
+): { scraps: number; blueprint: IBlueprint | null; cardChoice: ICardChoice; nextSeed: number } {
     // 1. Roll scrap yield: 5-15 default
     const scrapRoll = prng.nextInt(5, 15);
     let currentSeed = scrapRoll.nextSeed;
@@ -111,10 +119,10 @@ function rollForEntity(
         options
     };
 
-    // 4. XP Calculation: Defeated_Level * 20
-    const xp = entity.level * 20;
-
-    return { scraps: scrapRoll.value, blueprint, cardChoice, xp, nextSeed: currentSeed };
+    // NOTE: XP is intentionally NOT part of the reward bundle. XP is awarded
+    // in-battle by the death-XP system (Pokemon-style active XP) and synced
+    // back to the roster via syncPartyStats.
+    return { scraps: scrapRoll.value, blueprint, cardChoice, nextSeed: currentSeed };
 }
 
 /**
@@ -126,7 +134,6 @@ export function rollDropTable(
     seed: string
 ): IRewardBundle {
     let totalScraps = 0;
-    let totalXP = 0;
     const allBlueprints: IBlueprint[] = [];
     const allCardChoices: ICardChoice[] = [];
     let currentSeed = seed;
@@ -139,7 +146,6 @@ export function rollDropTable(
         const result = rollForEntity(entity, rosterSize, prng);
 
         totalScraps += result.scraps;
-        totalXP += result.xp;
         if (result.blueprint) {
             allBlueprints.push(result.blueprint);
         }
@@ -152,7 +158,8 @@ export function rollDropTable(
         blueprints: allBlueprints,
         cards: [],
         cardChoices: allCardChoices,
-        totalXP
+        // XP source of truth is the in-battle death-XP system; the bundle grants none.
+        totalXP: 0
     };
 }
 

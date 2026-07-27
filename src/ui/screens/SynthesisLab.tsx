@@ -26,8 +26,10 @@ export default function SynthesisLab() {
 
     const selectedScrap = useMemo(() => {
         let total = 0;
-        selectedCards.forEach(ids => {
-            total += ids.length * getScrapYield();
+        selectedCards.forEach((ids, dataId) => {
+            // Pass the card's rarity so the rarity yield table actually applies
+            const rarity = GetProgramData(dataId)?.rarity;
+            total += ids.length * getScrapYield(rarity);
         });
         return total;
     }, [selectedCards]);

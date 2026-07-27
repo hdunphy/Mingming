@@ -5,6 +5,7 @@ import type { RootState } from '../store/store';
 import { startBattle } from '../store/battleSlice';
 import { startGauntlet } from '../store/gameSlice';
 import type { Element } from '../../engine/types';
+import { MIN_DECK_SIZE } from '../../engine/gameTypes';
 
 /**
  * Epic 8: Milestone 8.2 - Terminal Hub UI
@@ -27,14 +28,26 @@ const SectorTerminal: React.FC = () => {
     const save = useSelector((state: RootState) => state.game);
     const [selectedSector, setSelectedSector] = useState<Element | null>(null);
 
+    // Deployment readiness guard (mirrors HubScreen): need an active party member and a valid deck
+    const activeMingming = save.roster.find(m => m.id === save.activeParty[0]);
+    const deckCount = save.activeDeck?.cards.length || 0;
+    const hasParty = !!activeMingming;
+    const isDeckValid = deckCount >= MIN_DECK_SIZE;
+    const canDeploy = hasParty && isDeckValid;
+
     const handleStartSector = (element: Element) => {
+        // Validate before dispatching anything: an empty party or invalid deck
+        // would make startBattle throw, and must never leave a dangling gauntlet.
+        if (!canDeploy || save.gauntlet) return;
+
         const isUnlocked = save.unlockedSectors.includes(element);
         if (isUnlocked) {
-            dispatch(startBattle({ save, enemyIds: [], sectorElement: element }));
+            try {
+                dispatch(startBattle({ save, enemyIds: [], sectorElement: element }));
+            } catch (err) {
+                console.error('[SectorTerminal] Failed to start sector battle:', err);
+            }
         } else {
-            // Start gym gauntlet to unlock it
-            dispatch(startGauntlet({ type: 'Gym', element, totalBattles: 3 }));
-
             // Pass explicitly updated save to avoid React state staleness
             const newSave = {
                 ...save,
@@ -46,7 +59,16 @@ const SectorTerminal: React.FC = () => {
                     persistedStats: {}
                 }
             };
-            dispatch(startBattle({ save: newSave, enemyIds: [] }));
+
+            // Start the battle FIRST; only persist the gauntlet once the battle
+            // actually started, so a failed startBattle can't strand the save
+            // with an active gauntlet and no battle.
+            try {
+                dispatch(startBattle({ save: newSave, enemyIds: [] }));
+                dispatch(startGauntlet({ type: 'Gym', element, totalBattles: 3 }));
+            } catch (err) {
+                console.error('[SectorTerminal] Failed to start gym gauntlet:', err);
+            }
         }
     };
 
@@ -178,24 +200,32 @@ const SectorTerminal: React.FC = () => {
                                     </div>
                                 )}
 
+                                {!save.gauntlet && !canDeploy && (
+                                    <div style={{ color: '#ef4444', marginBottom: '15px', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'center' }}>
+                                        {!hasParty
+                                            ? '⚠️ NO ACTIVE PARTY. ASSIGN A MINGMING IN THE ROSTER TERMINAL.'
+                                            : `⚠️ DECK TOO SMALL (${deckCount}/${MIN_DECK_SIZE}). CONFIGURE IN THE DECK TERMINAL.`}
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={() => handleStartSector(selectedSector)}
                                     className="terminal-button primary"
-                                    disabled={!!save.gauntlet}
+                                    disabled={!!save.gauntlet || !canDeploy}
                                     style={{
                                         width: '100%',
                                         padding: '18px',
-                                        background: save.gauntlet ? '#333' : SECTORS.find(s => s.id === selectedSector)?.color,
+                                        background: (save.gauntlet || !canDeploy) ? '#333' : SECTORS.find(s => s.id === selectedSector)?.color,
                                         border: 'none',
                                         borderRadius: '8px',
-                                        color: save.gauntlet ? '#888' : '#fff',
+                                        color: (save.gauntlet || !canDeploy) ? '#888' : '#fff',
                                         fontWeight: 'bold',
                                         fontSize: '1rem',
-                                        cursor: save.gauntlet ? 'not-allowed' : 'pointer',
-                                        boxShadow: save.gauntlet ? 'none' : `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
+                                        cursor: (save.gauntlet || !canDeploy) ? 'not-allowed' : 'pointer',
+                                        boxShadow: (save.gauntlet || !canDeploy) ? 'none' : `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
                                     }}
                                 >
-                                    {save.gauntlet ? 'SYSTEM LOCKED' : save.unlockedSectors.includes(selectedSector) ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
+                                    {save.gauntlet ? 'SYSTEM LOCKED' : !canDeploy ? 'DEPLOYMENT BLOCKED' : save.unlockedSectors.includes(selectedSector) ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
                                 </button>
                             </motion.div>
                         ) : (

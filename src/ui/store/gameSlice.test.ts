@@ -13,9 +13,10 @@ import gameReducer, {
     spendScrap,
     addBlueprint,
     loadSave,
-    resetSave
+    resetSave,
+    applyRewardBundle
 } from './gameSlice';
-import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint } from '../../engine/gameTypes';
+import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint, IRewardBundle } from '../../engine/gameTypes';
 import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
 
@@ -185,6 +186,30 @@ describe('gameSlice', () => {
             let state = gameReducer(initial, addBlueprint(bp));
             state = gameReducer(state, addBlueprint(bp));
             expect(state.blueprints).toHaveLength(1);
+        });
+    });
+
+    // --- Reward Bundle ---
+    describe('applyRewardBundle', () => {
+        it('applies scrap, cards, and blueprints but grants NO XP (XP comes from in-battle awards)', () => {
+            let state = gameReducer(initial, addToRoster(makeMingming('mm1')));
+            state = gameReducer(state, setActiveParty(['mm1']));
+            const xpBefore = state.roster[0].experience;
+
+            const bundle: IRewardBundle = {
+                scraps: 42,
+                blueprints: [makeBlueprint('arch_fire')],
+                cards: [makeCard('rc1')],
+                cardChoices: [],
+                totalXP: 500 // even a non-zero value must not be applied to the roster
+            };
+            state = gameReducer(state, applyRewardBundle(bundle));
+
+            expect(state.scrapCount).toBe(42);
+            expect(state.blueprints).toHaveLength(1);
+            expect(state.cardInventory).toHaveLength(1);
+            // Bundle XP is never distributed to the roster
+            expect(state.roster[0].experience).toBe(xpBefore);
         });
     });
 
