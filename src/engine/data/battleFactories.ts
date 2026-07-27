@@ -194,8 +194,12 @@ export function createBattleState(
         }).flat();
     }
 
-    // Epic 2/22/2026: Disable OS on enemies as they use intents now
-    enemyParty = enemyParty.map(e => ({ ...e, activeOS: undefined }));
+    // Epic 2/22/2026: Disable OS on enemies as they use intents now.
+    // Exception: gym tier-3 bosses keep their boss_relic_* OS (design decision).
+    enemyParty = enemyParty.map(e => ({
+        ...e,
+        activeOS: e.activeOS?.startsWith('boss_relic_') ? e.activeOS : undefined
+    }));
 
     // --- SHARED DECK INITIALIZATION ---
 

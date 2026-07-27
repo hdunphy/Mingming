@@ -15,6 +15,31 @@ import { ConditionValidator } from './ConditionValidator';
 import { ActionExecutorRegistry } from '../actions/ActionExecutors';
 import { applyMutations } from '../resolutionEngine';
 
+// Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
+const warnedBadConditions = new Set<string>();
+
+/**
+ * Safely evaluates a hook's custom "condition". Only functions are invoked;
+ * anything else (e.g. a JS-source string left in hooks.json) is ignored with a
+ * warning so bad data can never crash a battle.
+ */
+function evaluateCustomCondition(
+    id: string,
+    condition: unknown,
+    context: HookContext,
+    owner: IBattleEntity
+): boolean {
+    if (condition === undefined || condition === null) return true;
+    if (typeof condition === 'function') {
+        return (condition as (context: HookContext, owner: IBattleEntity) => boolean)(context, owner);
+    }
+    if (!warnedBadConditions.has(id)) {
+        warnedBadConditions.add(id);
+        console.warn(`[HookFactory] Hook "${id}" has a non-function "condition" (${typeof condition}); ignoring it. Express it via the data-driven "when" object instead.`);
+    }
+    return true;
+}
+
 /**
  * HookFactory: Generates functional hooks from data definitions.
  */
@@ -29,7 +54,8 @@ export const HookFactory = {
                 id,
                 priority,
                 [data.trigger]: (damage: number, context: HookContext, owner: IBattleEntity) => {
-                    if (this.checkCondition(modifierData.when, context, owner)) {
+                    if (this.checkCondition(modifierData.when, context, owner)
+                        && evaluateCustomCondition(id, modifierData.condition, context, owner)) {
                         let newDamage = damage;
 
                         const scaleFactor = modifierData.scaling
@@ -50,7 +76,8 @@ export const HookFactory = {
                 id,
                 priority,
                 [eventData.trigger]: (context: HookContext, owner: IBattleEntity): HookResult => {
-                    if (this.checkCondition(eventData.when, context, owner) && (!eventData.condition || eventData.condition(context, owner))) {
+                    if (this.checkCondition(eventData.when, context, owner)
+                        && evaluateCustomCondition(id, eventData.condition, context, owner)) {
                         return {
                             state: this.executeActions(eventData.do, context, owner)
                         };
@@ -77,6 +104,8 @@ export const HookFactory = {
                 return owner.currentEnergy;
             case 'SHARP_STACKS':
                 return owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
+            case 'STRENGTH_STACKS':
+                return owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
             case 'ALIVE_ALLIES': {
                 const isPlayer = context.state.playerParty.some((e: IBattleEntity) => e.id === owner.id);
                 const party = isPlayer ? context.state.playerParty : context.state.enemyParty;
@@ -102,7 +131,8 @@ export const HookFactory = {
         let resolvedTargetName: string | undefined = undefined;
 
         for (const action of actions) {
-            const targetId = this.resolveTarget(action.target, { ...context, state: currentState }, owner);
+            const { targetId, state: stateAfterTargeting } = this.resolveTarget(action.target, { ...context, state: currentState }, owner);
+            currentState = stateAfterTargeting;
             if (!targetId && action.target !== 'RANDOM_ENEMY' && action.target !== 'ALLIES' && action.target !== 'ENEMIES') {
                 if (action.type !== 'LOG') continue;
             }
@@ -209,31 +239,48 @@ export const HookFactory = {
         return currentState;
     },
 
-    resolveTarget(target: HookAction['target'], context: HookContext, owner: IBattleEntity): string | string[] | null {
-        if (!target) return null;
-        const isOwnerPlayer = context.state.playerParty.some(e => e.id === owner.id);
+    /**
+     * Resolves an action target to entity id(s). Returns the (possibly updated)
+     * state alongside the target: RANDOM_ENEMY consumes randomness, so the
+     * advanced PRNG seed must be threaded back into the state (mirrors
+     * RedirectTargetExecutor) — otherwise the "random" pick repeats every trigger.
+     */
+    resolveTarget(target: HookAction['target'], context: HookContext, owner: IBattleEntity): { targetId: string | string[] | null; state: IBattleState } {
+        const state = context.state;
+        if (!target) return { targetId: null, state };
+        const isOwnerPlayer = state.playerParty.some(e => e.id === owner.id);
 
         switch (target) {
-            case 'SELF': return owner.id;
-            case 'TARGET': return context.target?.id ?? null;
-            case 'SOURCE': return context.source?.id ?? null;
+            case 'SELF': return { targetId: owner.id, state };
+            case 'TARGET': return { targetId: context.target?.id ?? null, state };
+            case 'SOURCE': return { targetId: context.source?.id ?? null, state };
             case 'ALLIES':
-                return (isOwnerPlayer ? context.state.playerParty : context.state.enemyParty)
-                    .filter(e => e.currentHp > 0)
-                    .map(e => e.id);
+                return {
+                    targetId: (isOwnerPlayer ? state.playerParty : state.enemyParty)
+                        .filter(e => e.currentHp > 0)
+                        .map(e => e.id),
+                    state
+                };
             case 'ENEMIES':
-                return (isOwnerPlayer ? context.state.enemyParty : context.state.playerParty)
-                    .filter(e => e.currentHp > 0)
-                    .map(e => e.id);
-            case 'RANDOM_ENEMY':
-                const enemies = (isOwnerPlayer ? context.state.enemyParty : context.state.playerParty)
+                return {
+                    targetId: (isOwnerPlayer ? state.enemyParty : state.playerParty)
+                        .filter(e => e.currentHp > 0)
+                        .map(e => e.id),
+                    state
+                };
+            case 'RANDOM_ENEMY': {
+                const enemies = (isOwnerPlayer ? state.enemyParty : state.playerParty)
                     .filter(e => e.currentHp > 0);
-                if (enemies.length === 0) return null;
-                const prng = new PRNG(context.state.seed);
-                const { value: index } = prng.nextInt(0, enemies.length - 1);
-                return enemies[index].id;
+                if (enemies.length === 0) return { targetId: null, state };
+                const prng = new PRNG(state.seed);
+                const { value: index, nextSeed } = prng.nextInt(0, enemies.length - 1);
+                return {
+                    targetId: enemies[index].id,
+                    state: { ...state, seed: nextSeed }
+                };
+            }
         }
-        return null;
+        return { targetId: null, state };
     },
 
     getSide(entity: IBattleEntity, context: HookContext): 'PLAYER' | 'ENEMY' {

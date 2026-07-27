@@ -2,6 +2,20 @@ import type { IBattleState, IBattleEntity, ProgramData, StatusType, ProgramConst
 import type { HookCondition, HookContext } from './HookTypes';
 
 /**
+ * Statuses considered "negative" (debuffs) for condition checks like sourceDebuffCount.
+ * Mirrors the debuff lists previously embedded in hand-written hook conditions.
+ */
+const NEGATIVE_STATUSES: ReadonlyArray<string> = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed'];
+
+function compareValues(operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ', currentVal: number, value: number): boolean {
+    if (operator === 'LT') return currentVal < value;
+    if (operator === 'GT') return currentVal > value;
+    if (operator === 'LTE') return currentVal <= value;
+    if (operator === 'GTE') return currentVal >= value;
+    return currentVal === value;
+}
+
+/**
  * A purely functional, stateless utility for evaluating logic conditions.
  * Used by both OS/Daemon Hooks and ProgramCard Constraints to ensure 1:1 logic.
  */
@@ -58,6 +72,28 @@ export const ConditionValidator = {
 
         // 4. Status Check
         if (condition.statusApplied && context.statusApplied !== condition.statusApplied) return false;
+
+        // 4b. Status-In-Set Check (e.g. "any debuff", "any buff")
+        if (condition.statusAppliedIn) {
+            if (!context.statusApplied || !condition.statusAppliedIn.includes(context.statusApplied)) return false;
+        }
+
+        // 4c. Program Category Checks
+        if (condition.programCategoryIn) {
+            if (!context.program || !condition.programCategoryIn.includes(context.program.category)) return false;
+        }
+        if (condition.programCategoryNot) {
+            if (!context.program || condition.programCategoryNot.includes(context.program.category)) return false;
+        }
+
+        // 4d. Source Debuff Count Check (number of negative statuses on the source)
+        if (condition.sourceDebuffCount) {
+            const debuffCount = context.source
+                ? context.source.statusEffects.filter(s => NEGATIVE_STATUSES.includes(s.type)).length
+                : 0;
+            const { operator, value } = condition.sourceDebuffCount;
+            if (!compareValues(operator, debuffCount, value)) return false;
+        }
 
         // 5. Draw Check
         if (condition.isNaturalDraw !== undefined && context.isNaturalDraw !== condition.isNaturalDraw) return false;

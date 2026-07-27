@@ -16,7 +16,7 @@
         ],
         "actions": [],
         "hooks": [
-            "defensive_daemon"
+            "defensive_daemon_hook"
         ]
     },
     "fenrir_v1_daemon": {

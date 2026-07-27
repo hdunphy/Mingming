@@ -10,6 +10,10 @@ const HookConditionSchema = z.object({
     isAttack: z.boolean().optional(),
     isToken: z.boolean().optional(),
     statusApplied: z.string().optional(),
+    statusAppliedIn: z.array(z.string()).optional(),
+    programCategoryIn: z.array(z.string()).optional(),
+    programCategoryNot: z.array(z.string()).optional(),
+    sourceDebuffCount: z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional(),
     baseCost: z.union([
         z.number(),
         z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ', 'NEQ']), value: z.number() })
@@ -38,7 +42,7 @@ const HookActionSchema = z.object({
     dataId: z.string().optional(),
     key: z.string().optional(),
     operator: z.enum(['ADD', 'SET', 'RESET']).optional(),
-    scaling: z.enum(['CURRENT_ENERGY', 'SHARP_STACKS', 'ALIVE_ALLIES', 'MISSING_HP', 'OVERHEAL', 'BASE_COST', 'COUNTER']).optional(),
+    scaling: z.enum(['CURRENT_ENERGY', 'SHARP_STACKS', 'STRENGTH_STACKS', 'ALIVE_ALLIES', 'MISSING_HP', 'OVERHEAL', 'BASE_COST', 'COUNTER']).optional(),
     scalingKey: z.string().optional()
 });
 
@@ -51,7 +55,7 @@ const HookDefinitionSchema = z.object({
     do: z.array(HookActionSchema).optional(),
     multiplier: z.number().optional(),
     bonus: z.number().optional(),
-    scaling: z.enum(['CURRENT_ENERGY', 'SHARP_STACKS', 'ALIVE_ALLIES', 'MISSING_HP', 'OVERHEAL', 'BASE_COST', 'COUNTER']).optional(),
+    scaling: z.enum(['CURRENT_ENERGY', 'SHARP_STACKS', 'STRENGTH_STACKS', 'ALIVE_ALLIES', 'MISSING_HP', 'OVERHEAL', 'BASE_COST', 'COUNTER']).optional(),
     scalingKey: z.string().optional()
 });
 

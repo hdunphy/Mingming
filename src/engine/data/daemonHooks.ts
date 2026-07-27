@@ -13,7 +13,16 @@ let isDaemonsInitialized = false;
 export function initDaemonHooks() {
     if (isDaemonsInitialized) return;
 
-    const daemonKeys = ['recursion_daemon', 'thermal_overload', 'echo_chamber', 'defensive_daemon'];
+    const daemonKeys = [
+        'recursion_daemon',
+        'thermal_overload',
+        'echo_chamber',
+        'defensive_daemon',
+        'core_overclock_daemon',
+        'cinder_armor_daemon',
+        'feedback_loop_daemon',
+        'fertile_ground_daemon'
+    ];
 
     // Validate JSON on boot
     let validatedData: any = {};

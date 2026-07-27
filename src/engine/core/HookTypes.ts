@@ -38,6 +38,10 @@ export type HookCondition = {
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;
+    statusAppliedIn?: StatusType[]; // Passes when the applied status is any of these
+    programCategoryIn?: string[]; // Passes when a program is in context and its category matches one of these
+    programCategoryNot?: string[]; // Passes when a program is in context and its category matches NONE of these
+    sourceDebuffCount?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number }; // Number of negative statuses on context.source
     isNaturalDraw?: boolean;
     isToken?: boolean;
     targetStatus?: { status: StatusType; minStacks?: number };
@@ -63,7 +67,7 @@ export type HookAction = {
     dataId?: string; // For GENERATE_CARD
     key?: string; // For COUNTER key
     operator?: 'ADD' | 'SET' | 'RESET'; // For COUNTER operation
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
     scalingKey?: string; // e.g., the key if scaling is 'COUNTER'
 };
 
@@ -81,9 +85,10 @@ export type ModifierDataHookDefinition = {
     trigger: 'onDamageCalculated' | 'onStatusDamageCalculated';
     priority: HookPriority;
     when?: HookCondition;
+    condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     multiplier?: number;
     bonus?: number;
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
     scalingKey?: string;
 };
 

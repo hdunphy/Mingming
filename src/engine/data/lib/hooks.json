@@ -47,9 +47,9 @@
                 "trigger": "onStatusApplied",
                 "priority": 40,
                 "when": {
-                    "target": "SELF"
+                    "target": "SELF",
+                    "statusAppliedIn": ["Burn", "Poison", "Asleep", "Weakened", "Dazed", "Stunned"]
                 },
-                "condition": "(context) => ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned'].includes(context.statusApplied || '')",
                 "do": [
                     {
                         "type": "ENERGY",
@@ -269,6 +269,104 @@
                         "target": "SELF",
                         "status": "Sharp",
                         "stacks": 1
+                    }
+                ]
+            }
+        ]
+    },
+    "core_overclock_daemon": {
+        "id": "core_overclock_daemon",
+        "name": "CORE_OVERCLOCK",
+        "description": "Daemon: Strength bonus is doubled for the rest of battle.",
+        "hooks": [
+            {
+                "id": "daemon_double_strength",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 1.2,
+                "scaling": "STRENGTH_STACKS"
+            }
+        ]
+    },
+    "cinder_armor_daemon": {
+        "id": "cinder_armor_daemon",
+        "name": "CINDER_ARMOR",
+        "description": "Daemon: Cards that add burn also add 1 Sharp to host.",
+        "hooks": [
+            {
+                "id": "daemon_burn_sharp_synergy",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "statusApplied": "Burn"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Sharp",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s CINDER_ARMOR hardens! +1 Sharp."
+                    }
+                ]
+            }
+        ]
+    },
+    "feedback_loop_daemon": {
+        "id": "feedback_loop_daemon",
+        "name": "FEEDBACK_LOOP",
+        "description": "Daemon: Deal 10 damage to random enemy for each card draw.",
+        "hooks": [
+            {
+                "id": "daemon_draw_damage_proc",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 10,
+                        "element": "Water"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s FEEDBACK_LOOP discharges into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "fertile_ground_daemon": {
+        "id": "fertile_ground_daemon",
+        "name": "FERTILE_GROUND",
+        "description": "Daemon: Draw extra card each turn.",
+        "hooks": [
+            {
+                "id": "daemon_extra_draw",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "DRAW",
+                        "target": "SELF",
+                        "amount": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s FERTILE_GROUND sprouts an extra card!"
                     }
                 ]
             }
@@ -529,7 +627,8 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "programElement": "Earth"
+                    "programElement": "Earth",
+                    "actionType": "ATTACK"
                 },
                 "bonus": 1,
                 "scaling": "SHARP_STACKS"
@@ -745,9 +844,12 @@
                 "priority": 40,
                 "when": {
                     "target": "SELF",
-                    "source": "OPPONENT"
+                    "source": "OPPONENT",
+                    "sourceDebuffCount": {
+                        "operator": "GTE",
+                        "value": 2
+                    }
                 },
-                "condition": "(context) => { const debuffs = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed']; return context.source && context.source.statusEffects.filter(s => debuffs.includes(s.type)).length >= 2; }",
                 "bonus": 1
             }
         ]
@@ -763,9 +865,9 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "target": "ALLY"
+                    "target": "ALLY",
+                    "statusAppliedIn": ["Energized", "Strengthened", "Sharp", "StableOS"]
                 },
-                "condition": "(context) => ['Energized', 'Strengthened', 'Sharp', 'StableOS'].includes(context.statusApplied || '')",
                 "do": [
                     {
                         "type": "HP",
@@ -805,9 +907,9 @@
                 "trigger": "onActionStart",
                 "priority": 40,
                 "when": {
-                    "source": "SELF"
+                    "source": "SELF",
+                    "programCategoryIn": ["Heal", "Skill"]
                 },
-                "condition": "(context) => context.program && ['Heal', 'Skill'].includes(context.program.category)",
                 "do": [
                     {
                         "type": "COUNTER",
@@ -859,9 +961,13 @@
                 "trigger": "onHeal",
                 "priority": 40,
                 "when": {
-                    "target": "SELF"
+                    "target": "SELF",
+                    "counter": {
+                        "key": "last_overheal",
+                        "operator": "GT",
+                        "value": 0
+                    }
                 },
-                "condition": "(context) => context.state.counters && context.state.counters.last_overheal > 0",
                 "do": [
                     {
                         "type": "ATTACK",
@@ -909,9 +1015,9 @@
                 "trigger": "onActionStart",
                 "priority": 41,
                 "when": {
-                    "source": "SELF"
+                    "source": "SELF",
+                    "programCategoryNot": ["Attack"]
                 },
-                "condition": "(context) => context.program && context.program.category !== 'Attack'",
                 "do": [
                     {
                         "type": "COUNTER",
@@ -938,9 +1044,13 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "programElement": "Dark"
+                    "programElement": "Dark",
+                    "programCategoryNot": ["Attack"],
+                    "baseCost": {
+                        "operator": "GT",
+                        "value": 0
+                    }
                 },
-                "condition": "(context) => context.program && context.program.category !== 'Attack' && context.program.baseCost > 0",
                 "do": [
                     {
                         "type": "ENERGY",
@@ -1024,44 +1134,71 @@
                     }
                 ]
             }
-        ],
-        "boss_relic_fire": [
+        ]
+    },
+    "boss_relic_fire": {
+        "id": "boss_relic_fire",
+        "name": "FIRE_RELIC_OS",
+        "description": "Boss Relic: At the end of the boss's turn, it ignites the field, dealing Fire damage to all enemies scaled by its Sharp stacks.",
+        "hooks": [
             {
                 "id": "boss_relic_fire_end",
                 "trigger": "onTurnEnd",
-                "priority": "SYSTEM",
+                "priority": 100,
+                "when": {
+                    "source": "SELF"
+                },
                 "do": [
                     {
                         "type": "ATTACK",
                         "target": "ENEMIES",
                         "power": 5,
                         "element": "Fire",
-                        "scaling": "SHARP_STACKS",
+                        "scaling": "SHARP_STACKS"
+                    },
+                    {
+                        "type": "LOG",
                         "text": "{owner}'s FIRE RELIC ignites the field!"
                     }
                 ]
             }
-        ],
-        "boss_relic_water": [
+        ]
+    },
+    "boss_relic_water": {
+        "id": "boss_relic_water",
+        "name": "WATER_RELIC_OS",
+        "description": "Boss Relic: Whenever the boss's side takes damage, the whole team is soothed, healing 5% Max HP.",
+        "hooks": [
             {
                 "id": "boss_relic_water_reactive",
                 "trigger": "onPostDamage",
-                "priority": "SYSTEM",
+                "priority": 100,
+                "when": {
+                    "target": "ALLY"
+                },
                 "do": [
                     {
-                        "type": "HEAL",
+                        "type": "HP",
                         "target": "ALLIES",
-                        "percentMaxHP": 5,
+                        "percentMaxHP": 5
+                    },
+                    {
+                        "type": "LOG",
                         "text": "{owner}'s WATER RELIC soothes the team!"
                     }
                 ]
             }
-        ],
-        "boss_relic_ice": [
+        ]
+    },
+    "boss_relic_ice": {
+        "id": "boss_relic_ice",
+        "name": "ICE_RELIC_OS",
+        "description": "Boss Relic: Opposing programs aimed at a poisoned target cost 1 additional Energy.",
+        "hooks": [
             {
                 "id": "boss_relic_ice_tax",
                 "trigger": "onCostCalculated",
-                "priority": "SYSTEM",
+                "priority": 100,
                 "when": {
                     "source": "OPPONENT",
                     "targetStatus": {
@@ -1069,8 +1206,7 @@
                         "minStacks": 1
                     }
                 },
-                "bonus": 1,
-                "text": "{owner}'s ICE RELIC taxes the poisoned!"
+                "bonus": 1
             }
         ]
     }

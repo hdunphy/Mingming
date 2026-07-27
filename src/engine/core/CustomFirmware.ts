@@ -22,44 +22,11 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             }
         }
     ],
-    "gullinbursti_v1": [
-        {
-            id: "gullinbursti_v1_prepare",
-            priority: 40,
-            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                let state = context.state;
-                const hasDefensiveStatus = context.program?.actions.some(a => a.type === 'STATUS' && (a.target === 'SELF' || a.target === 'ALLIES'));
-                if (context.source?.id === owner.id && hasDefensiveStatus) {
-                    // Defensive status
-                    state = applyMutations(state, [{ type: 'COUNTER', targetId: '', payload: { key: 'gullin_discount', operator: 'SET', amount: 1 } }]);
-                }
-                const isAttack = context.program?.category === 'Attack';
-                if (context.source?.id === owner.id && isAttack && (state.counters['gullin_discount'] || 0) > 0) {
-                    // Refund 1 energy
-                    state = applyMutations(state, [
-                        { type: 'ENERGY', targetId: owner.id, payload: { amount: 1 } },
-                        { type: 'COUNTER', targetId: '', payload: { key: 'gullin_discount', operator: 'SET', amount: 0 } },
-                        { type: 'LOG', targetId: '', payload: `${owner.name}'s UNSTOPPABLE_MASS refunds 1 Energy!` }
-                    ]);
-                }
-                return { state };
-            }
-        }
-    ],
-    "gullinbursti_v2": [
-        {
-            id: "gullinbursti_v2_ram",
-            priority: 40,
-            onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
-                const isAttack = context.program?.category === 'Attack';
-                if (context.source?.id === owner.id && context.program?.element === 'Earth' && isAttack) {
-                    const sharpStacks = owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-                    return currentDamage + sharpStacks;
-                }
-                return currentDamage;
-            }
-        }
-    ],
+    // NOTE: gullinbursti_v1 / gullinbursti_v2 / audhumbla_v1 used to have hand-written
+    // implementations here with DIFFERENT hook ids than the hooks.json versions, so both
+    // registered and both fired (double Sharp damage bonus, two competing discount systems,
+    // double max-energy gains). The data-driven hooks.json versions match the OS
+    // descriptions, so the custom duplicates were removed.
     "fafnir_v2": [
         {
             id: "fafnir_v2_corrupted",
@@ -131,33 +98,6 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                                 { type: 'LOG', targetId: '', payload: `${owner.name}'s VALHALLA_UPLINK heals ${context.target.name} for ${healAmount} HP!` }
                             ]);
                         }
-                    }
-                }
-                return { state };
-            }
-        }
-    ],
-    "audhumbla_v1": [
-        {
-            id: "audhumbla_v1_genesis",
-            priority: 40,
-            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                let state = context.state;
-                const isHealOrSkill = context.program?.category === 'Skill' || context.program?.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS');
-                if (context.source?.id === owner.id && isHealOrSkill) {
-                    const counterKey = `audhumbla_spells_${owner.id}`;
-                    let currentCount = state.counters[counterKey] || 0;
-                    currentCount++;
-                    if (currentCount >= 3) {
-                        state = applyMutations(state, [
-                            { type: 'MAX_ENERGY', targetId: owner.id, payload: { amount: 1 } },
-                            { type: 'COUNTER', targetId: '', payload: { key: counterKey, operator: 'RESET', amount: 0 } },
-                            { type: 'LOG', targetId: '', payload: `${owner.name}'s GENESIS_FIRMWARE increases Max Energy by 1!` }
-                        ]);
-                    } else {
-                        state = applyMutations(state, [
-                            { type: 'COUNTER', targetId: '', payload: { key: counterKey, operator: 'SET', amount: currentCount } }
-                        ]);
                     }
                 }
                 return { state };
