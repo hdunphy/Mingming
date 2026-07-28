@@ -36,7 +36,8 @@ function makeValidSave(): IPlayerSave {
         ],
         relics: [],
         gauntlet: null,
-        unlockedSectors: ['Fire', 'Water', 'Nature']
+        unlockedSectors: ['Fire', 'Water', 'Nature'],
+        baseDecksGranted: []
     };
 }
 
@@ -227,5 +228,16 @@ describe('Save migration', () => {
     it('migrateSave upgrades version and leaves modern saves intact', () => {
         const modern = { ...makeValidSave(), version: 2 };
         expect(migrateSave(modern)).toEqual(modern);
+    });
+
+    it('loads a save missing baseDecksGranted (defaults to [] via catch)', () => {
+        const legacy: any = { ...makeValidSave(), version: 2 };
+        delete legacy.baseDecksGranted;
+        localStorage.setItem('mingming_save', JSON.stringify(legacy));
+
+        const loaded = loadGame();
+        expect(loaded.data).not.toBeNull();
+        expect(loaded.data!.baseDecksGranted).toEqual([]);
+        expect(loaded.data!.scrapCount).toBe(250);
     });
 });

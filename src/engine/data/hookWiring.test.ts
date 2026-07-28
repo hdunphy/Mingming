@@ -93,7 +93,8 @@ describe('boss relic OSes', () => {
                 totalBattles: 3,
                 persistedStats: {}
             },
-            unlockedSectors: ['Fire', 'Water', 'Nature']
+            unlockedSectors: ['Fire', 'Water', 'Nature'],
+            baseDecksGranted: []
         };
 
         const state = createBattleState(save, []);

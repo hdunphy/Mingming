@@ -11,6 +11,7 @@ import type {
 import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 
 const initialState: IPlayerSave = createDefaultSave();
 
@@ -21,6 +22,18 @@ const gameSlice = createSlice({
         // --- Roster ---
         addToRoster: (state, action: PayloadAction<IMingmingState>) => {
             (state.roster as IMingmingState[]).push(action.payload);
+
+            // First-time synthesis of a species grants its base deck kit
+            const definition = MingmingRegistry[action.payload.definitionId];
+            if (definition && !state.baseDecksGranted.includes(definition.id)) {
+                for (const dataId of definition.baseDeck) {
+                    (state.cardInventory as IOwnedProgram[]).push({
+                        instanceId: crypto.randomUUID(),
+                        dataId
+                    });
+                }
+                (state.baseDecksGranted as string[]).push(definition.id);
+            }
         },
         removeFromRoster: (state, action: PayloadAction<string>) => {
             const id = action.payload;

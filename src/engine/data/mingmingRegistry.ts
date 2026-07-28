@@ -14,6 +14,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fenrir_v1", "fenrir_v2"],
+        baseDeck: ["fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "glass_cannon", "ignite", "ignite", "scorch", "ash_reclamation", "reckless_charge"],
         moves: [
             {
                 id: 'fenrir_bite',
@@ -52,6 +53,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["kraken_v1", "kraken_v2"],
+        baseDeck: ["water_slap", "water_slap", "whirlpool_v2", "whirlpool_v2", "pressure_point", "surge_protection", "blind_spot", "blind_spot", "ink_cloud", "scavenge_data"],
         moves: [
             {
                 id: 'kraken_tentacle',
@@ -97,6 +99,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fafnir_v1", "fafnir_v2"],
+        baseDeck: ["boulder_smash", "boulder_smash", "spike_launch", "spike_launch", "stone_fist", "shield_shards", "shield_shards", "stone_bark", "spiked_carapace", "keen_edge"],
         moves: [
             {
                 id: 'fafnir_smash',
@@ -128,6 +131,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["skoll_v1", "skoll_v2"],
+        baseDeck: ["fury_strike", "fury_strike", "fury_strike", "fire_punch_v2", "fire_punch_v2", "overdrive", "reckless_charge", "reckless_charge", "strength_burst", "all_in"],
         moves: [
             {
                 id: 'skoll_bite',
@@ -159,6 +163,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
+        baseDeck: ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "poison_injection", "poison_injection", "toxic_surge", "toxic_surge", "corrosive_leak", "capacitor"],
         moves: [
             {
                 id: 'jorm_constrict',
@@ -190,6 +195,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["gullinbursti_v1", "gullinbursti_v2"],
+        baseDeck: ["rock_throw", "rock_throw", "stone_fist", "stone_fist", "tremor", "shield_shards", "keen_edge", "keen_edge", "stone_bark", "stone_bark"],
         moves: [
             {
                 id: 'gullin_charge',
@@ -221,6 +227,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hraesvelgr_v1", "hraesvelgr_v2"],
+        baseDeck: ["gale_slash", "gale_slash", "cyclone", "cyclone", "gust_jab", "disorienting_gust", "disorienting_gust", "tailwind", "slipstream", "sky_dance"],
         moves: [
             {
                 id: 'hraes_flap',
@@ -252,6 +259,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["sleipnir_v1", "sleipnir_v2"],
+        baseDeck: ["gust_jab", "gust_jab", "zephyr_strike", "zephyr_strike", "dust_devil", "dust_devil", "slipstream", "slipstream", "tailwind", "disorienting_gust"],
         moves: [
             {
                 id: 'sleipnir_kick',
@@ -283,6 +291,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
+        baseDeck: ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "thistle_barrage", "pollen_cloud", "photosynthesis_v2", "photosynthesis_v2", "healing_mist", "soothe"],
         moves: [
             {
                 id: 'rata_nut',
@@ -321,6 +330,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["huldra_v1", "huldra_v2"],
+        baseDeck: ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"],
         moves: [
             {
                 id: 'huld_charm',
@@ -352,6 +362,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 2,
         availableOS: ["ymir_v1", "ymir_v2"],
+        baseDeck: ["ice_spear", "ice_spear", "shatter", "shatter", "glacial_slam", "flash_freeze", "flash_freeze", "cold_snap", "glacier_wall", "glacier_wall"],
         moves: [
             {
                 id: 'ymir_smash',
@@ -383,6 +394,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["draugr_v1", "draugr_v2"],
+        baseDeck: ["frost_jab", "frost_jab", "ice_spear", "ice_spear", "shatter", "cold_snap", "cold_snap", "hoarfrost", "winters_grasp", "glacier_wall"],
         moves: [
             {
                 id: 'draugr_slash',
@@ -414,6 +426,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["valkyrie_v1", "valkyrie_v2"],
+        baseDeck: ["radiant_spark", "radiant_spark", "smite", "smite", "smite", "lumen_surge", "lumen_surge", "scry", "healing_light", "aegis"],
         artReference: "Valkyrie.png"
     },
     "audhumbla": {
@@ -429,6 +442,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["audhumbla_v1", "audhumbla_v2"],
+        baseDeck: ["radiant_spark", "radiant_spark", "smite", "smite", "healing_light", "healing_light", "purify", "uplift", "uplift", "lumen_surge"],
         artReference: "Audhumbla.png"
     },
     "hel": {
@@ -444,6 +458,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hel_v1", "hel_v2"],
+        baseDeck: ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "curse_mark", "venom_shade", "umbral_feast", "dark_pact"],
         artReference: "Hel.png"
     },
     "nidhoggr": {
@@ -459,6 +474,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["nidhoggr_v1", "nidhoggr_v2"],
+        baseDeck: ["shadow_claw", "shadow_claw", "night_terror", "night_terror", "leech_strike", "venom_shade", "venom_shade", "creeping_dread", "curse_mark", "umbral_feast"],
         artReference: "Nidhoggr.png"
     }
 }
@@ -483,6 +499,7 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
             secondaryElement: 'None',
             cardDraw: 1,
             availableOS: [],
+            baseDeck: [],
             artReference: ''
         };
     }

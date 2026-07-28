@@ -5,6 +5,7 @@
 
 import type { IMingmingState } from "./types";
 import { getExpForLevel } from "./types";
+import { MingmingRegistry } from "./data/mingmingRegistry";
 
 // --- Card Inventory ---
 
@@ -82,6 +83,7 @@ export interface IPlayerSave {
     readonly relics: ReadonlyArray<string>;
     readonly gauntlet: IGauntletState | null;
     readonly unlockedSectors: ReadonlyArray<string>;
+    readonly baseDecksGranted: ReadonlyArray<string>; // Species IDs whose base deck has already been granted
 }
 
 // --- Factory Helpers ---
@@ -97,13 +99,13 @@ export function createDefaultSave(): IPlayerSave {
         blueprints: [],
         relics: [],
         gauntlet: null,
-        unlockedSectors: ['Fire', 'Water', 'Nature']
+        unlockedSectors: ['Fire', 'Water', 'Nature'],
+        baseDecksGranted: []
     };
 }
 
 //TODO does this get used? or does the battle factory get used?
 export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' = 'kraken'): IPlayerSave {
-    const isWater = starterId === 'kraken';
     const isFire = starterId === 'fenrir';
     const isNature = starterId === 'ratatoskr';
 
@@ -124,21 +126,11 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
         hpIV: 10 + Math.floor(Math.random() * 6)
     };
 
-    // Starter deck cards (12 cards)
-    const waterStarterIds = [
-        'water_slap', 'whirlpool_v2', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'feedback_loop_daemon', 'contagion'
-    ];
-    const fireStarterIds = [
-        'fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch', 'fenrir_v1_daemon', 'ignite', 'strength_burst'
-    ];
-    const natureStarterIds = [
-        'leaf_blade', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine', 'fertile_ground_daemon', 'rejuvenation'
-    ];
-
+    // Starter deck cards come from the species' base deck kit in the registry
     let starterCardIds: string[] = [];
-    const baseCards = isFire ? fireStarterIds : isWater ? waterStarterIds : natureStarterIds;
+    const baseCards = MingmingRegistry[starterId].baseDeck;
 
-    // Fill to 40 cards
+    // Pad up to the minimum deck size (base decks are exactly 10, matching MIN_DECK_SIZE)
     while (starterCardIds.length < MIN_DECK_SIZE) {
         starterCardIds.push(...baseCards);
     }
@@ -163,7 +155,8 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
         blueprints: [],
         relics: [],
         gauntlet: null,
-        unlockedSectors: ['Fire', 'Water', 'Nature']
+        unlockedSectors: ['Fire', 'Water', 'Nature'],
+        baseDecksGranted: [starterId]
     };
 }
 

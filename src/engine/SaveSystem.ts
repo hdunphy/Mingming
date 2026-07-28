@@ -65,7 +65,8 @@ export const PlayerSaveSchema = z.object({
     blueprints: z.array(BlueprintSchema).catch([]),
     relics: z.array(z.string()).catch([]),
     gauntlet: GauntletStateSchema.nullable().catch(null),
-    unlockedSectors: z.array(z.string()).catch([])
+    unlockedSectors: z.array(z.string()).catch([]),
+    baseDecksGranted: z.array(z.string()).catch([])
 });
 
 /**

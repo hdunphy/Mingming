@@ -18,9 +18,10 @@ import ProgramCard from '../components/ProgramCard';
 
 export default function SynthesisLab() {
     const dispatch = useDispatch();
-    const { cardInventory, scrapCount, blueprints } = useSelector((s: RootState) => s.game);
+    const { cardInventory, scrapCount, blueprints, baseDecksGranted } = useSelector((s: RootState) => s.game);
     const [selectedCards, setSelectedCards] = useState<Map<string, string[]>>(new Map()); // dataId -> instanceIds
     const [lastCompiled, setLastCompiled] = useState<string | null>(null);
+    const [kitGranted, setKitGranted] = useState(false);
     const [isInstalling, setIsInstalling] = useState<IBlueprint | null>(null);
     const [selectedOS, setSelectedOS] = useState<string | null>(null);
 
@@ -70,6 +71,8 @@ export default function SynthesisLab() {
 
     const compileMingming = (architectureId: string, cost: number, activeOS: string) => {
         if (scrapCount < cost) return;
+        // First compile of a species also grants its base deck (handled in addToRoster)
+        setKitGranted(!baseDecksGranted.includes(architectureId));
         dispatch(spendScrap(cost));
         const newMm = {
             ...createMingmingInstance(architectureId, 1),
@@ -167,7 +170,7 @@ export default function SynthesisLab() {
                                         {bp.compileCost} ⚙️
                                     </div>
                                     {lastCompiled === bp.architectureId && (
-                                        <div className="compile-flash">✨ Compiled!</div>
+                                        <div className="compile-flash">✨ Compiled!{kitGranted ? ' Base deck added to inventory!' : ''}</div>
                                     )}
                                 </div>
                             );
