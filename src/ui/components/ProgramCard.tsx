@@ -10,6 +10,12 @@ interface Props {
     onContextMenu?: (e: React.MouseEvent) => void;
     showBadge?: string;
     className?: string;
+    /** Optional: shows an explicit + button on hover (e.g. add a copy to the deck). */
+    onAdd?: () => void;
+    /** Optional: shows an explicit − button on hover (e.g. remove a copy from the deck). */
+    onRemove?: () => void;
+    addDisabled?: boolean;
+    removeDisabled?: boolean;
 }
 
 export const getElementIcon = (el: string) => {
@@ -36,8 +42,24 @@ export const getElementColor = (el: string) => {
     return map[el] ?? '#888';
 };
 
-const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onContextMenu, showBadge, className = '' }) => {
+const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onContextMenu, showBadge, className = '', onAdd, onRemove, addDisabled, removeDisabled }) => {
     const [tooltipPos, setTooltipPos] = React.useState<{ top: number; left: number } | null>(null);
+    const isHovered = tooltipPos !== null;
+    const hasHoverActions = Boolean(onAdd || onRemove);
+
+    const hoverBtnStyle = (disabled: boolean | undefined, color: string): React.CSSProperties => ({
+        width: '26px',
+        height: '26px',
+        borderRadius: '6px',
+        border: `1px solid ${disabled ? 'rgba(255,255,255,0.15)' : color}`,
+        background: disabled ? 'rgba(20,20,30,0.85)' : 'rgba(10,10,18,0.92)',
+        color: disabled ? '#555' : color,
+        fontSize: '1rem',
+        lineHeight: 1,
+        fontWeight: 'bold',
+        cursor: disabled ? 'default' : 'pointer',
+        padding: 0
+    });
 
     const handleMouseEnter = (e: React.MouseEvent) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -99,6 +121,40 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                     zIndex: 2
                 }}>
                     {showBadge}
+                </div>
+            )}
+
+            {hasHoverActions && isHovered && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: '6px',
+                    right: '6px',
+                    display: 'flex',
+                    gap: '4px',
+                    zIndex: 3
+                }}>
+                    {onRemove && (
+                        <button
+                            aria-label={`Remove ${data.name}`}
+                            style={hoverBtnStyle(removeDisabled, 'var(--hp-red)')}
+                            disabled={removeDisabled}
+                            onClick={(e) => { e.stopPropagation(); if (!removeDisabled) onRemove(); }}
+                            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        >
+                            −
+                        </button>
+                    )}
+                    {onAdd && (
+                        <button
+                            aria-label={`Add ${data.name}`}
+                            style={hoverBtnStyle(addDisabled, 'var(--hp-green)')}
+                            disabled={addDisabled}
+                            onClick={(e) => { e.stopPropagation(); if (!addDisabled) onAdd(); }}
+                            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        >
+                            +
+                        </button>
+                    )}
                 </div>
             )}
 

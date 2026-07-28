@@ -8,6 +8,8 @@ import gameReducer, {
     removeCardFromInventory,
     setActiveDeck,
     addCardToDeck,
+    addCardsToDeck,
+    clearDeck,
     removeCardFromDeck,
     addScrap,
     spendScrap,
@@ -193,6 +195,55 @@ describe('gameSlice', () => {
             let state = gameReducer(initial, setActiveDeck(makeDeck('d1', ['c1', 'c2'])));
             state = gameReducer(state, removeCardFromDeck('c1'));
             expect(state.activeDeck!.cards).toEqual(['c2']);
+        });
+    });
+
+    // --- Bulk Add / Clear ---
+    describe('addCardsToDeck', () => {
+        it('adds multiple owned cards to the deck', () => {
+            let state = gameReducer(initial, addCardsToInventory([makeCard('c1'), makeCard('c2'), makeCard('c3')]));
+            state = gameReducer(state, setActiveDeck(makeDeck('d1')));
+            state = gameReducer(state, addCardsToDeck(['c1', 'c2', 'c3']));
+            expect(state.activeDeck!.cards).toEqual(['c1', 'c2', 'c3']);
+        });
+
+        it('creates the active deck if none exists', () => {
+            let state = gameReducer(initial, addCardsToInventory([makeCard('c1')]));
+            expect(state.activeDeck).toBeNull();
+            state = gameReducer(state, addCardsToDeck(['c1']));
+            expect(state.activeDeck).not.toBeNull();
+            expect(state.activeDeck!.cards).toEqual(['c1']);
+        });
+
+        it('skips ids not in inventory and ids already in the deck', () => {
+            let state = gameReducer(initial, addCardsToInventory([makeCard('c1'), makeCard('c2')]));
+            state = gameReducer(state, setActiveDeck(makeDeck('d1', ['c1'])));
+            state = gameReducer(state, addCardsToDeck(['c1', 'ghost', 'c2', 'c2']));
+            expect(state.activeDeck!.cards).toEqual(['c1', 'c2']);
+        });
+
+        it('stops at DECK_SIZE (40)', () => {
+            const cards: IOwnedProgram[] = [];
+            for (let i = 0; i < 45; i++) cards.push(makeCard(`c${i}`));
+            let state = gameReducer(initial, addCardsToInventory(cards));
+            state = gameReducer(state, setActiveDeck(makeDeck('d1')));
+            state = gameReducer(state, addCardsToDeck(cards.map(c => c.instanceId)));
+            expect(state.activeDeck!.cards).toHaveLength(40);
+            expect(state.activeDeck!.cards[39]).toBe('c39');
+        });
+    });
+
+    describe('clearDeck', () => {
+        it('empties the active deck but keeps its identity', () => {
+            let state = gameReducer(initial, setActiveDeck(makeDeck('d1', ['c1', 'c2'])));
+            state = gameReducer(state, clearDeck());
+            expect(state.activeDeck!.cards).toEqual([]);
+            expect(state.activeDeck!.id).toBe('d1');
+        });
+
+        it('is a no-op when there is no active deck', () => {
+            const state = gameReducer(initial, clearDeck());
+            expect(state.activeDeck).toBeNull();
         });
     });
 

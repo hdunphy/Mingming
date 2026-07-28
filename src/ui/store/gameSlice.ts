@@ -90,6 +90,25 @@ const gameSlice = createSlice({
                 cards: [...state.activeDeck.cards, action.payload]
             };
         },
+        addCardsToDeck: (state, action: PayloadAction<string[]>) => {
+            // Mirror DeckTerminal's auto-create behavior when no deck exists yet
+            if (!state.activeDeck) {
+                state.activeDeck = { id: crypto.randomUUID(), name: 'Main Deck', cards: [] } as any;
+            }
+            const inventoryIds = new Set(state.cardInventory.map(c => c.instanceId));
+            const cards = [...state.activeDeck!.cards];
+            for (const instanceId of action.payload) {
+                if (cards.length >= DECK_SIZE) break;
+                if (!inventoryIds.has(instanceId)) continue;
+                if (cards.includes(instanceId)) continue;
+                cards.push(instanceId);
+            }
+            state.activeDeck = { ...state.activeDeck!, cards };
+        },
+        clearDeck: (state) => {
+            if (!state.activeDeck) return;
+            state.activeDeck = { ...state.activeDeck, cards: [] };
+        },
         removeCardFromDeck: (state, action: PayloadAction<string>) => {
             if (!state.activeDeck) return;
             state.activeDeck = {
@@ -227,6 +246,8 @@ export const {
     removeCardFromInventory,
     setActiveDeck,
     addCardToDeck,
+    addCardsToDeck,
+    clearDeck,
     removeCardFromDeck,
     addScrap,
     spendScrap,
