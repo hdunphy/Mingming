@@ -163,17 +163,18 @@ export function getBestAction(state: IBattleState): BattleAction {
         }
     }
 
-    // 2. Design decision: enemies are Slay-the-Spire style — they ONLY execute
-    // telegraphed intents, never play cards. Once every intent has been
-    // executed, the enemy turn is over. The card-play simulation below is
-    // reserved for the PLAYER side (used by the Balance Tester / SimRunner
-    // auto-battles); without this guard, enemies fell through to it and
-    // played cards from their dealt hand after their intent.
-    if (state.activeSide === 'ENEMY') {
+    // 2. Enemy behavior is locked in at battle creation via enemyMode:
+    // 'MOVES' (default) — Slay-the-Spire style: ONLY telegraphed intents, never
+    // cards. Once every intent has executed, the enemy turn is over.
+    // 'CARDS' — explicit opt-in (BattleOptions.enemyMode at createBattleState):
+    // the enemy has no intents and instead falls through to the card-play
+    // simulation below.
+    if (state.activeSide === 'ENEMY' && (state.enemyMode ?? 'MOVES') === 'MOVES') {
         return { type: 'END_TURN' };
     }
 
-    // 3. Player-side tactical simulation (headless sims / auto-battle)
+    // 3. Card-play tactical simulation: the player side (Balance Tester /
+    // SimRunner auto-battles), or card-user enemies (enemyMode === 'CARDS').
     const MAX_DEPTH = 3; // Limit recursion to prevent hangs
 
     // Silence events during AI simulation to prevent log spam and side effects

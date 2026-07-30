@@ -229,3 +229,54 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
         expect(action.type).toBe('PLAY_PROGRAM');
     });
 });
+
+describe('Enemy combat mode guard (locked at battle creation)', () => {
+    it('CARDS mode lets the enemy AI play cards from its hand', async () => {
+        const { getBestAction } = await import('./ai/TacticalAI');
+        const state = makeState({
+            activeSide: 'ENEMY',
+            enemyMode: 'CARDS',
+            enemyParty: [makeEntity({ id: 'e1', name: 'CardUser', primaryElement: 'Nature' })],
+            enemyDeck: {
+                ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
+                hand: [{ id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true }]
+            }
+        } as any);
+        const action = getBestAction(state);
+        expect(action.type).toBe('PLAY_PROGRAM');
+    });
+
+    it('default (no enemyMode) is MOVES: no card play', async () => {
+        const { getBestAction } = await import('./ai/TacticalAI');
+        const state = makeState({
+            activeSide: 'ENEMY',
+            enemyParty: [makeEntity({ id: 'e1', name: 'MoveUser', currentIntent: null } as any)],
+            enemyDeck: {
+                ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
+                hand: [{ id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true }]
+            }
+        } as any);
+        expect(getBestAction(state).type).toBe('END_TURN');
+    });
+
+    it('createBattleState defaults to MOVES: empty enemy hand, intents generated', async () => {
+        const { createBattleState } = await import('./data/battleFactories');
+        const { createStarterSave } = await import('./gameTypes');
+        const save = createStarterSave('fenrir');
+        const state = createBattleState(save as any, ['ratatoskr']);
+        expect(state.enemyMode).toBe('MOVES');
+        expect(state.enemyDeck.hand).toHaveLength(0);
+        expect(state.enemyDeck.drawpile).toHaveLength(0);
+        expect(state.enemyParty[0].currentIntent).toBeTruthy();
+    });
+
+    it('createBattleState with enemyMode CARDS: hand dealt, no intents', async () => {
+        const { createBattleState } = await import('./data/battleFactories');
+        const { createStarterSave } = await import('./gameTypes');
+        const save = createStarterSave('fenrir');
+        const state = createBattleState(save as any, ['ratatoskr'], undefined, { enemyMode: 'CARDS' });
+        expect(state.enemyMode).toBe('CARDS');
+        expect(state.enemyDeck.hand.length).toBeGreaterThan(0);
+        expect(state.enemyParty[0].currentIntent ?? null).toBeNull();
+    });
+});

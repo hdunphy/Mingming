@@ -11,6 +11,9 @@ export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Skill', 'Daemon
 
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
 
+/** How the enemy side fights — set once at battle creation. */
+export type EnemyCombatMode = 'MOVES' | 'CARDS';
+
 export const StatusType = {
   Burn: 'Burn',
   Poison: 'Poison',
@@ -385,6 +388,13 @@ export interface IBattleState {
   readonly cardsPlayedThisTurn: number;
   readonly cardsDrawnThisTurn: number;
   readonly lastProgramPlayed: string | null;
+  /**
+   * How the enemy side fights, decided once at battle creation:
+   * 'MOVES' (default) — Slay-the-Spire style: telegraphed intents only, no cards.
+   * 'CARDS' — enemies draw a hand and play cards via the tactical AI (no intents).
+   * Undefined is treated as 'MOVES' everywhere.
+   */
+  readonly enemyMode?: EnemyCombatMode;
   /** Stacks removed by the most recent STATUS consume action (for STATUS_CONSUMED heal scaling). Reset each card play. */
   readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;

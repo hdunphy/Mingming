@@ -39,13 +39,24 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
 }
 
 import { generateEncounter } from './EncounterGenerator';
-import type { Element } from '../types';
+import type { Element, EnemyCombatMode } from '../types';
+
+export interface BattleOptions {
+    /**
+     * How the enemy side fights, locked in at battle creation.
+     * Defaults to 'MOVES' (telegraphed intents, no cards). Passing
+     * 'CARDS' explicitly is the ONLY way to create card-playing enemies.
+     */
+    readonly enemyMode?: EnemyCombatMode;
+}
 
 export function createBattleState(
     save: IPlayerSave,
     enemyIds: string[],
-    sectorElement?: Element
+    sectorElement?: Element,
+    options?: BattleOptions
 ): IBattleState {
+    const enemyMode: EnemyCombatMode = options?.enemyMode ?? 'MOVES';
     const playerPartyMembers = save.activeParty
         .map(id => save.roster.find(m => m.id === id))
         .filter(Boolean) as IMingmingState[];
@@ -258,17 +269,23 @@ export function createBattleState(
     };
     const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle.toString());
 
+    // Move users get no drawpile/hand at all; card users get a dealt hand.
     const eInitialDeck: IDeckState = {
         ownerId: 'ENEMY',
         deck: [],
-        drawpile: eDeckCards,
+        drawpile: enemyMode === 'CARDS' ? eDeckCards : [],
         hand: [],
         discard: [],
         exhaust: []
     };
-    const { state: eDeckState, nextSeed: seed3 } = drawCards(eInitialDeck, enemyCardDraw, seed2);
+    const { state: eDeckState, nextSeed: seed3 } = enemyMode === 'CARDS'
+        ? drawCards(eInitialDeck, enemyCardDraw, seed2)
+        : { state: eInitialDeck, nextSeed: seed2 };
 
-    const finalEnemyParty = generateIntents(enemyParty, seed3, 1);
+    // Intents are only telegraphed for move users.
+    const finalEnemyParty = enemyMode === 'MOVES'
+        ? generateIntents(enemyParty, seed3, 1)
+        : enemyParty;
 
     return {
         sessionId: 'battle_' + Date.now(),
@@ -292,6 +309,7 @@ export function createBattleState(
         },
         counters: {},
         levelUpQueue: [],
-        activeRelics: save.relics || []
+        activeRelics: save.relics || [],
+        enemyMode
     };
 }

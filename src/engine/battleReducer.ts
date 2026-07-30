@@ -783,8 +783,12 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    // Intent Generation: Always calculate intents for enemies at the start of a turn (so player can see them)
-    const finalEnemyParty = generateIntents(nextState.enemyParty, nextState.seed, nextTurn);
+    // Intent Generation: telegraph enemy intents at the start of a turn (so the
+    // player can see them) — but only for move-user enemies. Card-user battles
+    // (enemyMode === 'CARDS', opt-in at battle creation) never generate intents.
+    const finalEnemyParty = (nextState.enemyMode ?? 'MOVES') === 'MOVES'
+        ? generateIntents(nextState.enemyParty, nextState.seed, nextTurn)
+        : nextState.enemyParty;
     const finalPlayerParty = nextState.playerParty;
 
     let newState = {
