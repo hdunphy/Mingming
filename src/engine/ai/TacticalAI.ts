@@ -163,7 +163,17 @@ export function getBestAction(state: IBattleState): BattleAction {
         }
     }
 
-    // 2. Fallback to normal tactical simulation if no intents, or if it's the Player's turn
+    // 2. Design decision: enemies are Slay-the-Spire style — they ONLY execute
+    // telegraphed intents, never play cards. Once every intent has been
+    // executed, the enemy turn is over. The card-play simulation below is
+    // reserved for the PLAYER side (used by the Balance Tester / SimRunner
+    // auto-battles); without this guard, enemies fell through to it and
+    // played cards from their dealt hand after their intent.
+    if (state.activeSide === 'ENEMY') {
+        return { type: 'END_TURN' };
+    }
+
+    // 3. Player-side tactical simulation (headless sims / auto-battle)
     const MAX_DEPTH = 3; // Limit recursion to prevent hangs
 
     // Silence events during AI simulation to prevent log spam and side effects

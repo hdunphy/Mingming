@@ -183,3 +183,49 @@ describe('Bug fix: exhausted cards go to the exhaust pile', () => {
         expect(state.playerDeck.exhaust.find(c => c.id === 'h1')).toBeDefined();
     });
 });
+
+describe('Bug fix: enemies only execute intents, never play cards', () => {
+    it('returns END_TURN after intents are exhausted even with a playable enemy hand', async () => {
+        const { getBestAction } = await import('./ai/TacticalAI');
+        // Enemy side active, no intents left, but a full playable hand + energy.
+        const state = makeState({
+            activeSide: 'ENEMY',
+            enemyParty: [makeEntity({ id: 'e1', name: 'Ratatoskr', primaryElement: 'Nature', currentIntent: null } as any)],
+            enemyDeck: {
+                ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
+                hand: [
+                    { id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true },
+                    { id: 'eh2', dataId: 'seed_bomb_v2', currentCost: 2, isPlayable: true }
+                ]
+            }
+        } as any);
+        const action = getBestAction(state);
+        expect(action.type).toBe('END_TURN');
+    });
+
+    it('still executes a pending intent first', async () => {
+        const { getBestAction } = await import('./ai/TacticalAI');
+        const state = makeState({
+            activeSide: 'ENEMY',
+            enemyParty: [makeEntity({
+                id: 'e1', name: 'Ratatoskr', primaryElement: 'Nature',
+                currentIntent: { id: 'rata_nut', name: 'Acorn Throw', intentType: 'Attack', priority: 10, actions: [{ type: 'ATTACK', power: 8, target: 'Single' }] }
+            } as any)]
+        } as any);
+        const action = getBestAction(state);
+        expect(action.type).toBe('EXECUTE_INTENT');
+    });
+
+    it('player side still uses the card simulation (Balance Tester path)', async () => {
+        const { getBestAction } = await import('./ai/TacticalAI');
+        const state = makeState({
+            activeSide: 'PLAYER',
+            playerDeck: {
+                ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
+                hand: [{ id: 'h1', dataId: 'fury_strike', currentCost: 1, isPlayable: true }]
+            }
+        } as any);
+        const action = getBestAction(state);
+        expect(action.type).toBe('PLAY_PROGRAM');
+    });
+});
