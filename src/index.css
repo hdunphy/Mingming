@@ -575,8 +575,8 @@ body {
 }
 
 .card-description {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.8);
   margin-top: 6px;
   line-height: 1.3;
   flex: 1;
@@ -584,10 +584,11 @@ body {
 }
 
 .card-target {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.55);
   text-align: center;
   margin-top: 4px;
   padding-top: 4px;
@@ -789,7 +790,6 @@ body {
 
 .element-badge.light {
   background-color: var(--light);
-  color: #333;
 }
 
 .element-badge.dark {
@@ -798,6 +798,16 @@ body {
 
 .element-badge.none {
   background-color: #888;
+}
+
+/* Bright element fills need near-black text — white is unreadable on them
+   (e.g. the Ice cyan). Mirrors src/ui/utils/contrastText.ts. */
+.element-badge.ice,
+.element-badge.air,
+.element-badge.nature,
+.element-badge.light {
+  color: #0b0e14;
+  text-shadow: none;
 }
 
 .hp-bar-preview {
@@ -809,14 +819,20 @@ body {
 }
 
 .card-cost {
-  background: var(--energy-blue);
+  /* Deepened from var(--energy-blue) so white text clears WCAG AA (~5.2:1);
+     the neon read is kept via the glow. */
+  background: #2563eb;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   width: 26px;
   height: 26px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-weight: bold;
+  font-weight: 800;
   font-size: 0.9rem;
   margin-bottom: 8px;
 }
@@ -1129,9 +1145,9 @@ body {
 }
 
 .pile-label {
-  font-size: 0.5rem;
-  letter-spacing: 1.5px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.55);
   font-weight: 700;
 }
 

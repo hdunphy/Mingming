@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import type { ProgramData } from '../../engine/types';
 import CardKeywordChips from './CardKeywordChips';
+import { getElementTextColor, getElementBadgeBg, badgeTextShadow } from '../utils/contrastText';
 
 interface Props {
     data: ProgramData;
@@ -87,23 +88,24 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{
-                    background: getElementColor(data.element),
-                    color: 'white',
-                    padding: '2px 6px',
+                    background: getElementBadgeBg(data.element),
+                    color: getElementTextColor(data.element),
+                    textShadow: badgeTextShadow(getElementTextColor(data.element)),
+                    padding: '2px 7px',
                     borderRadius: '4px',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
+                    fontSize: '0.85rem',
+                    fontWeight: 800
                 }}>
                     {data.baseCost}⚡
                 </span>
                 <span style={{ fontSize: '1.2rem' }}>{getElementIcon(data.element)}</span>
             </div>
 
-            <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f2f5fa', marginBottom: '4px' }}>
                 {data.name} {count && count > 1 ? `x${count}` : ''}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', color: '#888' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px', color: '#aab4c4' }}>
                 <span>{getCategoryIcon(data.category)}</span>
                 <span>{data.category.toUpperCase()}</span>
             </div>
@@ -120,6 +122,8 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                     padding: '2px 8px',
                     borderRadius: '10px',
                     fontSize: '0.7rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.3px',
                     boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
                     zIndex: 2
                 }}>

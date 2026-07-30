@@ -9,6 +9,7 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { computeDamagePreview } from '../utils/damagePreview';
+import { readableTextOn, badgeTextShadow } from '../utils/contrastText';
 
 /**
  * Status badge with a hover tooltip explaining the mechanic.
@@ -250,7 +251,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                 <div className="hud-top-row">
                     <span
                         className="hud-element-dot"
-                        style={{ background: accent }}
+                        style={{ background: accent, color: readableTextOn(accent), textShadow: badgeTextShadow(readableTextOn(accent)) }}
                         title={entity.primaryElement}
                     >
                         {entity.primaryElement[0]}

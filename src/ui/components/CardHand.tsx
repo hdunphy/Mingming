@@ -101,7 +101,7 @@ const CardHand: React.FC<{
                                 key={card.id}
                                 initial={{ opacity: 0, y: 40, scale: 0.9 }}
                                 animate={{
-                                    opacity: isUnplayable ? 0.45 : 1,
+                                    opacity: isUnplayable ? 0.6 : 1,
                                     y: isSelected ? -30 : (isHovered ? -30 : arcDip),
                                     scale: isSelected ? 1.08 : (isHovered ? 1.05 : 1),
                                     rotate: isSelected ? 0 : (isHovered ? 0 : rotation),

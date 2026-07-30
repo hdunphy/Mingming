@@ -9,6 +9,7 @@ import { DECK_SIZE, MIN_DECK_SIZE } from '../../engine/gameTypes';
 import { ELEMENTS } from '../../engine/types';
 import type { ProgramData } from '../../engine/types';
 import ProgramCard, { getElementColor, getElementIcon } from '../components/ProgramCard';
+import { getElementAccent, getElementBadgeBg, getElementTextColor, badgeTextShadow } from '../utils/contrastText';
 import './DeckTerminal.css';
 
 type SortMode = 'name' | 'cost' | 'element';
@@ -232,14 +233,14 @@ export default function DeckTerminal() {
                     const el = def?.primaryElement ?? 'None';
                     return (
                         <div className="dt-party-chip" key={member.id} style={{ borderColor: `${elementColor(el)}66` }}>
-                            <div className="dt-party-disc" style={{ background: `${elementColor(el)}33`, borderColor: elementColor(el), color: elementColor(el) }}>
+                            <div className="dt-party-disc" style={{ background: `${elementColor(el)}33`, borderColor: elementColor(el), color: getElementAccent(el) }}>
                                 {name.charAt(0).toUpperCase()}
                             </div>
                             <div className="dt-party-info">
                                 <span className="dt-party-name">{name}</span>
                                 <span className="dt-party-level">Lv. {member.level}</span>
                             </div>
-                            <span className="dt-element-chip" style={{ background: `${elementColor(el)}22`, color: elementColor(el), borderColor: `${elementColor(el)}88` }}>
+                            <span className="dt-element-chip" style={{ background: `${elementColor(el)}22`, color: getElementAccent(el), borderColor: `${elementColor(el)}88` }}>
                                 {getElementIcon(el)} {el}
                             </span>
                         </div>
@@ -274,7 +275,7 @@ export default function DeckTerminal() {
                                     <button
                                         key={el}
                                         className={`dt-chip ${elementFilter === el ? 'active' : ''}`}
-                                        style={elementFilter === el ? { borderColor: elementColor(el), color: elementColor(el) } : undefined}
+                                        style={elementFilter === el ? { borderColor: elementColor(el), color: getElementAccent(el) } : undefined}
                                         onClick={() => setElementFilter(f => f === el ? 'All' : el)}
                                     >
                                         <span className="dt-chip-dot" style={{ background: elementColor(el) }} />
@@ -426,7 +427,12 @@ export default function DeckTerminal() {
                                         >
                                             <span
                                                 className="dt-cost-gem"
-                                                style={{ background: `${elementColor(group.data.element)}33`, borderColor: elementColor(group.data.element), color: '#fff' }}
+                                                style={{
+                                                    background: getElementBadgeBg(group.data.element),
+                                                    borderColor: elementColor(group.data.element),
+                                                    color: getElementTextColor(group.data.element),
+                                                    textShadow: badgeTextShadow(getElementTextColor(group.data.element))
+                                                }}
                                             >
                                                 {group.data.baseCost}
                                             </span>
