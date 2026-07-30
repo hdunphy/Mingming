@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import type { ProgramData } from '../../engine/types';
+import CardKeywordChips from './CardKeywordChips';
 
 interface Props {
     data: ProgramData;
@@ -106,6 +107,8 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                 <span>{getCategoryIcon(data.category)}</span>
                 <span>{data.category.toUpperCase()}</span>
             </div>
+
+            <CardKeywordChips data={data} />
 
             {showBadge && (
                 <div style={{

@@ -402,6 +402,7 @@ const BattleArena: React.FC = () => {
                             isTargeted={isTargeted}
                             battleState={battleState}
                             selectedCardId={selectedCardId}
+                            selectedSourceId={selectedSourceId}
                             isHoveredTarget={hoveredEntityId === entity.id}
                             onClick={() => {
                                 if (isDead) return;

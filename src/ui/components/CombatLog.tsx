@@ -13,7 +13,19 @@ const CombatLog: React.FC = () => {
         if (!isCollapsed) {
             logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [logs, isCollapsed]);
+    }, [logs, osLogs, isCollapsed]);
+
+    // Both streams are append-only, so an entry's index WITHIN its own stream is
+    // a stable identity ('log-17' / 'os-3'). Indexes into the combined array are
+    // not: every new combat log used to shift all OS keys, re-triggering their
+    // enter animation. The engine records no interleaving info between the two
+    // streams (true chronological merging needs an engine-side sequence number —
+    // out of scope), so OS proc entries are tagged with an [OS] chip and kept
+    // appended after the combat stream.
+    const entries = [
+        ...logs.map((text, i) => ({ key: `log-${i}`, text, isOS: false })),
+        ...osLogs.map((text, i) => ({ key: `os-${i}`, text, isOS: true })),
+    ];
 
     return (
         <div className="combat-log-container">
@@ -35,21 +47,18 @@ const CombatLog: React.FC = () => {
                         transition={{ duration: 0.2 }}
                     >
                         <AnimatePresence initial={false}>
-                            {[...logs, ...osLogs.map(l => `[OS] ${l}`)].map((log, index) => {
-                                const isOS = log.startsWith('[OS]');
-                                // Use a combination of index and content for a more stable key, 
-                                // but note that logs are appended so index is mostly stable.
-                                return (
-                                    <motion.div
-                                        key={`${index}-${log.length}`}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className={`log-entry ${isOS ? 'os-proc' : ''}`}
-                                    >
-                                        <span className="log-timestamp">{'>>'}</span> {isOS ? log.replace('[OS] ', '') : log}
-                                    </motion.div>
-                                );
-                            })}
+                            {entries.map(entry => (
+                                <motion.div
+                                    key={entry.key}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className={`log-entry ${entry.isOS ? 'os-proc' : ''}`}
+                                >
+                                    <span className="log-timestamp">{'>>'}</span>{' '}
+                                    {entry.isOS && <span className="log-os-chip">OS</span>}
+                                    {entry.text}
+                                </motion.div>
+                            ))}
                         </AnimatePresence>
                         <div ref={logEndRef} />
                     </motion.div>

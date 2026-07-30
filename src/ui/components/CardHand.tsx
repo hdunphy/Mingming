@@ -8,6 +8,7 @@ import { calculateDamage } from '../../engine/combatUtils';
 import type { IBattleState } from '../../engine/types';
 import { validateSingleConstraint } from '../../engine/battleReducer';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
+import CardKeywordChips from './CardKeywordChips';
 
 // Helper to format an action for display
 const formatAction = (action: any): string => {
@@ -160,6 +161,9 @@ const CardHand: React.FC<{
                                         </motion.div>
                                     )}
                                 </div>
+
+                                {/* Keyword + applied-status chips */}
+                                <CardKeywordChips data={data} />
 
                                 {/* Target type */}
                                 <div className="card-target">{data.target}</div>

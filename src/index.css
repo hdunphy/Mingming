@@ -1070,6 +1070,20 @@ body {
   padding-left: 8px;
 }
 
+.log-os-chip {
+  display: inline-block;
+  padding: 0 4px;
+  margin-right: 4px;
+  border: 1px solid #00d2ff;
+  border-radius: 3px;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #00d2ff;
+  background: rgba(0, 210, 255, 0.08);
+  vertical-align: 1px;
+}
+
 .action-button:disabled {
   opacity: 0.3;
   cursor: not-allowed;

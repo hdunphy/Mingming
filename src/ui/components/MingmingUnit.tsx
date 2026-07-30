@@ -1,23 +1,66 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import type { IBattleEntity } from '../../engine/types';
+import type { IBattleEntity, StatusType } from '../../engine/types';
 import type { IBattleState } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
+import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
+import { computeDamagePreview } from '../utils/damagePreview';
 
-const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
-    Burn: { icon: '🔥', color: '#ff6633' },
-    Poison: { icon: '☠️', color: '#88cc22' },
-    Stunned: { icon: '⚡', color: '#ffcc00' },
-    Asleep: { icon: '💤', color: '#8888ff' },
-    Dazed: { icon: '💫', color: '#cc88ff' },
-    Weakened: { icon: '⬇️', color: '#ff8888' },
-    Strengthened: { icon: '⬆️', color: '#44ddff' },
-    Sharp: { icon: '🛡️', color: '#aaaaaa' },
-    Regen: { icon: '💚', color: '#22cc88' },
+/**
+ * Status badge with a hover tooltip explaining the mechanic.
+ * Rendered through a portal (same pattern as the OS/intent tooltips)
+ * so parent overflow never clips it.
+ */
+const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, stacks }) => {
+    const [showTooltip, setShowTooltip] = React.useState(false);
+    const badgeRef = React.useRef<HTMLDivElement>(null);
+    const info = statusGlossary[type];
+    const color = STATUS_COLORS[type] ?? '#ccc';
+
+    return (
+        <div
+            ref={badgeRef}
+            className="hud-status-badge"
+            style={{ borderColor: color, color }}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+        >
+            <span className="hud-status-icon">{info?.icon ?? '✦'}</span>
+            {stacks > 1 && <span className="hud-status-stacks">×{stacks}</span>}
+
+            {showTooltip && info && createPortal(
+                <div
+                    className="os-tooltip-portal"
+                    style={badgeRef.current ? (() => {
+                        const rect = badgeRef.current.getBoundingClientRect();
+                        const isRightSide = rect.left > window.innerWidth / 2;
+                        return {
+                            position: 'fixed' as const,
+                            left: isRightSide ? 'auto' : rect.right + 12,
+                            right: isRightSide ? (window.innerWidth - rect.left) + 12 : 'auto',
+                            top: rect.top,
+                            transform: 'translateY(-30%)',
+                            borderColor: color,
+                            boxShadow: `0 0 20px ${color}55`
+                        };
+                    })() : {}}
+                >
+                    <div className="tooltip-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                        <span className="tooltip-os-name" style={{ color }}>{info.name.toUpperCase()}</span>
+                        <span style={{ color, opacity: 0.85, fontSize: '0.7rem', fontWeight: 700 }}>×{stacks}</span>
+                    </div>
+                    <div className="tooltip-divider" />
+                    <div className="tooltip-body">{info.description}</div>
+                    <div className="tooltip-footer">STATUS READOUT</div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
 };
 
 /** Maps element names to neon accent colors */
@@ -40,6 +83,7 @@ interface MingmingUnitProps {
     isTargeted: boolean;
     battleState: IBattleState;
     selectedCardId?: string | null;
+    selectedSourceId?: string | null;
     isHoveredTarget?: boolean;
     onClick: () => void;
     onMouseEnter?: () => void;
@@ -54,6 +98,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     isTargeted,
     battleState,
     selectedCardId,
+    selectedSourceId,
     isHoveredTarget,
     onClick,
     onMouseEnter,
@@ -108,41 +153,25 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 
     const isDead = entity.currentHp <= 0;
 
-    // Damage Preview Logic
+    // Damage Preview Logic — always computed from the actually SELECTED source unit.
+    // Shows nothing when no living source is selected or it can't play the card.
     let previewDamage = 0;
     if (isHoveredTarget && selectedCardId) {
-        const card = battleState.playerDeck.hand.find(c => c.id === selectedCardId);
-        // Find the source (selected source in battle slice or default to first alive player?)
-        // Actually BattleArena should probably pass the sourceId too for accuracy, 
-        // but often only one player unit is "ready" to play a card.
-        // For now let's try to find a selected source in the battle state if available.
-        // Since we don't have access to the redux store directly here, we'll assume the entity with 
-        // the highest priority is the communicator if nothing else is selected.
-        // Actually, we'll just check if there's any entity that 'isSelected' in the whole party?
-        // No, let's just use GetProgramData and assume base stats for a quick preview.
-        // Better: Use the calculated damage tool on all potential sources?
-
-        if (card) {
-            const programData = GetProgramData(card.dataId);
-            const attackAction = programData.actions.find(a => a.type === 'ATTACK');
-            if (attackAction) {
-                // Find potential source - if player is targeting, usually they have a unit selected.
-                // We'll look for an entity that is "Selected" in the state.
-                const source = battleState.playerParty.find(p => p.currentEnergy >= (programData.baseCost || 0));
-                if (source) {
-                    previewDamage = calculateDamage(source, entity, programData, attackAction.power || 0, battleState);
-                }
-            }
-        }
+        previewDamage = computeDamagePreview(battleState, selectedSourceId, selectedCardId, entity.id);
     }
 
     const hpPercent = Math.max(0, (entity.currentHp / entity.maxHp) * 100);
     const previewHpPercent = Math.max(0, ((entity.currentHp - previewDamage) / entity.maxHp) * 100);
 
-    // Energy UI Logic: Over-energy support (e.g. 4/3)
-    const energyPercent = Math.min(100, (entity.currentEnergy / entity.maxEnergy) * 100);
+    // Energy UI Logic: Over-energy support (e.g. Energized carryover shows 4/3).
+    // When overflowing, the track represents currentEnergy: a normal segment up to
+    // maxEnergy plus a bright "energized" overflow segment for the surplus.
     const overEnergy = entity.currentEnergy > entity.maxEnergy;
-    const energyColor = overEnergy ? '#00e5ff' : '#ffcc00'; // Cyan for over-energy, gold for normal
+    const ENERGY_COLOR = '#ffcc00'; // gold — normal energy
+    const OVERFLOW_COLOR = '#00e5ff'; // energized cyan — overflow portion
+    const energyBasePercent = overEnergy
+        ? (entity.maxEnergy / entity.currentEnergy) * 100
+        : (entity.currentEnergy / entity.maxEnergy) * 100;
     const elKey = entity.primaryElement.toLowerCase();
     const accent = ELEMENT_COLORS[elKey] ?? ELEMENT_COLORS.none;
 
@@ -174,17 +203,6 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 
     // Chunky HP segments — 5 segments
     const HP_SEGMENTS = 5;
-
-    // Energy pips (chunky bars)
-    const energyPips: React.ReactNode[] = [];
-    for (let i = 0; i < entity.maxEnergy; i++) {
-        energyPips.push(
-            <div
-                key={i}
-                className={`hud-energy-pip ${i >= entity.currentEnergy ? 'empty' : ''}`}
-            />
-        );
-    }
 
     const getHpColor = (percent: number) => {
         if (percent < 25) return '#ef4444';
@@ -352,20 +370,9 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         );
                     })()}
                     <div className="hud-status-badges">
-                        {entity.statusEffects.map((se, i) => {
-                            const info = STATUS_ICONS[se.type] || { icon: '✦', color: '#ccc' };
-                            return (
-                                <div
-                                    key={`${se.type}-${i}`}
-                                    className="hud-status-badge"
-                                    style={{ borderColor: info.color, color: info.color }}
-                                    title={`${se.type} (${se.stacks} stacks)`}
-                                >
-                                    <span className="hud-status-icon">{info.icon}</span>
-                                    {se.stacks > 1 && <span className="hud-status-stacks">×{se.stacks}</span>}
-                                </div>
-                            );
-                        })}
+                        {entity.statusEffects.map((se, i) => (
+                            <StatusBadge key={se.id || `${se.type}-${i}`} type={se.type} stacks={se.stacks} />
+                        ))}
                     </div>
                 </div>
 
@@ -439,15 +446,31 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                             <motion.div
                                 className="hud-energy-fill"
                                 initial={{ width: 0 }}
-                                animate={{ width: `${energyPercent}%` }}
-                                style={{
-                                    backgroundColor: energyColor,
-                                    boxShadow: overEnergy ? '0 0 10px #00e5ff' : 'none'
-                                }}
+                                animate={{ width: `${energyBasePercent}%` }}
+                                style={{ backgroundColor: ENERGY_COLOR }}
                             />
+                            {overEnergy && (
+                                <motion.div
+                                    className="hud-energy-fill"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${100 - energyBasePercent}%` }}
+                                    style={{
+                                        left: `${energyBasePercent}%`,
+                                        backgroundColor: OVERFLOW_COLOR,
+                                        boxShadow: `0 0 10px ${OVERFLOW_COLOR}`
+                                    }}
+                                />
+                            )}
                         </div>
-                        <span className="hud-energy-text" style={{ color: energyColor, fontWeight: overEnergy ? 'bold' : 'normal' }}>
-                            {entity.currentEnergy} / {entity.maxEnergy} EP
+                        <span className="hud-energy-text" style={{ color: ENERGY_COLOR }}>
+                            <span style={overEnergy ? {
+                                color: OVERFLOW_COLOR,
+                                fontWeight: 'bold',
+                                textShadow: `0 0 6px ${OVERFLOW_COLOR}`
+                            } : undefined}>
+                                {entity.currentEnergy}
+                            </span>
+                            {' / '}{entity.maxEnergy} EP
                         </span>
                     </div>
                 </div>
