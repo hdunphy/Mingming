@@ -10,6 +10,8 @@ import { calculateDamage } from '../../engine/combatUtils';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { computeDamagePreview } from '../utils/damagePreview';
 import { readableTextOn, badgeTextShadow } from '../utils/contrastText';
+import { prefersReducedMotion } from '../utils/motionPrefs';
+import type { UnitFx } from '../hooks/useBattleVfx';
 
 /**
  * Status badge with a hover tooltip explaining the mechanic.
@@ -90,6 +92,8 @@ interface MingmingUnitProps {
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
     procs?: { id: number; text: string }[]; // New prop for floating text
+    /** Event-driven combat FX (floats, hit flash, pulses, lunge) from useBattleVfx. */
+    fx?: UnitFx;
 }
 
 const MingmingUnit: React.FC<MingmingUnitProps> = ({
@@ -105,9 +109,10 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     onMouseEnter,
     onMouseLeave,
     procs = [],
+    fx,
 }) => {
     const controls = useAnimation();
-    const [damageSplatters, setDamageSplatters] = React.useState<{ id: number; amount: number }[]>([]);
+    const [deathGlitch, setDeathGlitch] = React.useState(false);
     const [levelUpVisible, setLevelUpVisible] = React.useState(false);
     const [showOSTooltip, setShowOSTooltip] = React.useState(false);
     const [showIntentTooltip, setShowIntentTooltip] = React.useState(false);
@@ -125,18 +130,46 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
         };
     }, []);
 
-    // Damage shake + splatter
+    // Death FX: 'system crash' glitch on the frame HP hits 0.
+    // (Floating damage numbers + shakes are event-driven via the fx prop now.)
     useEffect(() => {
-        if (entity.currentHp < prevHpRef.current) {
-            const damage = prevHpRef.current - entity.currentHp;
-            const id = Date.now();
-            setDamageSplatters(prev => [...prev, { id, amount: damage }]);
-            controls.start({ x: [0, -8, 8, -4, 4, 0], transition: { duration: 0.35 } });
-            const timeout = setTimeout(() => setDamageSplatters(prev => prev.filter(s => s.id !== id)), 1000);
+        if (entity.currentHp <= 0 && prevHpRef.current > 0) {
+            // The .hud-death-glitch CSS animation degrades to an opacity pulse
+            // under prefers-reduced-motion (media query in index.css).
+            setDeathGlitch(true);
+            const timeout = setTimeout(() => setDeathGlitch(false), 500);
             pendingTimeoutsRef.current.push(timeout);
         }
         prevHpRef.current = entity.currentHp;
-    }, [entity.currentHp, controls]);
+    }, [entity.currentHp]);
+
+    // Hit feedback: shake scaled by damage fraction (fx.hitIntensity 0..1).
+    const hitKey = fx?.hitKey ?? 0;
+    const hitIntensity = fx?.hitIntensity ?? 0;
+    useEffect(() => {
+        if (!hitKey) return;
+        if (prefersReducedMotion()) {
+            // Reduced motion: a simple opacity dip instead of a shake.
+            controls.start({ x: 0, opacity: [1, 0.6, 1], transition: { duration: 0.25 } });
+            return;
+        }
+        const amp = 3 + 8 * hitIntensity;
+        controls.start({
+            x: [0, -amp, amp, -amp * 0.5, amp * 0.5, 0],
+            transition: { duration: 0.18 + 0.1 * hitIntensity },
+        });
+    }, [hitKey, hitIntensity, controls]);
+
+    // Attack anticipation: quick lunge toward the enemy side when this unit acts.
+    const lungeKey = fx?.lungeKey ?? 0;
+    useEffect(() => {
+        if (!lungeKey || prefersReducedMotion()) return;
+        const dir = isEnemy ? -1 : 1;
+        controls.start({
+            x: [0, dir * 16, 0],
+            transition: { duration: 0.24, times: [0, 0.35, 1], ease: 'easeOut' },
+        });
+    }, [lungeKey, isEnemy, controls]);
 
     // Level-up pop
     useEffect(() => {
@@ -213,7 +246,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 
     return (
         <motion.div
-            className={`hud-card ${isSelected ? 'hud-selected' : ''} ${isTargeted ? 'hud-targeted' : ''}`}
+            className={`hud-card ${isSelected ? 'hud-selected' : ''} ${isTargeted ? 'hud-targeted' : ''} ${isDead ? 'hud-dead' : ''} ${deathGlitch ? 'hud-death-glitch' : ''}`}
             data-side={isEnemy ? 'enemy' : 'player'}
             animate={controls}
             whileHover={{ scale: 1.05 }}
@@ -490,19 +523,82 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                 </div>
             </div>
 
+            {/* ── Transient overlays (remount on key change to replay) ── */}
+            {(fx?.hitKey ?? 0) > 0 && (
+                <motion.div
+                    key={`hitflash-${fx!.hitKey}`}
+                    className="hud-hit-flash"
+                    initial={{ opacity: 0.3 + 0.5 * (fx?.hitIntensity ?? 0) }}
+                    animate={{ opacity: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                />
+            )}
+            {(fx?.healKey ?? 0) > 0 && (
+                <motion.div
+                    key={`healpulse-${fx!.healKey}`}
+                    className="hud-heal-pulse"
+                    initial={{ opacity: 0.5 }}
+                    animate={{ opacity: 0 }}
+                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                />
+            )}
+            {(fx?.statusKey ?? 0) > 0 && (
+                <motion.div
+                    key={`statusring-${fx!.statusKey}`}
+                    className="hud-status-ring"
+                    style={{
+                        borderColor: fx!.statusColor,
+                        boxShadow: `0 0 16px ${fx!.statusColor}66, inset 0 0 10px ${fx!.statusColor}44`,
+                    }}
+                    initial={{ opacity: 0.9, scale: 1 }}
+                    animate={{ opacity: 0, scale: 1.04 }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
+            )}
+
             {/* ── Floating FX ── */}
             <AnimatePresence>
-                {damageSplatters.map(s => (
+                {(fx?.floats ?? []).map(f => (
                     <motion.div
-                        key={s.id}
-                        initial={{ opacity: 0, scale: 0.5, y: 0 }}
-                        animate={{ opacity: 1, scale: 1.4, y: -80 }}
+                        key={f.id}
+                        className={`hud-float hud-float-${f.kind}`}
+                        style={{ color: f.color, left: `calc(50% + ${(f.slot - 2.5) * 15}px)` }}
+                        initial={{ opacity: 0, y: 6, scale: f.kind === 'crit' ? 0.6 : 0.7 }}
+                        animate={{
+                            opacity: [0, 1, 1, 0],
+                            y: prefersReducedMotion() ? -18 : -86,
+                            scale: f.kind === 'crit' ? 1.55 : f.kind === 'absorbed' ? 0.95 : 1.15,
+                            rotate: f.kind === 'crit' ? (f.slot % 2 ? -8 : 8) : 0,
+                        }}
                         exit={{ opacity: 0 }}
-                        className="hud-damage-splatter"
+                        transition={{
+                            duration: 1,
+                            ease: 'easeOut',
+                            opacity: { duration: 1, times: [0, 0.08, 0.7, 1] },
+                        }}
                     >
-                        -{s.amount}
+                        {f.text}
                     </motion.div>
                 ))}
+                {isDead && (
+                    <motion.div
+                        key="terminated-stamp"
+                        className="hud-terminated-wrap"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2, delay: deathGlitch ? 0.35 : 0 }}
+                    >
+                        <motion.span
+                            className="hud-terminated-stamp"
+                            initial={{ scale: 1.7, rotate: -14 }}
+                            animate={{ scale: 1, rotate: -8 }}
+                            transition={{ duration: 0.25, ease: 'easeOut', delay: deathGlitch ? 0.35 : 0 }}
+                        >
+                            ☠ TERMINATED
+                        </motion.span>
+                    </motion.div>
+                )}
                 {levelUpVisible && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.5, y: -10 }}

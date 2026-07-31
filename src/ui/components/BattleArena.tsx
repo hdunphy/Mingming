@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { store, type RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
@@ -19,6 +19,8 @@ import { deleteSave } from '../../engine/SaveSystem';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
+import { useBattleVfx } from '../hooks/useBattleVfx';
+import { prefersReducedMotion } from '../utils/motionPrefs';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -48,49 +50,71 @@ const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     </motion.div>
 );
 
-const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => void, onDefeatReset?: () => void }> = ({ result, onShowReport, onDefeatReset }) => (
-    <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="end-game-overlay"
-        style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.85)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000
-        }}
-    >
-        <motion.h1
-            initial={{ scale: 0 }}
-            animate={{ scale: 1.2 }}
+const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => void, onDefeatReset?: () => void }> = ({ result, onShowReport, onDefeatReset }) => {
+    // Entrance beat: the headline slams in from oversized + blurred (a digital
+    // "lock-on"), then the actions fade up. Reduced motion: simple fade only.
+    const reduced = prefersReducedMotion();
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="end-game-overlay"
             style={{
-                fontSize: '5rem',
-                color: result === 'WIN' ? '#00ffaa' : '#ff4444',
-                textShadow: '0 0 30px currentColor'
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2000
             }}
         >
-            {result === 'WIN' ? 'VICTORY' : 'DEFEAT'}
-        </motion.h1>
-        {result === 'LOSS' && (
-            <p style={{ color: '#ff8888', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}>
-                RUN TERMINATED. DATA WIPED.
-            </p>
-        )}
-        {result === 'WIN' && onShowReport ? (
-            <button onClick={onShowReport} className="action-button" style={{ marginTop: '40px' }}>
-                VIEW REWARDS
-            </button>
-        ) : (
-            <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
-                {result === 'LOSS' ? 'RESTART GAUNTLET' : 'RETURN TO BASE'}
-            </button>
-        )}
-    </motion.div>
-);
+            <motion.h1
+                initial={reduced
+                    ? { opacity: 0 }
+                    : { scale: 2.3, opacity: 0, filter: 'blur(14px)', letterSpacing: '0.5em' }}
+                animate={reduced
+                    ? { opacity: 1 }
+                    : { scale: 1, opacity: 1, filter: 'blur(0px)', letterSpacing: '0.1em' }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                style={{
+                    fontSize: '5rem',
+                    color: result === 'WIN' ? '#00ffaa' : '#ff4444',
+                    textShadow: '0 0 30px currentColor'
+                }}
+            >
+                {result === 'WIN' ? 'VICTORY' : 'DEFEAT'}
+            </motion.h1>
+            {result === 'LOSS' && (
+                <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45, duration: 0.3 }}
+                    style={{ color: '#ff8888', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}
+                >
+                    RUN TERMINATED. DATA WIPED.
+                </motion.p>
+            )}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55, duration: 0.3 }}
+            >
+                {result === 'WIN' && onShowReport ? (
+                    <button onClick={onShowReport} className="action-button" style={{ marginTop: '40px' }}>
+                        VIEW REWARDS
+                    </button>
+                ) : (
+                    <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
+                        {result === 'LOSS' ? 'RESTART GAUNTLET' : 'RETURN TO BASE'}
+                    </button>
+                )}
+            </motion.div>
+        </motion.div>
+    );
+};
 
 const BattleArena: React.FC = () => {
     const dispatch = useDispatch();
@@ -110,6 +134,23 @@ const BattleArena: React.FC = () => {
     // Epic 3.5: Post-battle state
     const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
     const [showReport, setShowReport] = useState(false);
+
+    // Combat juice: event-bus driven VFX (floats, flashes, lunges, arena shake)
+    const vfx = useBattleVfx(battleState);
+    const { triggerLunge } = vfx; // stable callback, safe as an effect dep
+    const stageControls = useAnimation();
+
+    // Stage fade-in on mount (was a declarative animate; controls now own it so
+    // the big-hit shake below can share the same motion component).
+    useEffect(() => {
+        stageControls.start({ opacity: 1, transition: { duration: 1 } });
+    }, [stageControls]);
+
+    // Big hits (>= 33% max HP) nudge the whole arena a few px.
+    useEffect(() => {
+        if (!vfx.shakeKey || prefersReducedMotion()) return;
+        stageControls.start({ x: [0, -3, 3, -2, 2, 0], transition: { duration: 0.22 } });
+    }, [vfx.shakeKey, stageControls]);
 
     const prevSideRef = useRef(battleState?.activeSide);
     // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect
@@ -229,6 +270,9 @@ const BattleArena: React.FC = () => {
             if (action.type === 'PLAY_PROGRAM') {
                 dispatch(playProgram(action.payload));
             } else if (action.type === 'EXECUTE_INTENT') {
+                // EXECUTE_INTENT emits no PROGRAM_PLAYED event, so nudge the
+                // attacker's lunge from here (purely visual, no reducer delay).
+                triggerLunge(action.payload.sourceId);
                 dispatch(executeIntent(action.payload));
             } else if (action.type === 'END_TURN') {
                 dispatch(endTurn());
@@ -238,7 +282,7 @@ const BattleArena: React.FC = () => {
         runAI();
 
         return () => { cancelled = true; };
-    }, [battleState, dispatch]);
+    }, [battleState, dispatch, triggerLunge]);
 
     const handlePlay = (cardId: string, targetId: string) => {
         if (!battleState || !selectedSourceId) return;
@@ -364,11 +408,13 @@ const BattleArena: React.FC = () => {
                     <motion.div
                         key={entityKey}
                         initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
-                        animate={{ opacity: isDead ? 0.35 : 1, x: translateX }}
+                        animate={{ opacity: isDead ? 0.55 : 1, x: translateX, scale: isDead ? 0.96 : 1 }}
                         transition={{ delay: index * 0.1, type: 'spring' }}
-                        // Pointer events must stay 'auto' even for dead units, 
+                        // Pointer events must stay 'auto' even for dead units,
                         // so they can correctly receive the 'onPointerUp' to clear targeting state.
-                        style={{ pointerEvents: 'auto', filter: isDead ? 'grayscale(100%) brightness(50%)' : 'none' }}
+                        // Desaturation of dead units lives on .hud-dead (inside the card),
+                        // so the TERMINATED stamp keeps its neon red.
+                        style={{ pointerEvents: 'auto' }}
                         onMouseEnter={() => {
                             if (isTargeting) setHoveredEntityId(entity.id);
                         }}
@@ -400,6 +446,7 @@ const BattleArena: React.FC = () => {
                             isEnemy={isEnemy}
                             isSelected={isSelected}
                             isTargeted={isTargeted}
+                            fx={vfx.unitFx[entity.id]}
                             battleState={battleState}
                             selectedCardId={selectedCardId}
                             selectedSourceId={selectedSourceId}
@@ -502,12 +549,11 @@ const BattleArena: React.FC = () => {
                 </svg>
             )}
 
-            {/* Stage: Top 70% */}
+            {/* Stage: Top 70% (controls: fade-in on mount + big-hit shake) */}
             <motion.div
                 className="stage-area"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
+                animate={stageControls}
             >
                 {renderParty(battleState.playerParty, false)}
 
