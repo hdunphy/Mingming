@@ -305,6 +305,32 @@ describe('gameSlice', () => {
             // Bundle XP is never distributed to the roster
             expect(state.roster[0].experience).toBe(xpBefore);
         });
+
+        it('applies gym-clear draft picks through bundle.cards (draftRounds metadata is inert)', () => {
+            let state = gameReducer(initial, addToRoster(makeMingming('mm1')));
+            const xpBefore = state.roster[0].experience;
+
+            // A gym-clear bundle: the three drafted picks are accumulated into
+            // `cards` at claim time; `draftRounds` itself grants nothing.
+            const bundle: IRewardBundle = {
+                scraps: 30,
+                blueprints: [],
+                cards: [makeCard('draft1', 'a'), makeCard('draft2', 'b'), makeCard('draft3', 'c')],
+                cardChoices: [],
+                draftRounds: [
+                    { sourceEntityName: 'GYM DRAFT 1', options: [makeCard('o1'), makeCard('o2'), makeCard('o3')] },
+                    { sourceEntityName: 'GYM DRAFT 2', options: [makeCard('o4'), makeCard('o5'), makeCard('o6')] },
+                    { sourceEntityName: 'GYM DRAFT 3', options: [makeCard('o7'), makeCard('o8'), makeCard('o9')] }
+                ],
+                totalXP: 0
+            };
+            state = gameReducer(state, applyRewardBundle(bundle));
+
+            expect(state.scrapCount).toBe(30);
+            // Only the picked cards land in the inventory — never the unpicked options
+            expect(state.cardInventory.map(c => c.instanceId)).toEqual(['draft1', 'draft2', 'draft3']);
+            expect(state.roster[0].experience).toBe(xpBefore);
+        });
     });
 
     // --- Save/Load ---

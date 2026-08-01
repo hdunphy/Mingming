@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import type { IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
-import ProgramCard from './ProgramCard';
+import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
+import { prefersReducedMotion } from '../utils/motionPrefs';
 
 interface BattleReportProps {
     bundle: IRewardBundle;
@@ -13,9 +14,58 @@ interface BattleReportProps {
     onContinue: (chosenCards: IOwnedProgram[], chosenRelic?: string) => void;
 }
 
+// --- Payoff timing (ms) ---
+/** Cards start flipping shortly after the panel lands. */
+const REVEAL_BASE_DELAY_MS = 300;
+/** Scrap counter starts once the first cards are face-up. */
+const SCRAP_COUNT_DELAY_MS = 800;
+const SCRAP_COUNT_DURATION_MS = 600;
+/** Blueprint line pops in after the scrap counter starts. */
+const BLUEPRINT_POP_DELAY_S = 1.1;
+
+/** Scrap total counts up from 0 (instant under prefers-reduced-motion). */
+const CountUp: React.FC<{ value: number; delayMs?: number; durationMs?: number }> = ({
+    value,
+    delayMs = 0,
+    durationMs = SCRAP_COUNT_DURATION_MS
+}) => {
+    const [display, setDisplay] = useState(0);
+    const reduced = prefersReducedMotion();
+
+    useEffect(() => {
+        if (prefersReducedMotion()) return; // reduced motion renders `value` directly
+        let raf = 0;
+        let start: number | null = null;
+        const timeout = setTimeout(() => {
+            const tick = (now: number) => {
+                if (start === null) start = now;
+                const p = Math.min(1, (now - start) / durationMs);
+                // ease-out cubic so the tail slows down as it lands
+                setDisplay(Math.round(value * (1 - Math.pow(1 - p, 3))));
+                if (p < 1) raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+        }, delayMs);
+        return () => {
+            clearTimeout(timeout);
+            cancelAnimationFrame(raf);
+        };
+    }, [value, delayMs, durationMs]);
+
+    return <>{reduced ? value : display}</>;
+};
+
 const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
     const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
+
+    // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
+    const draftRounds = bundle.draftRounds ?? [];
+    const [draftIndex, setDraftIndex] = useState(0);
+    const [draftPicks, setDraftPicks] = useState<IOwnedProgram[]>([]);
+    /** instanceId of the card currently playing its selection pulse. */
+    const [pendingPickId, setPendingPickId] = useState<string | null>(null);
+    const draftActive = draftIndex < draftRounds.length;
 
     const totalChoices = bundle.cardChoices.length;
     const selectedCount = Object.values(selections).filter(s => !!s).length;
@@ -31,9 +81,121 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
 
     const handleFinalize = () => {
         if (!canContinue) return;
-        const chosen = Object.values(selections).filter((s): s is IOwnedProgram => !!s);
+        const chosen = [
+            ...Object.values(selections).filter((s): s is IOwnedProgram => !!s),
+            ...draftPicks
+        ];
         onContinue(chosen, selectedRelic || undefined);
     };
+
+    /** Advance the draft; card=null means the round was skipped. */
+    const commitDraftPick = (card: IOwnedProgram | null) => {
+        if (card) setDraftPicks(prev => [...prev, card]);
+        setPendingPickId(null);
+        setDraftIndex(prev => prev + 1);
+    };
+
+    // --- Draft phase: shown INSTEAD of the report until all rounds resolve ---
+    if (draftActive) {
+        const round = draftRounds[draftIndex];
+        return (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="battle-report-overlay"
+                style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(5, 5, 10, 0.95)',
+                    backdropFilter: 'blur(15px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 3000,
+                    padding: '20px'
+                }}
+            >
+                {/* key remounts the panel per round → fresh face-down flips */}
+                <motion.div
+                    key={draftIndex}
+                    initial={{ y: 30, scale: 0.95, opacity: 0 }}
+                    animate={{ y: 0, scale: 1, opacity: 1 }}
+                    style={{
+                        width: '100%',
+                        maxWidth: '720px',
+                        background: 'linear-gradient(135deg, #151520 0%, #0a0a10 100%)',
+                        borderRadius: '12px',
+                        padding: '30px 40px 25px',
+                        border: '1px solid rgba(0, 210, 255, 0.25)',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 0 30px rgba(0, 210, 255, 0.06)',
+                        textAlign: 'center'
+                    }}
+                >
+                    <div style={{ fontSize: '0.75rem', color: '#ffcc00', fontWeight: 900, letterSpacing: '4px', marginBottom: '6px' }}>
+                        GYM FIREWALL BREACHED
+                    </div>
+                    <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900, color: '#fff', letterSpacing: '2px' }}>
+                        SPOILS PROTOCOL
+                    </h1>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '12px 0 25px' }}>
+                        <span style={{ color: '#00d2ff', fontSize: '0.85rem', fontWeight: 900, letterSpacing: '2px' }}>
+                            DRAFT {draftIndex + 1}/{draftRounds.length}
+                        </span>
+                        <span style={{ display: 'flex', gap: '5px' }}>
+                            {draftRounds.map((_, i) => (
+                                <span
+                                    key={i}
+                                    style={{
+                                        width: '18px',
+                                        height: '4px',
+                                        borderRadius: '2px',
+                                        background: i < draftIndex ? '#00ffaa' : i === draftIndex ? '#00d2ff' : '#2a2a3a',
+                                        boxShadow: i === draftIndex ? '0 0 6px #00d2ff' : 'none'
+                                    }}
+                                />
+                            ))}
+                        </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '25px' }}>
+                        {round.options.map((opt, i) => (
+                            <RevealCard
+                                key={`${draftIndex}-${opt.instanceId}`}
+                                data={GetProgramData(opt.dataId)}
+                                revealDelayMs={REVEAL_BASE_DELAY_MS + i * REVEAL_STAGGER_MS}
+                                isSelected={pendingPickId === opt.instanceId}
+                                disabled={pendingPickId !== null}
+                                onSelect={() => setPendingPickId(opt.instanceId)}
+                                onPulseComplete={() => commitDraftPick(opt)}
+                            />
+                        ))}
+                    </div>
+
+                    <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '15px', letterSpacing: '1px' }}>
+                        SELECT ONE PROGRAM TO EXTRACT
+                    </div>
+
+                    {/* Skipping is allowed but visually discouraged */}
+                    <button
+                        onClick={() => commitDraftPick(null)}
+                        disabled={pendingPickId !== null}
+                        style={{
+                            background: 'none',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            color: '#555',
+                            padding: '6px 18px',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            letterSpacing: '2px',
+                            cursor: pendingPickId !== null ? 'default' : 'pointer'
+                        }}
+                    >
+                        SKIP
+                    </button>
+                </motion.div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
@@ -80,17 +242,24 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                             <h3 style={{ margin: '0 0 15px', fontSize: '0.9rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Yield</h3>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                 <span style={{ color: '#ccc' }}>Scraps Recovered</span>
-                                <span style={{ color: '#00ffaa', fontWeight: 'bold', fontSize: '1.2rem' }}>+{bundle.scraps}</span>
+                                <span style={{ color: '#00ffaa', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                                    +<CountUp value={bundle.scraps} delayMs={SCRAP_COUNT_DELAY_MS} />
+                                </span>
                             </div>
                             {bundle.blueprints.length > 0 && (
-                                <div style={{
-                                    marginTop: '15px',
-                                    padding: '12px',
-                                    background: 'rgba(255, 0, 255, 0.1)',
-                                    border: '1px solid #ff00ff',
-                                    borderRadius: '6px',
-                                    animation: 'pulse-glow 2s infinite'
-                                }}>
+                                <motion.div
+                                    initial={prefersReducedMotion() ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    transition={{ delay: BLUEPRINT_POP_DELAY_S, duration: 0.35, ease: 'easeOut' }}
+                                    style={{
+                                        marginTop: '15px',
+                                        padding: '12px',
+                                        background: 'rgba(255, 0, 255, 0.1)',
+                                        border: '1px solid #ff00ff',
+                                        borderRadius: '6px',
+                                        animation: 'pulse-glow 2s infinite'
+                                    }}
+                                >
                                     <div style={{ fontSize: '0.7rem', color: '#ff00ff', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
                                         New Blueprint Detected
                                     </div>
@@ -100,7 +269,7 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                             <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>ACQUIRED</span>
                                         </div>
                                     ))}
-                                </div>
+                                </motion.div>
                             )}
 
                         </div>
@@ -133,7 +302,9 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                     {/* Right: Card Selections */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffcc00', letterSpacing: '1px' }}>DECONSTRUCTED PROGRAMS</h3>
-                        <p style={{ margin: '-10px 0 10px', fontSize: '0.8rem', color: '#666' }}>PICK ONE PER DEFEATED UNIT</p>
+                        {totalChoices > 0 && (
+                            <p style={{ margin: '-10px 0 10px', fontSize: '0.8rem', color: '#666' }}>PICK ONE PER DEFEATED UNIT</p>
+                        )}
 
                         <div style={{ flex: 1, overflowY: 'auto', maxHeight: '400px', paddingRight: '10px' }}>
                             {/* Relic Choices */}
@@ -167,19 +338,51 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                 </div>
                             )}
 
+                            {/* Gym-clear draft summary (draft already resolved above) */}
+                            {draftRounds.length > 0 && (
+                                <div style={{ marginBottom: '25px', padding: '15px', background: 'rgba(0, 255, 170, 0.05)', borderRadius: '8px', border: '1px solid rgba(0, 255, 170, 0.3)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#00ffaa', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                        Draft Complete — {draftPicks.length}/{draftRounds.length} Programs Extracted
+                                    </div>
+                                    {draftPicks.length > 0 ? (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                            {draftPicks.map(pick => (
+                                                <span
+                                                    key={pick.instanceId}
+                                                    style={{
+                                                        padding: '3px 10px',
+                                                        borderRadius: '4px',
+                                                        background: 'rgba(0,0,0,0.4)',
+                                                        border: '1px solid rgba(0, 255, 170, 0.4)',
+                                                        color: '#d6ffef',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 700
+                                                    }}
+                                                >
+                                                    {GetProgramData(pick.dataId).name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#667', fontSize: '0.8rem' }}>All rounds skipped.</div>
+                                    )}
+                                </div>
+                            )}
+
                             {bundle.cardChoices.map((choice, choiceIdx) => (
                                 <div key={choiceIdx} style={{ marginBottom: '25px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                     <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase' }}>Source: {choice.sourceEntityName}</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                        {choice.options.map((opt) => {
+                                        {choice.options.map((opt, optIdx) => {
                                             const data = GetProgramData(opt.dataId);
                                             const isSelected = selections[choiceIdx]?.instanceId === opt.instanceId;
                                             return (
-                                                <ProgramCard
+                                                <RevealCard
                                                     key={opt.instanceId}
                                                     data={data}
+                                                    revealDelayMs={REVEAL_BASE_DELAY_MS + (choiceIdx * 3 + optIdx) * REVEAL_STAGGER_MS}
                                                     isSelected={isSelected}
-                                                    onClick={() => handleSelect(choiceIdx, opt)}
+                                                    onSelect={() => handleSelect(choiceIdx, opt)}
                                                 />
                                             );
                                         })}

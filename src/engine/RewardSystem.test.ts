@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rollDropTable, getScrapYield } from './RewardSystem';
+import { rollDropTable, rollDraftRounds, getScrapYield } from './RewardSystem';
 import { ProgramRegistry } from './data/programRegistry';
 import type { IBattleEntity } from './types';
 import { ELEMENTS } from './types';
@@ -142,6 +142,73 @@ describe('RewardSystem', () => {
             // Expect roughly 50 (200 * 0.25) vs 10 (200 * 0.05)
             expect(bpCountSmall).toBeGreaterThan(25);
             expect(bpCountLarge).toBeLessThan(40);
+        });
+    });
+
+    describe('rollDraftRounds (gym-clear mini-draft)', () => {
+        it('returns 3 rounds of 3 options by default', () => {
+            const rounds = rollDraftRounds('gym-seed', 'Fire');
+            expect(rounds).toHaveLength(3);
+            for (const round of rounds) {
+                expect(round.options).toHaveLength(3);
+            }
+        });
+
+        it('respects a custom round count', () => {
+            expect(rollDraftRounds('gym-seed', 'Water', 5)).toHaveLength(5);
+            expect(rollDraftRounds('gym-seed', 'Water', 1)).toHaveLength(1);
+        });
+
+        it('offers distinct cards within each round', () => {
+            for (let i = 0; i < 50; i++) {
+                const rounds = rollDraftRounds(`distinct-${i}`, 'Fire');
+                for (const round of rounds) {
+                    const ids = round.options.map(o => o.dataId);
+                    expect(new Set(ids).size).toBe(ids.length);
+                }
+            }
+        });
+
+        it('is deterministic for the same seed (dataIds match across calls)', () => {
+            const a = rollDraftRounds('same-seed-42', 'Nature');
+            const b = rollDraftRounds('same-seed-42', 'Nature');
+            expect(a.map(r => r.options.map(o => o.dataId)))
+                .toEqual(b.map(r => r.options.map(o => o.dataId)));
+        });
+
+        it('never offers tokens and only offers gym-element or neutral cards', () => {
+            for (const element of ELEMENTS) {
+                for (let i = 0; i < 10; i++) {
+                    const rounds = rollDraftRounds(`draft-${element}-${i}`, element);
+                    for (const round of rounds) {
+                        for (const option of round.options) {
+                            const data = ProgramRegistry[option.dataId];
+                            expect(data, `unknown card ${option.dataId}`).toBeDefined();
+                            expect(data.isToken ?? false, `${option.dataId} is a token`).toBe(false);
+                            expect(data.rarity as string, `${option.dataId} has Token rarity`).not.toBe('Token');
+                            expect([element, 'None']).toContain(data.element);
+                        }
+                    }
+                }
+            }
+        });
+
+        it('weights choices toward the gym element (statistically)', () => {
+            let elementMatches = 0;
+            let total = 0;
+            for (let i = 0; i < 100; i++) {
+                const rounds = rollDraftRounds(`weight-seed-${i}`, 'Fire');
+                for (const round of rounds) {
+                    for (const option of round.options) {
+                        total++;
+                        if (ProgramRegistry[option.dataId].element === 'Fire') elementMatches++;
+                    }
+                }
+            }
+            // 70% of picks are drawn from the Fire-exclusive pool, and the mixed
+            // pool contains Fire cards too — Fire should clearly dominate neutral.
+            expect(total).toBe(900);
+            expect(elementMatches).toBeGreaterThan(total * 0.55);
         });
     });
 

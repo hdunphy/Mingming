@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { motion } from 'framer-motion';
 import type { RootState } from '../store/store';
 import {
     removeCardFromInventory,
@@ -14,16 +15,170 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { createMingmingInstance } from '../../engine/gameTypes';
 import type { IBlueprint } from '../../engine/gameTypes';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import ProgramCard from '../components/ProgramCard';
+import ProgramCard, { getElementColor, getElementIcon } from '../components/ProgramCard';
+import RevealCard, { REVEAL_STAGGER_MS } from '../components/RevealCard';
+import { prefersReducedMotion } from '../utils/motionPrefs';
+
+// --- First-synthesis celebration timing (ms) ---
+/** Cards start flipping once the name slam has landed. */
+const FAN_BASE_DELAY_MS = 700;
+/** 'BASE DECK ACQUIRED' caption lands after the last card flips. */
+const CAPTION_DELAY_MS = FAN_BASE_DELAY_MS + 9 * REVEAL_STAGGER_MS + 550;
+/** Celebration auto-dismisses if not clicked through. */
+const CELEBRATION_AUTO_DISMISS_MS = 8000;
+
+interface CelebrationData {
+    name: string;
+    element: string;
+    cardIds: string[];
+}
+
+/**
+ * First-synthesis payoff: the new Mingming's name/element slams in, its 10
+ * base-deck cards fan out face-down in an arc and flip over in a stagger
+ * (shared RevealCard), capped with a 'BASE DECK ACQUIRED' caption.
+ * Click anywhere to dismiss; auto-dismisses via the parent's timer.
+ */
+const BaseDeckCelebration: React.FC<{ data: CelebrationData; onDismiss: () => void }> = ({ data, onDismiss }) => {
+    const reduced = prefersReducedMotion();
+    const accent = getElementColor(data.element);
+    const n = data.cardIds.length;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={onDismiss}
+            style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 4000,
+                background: 'rgba(3, 4, 8, 0.94)',
+                backdropFilter: 'blur(12px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                overflow: 'hidden'
+            }}
+        >
+            {/* Name slam */}
+            <motion.h1
+                initial={reduced
+                    ? { opacity: 0 }
+                    : { scale: 2.4, opacity: 0, filter: 'blur(14px)', letterSpacing: '0.6em' }}
+                animate={reduced
+                    ? { opacity: 1 }
+                    : { scale: 1, opacity: 1, filter: 'blur(0px)', letterSpacing: '0.12em' }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                style={{
+                    margin: 0,
+                    fontSize: '3.6rem',
+                    fontWeight: 900,
+                    color: '#fff',
+                    textShadow: `0 0 30px ${accent}`
+                }}
+            >
+                {data.name.toUpperCase()}
+            </motion.h1>
+            <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45, duration: 0.3 }}
+                style={{
+                    marginTop: '6px',
+                    fontSize: '0.95rem',
+                    fontWeight: 900,
+                    letterSpacing: '5px',
+                    color: accent,
+                    textShadow: `0 0 12px ${accent}`
+                }}
+            >
+                {getElementIcon(data.element)} {data.element.toUpperCase()} CLASS COMPILED
+            </motion.div>
+
+            {/* Base deck fan: 10 face-down cards in an arc, flipping in a stagger */}
+            <div style={{
+                position: 'relative',
+                marginTop: '40px',
+                height: '270px',
+                width: 'min(1100px, 96vw)',
+                transform: 'scale(0.92)',
+                pointerEvents: 'none'
+            }}>
+                {data.cardIds.map((dataId, i) => {
+                    const angle = (i - (n - 1) / 2) * 8;
+                    return (
+                        <div
+                            key={`${dataId}-${i}`}
+                            style={{
+                                position: 'absolute',
+                                left: '50%',
+                                bottom: 0,
+                                transform: `translateX(-50%) rotate(${angle}deg)`,
+                                transformOrigin: '50% 165%'
+                            }}
+                        >
+                            <RevealCard
+                                data={GetProgramData(dataId)}
+                                revealDelayMs={FAN_BASE_DELAY_MS + i * REVEAL_STAGGER_MS}
+                                disabled
+                            />
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Caption beat */}
+            <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: CAPTION_DELAY_MS / 1000, duration: 0.35, ease: 'easeOut' }}
+                style={{
+                    marginTop: '30px',
+                    fontSize: '1.3rem',
+                    fontWeight: 900,
+                    letterSpacing: '6px',
+                    color: '#00ffaa',
+                    textShadow: '0 0 18px rgba(0, 255, 170, 0.8)'
+                }}
+            >
+                BASE DECK ACQUIRED
+            </motion.div>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                transition={{ delay: CAPTION_DELAY_MS / 1000 + 0.4, duration: 0.4 }}
+                style={{ marginTop: '14px', fontSize: '0.7rem', letterSpacing: '3px', color: '#8892a8' }}
+            >
+                CLICK ANYWHERE TO CONTINUE
+            </motion.div>
+        </motion.div>
+    );
+};
 
 export default function SynthesisLab() {
     const dispatch = useDispatch();
     const { cardInventory, scrapCount, blueprints, baseDecksGranted } = useSelector((s: RootState) => s.game);
     const [selectedCards, setSelectedCards] = useState<Map<string, string[]>>(new Map()); // dataId -> instanceIds
     const [lastCompiled, setLastCompiled] = useState<string | null>(null);
-    const [kitGranted, setKitGranted] = useState(false);
+    const [celebration, setCelebration] = useState<CelebrationData | null>(null);
     const [isInstalling, setIsInstalling] = useState<IBlueprint | null>(null);
     const [selectedOS, setSelectedOS] = useState<string | null>(null);
+
+    // All pending timeouts cleared on unmount (pendingTimeoutsRef pattern).
+    const pendingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+    useEffect(() => {
+        const timeouts = pendingTimeoutsRef.current;
+        return () => {
+            timeouts.forEach(clearTimeout);
+            timeouts.length = 0;
+        };
+    }, []);
+    const schedule = (fn: () => void, ms: number) => {
+        pendingTimeoutsRef.current.push(setTimeout(fn, ms));
+    };
 
     const selectedScrap = useMemo(() => {
         let total = 0;
@@ -72,17 +227,31 @@ export default function SynthesisLab() {
     const compileMingming = (architectureId: string, cost: number, activeOS: string) => {
         if (scrapCount < cost) return;
         // First compile of a species also grants its base deck (handled in addToRoster)
-        setKitGranted(!baseDecksGranted.includes(architectureId));
+        const firstSynthesis = !baseDecksGranted.includes(architectureId);
         dispatch(spendScrap(cost));
         const newMm = {
             ...createMingmingInstance(architectureId, 1),
             activeOS
         };
         dispatch(addToRoster(newMm));
-        setLastCompiled(architectureId);
         setIsInstalling(null);
         setSelectedOS(null);
-        setTimeout(() => setLastCompiled(null), 2000);
+
+        if (firstSynthesis) {
+            // Base-deck kit granted: full celebration beat (name slam → card
+            // fan flip → 'BASE DECK ACQUIRED'). Click-through or auto-dismiss.
+            const def = GetMingmingData(architectureId);
+            setCelebration({
+                name: def.name,
+                element: def.primaryElement,
+                cardIds: [...def.baseDeck]
+            });
+            schedule(() => setCelebration(null), CELEBRATION_AUTO_DISMISS_MS);
+        } else {
+            // Re-synthesis (no base deck): keep the simple success flash.
+            setLastCompiled(architectureId);
+            schedule(() => setLastCompiled(null), 2000);
+        }
     };
 
     const groupedCardInventory = useMemo(() => {
@@ -170,7 +339,7 @@ export default function SynthesisLab() {
                                         {bp.compileCost} ⚙️
                                     </div>
                                     {lastCompiled === bp.architectureId && (
-                                        <div className="compile-flash">✨ Compiled!{kitGranted ? ' Base deck added to inventory!' : ''}</div>
+                                        <div className="compile-flash">✨ Compiled!</div>
                                     )}
                                 </div>
                             );
@@ -178,6 +347,14 @@ export default function SynthesisLab() {
                     </div>
                 </div>
             </div>
+
+            {/* First-synthesis base-deck celebration */}
+            {celebration && (
+                <BaseDeckCelebration
+                    data={celebration}
+                    onDismiss={() => setCelebration(null)}
+                />
+            )}
 
             {/* Installation Wizard Overlay */}
             {isInstalling && (

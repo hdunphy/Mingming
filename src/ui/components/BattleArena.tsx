@@ -6,12 +6,12 @@ import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent, startBattle } from '../store/battleSlice';
-import type { IBattleEntity } from '../../engine/types';
+import type { IBattleEntity, Element } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
-import { rollDropTable } from '../../engine/RewardSystem';
+import { rollDropTable, rollDraftRounds } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import LevelUpOverlay from './LevelUpOverlay';
 import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats, updateGauntlet, completeGauntlet, addRelic } from '../store/gameSlice';
@@ -21,6 +21,12 @@ import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx } from '../hooks/useBattleVfx';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+
+/**
+ * Hold the level-up overlay after the queue first populates, so the death FX
+ * (450ms CRT glitch + TERMINATED stamp beat) finish before it covers the stage.
+ */
+const LEVEL_UP_OVERLAY_DELAY_MS = 900;
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -134,6 +140,21 @@ const BattleArena: React.FC = () => {
     // Epic 3.5: Post-battle state
     const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
     const [showReport, setShowReport] = useState(false);
+
+    // Payoff-timing fix: the level-up overlay used to appear the instant the
+    // queue populated, covering the death glitch/stamp. Always delay its first
+    // appearance; subsequent queued level-ups (queue stays non-empty) show
+    // immediately since the death beat has already played.
+    const hasLevelUps = (battleState?.levelUpQueue.length ?? 0) > 0;
+    const [levelUpRevealed, setLevelUpRevealed] = useState(false);
+    useEffect(() => {
+        if (!hasLevelUps) {
+            setLevelUpRevealed(false);
+            return;
+        }
+        const timer = setTimeout(() => setLevelUpRevealed(true), LEVEL_UP_OVERLAY_DELAY_MS);
+        return () => clearTimeout(timer);
+    }, [hasLevelUps]);
 
     // Combat juice: event-bus driven VFX (floats, flashes, lunges, arena shake)
     const vfx = useBattleVfx(battleState);
@@ -329,6 +350,22 @@ const BattleArena: React.FC = () => {
                     const { shuffled } = prng.shuffle(available);
                     bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
                 }
+
+                // GYM CLEAR: the single pick-1-of-3 upgrades into a 3-round
+                // sequential mini-draft weighted toward the gym's element.
+                // cardChoices are replaced (not stacked) — scrap/blueprints
+                // and everything else the bundle grants stay unchanged.
+                if (save.gauntlet.type === 'Gym') {
+                    bundle = {
+                        ...bundle,
+                        cardChoices: [],
+                        draftRounds: rollDraftRounds(
+                            `${battleState.seed}-gym-draft`,
+                            save.gauntlet.element as Element,
+                            3
+                        )
+                    };
+                }
             }
 
             setRewardBundle(bundle);
@@ -522,7 +559,7 @@ const BattleArena: React.FC = () => {
                         onContinue={handleContinue}
                     />
                 )}
-                {battleState.levelUpQueue.length > 0 && (
+                {battleState.levelUpQueue.length > 0 && levelUpRevealed && (
                     <LevelUpOverlay
                         key={`level-up-${battleState.levelUpQueue[0].entityId}-${battleState.levelUpQueue[0].newLevel}`}
                         event={battleState.levelUpQueue[0]}

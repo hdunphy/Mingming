@@ -47,6 +47,12 @@ export interface IRewardBundle {
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
     readonly totalXP: number;
     readonly relicChoices?: ReadonlyArray<string>;
+    /**
+     * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented
+     * before the normal report. Picks accumulate into `cards` at claim time,
+     * so applyRewardBundle needs no special handling. Absent for regular battles.
+     */
+    readonly draftRounds?: ReadonlyArray<ICardChoice>;
 }
 
 // --- Drop Table ---

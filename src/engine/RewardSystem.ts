@@ -163,6 +163,78 @@ export function rollDropTable(
     };
 }
 
+// --- Gym Clear Mini-Draft ---
+
+/** Fraction of each draft pick biased into the gym element's exclusive pool. */
+const DRAFT_ELEMENT_BIAS = 0.7;
+/** Cards offered per draft round. */
+const DRAFT_CHOICES_PER_ROUND = 3;
+/** Bounded rerolls when hunting for distinct cards within a round. */
+const DRAFT_REROLL_LIMIT = 24;
+
+/**
+ * Roll the sequential mini-draft awarded on a Gym gauntlet CLEAR: `count`
+ * independent "pick 1 of 3" rounds, weighted toward the gym's element.
+ *
+ * Reuses the standard pool/rarity machinery (getPoolForElement +
+ * rollCardFromPool) and the seed-chaining PRNG pattern used by rollDropTable,
+ * so results are fully deterministic for a given seed. Within a single round
+ * the three options are always distinct cards (dataIds); tokens are never
+ * offered (getPoolForElement already excludes them).
+ */
+export function rollDraftRounds(
+    seed: string,
+    element: Element,
+    count: number = 3
+): ICardChoice[] {
+    // Full pool = element-matching + neutral ('None') non-token cards.
+    const fullPool = getPoolForElement(element);
+    // Exclusive pool used for the element-weighted share of picks.
+    const elementOnlyPool = fullPool.filter(id => ProgramRegistry[id].element === element);
+
+    const rounds: ICardChoice[] = [];
+    // Seed chain starts as the string seed; rollCardFromPool hands back numeric
+    // next-seeds (same as rollForEntity's chain) and PRNG accepts both.
+    let currentSeed: string | number = seed;
+
+    for (let round = 0; round < count; round++) {
+        const pickedIds: string[] = [];
+        let attempts = 0;
+
+        while (pickedIds.length < DRAFT_CHOICES_PER_ROUND && attempts < DRAFT_REROLL_LIMIT) {
+            attempts++;
+
+            // Element weighting: most picks come from the gym element's own pool.
+            const biasRoll = new PRNG(currentSeed).next();
+            currentSeed = biasRoll.nextSeed;
+            const pool = biasRoll.value < DRAFT_ELEMENT_BIAS && elementOnlyPool.length > 0
+                ? elementOnlyPool
+                : fullPool;
+
+            const { cardId, nextSeed } = rollCardFromPool(pool, new PRNG(currentSeed));
+            currentSeed = nextSeed;
+
+            if (!pickedIds.includes(cardId)) {
+                pickedIds.push(cardId);
+            }
+        }
+
+        // Deterministic fallback for pathologically small pools: sweep the full
+        // pool in registry order for cards not yet offered this round.
+        for (const id of fullPool) {
+            if (pickedIds.length >= DRAFT_CHOICES_PER_ROUND) break;
+            if (!pickedIds.includes(id)) pickedIds.push(id);
+        }
+
+        rounds.push({
+            sourceEntityName: `GYM DRAFT ${round + 1}`,
+            options: pickedIds.map(createOwnedProgram)
+        });
+    }
+
+    return rounds;
+}
+
 // --- Scrap Economy Helpers ---
 
 /** Scrap values by rarity */
