@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-sleipnir" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#87ceeb" stop-opacity="0.35"/>
+      <stop offset="65%" stop-color="#87ceeb" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#87ceeb" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#87ceeb" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-sleipnir)"/>
+  <g fill="#060810" stroke="#87ceeb" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- horse body -->
+    <ellipse cx="108" cy="104" rx="48" ry="26"/>
+    <!-- arched neck and head profile -->
+    <path d="M74 92 Q66 62 46 50 Q34 44 28 52 L40 58 Q30 66 42 76 Q54 84 62 98 Q68 106 78 108 Z"/>
+    <!-- ears -->
+    <path d="M42 48 L38 34 L50 44 Z"/>
+    <!-- mane -->
+    <path d="M72 90 Q62 66 48 54 Q64 60 74 74 Q80 84 78 92 Z"/>
+    <!-- eight legs -->
+    <path d="M68 122 L60 172" fill="none" stroke-width="4"/>
+    <path d="M78 126 L74 174" fill="none" stroke-width="4"/>
+    <path d="M88 128 L86 176" fill="none" stroke-width="4"/>
+    <path d="M98 130 L98 176" fill="none" stroke-width="4"/>
+    <path d="M114 130 L116 176" fill="none" stroke-width="4"/>
+    <path d="M126 128 L130 174" fill="none" stroke-width="4"/>
+    <path d="M138 124 L146 172" fill="none" stroke-width="4"/>
+    <path d="M148 118 L160 168" fill="none" stroke-width="4"/>
+    <!-- tail -->
+    <path d="M154 96 Q176 100 182 118 Q170 112 158 112 Z"/>
+  </g>
+  <circle cx="38" cy="56" r="2.5" fill="#87ceeb"/>
+</svg>

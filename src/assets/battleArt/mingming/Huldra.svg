@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-huldra" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#33cc33" stop-opacity="0.35"/>
+      <stop offset="65%" stop-color="#33cc33" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#33cc33" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#33cc33" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-huldra)"/>
+  <g fill="#060810" stroke="#33cc33" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- flowing hair -->
+    <path d="M92 34 Q64 40 62 72 Q60 96 68 116 Q60 90 70 66 Q76 48 92 44 Q108 48 114 66 Q124 90 116 116 Q124 96 122 72 Q120 40 92 34 Z"/>
+    <!-- head -->
+    <circle cx="92" cy="60" r="14"/>
+    <!-- torso and long dress -->
+    <path d="M92 74 Q76 86 72 112 Q66 148 56 170 L126 170 Q116 142 112 110 Q110 84 92 74 Z"/>
+    <!-- arms -->
+    <path d="M76 92 Q62 104 60 122" fill="none" stroke-width="4"/>
+    <path d="M108 92 Q120 104 122 118" fill="none" stroke-width="4"/>
+    <!-- curling cow tail from behind -->
+    <path d="M124 150 Q160 142 160 116 Q160 98 144 100 Q154 108 150 118 Q146 132 120 140 Z"/>
+    <path d="M148 104 Q158 92 152 82 Q166 90 162 104 Z"/>
+  </g>
+  <circle cx="87" cy="58" r="2" fill="#33cc33"/>
+  <circle cx="97" cy="58" r="2" fill="#33cc33"/>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-hraesvelgr" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#87ceeb" stop-opacity="0.35"/>
+      <stop offset="65%" stop-color="#87ceeb" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#87ceeb" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#87ceeb" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-hraesvelgr)"/>
+  <g fill="#060810" stroke="#87ceeb" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- left wing, feather notches -->
+    <path d="M96 108 Q64 58 22 52 Q40 74 28 80 Q48 90 40 98 Q58 104 52 112 Q74 118 96 112 Z"/>
+    <!-- right wing, mirrored -->
+    <path d="M104 108 Q136 58 178 52 Q160 74 172 80 Q152 90 160 98 Q142 104 148 112 Q126 118 104 112 Z"/>
+    <!-- body -->
+    <ellipse cx="100" cy="120" rx="16" ry="28"/>
+    <!-- head and beak -->
+    <circle cx="100" cy="84" r="11"/>
+    <path d="M100 90 L112 97 L100 101 Z"/>
+    <!-- tail fan -->
+    <path d="M100 146 L86 176 L100 168 L114 176 Z"/>
+    <!-- talons -->
+    <path d="M92 144 L88 156 M108 144 L112 156" fill="none" stroke-width="2"/>
+  </g>
+  <circle cx="104" cy="82" r="2.5" fill="#87ceeb"/>
+</svg>

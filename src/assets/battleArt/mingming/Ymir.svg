@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-ymir" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00ffff" stop-opacity="0.32"/>
+      <stop offset="65%" stop-color="#00ffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#00ffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#00ffff" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-ymir)"/>
+  <g fill="#060810" stroke="#00ffff" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- hulking torso -->
+    <path d="M42 174 L48 118 Q52 94 74 86 L84 72 Q100 62 116 72 L126 86 Q148 94 152 118 L158 174 Z"/>
+    <!-- small head sunk between shoulders -->
+    <circle cx="100" cy="58" r="13"/>
+    <!-- massive arms down to fists -->
+    <path d="M52 100 Q30 112 30 142 L32 156" fill="none" stroke-width="9"/>
+    <path d="M148 100 Q170 112 170 142 L168 156" fill="none" stroke-width="9"/>
+    <circle cx="33" cy="162" r="10"/>
+    <circle cx="167" cy="162" r="10"/>
+    <!-- ice shards jutting from the shoulders -->
+    <path d="M58 88 L64 58 L74 84 Z"/>
+    <path d="M126 84 L136 56 L142 88 Z"/>
+    <path d="M74 78 L80 62 L88 76 Z"/>
+    <!-- chest crack -->
+    <path d="M100 96 L94 116 L104 132 L98 150" fill="none" stroke-width="2" stroke-opacity="0.6"/>
+  </g>
+  <circle cx="94" cy="56" r="2.5" fill="#00ffff"/>
+  <circle cx="106" cy="56" r="2.5" fill="#00ffff"/>
+</svg>

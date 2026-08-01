@@ -592,7 +592,7 @@
     "gullinbursti_v1": {
         "id": "gullinbursti_v1",
         "name": "UNSTOPPABLE_MASS",
-        "description": "Playing a defensive Status card reduces the Energy cost of the next Attack card you play this turn by 1.",
+        "description": "Playing a card that applies a status primes Gullinbursti, reducing the Energy cost of the next card played by 1.",
         "hooks": [
             {
                 "id": "gullin_v1_prepare",
@@ -1075,7 +1075,7 @@
     "nidhoggr_v1": {
         "id": "nidhoggr_v1",
         "name": "ROOT_CORRUPTION",
-        "description": "Poison applied by Níðhöggr does not decrease in stacks at the end of the turn.",
+        "description": "Poison afflicting Níðhöggr's enemies does not lose stacks at the end of their turn (a final single stack still fades).",
         "hooks": [
             {
                 "id": "nidhoggr_v1_root",

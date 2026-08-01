@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-jormungandr" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3399ff" stop-opacity="0.35"/>
+      <stop offset="65%" stop-color="#3399ff" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#3399ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#3399ff" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-jormungandr)"/>
+  <g fill="#060810" stroke="#3399ff" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- first coil hump -->
+    <path d="M24 148 Q48 96 76 148 L62 148 Q48 120 38 148 Z"/>
+    <!-- second coil hump -->
+    <path d="M74 148 Q98 100 124 148 L110 148 Q98 124 88 148 Z"/>
+    <!-- rising neck and head -->
+    <path d="M124 148 Q146 112 146 82 Q146 62 166 58 L176 68 L162 74 Q158 96 148 120 Q142 134 140 148 Z"/>
+    <!-- head crest fin -->
+    <path d="M150 66 L142 48 L158 56 Z"/>
+    <!-- jaw -->
+    <path d="M166 70 Q176 76 178 84 Q168 82 162 78 Z"/>
+    <!-- tail tip breaking the surface -->
+    <path d="M28 132 Q18 122 18 110 Q30 118 34 128 Z"/>
+  </g>
+  <!-- water lines -->
+  <path d="M22 158 Q34 152 46 158 Q58 164 70 158 Q82 152 94 158 Q106 164 118 158 Q130 152 142 158 Q154 164 166 158 Q172 155 178 158" fill="none" stroke="#3399ff" stroke-opacity="0.5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M40 170 Q52 164 64 170 Q76 176 88 170 Q100 164 112 170 Q124 176 136 170 Q148 164 160 170" fill="none" stroke="#3399ff" stroke-opacity="0.3" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="160" cy="66" r="2.5" fill="#3399ff"/>
+</svg>
