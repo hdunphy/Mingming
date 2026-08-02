@@ -3,6 +3,7 @@ import { globalBattleEventBus } from '../../engine/events';
 import type { IBattleState, StatusType } from '../../engine/types';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { getElementAccent } from '../utils/contrastText';
+import { playSfx } from '../audio/AudioEngine';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -73,6 +74,16 @@ const FLOAT_SLOTS = 6;
 
 const HEAL_COLOR = '#4ade80';
 const ABSORB_COLOR = '#9aa0ae';
+
+/**
+ * Small stable hash → pitch multiplier so each status type gets its own glitch
+ * tick flavor (Burn ticks differently from Poison) without a hand-tuned table.
+ */
+function statusPitch(status: string): number {
+    let h = 0;
+    for (let i = 0; i < status.length; i++) h = (h * 31 + status.charCodeAt(i)) | 0;
+    return 0.85 + (Math.abs(h) % 8) * 0.06; // 0.85 .. 1.27
+}
 /** Element 'None' damage stays red-hot instead of the gray element accent, so it never reads as "absorbed". */
 const NEUTRAL_DAMAGE_COLOR = '#ff5a5a';
 
@@ -144,11 +155,22 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     if (amount <= 0) {
                         // Fully shielded/absorbed hit — no flash, no shake, just the readout.
                         pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
+                        playSfx('absorbed');
                         return;
                     }
-                    const maxHp = findEntity(targetId)?.maxHp ?? 0;
+                    const target = findEntity(targetId);
+                    const maxHp = target?.maxHp ?? 0;
                     const frac = maxHp > 0 ? amount / maxHp : 0;
                     const isCrit = event.isCritical === true || frac >= CRIT_FRACTION;
+                    // stateRef still holds the pre-dispatch snapshot (events fire
+                    // synchronously inside the reducer), so currentHp is the HP
+                    // *before* this hit → HP→0 transition = lethal hit.
+                    const isLethal = !!target && target.currentHp > 0 && amount >= target.currentHp;
+                    if (isLethal) {
+                        playSfx('death');
+                    } else {
+                        playSfx(isCrit ? 'hitCrit' : 'hit', { intensity: Math.min(1, frac) });
+                    }
                     const color =
                         element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
                     pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${amount}`, color);
@@ -170,6 +192,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 }
                 case 'HEAL': {
                     if (event.amount <= 0) return;
+                    playSfx('heal');
                     pushFloat(event.targetId, 'heal', `+${event.amount}`, HEAL_COLOR);
                     setVfx(prev => {
                         const unit = prev.unitFx[event.targetId] ?? EMPTY_UNIT_FX;
@@ -184,6 +207,13 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     return;
                 }
                 case 'STATUS_APPLIED': {
+                    if (event.status === 'DarkStance') {
+                        playSfx('stanceDark');
+                    } else if (event.status === 'LightStance') {
+                        playSfx('stanceLight');
+                    } else {
+                        playSfx('statusApply', { pitch: statusPitch(event.status) });
+                    }
                     const color = STATUS_COLORS[event.status as StatusType] ?? '#cccccc';
                     setVfx(prev => {
                         const unit = prev.unitFx[event.targetId] ?? EMPTY_UNIT_FX;
@@ -203,7 +233,22 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 }
                 case 'PROGRAM_PLAYED': {
                     // Subtle attacker anticipation ("Step Forward" from the roadmap).
+                    playSfx('cardPlay');
                     triggerLunge(event.sourceId);
+                    return;
+                }
+                case 'CARD_DRAWN': {
+                    // Only the player's deck ticks audibly; the 35ms coalescer
+                    // collapses multi-card draws into a single soft tick.
+                    if (event.ownerId === 'PLAYER') playSfx('cardDraw');
+                    return;
+                }
+                case 'TURN_START': {
+                    playSfx(event.activeSide === 'PLAYER' ? 'turnPlayer' : 'turnEnemy');
+                    return;
+                }
+                case 'LEVEL_UP': {
+                    playSfx('levelUp');
                     return;
                 }
                 default:

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { ProgramData } from '../../engine/types';
 import ProgramCard, { getElementColor } from './ProgramCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+import { playSfx } from '../audio/AudioEngine';
 
 /**
  * RevealCard — shared face-down/flip reveal used everywhere rewards appear:
@@ -55,16 +56,21 @@ const RevealCard: React.FC<RevealCardProps> = ({
 
     useEffect(() => {
         const timeouts = pendingTimeoutsRef.current;
+        // Card-flip shimmer, timed to the flip start (after the reveal stagger).
+        timeouts.push(setTimeout(() => playSfx('reveal'), revealDelayMs));
         return () => {
             timeouts.forEach(clearTimeout);
             timeouts.length = 0;
         };
+        // Mount-only: revealDelayMs is fixed per card instance.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const accent = getElementColor(data.element);
 
     const handleClick = () => {
         if (disabled || !revealed || pulsing) return;
+        playSfx('rewardClaim');
         onSelect?.();
         setPulsing(true);
         pendingTimeoutsRef.current.push(

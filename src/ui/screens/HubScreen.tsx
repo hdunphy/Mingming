@@ -6,6 +6,7 @@ import { startBattle } from '../store/battleSlice';
 import { resetSave } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
 import { MIN_DECK_SIZE } from '../../engine/gameTypes';
+import { playSfx } from '../audio/AudioEngine';
 
 const HubScreen: React.FC = () => {
     const dispatch = useDispatch();
@@ -18,7 +19,11 @@ const HubScreen: React.FC = () => {
 
     const handleStartEncounter = () => {
         const deckCount = save.activeDeck?.cards.length || 0;
-        if (!activeMingming || deckCount < MIN_DECK_SIZE) return;
+        if (!activeMingming || deckCount < MIN_DECK_SIZE) {
+            playSfx('uiError');
+            return;
+        }
+        playSfx('uiClick');
 
         if (isGauntletActive) {
             dispatch(startBattle({ save, enemyIds: [] }));

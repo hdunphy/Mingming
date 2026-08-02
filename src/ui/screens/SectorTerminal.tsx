@@ -9,6 +9,7 @@ import { MIN_DECK_SIZE } from '../../engine/gameTypes';
 import { getSectorSpecies } from '../../engine/data/EncounterGenerator';
 import { SALVAGE_CHOICES_PER_FOE, DRAFT_ROUND_COUNT } from '../../engine/RewardSystem';
 import { TypeChartPanel } from '../components/TypeChart';
+import { playSfx } from '../audio/AudioEngine';
 
 /**
  * Epic 8: Milestone 8.2 - Terminal Hub UI
@@ -61,7 +62,11 @@ const SectorTerminal: React.FC = () => {
     const handleStartSector = (element: Element) => {
         // Validate before dispatching anything: an empty party or invalid deck
         // would make startBattle throw, and must never leave a dangling gauntlet.
-        if (!canDeploy || save.gauntlet) return;
+        if (!canDeploy || save.gauntlet) {
+            playSfx('uiError');
+            return;
+        }
+        playSfx('uiClick');
 
         const isUnlocked = save.unlockedSectors.includes(element);
         if (isUnlocked) {

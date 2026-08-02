@@ -12,6 +12,7 @@ import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { getElementAccent } from '../utils/contrastText';
+import { playSfx } from '../audio/AudioEngine';
 
 // Helper to format an action for display
 const formatAction = (action: any): string => {
@@ -142,6 +143,9 @@ const CardHand: React.FC<{
                                     dispatch(selectCard(isSelected ? null : card.id));
                                 }}
                                 onPointerDown={(e) => {
+                                    // Grayed-out cards still open for reading, but buzz to
+                                    // signal the play itself is blocked.
+                                    playSfx(isUnplayable ? 'uiError' : 'uiClick');
                                     justSelectedRef.current = !isSelected;
                                     dispatch(selectCard(card.id));
                                     const rect = e.currentTarget.getBoundingClientRect();
@@ -253,7 +257,7 @@ const CardHand: React.FC<{
                 <div className="battle-controls">
                     <button
                         disabled={!isOurTurn}
-                        onClick={() => dispatch(endTurn())}
+                        onClick={() => { playSfx('uiClick'); dispatch(endTurn()); }}
                         className="action-button end-turn"
                     >
                         END TURN

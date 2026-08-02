@@ -21,6 +21,8 @@ import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx } from '../hooks/useBattleVfx';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+import { playSfx } from '../audio/AudioEngine';
+import AudioControls from './AudioControls';
 
 /**
  * Hold the level-up overlay after the queue first populates, so the death FX
@@ -109,11 +111,19 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => vo
                 transition={{ delay: 0.55, duration: 0.3 }}
             >
                 {result === 'WIN' && onShowReport ? (
-                    <button onClick={onShowReport} className="action-button" style={{ marginTop: '40px' }}>
+                    <button
+                        onClick={() => { playSfx('uiClick'); onShowReport(); }}
+                        className="action-button"
+                        style={{ marginTop: '40px' }}
+                    >
                         VIEW REWARDS
                     </button>
                 ) : (
-                    <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
+                    <button
+                        onClick={() => { playSfx('uiClick'); (onDefeatReset || (() => window.location.reload()))(); }}
+                        className="action-button"
+                        style={{ marginTop: '40px' }}
+                    >
                         {result === 'LOSS' ? 'RESTART RUN' : 'RETURN TO BASE'}
                     </button>
                 )}
@@ -335,6 +345,41 @@ const BattleArena: React.FC = () => {
 
     const rosterSize = useSelector((state: RootState) => state.game.roster.length);
 
+    // Audio: battle-end stinger, played once per battle (seed = battle identity;
+    // gauntlets chain battles without ever passing through battleState === null).
+    const endSoundPlayedRef = useRef(false);
+    const battleSeed = battleState?.seed;
+    useEffect(() => {
+        endSoundPlayedRef.current = false;
+    }, [battleSeed]);
+    useEffect(() => {
+        if (endSoundPlayedRef.current) return;
+        if (isVictory) {
+            endSoundPlayedRef.current = true;
+            playSfx('victory');
+        } else if (isDefeat) {
+            endSoundPlayedRef.current = true;
+            playSfx('defeat');
+        }
+    }, [isVictory, isDefeat]);
+
+    // Audio: charge-up zap when a next-program discount primes on a player unit
+    // (e.g. Gullinbursti's UNSTOPPABLE_MASS). Watches the modifier appearing.
+    const primedIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        const next = new Set<string>();
+        battleState?.playerParty.forEach(p => {
+            if (p.nextProgramModifier) next.add(p.id);
+        });
+        for (const id of next) {
+            if (!primedIdsRef.current.has(id)) {
+                playSfx('discountPrimed');
+                break;
+            }
+        }
+        primedIdsRef.current = next;
+    }, [battleState]);
+
     // Roll rewards on victory
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
@@ -534,6 +579,9 @@ const BattleArena: React.FC = () => {
                 setOriginPoint(null);
             }}
         >
+            {/* Audio toggle/volume — the nav bar (its usual home) is hidden in battle */}
+            <AudioControls floating />
+
             {/* Breach progress: small truthful indicator of which breach battle this is */}
             {save.gauntlet && (
                 <div

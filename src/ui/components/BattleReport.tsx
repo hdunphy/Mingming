@@ -7,6 +7,7 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+import { playSfx } from '../audio/AudioEngine';
 
 interface BattleReportProps {
     bundle: IRewardBundle;
@@ -67,6 +68,16 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     const [pendingPickId, setPendingPickId] = useState<string | null>(null);
     const draftActive = draftIndex < draftRounds.length;
 
+    // Audio: dramatic unlock swell the first time the FIREWALL BREACHED draft
+    // panel appears (gym-clear spoils).
+    const breachPlayedRef = React.useRef(false);
+    useEffect(() => {
+        if (draftActive && !breachPlayedRef.current) {
+            breachPlayedRef.current = true;
+            playSfx('breach');
+        }
+    }, [draftActive]);
+
     const totalChoices = bundle.cardChoices.length;
     const selectedCount = Object.values(selections).filter(s => !!s).length;
     const allCardsSelected = selectedCount === totalChoices;
@@ -81,6 +92,7 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
 
     const handleFinalize = () => {
         if (!canContinue) return;
+        playSfx('uiClick');
         const chosen = [
             ...Object.values(selections).filter((s): s is IOwnedProgram => !!s),
             ...draftPicks
@@ -179,7 +191,7 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
 
                     {/* Skipping is allowed but visually discouraged */}
                     <button
-                        onClick={() => commitDraftPick(null)}
+                        onClick={() => { playSfx('uiClick'); commitDraftPick(null); }}
                         disabled={pendingPickId !== null}
                         style={{
                             background: 'none',
@@ -328,7 +340,7 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                             return (
                                                 <div
                                                     key={relicId}
-                                                    onClick={() => setSelectedRelic(relicId)}
+                                                    onClick={() => { playSfx('rewardClaim'); setSelectedRelic(relicId); }}
                                                     style={{
                                                         padding: '15px',
                                                         background: isSelected ? 'rgba(255,165,0,0.3)' : 'rgba(0,0,0,0.4)',
