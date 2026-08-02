@@ -35,14 +35,14 @@ interface CelebrationData {
 
 /**
  * First-synthesis payoff: the new Mingming's name/element slams in, its 10
- * base-deck cards fan out face-down in an arc and flip over in a stagger
- * (shared RevealCard), capped with a 'BASE DECK ACQUIRED' caption.
+ * base-deck cards appear face-down in a two-row arc (5 + 5, full-size shared
+ * RevealCard faces — the same real ProgramCards you see in your hand) and flip
+ * over in a stagger, capped with a 'BASE DECK ACQUIRED' caption.
  * Click anywhere to dismiss; auto-dismisses via the parent's timer.
  */
 const BaseDeckCelebration: React.FC<{ data: CelebrationData; onDismiss: () => void }> = ({ data, onDismiss }) => {
     const reduced = prefersReducedMotion();
     const accent = getElementColor(data.element);
-    const n = data.cardIds.length;
 
     return (
         <motion.div
@@ -63,97 +63,100 @@ const BaseDeckCelebration: React.FC<{ data: CelebrationData; onDismiss: () => vo
                 overflow: 'hidden'
             }}
         >
-            {/* Name slam */}
-            <motion.h1
-                initial={reduced
-                    ? { opacity: 0 }
-                    : { scale: 2.4, opacity: 0, filter: 'blur(14px)', letterSpacing: '0.6em' }}
-                animate={reduced
-                    ? { opacity: 1 }
-                    : { scale: 1, opacity: 1, filter: 'blur(0px)', letterSpacing: '0.12em' }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                style={{
-                    margin: 0,
-                    fontSize: '3.6rem',
-                    fontWeight: 900,
-                    color: '#fff',
-                    textShadow: `0 0 30px ${accent}`
-                }}
+            {/* Content column — capped/scaled via CSS so the whole beat fits 1280×720 */}
+            <div
+                className="celebration-content"
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
             >
-                {data.name.toUpperCase()}
-            </motion.h1>
-            <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45, duration: 0.3 }}
-                style={{
-                    marginTop: '6px',
-                    fontSize: '0.95rem',
-                    fontWeight: 900,
-                    letterSpacing: '5px',
-                    color: accent,
-                    textShadow: `0 0 12px ${accent}`
-                }}
-            >
-                {getElementIcon(data.element)} {data.element.toUpperCase()} CLASS COMPILED
-            </motion.div>
-
-            {/* Base deck fan: 10 face-down cards in an arc, flipping in a stagger */}
-            <div style={{
-                position: 'relative',
-                marginTop: '40px',
-                height: '270px',
-                width: 'min(1100px, 96vw)',
-                transform: 'scale(0.92)',
-                pointerEvents: 'none'
-            }}>
-                {data.cardIds.map((dataId, i) => {
-                    const angle = (i - (n - 1) / 2) * 8;
-                    return (
-                        <div
-                            key={`${dataId}-${i}`}
-                            style={{
-                                position: 'absolute',
-                                left: '50%',
-                                bottom: 0,
-                                transform: `translateX(-50%) rotate(${angle}deg)`,
-                                transformOrigin: '50% 165%'
-                            }}
-                        >
-                            <RevealCard
-                                data={GetProgramData(dataId)}
-                                revealDelayMs={FAN_BASE_DELAY_MS + i * REVEAL_STAGGER_MS}
-                                disabled
-                            />
-                        </div>
-                    );
-                })}
+                {/* Name slam */}
+                <motion.h1
+                    initial={reduced
+                        ? { opacity: 0 }
+                        : { scale: 2.4, opacity: 0, filter: 'blur(14px)', letterSpacing: '0.6em' }}
+                    animate={reduced
+                        ? { opacity: 1 }
+                        : { scale: 1, opacity: 1, filter: 'blur(0px)', letterSpacing: '0.12em' }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                    style={{
+                        margin: 0,
+                        fontSize: '3.6rem',
+                        fontWeight: 900,
+                        color: '#fff',
+                        textShadow: `0 0 30px ${accent}`
+                    }}
+                >
+                    {data.name.toUpperCase()}
+                </motion.h1>
+                <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45, duration: 0.3 }}
+                    style={{
+                        marginTop: '6px',
+                        fontSize: '0.95rem',
+                        fontWeight: 900,
+                        letterSpacing: '5px',
+                        color: accent,
+                        textShadow: `0 0 12px ${accent}`
+                    }}
+                >
+                    {getElementIcon(data.element)} {data.element.toUpperCase()} CLASS COMPILED
+                </motion.div>
+    
+                {/* Base deck: 10 full-size cards in a gentle 5+5 two-row arc.
+                    Each face is the real ProgramCard (via the shared RevealCard flip),
+                    sized like the battle-report reward row so every name/cost/category
+                    stays readable — slight per-column dip/tilt for flair, near-zero
+                    overlap. */}
+                <div className="celebration-deck-grid">
+                    {data.cardIds.map((dataId, i) => {
+                        const col = i % 5;
+                        const arcTilt = (col - 2) * 1.6; // deg — edges tilt outward
+                        const arcDip = Math.abs(col - 2) * 7; // px — edges dip down
+                        return (
+                            <div
+                                key={`${dataId}-${i}`}
+                                style={{
+                                    transform: reduced
+                                        ? 'none'
+                                        : `translateY(${arcDip}px) rotate(${arcTilt}deg)`
+                                }}
+                            >
+                                <RevealCard
+                                    data={GetProgramData(dataId)}
+                                    revealDelayMs={FAN_BASE_DELAY_MS + i * REVEAL_STAGGER_MS}
+                                    disabled
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+    
+                {/* Caption beat */}
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: CAPTION_DELAY_MS / 1000, duration: 0.35, ease: 'easeOut' }}
+                    style={{
+                        marginTop: '30px',
+                        fontSize: '1.3rem',
+                        fontWeight: 900,
+                        letterSpacing: '6px',
+                        color: '#00ffaa',
+                        textShadow: '0 0 18px rgba(0, 255, 170, 0.8)'
+                    }}
+                >
+                    BASE DECK ACQUIRED
+                </motion.div>
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.5 }}
+                    transition={{ delay: CAPTION_DELAY_MS / 1000 + 0.4, duration: 0.4 }}
+                    style={{ marginTop: '14px', fontSize: '0.7rem', letterSpacing: '3px', color: '#8892a8' }}
+                >
+                    CLICK ANYWHERE TO CONTINUE
+                </motion.div>
             </div>
-
-            {/* Caption beat */}
-            <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: CAPTION_DELAY_MS / 1000, duration: 0.35, ease: 'easeOut' }}
-                style={{
-                    marginTop: '30px',
-                    fontSize: '1.3rem',
-                    fontWeight: 900,
-                    letterSpacing: '6px',
-                    color: '#00ffaa',
-                    textShadow: '0 0 18px rgba(0, 255, 170, 0.8)'
-                }}
-            >
-                BASE DECK ACQUIRED
-            </motion.div>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                transition={{ delay: CAPTION_DELAY_MS / 1000 + 0.4, duration: 0.4 }}
-                style={{ marginTop: '14px', fontSize: '0.7rem', letterSpacing: '3px', color: '#8892a8' }}
-            >
-                CLICK ANYWHERE TO CONTINUE
-            </motion.div>
         </motion.div>
     );
 };

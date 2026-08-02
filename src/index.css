@@ -1999,6 +1999,46 @@ body {
   min-width: 0;
 }
 
+/* First-synthesis celebration: 10 full-size cards in a 5+5 two-row arc.
+   Faces are the real ProgramCards (shared RevealCard flip), sized to match the
+   battle-report reward row so names/costs/categories stay readable. */
+.celebration-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 158px);
+  gap: 20px 14px;
+  justify-content: center;
+  margin-top: 34px;
+  pointer-events: none;
+}
+
+.celebration-deck-grid .reveal-card {
+  width: 158px;
+}
+
+.celebration-deck-grid .program-card-container {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Cap the celebration so the whole beat (name slam → grid → caption) fits a
+   1280×720 viewport without clipping; scale down slightly when tight. */
+.celebration-content {
+  max-width: 96vw;
+}
+
+@media (max-height: 780px) {
+  .celebration-content {
+    transform: scale(0.88);
+  }
+}
+
+@media (max-width: 960px) {
+  .celebration-content {
+    transform: scale(0.78);
+  }
+}
+
 /* Blueprint acquisition box glow (keyframes were previously undefined). */
 .blueprint-flash {
   animation: pulse-glow 2s infinite;
