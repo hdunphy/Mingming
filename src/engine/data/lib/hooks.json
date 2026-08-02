@@ -2,40 +2,8 @@
     "fafnir_v1": {
         "id": "fafnir_v1",
         "name": "HOARD_PROTOCOL",
-        "description": "At the end of your turn, store unused Energy as Energized, but take 1% Max HP damage per point.",
-        "hooks": [
-            {
-                "id": "fafnir_v1_hoard",
-                "trigger": "onTurnEnd",
-                "priority": 40,
-                "when": {
-                    "source": "SELF",
-                    "currentEnergy": {
-                        "operator": "GT",
-                        "value": 0
-                    }
-                },
-                "do": [
-                    {
-                        "type": "HP",
-                        "target": "SELF",
-                        "percentMaxHP": -1,
-                        "scaling": "CURRENT_ENERGY"
-                    },
-                    {
-                        "type": "STATUS",
-                        "target": "SELF",
-                        "status": "Energized",
-                        "stacks": 1,
-                        "scaling": "CURRENT_ENERGY"
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s HOARD_PROTOCOL retains unused Energy but burns its core!"
-                    }
-                ]
-            }
-        ]
+        "description": "At the end of your turn, store unused Energy as Energized. At the start of your next turn, take 1% Max HP damage per hoarded point (min 1) as the hoard is cashed in.",
+        "hooks": []
     },
     "fafnir_v2": {
         "id": "fafnir_v2",
@@ -592,7 +560,7 @@
     "gullinbursti_v1": {
         "id": "gullinbursti_v1",
         "name": "UNSTOPPABLE_MASS",
-        "description": "Playing a card that applies a status primes Gullinbursti, reducing the Energy cost of the next card played by 1.",
+        "description": "Playing a Status card primes Gullinbursti, reducing the Energy cost of his next Attack card by 1. Other cards played in between do not consume the charge.",
         "hooks": [
             {
                 "id": "gullin_v1_prepare",
@@ -600,13 +568,14 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "actionType": "STATUS"
+                    "programCategoryIn": ["Status"]
                 },
                 "do": [
                     {
                         "type": "BUFF_NEXT_PROGRAM",
                         "target": "SELF",
-                        "costReduction": 1
+                        "costReduction": 1,
+                        "appliesTo": "Attack"
                     },
                     {
                         "type": "LOG",
@@ -666,32 +635,7 @@
         "id": "hraesvelgr_v2",
         "name": "UPDRAFT_KERNEL",
         "description": "The first time you cycle through your entire deck and shuffle your discard pile, permanently gain +1 max Energy for the rest of the battle.",
-        "hooks": [
-            {
-                "id": "hraes_v2_updraft",
-                "trigger": "onDeckShuffled",
-                "priority": 40,
-                "when": {
-                    "source": "SELF",
-                    "counter": {
-                        "key": "deck_shuffles",
-                        "operator": "EQ",
-                        "value": 1
-                    }
-                },
-                "do": [
-                    {
-                        "type": "MAX_ENERGY",
-                        "target": "SELF",
-                        "amount": 1
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s UPDRAFT_KERNEL reaches critical velocity! Max Energy increased!"
-                    }
-                ]
-            }
-        ]
+        "hooks": []
     },
     "sleipnir_v1": {
         "id": "sleipnir_v1",
@@ -857,26 +801,8 @@
     "valkyrie_v1": {
         "id": "valkyrie_v1",
         "name": "VALHALLA_UPLINK",
-        "description": "Whenever a Valkyrie applies a positive status to an ally, that ally also heals for 5% of their max HP.",
-        "hooks": [
-            {
-                "id": "valkyrie_v1_uplink",
-                "trigger": "onStatusApplied",
-                "priority": 40,
-                "when": {
-                    "source": "SELF",
-                    "target": "ALLY",
-                    "statusAppliedIn": ["Energized", "Strengthened", "Sharp", "StableOS"]
-                },
-                "do": [
-                    {
-                        "type": "HP",
-                        "target": "TARGET",
-                        "percentMaxHP": 5
-                    }
-                ]
-            }
-        ]
+        "description": "Whenever a Valkyrie applies a positive status (Strengthened, Sharp, Regen, StableOS, Energized or Bark Shield) to an ally, that ally also heals for 5% of their max HP.",
+        "hooks": []
     },
     "valkyrie_v2": {
         "id": "valkyrie_v2",
@@ -900,12 +826,12 @@
     "audhumbla_v1": {
         "id": "audhumbla_v1",
         "name": "GENESIS_FIRMWARE",
-        "description": "Every 3rd Heal or Spell card played permanently increases Audhumbla's maximum Energy pool by 1 for the remainder of the battle.",
+        "description": "Every 3rd Heal or Skill card played permanently increases Audhumbla's maximum Energy pool by 1 for the remainder of the battle.",
         "hooks": [
             {
                 "id": "aud_v1_count",
                 "trigger": "onActionStart",
-                "priority": 40,
+                "priority": 50,
                 "when": {
                     "source": "SELF",
                     "programCategoryIn": ["Heal", "Skill"]
@@ -922,9 +848,10 @@
             {
                 "id": "aud_v1_reward",
                 "trigger": "onActionStart",
-                "priority": 41,
+                "priority": 40,
                 "when": {
                     "source": "SELF",
+                    "programCategoryIn": ["Heal", "Skill"],
                     "counter": {
                         "key": "audhumbla_genesis",
                         "operator": "GTE",
@@ -965,20 +892,21 @@
                     "counter": {
                         "key": "last_overheal",
                         "operator": "GT",
-                        "value": 0
+                        "value": 0,
+                        "scope": "GLOBAL"
                     }
                 },
                 "do": [
                     {
-                        "type": "ATTACK",
+                        "type": "HP",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "power": 1,
+                        "amount": -1,
                         "scaling": "OVERHEAL"
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s NOURISH_ROUTINE converts {amount} Overheal into Light damage!"
+                        "text": "{owner}'s NOURISH_ROUTINE converts the Overheal into Light damage against {target}!"
                     }
                 ]
             }

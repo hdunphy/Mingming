@@ -450,7 +450,8 @@ export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActio
             const newModifier = {
                 multiplier: actionData.multiplier ?? 1,
                 flatBonus: actionData.flatBonus ?? 0,
-                costReduction: actionData.costReduction ?? 0
+                costReduction: actionData.costReduction ?? 0,
+                appliesTo: actionData.appliesTo
             };
 
             const updatedParty = [...party];

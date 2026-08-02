@@ -317,17 +317,19 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     if (!target) return state;
     if (!source && healOverride === undefined) return state;
 
+    // healAmount is the INTENDED heal (calculateHeal no longer clamps to missing
+    // HP). This is the single choke point where intended vs applied diverge:
+    // the applied heal is clamped to max HP below and the overflow is recorded
+    // as the `last_overheal` counter for onHeal hooks (AUDHUMBLA v2).
     const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
-    // ...
-    // Standard Heal Logic
-    // ...
     const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
+    const appliedHeal = newCurrentHp - target.currentHp;
     const overheal = Math.max(0, target.currentHp + healAmount - target.maxHp);
 
     globalBattleEventBus.emit({
         type: 'HEAL',
         targetId: target.id,
-        amount: healAmount,
+        amount: appliedHeal,
         sourceId: source?.id || sourceId,
         timestamp: Date.now()
     });
@@ -345,7 +347,9 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
         }
     } as IBattleState;
 
-    newState = addLog(newState, `  → ${target.name} heals ${healAmount} HP`);
+    newState = addLog(newState, overheal > 0
+        ? `  → ${target.name} heals ${appliedHeal} HP (${overheal} Overheal)`
+        : `  → ${target.name} heals ${appliedHeal} HP`);
 
     // Trigger onHeal hook
     {

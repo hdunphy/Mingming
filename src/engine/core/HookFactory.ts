@@ -8,6 +8,7 @@ import {
     type HookResult,
     type MutationRequest
 } from './HookTypes';
+import { resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ActionType } from '../types';
 import { StatusType } from '../types';
 import { PRNG } from './PRNG';
@@ -115,10 +116,12 @@ export const HookFactory = {
                 if (targetEntity) return targetEntity.maxHp - targetEntity.currentHp;
                 return 0;
             case 'OVERHEAL':
-                return context.state.counters['last_overheal'] || 0; // We will need to set this counter in Heal logic
+                // Written (globally, per heal event) by effectHandlers.handleHealEffect.
+                return context.state.counters['last_overheal'] || 0;
             case 'BASE_COST':
                 return context.program?.baseCost || 0;
             case 'COUNTER':
+                // scalingKey reads are raw/global — pass an already-scoped key if needed.
                 if (scalingKey) return context.state.counters[scalingKey] || 0;
                 return 0;
             default:
@@ -154,11 +157,14 @@ export const HookFactory = {
             }
 
             if (action.type === 'COUNTER') {
+                // OS counters are OWNER-scoped by default (key becomes
+                // `key:ownerId`) so two units with the same OS never share a
+                // count. Genuinely global counters opt out via scope: 'GLOBAL'.
                 currentState = applyMutations(currentState, [{
                     type: 'COUNTER',
                     targetId: '',
                     payload: {
-                        key: action.key,
+                        key: action.key ? resolveCounterKey(action.key, action.scope, owner) : action.key,
                         operator: action.operator,
                         amount: (action.amount || 1) * scaleFactor
                     }
@@ -203,18 +209,15 @@ export const HookFactory = {
                 continue;
             }
 
-            const executor = ActionExecutorRegistry[action.type as ActionType];
-            if (!executor) {
-                console.warn(`[HookFactory] No executor found for action type: ${action.type}`);
-                continue;
-            }
-
             // Dynamically scale action parameters before execution
             const scaledAction = { ...action };
             if (scaledAction.amount !== undefined) scaledAction.amount *= scaleFactor;
             if (scaledAction.power !== undefined) scaledAction.power *= scaleFactor;
             if (scaledAction.stacks !== undefined) scaledAction.stacks *= scaleFactor;
 
+            // MAX_ENERGY has no ActionExecutor — handle it BEFORE the registry
+            // lookup (it used to sit behind the "no executor" early-continue and
+            // therefore never ran for data hooks like GENESIS_FIRMWARE).
             if (scaledAction.type === 'MAX_ENERGY') {
                 for (const tId of (Array.isArray(targetId) ? targetId : [targetId])) {
                     if (!tId) continue;
@@ -224,6 +227,12 @@ export const HookFactory = {
                         enemyParty: currentState.enemyParty.map(e => e.id === tId ? { ...e, maxEnergy: e.maxEnergy + (scaledAction.amount || 0) } : e)
                     };
                 }
+                continue;
+            }
+
+            const executor = ActionExecutorRegistry[action.type as ActionType];
+            if (!executor) {
+                console.warn(`[HookFactory] No executor found for action type: ${action.type}`);
                 continue;
             }
 

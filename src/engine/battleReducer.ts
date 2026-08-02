@@ -170,7 +170,12 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
     const modifier = sourceEntity.nextProgramModifier;
-    const appliedCostReduction = modifier?.costReduction || 0;
+    // A modifier restricted via appliesTo only affects (and is only consumed by)
+    // a card of that category — e.g. Gullinbursti's UNSTOPPABLE_MASS discounts
+    // the next ATTACK card; playing a Skill in between leaves the buff intact.
+    const modifierApplies = modifier !== undefined
+        && (modifier.appliesTo === undefined || modifier.appliesTo === programData.category);
+    const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
     const baseCost = Math.max(0, card.currentCost - appliedCostReduction);
 
     const costRes = executeCostCalculated(state, sourceEntity, targetEntity, programData, baseCost);
@@ -309,7 +314,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
                     // Execution
                     let modifiedAction = { ...action };
-                    if (modifier) {
+                    if (modifier && modifierApplies) {
                         if ((modifiedAction as any).power !== undefined) {
                             (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
@@ -337,9 +342,14 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         }
     }
 
-    // Clear the modifier since it has been consumed
+    // Clear the modifier only if it was actually consumed by this card.
+    // Two guards:
+    //  - modifierApplies: a category-restricted buff skipped by a non-matching
+    //    card must survive for the next matching card.
+    //  - reference equality: a modifier set DURING this card's own resolution
+    //    (e.g. Gullinbursti priming off the card just played) must not be wiped.
     const activePartyAfter = finalState[activePartyKey].map(e => {
-        if (e.id === sourceId && e.nextProgramModifier !== undefined) {
+        if (e.id === sourceId && modifierApplies && e.nextProgramModifier === modifier) {
             const { nextProgramModifier, ...rest } = e;
             return rest;
         }
@@ -431,7 +441,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
         for (let i = 0; i < hitCount; i++) {
             // Target Selection Helper (Deterministic via lowest HP for single, Side/Self logic)
             let targetIds: string[] = [];
-            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp'].includes((action as any).status));
+            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp', 'StableOS', 'BarkShield'].includes((action as any).status));
 
             if (action.target === 'SELF' || action.target === 'Self') {
                 targetIds = [sourceId];

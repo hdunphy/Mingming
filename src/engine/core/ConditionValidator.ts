@@ -1,5 +1,6 @@
 import type { IBattleState, IBattleEntity, ProgramData, StatusType, ProgramConstraint } from '../types';
 import type { HookCondition, HookContext } from './HookTypes';
+import { resolveCounterKey } from './HookTypes';
 
 /**
  * Statuses considered "negative" (debuffs) for condition checks like sourceDebuffCount.
@@ -115,11 +116,12 @@ export const ConditionValidator = {
             if (condition.sourceStatus.minStacks !== undefined && sourceStat.stacks < condition.sourceStatus.minStacks) return false;
         }
 
-        // 9. Counter Check
+        // 9. Counter Check (hook counters are OWNER-scoped by default so units
+        // sharing an OS count independently; scope: 'GLOBAL' reads the raw key)
         if (condition.counter) {
-            const { key, operator, value } = condition.counter;
+            const { key, operator, value, scope } = condition.counter;
             const currentCounters = context.state.counters || {};
-            const currentVal = currentCounters[key] || 0;
+            const currentVal = currentCounters[resolveCounterKey(key, scope, owner)] || 0;
             if (operator === 'LT' && !(currentVal < value)) return false;
             if (operator === 'GT' && !(currentVal > value)) return false;
             if (operator === 'LTE' && !(currentVal <= value)) return false;

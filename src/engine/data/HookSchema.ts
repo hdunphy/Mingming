@@ -21,7 +21,7 @@ const HookConditionSchema = z.object({
     triggerPhase: z.string().optional(),
     targetStatus: z.object({ status: z.string(), minStacks: z.number().optional() }).optional(),
     sourceStatus: z.object({ status: z.string(), minStacks: z.number().optional() }).optional(),
-    counter: z.object({ key: z.string(), operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional(),
+    counter: z.object({ key: z.string(), operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number(), scope: z.enum(['GLOBAL', 'OWNER']).optional() }).optional(),
     currentEnergy: z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional()
 });
 
@@ -42,6 +42,8 @@ const HookActionSchema = z.object({
     dataId: z.string().optional(),
     key: z.string().optional(),
     operator: z.enum(['ADD', 'SET', 'RESET']).optional(),
+    scope: z.enum(['GLOBAL', 'OWNER']).optional(),
+    appliesTo: z.string().optional(),
     scaling: z.enum(['CURRENT_ENERGY', 'SHARP_STACKS', 'STRENGTH_STACKS', 'ALIVE_ALLIES', 'MISSING_HP', 'OVERHEAL', 'BASE_COST', 'COUNTER']).optional(),
     scalingKey: z.string().optional()
 });

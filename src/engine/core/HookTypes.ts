@@ -1,4 +1,16 @@
-import type { IBattleState, IBattleEntity, ProgramData, StatusType, ActionType } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData, StatusType, ActionType, ProgramCategory } from '../types';
+
+/**
+ * Counter scoping: 'OWNER' (the default for hook counters) namespaces the key
+ * per hook-owning entity (`key:ownerId`) so two units running the same OS keep
+ * independent counts. 'GLOBAL' uses the raw key for genuinely battle-wide
+ * counters (e.g. deck_shuffles, last_overheal).
+ */
+export type CounterScope = 'GLOBAL' | 'OWNER';
+
+export function resolveCounterKey(key: string, scope: CounterScope | undefined, owner: IBattleEntity): string {
+    return scope === 'GLOBAL' ? key : `${key}:${owner.id}`;
+}
 
 export enum HookPriority {
     SYSTEM = 100,
@@ -46,7 +58,7 @@ export type HookCondition = {
     isToken?: boolean;
     targetStatus?: { status: StatusType; minStacks?: number };
     sourceStatus?: { status: StatusType; minStacks?: number };
-    counter?: { key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
+    counter?: { key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number; scope?: CounterScope };
     currentEnergy?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
 };
 
@@ -67,6 +79,8 @@ export type HookAction = {
     dataId?: string; // For GENERATE_CARD
     key?: string; // For COUNTER key
     operator?: 'ADD' | 'SET' | 'RESET'; // For COUNTER operation
+    scope?: CounterScope; // For COUNTER: 'OWNER' (default, per-entity) or 'GLOBAL'
+    appliesTo?: ProgramCategory; // For BUFF_NEXT_PROGRAM: restrict the buff to the next card of this category
     scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
     scalingKey?: string; // e.g., the key if scaling is 'COUNTER'
 };

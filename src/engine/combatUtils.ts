@@ -84,7 +84,7 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   return Math.max(0, damage);
 }
 
-export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, power: number): number {
+export function calculateHeal(attacker: IBattleEntity, _target: IBattleEntity, power: number): number {
   const levelBase = ((2 * attacker.level) / 5) + 2;
 
   // Dividing by 50 offsets the unmitigated 'attack' multiplier
@@ -98,6 +98,10 @@ export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, po
     rawHeal *= 1.5;
   }
 
-  const missingHp = target.maxHp - target.currentHp;
-  return Math.floor(Math.min(rawHeal, missingHp));
+  // Returns the INTENDED heal, deliberately NOT clamped to the target's missing
+  // HP. Clamping happens at the single application choke point
+  // (effectHandlers.handleHealEffect), which records the overflow as the
+  // `last_overheal` counter so effects like AUDHUMBLA v2's NOURISH_ROUTINE can
+  // convert real Overheal into damage.
+  return Math.floor(rawHeal);
 }

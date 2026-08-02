@@ -6,8 +6,8 @@ export const ELEMENTS: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', '
 export type TargetType = 'Single' | 'Self' | 'Side' | 'All';
 export const TARGET_TYPES: TargetType[] = ['Single', 'Self', 'Side', 'All'];
 
-export type ProgramCategory = 'Attack' | 'Skill' | 'Daemon';
-export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Skill', 'Daemon'];
+export type ProgramCategory = 'Attack' | 'Skill' | 'Daemon' | 'Status' | 'Heal';
+export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Skill', 'Daemon', 'Status', 'Heal'];
 
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
 
@@ -136,7 +136,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
   readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
-  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number }; // Buffs the next card played
+  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number; appliesTo?: ProgramCategory }; // Buffs the next card played (appliesTo restricts it to that category; non-matching cards don't consume it)
   readonly moves?: ReadonlyArray<IMove>; // Custom moveset for this instance
 }
 
@@ -308,6 +308,7 @@ export interface BuffNextProgramActionData extends ProgramAction {
   readonly multiplier?: number;
   readonly flatBonus?: number;
   readonly costReduction?: number;
+  readonly appliesTo?: ProgramCategory; // If set, only a card of this category consumes (and benefits from) the buff
 }
 
 export interface RedirectTargetActionData extends ProgramAction {
