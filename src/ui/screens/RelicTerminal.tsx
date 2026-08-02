@@ -21,7 +21,7 @@ export default function RelicTerminal() {
                     <div style={{ textAlign: 'center', marginTop: '10vh', opacity: 0.5 }}>
                         <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📦</div>
                         <h2>VAULT EMPTY</h2>
-                        <p>Complete Gauntlets to recover powerful system Relics.</p>
+                        <p>Breach sector firewalls to recover powerful system Relics.</p>
                     </div>
                 ) : (
                     <div style={{

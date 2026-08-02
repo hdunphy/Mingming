@@ -114,7 +114,7 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => vo
                     </button>
                 ) : (
                     <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
-                        {result === 'LOSS' ? 'RESTART GAUNTLET' : 'RETURN TO BASE'}
+                        {result === 'LOSS' ? 'RESTART RUN' : 'RETURN TO BASE'}
                     </button>
                 )}
             </motion.div>
@@ -361,8 +361,7 @@ const BattleArena: React.FC = () => {
                         cardChoices: [],
                         draftRounds: rollDraftRounds(
                             `${battleState.seed}-gym-draft`,
-                            save.gauntlet.element as Element,
-                            3
+                            save.gauntlet.element as Element
                         )
                     };
                 }
@@ -535,6 +534,30 @@ const BattleArena: React.FC = () => {
                 setOriginPoint(null);
             }}
         >
+            {/* Breach progress: small truthful indicator of which breach battle this is */}
+            {save.gauntlet && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: '10px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 1500,
+                        pointerEvents: 'none',
+                        padding: '4px 14px',
+                        borderRadius: '4px',
+                        background: 'rgba(0, 0, 0, 0.55)',
+                        border: '1px solid rgba(255, 204, 0, 0.35)',
+                        color: '#ffcc00',
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        letterSpacing: '3px'
+                    }}
+                >
+                    BREACH — BATTLE {Math.min(save.gauntlet.currentBattleIndex + 1, save.gauntlet.totalBattles)}/{save.gauntlet.totalBattles}
+                </div>
+            )}
+
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
                 {isVictory && !showReport && (

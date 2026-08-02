@@ -134,10 +134,10 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                     }}
                 >
                     <div style={{ fontSize: '0.75rem', color: '#ffcc00', fontWeight: 900, letterSpacing: '4px', marginBottom: '6px' }}>
-                        GYM FIREWALL BREACHED
+                        FIREWALL BREACHED
                     </div>
                     <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900, color: '#fff', letterSpacing: '2px' }}>
-                        SPOILS PROTOCOL
+                        BREACH SPOILS
                     </h1>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '10px 0 20px' }}>
                         <span style={{ color: '#00d2ff', fontSize: '0.85rem', fontWeight: 900, letterSpacing: '2px' }}>

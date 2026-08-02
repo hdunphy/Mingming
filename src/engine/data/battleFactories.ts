@@ -153,7 +153,7 @@ export function createBattleState(
             if (primaryElement === 'Water') { bossId = 'kraken'; guardId = 'kraken'; }
             if (primaryElement === 'Nature') { bossId = 'ratatoskr'; guardId = 'ratatoskr'; }
 
-            const boss = createMockEntity(`Gym Leader (${gymElement})`, bossId, playerLevel + 2);
+            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, playerLevel + 2);
             const superBoss: IBattleEntity = {
                 ...boss,
                 maxHp: boss.maxHp * 1.5,
@@ -167,8 +167,8 @@ export function createBattleState(
                     { id: 'boss_blast', name: 'Core Blast', intentType: 'Attack', priority: 8, actions: [{ type: 'ATTACK', power: 15, element: 'None', target: 'Side' }] }
                 ]
             };
-            const guard1 = createMockEntity('Elite Guard', guardId, playerLevel);
-            const guard2 = createMockEntity('Elite Guard', guardId, playerLevel);
+            const guard1 = createMockEntity('Firewall Sentinel', guardId, playerLevel);
+            const guard2 = createMockEntity('Firewall Sentinel', guardId, playerLevel);
 
             enemyParty = [guard1, superBoss, guard2]; // Boss in middle
 
