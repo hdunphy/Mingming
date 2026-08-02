@@ -129,6 +129,29 @@ export function validateProgramConstraints(
 }
 
 /**
+ * Whether the source's nextProgramModifier applies to this program
+ * (a modifier restricted via appliesTo only affects that category).
+ */
+export function doesModifierApply(source: IBattleEntity, programData: ProgramData): boolean {
+    const modifier = source.nextProgramModifier;
+    return modifier !== undefined
+        && (modifier.appliesTo === undefined || modifier.appliesTo === programData.category);
+}
+
+/**
+ * The cost the source would ACTUALLY pay for this card right now,
+ * including any primed nextProgramModifier discount (e.g. Gullinbursti's
+ * UNSTOPPABLE_MASS). Shared by the reducer and the UI so the displayed
+ * cost and the paid cost can never drift apart.
+ */
+export function getEffectiveCardCost(source: IBattleEntity, programData: ProgramData, currentCost: number): number {
+    const reduction = doesModifierApply(source, programData)
+        ? (source.nextProgramModifier?.costReduction || 0)
+        : 0;
+    return Math.max(0, currentCost - reduction);
+}
+
+/**
  * Applies a list of mutations to the state in a single atomic update.
  */
 
@@ -173,10 +196,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // A modifier restricted via appliesTo only affects (and is only consumed by)
     // a card of that category — e.g. Gullinbursti's UNSTOPPABLE_MASS discounts
     // the next ATTACK card; playing a Skill in between leaves the buff intact.
-    const modifierApplies = modifier !== undefined
-        && (modifier.appliesTo === undefined || modifier.appliesTo === programData.category);
+    const modifierApplies = doesModifierApply(sourceEntity, programData);
     const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
-    const baseCost = Math.max(0, card.currentCost - appliedCostReduction);
+    const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
 
     const costRes = executeCostCalculated(state, sourceEntity, targetEntity, programData, baseCost);
     const finalCost = costRes.cost;

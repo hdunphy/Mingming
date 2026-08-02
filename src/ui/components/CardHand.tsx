@@ -6,7 +6,7 @@ import { selectCard, playProgram, endTurn } from '../store/battleSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
 import type { IBattleState } from '../../engine/types';
-import { validateSingleConstraint } from '../../engine/battleReducer';
+import { validateSingleConstraint, getEffectiveCardCost } from '../../engine/battleReducer';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
@@ -83,8 +83,12 @@ const CardHand: React.FC<{
                         const arcDip = Math.abs(centerOffset) * 12;
 
                         const source = playerParty.find(u => u.id === selectedSourceId);
+                        // The cost the selected unit would ACTUALLY pay — includes primed
+                        // discounts like Gullinbursti's UNSTOPPABLE_MASS (nextProgramModifier).
+                        const effectiveCost = source ? getEffectiveCardCost(source, data, card.currentCost) : card.currentCost;
+                        const isDiscounted = effectiveCost < card.currentCost;
                         const constraints = (data.constraints || [])
-                            .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }))
+                            .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: effectiveCost }))
                             .map(formatConstraint);
                         const isUnplayable = !source || source.currentHp <= 0 || constraints.length > 0;
 
@@ -152,7 +156,13 @@ const CardHand: React.FC<{
                                 }}
                             >
                                 {/* Cost badge */}
-                                <div className="card-cost">{card.currentCost}</div>
+                                <div
+                                    className={`card-cost ${isDiscounted ? 'card-cost-discounted' : ''}`}
+                                    title={isDiscounted ? `Discounted from ${card.currentCost} (primed effect)` : undefined}
+                                >
+                                    {effectiveCost}
+                                    {isDiscounted && <span className="card-cost-original">{card.currentCost}</span>}
+                                </div>
                                 {isStabMatch && source && (
                                     <div
                                         className="card-stab-pip"

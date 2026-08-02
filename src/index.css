@@ -2227,3 +2227,24 @@ body {
   color: #9aa3b2;
   white-space: nowrap;
 }
+
+/* --- Primed cost discount (nextProgramModifier, e.g. UNSTOPPABLE_MASS) --- */
+.card-cost.card-cost-discounted {
+    background: #0f7a3d;
+    color: #eafff2;
+    box-shadow: 0 0 8px rgba(46, 229, 132, 0.85);
+    animation: cost-discount-pulse 1.4s ease-in-out infinite;
+}
+.card-cost-original {
+    font-size: 0.55em;
+    margin-left: 3px;
+    opacity: 0.75;
+    text-decoration: line-through;
+}
+@keyframes cost-discount-pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(46, 229, 132, 0.6); }
+    50% { box-shadow: 0 0 12px rgba(46, 229, 132, 1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .card-cost.card-cost-discounted { animation: none; }
+}

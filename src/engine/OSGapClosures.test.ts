@@ -328,3 +328,20 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
         expect(os.description).toMatch(/Attack card/);
     });
 });
+
+describe('getEffectiveCardCost (shared reducer/UI helper)', () => {
+    it('reflects a primed Attack-only discount and ignores it for other categories', async () => {
+        const { getEffectiveCardCost, doesModifierApply } = await import('./battleReducer');
+        const source: any = {
+            nextProgramModifier: { costReduction: 1, appliesTo: 'Attack' }
+        };
+        const attackCard: any = { category: 'Attack' };
+        const skillCard: any = { category: 'Skill' };
+        expect(doesModifierApply(source, attackCard)).toBe(true);
+        expect(getEffectiveCardCost(source, attackCard, 2)).toBe(1);
+        expect(getEffectiveCardCost(source, attackCard, 0)).toBe(0);
+        expect(doesModifierApply(source, skillCard)).toBe(false);
+        expect(getEffectiveCardCost(source, skillCard, 2)).toBe(2);
+        expect(getEffectiveCardCost({ nextProgramModifier: undefined } as any, attackCard, 2)).toBe(2);
+    });
+});
