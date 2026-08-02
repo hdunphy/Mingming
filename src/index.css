@@ -2106,3 +2106,124 @@ body {
     animation: none;
   }
 }
+
+/* === Type Chart (shared elemental matchup matrix) === */
+.type-chart-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.type-chart-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(20, 20, 35, 0.8);
+  color: #c2cad6;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: all 0.12s ease;
+}
+
+.type-chart-toggle:hover {
+  color: #eee;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.type-chart-toggle.open {
+  color: #fff;
+  border-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 22%, rgba(20, 20, 35, 0.8));
+}
+
+.type-chart {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: rgba(10, 10, 18, 0.75);
+  backdrop-filter: blur(6px);
+  font-family: 'Courier New', monospace;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tc-row {
+  display: grid;
+  grid-template-columns: 58px repeat(8, 46px);
+  align-items: stretch;
+  gap: 2px;
+  border-radius: 6px;
+}
+
+.tc-row:not(.tc-head-row):hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.tc-corner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #8a94a6;
+  line-height: 1.3;
+}
+
+.tc-col-head,
+.tc-row-head,
+.tc-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+}
+
+.tc-el-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.tc-el-icon { font-size: 12px; }
+
+.tc-cell {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.tc-cell.tc-strong {
+  color: #4dff88;
+  background: rgba(77, 255, 136, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(77, 255, 136, 0.25);
+}
+
+.tc-cell.tc-weak {
+  color: #c98080;
+  background: rgba(255, 80, 80, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 80, 80, 0.18);
+}
+
+.tc-cell.tc-neutral { color: rgba(255, 255, 255, 0.18); }
+
+.tc-footer {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9aa3b2;
+  white-space: nowrap;
+}

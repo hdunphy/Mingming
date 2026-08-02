@@ -6,6 +6,7 @@ import { startBattle } from '../store/battleSlice';
 import { startGauntlet } from '../store/gameSlice';
 import type { Element } from '../../engine/types';
 import { MIN_DECK_SIZE } from '../../engine/gameTypes';
+import { TypeChartPanel } from '../components/TypeChart';
 
 /**
  * Epic 8: Milestone 8.2 - Terminal Hub UI
@@ -142,6 +143,12 @@ const SectorTerminal: React.FC = () => {
                             <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.6, lineHeight: '1.4' }}>{sector.description}</p>
                         </motion.div>
                     ))}
+
+                    {/* Matchup planner: full-width row at the end of the scrollable
+                        sector list, collapsed by default so the grid stays clean. */}
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <TypeChartPanel />
+                    </div>
                 </div>
 
                 {/* Detail / Action Panel */}

@@ -5,6 +5,7 @@ import { setActiveParty } from '../store/gameSlice';
 import { getExpForLevel } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import FirmwareTerminal from '../components/FirmwareTerminal';
+import { TypeChartPanel } from '../components/TypeChart';
 
 export default function RosterTerminal() {
     const dispatch = useDispatch();
@@ -125,6 +126,9 @@ export default function RosterTerminal() {
                         })}
                     </div>
                 </div>
+
+                {/* Elemental matchup reference — collapsed by default so it never crowds the roster grid */}
+                <TypeChartPanel />
             </div>
 
             {showFirmware && <FirmwareTerminal onClose={() => setShowFirmware(false)} />}
