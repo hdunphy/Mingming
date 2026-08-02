@@ -340,3 +340,31 @@ describe('XP pacing: decelerating span-based death XP with level-gap scaling', (
         expect(state.playerParty[0].experience - 800).toBeLessThan(100);
     });
 });
+
+describe('Bug fix: SHARP_STACKS card scaling actually scales (spike_launch)', () => {
+    it('deals more damage with Sharp stacks than without', () => {
+        const base = makeState({
+            playerParty: [makeEntity({ id: 'p1', name: 'Hero', primaryElement: 'Earth' })],
+            enemyParty: [makeEntity({ id: 'e1', name: 'Foe', primaryElement: 'Fire' })]
+        });
+
+        // No Sharp
+        let s1 = withHand(base, [{ id: 'h1', dataId: 'spike_launch' }]);
+        s1 = battleReducer(s1, { type: 'PLAY_PROGRAM', payload: { sourceId: 'p1', targetId: 'e1', programId: 'h1' } });
+        const dmgNoSharp = 100 - s1.enemyParty[0].currentHp;
+
+        // 3 Sharp
+        let s2 = withHand({
+            ...base,
+            playerParty: [makeEntity({
+                id: 'p1', name: 'Hero', primaryElement: 'Earth',
+                statusEffects: [{ id: 'sh', type: 'Sharp', stacks: 3 }] as any
+            })]
+        }, [{ id: 'h1', dataId: 'spike_launch' }]);
+        s2 = battleReducer(s2, { type: 'PLAY_PROGRAM', payload: { sourceId: 'p1', targetId: 'e1', programId: 'h1' } });
+        const dmgWithSharp = 100 - s2.enemyParty[0].currentHp;
+
+        expect(dmgNoSharp).toBeGreaterThan(0);
+        expect(dmgWithSharp).toBeGreaterThan(dmgNoSharp);
+    });
+});

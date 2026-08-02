@@ -269,6 +269,12 @@ export function createBattleState(
     };
     const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle.toString());
 
+    // A battle with no enemies is unwinnable-by-definition and renders a ghost
+    // arena (empty enemy column, instant hollow victory). Fail loudly instead.
+    if (enemyParty.length === 0) {
+        throw new Error(`[createBattleState] No enemies generated (gauntlet: ${JSON.stringify(save.gauntlet)}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
+    }
+
     // Move users get no drawpile/hand at all; card users get a dealt hand.
     const eInitialDeck: IDeckState = {
         ownerId: 'ENEMY',

@@ -554,7 +554,7 @@
     "spike_launch": {
         "id": "spike_launch",
         "name": "Spike Launch",
-        "description": "Deal bonus damage per Sharp stack (20 power base).",
+        "description": "20 power. +5 power per Sharp stack you have.",
         "element": "Earth",
         "target": "Single",
         "category": "Attack",

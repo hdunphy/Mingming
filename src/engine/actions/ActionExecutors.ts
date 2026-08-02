@@ -34,7 +34,18 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         let damage = 0;
         if (source) {
             const programToUse = program || ({ element: element } as ProgramData);
-            damage = calculateDamage(source, target, programToUse, power, state);
+
+            // SHARP_STACKS scaling boosts the POWER fed into the damage formula
+            // (+5 power per Sharp stack on the attacker), so the bonus scales
+            // with level/stats like any other power and survives resistances.
+            // Previously this key was silently unhandled — spike_launch never scaled.
+            let effectivePower = power;
+            if (scaling === 'SHARP_STACKS') {
+                const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
+                effectivePower = power + 5 * sharpStacks;
+            }
+
+            damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
             if (scaling === 'CARDS_PLAYED') {
                 const multiplier = state.cardsPlayedThisTurn;
