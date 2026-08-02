@@ -26,9 +26,27 @@ export const effectHandlers: Record<string, EffectHandler> = {
 
 // --- XP Helpers ---
 
-function calculateDeathXp(defeatedUnit: IBattleEntity): number {
-    // Death Exp = 1/5 of XP for next level
-    return Math.floor(getExpForLevel(defeatedUnit.level + 1) / 5);
+/**
+ * XP a specific receiver earns for a knockout (before party split).
+ *
+ * Design (2026-08): decelerating pace with level-gap scaling.
+ * - Base = the defeated unit's LEVEL SPAN (XP between its level and the next),
+ *   not its cumulative total. The old cumulative/5 formula grew with the CUBE
+ *   of level while the cost of a level grows with the SQUARE — past level ~13
+ *   a single same-level KO granted more than a full level, so players leveled
+ *   every battle, accelerating forever.
+ * - Divisor grows slowly with the receiver's level (3, +1 per 10 levels), so
+ *   high levels take visibly longer: ~3 same-level KOs per level at Lv5
+ *   (solo), ~5 at Lv22, before the party split.
+ * - Pokemon-style gap multiplier (2*their / (their + yours), clamped 0.5-1.5):
+ *   stomping low-level sectors yields half XP; punching up pays a bonus.
+ */
+export function calculateDeathXp(defeatedUnit: IBattleEntity, receiver: IBattleEntity): number {
+    const span = getExpForLevel(defeatedUnit.level + 1) - getExpForLevel(defeatedUnit.level);
+    const gap = Math.min(1.5, Math.max(0.5,
+        (2 * defeatedUnit.level) / (defeatedUnit.level + receiver.level)));
+    const divisor = 3 + Math.floor(receiver.level / 10);
+    return Math.max(1, Math.floor((span * gap) / divisor));
 }
 
 interface LevelUpResult {
@@ -240,7 +258,6 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     const target = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
     if (!target) return state;
 
-    const xpYield = calculateDeathXp(target);
     const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
     console.log(`[checkDefeat] Checking defeat for ${target.name} (${targetId}) (Internal side: ${targetIsPlayer ? 'PLAYER' : 'ENEMY'}).`);
     const opposingSideKey = targetIsPlayer ? 'enemyParty' : 'playerParty';
@@ -260,11 +277,19 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     };
 
     if (aliveOpponents.length > 0) {
-        const xpPerUnit = Math.floor(xpYield / aliveOpponents.length);
-        newState = addLog(newState, `  ✨ ${xpYield} XP split among ${aliveOpponents.length} allies (${xpPerUnit} each)`);
-
+        // Per-receiver yield (level-gap + deceleration are receiver-specific),
+        // then split across the living party.
+        let totalAwarded = 0;
+        const awards: { id: string; amount: number }[] = [];
         for (const ally of aliveOpponents) {
-            newState = addExperience(newState, ally.id, xpPerUnit);
+            const amount = Math.max(1, Math.floor(calculateDeathXp(target, ally) / aliveOpponents.length));
+            awards.push({ id: ally.id, amount });
+            totalAwarded += amount;
+        }
+        newState = addLog(newState, `  ✨ ${totalAwarded} XP split among ${aliveOpponents.length} allies`);
+
+        for (const award of awards) {
+            newState = addExperience(newState, award.id, award.amount);
         }
     }
 

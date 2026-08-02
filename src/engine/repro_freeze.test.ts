@@ -28,7 +28,7 @@ describe('Battle Freeze Repro', () => {
                     maxEnergy: 2,
                     statusEffects: [],
                     level: 19,
-                    experience: 6000, // Level 20 needs 6400
+                    experience: 6300, // Level 20 needs 6400; new pacing awards ~228 for this KO
                     definitionId: 'fenrir',
                     hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
                     primaryElement: 'Fire',
@@ -48,7 +48,7 @@ describe('Battle Freeze Repro', () => {
                     maxEnergy: 2,
                     statusEffects: [],
                     level: 19,
-                    experience: 6000,
+                    experience: 6300,
                     definitionId: 'huldra',
                     hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
                     primaryElement: 'Nature',
