@@ -8,6 +8,7 @@ import { calculateDamage } from '../../engine/combatUtils';
 import type { IBattleState } from '../../engine/types';
 import { validateSingleConstraint, getEffectiveCardCost } from '../../engine/battleReducer';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { getElementAccent } from '../utils/contrastText';
@@ -90,6 +91,14 @@ const CardHand: React.FC<{
                         const constraints = (data.constraints || [])
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: effectiveCost }))
                             .map(formatConstraint);
+                        // Per-unit OS card limit (e.g. YMIR v2 GLACIAL_PACE_OS: 2 cards/turn).
+                        // The reducer rejects the play silently, so the tooltip carries the reason.
+                        const sourceOS = source?.activeOS ? getOSBehavior(source.activeOS) : undefined;
+                        if (source && sourceOS?.maxCardsPerTurn !== undefined &&
+                            (source.playsThisTurn ?? 0) >= sourceOS.maxCardsPerTurn) {
+                            const osLabel = sourceOS.name.replace(/_OS$/, '').replace(/_/g, ' ');
+                            constraints.push(`${osLabel}: card limit reached (${sourceOS.maxCardsPerTurn}/turn)`);
+                        }
                         const isUnplayable = !source || source.currentHp <= 0 || constraints.length > 0;
 
                         // ×1.5 STAB signal: the selected source's primary/secondary element

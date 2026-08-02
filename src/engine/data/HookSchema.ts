@@ -66,6 +66,7 @@ export const HookLibraryItemSchema = z.object({
     id: z.string(),
     name: z.string(),
     description: z.string().optional(),
+    maxCardsPerTurn: z.number().optional(),
     hooks: z.array(HookDefinitionSchema).optional()
 });
 

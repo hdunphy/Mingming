@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { computeDamagePreview } from './damagePreview';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import type { IBattleEntity, IBattleState, ProgramEntity } from '../../engine/types';
+import { battleReducer } from '../../engine/battleReducer';
+import type { IBattleEntity, IBattleState, ProgramEntity, StatusEffectInstance } from '../../engine/types';
 
 // Adds an elemental attack card so the STAB / effectiveness breakdown can be exercised.
 vi.mock('../../engine/data/programRegistry', async (importOriginal) => {
@@ -183,6 +184,48 @@ describe('computeDamagePreview', () => {
             expect(preview.effectiveness).toBe(1);
             expect(preview.stab).toBe(false);
             expect(preview.element).toBe('None');
+        });
+    });
+
+    describe('action-scaling parity (SHARP_STACKS — spike_launch)', () => {
+        // Real registry card: 20 power, +5 power per Sharp stack on the attacker.
+        const SPIKE: ProgramEntity = { id: 'card_s', dataId: 'spike_launch', currentCost: 1, isPlayable: true };
+        const SHARP_3: StatusEffectInstance[] = [{ id: 'sh1', type: 'Sharp' as const, stacks: 3 }];
+
+        beforeEach(() => {
+            state = {
+                ...state,
+                playerDeck: { ...state.playerDeck, hand: [SPIKE] }
+            };
+        });
+
+        it('previews MORE damage with 3 Sharp than without, and reports the +15 power bonus', () => {
+            const without = computeDamagePreview(state, 'strong', 'card_s', 'enemy');
+            expect(without.sharpBonus).toBe(0);
+
+            const sharpState = {
+                ...state,
+                playerParty: [weak, { ...strong, statusEffects: SHARP_3 }]
+            };
+            const withSharp = computeDamagePreview(sharpState, 'strong', 'card_s', 'enemy');
+            expect(withSharp.sharpBonus).toBe(15);
+            expect(withSharp.damage).toBeGreaterThan(without.damage);
+        });
+
+        it('preview equals the ACTUAL reducer damage for the same state (exact)', () => {
+            const sharpState = {
+                ...state,
+                playerParty: [weak, { ...strong, statusEffects: SHARP_3 }]
+            };
+            const preview = computeDamagePreview(sharpState, 'strong', 'card_s', 'enemy');
+            expect(preview.damage).toBeGreaterThan(0);
+
+            const after = battleReducer(sharpState, {
+                type: 'PLAY_PROGRAM',
+                payload: { sourceId: 'strong', targetId: 'enemy', programId: 'card_s' }
+            });
+            const actualDamage = enemy.currentHp - after.enemyParty[0].currentHp;
+            expect(actualDamage).toBe(preview.damage);
         });
     });
 });

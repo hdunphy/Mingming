@@ -10,6 +10,8 @@ export interface OSDefinition {
     name: string;
     description: string;
     hooks: HookDefinition[];
+    /** Per-unit cap on cards played each turn (e.g. GLACIAL_PACE_OS: 2). Undefined = unlimited. */
+    maxCardsPerTurn?: number;
 }
 
 export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {};
@@ -49,7 +51,8 @@ function initFirmwareHooks() {
                 id: data.id || key,
                 name: data.name || 'CUSTOM_OS',
                 description: data.description || 'Custom Firmware',
-                hooks
+                hooks,
+                maxCardsPerTurn: data.maxCardsPerTurn
             };
             hooks.forEach((hook: any) => registerHook(hook));
         }

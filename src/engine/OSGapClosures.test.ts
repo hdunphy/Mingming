@@ -355,6 +355,85 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
     });
 });
 
+describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
+    it('silently rejects the third card played by a ymir_v2 unit in one turn', () => {
+        const ymir = makeUnit('ym1', 'Ymir', { activeOS: 'ymir_v2' });
+        let state = makeState([ymir], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_strike', 1),
+            card('c2', 'card_strike', 1),
+            card('c3', 'card_strike', 1)
+        ]);
+
+        state = play(state, 'ym1', 'e1', 'c1');
+        state = play(state, 'ym1', 'e1', 'c2');
+        expect(state.playerParty[0].playsThisTurn).toBe(2);
+        expect(state.playerParty[0].currentEnergy).toBe(3);
+
+        const after = play(state, 'ym1', 'e1', 'c3');
+        expect(after).toBe(state); // state unchanged, no log spam
+        expect(after.playerDeck.hand).toHaveLength(1);
+    });
+
+    it('the limit resets when the turn cycles back to the player', () => {
+        const ymir = makeUnit('ym1', 'Ymir', { activeOS: 'ymir_v2' });
+        let state = makeState([ymir], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_strike', 1),
+            card('c2', 'card_strike', 1),
+            card('c3', 'card_strike', 1)
+        ]);
+
+        state = play(state, 'ym1', 'e1', 'c1');
+        state = play(state, 'ym1', 'e1', 'c2');
+        state = battleReducer(state, { type: 'END_TURN' }); // player -> enemy
+        state = battleReducer(state, { type: 'END_TURN' }); // enemy -> player
+        expect(state.playerParty[0].playsThisTurn).toBe(0);
+
+        // The whole (reshuffled) deck is back in hand; playing again succeeds.
+        const cardInHand = state.playerDeck.hand[0];
+        expect(cardInHand).toBeDefined();
+        const after = play(state, 'ym1', 'e1', cardInHand.id);
+        expect(after).not.toBe(state);
+        expect(after.playerParty[0].playsThisTurn).toBe(1);
+    });
+
+    it('a unit WITHOUT the OS can play more than 2 cards per turn', () => {
+        const plain = makeUnit('p1', 'Plain');
+        let state = makeState([plain], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_strike', 1),
+            card('c2', 'card_strike', 1),
+            card('c3', 'card_strike', 1)
+        ]);
+
+        state = play(state, 'p1', 'e1', 'c1');
+        state = play(state, 'p1', 'e1', 'c2');
+        state = play(state, 'p1', 'e1', 'c3');
+        expect(state.playerDeck.hand).toHaveLength(0);
+        expect(state.playerParty[0].currentEnergy).toBe(2);
+        expect(state.playerParty[0].playsThisTurn).toBe(3);
+    });
+
+    it('registry exposes maxCardsPerTurn: 2 for ymir_v2 only where declared', () => {
+        expect(getOSBehavior('ymir_v2')!.maxCardsPerTurn).toBe(2);
+        expect(getOSBehavior('fenrir_v1')!.maxCardsPerTurn).toBeUndefined();
+    });
+
+    it('Ice cards from a ymir_v2 unit deal exactly +50% through the real reducer', () => {
+        const runAttack = (activeOS?: string): number => {
+            const attacker = makeUnit('a1', 'Attacker', activeOS ? { activeOS } : {});
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy')], [
+                card('c1', 'card_ice_strike', 1)
+            ]);
+            state = play(state, 'a1', 'e1', 'c1');
+            return 100 - state.enemyParty[0].currentHp;
+        };
+
+        const withoutOS = runAttack();
+        const withOS = runAttack('ymir_v2');
+        expect(withoutOS).toBeGreaterThan(0);
+        expect(withOS).toBe(withoutOS + Math.floor(withoutOS * 0.5)); // ~1.5×
+    });
+});
+
 describe('getEffectiveCardCost (shared reducer/UI helper)', () => {
     it('reflects a primed Attack-only discount and ignores it for other categories', async () => {
         const { getEffectiveCardCost, doesModifierApply } = await import('./battleReducer');

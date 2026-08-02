@@ -1,7 +1,8 @@
-import type { IBattleState, Element } from '../../engine/types';
+import type { IBattleState, Element, AttackActionData } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage, getModifierBreakdown } from '../../engine/combatUtils';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
+import { getEffectiveAttackPower } from '../../engine/actions/ActionExecutors';
 
 /** Result of the on-hover damage preview, with the elemental breakdown that explains the number. */
 export interface DamagePreview {
@@ -13,9 +14,11 @@ export interface DamagePreview {
     effectiveness: number;
     /** The card's element — used to color the STAB chip. */
     element: Element;
+    /** Extra POWER granted by SHARP_STACKS scaling (+5/stack); 0 when inactive. */
+    sharpBonus: number;
 }
 
-const NO_PREVIEW: DamagePreview = { damage: 0, stab: false, effectiveness: 1, element: 'None' };
+const NO_PREVIEW: DamagePreview = { damage: 0, stab: false, effectiveness: 1, element: 'None', sharpBonus: 0 };
 
 /**
  * Pure helper for the on-hover damage preview.
@@ -61,10 +64,15 @@ export function computeDamagePreview(
     if (!attackAction) return NO_PREVIEW;
 
     const { stab, effectiveness } = getModifierBreakdown(source, target, data);
+    // Same effective-power helper the AttackExecutor uses, so action scaling
+    // (SHARP_STACKS: +5 power per Sharp stack) shows up in the preview too.
+    const basePower = (attackAction as AttackActionData).power || 0;
+    const effectivePower = getEffectiveAttackPower(source, attackAction as AttackActionData);
     return {
-        damage: calculateDamage(source, target, data, (attackAction as { power?: number }).power || 0, state),
+        damage: calculateDamage(source, target, data, effectivePower, state),
         stab,
         effectiveness,
-        element: data.element
+        element: data.element,
+        sharpBonus: effectivePower - basePower
     };
 }

@@ -474,8 +474,8 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     <span className="hud-hp-text">{entity.currentHp}/{entity.maxHp} HP {previewDamage > 0 && <span style={{ color: '#ff4444' }}>(-{previewDamage})</span>}</span>
                 </div>
 
-                {/* Elemental breakdown of the hover preview: STAB / type effectiveness */}
-                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1) && (
+                {/* Elemental breakdown of the hover preview: STAB / type effectiveness / Sharp scaling */}
+                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0) && (
                     <div className="hud-preview-tags">
                         {preview.stab && (
                             <span
@@ -483,6 +483,11 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                 style={{ color: getElementAccent(preview.element), borderColor: getElementAccent(preview.element) }}
                             >
                                 ×1.5 STAB
+                            </span>
+                        )}
+                        {preview.sharpBonus > 0 && (
+                            <span className="hud-preview-chip">
+                                +{preview.sharpBonus} SHARP
                             </span>
                         )}
                         {preview.effectiveness > 1 && (

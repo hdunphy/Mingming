@@ -20,6 +20,7 @@ import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
 import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
+import { getOSBehavior } from './data/firmwareRegistry';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -180,6 +181,13 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     if (sourceEntity.currentHp <= 0) {
         return state;
     }
+    // Per-unit OS card limit (e.g. YMIR v2 GLACIAL_PACE_OS: max 2 cards/turn).
+    // Rejected silently like other validation failures — no log spam; the UI
+    // (CardHand) surfaces the reason via the constraint tooltip instead.
+    const osCardLimit = sourceEntity.activeOS ? getOSBehavior(sourceEntity.activeOS)?.maxCardsPerTurn : undefined;
+    if (osCardLimit !== undefined && (sourceEntity.playsThisTurn ?? 0) >= osCardLimit) {
+        return state;
+    }
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const hand = state[activeDeckKey].hand;
     const cardIndex = hand.findIndex(c => c.id === programId);
@@ -233,6 +241,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                 const updatedEntity: IBattleEntity = {
                     ...e,
                     currentEnergy: e.currentEnergy - finalCost,
+                    playsThisTurn: (e.playsThisTurn ?? 0) + 1,
                     daemons: isDaemon ? [...e.daemons, card] : e.daemons
                 };
                 return updatedEntity;
@@ -778,6 +787,7 @@ function processPreTurn(state: IBattleState): IBattleState {
         return {
             ...entity,
             currentEnergy: entity.maxEnergy + bonusEnergy,
+            playsThisTurn: 0, // per-unit OS card limits (maxCardsPerTurn) reset each turn
             statusEffects: entity.statusEffects.filter(s => s.type !== 'Energized')
         };
     });

@@ -38,7 +38,7 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
     });
 }
 
-import { generateEncounter } from './EncounterGenerator';
+import { generateEncounter, getSectorSpecies } from './EncounterGenerator';
 import type { Element, EnemyCombatMode } from '../types';
 
 export interface BattleOptions {
@@ -147,11 +147,13 @@ export function createBattleState(
             enemyParty = encounter.enemyParty;
             enemyDeckIds = encounter.enemyDeckIds;
         } else {
-            // Tier 3 (Gym Leader): Hand-crafted boss party
-            let bossId = 'fenrir';
-            let guardId = 'fenrir';
-            if (primaryElement === 'Water') { bossId = 'kraken'; guardId = 'kraken'; }
-            if (primaryElement === 'Nature') { bossId = 'ratatoskr'; guardId = 'ratatoskr'; }
+            // Tier 3 (Gym Leader): Hand-crafted boss party.
+            // Wardens come from the breach's own species pool so a Light breach
+            // spawns Light wardens, not Fenrir. Fallback only guards against an
+            // empty pool (never crash).
+            const wardenPool = getSectorSpecies(primaryElement);
+            const bossId = wardenPool[0]?.id ?? 'fenrir';
+            const guardId = (wardenPool[1] ?? wardenPool[0])?.id ?? 'fenrir';
 
             const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, playerLevel + 2);
             const superBoss: IBattleEntity = {
