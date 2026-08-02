@@ -5,6 +5,7 @@ import { store, type RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
+import BattleStage from './BattleStage';
 import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent, startBattle } from '../store/battleSlice';
 import type { IBattleEntity, Element } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
@@ -471,6 +472,54 @@ const BattleArena: React.FC = () => {
         return GetProgramData(card.dataId);
     };
 
+    // ── Shared targeting logic ──
+    // One source of truth for "can this card land on this unit", used by BOTH
+    // the sidebar HUD cards and the center-stage spotlights.
+    const isValidCardTarget = (cardData: ReturnType<typeof GetProgramData>, isEnemy: boolean) => {
+        const targetType = cardData.target;
+        return (
+            (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
+            (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
+            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'))
+        );
+    };
+
+    /** Drop a dragged/selected card on this unit (sidebar card or stage spotlight). */
+    const handleEntityPointerUp = (entity: IBattleEntity, isEnemy: boolean) => {
+        if (!selectedCardId || entity.currentHp <= 0) return;
+        const cardData = getSelectedCardData();
+        if (!cardData) return;
+
+        if (isValidCardTarget(cardData, isEnemy)) {
+            // For Self cards, always target the source
+            const effectiveTargetId = cardData.target === 'Self' ? (selectedSourceId || entity.id) : entity.id;
+            handlePlay(selectedCardId, effectiveTargetId);
+            dispatch(selectCard(null));
+        }
+    };
+
+    /** Click a unit (sidebar card or stage spotlight): target enemies / select allies. */
+    const handleEntityClick = (entity: IBattleEntity, isEnemy: boolean) => {
+        if (entity.currentHp <= 0) return;
+        const isTargeted = selectedTargetId === entity.id;
+
+        // If we have a card selected, check if this is a valid target
+        if (selectedCardId) {
+            const cardData = getSelectedCardData();
+            if (cardData && isValidCardTarget(cardData, isEnemy)) {
+                dispatch(selectTarget(isTargeted ? null : entity.id));
+                return;
+            }
+        }
+
+        // Default behavior: enemy = target, friendly = source
+        if (isEnemy) {
+            dispatch(selectTarget(isTargeted ? null : entity.id));
+        } else {
+            dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
+        }
+    };
+
     const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
         <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
             {party.map((entity, index) => {
@@ -502,25 +551,7 @@ const BattleArena: React.FC = () => {
                         onMouseLeave={() => {
                             if (hoveredEntityId === entity.id) setHoveredEntityId(null);
                         }}
-                        onPointerUp={() => {
-                            if (!selectedCardId || isDead) return;
-                            const cardData = getSelectedCardData();
-                            if (!cardData) return;
-
-                            // Determine if this is a valid target
-                            const targetType = cardData.target;
-                            const isValidTarget =
-                                (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
-                                (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'));
-
-                            if (isValidTarget) {
-                                // For Self cards, always target the source
-                                const effectiveTargetId = targetType === 'Self' ? (selectedSourceId || entity.id) : entity.id;
-                                handlePlay(selectedCardId, effectiveTargetId);
-                                dispatch(selectCard(null));
-                            }
-                        }}
+                        onPointerUp={() => handleEntityPointerUp(entity, isEnemy)}
                     >
                         <MingmingUnit
                             entity={entity}
@@ -532,33 +563,7 @@ const BattleArena: React.FC = () => {
                             selectedCardId={selectedCardId}
                             selectedSourceId={selectedSourceId}
                             isHoveredTarget={hoveredEntityId === entity.id}
-                            onClick={() => {
-                                if (isDead) return;
-
-                                // If we have a card selected, check if this is a valid target
-                                if (selectedCardId) {
-                                    const cardData = getSelectedCardData();
-                                    if (cardData) {
-                                        const targetType = cardData.target;
-                                        const canTarget =
-                                            (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
-                                            (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'));
-
-                                        if (canTarget) {
-                                            dispatch(selectTarget(isTargeted ? null : entity.id));
-                                            return;
-                                        }
-                                    }
-                                }
-
-                                // Default behavior: enemy = target, friendly = source
-                                if (isEnemy) {
-                                    dispatch(selectTarget(isTargeted ? null : entity.id));
-                                } else {
-                                    dispatch(selectSource(isSelected ? null : entity.id));
-                                }
-                            }}
+                            onClick={() => handleEntityClick(entity, isEnemy)}
                         />
                     </motion.div>
                 );
@@ -663,6 +668,19 @@ const BattleArena: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={stageControls}
             >
+                {/* Center stage: big spotlight sprites for the selected unit + focus enemy */}
+                <BattleStage
+                    battleState={battleState}
+                    selectedSourceId={selectedSourceId}
+                    selectedTargetId={selectedTargetId}
+                    hoveredEntityId={hoveredEntityId}
+                    isTargeting={isTargeting}
+                    unitFx={vfx.unitFx}
+                    onEntityClick={handleEntityClick}
+                    onEntityPointerUp={handleEntityPointerUp}
+                    onEnemyHoverChange={setHoveredEntityId}
+                />
+
                 {renderParty(battleState.playerParty, false)}
 
                 <CombatLog />

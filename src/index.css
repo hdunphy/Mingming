@@ -58,7 +58,9 @@ body {
 
 .stage-area {
   flex: 1 1 auto;
-  min-height: 600px;
+  /* 440 (not 600): with the console's min-content ~260px this fits a 720px-tall
+     viewport without pushing the stage above the viewport top edge. */
+  min-height: 440px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -107,7 +109,7 @@ body {
 .hud-card {
   display: flex;
   align-items: stretch;
-  width: 340px;
+  width: 300px;
   height: 115px;
   background: linear-gradient(135deg, #12121c 0%, #0c0c14 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -708,9 +710,10 @@ body {
   letter-spacing: 1px;
 }
 
-/* Combat Log */
+/* Combat Log — anchored just right of the player sidebar so it never fights
+   the center stage (player spotlight is bottom-left, enemy spotlight top-right). */
 .combat-log-container {
-  width: 320px;
+  width: 280px;
   background: var(--glass-bg);
   backdrop-filter: blur(10px);
   border: 1px solid var(--glass-border);
@@ -719,8 +722,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 350px;
   top: 0;
   z-index: 50;
 }
@@ -2247,4 +2249,265 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
     .card-cost.card-cost-discounted { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════
+   Battle Stage — Pokémon-style center spotlights
+   (player back-sprite bottom-left, focus enemy top-right)
+   ═══════════════════════════════════════════════════ */
+
+.battle-stage {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 350px;
+  right: 350px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.stage-spot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+
+.stage-spot-player {
+  left: 4%;
+  bottom: 78px;
+}
+
+.stage-spot-enemy {
+  right: 3%;
+  top: 78px;
+}
+
+/* ── Floor platform: subtle element-tinted ellipse + perspective grid ── */
+.stage-platform {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 84px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  pointer-events: none;
+  z-index: 0;
+  transition: box-shadow 0.25s ease;
+}
+
+.stage-spot-player .stage-platform {
+  bottom: 64px;
+}
+
+.stage-spot-enemy .stage-platform {
+  bottom: -12px;
+}
+
+.stage-platform-grid {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  opacity: 0.3;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 14px);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
+  mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
+}
+
+/* ── Swap wrapper (fade/slide between spotlighted units) ── */
+.stage-swap-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── The big sprite frame (relative box the shared FX overlays mount into) ── */
+.stage-sprite-frame {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.stage-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.stage-art-disc {
+  width: 78%;
+  height: 78%;
+  margin: auto;
+  border-radius: 50%;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  font-weight: 900;
+  text-shadow: 0 0 18px currentColor;
+}
+
+.stage-sprite-dead {
+  filter: grayscale(100%) brightness(55%);
+}
+
+/* Death glitch reuses the HUD keyframes at stage scale */
+.stage-death-glitch {
+  animation: hud-death-glitch 0.45s steps(1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-death-glitch {
+    animation: hud-death-fade 0.45s ease-out both;
+  }
+}
+
+/* Stage floats read larger than the HUD-card ones */
+.stage-sprite-frame .hud-float-damage {
+  font-size: 1.8rem;
+}
+
+.stage-sprite-frame .hud-float-crit {
+  font-size: 2.5rem;
+}
+
+.stage-sprite-frame .hud-float-heal {
+  font-size: 1.6rem;
+}
+
+.stage-sprite-frame .hud-float {
+  top: 10%;
+}
+
+/* Round the overlay flashes to the sprite silhouette region */
+.stage-sprite-frame .hud-hit-flash,
+.stage-sprite-frame .hud-heal-pulse {
+  border-radius: 16px;
+}
+
+.stage-sprite-frame .hud-status-ring {
+  border-radius: 20px;
+}
+
+/* ── Compact plaques (full HUD stays in the sidebars) ── */
+.stage-plaque {
+  position: relative;
+  z-index: 2;
+  width: 220px;
+  margin-top: 6px;
+  padding: 6px 10px 7px;
+  background: rgba(8, 8, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stage-plaque-enemy {
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.stage-plaque-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #eee;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.stage-plaque-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.stage-plaque-level {
+  margin-left: auto;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #9aa;
+}
+
+.stage-plaque-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage-plaque-label {
+  flex: 0 0 16px;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #778;
+}
+
+.stage-plaque-value {
+  flex: 0 0 auto;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #bcc;
+  font-variant-numeric: tabular-nums;
+}
+
+.stage-bar-track {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.stage-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+/* ── Enemy intent chip (icon + move name) above the focus enemy ── */
+.stage-intent-chip {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 80, 80, 0.45);
+  border-radius: 999px;
+  background: rgba(20, 4, 6, 0.8);
+  color: #ff9a9a;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  box-shadow: 0 0 12px rgba(255, 60, 60, 0.18);
+}
+
+.stage-intent-icon {
+  font-size: 0.85rem;
+}
+
+/* Targeted enemy spotlight gets the same red signal as its HUD card */
+.stage-spot-targeted .stage-plaque {
+  border-color: rgba(239, 68, 68, 0.7);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6);
 }
