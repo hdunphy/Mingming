@@ -23,16 +23,17 @@ interface Props {
 export const getElementIcon = (el: string) => {
     const map: Record<string, string> = {
         Fire: '🔥', Water: '💧', Nature: '🌿', Earth: '⛰️',
-        Air: '💨', Ice: '❄️', Light: '✨', Dark: '🌑', None: '⚪'
+        Air: '💨', Ice: '❄️', Light: '✨', Dark: '🌑', None: '∅'
     };
-    return map[el] ?? '❓';
+    return map[el] ?? '◈';
 };
 
 export const getCategoryIcon = (cat: string) => {
     const map: Record<string, string> = {
-        Attack: '⚔️', Heal: '💚', Status: '🧪', Special: '🌟'
+        Attack: '⚔️', Skill: '⚙️', Daemon: '👾',
+        Heal: '💚', Status: '🧪', Special: '🌟'
     };
-    return map[cat] ?? '❓';
+    return map[cat] ?? '◈';
 };
 
 export const getElementColor = (el: string) => {
@@ -98,7 +99,8 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                 }}>
                     {data.baseCost}⚡
                 </span>
-                <span style={{ fontSize: '1.2rem' }}>{getElementIcon(data.element)}</span>
+                {/* Emojis ignore `color`; text glyphs (e.g. None's ∅) pick up the element tint. */}
+                <span style={{ fontSize: '1.2rem', color: getElementColor(data.element), fontWeight: 700 }}>{getElementIcon(data.element)}</span>
             </div>
 
             <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f2f5fa', marginBottom: '4px' }}>
