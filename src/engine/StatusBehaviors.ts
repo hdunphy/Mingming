@@ -460,6 +460,42 @@ class BarkShieldBehavior extends StatusBehavior {
     }
 }
 
+// --- Stances (DarkStance / LightStance): permanent, cap at 1, mutually exclusive ---
+
+class StanceBehavior extends StatusBehavior {
+    readonly type: StatusType;
+    private readonly opposite: StatusType;
+
+    constructor(type: 'DarkStance' | 'LightStance', opposite: 'DarkStance' | 'LightStance') {
+        super();
+        this.type = type;
+        this.opposite = opposite;
+    }
+
+    onApply(currentEffects: StatusEffectInstance[], _incomingStacks: number, target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const logs: string[] = [];
+        let effects = [...currentEffects];
+
+        // Exclusivity: entering one stance replaces the other.
+        if (effects.some(s => s.type === this.opposite)) {
+            effects = effects.filter(s => s.type !== this.opposite);
+            logs.push(`  ⚖️ ${target.name}'s ${this.opposite} fades as ${this.type} takes hold`);
+        }
+
+        // Cap at 1 stack — re-entering the same stance is a no-op.
+        if (!effects.some(s => s.type === this.type)) {
+            effects.push(this.createInstance(1));
+        }
+
+        return { updatedEffects: effects, immediateDamage: 0, logs };
+    }
+
+    endTurn(instance: StatusEffectInstance, _entity: IBattleEntity): EndTurnResult {
+        // Permanent — never decays, no damage, no healing.
+        return { updatedInstance: instance, damage: 0, healing: 0, defenseShred: 0, logs: [] };
+    }
+}
+
 // --- Registry ---
 
 const BEHAVIOR_REGISTRY: Record<StatusType, StatusBehavior> = {
@@ -475,6 +511,8 @@ const BEHAVIOR_REGISTRY: Record<StatusType, StatusBehavior> = {
     'Energized': new EnergizedBehavior(),
     'StableOS': new StableOSBehavior(),
     'BarkShield': new BarkShieldBehavior(),
+    'DarkStance': new StanceBehavior('DarkStance', 'LightStance'),
+    'LightStance': new StanceBehavior('LightStance', 'DarkStance'),
 };
 
 export function getStatusBehavior(type: StatusType): StatusBehavior {

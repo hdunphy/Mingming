@@ -26,7 +26,9 @@ export const StatusType = {
   Regen: 'Regen',
   Energized: 'Energized',
   StableOS: 'StableOS',
-  BarkShield: 'BarkShield'
+  BarkShield: 'BarkShield',
+  DarkStance: 'DarkStance',
+  LightStance: 'LightStance'
 } as const;
 export const Statuses: StatusType[] = Object.values(StatusType);
 
@@ -194,7 +196,7 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -318,6 +320,16 @@ export interface ForceDiscardActionData extends ProgramAction {
   readonly type: 'FORCE_DISCARD';
   readonly amount: number;
   readonly isRandom?: boolean;
+}
+
+/**
+ * Shifts the SOURCE of the card into a stance (Watcher model): 'Dark' grants
+ * DarkStance (+30% outgoing damage), 'Light' grants LightStance (+50% healing).
+ * Stances are mutually exclusive and cap at 1 stack; entering one removes the other.
+ */
+export interface ShiftStanceActionData extends ProgramAction {
+  readonly type: 'SHIFT_STANCE';
+  readonly stance: 'Dark' | 'Light';
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';

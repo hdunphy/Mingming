@@ -32,15 +32,21 @@ export function getCardKeywords(data: ProgramData): CardKeyword[] {
     return keywords;
 }
 
-/** Unique statuses this card's STATUS actions apply, in action order. */
+/** Unique statuses this card's STATUS / SHIFT_STANCE actions apply, in action order. */
 export function getAppliedStatuses(data: ProgramData): StatusType[] {
     const statuses: StatusType[] = [];
     for (const action of data.actions) {
+        let status: StatusType | undefined;
         if (action.type === 'STATUS') {
-            const status = (action as { status?: StatusType }).status;
-            if (status && statusGlossary[status] && !statuses.includes(status)) {
-                statuses.push(status);
-            }
+            status = (action as { status?: StatusType }).status;
+        } else if (action.type === 'SHIFT_STANCE') {
+            // Stance shifts grant a stance status on the card's owner — surface it
+            // as a chip so players see the shift at a glance.
+            const stance = (action as { stance?: 'Dark' | 'Light' }).stance;
+            if (stance) status = stance === 'Dark' ? 'DarkStance' : 'LightStance';
+        }
+        if (status && statusGlossary[status] && !statuses.includes(status)) {
+            statuses.push(status);
         }
     }
     return statuses;

@@ -87,6 +87,18 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         description:
             'Absorbs incoming damage point for point before HP is touched; breaks at 0. Decays by 20% of its remaining strength at end of turn.',
     },
+    DarkStance: {
+        name: 'Dark Stance',
+        icon: '☾',
+        description:
+            'While in Dark Stance, this unit deals +30% damage. Never wears off on its own and caps at 1 stack — but entering Light Stance replaces it.',
+    },
+    LightStance: {
+        name: 'Light Stance',
+        icon: '☀',
+        description:
+            'While in Light Stance, this unit\'s heals restore +50% HP. Never wears off on its own and caps at 1 stack — but entering Dark Stance replaces it.',
+    },
 };
 
 /** Neon accent color per status, shared by unit badges and card chips. */
@@ -103,4 +115,6 @@ export const STATUS_COLORS: Record<StatusType, string> = {
     Energized: '#00e5ff',
     StableOS: '#00d2ff',
     BarkShield: '#b58d4c',
+    DarkStance: '#a347ff',
+    LightStance: '#ffd700',
 };

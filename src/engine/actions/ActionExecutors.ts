@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, StatusType } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -149,7 +149,14 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
         if (!target) return state;
         if (!source && healOverride === undefined) return state;
 
-        const baseHeal = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+        // Stance system: Light Stance boosts the healer's heals by +50%.
+        // Power-based heals get the boost inside calculateHeal; healOverride-based
+        // heals (e.g. Leech Strike, Ash Reclamation) are boosted here so BOTH
+        // pipelines respect the stance without double-applying.
+        const lightStanceBoost = source?.statusEffects.some(s => s.type === 'LightStance') ? 1.5 : 1;
+        const baseHeal = healOverride !== undefined
+            ? Math.floor(healOverride * lightStanceBoost)
+            : calculateHeal(source as any, target, power);
         // STATUS_CONSUMED scaling: heal per stack removed by a preceding
         // consume action in the same card (e.g. Ash Reclamation).
         const healAmount = actionData.scaling === 'STATUS_CONSUMED'
@@ -522,6 +529,66 @@ export class ForceDiscardExecutor extends ActionExecutor<ForceDiscardActionData>
     }
 }
 
+/**
+ * SHIFT_STANCE (Watcher model): moves the SOURCE of the card into Dark or Light
+ * Stance, regardless of the card's target. Entering a stance removes the opposite
+ * one (also enforced by StanceBehavior.onApply — belt and suspenders) and routes
+ * through the STATUS mutation pipeline so STATUS_APPLIED events and
+ * onStatusApplied hooks (e.g. Hel's EQUINOX_TOGGLE draw) fire normally.
+ * Re-entering the current stance is a no-op: no event, no hook trigger.
+ */
+export class ShiftStanceExecutor extends ActionExecutor<ShiftStanceActionData> {
+    execute(state: IBattleState, sourceId: string, _targetId: string, actionData: ShiftStanceActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const stanceStatus: StatusType = actionData.stance === 'Dark' ? 'DarkStance' : 'LightStance';
+        const oppositeStatus: StatusType = actionData.stance === 'Dark' ? 'LightStance' : 'DarkStance';
+
+        const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
+        const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+        if (!source) return state;
+
+        // Already in this stance: nothing shifts (stacks stay capped at 1).
+        if (source.statusEffects.some(s => s.type === stanceStatus)) {
+            return addLog(state, `  ⚖️ ${source.name} is already in ${actionData.stance} Stance`);
+        }
+
+        let newState = state;
+        const hadOpposite = source.statusEffects.some(s => s.type === oppositeStatus);
+
+        // Explicitly strip the opposite stance first (StanceBehavior.onApply would
+        // also do this, but removing it here guarantees a STATUS_REMOVED event for
+        // the VFX/status-ring even if behaviors change later).
+        if (hadOpposite) {
+            const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+                party.map(e => e.id === sourceId
+                    ? { ...e, statusEffects: e.statusEffects.filter(s => s.type !== oppositeStatus) }
+                    : e);
+            newState = {
+                ...newState,
+                playerParty: updateParty(newState.playerParty),
+                enemyParty: updateParty(newState.enemyParty)
+            };
+            globalBattleEventBus.emit({
+                type: 'STATUS_REMOVED',
+                targetId: sourceId,
+                status: oppositeStatus,
+                timestamp: Date.now()
+            });
+        }
+
+        const icon = actionData.stance === 'Dark' ? '☾' : '☀';
+        newState = addLog(newState, `  ${icon} ${source.name} enters ${actionData.stance} Stance`);
+
+        // Apply the stance through the standard STATUS pipeline: caps at 1 stack,
+        // emits STATUS_APPLIED and fires onStatusApplied hooks (EQUINOX_TOGGLE).
+        return applyMutations(newState, [{
+            type: 'STATUS',
+            targetId: sourceId,
+            sourceId: sourceId,
+            payload: { status: stanceStatus, stacks: 1 }
+        }]);
+    }
+}
+
 // Registry to route ActionType to Executors
 export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'ATTACK': new AttackExecutor(),
@@ -541,5 +608,6 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'TAUNT': new TauntExecutor(),
     'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor(),
     'REDIRECT_TARGET': new RedirectTargetExecutor(),
-    'FORCE_DISCARD': new ForceDiscardExecutor()
+    'FORCE_DISCARD': new ForceDiscardExecutor(),
+    'SHIFT_STANCE': new ShiftStanceExecutor()
 };

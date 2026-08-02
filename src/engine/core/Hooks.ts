@@ -65,6 +65,9 @@ export const applyDamageModifiers = (
                 damage *= (1 + (effect.stacks * 0.2));
             } else if (effect.type === 'Weakened') {
                 damage *= Math.max(0.1, 1 - (effect.stacks * 0.2));
+            } else if (effect.type === 'DarkStance') {
+                // Stance system: while in Dark Stance the attacker deals +30% damage.
+                damage *= 1.3;
             }
         }
     }

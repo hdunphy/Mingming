@@ -2213,6 +2213,61 @@
             }
         ]
     },
+    "nightfall_edge": {
+        "id": "nightfall_edge",
+        "name": "Nightfall Edge",
+        "description": "12 power. Shift into Dark Stance: +30% damage while it holds.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 12,
+                "target": "TARGET"
+            },
+            {
+                "type": "SHIFT_STANCE",
+                "stance": "Dark",
+                "target": "SELF"
+            }
+        ]
+    },
+    "dawns_respite": {
+        "id": "dawns_respite",
+        "name": "Dawn's Respite",
+        "description": "Heal 10 HP. Shift into Light Stance: +50% healing while it holds.",
+        "element": "Dark",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "HEAL",
+                "power": 0,
+                "healOverride": 10,
+                "target": "SELF"
+            },
+            {
+                "type": "SHIFT_STANCE",
+                "stance": "Light",
+                "target": "SELF"
+            }
+        ]
+    },
     "venom_shade": {
         "id": "venom_shade",
         "name": "Venom Shade",

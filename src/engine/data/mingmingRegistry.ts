@@ -518,7 +518,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hel_v1", "hel_v2"],
-        baseDeck: ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "curse_mark", "venom_shade", "umbral_feast", "dark_pact"],
+        baseDeck: ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "nightfall_edge", "dawns_respite", "umbral_feast", "dark_pact"],
         moves: [
             {
                 id: 'hel_touch',

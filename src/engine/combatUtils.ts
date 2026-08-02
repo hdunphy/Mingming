@@ -87,10 +87,16 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
 export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, power: number): number {
   const levelBase = ((2 * attacker.level) / 5) + 2;
 
-  // Dividing by 50 offsets the unmitigated 'attack' multiplier 
+  // Dividing by 50 offsets the unmitigated 'attack' multiplier
   // and brings the curve in line with the damage formula's pacing.
   // We add +2 at the end to guarantee a minimum heal amount.
-  const rawHeal = ((levelBase * power * attacker.attack) / 50) + 2;
+  let rawHeal = ((levelBase * power * attacker.attack) / 50) + 2;
+
+  // Stance system: while in Light Stance the healer's heals are +50%.
+  // (healOverride-based heals are boosted separately in HealExecutor.)
+  if (attacker.statusEffects?.some(s => s.type === 'LightStance')) {
+    rawHeal *= 1.5;
+  }
 
   const missingHp = target.maxHp - target.currentHp;
   return Math.floor(Math.min(rawHeal, missingHp));

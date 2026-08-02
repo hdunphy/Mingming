@@ -987,47 +987,26 @@
     "hel_v1": {
         "id": "hel_v1",
         "name": "EQUINOX_TOGGLE",
-        "description": "Hel shifts stances based on the cards she plays.",
+        "description": "Stance-shift cards move Hel between Dark Stance (+30% damage) and Light Stance (+50% healing). Each shift synchronizes the OS: draw 1 card.",
         "hooks": [
             {
-                "id": "hel_v1_equinox_dark",
-                "trigger": "onActionStart",
+                "id": "hel_v1_equinox_sync",
+                "trigger": "onStatusApplied",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "actionType": "ATTACK"
+                    "target": "SELF",
+                    "statusAppliedIn": ["DarkStance", "LightStance"]
                 },
                 "do": [
                     {
-                        "type": "COUNTER",
+                        "type": "DRAW",
                         "target": "SELF",
-                        "key": "equinox_stance",
                         "amount": 1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner} shifts into DarkStance!"
-                    }
-                ]
-            },
-            {
-                "id": "hel_v1_equinox_light",
-                "trigger": "onActionStart",
-                "priority": 41,
-                "when": {
-                    "source": "SELF",
-                    "programCategoryNot": ["Attack"]
-                },
-                "do": [
-                    {
-                        "type": "COUNTER",
-                        "target": "SELF",
-                        "key": "equinox_stance",
-                        "amount": -1
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner} shifts into LightStance!"
+                        "text": "EQUINOX: stance shift synchronized — drew 1"
                     }
                 ]
             }
