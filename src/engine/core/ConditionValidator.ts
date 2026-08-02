@@ -87,6 +87,11 @@ export const ConditionValidator = {
             if (!context.program || condition.programCategoryNot.includes(context.program.category)) return false;
         }
 
+        if (condition.programAppliesStatus !== undefined) {
+            const applies = !!context.program?.actions?.some(a => a.type === 'STATUS');
+            if (condition.programAppliesStatus !== applies) return false;
+        }
+
         // 4d. Source Debuff Count Check (number of negative statuses on the source)
         if (condition.sourceDebuffCount) {
             const debuffCount = context.source

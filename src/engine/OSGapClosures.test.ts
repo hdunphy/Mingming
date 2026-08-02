@@ -323,19 +323,34 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
         expect(state.playerParty[0].currentEnergy).toBe(2);
     });
 
-    it('a Skill card that merely applies a status no longer primes the discount', () => {
+    it('a Skill card that applies a status ALSO primes (e.g. Shield Shards)', () => {
+        // Owner decision 2026-08: trigger = any non-Attack card that applies a
+        // status, since self-buffs like Shield Shards are category Skill.
         const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
         let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_burn_test', 1) // Skill category with a STATUS action
         ]);
 
         state = play(state, 'gul1', 'e1', 'c1');
+        expect(state.playerParty[0].nextProgramModifier).toBeDefined();
+        expect(state.playerParty[0].nextProgramModifier!.appliesTo).toBe('Attack');
+    });
+
+    it('an Attack card with a status rider does NOT prime; a statusless Skill does NOT prime', () => {
+        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+        let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_strike', 1),    // Attack, no status
+            card('c2', 'card_draw_test', 1)  // Skill, no STATUS action
+        ]);
+        state = play(state, 'gul1', 'e1', 'c1');
+        expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
+        state = play(state, 'gul1', 'gul1', 'c2');
         expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
     });
 
     it('UI copy matches the new behavior', () => {
         const os = getOSBehavior('gullinbursti_v1')!;
-        expect(os.description).toMatch(/Status card/);
+        expect(os.description).toMatch(/applies a status/);
         expect(os.description).toMatch(/Attack/);
     });
 });

@@ -53,6 +53,7 @@ export type HookCondition = {
     statusAppliedIn?: StatusType[]; // Passes when the applied status is any of these
     programCategoryIn?: string[]; // Passes when a program is in context and its category matches one of these
     programCategoryNot?: string[]; // Passes when a program is in context and its category matches NONE of these
+    programAppliesStatus?: boolean; // Passes when the program in context does (true) / does not (false) contain a STATUS action
     sourceDebuffCount?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number }; // Number of negative statuses on context.source
     isNaturalDraw?: boolean;
     isToken?: boolean;

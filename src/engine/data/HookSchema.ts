@@ -13,6 +13,7 @@ const HookConditionSchema = z.object({
     statusAppliedIn: z.array(z.string()).optional(),
     programCategoryIn: z.array(z.string()).optional(),
     programCategoryNot: z.array(z.string()).optional(),
+    programAppliesStatus: z.boolean().optional(),
     sourceDebuffCount: z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional(),
     baseCost: z.union([
         z.number(),
