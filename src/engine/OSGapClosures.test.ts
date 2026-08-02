@@ -286,11 +286,10 @@ describe('Item 7 - enemy intent Side buffs stay on the enemy side', () => {
 });
 
 describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', () => {
-    it('Status card primes; Skill does not consume the discount; next Attack does', () => {
+    it('Status card primes; the NEXT card spends the charge (Attack: discounted)', () => {
         const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
         let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_status_test', 1),
-            card('c2', 'card_draw_test', 1),
             card('c3', 'card_strike', 1)
         ]);
 
@@ -301,15 +300,27 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
         expect(state.playerParty[0].nextProgramModifier!.appliesTo).toBe('Attack');
         expect(state.logs.some(l => l.includes('UNSTOPPABLE_MASS'))).toBe(true);
 
-        // Play a Skill card: full cost, modifier survives.
-        state = play(state, 'gul1', 'gul1', 'c2');
-        expect(state.playerParty[0].currentEnergy).toBe(3); // paid the full 1
-        expect(state.playerParty[0].nextProgramModifier).toBeDefined();
-
-        // Play an Attack card: discounted to 0, modifier consumed.
+        // Next card is an Attack: discounted to 0, charge consumed.
         state = play(state, 'gul1', 'e1', 'c3');
-        expect(state.playerParty[0].currentEnergy).toBe(3); // cost 1 - 1 = 0
+        expect(state.playerParty[0].currentEnergy).toBe(4); // cost 1 - 1 = 0
         expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
+    });
+
+    it('a non-Attack card as the next card SPENDS the charge without a discount', () => {
+        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+        let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_status_test', 1),
+            card('c2', 'card_draw_test', 1),
+            card('c3', 'card_strike', 1)
+        ]);
+
+        state = play(state, 'gul1', 'e1', 'c1'); // prime (energy 4)
+        state = play(state, 'gul1', 'gul1', 'c2'); // Skill: full cost, charge LOST
+        expect(state.playerParty[0].currentEnergy).toBe(3);
+        expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
+
+        state = play(state, 'gul1', 'e1', 'c3'); // Attack: full cost, no charge left
+        expect(state.playerParty[0].currentEnergy).toBe(2);
     });
 
     it('a Skill card that merely applies a status no longer primes the discount', () => {
@@ -325,7 +336,7 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
     it('UI copy matches the new behavior', () => {
         const os = getOSBehavior('gullinbursti_v1')!;
         expect(os.description).toMatch(/Status card/);
-        expect(os.description).toMatch(/Attack card/);
+        expect(os.description).toMatch(/Attack/);
     });
 });
 

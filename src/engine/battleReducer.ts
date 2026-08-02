@@ -193,9 +193,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
     const modifier = sourceEntity.nextProgramModifier;
-    // A modifier restricted via appliesTo only affects (and is only consumed by)
-    // a card of that category — e.g. Gullinbursti's UNSTOPPABLE_MASS discounts
-    // the next ATTACK card; playing a Skill in between leaves the buff intact.
+    // A modifier restricted via appliesTo only DISCOUNTS a card of that
+    // category (e.g. UNSTOPPABLE_MASS discounts an Attack). The charge is
+    // spent by the NEXT card either way (see the clearing block below).
     const modifierApplies = doesModifierApply(sourceEntity, programData);
     const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
     const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
@@ -364,14 +364,15 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         }
     }
 
-    // Clear the modifier only if it was actually consumed by this card.
-    // Two guards:
-    //  - modifierApplies: a category-restricted buff skipped by a non-matching
-    //    card must survive for the next matching card.
-    //  - reference equality: a modifier set DURING this card's own resolution
-    //    (e.g. Gullinbursti priming off the card just played) must not be wiped.
+    // Clear the modifier after this card resolves, whether or not it applied:
+    // the charge is spent by the NEXT card, full stop (a category-restricted
+    // buff like UNSTOPPABLE_MASS simply grants no discount if that next card
+    // is the wrong category — it does not linger waiting for a match).
+    // Reference-equality guard: a modifier set DURING this card's own
+    // resolution (e.g. Gullinbursti priming off the Status card just played)
+    // must not be wiped by the very play that created it.
     const activePartyAfter = finalState[activePartyKey].map(e => {
-        if (e.id === sourceId && modifierApplies && e.nextProgramModifier === modifier) {
+        if (e.id === sourceId && modifier !== undefined && e.nextProgramModifier === modifier) {
             const { nextProgramModifier, ...rest } = e;
             return rest;
         }

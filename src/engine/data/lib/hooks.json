@@ -560,7 +560,7 @@
     "gullinbursti_v1": {
         "id": "gullinbursti_v1",
         "name": "UNSTOPPABLE_MASS",
-        "description": "Playing a Status card primes Gullinbursti, reducing the Energy cost of his next Attack card by 1. Other cards played in between do not consume the charge.",
+        "description": "Playing a Status card primes Gullinbursti: if his NEXT card is an Attack, it costs 1 less Energy. Any other card spends the charge.",
         "hooks": [
             {
                 "id": "gullin_v1_prepare",
