@@ -2,7 +2,16 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import type { ProgramData } from '../../engine/types';
 import CardKeywordChips from './CardKeywordChips';
-import { getElementTextColor, getElementBadgeBg, badgeTextShadow } from '../utils/contrastText';
+import ElementMatchupHover from './ElementMatchupTooltip';
+import { getElementTextColor, getElementBadgeBg, badgeTextShadow, getElementAccent } from '../utils/contrastText';
+
+/** A party member whose element matches this card (×1.5 STAB when they play it). */
+export interface StabMatch {
+    /** Display name of the matching party member. */
+    name: string;
+    /** The matching element (colors the dot). */
+    element: string;
+}
 
 interface Props {
     data: ProgramData;
@@ -18,6 +27,8 @@ interface Props {
     onRemove?: () => void;
     addDisabled?: boolean;
     removeDisabled?: boolean;
+    /** Optional: party members whose element matches this card — shown as tiny ×1.5 STAB dots. */
+    stabMatches?: StabMatch[];
 }
 
 export const getElementIcon = (el: string) => {
@@ -45,7 +56,7 @@ export const getElementColor = (el: string) => {
     return map[el] ?? '#888';
 };
 
-const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onContextMenu, showBadge, className = '', onAdd, onRemove, addDisabled, removeDisabled }) => {
+const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onContextMenu, showBadge, className = '', onAdd, onRemove, addDisabled, removeDisabled, stabMatches }) => {
     const [tooltipPos, setTooltipPos] = React.useState<{ top: number; left: number } | null>(null);
     const isHovered = tooltipPos !== null;
     const hasHoverActions = Boolean(onAdd || onRemove);
@@ -100,7 +111,9 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                     {data.baseCost}⚡
                 </span>
                 {/* Emojis ignore `color`; text glyphs (e.g. None's ∅) pick up the element tint. */}
-                <span style={{ fontSize: '1.2rem', color: getElementColor(data.element), fontWeight: 700 }}>{getElementIcon(data.element)}</span>
+                <ElementMatchupHover element={data.element}>
+                    <span style={{ fontSize: '1.2rem', color: getElementColor(data.element), fontWeight: 700 }}>{getElementIcon(data.element)}</span>
+                </ElementMatchupHover>
             </div>
 
             <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f2f5fa', marginBottom: '4px' }}>
@@ -110,6 +123,36 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px', color: '#aab4c4' }}>
                 <span>{getCategoryIcon(data.category)}</span>
                 <span>{data.category.toUpperCase()}</span>
+                {/* ×1.5 STAB hint: initial dots for party members whose element matches this card */}
+                {stabMatches && stabMatches.length > 0 && (
+                    <span
+                        title={`×1.5 STAB when played by ${stabMatches.map(m => m.name).join(', ')}`}
+                        style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '3px', cursor: 'help' }}
+                    >
+                        <span style={{ fontSize: '0.6rem', fontWeight: 900, color: getElementAccent(data.element) }}>×1.5</span>
+                        {stabMatches.map(m => (
+                            <span
+                                key={m.name}
+                                style={{
+                                    width: '13px',
+                                    height: '13px',
+                                    borderRadius: '50%',
+                                    background: getElementBadgeBg(m.element),
+                                    color: getElementTextColor(m.element),
+                                    border: `1px solid ${getElementAccent(m.element)}`,
+                                    fontSize: '0.55rem',
+                                    fontWeight: 900,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    lineHeight: 1
+                                }}
+                            >
+                                {m.name.charAt(0).toUpperCase()}
+                            </span>
+                        ))}
+                    </span>
+                )}
             </div>
 
             <CardKeywordChips data={data} />

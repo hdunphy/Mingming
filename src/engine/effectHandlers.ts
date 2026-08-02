@@ -1,6 +1,6 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { StatusType, getExpForLevel, calculateStandardStat, calculateHealth } from './types';
-import { calculateDamage, calculateHeal } from './combatUtils';
+import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { GetMingmingData } from './data/mingmingRegistry';
@@ -145,10 +145,14 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
 
     // Calculate Damage
     let damage = 0;
+    // Type effectiveness vs the target (1 = neutral); surfaced in the log below.
+    // Cheap recompute of calculateModifier's matrix part — no math change.
+    let effectiveness = 1;
     if (damageOverride !== undefined) {
         damage = damageOverride;
     } else if (source) {
         const programToUse = payload.program || ({ element: element } as ProgramData);
+        effectiveness = getModifierBreakdown(source, target, programToUse).effectiveness;
         damage = calculateDamage(source, target, programToUse, power, state);
 
         //Is this the best place to keep scaling logic? We might end up with more. TBD
@@ -242,6 +246,11 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     }
 
     newState = addLog(newState, `  → ${target.name} takes ${finalDamage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+    if (effectiveness > 1) {
+        newState = addLog(newState, '  ▶ Super effective!');
+    } else if (effectiveness < 1) {
+        newState = addLog(newState, '  ▷ Not very effective...');
+    }
     for (const log of statusLogs) {
         newState = addLog(newState, log);
     }

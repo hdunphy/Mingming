@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
-import { calculateDamage, calculateModifier, calculateHeal, ElementalMatrix } from './combatUtils';
+import { calculateDamage, calculateModifier, calculateHeal, getModifierBreakdown, ElementalMatrix } from './combatUtils';
 import type { IBattleEntity, ProgramData, Element } from './types';
 import { GetProgramData } from './data/programRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
@@ -104,6 +104,42 @@ describe('Combat Utils - Elemental Logic', () => {
     });
 });
 
+describe('Combat Utils - Modifier Breakdown (UI surfacing)', () => {
+    it('decomposes STAB and effectiveness, and modifier matches calculateModifier', () => {
+        const attacker = createMockEntity('att', 'Fire');
+        const target = createMockEntity('def', 'Nature');
+        const program = createMockProgram('Fire');
+
+        const b = getModifierBreakdown(attacker, target, program);
+        expect(b.stab).toBe(true);
+        expect(b.effectiveness).toBe(2.0); // Fire vs Nature
+        expect(b.modifier).toBe(3.0); // 1.5 × 2
+        expect(b.modifier).toBe(calculateModifier(attacker, target, program));
+    });
+
+    it('reports neutral (1.0) effectiveness and no STAB on a plain matchup', () => {
+        const attacker = createMockEntity('att', 'Water');
+        const target = createMockEntity('def', 'Light');
+        const program = createMockProgram('Earth'); // Earth has no Light entry
+
+        const b = getModifierBreakdown(attacker, target, program);
+        expect(b.stab).toBe(false);
+        expect(b.effectiveness).toBe(1.0);
+        expect(b.modifier).toBe(1.0);
+    });
+
+    it('folds secondary mitigation into effectiveness (0.375x)', () => {
+        const attacker = createMockEntity('att', 'None');
+        const target = createMockEntity('def', 'Light', 'Water');
+        const program = createMockProgram('Fire');
+
+        const b = getModifierBreakdown(attacker, target, program);
+        expect(b.stab).toBe(false);
+        expect(b.effectiveness).toBe(0.375);
+        expect(b.modifier).toBe(calculateModifier(attacker, target, program));
+    });
+});
+
 describe('Combat Utils - Damage Formula', () => {
     it('should match manual calculation for Level 50 standard case (No STAB)', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 50, 100, 100); // Water != None
@@ -161,5 +197,17 @@ describe('Combat Utils - Heal Formula', () => {
 
         const heal = calculateHeal(attacker, injuredTarget, 5);
         expect(heal).toBe(5);
+    });
+});
+
+describe('STAB excludes None element (port-artifact fix)', () => {
+    it("None-element cards never get STAB even though species carry secondaryElement 'None'", async () => {
+        const { getModifierBreakdown } = await import('./combatUtils');
+        const attacker = { primaryElement: 'Fire', secondaryElement: 'None', level: 10 } as any;
+        const target = { primaryElement: 'Water', secondaryElement: undefined } as any;
+        const noneCard = { element: 'None' } as any;
+        const breakdown = getModifierBreakdown(attacker, target, noneCard);
+        expect(breakdown.stab).toBe(false);
+        expect(breakdown.modifier).toBe(1);
     });
 });

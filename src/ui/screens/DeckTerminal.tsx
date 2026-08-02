@@ -59,6 +59,23 @@ export default function DeckTerminal() {
             .map(m => ({ member: m, def: MingmingRegistry[m.definitionId] })),
         [activeParty, roster]);
 
+    // --- ×1.5 STAB assist: which active party members match each card element ---
+    // ('None' is excluded — every unit carries a 'None' secondary, so it carries no signal.)
+    const stabMatchesByElement = useMemo(() => {
+        const map: Record<string, { name: string; element: string }[]> = {};
+        partyMembers.forEach(({ member, def }) => {
+            if (!def) return;
+            const name = member.nickname ?? def.name ?? member.definitionId;
+            const seen = new Set<string>();
+            [def.primaryElement, def.secondaryElement].forEach(el => {
+                if (!el || el === 'None' || seen.has(el)) return;
+                seen.add(el);
+                (map[el] ??= []).push({ name, element: el });
+            });
+        });
+        return map;
+    }, [partyMembers]);
+
     // --- Suggestion (fill empty slots) ---
     const suggestion = useMemo(
         () => suggestDeckFill({ cardInventory, activeDeck, roster, activeParty }),
@@ -341,6 +358,7 @@ export default function DeckTerminal() {
                                             onRemove={() => removeFirstInDeck(group)}
                                             addDisabled={!canAdd}
                                             removeDisabled={inDeckCount === 0}
+                                            stabMatches={stabMatchesByElement[group.data.element]}
                                             onClick={() => addFirstAvailable(group)}
                                             onContextMenu={(e) => {
                                                 e.preventDefault();

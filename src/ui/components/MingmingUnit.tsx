@@ -8,8 +8,9 @@ import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
-import { computeDamagePreview } from '../utils/damagePreview';
-import { readableTextOn, badgeTextShadow } from '../utils/contrastText';
+import { computeDamagePreview, type DamagePreview } from '../utils/damagePreview';
+import { readableTextOn, badgeTextShadow, getElementAccent } from '../utils/contrastText';
+import { formatMultiplier } from './ElementMatchupTooltip';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
 
@@ -189,10 +190,11 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 
     // Damage Preview Logic — always computed from the actually SELECTED source unit.
     // Shows nothing when no living source is selected or it can't play the card.
-    let previewDamage = 0;
+    let preview: DamagePreview | null = null;
     if (isHoveredTarget && selectedCardId) {
-        previewDamage = computeDamagePreview(battleState, selectedSourceId, selectedCardId, entity.id);
+        preview = computeDamagePreview(battleState, selectedSourceId, selectedCardId, entity.id);
     }
+    const previewDamage = preview?.damage ?? 0;
 
     const hpPercent = Math.max(0, (entity.currentHp / entity.maxHp) * 100);
     const previewHpPercent = Math.max(0, ((entity.currentHp - previewDamage) / entity.maxHp) * 100);
@@ -471,6 +473,30 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     </div>
                     <span className="hud-hp-text">{entity.currentHp}/{entity.maxHp} HP {previewDamage > 0 && <span style={{ color: '#ff4444' }}>(-{previewDamage})</span>}</span>
                 </div>
+
+                {/* Elemental breakdown of the hover preview: STAB / type effectiveness */}
+                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1) && (
+                    <div className="hud-preview-tags">
+                        {preview.stab && (
+                            <span
+                                className="hud-preview-chip"
+                                style={{ color: getElementAccent(preview.element), borderColor: getElementAccent(preview.element) }}
+                            >
+                                ×1.5 STAB
+                            </span>
+                        )}
+                        {preview.effectiveness > 1 && (
+                            <span className="hud-preview-chip hud-preview-chip-super">
+                                SUPER EFFECTIVE ×{formatMultiplier(preview.effectiveness)}
+                            </span>
+                        )}
+                        {preview.effectiveness < 1 && (
+                            <span className="hud-preview-chip hud-preview-chip-weak">
+                                NOT VERY EFFECTIVE ×{formatMultiplier(preview.effectiveness)}
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {/* Energy Row */}
                 <div className="hud-bar-row">

@@ -9,6 +9,8 @@ import type { IBattleState } from '../../engine/types';
 import { validateSingleConstraint } from '../../engine/battleReducer';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import CardKeywordChips from './CardKeywordChips';
+import ElementMatchupHover from './ElementMatchupTooltip';
+import { getElementAccent } from '../utils/contrastText';
 
 // Helper to format an action for display
 const formatAction = (action: any): string => {
@@ -86,6 +88,14 @@ const CardHand: React.FC<{
                             .map(formatConstraint);
                         const isUnplayable = !source || source.currentHp <= 0 || constraints.length > 0;
 
+                        // ×1.5 STAB signal: the selected source's primary/secondary element
+                        // matches this card's element. None is excluded — every unit carries a
+                        // 'None' secondary, so it is not a differential signal. Absence of glow
+                        // is the signal for unmatched cards (never dimmed).
+                        const isStabMatch = !!source && data.element !== 'None' &&
+                            (source.primaryElement === data.element || source.secondaryElement === data.element);
+                        const stabAccent = isStabMatch ? getElementAccent(data.element) : null;
+
                         // Damage Preview on Card logic
                         let cardPreviewDamage = 0;
                         if (isSelected && hoveredEntityId && battleState) {
@@ -108,7 +118,7 @@ const CardHand: React.FC<{
                                 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.2 }}
-                                className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''}`}
+                                className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
                                 onClick={() => {
                                     // If the preceding pointerdown just selected this card,
                                     // skip the toggle so a single click leaves it selected.
@@ -135,16 +145,30 @@ const CardHand: React.FC<{
                                     transformOrigin: 'center bottom',
                                     zIndex: isSelected ? 100 : (isHovered ? 99 : index),
                                     filter: isUnplayable ? 'grayscale(0.6)' : 'none',
+                                    ...(stabAccent ? {
+                                        '--stab-color': stabAccent,
+                                        '--stab-glow': `${stabAccent}88`
+                                    } as React.CSSProperties : {}),
                                 }}
                             >
                                 {/* Cost badge */}
                                 <div className="card-cost">{card.currentCost}</div>
+                                {isStabMatch && source && (
+                                    <div
+                                        className="card-stab-pip"
+                                        title={`${data.element} matches ${source.name} — ×1.5 STAB`}
+                                    >
+                                        ×1.5
+                                    </div>
+                                )}
 
                                 {/* Header: element + name */}
                                 <div className="card-header">
-                                    <span className={`element-badge ${data.element.toLowerCase()}`}>
-                                        {data.element[0]}
-                                    </span>
+                                    <ElementMatchupHover element={data.element}>
+                                        <span className={`element-badge ${data.element.toLowerCase()}`}>
+                                            {data.element[0]}
+                                        </span>
+                                    </ElementMatchupHover>
                                     <div className="card-name">{data.name}</div>
                                 </div>
 

@@ -818,6 +818,76 @@ body {
   z-index: 5;
 }
 
+/* ── Elemental breakdown chips on the hover damage preview ──
+   Absolutely positioned along the unit card's bottom edge so the
+   card never changes size while hovering targets. */
+.hud-preview-tags {
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.hud-preview-chip {
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  background: rgba(5, 5, 10, 0.92);
+}
+
+.hud-preview-chip-super {
+  color: #4dff88;
+  /* bright green — hits harder */
+  text-shadow: 0 0 6px rgba(77, 255, 136, 0.6);
+}
+
+.hud-preview-chip-weak {
+  color: #b98585;
+  /* dim red/gray — hits softer */
+}
+
+/* ── Element-matched card glow (battle hand) ──
+   Applied when the selected source unit's primary/secondary element
+   matches the card's element (×1.5 STAB). Pure class toggle; the color
+   arrives via the --stab-color/--stab-glow custom properties. */
+.program-card.stab-match {
+  border-color: var(--stab-color, #fff);
+  box-shadow: 0 0 14px var(--stab-glow, rgba(255, 255, 255, 0.4)), 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Keep the white selection signal on top of the element glow. */
+.program-card.stab-match.selected {
+  border-color: #fff;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4), 0 0 14px var(--stab-glow, rgba(255, 255, 255, 0.4));
+}
+
+/* Tiny ×1.5 pip next to the cost badge on element-matched cards */
+.card-stab-pip {
+  position: absolute;
+  top: 13px;
+  left: 42px;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  padding: 0 4px;
+  border-radius: 4px;
+  color: var(--stab-color, #fff);
+  border: 1px solid var(--stab-glow, rgba(255, 255, 255, 0.4));
+  background: rgba(5, 5, 10, 0.85);
+  pointer-events: none;
+  z-index: 2;
+}
+
 .card-cost {
   /* Deepened from var(--energy-blue) so white text clears WCAG AA (~5.2:1);
      the neon read is kept via the glow. */

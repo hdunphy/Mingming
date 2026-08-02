@@ -17,25 +17,37 @@ export const ElementalMatrix: Record<Element, Partial<Record<Element, number>>> 
   None: {}
 };
 
-const STAB_BONUS = 1.5;
+export const STAB_BONUS = 1.5;
 const SECONDARY_MITIGATION = 0.75;
 
-/**
- * Calculates the final elemental modifier including STAB and Resistance.
- * Matches `Rules.GetModifier` and `Rules.GetTypeAdvantage`
- */
-export function calculateModifier(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData): number {
-  let modifier = 1.0;
+/** UI-facing decomposition of the elemental modifier (see getModifierBreakdown). */
+export interface ModifierBreakdown {
+  /** True when the program's element matches the attacker's primary OR secondary element (×1.5 STAB). */
+  stab: boolean;
+  /** ElementalMatrix product vs the target (primary × mitigated secondary); 1 when neutral. */
+  effectiveness: number;
+  /** Final multiplier: (stab ? 1.5 : 1) × effectiveness. Identical to calculateModifier's result. */
+  modifier: number;
+}
 
+/**
+ * Decomposes the elemental modifier into its STAB and type-effectiveness parts
+ * so the UI can explain the number. Pure and cheap; `modifier` reproduces the
+ * exact multiplication order of the original calculateModifier.
+ */
+export function getModifierBreakdown(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData): ModifierBreakdown {
   // 1. STAB (Same-Type Attack Bonus)
-  // Check if program element matches attacker's primary OR secondary
-  if (attacker.primaryElement === program.element || attacker.secondaryElement === program.element) {
-    modifier = STAB_BONUS;
-  }
+  // Check if program element matches attacker's primary OR secondary.
+  // 'None' never grants STAB: every species carries secondaryElement 'None',
+  // which used to make ALL neutral cards get x1.5 from anyone (port artifact).
+  const stab = program.element !== 'None'
+    && (attacker.primaryElement === program.element || attacker.secondaryElement === program.element);
+  let modifier = stab ? STAB_BONUS : 1.0;
 
   // 2. Primary Type Advantage
   const primaryAdv = ElementalMatrix[program.element]?.[target.primaryElement] ?? 1.0;
   modifier *= primaryAdv;
+  let effectiveness = primaryAdv;
 
   // 3. Secondary Type Advantage
   if (target.secondaryElement) {
@@ -43,10 +55,19 @@ export function calculateModifier(attacker: IBattleEntity, target: IBattleEntity
     const secondaryAdv = ElementalMatrix[program.element]?.[target.secondaryElement];
     if (secondaryAdv !== undefined) {
       modifier *= secondaryAdv * SECONDARY_MITIGATION;
+      effectiveness *= secondaryAdv * SECONDARY_MITIGATION;
     }
   }
 
-  return modifier;
+  return { stab, effectiveness, modifier };
+}
+
+/**
+ * Calculates the final elemental modifier including STAB and Resistance.
+ * Matches `Rules.GetModifier` and `Rules.GetTypeAdvantage`
+ */
+export function calculateModifier(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData): number {
+  return getModifierBreakdown(attacker, target, program).modifier;
 }
 
 import { applyDamageModifiers } from './core/Hooks';
