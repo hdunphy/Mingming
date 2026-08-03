@@ -24,6 +24,9 @@
 
 import { useEffect, useMemo, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 
+import { getActionTape, useActionTape } from './actionTape';
+import { useSnapshotExportHotkey } from './snapshotIO';
+
 import {
     DebugUIContext,
     getSnapshot,
@@ -242,6 +245,14 @@ export interface DebugRootProps {
 }
 
 export default function DebugRoot({ mode = 'floating' }: DebugRootProps): ReactNode {
+    // Ticket 17: install the store action tap for as long as the debug layer is mounted.
+    // Refcounted inside, because App renders DebugRoot twice (floating layer + docked tab).
+    useActionTape();
+    // Ticket 16: Ctrl+Shift+E exports a snapshot without the layer being open. Passing the
+    // tape getter rather than a snapshot array so the export reads the tape at keypress time,
+    // not at render time.
+    useSnapshotExportHotkey({ getTape: getActionTape });
+
     const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
     const value = useMemo<DebugUIContextValue>(
