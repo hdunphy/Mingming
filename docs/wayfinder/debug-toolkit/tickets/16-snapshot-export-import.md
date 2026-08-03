@@ -1,8 +1,8 @@
 # Snapshot export & import
 
 - Type: wayfinder:task
-- Status: open
-- Assignee:
+- Status: closed
+- Assignee: subagent-16-snapshot-io (cowork-2026-08-03-opus5)
 - Blocked by: [Scenario schema & normalizer](10-scenario-schema-implementation.md), [Debug gating scaffold](12-debug-gating-scaffold.md)
 
 ## Question
@@ -27,3 +27,24 @@ Checklist:
 
 Done when: `npx vitest run` + `npx tsc -b` + `npm run build` all green, and a live battle can be
 exported and loaded back mid-battle in `npm run dev`.
+
+## Resolution
+
+**Closed 2026-08-03.** Gates green (run in the cloud sandbox on Linux while Henry was AFK; `tsc -b`, `vitest run` 47 files / 542 tests, `npm run build` incl. `assert-no-debug`, all exit 0).
+
+`src/debug/snapshotIO.ts` + `SnapshotPanel`. Export normalizes, wraps in the ticket-02 envelope,
+stamps `registryHash`, and downloads as `snapshot-t<turn>-<seed>.scenario.json` with no prompt.
+Import accepts **both** `snapshot` and `composed` files (the latter materialized through ticket 11's
+`buildScenarioState`), works mid-battle, no confirm. 24 tests.
+
+Notes from implementation:
+
+- **`DebugRoot` mounts twice** — `App.tsx` renders the floating layer *and* a docked instance when
+  the Debug tab is open. A per-instance listener would download two files per keystroke, so hotkey
+  owners are refcounted behind one window listener. This is a real bug that would have been very
+  hard to diagnose from symptoms.
+- `downloadCSV`'s pattern leaks its object URL; the copy here adds `URL.revokeObjectURL`.
+- The parent added a `getTape` option (a getter, not an array) because `DebugRoot` does not
+  re-render on every dispatch, so a plain `tape` array would be stale at keypress time.
+- An imported tape is displayed, never replayed — gated on determinism, now satisfied, so replay is
+  available to a future regression-suite ticket.
