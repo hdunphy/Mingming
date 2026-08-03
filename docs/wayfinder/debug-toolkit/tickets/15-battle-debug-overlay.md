@@ -1,8 +1,8 @@
 # Battle debug overlay
 
 - Type: wayfinder:task
-- Status: open
-- Assignee:
+- Status: closed
+- Assignee: subagent-15-god-tools (cowork-2026-08-03-opus5)
 - Blocked by: [Debug gating scaffold](12-debug-gating-scaffold.md), [Engine state actions](14-engine-state-actions.md)
 
 ## Question
@@ -28,3 +28,24 @@ Checklist:
 
 Done when: `npx vitest run` + `npx tsc -b` + `npm run build` all green, and the overlay can stage a
 board mid-battle in `npm run dev`.
+
+## Resolution
+
+**Closed 2026-08-03.** Gates green (run in the cloud sandbox on Linux while Henry was AFK; `tsc -b`, `vitest run` 47 files / 542 tests, `npm run build` incl. `assert-no-debug`, all exit 0).
+
+`src/debug/verbs/` holds the ten v1 verbs as pure `(state, args) => IBattleState` functions, each
+delegating to `battleReducer` and appending one `[DEBUG]` line; `GodToolsPanel` dispatches
+`setBattleState(verb(current, args))`. 25 headless tests, no React.
+
+Notes from implementation:
+
+- **Source default:** the selected source if it is a living opposing-party member, else the opposing
+  party's first living member, else any other living unit, else `null` — the target is excluded at
+  every step, so it never self-attributes. When it resolves to `null` the panel *disables* Set-HP and
+  Insta-kill rather than falling back to something wrong.
+- `SET_VITALS` validates `sourceId` and rejects the whole action if it does not resolve, so
+  `setEnergy`/`setTempHp` carry one too even though they fire no hooks. Catalogued as `source: 'inert'`.
+- `EXECUTE_INTENT` only resolves for enemy-party units holding an intent in ACTION phase, so "act
+  now" is disabled for player-side targets.
+- Verbs detect engine rejection by identity (`next === state`) and log `— no-op (engine rejected it)`
+  rather than claiming a change that never happened.
