@@ -6,7 +6,10 @@ import { startBattle } from '../store/battleSlice';
 import { startGauntlet } from '../store/gameSlice';
 import type { Element } from '../../engine/types';
 import { MIN_DECK_SIZE } from '../../engine/gameTypes';
+import { getSectorSpecies } from '../../engine/data/EncounterGenerator';
+import { SALVAGE_CHOICES_PER_FOE, DRAFT_ROUND_COUNT } from '../../engine/RewardSystem';
 import { TypeChartPanel } from '../components/TypeChart';
+import { playSfx } from '../audio/AudioEngine';
 
 /**
  * Epic 8: Milestone 8.2 - Terminal Hub UI
@@ -14,15 +17,35 @@ import { TypeChartPanel } from '../components/TypeChart';
  */
 
 const SECTORS: { id: Element; label: string; description: string; color: string; unlocked: boolean }[] = [
-    { id: 'Fire', label: 'FIRE SECTOR', description: 'Volcanic ridges. High Blueprint yield.', color: '#ef4444', unlocked: true },
-    { id: 'Water', label: 'WATER SECTOR', description: 'Abyssal depths. Fluid Program rewards.', color: '#3b82f6', unlocked: true },
-    { id: 'Nature', label: 'NATURE SECTOR', description: 'Overgrown ruins. Resource-rich farming.', color: '#10b981', unlocked: true },
-    { id: 'Earth', label: 'EARTH SECTOR', description: 'Crystal caves. Dense hardware drops.', color: '#8b5e3c', unlocked: false },
-    { id: 'Air', label: 'AIR SECTOR', description: 'Cloud spires. Fast-paced encounters.', color: '#06b6d4', unlocked: false },
-    { id: 'Ice', label: 'ICE SECTOR', description: 'Frozen wastes. High-risk challenges.', color: '#60a5fa', unlocked: false },
-    { id: 'Light', label: 'LIGHT SECTOR', description: 'Solar arrays. Rare OS modules.', color: '#fbbf24', unlocked: false },
-    { id: 'Dark', label: 'DARK SECTOR', description: 'Shadow realms. Apex encounters.', color: '#6366f1', unlocked: false },
+    { id: 'Fire', label: 'FIRE SECTOR', description: 'Volcanic ridges.', color: '#ef4444', unlocked: true },
+    { id: 'Water', label: 'WATER SECTOR', description: 'Abyssal depths.', color: '#3b82f6', unlocked: true },
+    { id: 'Nature', label: 'NATURE SECTOR', description: 'Overgrown ruins.', color: '#10b981', unlocked: true },
+    { id: 'Earth', label: 'EARTH SECTOR', description: 'Crystal caves.', color: '#8b5e3c', unlocked: false },
+    { id: 'Air', label: 'AIR SECTOR', description: 'Cloud spires.', color: '#06b6d4', unlocked: false },
+    { id: 'Ice', label: 'ICE SECTOR', description: 'Frozen wastes.', color: '#60a5fa', unlocked: false },
+    { id: 'Light', label: 'LIGHT SECTOR', description: 'Solar arrays.', color: '#fbbf24', unlocked: false },
+    { id: 'Dark', label: 'DARK SECTOR', description: 'Shadow realms.', color: '#6366f1', unlocked: false },
 ];
+
+/** Wild inhabitants line: element-colored discs + names, straight from the encounter pool. */
+const SectorSpeciesLine: React.FC<{ element: Element; color: string }> = ({ element, color }) => {
+    const species = getSectorSpecies(element);
+    return (
+        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 'bold', letterSpacing: '2px', opacity: 0.45 }}>WILD:</span>
+            {species.length > 0 ? (
+                species.map(def => (
+                    <span key={def.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', opacity: 0.8 }}>
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
+                        {def.name}
+                    </span>
+                ))
+            ) : (
+                <span style={{ fontSize: '0.7rem', letterSpacing: '1px', opacity: 0.4 }}>NO SIGNALS DETECTED</span>
+            )}
+        </div>
+    );
+};
 
 const SectorTerminal: React.FC = () => {
     const dispatch = useDispatch();
@@ -39,7 +62,11 @@ const SectorTerminal: React.FC = () => {
     const handleStartSector = (element: Element) => {
         // Validate before dispatching anything: an empty party or invalid deck
         // would make startBattle throw, and must never leave a dangling gauntlet.
-        if (!canDeploy || save.gauntlet) return;
+        if (!canDeploy || save.gauntlet) {
+            playSfx('uiError');
+            return;
+        }
+        playSfx('uiClick');
 
         const isUnlocked = save.unlockedSectors.includes(element);
         if (isUnlocked) {
@@ -84,7 +111,7 @@ const SectorTerminal: React.FC = () => {
                 <h1 style={{ fontSize: '2.5rem', fontWeight: '900', margin: 0, letterSpacing: '-1px' }}>
                     TERMINAL_<span style={{ color: '#7c3aed' }}>HUB</span>
                 </h1>
-                <p style={{ opacity: 0.5, fontSize: '0.9rem' }}>SYSTEM STATUS: ONLINE | SECTOR SCANNER ACTIVE</p>
+                <p style={{ opacity: 0.5, fontSize: '0.9rem' }}>SYSTEM STATUS: ONLINE | SECTOR UPLINK ACTIVE</p>
             </header>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '40px', height: 'calc(100% - 120px)' }}>
@@ -134,13 +161,14 @@ const SectorTerminal: React.FC = () => {
                                     borderRadius: '4px',
                                     color: save.unlockedSectors.includes(sector.id) ? '#fff' : '#ff4444'
                                 }}>
-                                    {save.unlockedSectors.includes(sector.id) ? 'AVAILABLE' : 'LOCKED'}
+                                    {save.unlockedSectors.includes(sector.id) ? 'OPEN' : 'FIREWALLED'}
                                 </span>
                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: sector.color, boxShadow: `0 0 10px ${sector.color}` }} />
                             </div>
 
                             <h3 style={{ margin: '0 0 10px', fontSize: '1.2rem' }}>{sector.label}</h3>
                             <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.6, lineHeight: '1.4' }}>{sector.description}</p>
+                            <SectorSpeciesLine element={sector.id} color={sector.color} />
                         </motion.div>
                     ))}
 
@@ -177,8 +205,8 @@ const SectorTerminal: React.FC = () => {
                                 <div style={{ flex: 1 }}>
                                     <p style={{ fontSize: '1rem', opacity: 0.8, marginBottom: '20px' }}>
                                         {save.unlockedSectors.includes(selectedSector)
-                                            ? `Deploying to ${selectedSector} Sector. Expect enemy groups matching this element. High density of localized Blueprints detected.`
-                                            : `CHALLENGE GYM GAUNTLET: Defeat the ${selectedSector} Gym Leader to unlock this sector. Prepare for a grueling 3-tier endurance battle.`}
+                                            ? `Free deployment enabled. Wild ${selectedSector}-aligned Mingming roam this sector; enemy groups scale to your party's level.`
+                                            : `FIREWALL ACTIVE — defeat the Sector Warden to unlock free deployment. Breach protocol: 3 escalating battles; your party's HP persists between them.`}
                                     </p>
 
                                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
@@ -186,15 +214,15 @@ const SectorTerminal: React.FC = () => {
                                         <ul style={{ padding: '0 0 0 20px', margin: 0, fontSize: '0.9rem', color: '#7c3aed' }}>
                                             {save.unlockedSectors.includes(selectedSector) ? (
                                                 <>
-                                                    <li>Elemental Program Data</li>
-                                                    <li>Core Level XP</li>
-                                                    <li>Randomized Hardware Fragments</li>
+                                                    <li>Card salvage — pick 1 of {SALVAGE_CHOICES_PER_FOE} per defeated foe, weighted to {selectedSector}</li>
+                                                    <li>Scrap</li>
+                                                    <li>Blueprint chance — collect to synthesize new Mingming</li>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <li>Sector Unlock</li>
-                                                    <li>Rare Relic Selection</li>
-                                                    <li>Boss Data</li>
+                                                    <li>Card draft — {DRAFT_ROUND_COUNT} sequential picks</li>
+                                                    <li>Relic choice</li>
+                                                    <li>Sector unlocked on Warden defeat</li>
                                                 </>
                                             )}
                                         </ul>
@@ -203,7 +231,7 @@ const SectorTerminal: React.FC = () => {
 
                                 {save.gauntlet && (
                                     <div style={{ color: '#ef4444', marginBottom: '15px', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'center' }}>
-                                        ⚠️ WARNING: ACTIVE GAUNTLET DETECTED. RETURN TO HUB TO CONTINUE.
+                                        ⚠️ WARNING: BREACH IN PROGRESS. RETURN TO HOME BASE TO RESUME.
                                     </div>
                                 )}
 
@@ -232,13 +260,13 @@ const SectorTerminal: React.FC = () => {
                                         boxShadow: (save.gauntlet || !canDeploy) ? 'none' : `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
                                     }}
                                 >
-                                    {save.gauntlet ? 'SYSTEM LOCKED' : !canDeploy ? 'DEPLOYMENT BLOCKED' : save.unlockedSectors.includes(selectedSector) ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
+                                    {save.gauntlet ? 'BREACH IN PROGRESS' : !canDeploy ? 'DEPLOYMENT BLOCKED' : save.unlockedSectors.includes(selectedSector) ? '▶ DEPLOY TO SECTOR' : '⚡ BREACH THE FIREWALL'}
                                 </button>
                             </motion.div>
                         ) : (
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', opacity: 0.3 }}>
                                 <div style={{ fontSize: '4rem', marginBottom: '20px' }}>📡</div>
-                                <p>SELECT A SECTOR TO INITIALIZE SCAN</p>
+                                <p>SELECT A SECTOR TO REVIEW INTEL</p>
                             </div>
                         )}
                     </AnimatePresence>

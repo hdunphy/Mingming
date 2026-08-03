@@ -15,6 +15,8 @@ import RelicTerminal from './ui/screens/RelicTerminal'
 import { loadGame } from './engine/SaveSystem'
 import { loadSave } from './ui/store/gameSlice'
 import type { RootState } from './ui/store/store'
+import { initAudio, playSfx } from './ui/audio/AudioEngine'
+import AudioControls from './ui/components/AudioControls'
 
 type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'balance' | 'studio';
 
@@ -42,6 +44,12 @@ function App() {
       dispatch(loadSave(result.data));
     }
   }, [dispatch]);
+
+  // Arm the one-time gesture unlockers for the synthesized audio engine
+  // (browser autoplay policy: the AudioContext resumes on first input).
+  useEffect(() => {
+    initAudio();
+  }, []);
 
   const prevInBattle = useRef(isInBattle);
   // Remember that the current battle belongs to a gauntlet: completeGauntlet()
@@ -72,17 +80,18 @@ function App() {
   return (
     <main style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Tab Navigation */}
-      <nav className="main-nav">
+      <nav className="main-nav" style={{ position: 'relative' }}>
         {TAB_CONFIG.map(tab => (
           <button
             key={tab.id}
             className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => { playSfx('uiClick'); setActiveTab(tab.id); }}
           >
             <span className="nav-icon">{tab.icon}</span>
             <span className="nav-label">{tab.label}</span>
           </button>
         ))}
+        <AudioControls />
       </nav>
 
       {/* Screen Content */}

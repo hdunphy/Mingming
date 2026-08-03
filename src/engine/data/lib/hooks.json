@@ -747,6 +747,7 @@
     "ymir_v2": {
         "id": "ymir_v2",
         "name": "GLACIAL_PACE_OS",
+        "maxCardsPerTurn": 2,
         "description": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 50% more base damage.",
         "hooks": []
     },

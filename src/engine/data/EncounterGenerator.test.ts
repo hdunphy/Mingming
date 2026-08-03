@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { generateEncounter } from './EncounterGenerator';
+import { generateEncounter, getSectorSpecies } from './EncounterGenerator';
 import { createMockEntity } from './battleFactories';
 import { GetProgramData } from './programRegistry';
+import { MingmingRegistry } from './mingmingRegistry';
+import type { Element } from '../types';
 
 describe('EncounterGenerator', () => {
     const playerParty = [
@@ -50,5 +52,37 @@ describe('EncounterGenerator', () => {
 
         const hasDaemon = encounter.enemyDeckIds.some(id => GetProgramData(id).category === 'Daemon');
         expect(hasDaemon).toBe(true);
+    });
+});
+
+describe('getSectorSpecies', () => {
+    it('returns the Fire pool including fenrir and skoll', () => {
+        const ids = getSectorSpecies('Fire').map(def => def.id);
+        expect(ids).toContain('fenrir');
+        expect(ids).toContain('skoll');
+    });
+
+    it('never includes species of other elements', () => {
+        const elements: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', 'Ice', 'Light', 'Dark'];
+        for (const element of elements) {
+            const species = getSectorSpecies(element);
+            species.forEach(def => expect(def.primaryElement).toBe(element));
+        }
+    });
+
+    it('returns exactly the registry entries whose primaryElement matches (per element)', () => {
+        const elements: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', 'Ice', 'Light', 'Dark'];
+        for (const element of elements) {
+            const expected = Object.values(MingmingRegistry)
+                .filter(def => def.primaryElement === element)
+                .map(def => def.id)
+                .sort();
+            const actual = getSectorSpecies(element).map(def => def.id).sort();
+            expect(actual).toEqual(expected);
+        }
+    });
+
+    it('returns [] for an element with no wild species', () => {
+        expect(getSectorSpecies('None' as Element)).toEqual([]);
     });
 });

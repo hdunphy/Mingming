@@ -8,9 +8,11 @@ import { calculateDamage } from '../../engine/combatUtils';
 import type { IBattleState } from '../../engine/types';
 import { validateSingleConstraint, getEffectiveCardCost } from '../../engine/battleReducer';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { getElementAccent } from '../utils/contrastText';
+import { playSfx } from '../audio/AudioEngine';
 
 // Helper to format an action for display
 const formatAction = (action: any): string => {
@@ -90,6 +92,14 @@ const CardHand: React.FC<{
                         const constraints = (data.constraints || [])
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: effectiveCost }))
                             .map(formatConstraint);
+                        // Per-unit OS card limit (e.g. YMIR v2 GLACIAL_PACE_OS: 2 cards/turn).
+                        // The reducer rejects the play silently, so the tooltip carries the reason.
+                        const sourceOS = source?.activeOS ? getOSBehavior(source.activeOS) : undefined;
+                        if (source && sourceOS?.maxCardsPerTurn !== undefined &&
+                            (source.playsThisTurn ?? 0) >= sourceOS.maxCardsPerTurn) {
+                            const osLabel = sourceOS.name.replace(/_OS$/, '').replace(/_/g, ' ');
+                            constraints.push(`${osLabel}: card limit reached (${sourceOS.maxCardsPerTurn}/turn)`);
+                        }
                         const isUnplayable = !source || source.currentHp <= 0 || constraints.length > 0;
 
                         // ×1.5 STAB signal: the selected source's primary/secondary element
@@ -133,6 +143,9 @@ const CardHand: React.FC<{
                                     dispatch(selectCard(isSelected ? null : card.id));
                                 }}
                                 onPointerDown={(e) => {
+                                    // Grayed-out cards still open for reading, but buzz to
+                                    // signal the play itself is blocked.
+                                    playSfx(isUnplayable ? 'uiError' : 'uiClick');
                                     justSelectedRef.current = !isSelected;
                                     dispatch(selectCard(card.id));
                                     const rect = e.currentTarget.getBoundingClientRect();
@@ -244,7 +257,7 @@ const CardHand: React.FC<{
                 <div className="battle-controls">
                     <button
                         disabled={!isOurTurn}
-                        onClick={() => dispatch(endTurn())}
+                        onClick={() => { playSfx('uiClick'); dispatch(endTurn()); }}
                         className="action-button end-turn"
                     >
                         END TURN

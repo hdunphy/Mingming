@@ -38,7 +38,7 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
     });
 }
 
-import { generateEncounter } from './EncounterGenerator';
+import { generateEncounter, getSectorSpecies } from './EncounterGenerator';
 import type { Element, EnemyCombatMode } from '../types';
 
 export interface BattleOptions {
@@ -147,13 +147,15 @@ export function createBattleState(
             enemyParty = encounter.enemyParty;
             enemyDeckIds = encounter.enemyDeckIds;
         } else {
-            // Tier 3 (Gym Leader): Hand-crafted boss party
-            let bossId = 'fenrir';
-            let guardId = 'fenrir';
-            if (primaryElement === 'Water') { bossId = 'kraken'; guardId = 'kraken'; }
-            if (primaryElement === 'Nature') { bossId = 'ratatoskr'; guardId = 'ratatoskr'; }
+            // Tier 3 (Gym Leader): Hand-crafted boss party.
+            // Wardens come from the breach's own species pool so a Light breach
+            // spawns Light wardens, not Fenrir. Fallback only guards against an
+            // empty pool (never crash).
+            const wardenPool = getSectorSpecies(primaryElement);
+            const bossId = wardenPool[0]?.id ?? 'fenrir';
+            const guardId = (wardenPool[1] ?? wardenPool[0])?.id ?? 'fenrir';
 
-            const boss = createMockEntity(`Gym Leader (${gymElement})`, bossId, playerLevel + 2);
+            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, playerLevel + 2);
             const superBoss: IBattleEntity = {
                 ...boss,
                 maxHp: boss.maxHp * 1.5,
@@ -167,8 +169,8 @@ export function createBattleState(
                     { id: 'boss_blast', name: 'Core Blast', intentType: 'Attack', priority: 8, actions: [{ type: 'ATTACK', power: 15, element: 'None', target: 'Side' }] }
                 ]
             };
-            const guard1 = createMockEntity('Elite Guard', guardId, playerLevel);
-            const guard2 = createMockEntity('Elite Guard', guardId, playerLevel);
+            const guard1 = createMockEntity('Firewall Sentinel', guardId, playerLevel);
+            const guard2 = createMockEntity('Firewall Sentinel', guardId, playerLevel);
 
             enemyParty = [guard1, superBoss, guard2]; // Boss in middle
 

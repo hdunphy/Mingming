@@ -10,6 +10,10 @@ import { createOwnedProgram } from './gameTypes';
 import type { IBattleEntity, Element, Rarity } from './types';
 
 // --- Rarity Distribution Constants ---
+
+/** Card-salvage options offered per defeated foe ("pick 1 of N"). */
+export const SALVAGE_CHOICES_PER_FOE = 3;
+
 const RARITY_WEIGHTS: Record<Rarity, number> = {
     'Common': 50,
     'Uncommon': 30,
@@ -104,11 +108,11 @@ function rollForEntity(
         }
         : null;
 
-    // 3. Roll 3 random cards for the "Choice" array
+    // 3. Roll the "Choice" array (pick 1 of SALVAGE_CHOICES_PER_FOE)
     const pool = getPoolForElement(entity.primaryElement);
     const options: IOwnedProgram[] = [];
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < SALVAGE_CHOICES_PER_FOE; i++) {
         const { cardId, nextSeed } = rollCardFromPool(pool, new PRNG(currentSeed));
         options.push(createOwnedProgram(cardId));
         currentSeed = nextSeed;
@@ -168,7 +172,9 @@ export function rollDropTable(
 /** Fraction of each draft pick biased into the gym element's exclusive pool. */
 const DRAFT_ELEMENT_BIAS = 0.7;
 /** Cards offered per draft round. */
-const DRAFT_CHOICES_PER_ROUND = 3;
+export const DRAFT_CHOICES_PER_ROUND = 3;
+/** Default number of sequential draft rounds on a gauntlet clear. */
+export const DRAFT_ROUND_COUNT = 3;
 /** Bounded rerolls when hunting for distinct cards within a round. */
 const DRAFT_REROLL_LIMIT = 24;
 
@@ -185,7 +191,7 @@ const DRAFT_REROLL_LIMIT = 24;
 export function rollDraftRounds(
     seed: string,
     element: Element,
-    count: number = 3
+    count: number = DRAFT_ROUND_COUNT
 ): ICardChoice[] {
     // Full pool = element-matching + neutral ('None') non-token cards.
     const fullPool = getPoolForElement(element);

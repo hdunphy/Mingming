@@ -6,6 +6,7 @@ import { startBattle } from '../store/battleSlice';
 import { resetSave } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
 import { MIN_DECK_SIZE } from '../../engine/gameTypes';
+import { playSfx } from '../audio/AudioEngine';
 
 const HubScreen: React.FC = () => {
     const dispatch = useDispatch();
@@ -18,7 +19,11 @@ const HubScreen: React.FC = () => {
 
     const handleStartEncounter = () => {
         const deckCount = save.activeDeck?.cards.length || 0;
-        if (!activeMingming || deckCount < MIN_DECK_SIZE) return;
+        if (!activeMingming || deckCount < MIN_DECK_SIZE) {
+            playSfx('uiError');
+            return;
+        }
+        playSfx('uiClick');
 
         if (isGauntletActive) {
             dispatch(startBattle({ save, enemyIds: [] }));
@@ -62,7 +67,7 @@ const HubScreen: React.FC = () => {
                 style={{ textAlign: 'center', marginBottom: '40px' }}
             >
                 <h1 style={{ fontSize: '3rem', letterSpacing: '4px', margin: 0 }}>HOME BASE</h1>
-                <p style={{ color: '#555' }}>SECTOR 7 | TERMINAL GAUNTLET</p>
+                <p style={{ color: '#555' }}>SECTOR 7 | BREACH COMMAND</p>
             </motion.div>
 
             <div style={{ display: 'flex', gap: '40px', alignItems: 'center' }}>
@@ -86,7 +91,7 @@ const HubScreen: React.FC = () => {
                         opacity: isDeckValid ? 1 : 0.5
                     }}
                 >
-                    {isDeckValid ? (isGauntletActive ? `CONTINUE GAUNTLET (${save.gauntlet!.currentBattleIndex + 1}/${save.gauntlet!.totalBattles})` : 'START ENCOUNTER') : `DECK TOO SMALL (${save.activeDeck?.cards.length || 0}/${MIN_DECK_SIZE})`}
+                    {isDeckValid ? (isGauntletActive ? `RESUME BREACH (${save.gauntlet!.currentBattleIndex + 1}/${save.gauntlet!.totalBattles})` : 'QUICK DEPLOY') : `DECK TOO SMALL (${save.activeDeck?.cards.length || 0}/${MIN_DECK_SIZE})`}
                 </motion.button>
 
                 {/* Info Panel */}
@@ -124,7 +129,7 @@ const HubScreen: React.FC = () => {
                     textDecoration: 'underline'
                 }}
             >
-                RESTART GAUNTLET (WIPE DATA)
+                RESTART RUN (WIPE DATA)
             </button>
         </div>
     );

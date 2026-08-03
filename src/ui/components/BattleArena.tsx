@@ -5,6 +5,7 @@ import { store, type RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
+import BattleStage from './BattleStage';
 import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent, startBattle } from '../store/battleSlice';
 import type { IBattleEntity, Element } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
@@ -21,6 +22,8 @@ import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx } from '../hooks/useBattleVfx';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+import { playSfx } from '../audio/AudioEngine';
+import AudioControls from './AudioControls';
 
 /**
  * Hold the level-up overlay after the queue first populates, so the death FX
@@ -109,12 +112,20 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => vo
                 transition={{ delay: 0.55, duration: 0.3 }}
             >
                 {result === 'WIN' && onShowReport ? (
-                    <button onClick={onShowReport} className="action-button" style={{ marginTop: '40px' }}>
+                    <button
+                        onClick={() => { playSfx('uiClick'); onShowReport(); }}
+                        className="action-button"
+                        style={{ marginTop: '40px' }}
+                    >
                         VIEW REWARDS
                     </button>
                 ) : (
-                    <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
-                        {result === 'LOSS' ? 'RESTART GAUNTLET' : 'RETURN TO BASE'}
+                    <button
+                        onClick={() => { playSfx('uiClick'); (onDefeatReset || (() => window.location.reload()))(); }}
+                        className="action-button"
+                        style={{ marginTop: '40px' }}
+                    >
+                        {result === 'LOSS' ? 'RESTART RUN' : 'RETURN TO BASE'}
                     </button>
                 )}
             </motion.div>
@@ -335,6 +346,41 @@ const BattleArena: React.FC = () => {
 
     const rosterSize = useSelector((state: RootState) => state.game.roster.length);
 
+    // Audio: battle-end stinger, played once per battle (seed = battle identity;
+    // gauntlets chain battles without ever passing through battleState === null).
+    const endSoundPlayedRef = useRef(false);
+    const battleSeed = battleState?.seed;
+    useEffect(() => {
+        endSoundPlayedRef.current = false;
+    }, [battleSeed]);
+    useEffect(() => {
+        if (endSoundPlayedRef.current) return;
+        if (isVictory) {
+            endSoundPlayedRef.current = true;
+            playSfx('victory');
+        } else if (isDefeat) {
+            endSoundPlayedRef.current = true;
+            playSfx('defeat');
+        }
+    }, [isVictory, isDefeat]);
+
+    // Audio: charge-up zap when a next-program discount primes on a player unit
+    // (e.g. Gullinbursti's UNSTOPPABLE_MASS). Watches the modifier appearing.
+    const primedIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        const next = new Set<string>();
+        battleState?.playerParty.forEach(p => {
+            if (p.nextProgramModifier) next.add(p.id);
+        });
+        for (const id of next) {
+            if (!primedIdsRef.current.has(id)) {
+                playSfx('discountPrimed');
+                break;
+            }
+        }
+        primedIdsRef.current = next;
+    }, [battleState]);
+
     // Roll rewards on victory
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
@@ -361,8 +407,7 @@ const BattleArena: React.FC = () => {
                         cardChoices: [],
                         draftRounds: rollDraftRounds(
                             `${battleState.seed}-gym-draft`,
-                            save.gauntlet.element as Element,
-                            3
+                            save.gauntlet.element as Element
                         )
                     };
                 }
@@ -427,6 +472,54 @@ const BattleArena: React.FC = () => {
         return GetProgramData(card.dataId);
     };
 
+    // ── Shared targeting logic ──
+    // One source of truth for "can this card land on this unit", used by BOTH
+    // the sidebar HUD cards and the center-stage spotlights.
+    const isValidCardTarget = (cardData: ReturnType<typeof GetProgramData>, isEnemy: boolean) => {
+        const targetType = cardData.target;
+        return (
+            (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
+            (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
+            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'))
+        );
+    };
+
+    /** Drop a dragged/selected card on this unit (sidebar card or stage spotlight). */
+    const handleEntityPointerUp = (entity: IBattleEntity, isEnemy: boolean) => {
+        if (!selectedCardId || entity.currentHp <= 0) return;
+        const cardData = getSelectedCardData();
+        if (!cardData) return;
+
+        if (isValidCardTarget(cardData, isEnemy)) {
+            // For Self cards, always target the source
+            const effectiveTargetId = cardData.target === 'Self' ? (selectedSourceId || entity.id) : entity.id;
+            handlePlay(selectedCardId, effectiveTargetId);
+            dispatch(selectCard(null));
+        }
+    };
+
+    /** Click a unit (sidebar card or stage spotlight): target enemies / select allies. */
+    const handleEntityClick = (entity: IBattleEntity, isEnemy: boolean) => {
+        if (entity.currentHp <= 0) return;
+        const isTargeted = selectedTargetId === entity.id;
+
+        // If we have a card selected, check if this is a valid target
+        if (selectedCardId) {
+            const cardData = getSelectedCardData();
+            if (cardData && isValidCardTarget(cardData, isEnemy)) {
+                dispatch(selectTarget(isTargeted ? null : entity.id));
+                return;
+            }
+        }
+
+        // Default behavior: enemy = target, friendly = source
+        if (isEnemy) {
+            dispatch(selectTarget(isTargeted ? null : entity.id));
+        } else {
+            dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
+        }
+    };
+
     const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
         <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
             {party.map((entity, index) => {
@@ -458,25 +551,7 @@ const BattleArena: React.FC = () => {
                         onMouseLeave={() => {
                             if (hoveredEntityId === entity.id) setHoveredEntityId(null);
                         }}
-                        onPointerUp={() => {
-                            if (!selectedCardId || isDead) return;
-                            const cardData = getSelectedCardData();
-                            if (!cardData) return;
-
-                            // Determine if this is a valid target
-                            const targetType = cardData.target;
-                            const isValidTarget =
-                                (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
-                                (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'));
-
-                            if (isValidTarget) {
-                                // For Self cards, always target the source
-                                const effectiveTargetId = targetType === 'Self' ? (selectedSourceId || entity.id) : entity.id;
-                                handlePlay(selectedCardId, effectiveTargetId);
-                                dispatch(selectCard(null));
-                            }
-                        }}
+                        onPointerUp={() => handleEntityPointerUp(entity, isEnemy)}
                     >
                         <MingmingUnit
                             entity={entity}
@@ -488,33 +563,7 @@ const BattleArena: React.FC = () => {
                             selectedCardId={selectedCardId}
                             selectedSourceId={selectedSourceId}
                             isHoveredTarget={hoveredEntityId === entity.id}
-                            onClick={() => {
-                                if (isDead) return;
-
-                                // If we have a card selected, check if this is a valid target
-                                if (selectedCardId) {
-                                    const cardData = getSelectedCardData();
-                                    if (cardData) {
-                                        const targetType = cardData.target;
-                                        const canTarget =
-                                            (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
-                                            (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-                                            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'));
-
-                                        if (canTarget) {
-                                            dispatch(selectTarget(isTargeted ? null : entity.id));
-                                            return;
-                                        }
-                                    }
-                                }
-
-                                // Default behavior: enemy = target, friendly = source
-                                if (isEnemy) {
-                                    dispatch(selectTarget(isTargeted ? null : entity.id));
-                                } else {
-                                    dispatch(selectSource(isSelected ? null : entity.id));
-                                }
-                            }}
+                            onClick={() => handleEntityClick(entity, isEnemy)}
                         />
                     </motion.div>
                 );
@@ -535,6 +584,33 @@ const BattleArena: React.FC = () => {
                 setOriginPoint(null);
             }}
         >
+            {/* Audio toggle/volume — the nav bar (its usual home) is hidden in battle */}
+            <AudioControls floating />
+
+            {/* Breach progress: small truthful indicator of which breach battle this is */}
+            {save.gauntlet && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: '10px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 1500,
+                        pointerEvents: 'none',
+                        padding: '4px 14px',
+                        borderRadius: '4px',
+                        background: 'rgba(0, 0, 0, 0.55)',
+                        border: '1px solid rgba(255, 204, 0, 0.35)',
+                        color: '#ffcc00',
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        letterSpacing: '3px'
+                    }}
+                >
+                    BREACH — BATTLE {Math.min(save.gauntlet.currentBattleIndex + 1, save.gauntlet.totalBattles)}/{save.gauntlet.totalBattles}
+                </div>
+            )}
+
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
                 {isVictory && !showReport && (
@@ -592,6 +668,19 @@ const BattleArena: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={stageControls}
             >
+                {/* Center stage: big spotlight sprites for the selected unit + focus enemy */}
+                <BattleStage
+                    battleState={battleState}
+                    selectedSourceId={selectedSourceId}
+                    selectedTargetId={selectedTargetId}
+                    hoveredEntityId={hoveredEntityId}
+                    isTargeting={isTargeting}
+                    unitFx={vfx.unitFx}
+                    onEntityClick={handleEntityClick}
+                    onEntityPointerUp={handleEntityPointerUp}
+                    onEnemyHoverChange={setHoveredEntityId}
+                />
+
                 {renderParty(battleState.playerParty, false)}
 
                 <CombatLog />

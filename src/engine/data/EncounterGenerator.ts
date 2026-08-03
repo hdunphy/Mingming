@@ -1,6 +1,6 @@
 import { MingmingRegistry } from './mingmingRegistry';
 import { ProgramRegistry } from './programRegistry';
-import type { Element, IBattleEntity, IMingmingState } from '../types';
+import type { Element, IBattleEntity, IMingmingState, IMingmingDefinition } from '../types';
 import { initializeBattleEntity, getExpForLevel } from '../types';
 import { PRNG } from '../core/PRNG';
 
@@ -20,6 +20,16 @@ export interface IGeneratedEncounter {
     enemyDeckIds: string[];
 }
 
+/**
+ * Pure helper: the wild species pool for a sector element — exactly the pool
+ * the encounter generator draws enemies from. The UI uses this to truthfully
+ * list a sector's inhabitants, so it must stay in sync with generateEncounter
+ * (which consumes it directly).
+ */
+export function getSectorSpecies(element: Element): IMingmingDefinition[] {
+    return Object.values(MingmingRegistry).filter(def => def.primaryElement === element);
+}
+
 export function generateEncounter(options: IEncounterOptions): IGeneratedEncounter {
     const { sectorElement, playerParty, seed = Date.now().toString() } = options;
     const prng = new PRNG(seed);
@@ -32,11 +42,8 @@ export function generateEncounter(options: IEncounterOptions): IGeneratedEncount
     // 2. Randomize Party Size
     const { value: partySize } = prng.nextInt(1, playerParty.length);
 
-    // 3. Filter Mingmings by Element
-    const eligibleMingmingIds = Object.keys(MingmingRegistry).filter(id => {
-        const def = MingmingRegistry[id];
-        return def.primaryElement === sectorElement;
-    });
+    // 3. Filter Mingmings by Element (shared with the UI's sector intel list)
+    const eligibleMingmingIds = getSectorSpecies(sectorElement).map(def => def.id);
 
     // Fallback to all if none found (shouldn't happen with valid sectorElement)
     const pool = eligibleMingmingIds.length > 0 ? eligibleMingmingIds : Object.keys(MingmingRegistry);

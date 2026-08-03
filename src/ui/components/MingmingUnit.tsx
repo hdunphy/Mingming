@@ -13,6 +13,7 @@ import { readableTextOn, badgeTextShadow, getElementAccent } from '../utils/cont
 import { formatMultiplier } from './ElementMatchupTooltip';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
+import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
 
 /**
  * Status badge with a hover tooltip explaining the mechanic.
@@ -474,8 +475,8 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     <span className="hud-hp-text">{entity.currentHp}/{entity.maxHp} HP {previewDamage > 0 && <span style={{ color: '#ff4444' }}>(-{previewDamage})</span>}</span>
                 </div>
 
-                {/* Elemental breakdown of the hover preview: STAB / type effectiveness */}
-                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1) && (
+                {/* Elemental breakdown of the hover preview: STAB / type effectiveness / Sharp scaling */}
+                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0) && (
                     <div className="hud-preview-tags">
                         {preview.stab && (
                             <span
@@ -483,6 +484,11 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                 style={{ color: getElementAccent(preview.element), borderColor: getElementAccent(preview.element) }}
                             >
                                 ×1.5 STAB
+                            </span>
+                        )}
+                        {preview.sharpBonus > 0 && (
+                            <span className="hud-preview-chip">
+                                +{preview.sharpBonus} SHARP
                             </span>
                         )}
                         {preview.effectiveness > 1 && (
@@ -549,82 +555,13 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                 </div>
             </div>
 
-            {/* ── Transient overlays (remount on key change to replay) ── */}
-            {(fx?.hitKey ?? 0) > 0 && (
-                <motion.div
-                    key={`hitflash-${fx!.hitKey}`}
-                    className="hud-hit-flash"
-                    initial={{ opacity: 0.3 + 0.5 * (fx?.hitIntensity ?? 0) }}
-                    animate={{ opacity: 0 }}
-                    transition={{ duration: 0.35, ease: 'easeOut' }}
-                />
-            )}
-            {(fx?.healKey ?? 0) > 0 && (
-                <motion.div
-                    key={`healpulse-${fx!.healKey}`}
-                    className="hud-heal-pulse"
-                    initial={{ opacity: 0.5 }}
-                    animate={{ opacity: 0 }}
-                    transition={{ duration: 0.55, ease: 'easeOut' }}
-                />
-            )}
-            {(fx?.statusKey ?? 0) > 0 && (
-                <motion.div
-                    key={`statusring-${fx!.statusKey}`}
-                    className="hud-status-ring"
-                    style={{
-                        borderColor: fx!.statusColor,
-                        boxShadow: `0 0 16px ${fx!.statusColor}66, inset 0 0 10px ${fx!.statusColor}44`,
-                    }}
-                    initial={{ opacity: 0.9, scale: 1 }}
-                    animate={{ opacity: 0, scale: 1.04 }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                />
-            )}
+            {/* ── Transient overlays (shared with the battle stage via UnitFxLayer) ── */}
+            <FxTransientOverlays fx={fx} />
 
-            {/* ── Floating FX ── */}
+            {/* ── Floating FX (shared with the battle stage via UnitFxLayer) ── */}
+            <FxFloats fx={fx} />
+            <TerminatedStamp visible={isDead} glitching={deathGlitch} />
             <AnimatePresence>
-                {(fx?.floats ?? []).map(f => (
-                    <motion.div
-                        key={f.id}
-                        className={`hud-float hud-float-${f.kind}`}
-                        style={{ color: f.color, left: `calc(50% + ${(f.slot - 2.5) * 15}px)` }}
-                        initial={{ opacity: 0, y: 6, scale: f.kind === 'crit' ? 0.6 : 0.7 }}
-                        animate={{
-                            opacity: [0, 1, 1, 0],
-                            y: prefersReducedMotion() ? -18 : -86,
-                            scale: f.kind === 'crit' ? 1.55 : f.kind === 'absorbed' ? 0.95 : 1.15,
-                            rotate: f.kind === 'crit' ? (f.slot % 2 ? -8 : 8) : 0,
-                        }}
-                        exit={{ opacity: 0 }}
-                        transition={{
-                            duration: 1,
-                            ease: 'easeOut',
-                            opacity: { duration: 1, times: [0, 0.08, 0.7, 1] },
-                        }}
-                    >
-                        {f.text}
-                    </motion.div>
-                ))}
-                {isDead && (
-                    <motion.div
-                        key="terminated-stamp"
-                        className="hud-terminated-wrap"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2, delay: deathGlitch ? 0.35 : 0 }}
-                    >
-                        <motion.span
-                            className="hud-terminated-stamp"
-                            initial={{ scale: 1.7, rotate: -14 }}
-                            animate={{ scale: 1, rotate: -8 }}
-                            transition={{ duration: 0.25, ease: 'easeOut', delay: deathGlitch ? 0.35 : 0 }}
-                        >
-                            ☠ TERMINATED
-                        </motion.span>
-                    </motion.div>
-                )}
                 {levelUpVisible && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.5, y: -10 }}

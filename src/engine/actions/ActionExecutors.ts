@@ -21,9 +21,32 @@ export abstract class ActionExecutor<T extends ProgramAction> {
     abstract execute(state: IBattleState, sourceId: string, targetId: string, actionData: T, program: ProgramData | undefined, context: HookContext): IBattleState;
 }
 
+/**
+ * Effective ATTACK power after attacker-only scaling.
+ *
+ * Currently handles SHARP_STACKS (+5 power per Sharp stack on the attacker),
+ * which boosts the POWER fed into the damage formula so the bonus scales with
+ * level/stats like any other power and survives resistances.
+ *
+ * Shared by AttackExecutor AND the UI hover preview (computeDamagePreview) so
+ * the previewed number and the real reducer damage cannot drift for Sharp
+ * scaling. The other scalings (CARDS_PLAYED, MISSING_HP, STATUS_COUNT,
+ * CARDS_DRAWN, ELEMENT_PLAYED) depend on battle state / the target and
+ * multiply the computed DAMAGE afterwards — they intentionally stay inside
+ * AttackExecutor.
+ */
+export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<AttackActionData, 'power' | 'scaling'>): number {
+    const power = action.power || 0;
+    if (action.scaling === 'SHARP_STACKS') {
+        const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
+        return power + 5 * sharpStacks;
+    }
+    return power;
+}
+
 export class AttackExecutor extends ActionExecutor<AttackActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: AttackActionData, program: ProgramData | undefined, _context: HookContext): IBattleState {
-        const { power, element, scaling } = actionData;
+        const { element, scaling } = actionData;
 
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
         let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
@@ -35,15 +58,9 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         if (source) {
             const programToUse = program || ({ element: element } as ProgramData);
 
-            // SHARP_STACKS scaling boosts the POWER fed into the damage formula
-            // (+5 power per Sharp stack on the attacker), so the bonus scales
-            // with level/stats like any other power and survives resistances.
-            // Previously this key was silently unhandled — spike_launch never scaled.
-            let effectivePower = power;
-            if (scaling === 'SHARP_STACKS') {
-                const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-                effectivePower = power + 5 * sharpStacks;
-            }
+            // SHARP_STACKS scaling handled by the shared helper (also used by
+            // the UI damage preview, so preview and reality cannot drift).
+            const effectivePower = getEffectiveAttackPower(source, actionData);
 
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 

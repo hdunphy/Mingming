@@ -224,6 +224,18 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         actions: [{ type: 'STATUS', status: StatusType.Dazed, stacks: 1, target: 'TARGET' }],
         rarity: 'Common'
     },
+    'card_ice_strike': {
+        id: 'card_ice_strike',
+        name: 'Ice Strike',
+        description: 'Basic ice strike.',
+        element: 'Ice',
+        target: 'Single',
+        category: 'Attack',
+        baseCost: 1,
+        constraints: [...STANDARD_CONSTRAINTS],
+        actions: [{ type: 'ATTACK', power: 20, target: 'TARGET' }],
+        rarity: 'Common'
+    },
     'card_water_blast': {
         id: 'card_water_blast',
         name: 'Tsunami',
