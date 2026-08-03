@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "Ash Reclamation consumes Burn it did not stack",
+  "description": "Fenrir opens with seeded Burn already on both enemies. Question: does ash_reclamation's STATUS consume read the stacks that were present at battle start, or only the ones applied this battle? registryHash below is a placeholder stamp - the loader is expected to warn about drift and load anyway, which is exactly the non-blocking path this fixture exercises. Re-stamp it by round-tripping the file through saveScenario().",
+  "tags": ["repro", "status", "burn", "fenrir"],
+  "registryHash": "1:00000000",
+  "createdAt": "2026-08-03T00:00:00.000Z",
+  "setup": {
+    "seed": "ash-reclamation-burn-consume",
+    "enemyMode": "MOVES",
+    "player": {
+      "party": [
+        {
+          "definitionId": "fenrir",
+          "level": 12,
+          "attackIV": 31,
+          "defenseIV": 0,
+          "hpIV": 15,
+          "activeOS": "fenrir_v1"
+        },
+        {
+          "definitionId": "kraken",
+          "level": 12,
+          "attackIV": 0,
+          "defenseIV": 31,
+          "hpIV": 15,
+          "activeOS": "kraken_v1",
+          "currentHp": 40
+        }
+      ],
+      "deck": [
+        "ignite",
+        "ignite",
+        "scorch",
+        "ash_reclamation",
+        "ash_reclamation",
+        "fire_poke",
+        "fire_poke",
+        "cinder_slash",
+        "water_slap",
+        "whirlpool_v2"
+      ],
+      "relics": ["heatsink"]
+    },
+    "enemies": [
+      {
+        "definitionId": "draugr",
+        "level": 12,
+        "attackIV": 0,
+        "defenseIV": 0,
+        "hpIV": 0,
+        "activeOS": "draugr_v1",
+        "statusEffects": [
+          { "id": "seed_burn_draugr", "type": "Burn", "stacks": 4 }
+        ]
+      },
+      {
+        "definitionId": "skoll",
+        "level": 12,
+        "attackIV": 0,
+        "defenseIV": 0,
+        "hpIV": 0,
+        "activeOS": "skoll_v1",
+        "maxHpOverride": 60,
+        "currentHp": 60,
+        "statusEffects": [
+          { "id": "seed_burn_skoll", "type": "Burn", "stacks": 2 }
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}
