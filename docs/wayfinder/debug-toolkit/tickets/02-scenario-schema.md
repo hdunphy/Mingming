@@ -147,3 +147,9 @@ not on 09's checklist — it has been added there, or replay diffs fail on `sess
 - Subdirectories carry the repro-vs-balance split, so no filename-prefix discipline to erode.
 - `<slug>` is kebab-case and describes the *question*, not the fix: `taunt-ignores-forced-target`,
   `kraken-mirror-winrate`.
+
+### Amended 2026-08-03 by [Battle snapshot export](06-battle-snapshot-export.md)
+
+The `snapshot` kind gains an **optional** `tape` field carrying the dispatched-action sequence since
+battle start. Optional means **no `CURRENT_SCENARIO_VERSION` bump** — v1 files without it still
+validate, and `migrateScenario` stays a no-op. Everything else in this resolution stands.
