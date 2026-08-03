@@ -102,3 +102,15 @@ exported snapshot then carries the account of what was done to it, so a repro ex
 Interaction with [Scenario schema v1](02-scenario-schema.md): `logs` is a compared field, so a
 scenario recorded with god-tool use will not diff clean against a pristine replay. Accepted — those
 runs genuinely are not clean, and the prefix makes it obvious why. No schema change needed.
+
+### Amended 2026-08-03 by [Live-manipulation command set](05-live-manipulation-command-set.md)
+
+Section 4's "no debug code in `battleReducer`" is narrowed to **"no debug-*specific* code"**. Ticket
+05 adds five general-purpose state actions (`SET_VITALS`, `REMOVE_STATUS`, `ADD_CARD_TO_HAND`,
+`SET_INTENT`, `KILL_ENTITY`) that belong to the engine on their own merit; the debug layer is their
+first consumer.
+
+Everything else in section 4 stands. Verbs are still pure `(state, args) => IBattleState` functions
+under `src/debug/`, still applied via `setBattleState` — they now delegate to `battleReducer` (a
+plain exported function, not a slice) rather than hand-editing state. No new `battleSlice` action,
+single import edge untouched, nothing debug-shaped in the shipped bundle.
