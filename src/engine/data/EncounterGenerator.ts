@@ -3,6 +3,7 @@ import { ProgramRegistry } from './programRegistry';
 import type { Element, IBattleEntity, IMingmingState, IMingmingDefinition } from '../types';
 import { initializeBattleEntity, getExpForLevel } from '../types';
 import { PRNG } from '../core/PRNG';
+import { rollSeed } from '../core/SeedStream';
 
 /**
  * Epic 8: Milestone 8.1 - Encounter Generator
@@ -12,6 +13,12 @@ import { PRNG } from '../core/PRNG';
 export interface IEncounterOptions {
     sectorElement: Element;
     playerParty: IBattleEntity[];
+    /**
+     * Omit only when the caller genuinely wants an unreproducible encounter -
+     * createBattleState always threads its own seed in. Absent, one is rolled
+     * once (never Date.now(), which is correlated across calls in the same
+     * millisecond and so is not even a good ad-hoc seed).
+     */
     seed?: string;
 }
 
@@ -31,7 +38,7 @@ export function getSectorSpecies(element: Element): IMingmingDefinition[] {
 }
 
 export function generateEncounter(options: IEncounterOptions): IGeneratedEncounter {
-    const { sectorElement, playerParty, seed = Date.now().toString() } = options;
+    const { sectorElement, playerParty, seed = rollSeed() } = options;
     const prng = new PRNG(seed);
 
     // 1. Calculate Level Scaling
