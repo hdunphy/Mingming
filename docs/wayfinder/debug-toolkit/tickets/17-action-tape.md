@@ -1,8 +1,8 @@
 # Action tape
 
 - Type: wayfinder:task
-- Status: open
-- Assignee:
+- Status: closed
+- Assignee: subagent-17-action-tape (cowork-2026-08-03-opus5)
 - Blocked by: [Scenario schema & normalizer](10-scenario-schema-implementation.md) ([Debug gating scaffold](12-debug-gating-scaffold.md) closed)
 
 Correction 2026-08-03: originally listed as unblocked, but this ticket adds the optional `tape` field to
@@ -33,3 +33,26 @@ Checklist:
 
 Done when: `npx vitest run` + `npx tsc -b` + `npm run build` all green, and a production build
 contains no tap consumer (the tap point itself ships, inert, by design).
+
+## Resolution
+
+**Closed 2026-08-03.** Gates green (run in the cloud sandbox on Linux while Henry was AFK; `tsc -b`, `vitest run` 47 files / 542 tests, `npm run build` incl. `assert-no-debug`, all exit 0).
+
+`src/ui/store/store.ts` gains the general-purpose tap point (`ActionTap`, `setActionTap`, forwarding
+middleware, ~20 lines, no import from `src/debug/`); `src/debug/actionTape.ts` holds a 256-entry ring
+buffer installed by `useActionTape()` from `DebugRoot`. 11 tests.
+
+Notes from implementation:
+
+- **Battle boundary detected via `sessionId` change** through `store.subscribe`, so it catches both
+  `startBattle` and a mid-battle snapshot import without naming either action. The boundary action
+  itself is kept as the new tape's first entry — the tape opens on its own first cause.
+- Installs are refcounted and disposers idempotent, because `DebugRoot` mounts twice and StrictMode
+  double-invokes effects; otherwise leaving the Debug tab would silently disarm recording.
+- No measurable dispatch cost when nothing is installed: one null check, and `dispatch` still returns
+  the action unchanged.
+- **Known and accepted:** entries are raw and unfiltered, so `setBattleState` records a whole
+  `IBattleState` — which is exactly why the 256-entry bound exists. God-tool verbs therefore still
+  appear as opaque state replacements.
+- Flagged, not fixed: the tap call is not wrapped in try/catch, so a throwing tap would propagate
+  into `dispatch`.
