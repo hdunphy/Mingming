@@ -6,6 +6,7 @@
 import type { IMingmingState } from "./types";
 import { getExpForLevel } from "./types";
 import { MingmingRegistry } from "./data/mingmingRegistry";
+import { SeedStream, rollSeed } from "./core/SeedStream";
 
 // --- Card Inventory ---
 
@@ -111,7 +112,16 @@ export function createDefaultSave(): IPlayerSave {
 }
 
 //TODO does this get used? or does the battle factory get used?
-export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' = 'kraken'): IPlayerSave {
+export function createStarterSave(
+    starterId: 'kraken' | 'fenrir' | 'ratatoskr' = 'kraken',
+    seed?: string
+): IPlayerSave {
+    // One seed, threaded through every random decision below (roster id, IVs,
+    // card instance ids). When no seed is supplied we roll exactly once - the
+    // same contract createBattleState uses - so existing callers are unaffected
+    // while a scenario can start from a reproducible save.
+    const rng = new SeedStream(seed ?? rollSeed());
+
     const isFire = starterId === 'fenrir';
     const isNature = starterId === 'ratatoskr';
 
@@ -121,15 +131,16 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
     if (isNature) nickname = 'Nutty';
 
     const starter: IMingmingState = {
-        id: crypto.randomUUID(),
+        id: rng.nextId('mm'),
         definitionId: starterId,
         nickname: nickname,
         level: 5,
         experience: getExpForLevel(5),
         blueprintsCollected: 0,
-        attackIV: 10 + Math.floor(Math.random() * 6),
-        defenseIV: 10 + Math.floor(Math.random() * 6),
-        hpIV: 10 + Math.floor(Math.random() * 6)
+        // Starters keep their old 10-15 band (PlayerSaveSchema allows 0-31).
+        attackIV: 10 + rng.nextInt(0, 5),
+        defenseIV: 10 + rng.nextInt(0, 5),
+        hpIV: 10 + rng.nextInt(0, 5)
     };
 
     // Starter deck cards come from the species' base deck kit in the registry
@@ -142,10 +153,9 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
     }
     starterCardIds = starterCardIds.slice(0, MIN_DECK_SIZE);
 
-    const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => ({
-        instanceId: crypto.randomUUID(),
-        dataId
-    }));
+    // Same stream, so instance ids are unique within the save and reproducible
+    // across two calls with the same seed.
+    const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => createOwnedProgram(dataId, rng));
 
     return {
         version: 2,
@@ -168,23 +178,32 @@ export function createStarterSave(starterId: 'kraken' | 'fenrir' | 'ratatoskr' =
 
 export function createMingmingInstance(
     definitionId: string,
-    level: number = 5
+    level: number = 5,
+    rng: SeedStream = new SeedStream(rollSeed())
 ): IMingmingState {
     return {
-        id: Math.random().toString(36).substring(7),
+        id: rng.nextId('mm'),
         definitionId: definitionId,
         level: level,
         experience: getExpForLevel(level),
         blueprintsCollected: 0,
-        attackIV: Math.floor(Math.random() * 32),
-        defenseIV: Math.floor(Math.random() * 32),
-        hpIV: Math.floor(Math.random() * 32),
+        // PlayerSaveSchema bounds IVs at int 0-31.
+        attackIV: rng.nextInt(0, 31),
+        defenseIV: rng.nextInt(0, 31),
+        hpIV: rng.nextInt(0, 31),
     };
 }
 
-export function createOwnedProgram(dataId: string): IOwnedProgram {
+/**
+ * @param rng Stream to mint the instance id from; omitted, one is rolled.
+ *   The `number` arm exists only because this factory is passed straight to
+ *   `Array.prototype.map` (RewardSystem does), which supplies the element
+ *   index as a second argument - that is ignored, not used as a seed.
+ */
+export function createOwnedProgram(dataId: string, rng?: SeedStream | number): IOwnedProgram {
+    const stream = rng instanceof SeedStream ? rng : new SeedStream(rollSeed());
     return {
-        instanceId: crypto.randomUUID(),
+        instanceId: stream.nextId('card'),
         dataId
     };
 }

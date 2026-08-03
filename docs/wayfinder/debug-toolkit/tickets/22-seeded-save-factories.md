@@ -2,7 +2,7 @@
 
 - Type: wayfinder:task
 - Status: open
-- Assignee:
+- Assignee: subagent-22-seeded-saves (cowork-2026-08-03-opus5)
 - Blocked by: [Determinism groundwork](09-determinism-groundwork.md)
 
 ## Question
@@ -27,3 +27,27 @@ Checklist:
 
 Done when: same seed ⇒ deep-equal `IPlayerSave`, and `npx vitest run` + `npx tsc -b` + `npm run build`
 all green.
+
+## Implementation status — 2026-08-03
+
+Code landed by subagent `af1861594a19cc1fa`; **open until Henry's gates pass.**
+`createStarterSave(starterId?, seed?)`, `createMingmingInstance(definitionId, level, rng?)` and
+`createOwnedProgram(dataId, rng?)` are seeded via `SeedStream`, matching 09's contract exactly
+(absent seed → one `rollSeed()`, then thread). `crypto.randomUUID()` and `Math.random()` are gone
+from `gameTypes.ts` entirely. Same seed ⇒ deep-equal `IPlayerSave` for all three starters; generated
+saves pass `PlayerSaveSchema`. IV bands preserved (0–31 general, 10–15 for starters).
+
+09's fixed save literal in `determinism.test.ts` is replaced by a seeded `createStarterSave` — the
+proof this ticket existed for. **Bonus coverage:** the real starter save has a non-null `activeDeck`,
+so `createBattleState`'s non-null-deck branch is now exercised for the first time (09's literal had
+`activeDeck: null`). It is deterministic; all six battle branches still deep-equal.
+
+No caller changes were needed. One landmine found and defused:
+
+- **`RewardSystem.ts:237` does `pickedIds.map(createOwnedProgram)`**, which passes the array
+  **index** as the second argument. A plain `rng?: SeedStream` parameter would have been a compile
+  error there and a runtime crash (`0` survives `??`). The parameter is therefore
+  `SeedStream | number` with an `instanceof` guard; the `number` arm exists solely for that call
+  site and is ignored, never used as a seed. Fixing the call site to
+  `pickedIds.map(id => createOwnedProgram(id, rng))` would let the union narrow back and would also
+  seed reward-card ids — deliberately left alone as out of scope. See the map's fog.
