@@ -1,8 +1,8 @@
 # Save/run editor panel
 
 - Type: wayfinder:task
-- Status: open
-- Assignee:
+- Status: closed
+- Assignee: subagent-19-save-editor (cowork-2026-08-03-opus5)
 - Blocked by: [Save reward actions](18-save-reward-actions.md)
 
 ## Question
@@ -26,3 +26,28 @@ Checklist:
 
 Done when: `npx vitest run` + `npx tsc -b` + `npm run build` all green, and an invalid edit is
 provably refused rather than silently wedging the autosave.
+
+## Resolution
+
+**Closed 2026-08-03.** Gates green (run in the cloud sandbox on Linux while Henry was AFK; `tsc -b`, `vitest run` 47 files / 542 tests, `npm run build` incl. `assert-no-debug`, all exit 0).
+
+`src/debug/saveEdit.ts` (React-free) + `SaveEditorPanel`. 29 headless tests, including the two
+obligations: every verb yields a schema-valid save, and an invalid edit is refused with `dispatch`
+never called and the store still reference-identical.
+
+Notes from implementation:
+
+- **The dry run is tighter than specified.** `gameSlice`'s reducer is pure, so `projectSave` calls
+  `gameReducer(current, action)` directly outside the store to build the *exact* prospective state,
+  validates that, then dispatches the same action object. Immer's copy-on-write means nothing
+  observes it and no subscriber runs. `prepareEdit` also catches a reducer that *throws* on a
+  malformed payload.
+- Caveat: `addToRoster`'s base-deck grant mints ids with `crypto.randomUUID()`, so projected and
+  dispatched saves differ in those id *values*. The schema treats them as opaque strings, so validity
+  — all the dry run claims — is identical.
+- **`healParty` is a genuine no-op on the save**: roster HP is not persisted. The only HP the save
+  carries is `gauntlet.persistedStats`, and no existing action resets it without also advancing
+  `currentBattleIndex`. The verb is present and the panel says plainly that it changes nothing.
+- Validity banner has three states: red **AUTOSAVE WEDGED** (live state fails the schema, with the
+  offending paths), amber **stored copy is behind** (valid but the last autosave did not land), green
+  in-sync.
