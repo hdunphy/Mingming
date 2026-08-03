@@ -6,7 +6,8 @@ import type {
     ProgramData,
     StatusType,
     StatusEffectInstance,
-    ProgramConstraint
+    ProgramConstraint,
+    IMove
 } from './types';
 import { globalBattleEventBus } from './events';
 import { type HookContext } from './core/Hooks';
@@ -39,7 +40,16 @@ export type BattleAction =
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
     | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string } }
-    | { type: 'EXECUTE_INTENT'; payload: { sourceId: string } };
+    | { type: 'EXECUTE_INTENT'; payload: { sourceId: string } }
+    // --- General-purpose state actions ---
+    // Ordinary engine actions, NOT debug-only tooling and NOT DEV-gated: a card or
+    // relic can plausibly want to express each of these. The debug overlay is merely
+    // their first consumer. See docs/wayfinder/debug-toolkit/tickets/14-engine-state-actions.md.
+    | { type: 'SET_VITALS'; payload: { entityId: string; hp?: number; energy?: number; tempHp?: number; sourceId: string } }
+    | { type: 'REMOVE_STATUS'; payload: { entityId: string; status?: StatusType } }
+    | { type: 'ADD_CARD_TO_HAND'; payload: { side: 'PLAYER' | 'ENEMY'; dataId: string } }
+    | { type: 'SET_INTENT'; payload: { entityId: string; move: IMove | null } }
+    | { type: 'KILL_ENTITY'; payload: { entityId: string; sourceId: string } };
 
 // --- Constants ---
 
@@ -72,6 +82,21 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
 
         case 'EXECUTE_INTENT':
             return handleExecuteIntent(state, action.payload);
+
+        case 'SET_VITALS':
+            return handleSetVitals(state, action.payload);
+
+        case 'REMOVE_STATUS':
+            return handleRemoveStatus(state, action.payload);
+
+        case 'ADD_CARD_TO_HAND':
+            return handleAddCardToHand(state, action.payload);
+
+        case 'SET_INTENT':
+            return handleSetIntent(state, action.payload);
+
+        case 'KILL_ENTITY':
+            return handleKillEntity(state, action.payload);
 
         default:
             return state;
@@ -847,4 +872,245 @@ function processPreTurn(state: IBattleState): IBattleState {
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
 
     return newState;
+}
+// --- General-purpose State Actions ---
+// SET_VITALS / REMOVE_STATUS / ADD_CARD_TO_HAND / SET_INTENT / KILL_ENTITY.
+// Nothing below is debug-specific and nothing is DEV-gated: these ship as ordinary
+// engine actions. They deliberately fire their real downstream processing so a board
+// staged through them is indistinguishable from one the game produced itself.
+// Recursion is bounded by resolutionEngine's resolutionStackDepth guard (cap 12).
+
+/** Finds an entity by id in either party. */
+function findBattleEntity(state: IBattleState, entityId: string): IBattleEntity | undefined {
+    return state.playerParty.find(e => e.id === entityId)
+        || state.enemyParty.find(e => e.id === entityId);
+}
+
+/** Applies a patch to one entity, wherever it lives (ids are unique across parties). */
+function patchEntity(state: IBattleState, entityId: string, patch: Partial<IBattleEntity>): IBattleState {
+    const apply = (party: ReadonlyArray<IBattleEntity>) =>
+        party.map(e => (e.id === entityId ? { ...e, ...patch } : e));
+    return {
+        ...state,
+        playerParty: apply(state.playerParty),
+        enemyParty: apply(state.enemyParty)
+    };
+}
+
+/**
+ * Runs a source/target hook phase against the CURRENT state.
+ * Mirrors the card path: retaliation-style hooks read source-vs-target to decide
+ * whether to fire, so the source must be a real entity, never a sentinel.
+ */
+function runVitalsHook(
+    state: IBattleState,
+    phase: 'onPostDamage' | 'onHeal',
+    sourceId: string,
+    targetId: string
+): IBattleState {
+    const target = findBattleEntity(state, targetId);
+    if (!target) return state;
+    const context: HookContext = {
+        source: findBattleEntity(state, sourceId),
+        target,
+        state,
+        triggerDepth: 0
+    };
+    const { state: afterHook } = executeResolutionStack(phase, context);
+    return afterHook;
+}
+
+/**
+ * Sets any combination of HP / energy / tempHp on a unit.
+ *
+ * An HP DECREASE is damage: it emits DAMAGE_TAKEN, runs the post-damage hooks and,
+ * if lethal, the same checkDefeat death processing every other damage site uses
+ * (handleAttack, end-of-turn DoT) - death is derived from currentHp <= 0 everywhere,
+ * so a unit dropped to 0 without it would leave a half-dead board.
+ * An HP INCREASE is a heal: it emits HEAL and runs onHeal.
+ * Energy and tempHp changes fire nothing - the engine has no trigger for them.
+ */
+function handleSetVitals(
+    state: IBattleState,
+    payload: { entityId: string; hp?: number; energy?: number; tempHp?: number; sourceId: string }
+): IBattleState {
+    const { entityId, hp, energy, tempHp, sourceId } = payload;
+
+    const entity = findBattleEntity(state, entityId);
+    if (!entity) {
+        console.warn(`[SET_VITALS] Unknown entity "${entityId}".`);
+        return state;
+    }
+    // sourceId must resolve to a real unit: hooks read it for retaliation targeting.
+    if (!findBattleEntity(state, sourceId)) {
+        console.warn(`[SET_VITALS] sourceId "${sourceId}" is not an entity in this battle.`);
+        return state;
+    }
+
+    // Mutable shape: IBattleEntity fields are readonly, so Partial<IBattleEntity>
+    // cannot be built up field by field.
+    const patch: { currentHp?: number; currentEnergy?: number; tempHp?: number } = {};
+    let hpDelta = 0;
+
+    if (hp !== undefined) {
+        const newHp = Math.max(0, Math.min(entity.maxHp, Math.floor(hp)));
+        patch.currentHp = newHp;
+        hpDelta = newHp - entity.currentHp;
+    }
+    if (energy !== undefined) {
+        patch.currentEnergy = Math.max(0, Math.floor(energy));
+    }
+    if (tempHp !== undefined) {
+        patch.tempHp = Math.max(0, Math.floor(tempHp));
+    }
+    if (Object.keys(patch).length === 0) return state;
+
+    let newState = patchEntity(state, entityId, patch);
+    const parts: string[] = [];
+    if (patch.currentHp !== undefined) parts.push(`HP ${patch.currentHp}/${entity.maxHp}`);
+    if (patch.currentEnergy !== undefined) parts.push(`Energy ${patch.currentEnergy}`);
+    if (patch.tempHp !== undefined) parts.push(`Shield ${patch.tempHp}`);
+    newState = addLog(newState, `  ⚙️ ${entity.name} set to ${parts.join(', ')}`);
+
+    if (hpDelta < 0) {
+        globalBattleEventBus.emit({
+            type: 'DAMAGE_TAKEN',
+            targetId: entityId,
+            amount: -hpDelta,
+            element: 'None',
+            timestamp: Date.now()
+        });
+        // Order mirrors the card path: death processing (XP + onUnitFainted) resolves
+        // before onPostDamage, which only collects hooks from units still alive.
+        if (entity.currentHp > 0 && (patch.currentHp ?? entity.currentHp) <= 0) {
+            newState = checkDefeat(newState, entityId);
+        }
+        newState = runVitalsHook(newState, 'onPostDamage', sourceId, entityId);
+    } else if (hpDelta > 0) {
+        globalBattleEventBus.emit({
+            type: 'HEAL',
+            targetId: entityId,
+            amount: hpDelta,
+            sourceId,
+            timestamp: Date.now()
+        });
+        newState = runVitalsHook(newState, 'onHeal', sourceId, entityId);
+    }
+
+    return newState;
+}
+
+/**
+ * Removes one status type from a unit, or every status when the type is omitted.
+ * Mirrors the end-of-turn expiry path: emit STATUS_REMOVED, then run onStatusRemoved
+ * per removed instance. Deliberately does NOT grant the Asleep/Stunned StableOS
+ * immunity - that belongs to natural expiry, not to forced removal (handleCleanse
+ * skips it too).
+ */
+function handleRemoveStatus(
+    state: IBattleState,
+    payload: { entityId: string; status?: StatusType }
+): IBattleState {
+    const { entityId, status } = payload;
+    const entity = findBattleEntity(state, entityId);
+    if (!entity) {
+        console.warn(`[REMOVE_STATUS] Unknown entity "${entityId}".`);
+        return state;
+    }
+
+    const removed = entity.statusEffects.filter(s => status === undefined || s.type === status);
+    if (removed.length === 0) return state;
+
+    const removedIds = new Set(removed.map(s => s.id));
+    const kept: StatusEffectInstance[] = entity.statusEffects.filter(s => !removedIds.has(s.id));
+
+    let newState = patchEntity(state, entityId, { statusEffects: kept });
+
+    for (const effect of removed) {
+        globalBattleEventBus.emit({
+            type: 'STATUS_REMOVED',
+            targetId: entityId,
+            status: effect.type,
+            timestamp: Date.now()
+        });
+        newState = addLog(newState, `  ✖️ ${entity.name}'s ${effect.type} was removed`);
+
+        const afterRemovalTarget = findBattleEntity(newState, entityId);
+        if (!afterRemovalTarget) continue;
+        const context = {
+            target: afterRemovalTarget,
+            statusApplied: effect.type,
+            state: newState,
+            triggerDepth: 0
+        };
+        const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
+        newState = afterHook;
+    }
+
+    return newState;
+}
+
+/**
+ * Adds a card to a side's hand by delegating to handleGenerateCard, which owns hand
+ * insertion (and the HAND_SIZE_LIMIT rejection). That handler picks the deck by
+ * looking its sourceId up in playerParty, so we hand it a member of the requested
+ * side; any id absent from playerParty routes to the enemy deck.
+ */
+function handleAddCardToHand(
+    state: IBattleState,
+    payload: { side: 'PLAYER' | 'ENEMY'; dataId: string }
+): IBattleState {
+    const { side, dataId } = payload;
+    const proxyId = side === 'PLAYER' ? state.playerParty[0]?.id : state.enemyParty[0]?.id;
+    if (side === 'PLAYER' && proxyId === undefined) {
+        console.warn('[ADD_CARD_TO_HAND] No player unit exists to own the generated card.');
+        return state;
+    }
+    return effectHandlers['GENERATE_CARD'](state, { sourceId: proxyId ?? '', dataId });
+}
+
+/**
+ * Sets (or clears, with null) a unit's telegraphed next move.
+ * Fires nothing: an intent is a plan, not an event.
+ */
+function handleSetIntent(
+    state: IBattleState,
+    payload: { entityId: string; move: IMove | null }
+): IBattleState {
+    const { entityId, move } = payload;
+    if (!findBattleEntity(state, entityId)) {
+        console.warn(`[SET_INTENT] Unknown entity "${entityId}".`);
+        return state;
+    }
+    return patchEntity(state, entityId, { currentIntent: move });
+}
+
+/**
+ * Drops a unit to 0 HP with full death processing: XP award + levelUpQueue and the
+ * onUnitFainted hooks, via the same checkDefeat every other kill runs through.
+ * sourceId must be a real unit - checkDefeat derives the XP receivers from the
+ * opposing party, but the credited killer is required for the log and for parity
+ * with the other damage-shaped actions.
+ */
+function handleKillEntity(
+    state: IBattleState,
+    payload: { entityId: string; sourceId: string }
+): IBattleState {
+    const { entityId, sourceId } = payload;
+    const entity = findBattleEntity(state, entityId);
+    if (!entity) {
+        console.warn(`[KILL_ENTITY] Unknown entity "${entityId}".`);
+        return state;
+    }
+    const source = findBattleEntity(state, sourceId);
+    if (!source) {
+        console.warn(`[KILL_ENTITY] sourceId "${sourceId}" is not an entity in this battle.`);
+        return state;
+    }
+    // Already down: death processing has run once and must not run twice.
+    if (entity.currentHp <= 0) return state;
+
+    let newState = patchEntity(state, entityId, { currentHp: 0 });
+    newState = addLog(newState, `  ☠️ ${entity.name} was defeated by ${source.name}`);
+    return checkDefeat(newState, entityId);
 }
