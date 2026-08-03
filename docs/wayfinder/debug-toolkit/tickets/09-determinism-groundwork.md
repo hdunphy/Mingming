@@ -16,6 +16,6 @@ Checklist:
 - `sessionId` is `'battle_' + Date.now()` (`battleFactories.ts:297`) and lives *inside* `IBattleState`, so it breaks replay diffs on its own — make it seed-derived. (Added 2026-08-03 by [Scenario schema v1](02-scenario-schema.md).)
 - Seeded, collision-safe id generator to replace `crypto.randomUUID()` for entity/card instance ids (`battleFactories.ts:15,33`) — at least in scenario/sim mode — so recorded and replayed runs are id-stable.
 - Plumb `BattleOptions` (incl. `enemyMode`) through `battleSlice.startBattle` (`battleSlice.ts:67-72` currently drops the 4th arg).
-- Remove or DEV-gate the `window.runSim` production backdoor (`main.tsx:5`, `SimRunner.ts:102-105`) — coordinate with [Debug gating architecture](03-debug-gating-architecture.md).
+- ~~Remove or DEV-gate the `window.runSim` production backdoor.~~ Decided by [Debug gating architecture](03-debug-gating-architecture.md) (keep it, DEV-only) and delegated to [Retire the ungated surfaces](13-retire-ungated-surfaces.md). Not this ticket's work.
 
 Done when: same seed + same inputs ⇒ deep-equal `IBattleState` (modulo the documented optional-field policy), full suite + `tsc -b` + `vite build` green.

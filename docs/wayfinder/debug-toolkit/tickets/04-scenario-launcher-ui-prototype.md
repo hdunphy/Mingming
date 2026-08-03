@@ -3,7 +3,7 @@
 - Type: wayfinder:prototype
 - Status: open
 - Assignee:
-- Blocked by: [Debug gating architecture](03-debug-gating-architecture.md), [Scenario schema & normalizer](10-scenario-schema-implementation.md) ([Scenario schema v1](02-scenario-schema.md) closed)
+- Blocked by: [Scenario schema & normalizer](10-scenario-schema-implementation.md), [Debug gating scaffold](12-debug-gating-scaffold.md) ([Scenario schema v1](02-scenario-schema.md), [Debug gating architecture](03-debug-gating-architecture.md) closed)
 
 Note: a prototype can stub the Launch button, but a launch that actually produces a battle also needs [Scenario materializer](11-scenario-materializer.md).
 
