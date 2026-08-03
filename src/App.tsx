@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import './App.css'
 import { useDispatch, useSelector } from 'react-redux'
 import BattleArena from './ui/components/BattleArena'
@@ -18,7 +18,23 @@ import type { RootState } from './ui/store/store'
 import { initAudio, playSfx } from './ui/audio/AudioEngine'
 import AudioControls from './ui/components/AudioControls'
 
-type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'balance' | 'studio';
+// The single import edge between the game and the debug toolkit. `import.meta.env.DEV` is
+// statically replaced by `false` in a production build, the ternary folds to `null`, and the
+// dynamic import becomes unreachable, so Rollup never emits the chunk. Verified after the fact
+// by `scripts/assert-no-debug.mjs`. Nothing else anywhere may import from `./debug/`.
+const DebugRoot = import.meta.env.DEV ? lazy(() => import('./debug/DebugRoot')) : null;
+
+// Fixed-position debug layer. Rendered in every path below — including both early returns —
+// so it stays reachable at roster 0, mid-battle and in the hub.
+const debugLayer = DebugRoot ? (
+  <Suspense fallback={null}>
+    <DebugRoot />
+  </Suspense>
+) : null;
+
+type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'balance' | 'studio' | 'debug';
+
+const debugTab: { id: Tab; label: string; icon: string } = { id: 'debug', label: 'Debug', icon: '🐞' };
 
 const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'hub', label: 'Hub', icon: '🏠' },
@@ -29,6 +45,7 @@ const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'relic', label: 'Relics', icon: '💎' },
   { id: 'balance', label: 'Balance', icon: '⚖️' },
   { id: 'studio', label: 'Studio', icon: '🏗️' },
+  ...(import.meta.env.DEV ? [debugTab] : []),
 ];
 
 function App() {
@@ -70,14 +87,16 @@ function App() {
   }, [isInBattle, gauntlet]);
 
   if (rosterSize === 0) {
-    return <MainMenuView />;
+    return <>{debugLayer}<MainMenuView /></>;
   }
 
   if (isInBattle) {
-    return <BattleArena />;
+    return <>{debugLayer}<BattleArena /></>;
   }
 
   return (
+    <>
+    {debugLayer}
     <main style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Tab Navigation */}
       <nav className="main-nav" style={{ position: 'relative' }}>
@@ -104,8 +123,14 @@ function App() {
         {activeTab === 'relic' && <RelicTerminal />}
         {activeTab === 'balance' && <BalanceTester />}
         {activeTab === 'studio' && <CardStudio />}
+        {activeTab === 'debug' && DebugRoot && (
+          <Suspense fallback={null}>
+            <DebugRoot mode="docked" />
+          </Suspense>
+        )}
       </div>
     </main>
+    </>
   );
 }
 

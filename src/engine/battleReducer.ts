@@ -35,7 +35,6 @@ const GetBaseCost = (dataId: string): number => {
 // --- Actions ---
 
 export type BattleAction =
-    | { type: 'INITIALIZE_BATTLE'; payload: IBattleState }
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
@@ -58,9 +57,6 @@ const TRANSFER_GAIN = 1; // Target gains 1
 
 export function battleReducer(state: IBattleState, action: BattleAction): IBattleState {
     switch (action.type) {
-        case 'INITIALIZE_BATTLE':
-            return action.payload;
-
         case 'PLAY_PROGRAM':
             return handlePlayProgram(state, action.payload);
 

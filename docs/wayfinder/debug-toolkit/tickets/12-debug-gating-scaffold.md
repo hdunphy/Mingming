@@ -1,7 +1,7 @@
 # Debug gating scaffold & DebugRoot shell
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: subagent-12-gating-scaffold (cowork-2026-08-03-opus5)
 - Blocked by: — ([Debug gating architecture](03-debug-gating-architecture.md) closed)
 
@@ -69,3 +69,20 @@ Findings that amend this ticket's assumptions:
 - `DebugPanelId` is typed `string`, not a union; later tickets own the panel names.
 - `npm run lint` may warn `react-refresh/only-export-components` on `DebugRoot.tsx`, since the ticket
   requires both the component and the marker to be exported from it. Warning-level.
+
+## Resolution
+
+**Closed 2026-08-03.** Henry ran the gates on Windows: `npm run build`, `npx vitest run` and
+`npx tsc -b` all green. The gate is live — `src/debug/DebugRoot.tsx` is the single import edge,
+DEV-gated behind a lazy dynamic import, and `scripts/assert-no-debug.mjs` fails the build if the
+`__DEBUG_TOOLKIT__` marker ever reaches `dist/`.
+
+Shipped exactly as specified in [Debug gating architecture](03-debug-gating-architecture.md); see
+the Implementation status section above for the file list and the four findings that amended this
+ticket's assumptions. Audit gap #10 is fully closed: `INITIALIZE_BATTLE` had no references anywhere
+in `src/`.
+
+The open flag from 03 section 1 is **resolved rather than outstanding**: `package.json`'s `build`
+was already `tsc -b && vite build`, so the assertion appended cleanly and the repo's shipping gate
+was already `npm run build`. What remains is only the narrower caution that any path invoking bare
+`npx vite build` skips the assertion.
