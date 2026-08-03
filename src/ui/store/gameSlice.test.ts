@@ -8,16 +8,20 @@ import gameReducer, {
     removeCardFromInventory,
     setActiveDeck,
     addCardToDeck,
+    addCardsToDeck,
+    clearDeck,
     removeCardFromDeck,
     addScrap,
     spendScrap,
     addBlueprint,
     loadSave,
-    resetSave
+    resetSave,
+    applyRewardBundle
 } from './gameSlice';
-import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint } from '../../engine/gameTypes';
+import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint, IRewardBundle } from '../../engine/gameTypes';
 import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 
 function makeMingming(id: string): IMingmingState {
     return { id, definitionId: 'def_fire', level: 5, experience: 0, attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
@@ -62,6 +66,48 @@ describe('gameSlice', () => {
             expect(state.activeParty).toHaveLength(2);
             state = gameReducer(state, removeFromRoster('mm1'));
             expect(state.activeParty).toEqual(['mm2']);
+        });
+    });
+
+    // --- Base Deck Grants ---
+    describe('base deck grants on synthesis', () => {
+        function makeSpecies(id: string, definitionId: string): IMingmingState {
+            return { ...makeMingming(id), definitionId };
+        }
+
+        it('first addToRoster of a species grants exactly its baseDeck cards and records it', () => {
+            const state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
+            const expected = [...MingmingRegistry['fenrir'].baseDeck].sort();
+            expect(state.cardInventory).toHaveLength(10);
+            expect(state.cardInventory.map(c => c.dataId).sort()).toEqual(expected);
+            expect(state.baseDecksGranted).toEqual(['fenrir']);
+            // Each granted copy has a unique instance id
+            const instanceIds = new Set(state.cardInventory.map(c => c.instanceId));
+            expect(instanceIds.size).toBe(10);
+        });
+
+        it('second addToRoster of the same species grants nothing', () => {
+            let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
+            state = gameReducer(state, addToRoster(makeSpecies('mm2', 'fenrir')));
+            expect(state.roster).toHaveLength(2);
+            expect(state.cardInventory).toHaveLength(10);
+            expect(state.baseDecksGranted).toEqual(['fenrir']);
+        });
+
+        it('a different species grants its own kit', () => {
+            let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
+            state = gameReducer(state, addToRoster(makeSpecies('mm2', 'kraken')));
+            expect(state.cardInventory).toHaveLength(20);
+            expect(state.baseDecksGranted).toEqual(['fenrir', 'kraken']);
+            const krakenCards = state.cardInventory.slice(10).map(c => c.dataId).sort();
+            expect(krakenCards).toEqual([...MingmingRegistry['kraken'].baseDeck].sort());
+        });
+
+        it('unknown definitionId grants nothing and does not crash', () => {
+            const state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'not_a_species')));
+            expect(state.roster).toHaveLength(1);
+            expect(state.cardInventory).toHaveLength(0);
+            expect(state.baseDecksGranted).toEqual([]);
         });
     });
 
@@ -152,6 +198,55 @@ describe('gameSlice', () => {
         });
     });
 
+    // --- Bulk Add / Clear ---
+    describe('addCardsToDeck', () => {
+        it('adds multiple owned cards to the deck', () => {
+            let state = gameReducer(initial, addCardsToInventory([makeCard('c1'), makeCard('c2'), makeCard('c3')]));
+            state = gameReducer(state, setActiveDeck(makeDeck('d1')));
+            state = gameReducer(state, addCardsToDeck(['c1', 'c2', 'c3']));
+            expect(state.activeDeck!.cards).toEqual(['c1', 'c2', 'c3']);
+        });
+
+        it('creates the active deck if none exists', () => {
+            let state = gameReducer(initial, addCardsToInventory([makeCard('c1')]));
+            expect(state.activeDeck).toBeNull();
+            state = gameReducer(state, addCardsToDeck(['c1']));
+            expect(state.activeDeck).not.toBeNull();
+            expect(state.activeDeck!.cards).toEqual(['c1']);
+        });
+
+        it('skips ids not in inventory and ids already in the deck', () => {
+            let state = gameReducer(initial, addCardsToInventory([makeCard('c1'), makeCard('c2')]));
+            state = gameReducer(state, setActiveDeck(makeDeck('d1', ['c1'])));
+            state = gameReducer(state, addCardsToDeck(['c1', 'ghost', 'c2', 'c2']));
+            expect(state.activeDeck!.cards).toEqual(['c1', 'c2']);
+        });
+
+        it('stops at DECK_SIZE (40)', () => {
+            const cards: IOwnedProgram[] = [];
+            for (let i = 0; i < 45; i++) cards.push(makeCard(`c${i}`));
+            let state = gameReducer(initial, addCardsToInventory(cards));
+            state = gameReducer(state, setActiveDeck(makeDeck('d1')));
+            state = gameReducer(state, addCardsToDeck(cards.map(c => c.instanceId)));
+            expect(state.activeDeck!.cards).toHaveLength(40);
+            expect(state.activeDeck!.cards[39]).toBe('c39');
+        });
+    });
+
+    describe('clearDeck', () => {
+        it('empties the active deck but keeps its identity', () => {
+            let state = gameReducer(initial, setActiveDeck(makeDeck('d1', ['c1', 'c2'])));
+            state = gameReducer(state, clearDeck());
+            expect(state.activeDeck!.cards).toEqual([]);
+            expect(state.activeDeck!.id).toBe('d1');
+        });
+
+        it('is a no-op when there is no active deck', () => {
+            const state = gameReducer(initial, clearDeck());
+            expect(state.activeDeck).toBeNull();
+        });
+    });
+
     // --- Scrap ---
     describe('scrap', () => {
         it('adds scrap', () => {
@@ -185,6 +280,56 @@ describe('gameSlice', () => {
             let state = gameReducer(initial, addBlueprint(bp));
             state = gameReducer(state, addBlueprint(bp));
             expect(state.blueprints).toHaveLength(1);
+        });
+    });
+
+    // --- Reward Bundle ---
+    describe('applyRewardBundle', () => {
+        it('applies scrap, cards, and blueprints but grants NO XP (XP comes from in-battle awards)', () => {
+            let state = gameReducer(initial, addToRoster(makeMingming('mm1')));
+            state = gameReducer(state, setActiveParty(['mm1']));
+            const xpBefore = state.roster[0].experience;
+
+            const bundle: IRewardBundle = {
+                scraps: 42,
+                blueprints: [makeBlueprint('arch_fire')],
+                cards: [makeCard('rc1')],
+                cardChoices: [],
+                totalXP: 500 // even a non-zero value must not be applied to the roster
+            };
+            state = gameReducer(state, applyRewardBundle(bundle));
+
+            expect(state.scrapCount).toBe(42);
+            expect(state.blueprints).toHaveLength(1);
+            expect(state.cardInventory).toHaveLength(1);
+            // Bundle XP is never distributed to the roster
+            expect(state.roster[0].experience).toBe(xpBefore);
+        });
+
+        it('applies gym-clear draft picks through bundle.cards (draftRounds metadata is inert)', () => {
+            let state = gameReducer(initial, addToRoster(makeMingming('mm1')));
+            const xpBefore = state.roster[0].experience;
+
+            // A gym-clear bundle: the three drafted picks are accumulated into
+            // `cards` at claim time; `draftRounds` itself grants nothing.
+            const bundle: IRewardBundle = {
+                scraps: 30,
+                blueprints: [],
+                cards: [makeCard('draft1', 'a'), makeCard('draft2', 'b'), makeCard('draft3', 'c')],
+                cardChoices: [],
+                draftRounds: [
+                    { sourceEntityName: 'GYM DRAFT 1', options: [makeCard('o1'), makeCard('o2'), makeCard('o3')] },
+                    { sourceEntityName: 'GYM DRAFT 2', options: [makeCard('o4'), makeCard('o5'), makeCard('o6')] },
+                    { sourceEntityName: 'GYM DRAFT 3', options: [makeCard('o7'), makeCard('o8'), makeCard('o9')] }
+                ],
+                totalXP: 0
+            };
+            state = gameReducer(state, applyRewardBundle(bundle));
+
+            expect(state.scrapCount).toBe(30);
+            // Only the picked cards land in the inventory — never the unpicked options
+            expect(state.cardInventory.map(c => c.instanceId)).toEqual(['draft1', 'draft2', 'draft3']);
+            expect(state.roster[0].experience).toBe(xpBefore);
         });
     });
 

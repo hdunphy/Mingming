@@ -48,8 +48,10 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
 
     useEffect(() => {
         if (flashProgress === 100 && isFlashing) {
-            setTimeout(() => {
-                if (selectedMmId && targetOS) {
+            const timeout = setTimeout(() => {
+                // Only apply the OS if the scrap spend can actually succeed
+                // (spendScrap is a silent no-op when funds are insufficient).
+                if (selectedMmId && targetOS && scrapCount >= OS_SWAP_COST) {
                     dispatch(spendScrap(OS_SWAP_COST));
                     dispatch(updateMingmingOS({ id: selectedMmId, activeOS: targetOS }));
                 }
@@ -57,8 +59,9 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                 setFlashProgress(0);
                 setTargetOS(null);
             }, 500);
+            return () => clearTimeout(timeout);
         }
-    }, [flashProgress, isFlashing, selectedMmId, targetOS, dispatch]);
+    }, [flashProgress, isFlashing, selectedMmId, targetOS, scrapCount, dispatch]);
 
     const availableOSVersions = useMemo(() => {
         if (!selectedMm) return [];

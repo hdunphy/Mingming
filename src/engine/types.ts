@@ -6,10 +6,13 @@ export const ELEMENTS: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', '
 export type TargetType = 'Single' | 'Self' | 'Side' | 'All';
 export const TARGET_TYPES: TargetType[] = ['Single', 'Self', 'Side', 'All'];
 
-export type ProgramCategory = 'Attack' | 'Skill' | 'Daemon';
-export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Skill', 'Daemon'];
+export type ProgramCategory = 'Attack' | 'Skill' | 'Daemon' | 'Status' | 'Heal';
+export const PROGRAM_CATEGORIES: ProgramCategory[] = ['Attack', 'Skill', 'Daemon', 'Status', 'Heal'];
 
 export type TurnPhase = 'PRE_TURN' | 'ACTION' | 'POST_TURN';
+
+/** How the enemy side fights — set once at battle creation. */
+export type EnemyCombatMode = 'MOVES' | 'CARDS';
 
 export const StatusType = {
   Burn: 'Burn',
@@ -23,7 +26,9 @@ export const StatusType = {
   Regen: 'Regen',
   Energized: 'Energized',
   StableOS: 'StableOS',
-  BarkShield: 'BarkShield'
+  BarkShield: 'BarkShield',
+  DarkStance: 'DarkStance',
+  LightStance: 'LightStance'
 } as const;
 export const Statuses: StatusType[] = Object.values(StatusType);
 
@@ -72,6 +77,7 @@ export interface IMingmingDefinition {
   readonly secondaryElement?: Element;
   readonly cardDraw: number; // Base contribution
   readonly availableOS: string[]; // IDs of OS variants
+  readonly baseDeck: string[]; // 10-card starter kit of program IDs granted on first synthesis
   readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
 }
@@ -130,7 +136,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
   readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
-  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number }; // Buffs the next card played
+  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number; appliesTo?: ProgramCategory }; // Buffs the next card played (appliesTo restricts it to that category; non-matching cards don't consume it)
   readonly moves?: ReadonlyArray<IMove>; // Custom moveset for this instance
 }
 
@@ -190,7 +196,7 @@ export function getExpForLevel(level: number): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -215,7 +221,7 @@ export interface AttackActionData extends ProgramAction {
   readonly type: 'ATTACK';
   readonly power: number;
   readonly element?: Element;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'ELEMENT_PLAYED';
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -302,6 +308,29 @@ export interface BuffNextProgramActionData extends ProgramAction {
   readonly multiplier?: number;
   readonly flatBonus?: number;
   readonly costReduction?: number;
+  readonly appliesTo?: ProgramCategory; // If set, only a card of this category consumes (and benefits from) the buff
+}
+
+export interface RedirectTargetActionData extends ProgramAction {
+  readonly type: 'REDIRECT_TARGET';
+  readonly newTargetId?: string;
+  readonly isRandom?: boolean;
+}
+
+export interface ForceDiscardActionData extends ProgramAction {
+  readonly type: 'FORCE_DISCARD';
+  readonly amount: number;
+  readonly isRandom?: boolean;
+}
+
+/**
+ * Shifts the SOURCE of the card into a stance (Watcher model): 'Dark' grants
+ * DarkStance (+30% outgoing damage), 'Light' grants LightStance (+50% healing).
+ * Stances are mutually exclusive and cap at 1 stack; entering one removes the other.
+ */
+export interface ShiftStanceActionData extends ProgramAction {
+  readonly type: 'SHIFT_STANCE';
+  readonly stance: 'Dark' | 'Light';
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
@@ -318,6 +347,7 @@ export interface ProgramData {
   readonly baseCost: number;
   readonly constraints: ReadonlyArray<ProgramConstraint>;
   readonly actions: ReadonlyArray<ProgramAction>;
+  readonly discardEffect?: ReadonlyArray<ProgramAction>; // Actions triggered automatically when this card is discarded from hand
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks for Daemons
   readonly isToken?: boolean; // If true, this is a generated token card
   readonly exhaust?: boolean; // If true, card is removed from battle after use
@@ -371,6 +401,16 @@ export interface IBattleState {
   readonly cardsPlayedThisTurn: number;
   readonly cardsDrawnThisTurn: number;
   readonly lastProgramPlayed: string | null;
+  /**
+   * How the enemy side fights, decided once at battle creation:
+   * 'MOVES' (default) — Slay-the-Spire style: telegraphed intents only, no cards.
+   * 'CARDS' — enemies draw a hand and play cards via the tactical AI (no intents).
+   * Undefined is treated as 'MOVES' everywhere.
+   */
+  readonly enemyMode?: EnemyCombatMode;
+  /** Stacks removed by the most recent STATUS consume action (for STATUS_CONSUMED heal scaling). Reset each card play. */
+  readonly lastStatusConsumed?: number;
+  readonly elementPlays?: Record<Element, number>;
   readonly counters: Record<string, number>;
   readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

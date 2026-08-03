@@ -15,7 +15,7 @@ export const RelicRegistry: Record<string, IRelic> = {
     'heatsink': {
         id: 'heatsink',
         name: 'Heatsink',
-        description: 'Start each battle with +5 Max Energy on all units.',
+        description: 'Start each battle with +1 Max Energy on all units.',
         effect: 'ENERGY_CAP_BONUS'
     },
     'buffer_cache': {

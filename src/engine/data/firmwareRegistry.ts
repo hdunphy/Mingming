@@ -28,7 +28,9 @@ function initFirmwareHooks() {
         validatedData = HOOKS_DATA; // Fallback
     }
 
-    const firmwareKeys = Object.keys(validatedData).filter(key => key.endsWith('_v1') || key.endsWith('_v2'));
+    const firmwareKeys = Object.keys(validatedData).filter(key =>
+        key.endsWith('_v1') || key.endsWith('_v2') || key.startsWith('boss_relic_')
+    );
 
     firmwareKeys.forEach(key => {
         const data = validatedData[key];

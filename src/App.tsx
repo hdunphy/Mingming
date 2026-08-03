@@ -10,12 +10,13 @@ import MainMenuView from './ui/components/MainMenuView'
 import BalanceTester from './ui/screens/BalanceTester'
 import SectorTerminal from './ui/screens/SectorTerminal'
 import CardStudio from './ui/screens/CardStudio'
+import RelicTerminal from './ui/screens/RelicTerminal'
 
 import { loadGame } from './engine/SaveSystem'
 import { loadSave } from './ui/store/gameSlice'
 import type { RootState } from './ui/store/store'
 
-type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'balance' | 'studio';
+type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'balance' | 'studio';
 
 const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'hub', label: 'Hub', icon: '🏠' },
@@ -23,6 +24,7 @@ const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'deck', label: 'Deck', icon: '🃏' },
   { id: 'roster', label: 'Roster', icon: '🤖' },
   { id: 'lab', label: 'Lab', icon: '🔬' },
+  { id: 'relic', label: 'Relics', icon: '💎' },
   { id: 'balance', label: 'Balance', icon: '⚖️' },
   { id: 'studio', label: 'Studio', icon: '🏗️' },
 ];
@@ -42,9 +44,19 @@ function App() {
   }, [dispatch]);
 
   const prevInBattle = useRef(isInBattle);
+  // Remember that the current battle belongs to a gauntlet: completeGauntlet()
+  // (nulls gauntlet) and setBattleState(null) land in the same React batch, so
+  // by the time this effect fires after the final battle, `gauntlet` is already null.
+  const wasGauntletBattle = useRef(false);
   useEffect(() => {
-    if (prevInBattle.current && !isInBattle && gauntlet) {
-      setActiveTab('hub');
+    if (isInBattle && gauntlet) {
+      wasGauntletBattle.current = true;
+    }
+    if (prevInBattle.current && !isInBattle) {
+      if (gauntlet || wasGauntletBattle.current) {
+        setActiveTab('hub');
+      }
+      wasGauntletBattle.current = false;
     }
     prevInBattle.current = isInBattle;
   }, [isInBattle, gauntlet]);
@@ -80,6 +92,7 @@ function App() {
         {activeTab === 'deck' && <DeckTerminal />}
         {activeTab === 'roster' && <RosterTerminal />}
         {activeTab === 'lab' && <SynthesisLab />}
+        {activeTab === 'relic' && <RelicTerminal />}
         {activeTab === 'balance' && <BalanceTester />}
         {activeTab === 'studio' && <CardStudio />}
       </div>

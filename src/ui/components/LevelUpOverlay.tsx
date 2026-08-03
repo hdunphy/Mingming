@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LevelUpEvent } from '../../engine/types';
 
@@ -30,6 +30,16 @@ const StatBar: React.FC<{ label: string; oldVal: number; newVal: number; color: 
 };
 
 const LevelUpOverlay: React.FC<Props> = ({ event, onDismiss }) => {
+    // Guard against double-dismiss: during the exit animation the outgoing
+    // overlay is still mounted and clickable; a second CONTINUE click would
+    // silently swallow the next queued level-up.
+    const [dismissed, setDismissed] = useState(false);
+    const handleDismiss = () => {
+        if (dismissed) return;
+        setDismissed(true);
+        onDismiss();
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -43,7 +53,8 @@ const LevelUpOverlay: React.FC<Props> = ({ event, onDismiss }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backdropFilter: 'blur(10px)'
+                backdropFilter: 'blur(10px)',
+                pointerEvents: dismissed ? 'none' : 'auto'
             }}
         >
             <motion.div
@@ -79,7 +90,7 @@ const LevelUpOverlay: React.FC<Props> = ({ event, onDismiss }) => {
                 </div>
 
                 <button
-                    onClick={onDismiss}
+                    onClick={handleDismiss}
                     className="action-button"
                     style={{ width: '100%', padding: '15px' }}
                 >

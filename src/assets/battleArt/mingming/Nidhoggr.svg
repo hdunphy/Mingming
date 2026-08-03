@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-nidhoggr" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8000ff" stop-opacity="0.35"/>
+      <stop offset="65%" stop-color="#8000ff" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#8000ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#8000ff" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-nidhoggr)"/>
+  <!-- world-tree roots hanging into the dark -->
+  <g fill="none" stroke="#8000ff" stroke-opacity="0.45" stroke-width="3" stroke-linecap="round">
+    <path d="M40 18 Q52 60 44 104"/>
+    <path d="M44 60 Q34 78 26 88"/>
+    <path d="M98 14 Q94 52 102 96 Q106 120 96 142"/>
+    <path d="M100 66 Q112 80 118 92"/>
+    <path d="M160 20 Q148 60 154 104"/>
+    <path d="M154 62 Q166 78 174 90"/>
+  </g>
+  <g fill="#060810" stroke="#8000ff" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- coiling dragon body sweeping up from the right -->
+    <path d="M144 178 Q184 148 172 108 Q162 76 128 80 Q108 84 100 104 Q112 92 130 92 Q158 92 162 116 Q168 148 134 168 Z"/>
+    <!-- back spikes -->
+    <path d="M170 118 L184 112 L176 128 Z"/>
+    <path d="M166 140 L180 140 L168 152 Z"/>
+    <!-- neck reaching down to gnaw -->
+    <path d="M100 104 Q84 104 72 116 L52 128 L78 130 L58 144 L88 138 Q102 132 106 118 Z"/>
+    <!-- open jaw clamped on a root -->
+    <path d="M52 128 L36 122 L46 134 Z"/>
+    <path d="M58 144 L42 148 L56 152 Z"/>
+    <!-- gnawed root stub between the jaws -->
+    <path d="M48 112 Q46 130 50 148" fill="none" stroke-width="3" stroke-opacity="0.6"/>
+  </g>
+  <circle cx="86" cy="118" r="2.5" fill="#8000ff"/>
+</svg>

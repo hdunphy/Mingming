@@ -1,0 +1,373 @@
+import { describe, it, expect, vi } from 'vitest';
+import { battleReducer } from './battleReducer';
+import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import { StatusType } from './types';
+import { registerHook } from './core/Hooks';
+import { FIRMWARE_REGISTRY, getOSBehavior } from './data/firmwareRegistry';
+import { getHook } from './core/HookRegistry';
+import { TestProgramRegistry } from './data/testProgramRegistry';
+import HOOKS_DATA from './data/lib/hooks.json';
+
+// Mock GetProgramData to use our test registry
+vi.mock('./data/programRegistry', async () => {
+    const actual = await vi.importActual('./data/programRegistry');
+    return {
+        ...actual as any,
+        GetProgramData: (id: string) => {
+            return TestProgramRegistry[id] || (actual as any).GetProgramData(id);
+        }
+    };
+});
+
+const makeUnit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity => ({
+    id,
+    name,
+    currentHp: 100,
+    maxHp: 100,
+    tempHp: 0,
+    attack: 10,
+    defense: 10,
+    maxEnergy: 5,
+    currentEnergy: 5,
+    level: 1,
+    experience: 0,
+    cardDraw: 3,
+    statusEffects: [],
+    definitionId: 'fenrir',
+    hooks: [],
+    speed: 10,
+    primaryElement: 'None',
+    daemons: [],
+    blueprintsCollected: 0,
+    hpIV: 0,
+    attackIV: 0,
+    defenseIV: 0,
+    ...overrides
+});
+
+const makeState = (playerParty: IBattleEntity[], enemyParty: IBattleEntity[], hand: ProgramEntity[] = []): IBattleState => ({
+    sessionId: 'test-session',
+    turn: 1,
+    phase: 'ACTION',
+    activeSide: 'PLAYER',
+    activeRelics: [],
+    playerParty,
+    enemyParty,
+    playerDeck: { ownerId: 'PLAYER', hand, drawpile: [], discard: [], exhaust: [], deck: [] },
+    enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], exhaust: [], deck: [] },
+    logs: [],
+    osLogs: [],
+    procs: [],
+    seed: '12345',
+    levelUpQueue: [],
+    cardsPlayedThisTurn: 0,
+    cardsDrawnThisTurn: 0,
+    lastProgramPlayed: null,
+    counters: {}
+});
+
+const card = (id: string, dataId: string, cost: number): ProgramEntity =>
+    ({ id, dataId, currentCost: cost, isPlayable: true });
+
+const play = (state: IBattleState, sourceId: string, targetId: string, programId: string): IBattleState =>
+    battleReducer(state, { type: 'PLAY_PROGRAM', payload: { sourceId, targetId, programId } });
+
+// Register OS hooks for testing
+Object.values(FIRMWARE_REGISTRY).forEach(os => {
+    os.hooks.forEach(h => registerHook(h));
+});
+
+describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (real overheal)', () => {
+    it('converts healOverride overflow into exact Light damage on a random enemy', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
+        const enemy = makeUnit('e1', 'Enemy');
+        // card_heal_flat: healOverride 20 on SELF. 95/100 -> applied 5, overheal 15.
+        let state = makeState([aud], [enemy], [card('c1', 'card_heal_flat', 1)]);
+        state = play(state, 'aud1', 'aud1', 'c1');
+
+        expect(state.playerParty[0].currentHp).toBe(100);
+        expect(state.enemyParty[0].currentHp).toBe(85); // 100 - 15 overflow
+        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
+    });
+
+    it('converts power-based (calculateHeal) overflow — the clamp no longer eats it', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
+        const enemy = makeUnit('e1', 'Enemy');
+        // card_heal_power: power 25, lvl 1, atk 10 -> intended heal 14. Overflow 9.
+        let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
+        state = play(state, 'aud1', 'aud1', 'c1');
+
+        expect(state.playerParty[0].currentHp).toBe(100);
+        expect(state.enemyParty[0].currentHp).toBe(91); // 100 - 9 overflow
+    });
+
+    it('a heal fully absorbed by missing HP procs nothing', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 50 });
+        const enemy = makeUnit('e1', 'Enemy');
+        let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
+        state = play(state, 'aud1', 'aud1', 'c1');
+
+        expect(state.playerParty[0].currentHp).toBe(64); // 50 + 14, no overflow
+        expect(state.enemyParty[0].currentHp).toBe(100);
+        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(false);
+    });
+});
+
+describe('Item 2 - FAFNIR v1 HOARD_PROTOCOL (recoil at turn start)', () => {
+    it('takes no recoil at turn end; recoil + bonus energy land at the next own turn start', () => {
+        const fafnir = makeUnit('faf1', 'Fafnir', { activeOS: 'fafnir_v1', currentEnergy: 3 });
+        const enemy = makeUnit('e1', 'Enemy');
+        let state = makeState([fafnir], [enemy]);
+
+        // End the player's turn with 3 unspent energy.
+        state = battleReducer(state, { type: 'END_TURN' });
+        let p = state.playerParty[0];
+        expect(p.currentHp).toBe(100); // no recoil yet
+        expect(p.statusEffects.find(s => s.type === StatusType.Energized)?.stacks).toBe(3);
+        expect(state.counters['fafnir_hoard:faf1']).toBe(3);
+
+        // End the enemy's turn -> player's turn starts: hoard cashes in.
+        state = battleReducer(state, { type: 'END_TURN' });
+        p = state.playerParty[0];
+        expect(p.currentHp).toBe(97); // 1% of 100 per hoarded point = 3
+        expect(p.currentEnergy).toBe(8); // 5 max + 3 hoarded
+        expect(p.statusEffects.some(s => s.type === StatusType.Energized)).toBe(false);
+        expect(state.counters['fafnir_hoard:faf1']).toBe(0);
+    });
+
+    it('registry description says the recoil happens at turn start', () => {
+        expect(getOSBehavior('fafnir_v1')!.description).toMatch(/start of your next turn/i);
+    });
+});
+
+describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (real buff statuses)', () => {
+    it('applying Energized to an ally heals them 5% max HP', () => {
+        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
+        const ally = makeUnit('ally1', 'Ally', { currentHp: 50 });
+        let state = makeState([valk, ally], [makeUnit('e1', 'Enemy')]);
+
+        state = battleReducer(state, {
+            type: 'APPLY_STATUS',
+            payload: { targetId: 'ally1', sourceId: 'valk1', status: 'Energized', stacks: 1 }
+        });
+
+        expect(state.playerParty[1].currentHp).toBe(55);
+    });
+
+    it('applying BarkShield to an ally heals them too', () => {
+        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
+        const ally = makeUnit('ally1', 'Ally', { currentHp: 50 });
+        let state = makeState([valk, ally], [makeUnit('e1', 'Enemy')]);
+
+        state = battleReducer(state, {
+            type: 'APPLY_STATUS',
+            payload: { targetId: 'ally1', sourceId: 'valk1', status: 'BarkShield', stacks: 5 }
+        });
+
+        expect(state.playerParty[1].currentHp).toBe(55);
+    });
+
+    it('self-buffs still do not proc the heal', () => {
+        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1', currentHp: 50 });
+        let state = makeState([valk], [makeUnit('e1', 'Enemy')]);
+
+        state = battleReducer(state, {
+            type: 'APPLY_STATUS',
+            payload: { targetId: 'valk1', sourceId: 'valk1', status: 'Energized', stacks: 1 }
+        });
+
+        expect(state.playerParty[0].currentHp).toBe(50);
+    });
+});
+
+describe('Item 4 - AUDHUMBLA v1 GENESIS_FIRMWARE (3rd Heal/Skill exactly)', () => {
+    it('grants +1 max energy on exactly the 3rd Heal/Skill card', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 10 });
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_heal_power', 1),
+            card('c2', 'card_draw_test', 1),
+            card('c3', 'card_heal_power', 1)
+        ]);
+
+        state = play(state, 'aud1', 'aud1', 'c1'); // Heal #1
+        expect(state.playerParty[0].maxEnergy).toBe(5);
+        state = play(state, 'aud1', 'aud1', 'c2'); // Skill #2
+        expect(state.playerParty[0].maxEnergy).toBe(5);
+        state = play(state, 'aud1', 'aud1', 'c3'); // Heal #3 -> reward
+        expect(state.playerParty[0].maxEnergy).toBe(6);
+        expect(state.counters['audhumbla_genesis:aud1']).toBe(0);
+    });
+
+    it('an Attack card as "card 3" does not trigger the payout', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 10 });
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_heal_power', 1),
+            card('c2', 'card_draw_test', 1),
+            card('c3', 'card_strike', 1),
+            card('c4', 'card_heal_power', 1)
+        ]);
+
+        state = play(state, 'aud1', 'aud1', 'c1'); // Heal #1
+        state = play(state, 'aud1', 'aud1', 'c2'); // Skill #2
+        state = play(state, 'aud1', 'e1', 'c3'); // Attack — must not count nor pay out
+        expect(state.playerParty[0].maxEnergy).toBe(5);
+        expect(state.counters['audhumbla_genesis:aud1']).toBe(2);
+        state = play(state, 'aud1', 'aud1', 'c4'); // Heal #3 -> reward
+        expect(state.playerParty[0].maxEnergy).toBe(6);
+    });
+});
+
+describe('Item 5 - per-unit OS counters', () => {
+    it('two audhumbla_v1 units count Heal/Skill plays independently', () => {
+        const aud1 = makeUnit('aud1', 'Audhumbla A', { activeOS: 'audhumbla_v1', currentHp: 10 });
+        const aud2 = makeUnit('aud2', 'Audhumbla B', { activeOS: 'audhumbla_v1', currentHp: 10 });
+        let state = makeState([aud1, aud2], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_heal_power', 1),
+            card('c2', 'card_heal_power', 1),
+            card('c3', 'card_heal_power', 1),
+            card('c4', 'card_heal_power', 1)
+        ]);
+
+        state = play(state, 'aud1', 'aud1', 'c1'); // A: 1
+        state = play(state, 'aud1', 'aud1', 'c2'); // A: 2
+        state = play(state, 'aud2', 'aud2', 'c3'); // B: 1 (global would be 3 -> false payout)
+
+        expect(state.playerParty[0].maxEnergy).toBe(5);
+        expect(state.playerParty[1].maxEnergy).toBe(5);
+        expect(state.counters['audhumbla_genesis:aud1']).toBe(2);
+        expect(state.counters['audhumbla_genesis:aud2']).toBe(1);
+
+        state = play(state, 'aud1', 'aud1', 'c4'); // A: 3 -> only A rewarded
+        expect(state.playerParty[0].maxEnergy).toBe(6);
+        expect(state.playerParty[1].maxEnergy).toBe(5);
+    });
+});
+
+describe('Item 6 - HRAESVELGR v2 dead data removed', () => {
+    it('hooks.json contains no onDeckShuffled trigger anywhere', () => {
+        expect(JSON.stringify(HOOKS_DATA)).not.toContain('onDeckShuffled');
+    });
+
+    it('hraesvelgr_v2 keeps its description (UI copy) but has no data hooks', () => {
+        const entry = (HOOKS_DATA as any).hraesvelgr_v2;
+        expect(entry.description).toBeTruthy();
+        expect(entry.hooks).toEqual([]);
+        // The working CustomFirmware implementation still registers.
+        const os = getOSBehavior('hraesvelgr_v2')!;
+        expect(os.hooks.length).toBeGreaterThan(0);
+        expect(getHook('hraesvelgr_v2_updraft')?.onCardDraw).toBeTypeOf('function');
+    });
+});
+
+describe('Item 7 - enemy intent Side buffs stay on the enemy side', () => {
+    it('a Side StableOS/BarkShield intent lands on the enemy party, not the player', () => {
+        const player = makeUnit('p1', 'Player');
+        const enemy = makeUnit('e1', 'Enemy', {
+            currentIntent: {
+                id: 'stabilize',
+                name: 'Stabilize',
+                intentType: 'Buff',
+                priority: 1,
+                actions: [
+                    { type: 'STATUS', status: 'StableOS', stacks: 1, target: 'Side' },
+                    { type: 'STATUS', status: 'BarkShield', stacks: 5, target: 'Side' }
+                ]
+            }
+        });
+        let state = makeState([player], [enemy]);
+
+        state = battleReducer(state, { type: 'EXECUTE_INTENT', payload: { sourceId: 'e1' } });
+
+        expect(state.enemyParty[0].statusEffects.some(s => s.type === 'StableOS')).toBe(true);
+        expect(state.enemyParty[0].statusEffects.some(s => s.type === 'BarkShield')).toBe(true);
+        expect(state.playerParty[0].statusEffects.some(s => s.type === 'StableOS')).toBe(false);
+        expect(state.playerParty[0].statusEffects.some(s => s.type === 'BarkShield')).toBe(false);
+    });
+});
+
+describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', () => {
+    it('Status card primes; the NEXT card spends the charge (Attack: discounted)', () => {
+        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+        let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_status_test', 1),
+            card('c3', 'card_strike', 1)
+        ]);
+
+        // Play the Status-category card: costs 1, primes the discount.
+        state = play(state, 'gul1', 'e1', 'c1');
+        expect(state.playerParty[0].currentEnergy).toBe(4);
+        expect(state.playerParty[0].nextProgramModifier).toBeDefined();
+        expect(state.playerParty[0].nextProgramModifier!.appliesTo).toBe('Attack');
+        expect(state.logs.some(l => l.includes('UNSTOPPABLE_MASS'))).toBe(true);
+
+        // Next card is an Attack: discounted to 0, charge consumed.
+        state = play(state, 'gul1', 'e1', 'c3');
+        expect(state.playerParty[0].currentEnergy).toBe(4); // cost 1 - 1 = 0
+        expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
+    });
+
+    it('a non-Attack card as the next card SPENDS the charge without a discount', () => {
+        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+        let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_status_test', 1),
+            card('c2', 'card_draw_test', 1),
+            card('c3', 'card_strike', 1)
+        ]);
+
+        state = play(state, 'gul1', 'e1', 'c1'); // prime (energy 4)
+        state = play(state, 'gul1', 'gul1', 'c2'); // Skill: full cost, charge LOST
+        expect(state.playerParty[0].currentEnergy).toBe(3);
+        expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
+
+        state = play(state, 'gul1', 'e1', 'c3'); // Attack: full cost, no charge left
+        expect(state.playerParty[0].currentEnergy).toBe(2);
+    });
+
+    it('a Skill card that applies a status ALSO primes (e.g. Shield Shards)', () => {
+        // Owner decision 2026-08: trigger = any non-Attack card that applies a
+        // status, since self-buffs like Shield Shards are category Skill.
+        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+        let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_burn_test', 1) // Skill category with a STATUS action
+        ]);
+
+        state = play(state, 'gul1', 'e1', 'c1');
+        expect(state.playerParty[0].nextProgramModifier).toBeDefined();
+        expect(state.playerParty[0].nextProgramModifier!.appliesTo).toBe('Attack');
+    });
+
+    it('an Attack card with a status rider does NOT prime; a statusless Skill does NOT prime', () => {
+        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+        let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'card_strike', 1),    // Attack, no status
+            card('c2', 'card_draw_test', 1)  // Skill, no STATUS action
+        ]);
+        state = play(state, 'gul1', 'e1', 'c1');
+        expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
+        state = play(state, 'gul1', 'gul1', 'c2');
+        expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
+    });
+
+    it('UI copy matches the new behavior', () => {
+        const os = getOSBehavior('gullinbursti_v1')!;
+        expect(os.description).toMatch(/applies a status/);
+        expect(os.description).toMatch(/Attack/);
+    });
+});
+
+describe('getEffectiveCardCost (shared reducer/UI helper)', () => {
+    it('reflects a primed Attack-only discount and ignores it for other categories', async () => {
+        const { getEffectiveCardCost, doesModifierApply } = await import('./battleReducer');
+        const source: any = {
+            nextProgramModifier: { costReduction: 1, appliesTo: 'Attack' }
+        };
+        const attackCard: any = { category: 'Attack' };
+        const skillCard: any = { category: 'Skill' };
+        expect(doesModifierApply(source, attackCard)).toBe(true);
+        expect(getEffectiveCardCost(source, attackCard, 2)).toBe(1);
+        expect(getEffectiveCardCost(source, attackCard, 0)).toBe(0);
+        expect(doesModifierApply(source, skillCard)).toBe(false);
+        expect(getEffectiveCardCost(source, skillCard, 2)).toBe(2);
+        expect(getEffectiveCardCost({ nextProgramModifier: undefined } as any, attackCard, 2)).toBe(2);
+    });
+});

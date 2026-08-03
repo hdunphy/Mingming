@@ -5,6 +5,7 @@ import { setActiveParty } from '../store/gameSlice';
 import { getExpForLevel } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import FirmwareTerminal from '../components/FirmwareTerminal';
+import { TypeChartPanel } from '../components/TypeChart';
 
 export default function RosterTerminal() {
     const dispatch = useDispatch();
@@ -79,6 +80,14 @@ export default function RosterTerminal() {
                         )}
                         {roster.map(mm => {
                             const isActive = activeSet.has(mm.id);
+                            // Progress within the current level (matches MingmingUnit's math):
+                            // subtract the current level's XP baseline before dividing.
+                            const currentLevelExp = getExpForLevel(mm.level);
+                            const nextLevelExp = getExpForLevel(mm.level + 1);
+                            const levelSpan = nextLevelExp - currentLevelExp;
+                            const xpProgress = levelSpan > 0
+                                ? Math.min(100, Math.max(0, ((mm.experience - currentLevelExp) / levelSpan) * 100))
+                                : 0;
                             return (
                                 <div
                                     key={mm.id}
@@ -95,12 +104,12 @@ export default function RosterTerminal() {
                                     <div className="roster-card-xp" style={{ marginTop: '10px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '4px' }}>
                                             <span>XP</span>
-                                            <span>{mm.experience} / {getExpForLevel(mm.level + 1)}</span>
+                                            <span>{Math.max(0, mm.experience - currentLevelExp)} / {levelSpan}</span>
                                         </div>
                                         <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
                                             <div style={{
                                                 height: '100%',
-                                                width: `${(mm.experience / getExpForLevel(mm.level + 1)) * 100}%`,
+                                                width: `${xpProgress}%`,
                                                 background: 'linear-gradient(90deg, #00d2ff, #3a7bd5)'
                                             }} />
                                         </div>
@@ -117,6 +126,9 @@ export default function RosterTerminal() {
                         })}
                     </div>
                 </div>
+
+                {/* Elemental matchup reference — collapsed by default so it never crowds the roster grid */}
+                <TypeChartPanel />
             </div>
 
             {showFirmware && <FirmwareTerminal onClose={() => setShowFirmware(false)} />}

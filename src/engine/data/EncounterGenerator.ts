@@ -90,12 +90,27 @@ export function generateEncounter(options: IEncounterOptions): IGeneratedEncount
     if (daemonPool.length > 0) {
         const { value: dIndex } = prng.nextInt(0, daemonPool.length - 1);
         enemyDeckIds.push(daemonPool[dIndex]);
+    } else {
+        console.warn(`[EncounterGenerator] No daemons found for element ${sectorElement}.`);
+        // Fallback to any daemon? Or just skip. Let's skip for now to avoid cross-element weirdness 
+        // unless the deck is too small. actually, let's grab from any daemon just to have one.
+        const allDaemons = Object.keys(ProgramRegistry).filter(id => ProgramRegistry[id].category === 'Daemon');
+        if (allDaemons.length > 0) {
+            const { value: dIndex } = prng.nextInt(0, allDaemons.length - 1);
+            enemyDeckIds.push(allDaemons[dIndex]);
+        }
     }
 
     // Add 9 random cards from pool
-    for (let i = 0; i < 9; i++) {
-        const { value: cIndex } = prng.nextInt(0, enemyPool.length - 1);
-        enemyDeckIds.push(enemyPool[cIndex]);
+    const finalPool = (enemyPool.length > 0) ? enemyPool : Object.keys(ProgramRegistry).filter(id => !ProgramRegistry[id].isToken && ProgramRegistry[id].category !== 'Daemon');
+
+    if (finalPool.length === 0) {
+        console.error(`[EncounterGenerator] CRITICAL: No eligible cards found in registry at all!`);
+    } else {
+        for (let i = 0; i < 9; i++) {
+            const { value: cIndex } = prng.nextInt(0, finalPool.length - 1);
+            enemyDeckIds.push(finalPool[cIndex]);
+        }
     }
 
     return {

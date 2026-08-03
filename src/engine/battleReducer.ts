@@ -19,6 +19,7 @@ import { discardHand } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -37,7 +38,7 @@ export type BattleAction =
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
-    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number } }
+    | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string } }
     | { type: 'EXECUTE_INTENT'; payload: { sourceId: string } };
 
 // --- Constants ---
@@ -128,9 +129,31 @@ export function validateProgramConstraints(
 }
 
 /**
+ * Whether the source's nextProgramModifier applies to this program
+ * (a modifier restricted via appliesTo only affects that category).
+ */
+export function doesModifierApply(source: IBattleEntity, programData: ProgramData): boolean {
+    const modifier = source.nextProgramModifier;
+    return modifier !== undefined
+        && (modifier.appliesTo === undefined || modifier.appliesTo === programData.category);
+}
+
+/**
+ * The cost the source would ACTUALLY pay for this card right now,
+ * including any primed nextProgramModifier discount (e.g. Gullinbursti's
+ * UNSTOPPABLE_MASS). Shared by the reducer and the UI so the displayed
+ * cost and the paid cost can never drift apart.
+ */
+export function getEffectiveCardCost(source: IBattleEntity, programData: ProgramData, currentCost: number): number {
+    const reduction = doesModifierApply(source, programData)
+        ? (source.nextProgramModifier?.costReduction || 0)
+        : 0;
+    return Math.max(0, currentCost - reduction);
+}
+
+/**
  * Applies a list of mutations to the state in a single atomic update.
  */
-import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
 
 function handlePlayProgram(state: IBattleState, payload: { sourceId: string; targetId: string; programId: string }): IBattleState {
     if (state.phase !== 'ACTION') {
@@ -139,7 +162,8 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     }
 
     // Safety: check if battle is over
-    const isOver = state.playerParty.every(p => p.currentHp <= 0) || state.enemyParty.every(e => e.currentHp <= 0);
+    const isOver = (state.playerParty.length > 0 && state.playerParty.every(p => p.currentHp <= 0)) ||
+        (state.enemyParty.length > 0 && state.enemyParty.every(e => e.currentHp <= 0));
     if (isOver) return state;
 
     const { sourceId, targetId, programId } = payload;
@@ -147,22 +171,34 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // 1. Identify Source & Card
     const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
     const sourceIndex = state[activePartyKey].findIndex(e => e.id === sourceId);
-    if (sourceIndex === -1) return state;
+    if (sourceIndex === -1) {
+        return state;
+    }
 
     const sourceEntity = state[activePartyKey][sourceIndex];
+    // Defeated units cannot act (their selection may linger in the UI).
+    if (sourceEntity.currentHp <= 0) {
+        return state;
+    }
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const hand = state[activeDeckKey].hand;
     const cardIndex = hand.findIndex(c => c.id === programId);
 
-    if (cardIndex === -1) return state;
+    if (cardIndex === -1) {
+        return state;
+    }
 
     const card = hand[cardIndex];
     const programData = GetProgramData(card.dataId);
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
     const modifier = sourceEntity.nextProgramModifier;
-    const appliedCostReduction = modifier?.costReduction || 0;
-    const baseCost = Math.max(0, card.currentCost - appliedCostReduction);
+    // A modifier restricted via appliesTo only DISCOUNTS a card of that
+    // category (e.g. UNSTOPPABLE_MASS discounts an Attack). The charge is
+    // spent by the NEXT card either way (see the clearing block below).
+    const modifierApplies = doesModifierApply(sourceEntity, programData);
+    const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
+    const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
 
     const costRes = executeCostCalculated(state, sourceEntity, targetEntity, programData, baseCost);
     const finalCost = costRes.cost;
@@ -183,15 +219,22 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const isDaemon = programData.category === 'Daemon';
     const isExhaust = programData.exhaust || programData.isToken;
     const newDiscard = (isDaemon || isExhaust) ? [...snapshot[activeDeckKey].discard] : [...snapshot[activeDeckKey].discard, card];
+    // Exhausted cards (and tokens) go to the exhaust pile instead of vanishing,
+    // so RETURN-from-EXHAUST effects can actually recover them. Daemons live on
+    // the entity (installed) and are excluded.
+    const newExhaustPile = (isExhaust && !isDaemon)
+        ? [...snapshot[activeDeckKey].exhaust, card]
+        : snapshot[activeDeckKey].exhaust;
 
     snapshot = {
         ...snapshot,
         [activePartyKey]: snapshot[activePartyKey].map(e => {
             if (e.id === sourceId) {
-                const updatedEntity = { ...e, currentEnergy: e.currentEnergy - finalCost };
-                if (isDaemon) {
-                    return { ...updatedEntity, daemons: [...updatedEntity.daemons, card] };
-                }
+                const updatedEntity: IBattleEntity = {
+                    ...e,
+                    currentEnergy: e.currentEnergy - finalCost,
+                    daemons: isDaemon ? [...e.daemons, card] : e.daemons
+                };
                 return updatedEntity;
             }
             return e;
@@ -199,15 +242,26 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         [activeDeckKey]: {
             ...snapshot[activeDeckKey],
             hand: newHand,
-            discard: newDiscard
+            discard: newDiscard,
+            exhaust: newExhaustPile
         },
         cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1,
-        lastProgramPlayed: card.dataId
+        lastStatusConsumed: 0,
+        elementPlays: {
+            'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
+            ...(snapshot.elementPlays || {}),
+            [programData.element]: (snapshot.elementPlays?.[programData.element] || 0) + 1
+        }
+        // NOTE: lastProgramPlayed is intentionally NOT updated here. During action
+        // resolution it must still refer to the PREVIOUS card so PLAY_LAST_CARD
+        // (Reprogram) echoes the prior play instead of seeing itself. It is
+        // updated once resolution completes (end of this function).
     };
 
     // 4. Initial Context
+    const currentSource = snapshot[activePartyKey].find(e => e.id === sourceId)!;
     const context: HookContext = {
-        source: sourceEntity,
+        source: currentSource,
         target: targetEntity,
         program: programData,
         state: snapshot,
@@ -215,7 +269,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     };
 
     // 5. System Layer: onActionStart
-    const { state: afterStart, isCancelled } = executeResolutionStack(snapshot, 'onActionStart', context);
+    const { state: afterStart, isCancelled } = executeResolutionStack('onActionStart', context);
     if (isCancelled) return afterStart;
     snapshot = afterStart;
 
@@ -274,14 +328,15 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     }
 
                     // Modifier Phase
-                    const hitContext = { ...context, target: currentTarget, state: finalState };
-                    const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                    const latestSource = finalState[activePartyKey].find(e => e.id === sourceId)!;
+                    const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
+                    const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                     if (hitCancelled) continue;
                     finalState = afterMod;
 
                     // Execution
                     let modifiedAction = { ...action };
-                    if (modifier) {
+                    if (modifier && modifierApplies) {
                         if ((modifiedAction as any).power !== undefined) {
                             (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
@@ -301,27 +356,36 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     }
 
                     // Post-Damage Phase
-                    const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                    const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
                     finalState = afterPost;
+
                 }
             }
         }
     }
 
-    // Clear the modifier since it has been consumed
+    // Clear the modifier after this card resolves, whether or not it applied:
+    // the charge is spent by the NEXT card, full stop (a category-restricted
+    // buff like UNSTOPPABLE_MASS simply grants no discount if that next card
+    // is the wrong category — it does not linger waiting for a match).
+    // Reference-equality guard: a modifier set DURING this card's own
+    // resolution (e.g. Gullinbursti priming off the Status card just played)
+    // must not be wiped by the very play that created it.
     const activePartyAfter = finalState[activePartyKey].map(e => {
-        if (e.id === sourceId && e.nextProgramModifier !== undefined) {
+        if (e.id === sourceId && modifier !== undefined && e.nextProgramModifier === modifier) {
             const { nextProgramModifier, ...rest } = e;
             return rest;
         }
         return e;
     });
 
-    return {
+    finalState = {
         ...finalState,
         [activePartyKey]: activePartyAfter,
         lastProgramPlayed: card.dataId
     };
+
+    return finalState;
 }
 
 function handleExecuteIntent(state: IBattleState, payload: { sourceId: string }): IBattleState {
@@ -400,7 +464,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
         for (let i = 0; i < hitCount; i++) {
             // Target Selection Helper (Deterministic via lowest HP for single, Side/Self logic)
             let targetIds: string[] = [];
-            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp'].includes((action as any).status));
+            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp', 'StableOS', 'BarkShield'].includes((action as any).status));
 
             if (action.target === 'SELF' || action.target === 'Self') {
                 targetIds = [sourceId];
@@ -449,7 +513,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
 
                 // Modifier Phase
                 const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0 };
-                const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack(finalState, 'onModifierPhase', hitContext);
+                const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                 if (hitCancelled) continue;
                 finalState = afterMod;
 
@@ -462,7 +526,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 }
 
                 // Post-Damage Phase
-                const { state: afterPost } = executeResolutionStack(finalState, 'onPostDamage', { ...hitContext, state: finalState });
+                const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
                 finalState = afterPost;
             }
         }
@@ -570,7 +634,9 @@ function processPostTurn(state: IBattleState): IBattleState {
             if (damage > 0) {
                 currentHp = Math.max(0, currentHp - damage);
 
-                if (currentHp <= 0) {
+                // Only record the defeat once, even if a second DoT (e.g. Burn +
+                // Poison) ticks on the already-dead entity in the same end-turn.
+                if (currentHp <= 0 && !defeatedThisTurn.includes(entity.id)) {
                     defeatedThisTurn.push(entity.id);
                 }
 
@@ -653,7 +719,7 @@ function processPostTurn(state: IBattleState): IBattleState {
                 state: nextState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack(nextState, 'onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
             nextState = afterHook;
         }
     }
@@ -668,7 +734,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     // 3. Trigger onTurnEnd Hooks (ONLY for the side whose turn just ended)
     const candidates = [...nextState[activePartyKey]].filter(e => e.currentHp > 0);
     for (const entity of candidates) {
-        const { state: afterTurnEnd } = executeResolutionStack(nextState, 'onTurnEnd', {
+        const { state: afterTurnEnd } = executeResolutionStack('onTurnEnd', {
             source: entity,
             state: nextState,
             triggerDepth: 0
@@ -703,6 +769,9 @@ function processPreTurn(state: IBattleState): IBattleState {
     // 2. Reset Energy & Handle Statuses
     // Refill to max, then add Energized bonuses
     const refreshedParty = activeParty.map(entity => {
+        // Defeated units get no energy refill — they cannot act.
+        if (entity.currentHp <= 0) return entity;
+
         const energizedEffect = entity.statusEffects.find(s => s.type === 'Energized');
         const bonusEnergy = energizedEffect ? energizedEffect.stacks : 0;
 
@@ -724,7 +793,7 @@ function processPreTurn(state: IBattleState): IBattleState {
     const currentParty = nextState[activePartyKey];
     for (const entity of currentParty) {
         if (entity.currentHp <= 0) continue;
-        const { state: afterHook } = executeResolutionStack(nextState, 'onTurnStart', {
+        const { state: afterHook } = executeResolutionStack('onTurnStart', {
             source: entity,
             state: nextState,
             triggerDepth: 0
@@ -737,7 +806,9 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     if (nextSide === 'PLAYER') {
         const alivePlayers = nextState.playerParty.filter((e: IBattleEntity) => e.currentHp > 0);
-        const totalCardDraw = alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
+        const totalCardDraw = alivePlayers.length === 0
+            ? 0
+            : alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
         const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState.playerDeck.hand.length);
         console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
         nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
@@ -745,8 +816,12 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    // Intent Generation: Always calculate intents for enemies at the start of a turn (so player can see them)
-    const finalEnemyParty = generateIntents(nextState.enemyParty, nextState.seed, nextTurn);
+    // Intent Generation: telegraph enemy intents at the start of a turn (so the
+    // player can see them) — but only for move-user enemies. Card-user battles
+    // (enemyMode === 'CARDS', opt-in at battle creation) never generate intents.
+    const finalEnemyParty = (nextState.enemyMode ?? 'MOVES') === 'MOVES'
+        ? generateIntents(nextState.enemyParty, nextState.seed, nextTurn)
+        : nextState.enemyParty;
     const finalPlayerParty = nextState.playerParty;
 
     let newState = {
@@ -756,7 +831,11 @@ function processPreTurn(state: IBattleState): IBattleState {
         activeSide: nextSide,
         playerParty: finalPlayerParty,
         enemyParty: finalEnemyParty,
-        cardsPlayedThisTurn: 0
+        cardsPlayedThisTurn: 0,
+        elementPlays: {
+            'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
+            'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
+        }
     } as any;
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);

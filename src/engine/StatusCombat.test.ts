@@ -97,7 +97,7 @@ describe('Damage Calculation with Status Modifiers', () => {
     };
 
     it('should calculate base damage correctly', () => {
-        const damage = calculateDamage(attacker, defender, mockProgram as any, 20, mockState);
+        const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
         // Level 5 -> levelBase = 4
         // scaled = 4 * 20 * 50 / 50 = 80
         // reduced = (80 / 50) + 2 = 1.6 + 2 = 3.6
@@ -108,28 +108,28 @@ describe('Damage Calculation with Status Modifiers', () => {
 
     it('should increase damage with Strengthened status', () => {
         (attacker as any).statusEffects = [{ id: 's1', type: StatusType.Strengthened, stacks: 1 }];
-        const damage = calculateDamage(attacker, defender, mockProgram as any, 20, mockState);
+        const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
         // Base 5 * 1.2 = 6
         expect(damage).toBe(6);
     });
 
     it('should decrease damage with Weakened status', () => {
         (attacker as any).statusEffects = [{ id: 'w1', type: StatusType.Weakened, stacks: 1 }];
-        const damage = calculateDamage(attacker, defender, mockProgram as any, 20, mockState);
+        const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
         // Base 5 * 0.8 = 4
         expect(damage).toBe(4);
     });
 
     it('should reduce damage to a Sharp target', () => {
         (defender as any).statusEffects = [{ id: 'sh1', type: StatusType.Sharp, stacks: 1 }];
-        const damage = calculateDamage(attacker, defender, mockProgram as any, 20, mockState);
+        const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
         // Base 5 * 0.8 = 4
         expect(damage).toBe(4);
     });
 
     it('should deal more damage to a Dazed target', () => {
         (defender as any).statusEffects = [{ id: 'd1', type: StatusType.Dazed, stacks: 1 }];
-        const damage = calculateDamage(attacker, defender, mockProgram as any, 20, mockState);
+        const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
         // Base 5 * 1.2 = 6
         expect(damage).toBe(6);
     });

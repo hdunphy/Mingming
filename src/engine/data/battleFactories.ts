@@ -39,13 +39,24 @@ export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
 }
 
 import { generateEncounter } from './EncounterGenerator';
-import type { Element } from '../types';
+import type { Element, EnemyCombatMode } from '../types';
+
+export interface BattleOptions {
+    /**
+     * How the enemy side fights, locked in at battle creation.
+     * Defaults to 'MOVES' (telegraphed intents, no cards). Passing
+     * 'CARDS' explicitly is the ONLY way to create card-playing enemies.
+     */
+    readonly enemyMode?: EnemyCombatMode;
+}
 
 export function createBattleState(
     save: IPlayerSave,
     enemyIds: string[],
-    sectorElement?: Element
+    sectorElement?: Element,
+    options?: BattleOptions
 ): IBattleState {
+    const enemyMode: EnemyCombatMode = options?.enemyMode ?? 'MOVES';
     const playerPartyMembers = save.activeParty
         .map(id => save.roster.find(m => m.id === id))
         .filter(Boolean) as IMingmingState[];
@@ -61,8 +72,7 @@ export function createBattleState(
             if (persistentState) {
                 entity = {
                     ...entity,
-                    currentHp: persistentState.hp,
-                    currentEnergy: persistentState.energy
+                    currentHp: persistentState.hp
                 };
             }
         }
@@ -73,8 +83,8 @@ export function createBattleState(
             if (relic.effect === 'ENERGY_CAP_BONUS') {
                 entity = {
                     ...entity,
-                    maxEnergy: entity.maxEnergy + 5,
-                    currentEnergy: entity.currentEnergy + 5
+                    maxEnergy: entity.maxEnergy + 1,
+                    currentEnergy: entity.currentEnergy + 1
                 };
             }
             if (relic.effect === 'DRAW_BONUS') {
@@ -195,8 +205,12 @@ export function createBattleState(
         }).flat();
     }
 
-    // Epic 2/22/2026: Disable OS on enemies as they use intents now
-    enemyParty = enemyParty.map(e => ({ ...e, activeOS: undefined }));
+    // Epic 2/22/2026: Disable OS on enemies as they use intents now.
+    // Exception: gym tier-3 bosses keep their boss_relic_* OS (design decision).
+    enemyParty = enemyParty.map(e => ({
+        ...e,
+        activeOS: e.activeOS?.startsWith('boss_relic_') ? e.activeOS : undefined
+    }));
 
     // --- SHARED DECK INITIALIZATION ---
 
@@ -255,17 +269,29 @@ export function createBattleState(
     };
     const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle.toString());
 
+    // A battle with no enemies is unwinnable-by-definition and renders a ghost
+    // arena (empty enemy column, instant hollow victory). Fail loudly instead.
+    if (enemyParty.length === 0) {
+        throw new Error(`[createBattleState] No enemies generated (gauntlet: ${JSON.stringify(save.gauntlet)}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
+    }
+
+    // Move users get no drawpile/hand at all; card users get a dealt hand.
     const eInitialDeck: IDeckState = {
         ownerId: 'ENEMY',
         deck: [],
-        drawpile: eDeckCards,
+        drawpile: enemyMode === 'CARDS' ? eDeckCards : [],
         hand: [],
         discard: [],
         exhaust: []
     };
-    const { state: eDeckState, nextSeed: seed3 } = drawCards(eInitialDeck, enemyCardDraw, seed2);
+    const { state: eDeckState, nextSeed: seed3 } = enemyMode === 'CARDS'
+        ? drawCards(eInitialDeck, enemyCardDraw, seed2)
+        : { state: eInitialDeck, nextSeed: seed2 };
 
-    const finalEnemyParty = generateIntents(enemyParty, seed3, 1);
+    // Intents are only telegraphed for move users.
+    const finalEnemyParty = enemyMode === 'MOVES'
+        ? generateIntents(enemyParty, seed3, 1)
+        : enemyParty;
 
     return {
         sessionId: 'battle_' + Date.now(),
@@ -283,8 +309,13 @@ export function createBattleState(
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
+        elementPlays: {
+            'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
+            'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
+        },
         counters: {},
         levelUpQueue: [],
-        activeRelics: save.relics || []
+        activeRelics: save.relics || [],
+        enemyMode
     };
 }

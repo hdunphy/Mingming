@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-skoll" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff3333" stop-opacity="0.35"/>
+      <stop offset="65%" stop-color="#ff3333" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#ff3333" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#ff3333" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-skoll)"/>
+  <g fill="#060810" stroke="#ff3333" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- leaping body, stretched diagonally -->
+    <path d="M26 156 Q66 146 94 122 Q124 96 144 66 L160 76 Q148 100 126 120 Q96 148 58 162 Z"/>
+    <!-- head with open jaw -->
+    <path d="M144 66 Q152 46 172 42 L166 56 L180 60 Q170 76 154 74 Z"/>
+    <!-- ear -->
+    <path d="M150 48 L146 32 L160 42 Z"/>
+    <!-- front legs, extended into the leap -->
+    <path d="M124 116 Q142 118 158 112" fill="none" stroke-width="4"/>
+    <path d="M112 130 Q132 136 148 132" fill="none" stroke-width="4"/>
+    <!-- hind legs trailing -->
+    <path d="M52 152 Q38 162 24 178" fill="none" stroke-width="4"/>
+    <path d="M66 158 Q56 170 46 182" fill="none" stroke-width="4"/>
+    <!-- bushy tail -->
+    <path d="M30 152 Q12 142 8 124 Q26 130 38 142 Z"/>
+  </g>
+  <circle cx="158" cy="56" r="2.5" fill="#ff3333"/>
+</svg>

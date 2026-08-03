@@ -5,6 +5,8 @@ import type { RootState } from '../store/store';
 import { startBattle } from '../store/battleSlice';
 import { startGauntlet } from '../store/gameSlice';
 import type { Element } from '../../engine/types';
+import { MIN_DECK_SIZE } from '../../engine/gameTypes';
+import { TypeChartPanel } from '../components/TypeChart';
 
 /**
  * Epic 8: Milestone 8.2 - Terminal Hub UI
@@ -27,14 +29,26 @@ const SectorTerminal: React.FC = () => {
     const save = useSelector((state: RootState) => state.game);
     const [selectedSector, setSelectedSector] = useState<Element | null>(null);
 
-    const handleStartSector = (element: Element) => {
-        const sector = SECTORS.find(s => s.id === element);
-        if (sector?.unlocked) {
-            dispatch(startBattle({ save, enemyIds: [], sectorElement: element }));
-        } else {
-            // Start gym gauntlet to unlock it
-            dispatch(startGauntlet({ type: 'Gym', element, totalBattles: 3 }));
+    // Deployment readiness guard (mirrors HubScreen): need an active party member and a valid deck
+    const activeMingming = save.roster.find(m => m.id === save.activeParty[0]);
+    const deckCount = save.activeDeck?.cards.length || 0;
+    const hasParty = !!activeMingming;
+    const isDeckValid = deckCount >= MIN_DECK_SIZE;
+    const canDeploy = hasParty && isDeckValid;
 
+    const handleStartSector = (element: Element) => {
+        // Validate before dispatching anything: an empty party or invalid deck
+        // would make startBattle throw, and must never leave a dangling gauntlet.
+        if (!canDeploy || save.gauntlet) return;
+
+        const isUnlocked = save.unlockedSectors.includes(element);
+        if (isUnlocked) {
+            try {
+                dispatch(startBattle({ save, enemyIds: [], sectorElement: element }));
+            } catch (err) {
+                console.error('[SectorTerminal] Failed to start sector battle:', err);
+            }
+        } else {
             // Pass explicitly updated save to avoid React state staleness
             const newSave = {
                 ...save,
@@ -46,7 +60,16 @@ const SectorTerminal: React.FC = () => {
                     persistedStats: {}
                 }
             };
-            dispatch(startBattle({ save: newSave, enemyIds: [] }));
+
+            // Start the battle FIRST; only persist the gauntlet once the battle
+            // actually started, so a failed startBattle can't strand the save
+            // with an active gauntlet and no battle.
+            try {
+                dispatch(startBattle({ save: newSave, enemyIds: [] }));
+                dispatch(startGauntlet({ type: 'Gym', element, totalBattles: 3 }));
+            } catch (err) {
+                console.error('[SectorTerminal] Failed to start gym gauntlet:', err);
+            }
         }
     };
 
@@ -81,13 +104,13 @@ const SectorTerminal: React.FC = () => {
                             onClick={() => setSelectedSector(sector.id)}
                             style={{
                                 background: 'rgba(255,255,255,0.03)',
-                                border: `1px solid ${selectedSector === sector.id ? sector.color : sector.unlocked ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)'}`,
+                                border: `1px solid ${selectedSector === sector.id ? sector.color : save.unlockedSectors.includes(sector.id) ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)'}`,
                                 borderRadius: '12px',
                                 padding: '25px',
                                 cursor: 'pointer',
                                 position: 'relative',
                                 overflow: 'hidden',
-                                opacity: sector.unlocked ? 1 : 0.7,
+                                opacity: save.unlockedSectors.includes(sector.id) ? 1 : 0.7,
                                 transition: 'border-color 0.2s'
                             }}
                         >
@@ -107,11 +130,11 @@ const SectorTerminal: React.FC = () => {
                                     fontSize: '0.7rem',
                                     fontWeight: 'bold',
                                     padding: '4px 8px',
-                                    background: sector.unlocked ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)',
+                                    background: save.unlockedSectors.includes(sector.id) ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.2)',
                                     borderRadius: '4px',
-                                    color: sector.unlocked ? '#fff' : '#ff4444'
+                                    color: save.unlockedSectors.includes(sector.id) ? '#fff' : '#ff4444'
                                 }}>
-                                    {sector.unlocked ? 'AVAILABLE' : 'LOCKED'}
+                                    {save.unlockedSectors.includes(sector.id) ? 'AVAILABLE' : 'LOCKED'}
                                 </span>
                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: sector.color, boxShadow: `0 0 10px ${sector.color}` }} />
                             </div>
@@ -120,6 +143,12 @@ const SectorTerminal: React.FC = () => {
                             <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.6, lineHeight: '1.4' }}>{sector.description}</p>
                         </motion.div>
                     ))}
+
+                    {/* Matchup planner: full-width row at the end of the scrollable
+                        sector list, collapsed by default so the grid stays clean. */}
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <TypeChartPanel />
+                    </div>
                 </div>
 
                 {/* Detail / Action Panel */}
@@ -147,7 +176,7 @@ const SectorTerminal: React.FC = () => {
 
                                 <div style={{ flex: 1 }}>
                                     <p style={{ fontSize: '1rem', opacity: 0.8, marginBottom: '20px' }}>
-                                        {SECTORS.find(s => s.id === selectedSector)?.unlocked
+                                        {save.unlockedSectors.includes(selectedSector)
                                             ? `Deploying to ${selectedSector} Sector. Expect enemy groups matching this element. High density of localized Blueprints detected.`
                                             : `CHALLENGE GYM GAUNTLET: Defeat the ${selectedSector} Gym Leader to unlock this sector. Prepare for a grueling 3-tier endurance battle.`}
                                     </p>
@@ -155,7 +184,7 @@ const SectorTerminal: React.FC = () => {
                                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
                                         <div style={{ fontSize: '0.8rem', opacity: 0.5, marginBottom: '10px' }}>EXPECTED REWARDS</div>
                                         <ul style={{ padding: '0 0 0 20px', margin: 0, fontSize: '0.9rem', color: '#7c3aed' }}>
-                                            {SECTORS.find(s => s.id === selectedSector)?.unlocked ? (
+                                            {save.unlockedSectors.includes(selectedSector) ? (
                                                 <>
                                                     <li>Elemental Program Data</li>
                                                     <li>Core Level XP</li>
@@ -178,24 +207,32 @@ const SectorTerminal: React.FC = () => {
                                     </div>
                                 )}
 
+                                {!save.gauntlet && !canDeploy && (
+                                    <div style={{ color: '#ef4444', marginBottom: '15px', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'center' }}>
+                                        {!hasParty
+                                            ? '⚠️ NO ACTIVE PARTY. ASSIGN A MINGMING IN THE ROSTER TERMINAL.'
+                                            : `⚠️ DECK TOO SMALL (${deckCount}/${MIN_DECK_SIZE}). CONFIGURE IN THE DECK TERMINAL.`}
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={() => handleStartSector(selectedSector)}
                                     className="terminal-button primary"
-                                    disabled={!!save.gauntlet}
+                                    disabled={!!save.gauntlet || !canDeploy}
                                     style={{
                                         width: '100%',
                                         padding: '18px',
-                                        background: save.gauntlet ? '#333' : SECTORS.find(s => s.id === selectedSector)?.color,
+                                        background: (save.gauntlet || !canDeploy) ? '#333' : SECTORS.find(s => s.id === selectedSector)?.color,
                                         border: 'none',
                                         borderRadius: '8px',
-                                        color: save.gauntlet ? '#888' : '#fff',
+                                        color: (save.gauntlet || !canDeploy) ? '#888' : '#fff',
                                         fontWeight: 'bold',
                                         fontSize: '1rem',
-                                        cursor: save.gauntlet ? 'not-allowed' : 'pointer',
-                                        boxShadow: save.gauntlet ? 'none' : `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
+                                        cursor: (save.gauntlet || !canDeploy) ? 'not-allowed' : 'pointer',
+                                        boxShadow: (save.gauntlet || !canDeploy) ? 'none' : `0 10px 20px -5px ${SECTORS.find(s => s.id === selectedSector)?.color}66`
                                     }}
                                 >
-                                    {save.gauntlet ? 'SYSTEM LOCKED' : SECTORS.find(s => s.id === selectedSector)?.unlocked ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
+                                    {save.gauntlet ? 'SYSTEM LOCKED' : !canDeploy ? 'DEPLOYMENT BLOCKED' : save.unlockedSectors.includes(selectedSector) ? 'INITIATE DEPLOYMENT' : 'INITIATE GYM GAUNTLET'}
                                 </button>
                             </motion.div>
                         ) : (

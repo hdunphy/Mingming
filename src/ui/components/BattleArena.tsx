@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { RootState } from '../store/store';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { store, type RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent } from '../store/battleSlice';
-import type { IBattleEntity } from '../../engine/types';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent, startBattle } from '../store/battleSlice';
+import type { IBattleEntity, Element } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
-import { rollDropTable } from '../../engine/RewardSystem';
+import { rollDropTable, rollDraftRounds } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import LevelUpOverlay from './LevelUpOverlay';
 import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats, updateGauntlet, completeGauntlet, addRelic } from '../store/gameSlice';
@@ -19,6 +19,14 @@ import { deleteSave } from '../../engine/SaveSystem';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
+import { useBattleVfx } from '../hooks/useBattleVfx';
+import { prefersReducedMotion } from '../utils/motionPrefs';
+
+/**
+ * Hold the level-up overlay after the queue first populates, so the death FX
+ * (450ms CRT glitch + TERMINATED stamp beat) finish before it covers the stage.
+ */
+const LEVEL_UP_OVERLAY_DELAY_MS = 900;
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -48,49 +56,71 @@ const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     </motion.div>
 );
 
-const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => void, onDefeatReset?: () => void }> = ({ result, onShowReport, onDefeatReset }) => (
-    <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="end-game-overlay"
-        style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.85)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000
-        }}
-    >
-        <motion.h1
-            initial={{ scale: 0 }}
-            animate={{ scale: 1.2 }}
+const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => void, onDefeatReset?: () => void }> = ({ result, onShowReport, onDefeatReset }) => {
+    // Entrance beat: the headline slams in from oversized + blurred (a digital
+    // "lock-on"), then the actions fade up. Reduced motion: simple fade only.
+    const reduced = prefersReducedMotion();
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="end-game-overlay"
             style={{
-                fontSize: '5rem',
-                color: result === 'WIN' ? '#00ffaa' : '#ff4444',
-                textShadow: '0 0 30px currentColor'
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2000
             }}
         >
-            {result === 'WIN' ? 'VICTORY' : 'DEFEAT'}
-        </motion.h1>
-        {result === 'LOSS' && (
-            <p style={{ color: '#ff8888', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}>
-                RUN TERMINATED. DATA WIPED.
-            </p>
-        )}
-        {result === 'WIN' && onShowReport ? (
-            <button onClick={onShowReport} className="action-button" style={{ marginTop: '40px' }}>
-                VIEW REWARDS
-            </button>
-        ) : (
-            <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
-                {result === 'LOSS' ? 'RESTART GAUNTLET' : 'RETURN TO BASE'}
-            </button>
-        )}
-    </motion.div>
-);
+            <motion.h1
+                initial={reduced
+                    ? { opacity: 0 }
+                    : { scale: 2.3, opacity: 0, filter: 'blur(14px)', letterSpacing: '0.5em' }}
+                animate={reduced
+                    ? { opacity: 1 }
+                    : { scale: 1, opacity: 1, filter: 'blur(0px)', letterSpacing: '0.1em' }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                style={{
+                    fontSize: '5rem',
+                    color: result === 'WIN' ? '#00ffaa' : '#ff4444',
+                    textShadow: '0 0 30px currentColor'
+                }}
+            >
+                {result === 'WIN' ? 'VICTORY' : 'DEFEAT'}
+            </motion.h1>
+            {result === 'LOSS' && (
+                <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45, duration: 0.3 }}
+                    style={{ color: '#ff8888', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}
+                >
+                    RUN TERMINATED. DATA WIPED.
+                </motion.p>
+            )}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55, duration: 0.3 }}
+            >
+                {result === 'WIN' && onShowReport ? (
+                    <button onClick={onShowReport} className="action-button" style={{ marginTop: '40px' }}>
+                        VIEW REWARDS
+                    </button>
+                ) : (
+                    <button onClick={onDefeatReset || (() => window.location.reload())} className="action-button" style={{ marginTop: '40px' }}>
+                        {result === 'LOSS' ? 'RESTART GAUNTLET' : 'RETURN TO BASE'}
+                    </button>
+                )}
+            </motion.div>
+        </motion.div>
+    );
+};
 
 const BattleArena: React.FC = () => {
     const dispatch = useDispatch();
@@ -111,7 +141,51 @@ const BattleArena: React.FC = () => {
     const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
     const [showReport, setShowReport] = useState(false);
 
+    // Payoff-timing fix: the level-up overlay used to appear the instant the
+    // queue populated, covering the death glitch/stamp. Always delay its first
+    // appearance; subsequent queued level-ups (queue stays non-empty) show
+    // immediately since the death beat has already played.
+    const hasLevelUps = (battleState?.levelUpQueue.length ?? 0) > 0;
+    const [levelUpRevealed, setLevelUpRevealed] = useState(false);
+    useEffect(() => {
+        if (!hasLevelUps) {
+            setLevelUpRevealed(false);
+            return;
+        }
+        const timer = setTimeout(() => setLevelUpRevealed(true), LEVEL_UP_OVERLAY_DELAY_MS);
+        return () => clearTimeout(timer);
+    }, [hasLevelUps]);
+
+    // Combat juice: event-bus driven VFX (floats, flashes, lunges, arena shake)
+    const vfx = useBattleVfx(battleState);
+    const { triggerLunge } = vfx; // stable callback, safe as an effect dep
+    const stageControls = useAnimation();
+
+    // Stage fade-in on mount (was a declarative animate; controls now own it so
+    // the big-hit shake below can share the same motion component).
+    useEffect(() => {
+        stageControls.start({ opacity: 1, transition: { duration: 1 } });
+    }, [stageControls]);
+
+    // Big hits (>= 33% max HP) nudge the whole arena a few px.
+    useEffect(() => {
+        if (!vfx.shakeKey || prefersReducedMotion()) return;
+        stageControls.start({ x: [0, -3, 3, -2, 2, 0], transition: { duration: 0.22 } });
+    }, [vfx.shakeKey, stageControls]);
+
     const prevSideRef = useRef(battleState?.activeSide);
+    // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect
+    // (sharing prevSideRef meant the "wait for banner" branch never triggered).
+    const aiPrevSideRef = useRef(battleState?.activeSide);
+
+    // Clear the selected source if that unit dies
+    useEffect(() => {
+        if (!selectedSourceId || !battleState) return;
+        const selected = battleState.playerParty.find(p => p.id === selectedSourceId);
+        if (!selected || selected.currentHp <= 0) {
+            dispatch(selectSource(null));
+        }
+    }, [battleState, selectedSourceId, dispatch]);
 
     // Hotkeys implementation
     useEffect(() => {
@@ -127,10 +201,14 @@ const BattleArena: React.FC = () => {
                 }
             }
 
-            // W, E, R: Select Player Units
-            if (e.key.toLowerCase() === 'w') dispatch(selectSource(battleState.playerParty[0]?.id));
-            if (e.key.toLowerCase() === 'e') dispatch(selectSource(battleState.playerParty[1]?.id));
-            if (e.key.toLowerCase() === 'r') dispatch(selectSource(battleState.playerParty[2]?.id));
+            // W, E, R: Select Player Units (skip dead units)
+            const selectAliveUnit = (index: number) => {
+                const unit = battleState.playerParty[index];
+                if (unit && unit.currentHp > 0) dispatch(selectSource(unit.id));
+            };
+            if (e.key.toLowerCase() === 'w') selectAliveUnit(0);
+            if (e.key.toLowerCase() === 'e') selectAliveUnit(1);
+            if (e.key.toLowerCase() === 'r') selectAliveUnit(2);
 
             // Space: End Turn
             if (e.key === ' ') {
@@ -151,14 +229,16 @@ const BattleArena: React.FC = () => {
 
         const handleWheel = (e: WheelEvent) => {
             if (!battleState || battleState.activeSide !== 'PLAYER' || !selectedSourceId) return;
-            const currentIndex = battleState.playerParty.findIndex(p => p.id === selectedSourceId);
+            const aliveParty = battleState.playerParty.filter(p => p.currentHp > 0);
+            if (aliveParty.length === 0) return;
+            const currentIndex = aliveParty.findIndex(p => p.id === selectedSourceId);
             if (currentIndex === -1) return;
 
             let nextIndex = currentIndex + (e.deltaY > 0 ? 1 : -1);
-            if (nextIndex < 0) nextIndex = battleState.playerParty.length - 1;
-            if (nextIndex >= battleState.playerParty.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = aliveParty.length - 1;
+            if (nextIndex >= aliveParty.length) nextIndex = 0;
 
-            dispatch(selectSource(battleState.playerParty[nextIndex].id));
+            dispatch(selectSource(aliveParty[nextIndex].id));
         };
 
         window.addEventListener('keydown', handleKeyDown);
@@ -181,8 +261,8 @@ const BattleArena: React.FC = () => {
     // Enemy AI Turn Automation
     useEffect(() => {
         if (!battleState || battleState.activeSide !== 'ENEMY') {
-            if (prevSideRef.current !== battleState?.activeSide) {
-                prevSideRef.current = battleState?.activeSide;
+            if (aiPrevSideRef.current !== battleState?.activeSide) {
+                aiPrevSideRef.current = battleState?.activeSide;
             }
             return;
         }
@@ -196,7 +276,7 @@ const BattleArena: React.FC = () => {
 
         const runAI = async () => {
             // Wait for turn banner if this is the start of the enemy turn
-            if (prevSideRef.current !== 'ENEMY') {
+            if (aiPrevSideRef.current !== 'ENEMY') {
                 await new Promise(r => setTimeout(r, 1200));
             } else {
                 // Delay between actions
@@ -204,13 +284,16 @@ const BattleArena: React.FC = () => {
             }
 
             if (cancelled) return;
-            prevSideRef.current = 'ENEMY';
+            aiPrevSideRef.current = 'ENEMY';
 
             const action = getBestAction(battleState);
 
             if (action.type === 'PLAY_PROGRAM') {
                 dispatch(playProgram(action.payload));
             } else if (action.type === 'EXECUTE_INTENT') {
+                // EXECUTE_INTENT emits no PROGRAM_PLAYED event, so nudge the
+                // attacker's lunge from here (purely visual, no reducer delay).
+                triggerLunge(action.payload.sourceId);
                 dispatch(executeIntent(action.payload));
             } else if (action.type === 'END_TURN') {
                 dispatch(endTurn());
@@ -220,7 +303,7 @@ const BattleArena: React.FC = () => {
         runAI();
 
         return () => { cancelled = true; };
-    }, [battleState, dispatch]);
+    }, [battleState, dispatch, triggerLunge]);
 
     const handlePlay = (cardId: string, targetId: string) => {
         if (!battleState || !selectedSourceId) return;
@@ -235,17 +318,20 @@ const BattleArena: React.FC = () => {
         dispatch(selectCard(null));
         setDragPoint(null);
         setOriginPoint(null);
+        setIsTargeting(false);
     };
 
     const isVictory = battleState?.enemyParty.every(e => e.currentHp <= 0) ?? false;
-    const isDefeat = battleState?.playerParty.every(p => p.currentHp <= 0) ?? false;
+    // Victory takes precedence: if both sides fall in the same resolution, count it as a win
+    // so the defeat overlay never renders and the save is never wiped.
+    const isDefeat = !isVictory && (battleState?.playerParty.every(p => p.currentHp <= 0) ?? false);
 
-    // Epic 3.5: Wipe save on defeat
+    // Epic 3.5: Wipe save on defeat (never on victory)
     useEffect(() => {
-        if (isDefeat) {
+        if (isDefeat && !isVictory) {
             deleteSave();
         }
-    }, [isDefeat]);
+    }, [isDefeat, isVictory]);
 
     const rosterSize = useSelector((state: RootState) => state.game.roster.length);
 
@@ -264,6 +350,22 @@ const BattleArena: React.FC = () => {
                     const { shuffled } = prng.shuffle(available);
                     bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
                 }
+
+                // GYM CLEAR: the single pick-1-of-3 upgrades into a 3-round
+                // sequential mini-draft weighted toward the gym's element.
+                // cardChoices are replaced (not stacked) — scrap/blueprints
+                // and everything else the bundle grants stay unchanged.
+                if (save.gauntlet.type === 'Gym') {
+                    bundle = {
+                        ...bundle,
+                        cardChoices: [],
+                        draftRounds: rollDraftRounds(
+                            `${battleState.seed}-gym-draft`,
+                            save.gauntlet.element as Element,
+                            3
+                        )
+                    };
+                }
             }
 
             setRewardBundle(bundle);
@@ -281,16 +383,11 @@ const BattleArena: React.FC = () => {
             dispatch(syncPartyStats(battleState.playerParty));
 
             if (save.gauntlet) {
-                const persistedStats: Record<string, { hp: number, energy: number }> = {};
+                const persistedStats: Record<string, { hp: number }> = {};
                 battleState.playerParty.forEach(p => {
-                    persistedStats[p.id] = { hp: p.currentHp, energy: p.currentEnergy };
+                    persistedStats[p.id] = { hp: p.currentHp };
                 });
                 dispatch(updateGauntlet({ persistedStats }));
-
-                // Auto-complete if finished
-                if (save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
-                    dispatch(completeGauntlet());
-                }
             }
         }
         if (rewardBundle) {
@@ -303,7 +400,21 @@ const BattleArena: React.FC = () => {
                 dispatch(addRelic(chosenRelic));
             }
         }
-        dispatch(setBattleState(null as any));
+
+        if (save.gauntlet) {
+            if (save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
+                dispatch(completeGauntlet());
+                dispatch(setBattleState(null as any));
+            } else {
+                const updatedSave = (store.getState() as RootState).game;
+                dispatch(startBattle({ save: updatedSave, enemyIds: [] }));
+
+                setRewardBundle(null);
+                setShowReport(false);
+            }
+        } else {
+            dispatch(setBattleState(null as any));
+        }
     };
 
     if (!battleState) return <div className="battle-screen">Loading Battle...</div>;
@@ -334,9 +445,13 @@ const BattleArena: React.FC = () => {
                     <motion.div
                         key={entityKey}
                         initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
-                        animate={{ opacity: isDead ? 0.35 : 1, x: translateX }}
+                        animate={{ opacity: isDead ? 0.55 : 1, x: translateX, scale: isDead ? 0.96 : 1 }}
                         transition={{ delay: index * 0.1, type: 'spring' }}
-                        style={{ pointerEvents: isDead ? 'none' : 'auto' }}
+                        // Pointer events must stay 'auto' even for dead units,
+                        // so they can correctly receive the 'onPointerUp' to clear targeting state.
+                        // Desaturation of dead units lives on .hud-dead (inside the card),
+                        // so the TERMINATED stamp keeps its neon red.
+                        style={{ pointerEvents: 'auto' }}
                         onMouseEnter={() => {
                             if (isTargeting) setHoveredEntityId(entity.id);
                         }}
@@ -368,8 +483,10 @@ const BattleArena: React.FC = () => {
                             isEnemy={isEnemy}
                             isSelected={isSelected}
                             isTargeted={isTargeted}
+                            fx={vfx.unitFx[entity.id]}
                             battleState={battleState}
                             selectedCardId={selectedCardId}
+                            selectedSourceId={selectedSourceId}
                             isHoveredTarget={hoveredEntityId === entity.id}
                             onClick={() => {
                                 if (isDead) return;
@@ -419,28 +536,32 @@ const BattleArena: React.FC = () => {
             }}
         >
             <AnimatePresence>
-                {showTurnBanner && <TurnBanner side={battleState.activeSide} />}
+                {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
                 {isVictory && !showReport && (
                     <WinLossOverlay
+                        key="win-overlay"
                         result="WIN"
                         onShowReport={() => setShowReport(true)}
                     />
                 )}
                 {isDefeat && (
                     <WinLossOverlay
+                        key="loss-overlay"
                         result="LOSS"
                         onDefeatReset={handleDefeatReset}
                     />
                 )}
                 {isVictory && showReport && rewardBundle && (
                     <BattleReport
+                        key="battle-report"
                         bundle={rewardBundle}
                         winners={battleState.playerParty as any}
                         onContinue={handleContinue}
                     />
                 )}
-                {battleState.levelUpQueue.length > 0 && (
+                {battleState.levelUpQueue.length > 0 && levelUpRevealed && (
                     <LevelUpOverlay
+                        key={`level-up-${battleState.levelUpQueue[0].entityId}-${battleState.levelUpQueue[0].newLevel}`}
                         event={battleState.levelUpQueue[0]}
                         onDismiss={() => dispatch(dismissLevelUp())}
                     />
@@ -465,12 +586,11 @@ const BattleArena: React.FC = () => {
                 </svg>
             )}
 
-            {/* Stage: Top 70% */}
+            {/* Stage: Top 70% (controls: fade-in on mount + big-hit shake) */}
             <motion.div
                 className="stage-area"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
+                animate={stageControls}
             >
                 {renderParty(battleState.playerParty, false)}
 

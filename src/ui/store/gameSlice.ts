@@ -11,6 +11,7 @@ import type {
 import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 
 const initialState: IPlayerSave = createDefaultSave();
 
@@ -21,6 +22,18 @@ const gameSlice = createSlice({
         // --- Roster ---
         addToRoster: (state, action: PayloadAction<IMingmingState>) => {
             (state.roster as IMingmingState[]).push(action.payload);
+
+            // First-time synthesis of a species grants its base deck kit
+            const definition = MingmingRegistry[action.payload.definitionId];
+            if (definition && !state.baseDecksGranted.includes(definition.id)) {
+                for (const dataId of definition.baseDeck) {
+                    (state.cardInventory as IOwnedProgram[]).push({
+                        instanceId: crypto.randomUUID(),
+                        dataId
+                    });
+                }
+                (state.baseDecksGranted as string[]).push(definition.id);
+            }
         },
         removeFromRoster: (state, action: PayloadAction<string>) => {
             const id = action.payload;
@@ -76,6 +89,25 @@ const gameSlice = createSlice({
                 ...state.activeDeck,
                 cards: [...state.activeDeck.cards, action.payload]
             };
+        },
+        addCardsToDeck: (state, action: PayloadAction<string[]>) => {
+            // Mirror DeckTerminal's auto-create behavior when no deck exists yet
+            if (!state.activeDeck) {
+                state.activeDeck = { id: crypto.randomUUID(), name: 'Main Deck', cards: [] } as any;
+            }
+            const inventoryIds = new Set(state.cardInventory.map(c => c.instanceId));
+            const cards = [...state.activeDeck!.cards];
+            for (const instanceId of action.payload) {
+                if (cards.length >= DECK_SIZE) break;
+                if (!inventoryIds.has(instanceId)) continue;
+                if (cards.includes(instanceId)) continue;
+                cards.push(instanceId);
+            }
+            state.activeDeck = { ...state.activeDeck!, cards };
+        },
+        clearDeck: (state) => {
+            if (!state.activeDeck) return;
+            state.activeDeck = { ...state.activeDeck, cards: [] };
         },
         removeCardFromDeck: (state, action: PayloadAction<string>) => {
             if (!state.activeDeck) return;
@@ -135,23 +167,10 @@ const gameSlice = createSlice({
                 (state.cardInventory as IOwnedProgram[]).push(card);
             }
 
-            // XP Distribution
-            if (bundle.totalXP > 0 && state.activeParty.length > 0) {
-                const xpPerMember = Math.floor(bundle.totalXP / state.activeParty.length);
-                state.roster = state.roster.map(member => {
-                    if (state.activeParty.includes(member.id)) {
-                        return {
-                            ...member,
-                            experience: member.experience + xpPerMember
-                            // Note: Leveling logic should ideally happen here or be handled by a selector/observer
-                            // but for now we'll just add XP and let the sync/engine handle the rest if needed.
-                        };
-                    }
-                    return member;
-                });
-            }
+            // NOTE: The reward bundle intentionally grants NO XP. Roster XP comes
+            // exclusively from the in-battle death-XP system, persisted via syncPartyStats.
         },
-        updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number, energy: number }> }>) => {
+        updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number }> }>) => {
             if (state.gauntlet) {
                 state.gauntlet = {
                     ...state.gauntlet,
@@ -227,6 +246,8 @@ export const {
     removeCardFromInventory,
     setActiveDeck,
     addCardToDeck,
+    addCardsToDeck,
+    clearDeck,
     removeCardFromDeck,
     addScrap,
     spendScrap,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
@@ -6,8 +6,11 @@ import { selectCard, playProgram, endTurn } from '../store/battleSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
 import type { IBattleState } from '../../engine/types';
-import { validateSingleConstraint } from '../../engine/battleReducer';
+import { validateSingleConstraint, getEffectiveCardCost } from '../../engine/battleReducer';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
+import CardKeywordChips from './CardKeywordChips';
+import ElementMatchupHover from './ElementMatchupTooltip';
+import { getElementAccent } from '../utils/contrastText';
 
 // Helper to format an action for display
 const formatAction = (action: any): string => {
@@ -62,6 +65,9 @@ const CardHand: React.FC<{
     const drawPileCount = battleState?.playerDeck.drawpile.length || 0;
     const discardPileCount = battleState?.playerDeck.discard.length || 0;
     const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+    // Tracks whether the pointerdown that precedes a click just selected this card,
+    // so the click handler doesn't immediately toggle the selection back off.
+    const justSelectedRef = useRef(false);
 
     return (
         <div className="hand-container">
@@ -77,10 +83,22 @@ const CardHand: React.FC<{
                         const arcDip = Math.abs(centerOffset) * 12;
 
                         const source = playerParty.find(u => u.id === selectedSourceId);
+                        // The cost the selected unit would ACTUALLY pay — includes primed
+                        // discounts like Gullinbursti's UNSTOPPABLE_MASS (nextProgramModifier).
+                        const effectiveCost = source ? getEffectiveCardCost(source, data, card.currentCost) : card.currentCost;
+                        const isDiscounted = effectiveCost < card.currentCost;
                         const constraints = (data.constraints || [])
-                            .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }))
+                            .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: effectiveCost }))
                             .map(formatConstraint);
-                        const isUnplayable = !selectedSourceId || constraints.length > 0;
+                        const isUnplayable = !source || source.currentHp <= 0 || constraints.length > 0;
+
+                        // ×1.5 STAB signal: the selected source's primary/secondary element
+                        // matches this card's element. None is excluded — every unit carries a
+                        // 'None' secondary, so it is not a differential signal. Absence of glow
+                        // is the signal for unmatched cards (never dimmed).
+                        const isStabMatch = !!source && data.element !== 'None' &&
+                            (source.primaryElement === data.element || source.secondaryElement === data.element);
+                        const stabAccent = isStabMatch ? getElementAccent(data.element) : null;
 
                         // Damage Preview on Card logic
                         let cardPreviewDamage = 0;
@@ -97,16 +115,25 @@ const CardHand: React.FC<{
                                 key={card.id}
                                 initial={{ opacity: 0, y: 40, scale: 0.9 }}
                                 animate={{
-                                    opacity: isUnplayable ? 0.45 : 1,
+                                    opacity: isUnplayable ? 0.6 : 1,
                                     y: isSelected ? -30 : (isHovered ? -30 : arcDip),
                                     scale: isSelected ? 1.08 : (isHovered ? 1.05 : 1),
                                     rotate: isSelected ? 0 : (isHovered ? 0 : rotation),
                                 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.2 }}
-                                className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''}`}
-                                onClick={() => dispatch(selectCard(isSelected ? null : card.id))}
+                                className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
+                                onClick={() => {
+                                    // If the preceding pointerdown just selected this card,
+                                    // skip the toggle so a single click leaves it selected.
+                                    if (justSelectedRef.current) {
+                                        justSelectedRef.current = false;
+                                        return;
+                                    }
+                                    dispatch(selectCard(isSelected ? null : card.id));
+                                }}
                                 onPointerDown={(e) => {
+                                    justSelectedRef.current = !isSelected;
                                     dispatch(selectCard(card.id));
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     onTargetingStart?.({
@@ -122,16 +149,36 @@ const CardHand: React.FC<{
                                     transformOrigin: 'center bottom',
                                     zIndex: isSelected ? 100 : (isHovered ? 99 : index),
                                     filter: isUnplayable ? 'grayscale(0.6)' : 'none',
+                                    ...(stabAccent ? {
+                                        '--stab-color': stabAccent,
+                                        '--stab-glow': `${stabAccent}88`
+                                    } as React.CSSProperties : {}),
                                 }}
                             >
                                 {/* Cost badge */}
-                                <div className="card-cost">{card.currentCost}</div>
+                                <div
+                                    className={`card-cost ${isDiscounted ? 'card-cost-discounted' : ''}`}
+                                    title={isDiscounted ? `Discounted from ${card.currentCost} (primed effect)` : undefined}
+                                >
+                                    {effectiveCost}
+                                    {isDiscounted && <span className="card-cost-original">{card.currentCost}</span>}
+                                </div>
+                                {isStabMatch && source && (
+                                    <div
+                                        className="card-stab-pip"
+                                        title={`${data.element} matches ${source.name} — ×1.5 STAB`}
+                                    >
+                                        ×1.5
+                                    </div>
+                                )}
 
                                 {/* Header: element + name */}
                                 <div className="card-header">
-                                    <span className={`element-badge ${data.element.toLowerCase()}`}>
-                                        {data.element[0]}
-                                    </span>
+                                    <ElementMatchupHover element={data.element}>
+                                        <span className={`element-badge ${data.element.toLowerCase()}`}>
+                                            {data.element[0]}
+                                        </span>
+                                    </ElementMatchupHover>
                                     <div className="card-name">{data.name}</div>
                                 </div>
 
@@ -148,6 +195,9 @@ const CardHand: React.FC<{
                                         </motion.div>
                                     )}
                                 </div>
+
+                                {/* Keyword + applied-status chips */}
+                                <CardKeywordChips data={data} />
 
                                 {/* Target type */}
                                 <div className="card-target">{data.target}</div>

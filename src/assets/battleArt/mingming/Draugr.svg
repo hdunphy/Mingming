@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-draugr" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00ffff" stop-opacity="0.32"/>
+      <stop offset="65%" stop-color="#00ffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#00ffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#00ffff" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-draugr)"/>
+  <g fill="#060810" stroke="#00ffff" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- hooded cloak with tattered hem -->
+    <path d="M100 26 Q68 42 60 84 Q54 122 48 172 L64 158 L78 174 L94 160 L108 174 L122 158 L136 174 L152 172 Q146 122 140 84 Q132 42 100 26 Z"/>
+    <!-- hood shadow / face void -->
+    <ellipse cx="100" cy="80" rx="19" ry="24" fill="#01020a" stroke-opacity="0.55"/>
+    <!-- skeletal hand emerging -->
+    <path d="M100 122 Q116 120 128 126" fill="none" stroke-width="4"/>
+    <path d="M126 122 L134 118 M128 126 L138 126 M126 130 L134 134" fill="none" stroke-width="2"/>
+    <!-- frost wisps at the hem -->
+    <path d="M56 178 Q64 172 72 178" fill="none" stroke-width="2" stroke-opacity="0.5"/>
+    <path d="M118 180 Q128 174 138 180" fill="none" stroke-width="2" stroke-opacity="0.5"/>
+  </g>
+  <circle cx="92" cy="78" r="3" fill="#00ffff"/>
+  <circle cx="108" cy="78" r="3" fill="#00ffff"/>
+</svg>

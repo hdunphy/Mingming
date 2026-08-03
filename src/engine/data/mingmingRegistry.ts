@@ -14,6 +14,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fenrir_v1", "fenrir_v2"],
+        baseDeck: ["fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "glass_cannon", "ignite", "ignite", "scorch", "ash_reclamation", "reckless_charge"],
         moves: [
             {
                 id: 'fenrir_bite',
@@ -52,6 +53,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["kraken_v1", "kraken_v2"],
+        baseDeck: ["water_slap", "water_slap", "whirlpool_v2", "whirlpool_v2", "pressure_point", "surge_protection", "blind_spot", "blind_spot", "ink_cloud", "scavenge_data"],
         moves: [
             {
                 id: 'kraken_tentacle',
@@ -97,7 +99,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fafnir_v1", "fafnir_v2"],
-        artReference: "Fafnir.png"
+        baseDeck: ["boulder_smash", "boulder_smash", "spike_launch", "spike_launch", "stone_fist", "shield_shards", "shield_shards", "stone_bark", "spiked_carapace", "keen_edge"],
+        moves: [
+            {
+                id: 'fafnir_smash',
+                name: 'Golden Smash',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 18, element: 'Earth', target: 'Single' }]
+            },
+            {
+                id: 'fafnir_glare',
+                name: 'Greed Glare',
+                intentType: 'Debuff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Weakened', stacks: 2, target: 'Single' }]
+            }
+        ],
+        artReference: "Fafnir.svg"
     },
     "skoll": {
         id: "skoll",
@@ -112,7 +131,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["skoll_v1", "skoll_v2"],
-        artReference: "Skoll.png"
+        baseDeck: ["fury_strike", "fury_strike", "fury_strike", "fire_punch_v2", "fire_punch_v2", "overdrive", "reckless_charge", "reckless_charge", "strength_burst", "all_in"],
+        moves: [
+            {
+                id: 'skoll_bite',
+                name: 'Sun Chaser Bite',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 16, element: 'Fire', target: 'Single' }]
+            },
+            {
+                id: 'skoll_howl',
+                name: 'Solar Flare',
+                intentType: 'Attack',
+                priority: 7,
+                actions: [{ type: 'ATTACK', power: 12, element: 'Fire', target: 'Side' }]
+            }
+        ],
+        artReference: "Skoll.svg"
     },
     "jormungandr": {
         id: "jormungandr",
@@ -127,7 +163,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
-        artReference: "Jormungandr.png"
+        baseDeck: ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "poison_injection", "poison_injection", "toxic_surge", "toxic_surge", "corrosive_leak", "capacitor"],
+        moves: [
+            {
+                id: 'jorm_constrict',
+                name: 'Abyssal Constrict',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 14, element: 'Water', target: 'Single' }, { type: 'STATUS', status: 'Stunned', stacks: 1, target: 'Single' }]
+            },
+            {
+                id: 'jorm_venom',
+                name: 'World-Drowning Venom',
+                intentType: 'Debuff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Poison', stacks: 5, target: 'Single' }]
+            }
+        ],
+        artReference: "Jormungandr.svg"
     },
     "gullinbursti": {
         id: "gullinbursti",
@@ -142,7 +195,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["gullinbursti_v1", "gullinbursti_v2"],
-        artReference: "Gullinbursti.png"
+        baseDeck: ["rock_throw", "rock_throw", "stone_fist", "stone_fist", "tremor", "shield_shards", "keen_edge", "keen_edge", "stone_bark", "stone_bark"],
+        moves: [
+            {
+                id: 'gullin_charge',
+                name: 'Golden Charge',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 20, element: 'Earth', target: 'Single' }]
+            },
+            {
+                id: 'gullin_glow',
+                name: 'Radiant Bristles',
+                intentType: 'Buff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Sharp', stacks: 2, target: 'Self' }]
+            }
+        ],
+        artReference: "Gullinbursti.svg"
     },
     "hraesvelgr": {
         id: "hraesvelgr",
@@ -157,7 +227,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hraesvelgr_v1", "hraesvelgr_v2"],
-        artReference: "Hraesvelgr.png"
+        baseDeck: ["gale_slash", "gale_slash", "cyclone", "cyclone", "gust_jab", "disorienting_gust", "disorienting_gust", "tailwind", "slipstream", "sky_dance"],
+        moves: [
+            {
+                id: 'hraes_flap',
+                name: 'Corpse-Swallowing Gust',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 12, element: 'Air', target: 'Side' }]
+            },
+            {
+                id: 'hraes_dive',
+                name: 'Gale Dive',
+                intentType: 'Attack',
+                priority: 8,
+                actions: [{ type: 'ATTACK', power: 22, element: 'Air', target: 'Single' }]
+            }
+        ],
+        artReference: "Hraesvelgr.svg"
     },
     "sleipnir": {
         id: "sleipnir",
@@ -172,7 +259,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["sleipnir_v1", "sleipnir_v2"],
-        artReference: "Sleipnir.png"
+        baseDeck: ["gust_jab", "gust_jab", "zephyr_strike", "zephyr_strike", "dust_devil", "dust_devil", "slipstream", "slipstream", "tailwind", "disorienting_gust"],
+        moves: [
+            {
+                id: 'sleipnir_kick',
+                name: 'Eight-Legged Strike',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 8, element: 'Air', target: 'Single' }, { type: 'ATTACK', power: 8, element: 'Air', target: 'Single' }]
+            },
+            {
+                id: 'sleipnir_gallop',
+                name: 'Wind Gallop',
+                intentType: 'Buff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Energized', stacks: 2, target: 'Self' }]
+            }
+        ],
+        artReference: "Sleipnir.svg"
     },
     "ratatoskr": {
         id: "ratatoskr",
@@ -187,6 +291,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
+        baseDeck: ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "thistle_barrage", "pollen_cloud", "photosynthesis_v2", "photosynthesis_v2", "healing_mist", "soothe"],
         moves: [
             {
                 id: 'rata_nut',
@@ -225,7 +330,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["huldra_v1", "huldra_v2"],
-        artReference: "Huldra.png"
+        baseDeck: ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"],
+        moves: [
+            {
+                id: 'huld_charm',
+                name: 'Siren Song',
+                intentType: 'Debuff',
+                priority: 10,
+                actions: [{ type: 'STATUS', status: 'Asleep', stacks: 1, target: 'Single' }]
+            },
+            {
+                id: 'huld_slash',
+                name: 'Toxic Root',
+                intentType: 'Attack',
+                priority: 8,
+                actions: [{ type: 'ATTACK', power: 15, element: 'Nature', target: 'Single' }, { type: 'STATUS', status: 'Poison', stacks: 2, target: 'Single' }]
+            }
+        ],
+        artReference: "Huldra.svg"
     },
     "ymir": {
         id: "ymir",
@@ -240,7 +362,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 2,
         availableOS: ["ymir_v1", "ymir_v2"],
-        artReference: "Ymir.png"
+        baseDeck: ["ice_spear", "ice_spear", "shatter", "shatter", "glacial_slam", "flash_freeze", "flash_freeze", "cold_snap", "glacier_wall", "glacier_wall"],
+        moves: [
+            {
+                id: 'ymir_smash',
+                name: 'Glacial Crush',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 25, element: 'Ice', target: 'Single' }]
+            },
+            {
+                id: 'ymir_freeze',
+                name: 'Absolute Zero',
+                intentType: 'Debuff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Stunned', stacks: 1, target: 'Side' }]
+            }
+        ],
+        artReference: "Ymir.svg"
     },
     "draugr": {
         id: "draugr",
@@ -255,7 +394,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["draugr_v1", "draugr_v2"],
-        artReference: "Draugr.png"
+        baseDeck: ["frost_jab", "frost_jab", "ice_spear", "ice_spear", "shatter", "cold_snap", "cold_snap", "hoarfrost", "winters_grasp", "glacier_wall"],
+        moves: [
+            {
+                id: 'draugr_slash',
+                name: 'Spectral Blade',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 18, element: 'Ice', target: 'Single' }]
+            },
+            {
+                id: 'draugr_chill',
+                name: 'Grave Chill',
+                intentType: 'Debuff',
+                priority: 6,
+                actions: [{ type: 'STATUS', status: 'Weakened', stacks: 2, target: 'Single' }]
+            }
+        ],
+        artReference: "Draugr.svg"
     },
     "valkyrie": {
         id: "valkyrie",
@@ -270,7 +426,38 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["valkyrie_v1", "valkyrie_v2"],
-        artReference: "Valkyrie.png"
+        baseDeck: ["radiant_spark", "radiant_spark", "smite", "smite", "smite", "lumen_surge", "lumen_surge", "scry", "healing_light", "aegis"],
+        moves: [
+            {
+                id: 'valkyrie_smite',
+                name: 'Radiant Smite',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 14, element: 'Light', target: 'Single' }]
+            },
+            {
+                id: 'valkyrie_mark',
+                name: 'Death Mark',
+                intentType: 'Debuff',
+                priority: 6,
+                actions: [{ type: 'STATUS', status: 'Dazed', stacks: 2, target: 'Single' }]
+            },
+            {
+                id: 'valkyrie_trance',
+                name: 'Battle Trance',
+                intentType: 'Buff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Strengthened', stacks: 1, target: 'Self' }, { type: 'STATUS', status: 'Sharp', stacks: 1, target: 'Self' }]
+            },
+            {
+                id: 'valkyrie_spear',
+                name: 'Spear of Dawn',
+                intentType: 'Attack',
+                priority: 8,
+                actions: [{ type: 'ATTACK', power: 20, element: 'Light', target: 'Single' }]
+            }
+        ],
+        artReference: "Valkyrie.svg"
     },
     "audhumbla": {
         id: "audhumbla",
@@ -285,7 +472,38 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["audhumbla_v1", "audhumbla_v2"],
-        artReference: "Audhumbla.png"
+        baseDeck: ["radiant_spark", "radiant_spark", "smite", "smite", "healing_light", "healing_light", "purify", "uplift", "uplift", "lumen_surge"],
+        moves: [
+            {
+                id: 'audhumbla_lick',
+                name: 'Mending Lick',
+                intentType: 'Buff',
+                priority: 10,
+                actions: [{ type: 'HEAL', power: 15, target: 'Single' }]
+            },
+            {
+                id: 'audhumbla_milk',
+                name: 'Primordial Milk',
+                intentType: 'Buff',
+                priority: 6,
+                actions: [{ type: 'HEAL', power: 10, target: 'Side' }, { type: 'STATUS', status: 'Regen', stacks: 1, target: 'Side' }]
+            },
+            {
+                id: 'audhumbla_bolster',
+                name: 'Stalwart Aegis',
+                intentType: 'Buff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Energized', stacks: 1, target: 'Side' }, { type: 'STATUS', status: 'StableOS', stacks: 1, target: 'Self' }]
+            },
+            {
+                id: 'audhumbla_slam',
+                name: 'Horn Toss',
+                intentType: 'Attack',
+                priority: 4,
+                actions: [{ type: 'ATTACK', power: 12, element: 'None', target: 'Single' }]
+            }
+        ],
+        artReference: "Audhumbla.svg"
     },
     "hel": {
         id: "hel",
@@ -300,7 +518,31 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hel_v1", "hel_v2"],
-        artReference: "Hel.png"
+        baseDeck: ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "nightfall_edge", "dawns_respite", "umbral_feast", "dark_pact"],
+        moves: [
+            {
+                id: 'hel_touch',
+                name: 'Cold Embrace',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 12, element: 'Dark', target: 'Single' }]
+            },
+            {
+                id: 'hel_grasp',
+                name: 'Grasp of Helheim',
+                intentType: 'Attack',
+                priority: 8,
+                actions: [{ type: 'ATTACK', power: 22, element: 'Dark', target: 'Single' }, { type: 'ATTACK', power: 6, element: 'None', target: 'Self' }] // Recoil to host
+            },
+            {
+                id: 'hel_reaping',
+                name: 'Soul Reaping',
+                intentType: 'Attack',
+                priority: 6,
+                actions: [{ type: 'ATTACK', power: 18, element: 'Dark', target: 'Single' }, { type: 'STATUS', status: 'Weakened', stacks: 1, target: 'Self' }] // Self-debuff cost
+            }
+        ],
+        artReference: "Hel.svg"
     },
     "nidhoggr": {
         id: "nidhoggr",
@@ -315,7 +557,42 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["nidhoggr_v1", "nidhoggr_v2"],
-        artReference: "Nidhoggr.png"
+        baseDeck: ["shadow_claw", "shadow_claw", "night_terror", "night_terror", "leech_strike", "venom_shade", "venom_shade", "creeping_dread", "curse_mark", "umbral_feast"],
+        moves: [
+            {
+                id: 'nidhoggr_gnaw',
+                name: 'Root Gnaw',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 14, element: 'Dark', target: 'Single' }, { type: 'STATUS', status: 'Poison', stacks: 3, target: 'Single' }]
+            },
+            {
+                id: 'nidhoggr_feast',
+                name: 'Feast of Malice',
+                intentType: 'Attack',
+                priority: 7,
+                actions: [
+                    { type: 'ATTACK', power: 12, element: 'Dark', target: 'Single' },
+                    // Bonus hit that only lands on poisoned targets (per-hit conditional)
+                    { type: 'ATTACK', power: 10, element: 'Dark', target: 'Single', conditionals: [{ type: 'HAS_STATUS', target: 'TARGET', value: 'Poison' }] }
+                ]
+            },
+            {
+                id: 'nidhoggr_venom',
+                name: 'Corpse Venom',
+                intentType: 'Debuff',
+                priority: 6,
+                actions: [{ type: 'STATUS', status: 'Poison', stacks: 3, target: 'Side' }]
+            },
+            {
+                id: 'nidhoggr_dread',
+                name: 'Creeping Dread',
+                intentType: 'Debuff',
+                priority: 5,
+                actions: [{ type: 'STATUS', status: 'Weakened', stacks: 2, target: 'Single' }, { type: 'STATUS', status: 'Dazed', stacks: 1, target: 'Single' }]
+            }
+        ],
+        artReference: "Nidhoggr.svg"
     }
 }
 
@@ -339,6 +616,7 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
             secondaryElement: 'None',
             cardDraw: 1,
             availableOS: [],
+            baseDeck: [],
             artReference: ''
         };
     }

@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, StatusType } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -7,6 +7,7 @@ import { applyMutations, executeDraw, executeStatusDamageCalculated } from '../r
 import { GetProgramData } from '../data/programRegistry';
 import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
+import { PRNG } from '../core/PRNG';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -33,7 +34,18 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         let damage = 0;
         if (source) {
             const programToUse = program || ({ element: element } as ProgramData);
-            damage = calculateDamage(source, target, programToUse, power, state);
+
+            // SHARP_STACKS scaling boosts the POWER fed into the damage formula
+            // (+5 power per Sharp stack on the attacker), so the bonus scales
+            // with level/stats like any other power and survives resistances.
+            // Previously this key was silently unhandled — spike_launch never scaled.
+            let effectivePower = power;
+            if (scaling === 'SHARP_STACKS') {
+                const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
+                effectivePower = power + 5 * sharpStacks;
+            }
+
+            damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
             if (scaling === 'CARDS_PLAYED') {
                 const multiplier = state.cardsPlayedThisTurn;
@@ -46,6 +58,10 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
                 damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
             } else if (scaling === 'CARDS_DRAWN') {
                 const multiplier = state.cardsDrawnThisTurn;
+                damage = Math.floor(damage * multiplier);
+            } else if (scaling === 'ELEMENT_PLAYED') {
+                const elementPlayed = element || programToUse.element;
+                const multiplier = state.elementPlays?.[elementPlayed] || 1;
                 damage = Math.floor(damage * multiplier);
             }
         }
@@ -68,29 +84,51 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
         const { status, stacks, consume } = actionData;
 
         if (consume) {
+            // Remove ALL stacks of the status and record how many were consumed
+            // so a follow-up action with scaling: 'STATUS_CONSUMED' can use it
+            // (e.g. Ash Reclamation: "Consume Burn to heal 10 HP per stack").
             const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
             const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
             if (!target) return state;
 
             const existingStatus = target.statusEffects.find(s => s.type === status);
-            if (existingStatus) {
-                return applyMutations(state, [{
-                    type: 'STATUS',
+            const consumedStacks = existingStatus ? existingStatus.stacks : 0;
+
+            let newState: IBattleState = { ...state, lastStatusConsumed: consumedStacks };
+            if (consumedStacks > 0) {
+                const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+                    party.map(e => {
+                        if (e.id !== targetId) return e;
+                        return { ...e, statusEffects: e.statusEffects.filter(s => s.type !== status) };
+                    });
+                newState = {
+                    ...newState,
+                    playerParty: updateParty(newState.playerParty),
+                    enemyParty: updateParty(newState.enemyParty)
+                };
+                newState = addLog(newState, `  🔥 ${target.name}'s ${status} consumed (${consumedStacks} stacks)`);
+                globalBattleEventBus.emit({
+                    type: 'STATUS_REMOVED',
                     targetId: targetId,
-                    sourceId: sourceId,
-                    payload: { status, stacks: -existingStatus.stacks }
-                }]);
+                    status: status,
+                    timestamp: Date.now()
+                });
             }
-            return state;
+            return newState;
         }
 
         if (stacks < 0) {
+            // Contract (types.ts): negative stacks removes that many stacks,
+            // deleting the status only when it reaches 0.
+            const removeCount = -stacks;
             const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                 party.map(e => {
                     if (e.id !== targetId) return e;
                     return {
                         ...e,
-                        statusEffects: e.statusEffects.filter(s => s.type !== status)
+                        statusEffects: e.statusEffects
+                            .map(s => s.type === status ? { ...s, stacks: s.stacks - removeCount } : s)
+                            .filter(s => !(s.type === status && s.stacks <= 0))
                     };
                 });
             let newState: IBattleState = {
@@ -98,9 +136,8 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
                 playerParty: updateParty(state.playerParty),
                 enemyParty: updateParty(state.enemyParty)
             };
-            newState = addLog(newState, `  ✨ ${status} removed from target`);
-            //TODO: yes lets use applyMutations here
-            return newState; // Or you could use applyMutations with stacks: -stacks here, but this is the existing simple logic
+            newState = addLog(newState, `  ✨ ${removeCount} stack(s) of ${status} removed from target`);
+            return newState;
         }
 
         // Apply Status Logic
@@ -123,7 +160,19 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
         if (!target) return state;
         if (!source && healOverride === undefined) return state;
 
-        const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+        // Stance system: Light Stance boosts the healer's heals by +50%.
+        // Power-based heals get the boost inside calculateHeal; healOverride-based
+        // heals (e.g. Leech Strike, Ash Reclamation) are boosted here so BOTH
+        // pipelines respect the stance without double-applying.
+        const lightStanceBoost = source?.statusEffects.some(s => s.type === 'LightStance') ? 1.5 : 1;
+        const baseHeal = healOverride !== undefined
+            ? Math.floor(healOverride * lightStanceBoost)
+            : calculateHeal(source as any, target, power);
+        // STATUS_CONSUMED scaling: heal per stack removed by a preceding
+        // consume action in the same card (e.g. Ash Reclamation).
+        const healAmount = actionData.scaling === 'STATUS_CONSUMED'
+            ? baseHeal * (state.lastStatusConsumed ?? 0)
+            : baseHeal;
 
         return applyMutations(state, [{
             type: 'HP',
@@ -186,12 +235,49 @@ export class CleanseExecutor extends ActionExecutor<CleanseActionData> {
 export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: DiscardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { amount, isRandom } = actionData;
-        return applyMutations(state, [{
+        const isPlayerTarget = state.playerParty.some(e => e.id === targetId);
+        const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+
+        const oldDiscardLength = state[deckKey].discard.length;
+
+        let newState = applyMutations(state, [{
             type: 'DISCARD',
             sourceId,
             targetId,
             payload: { amount, isRandom }
         }]);
+
+        const newDiscardLength = newState[deckKey].discard.length;
+        if (newDiscardLength > oldDiscardLength) {
+            // Need to peek at the cards that were just placed on top of the discard pile
+            // Since discard pushes to the end of the array, we can slice from the old length.
+            const discardedCards = newState[deckKey].discard.slice(oldDiscardLength, newDiscardLength);
+
+            for (const c of discardedCards) {
+                const discardedData = GetProgramData(c.dataId);
+                if (discardedData.discardEffect && discardedData.discardEffect.length > 0) {
+                    newState = addLog(newState, `  ✨ ${discardedData.name} discard effect triggered!`);
+
+                    const owner = isPlayerTarget
+                        ? newState.playerParty.find(e => e.id === targetId)
+                        : newState.enemyParty.find(e => e.id === targetId);
+
+                    if (owner) {
+                        for (const effectAction of discardedData.discardEffect) {
+                            const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[effectAction.type];
+                            if (executor) {
+                                // For discard effects, source and target are the owner of the deck
+                                newState = executor.execute(newState, targetId, targetId, effectAction as any, discardedData, _context);
+                            } else {
+                                console.warn(`[DiscardExecutor] No executor found for discard effect type: ${effectAction.type}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return newState;
     }
 }
 
@@ -375,7 +461,8 @@ export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActio
             const newModifier = {
                 multiplier: actionData.multiplier ?? 1,
                 flatBonus: actionData.flatBonus ?? 0,
-                costReduction: actionData.costReduction ?? 0
+                costReduction: actionData.costReduction ?? 0,
+                appliesTo: actionData.appliesTo
             };
 
             const updatedParty = [...party];
@@ -389,6 +476,128 @@ export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActio
         }
 
         return newState;
+    }
+}
+
+export class RedirectTargetExecutor extends ActionExecutor<RedirectTargetActionData> {
+    execute(state: IBattleState, _sourceId: string, targetId: string, actionData: RedirectTargetActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const { newTargetId, isRandom } = actionData;
+
+        let finalTargetId = newTargetId;
+        let newState = state;
+
+        if (isRandom) {
+            const prng = new PRNG(newState.seed);
+
+            // Redirect to a random ally of the originally targeted entity
+            const isPlayerTarget = newState.playerParty.some(e => e.id === targetId);
+            const targetParty = isPlayerTarget ? newState.playerParty : newState.enemyParty;
+            const validTargets = targetParty.filter(e => e.currentHp > 0 && e.id !== targetId);
+
+            if (validTargets.length > 0) {
+                const { value: randIndex, nextSeed } = prng.nextInt(0, validTargets.length - 1);
+                finalTargetId = validTargets[randIndex].id;
+                newState = { ...newState, seed: nextSeed };
+            } else {
+                return newState; // No valid other targets
+            }
+        }
+
+        if (!finalTargetId) return newState;
+
+        const isPlayerActualTarget = newState.playerParty.some(e => e.id === targetId);
+        const actualTargetPartyKey = isPlayerActualTarget ? 'playerParty' : 'enemyParty';
+
+        const party = newState[actualTargetPartyKey];
+        const index = party.findIndex(e => e.id === targetId);
+
+        if (index > -1) {
+            const updatedParty = [...party];
+            updatedParty[index] = {
+                ...party[index],
+                forcedTargetId: finalTargetId
+            };
+
+            const targetName = party[index].name;
+            const newTargetName = newState.playerParty.find(e => e.id === finalTargetId)?.name || newState.enemyParty.find(e => e.id === finalTargetId)?.name || 'someone else';
+
+            newState = { ...newState, [actualTargetPartyKey]: updatedParty };
+            newState = addLog(newState, `  🎯 ${targetName} is forced to target ${newTargetName}!`);
+            return newState;
+        }
+
+        return newState;
+    }
+}
+
+export class ForceDiscardExecutor extends ActionExecutor<ForceDiscardActionData> {
+    execute(state: IBattleState, sourceId: string, targetId: string, actionData: ForceDiscardActionData, program: ProgramData | undefined, context: HookContext): IBattleState {
+        // Delegate to DiscardExecutor so we don't duplicate discardEffect logic
+        const discardExecutor = ActionExecutorRegistry['DISCARD'];
+        return discardExecutor.execute(state, sourceId, targetId, {
+            ...actionData,
+            type: 'DISCARD'
+        }, program, context);
+    }
+}
+
+/**
+ * SHIFT_STANCE (Watcher model): moves the SOURCE of the card into Dark or Light
+ * Stance, regardless of the card's target. Entering a stance removes the opposite
+ * one (also enforced by StanceBehavior.onApply — belt and suspenders) and routes
+ * through the STATUS mutation pipeline so STATUS_APPLIED events and
+ * onStatusApplied hooks (e.g. Hel's EQUINOX_TOGGLE draw) fire normally.
+ * Re-entering the current stance is a no-op: no event, no hook trigger.
+ */
+export class ShiftStanceExecutor extends ActionExecutor<ShiftStanceActionData> {
+    execute(state: IBattleState, sourceId: string, _targetId: string, actionData: ShiftStanceActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const stanceStatus: StatusType = actionData.stance === 'Dark' ? 'DarkStance' : 'LightStance';
+        const oppositeStatus: StatusType = actionData.stance === 'Dark' ? 'LightStance' : 'DarkStance';
+
+        const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
+        const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+        if (!source) return state;
+
+        // Already in this stance: nothing shifts (stacks stay capped at 1).
+        if (source.statusEffects.some(s => s.type === stanceStatus)) {
+            return addLog(state, `  ⚖️ ${source.name} is already in ${actionData.stance} Stance`);
+        }
+
+        let newState = state;
+        const hadOpposite = source.statusEffects.some(s => s.type === oppositeStatus);
+
+        // Explicitly strip the opposite stance first (StanceBehavior.onApply would
+        // also do this, but removing it here guarantees a STATUS_REMOVED event for
+        // the VFX/status-ring even if behaviors change later).
+        if (hadOpposite) {
+            const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+                party.map(e => e.id === sourceId
+                    ? { ...e, statusEffects: e.statusEffects.filter(s => s.type !== oppositeStatus) }
+                    : e);
+            newState = {
+                ...newState,
+                playerParty: updateParty(newState.playerParty),
+                enemyParty: updateParty(newState.enemyParty)
+            };
+            globalBattleEventBus.emit({
+                type: 'STATUS_REMOVED',
+                targetId: sourceId,
+                status: oppositeStatus,
+                timestamp: Date.now()
+            });
+        }
+
+        const icon = actionData.stance === 'Dark' ? '☾' : '☀';
+        newState = addLog(newState, `  ${icon} ${source.name} enters ${actionData.stance} Stance`);
+
+        // Apply the stance through the standard STATUS pipeline: caps at 1 stack,
+        // emits STATUS_APPLIED and fires onStatusApplied hooks (EQUINOX_TOGGLE).
+        return applyMutations(newState, [{
+            type: 'STATUS',
+            targetId: sourceId,
+            sourceId: sourceId,
+            payload: { status: stanceStatus, stacks: 1 }
+        }]);
     }
 }
 
@@ -409,5 +618,8 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'TRIGGER_STATUS': new TriggerStatusExecutor(),
     'PLAY_LAST_CARD': new PlayLastCardExecutor(),
     'TAUNT': new TauntExecutor(),
-    'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor()
+    'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor(),
+    'REDIRECT_TARGET': new RedirectTargetExecutor(),
+    'FORCE_DISCARD': new ForceDiscardExecutor(),
+    'SHIFT_STANCE': new ShiftStanceExecutor()
 };

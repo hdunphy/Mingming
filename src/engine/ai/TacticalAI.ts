@@ -163,7 +163,18 @@ export function getBestAction(state: IBattleState): BattleAction {
         }
     }
 
-    // 2. Fallback to normal tactical simulation if no intents, or if it's the Player's turn
+    // 2. Enemy behavior is locked in at battle creation via enemyMode:
+    // 'MOVES' (default) — Slay-the-Spire style: ONLY telegraphed intents, never
+    // cards. Once every intent has executed, the enemy turn is over.
+    // 'CARDS' — explicit opt-in (BattleOptions.enemyMode at createBattleState):
+    // the enemy has no intents and instead falls through to the card-play
+    // simulation below.
+    if (state.activeSide === 'ENEMY' && (state.enemyMode ?? 'MOVES') === 'MOVES') {
+        return { type: 'END_TURN' };
+    }
+
+    // 3. Card-play tactical simulation: the player side (Balance Tester /
+    // SimRunner auto-battles), or card-user enemies (enemyMode === 'CARDS').
     const MAX_DEPTH = 3; // Limit recursion to prevent hangs
 
     // Silence events during AI simulation to prevent log spam and side effects

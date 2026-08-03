@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-gullinbursti" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#996633" stop-opacity="0.38"/>
+      <stop offset="65%" stop-color="#996633" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#996633" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#996633" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-gullinbursti)"/>
+  <g fill="#060810" stroke="#996633" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- bristles along the back -->
+    <path d="M56 100 L66 68 L78 94 L90 62 L102 92 L114 60 L126 92 L138 68 L150 100 Z"/>
+    <!-- boar body -->
+    <ellipse cx="105" cy="122" rx="54" ry="36"/>
+    <!-- head and snout -->
+    <path d="M58 100 Q34 106 28 126 Q34 144 60 148 Q50 124 58 100 Z"/>
+    <path d="M30 124 Q20 126 18 134 Q24 140 34 138 Z"/>
+    <!-- tusk -->
+    <path d="M40 140 Q32 152 20 152 Q30 142 34 134 Z"/>
+    <!-- legs -->
+    <rect x="70" y="150" width="10" height="24" rx="3"/>
+    <rect x="92" y="154" width="10" height="22" rx="3"/>
+    <rect x="118" y="154" width="10" height="22" rx="3"/>
+    <rect x="138" y="150" width="10" height="24" rx="3"/>
+    <!-- curled tail -->
+    <path d="M158 112 Q174 106 176 92 Q180 106 168 116 Z"/>
+  </g>
+  <circle cx="52" cy="116" r="3" fill="#996633"/>
+</svg>

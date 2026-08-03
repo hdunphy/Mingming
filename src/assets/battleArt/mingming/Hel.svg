@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-hel" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8000ff" stop-opacity="0.35"/>
+      <stop offset="65%" stop-color="#8000ff" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#8000ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#8000ff" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-hel)"/>
+  <g stroke="#8000ff" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- long hair framing both sides -->
+    <path d="M100 26 Q58 34 56 84 Q54 122 64 148 Q52 118 52 82 Q54 30 100 22 Q146 30 148 82 Q148 118 136 148 Q146 122 144 84 Q142 34 100 26 Z" fill="#060810"/>
+    <!-- living half of the face (light side) -->
+    <path d="M100 46 A36 44 0 0 0 100 134 Z" fill="#8000ff" fill-opacity="0.22"/>
+    <!-- dead half of the face (shadow side) -->
+    <path d="M100 46 A36 44 0 0 1 100 134 Z" fill="#03040c"/>
+    <!-- vertical divide -->
+    <path d="M100 42 L100 138" fill="none" stroke-width="2" stroke-opacity="0.7"/>
+    <!-- shoulders and cloak -->
+    <path d="M56 174 Q66 140 100 138 Q134 140 144 174 Z" fill="#060810"/>
+    <!-- half-crown on the shadow side -->
+    <path d="M104 40 L112 26 L118 40 L128 30 L132 46 Z" fill="#060810"/>
+  </g>
+  <!-- living eye (dark dot) and dead eye (glow) -->
+  <circle cx="82" cy="86" r="3" fill="#060810"/>
+  <circle cx="118" cy="86" r="3" fill="#8000ff"/>
+</svg>

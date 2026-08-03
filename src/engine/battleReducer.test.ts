@@ -58,6 +58,7 @@ describe('Battle Reducer State Machine', () => {
     let initialState: IBattleState;
 
     beforeEach(() => {
+        console.log('--- TEST START ---');
         initialState = createMockState();
         vi.spyOn(globalBattleEventBus, 'emit');
     });

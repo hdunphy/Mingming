@@ -1,6 +1,6 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { StatusType, getExpForLevel, calculateStandardStat, calculateHealth } from './types';
-import { calculateDamage, calculateHeal } from './combatUtils';
+import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { GetMingmingData } from './data/mingmingRegistry';
@@ -26,9 +26,27 @@ export const effectHandlers: Record<string, EffectHandler> = {
 
 // --- XP Helpers ---
 
-function calculateDeathXp(defeatedUnit: IBattleEntity): number {
-    // Death Exp = 1/5 of XP for next level
-    return Math.floor(getExpForLevel(defeatedUnit.level + 1) / 5);
+/**
+ * XP a specific receiver earns for a knockout (before party split).
+ *
+ * Design (2026-08): decelerating pace with level-gap scaling.
+ * - Base = the defeated unit's LEVEL SPAN (XP between its level and the next),
+ *   not its cumulative total. The old cumulative/5 formula grew with the CUBE
+ *   of level while the cost of a level grows with the SQUARE — past level ~13
+ *   a single same-level KO granted more than a full level, so players leveled
+ *   every battle, accelerating forever.
+ * - Divisor grows slowly with the receiver's level (3, +1 per 10 levels), so
+ *   high levels take visibly longer: ~3 same-level KOs per level at Lv5
+ *   (solo), ~5 at Lv22, before the party split.
+ * - Pokemon-style gap multiplier (2*their / (their + yours), clamped 0.5-1.5):
+ *   stomping low-level sectors yields half XP; punching up pays a bonus.
+ */
+export function calculateDeathXp(defeatedUnit: IBattleEntity, receiver: IBattleEntity): number {
+    const span = getExpForLevel(defeatedUnit.level + 1) - getExpForLevel(defeatedUnit.level);
+    const gap = Math.min(1.5, Math.max(0.5,
+        (2 * defeatedUnit.level) / (defeatedUnit.level + receiver.level)));
+    const divisor = 3 + Math.floor(receiver.level / 10);
+    return Math.max(1, Math.floor((span * gap) / divisor));
 }
 
 interface LevelUpResult {
@@ -84,6 +102,7 @@ function handleLevelUp(entity: IBattleEntity, events: any[] = []): LevelUpResult
 }
 
 function addExperience(state: IBattleState, entityId: string, amount: number): IBattleState {
+    console.log(`[addExperience] Distributing ${amount} XP to ${entityId}.`);
     let levelUpEvents: any[] = [];
 
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
@@ -126,10 +145,14 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
 
     // Calculate Damage
     let damage = 0;
+    // Type effectiveness vs the target (1 = neutral); surfaced in the log below.
+    // Cheap recompute of calculateModifier's matrix part — no math change.
+    let effectiveness = 1;
     if (damageOverride !== undefined) {
         damage = damageOverride;
     } else if (source) {
         const programToUse = payload.program || ({ element: element } as ProgramData);
+        effectiveness = getModifierBreakdown(source, target, programToUse).effectiveness;
         damage = calculateDamage(source, target, programToUse, power, state);
 
         //Is this the best place to keep scaling logic? We might end up with more. TBD
@@ -162,9 +185,10 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     // Apply Damage
     const newCurrentHp = Math.max(0, target.currentHp - finalDamage);
 
-    // Wake up if Asleep and taken damage
+    // Wake up if Asleep and actually taken damage (a shield that absorbs the
+    // full hit should not wake the sleeper, so check post-mitigation damage).
     let wakesUp = false;
-    if (damage > 0) {
+    if (finalDamage > 0) {
         const sleepIndex = target.statusEffects.findIndex(s => s.type === 'Asleep');
         if (sleepIndex !== -1) {
             wakesUp = true;
@@ -216,12 +240,17 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
                 state: newState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
             newState = afterHook;
         }
     }
 
     newState = addLog(newState, `  → ${target.name} takes ${finalDamage} damage${newCurrentHp <= 0 ? ' ☠️ DEFEATED' : ''}`);
+    if (effectiveness > 1) {
+        newState = addLog(newState, '  ▶ Super effective!');
+    } else if (effectiveness < 1) {
+        newState = addLog(newState, '  ▷ Not very effective...');
+    }
     for (const log of statusLogs) {
         newState = addLog(newState, log);
     }
@@ -238,8 +267,8 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     const target = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
     if (!target) return state;
 
-    const xpYield = calculateDeathXp(target);
     const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
+    console.log(`[checkDefeat] Checking defeat for ${target.name} (${targetId}) (Internal side: ${targetIsPlayer ? 'PLAYER' : 'ENEMY'}).`);
     const opposingSideKey = targetIsPlayer ? 'enemyParty' : 'playerParty';
     const opposingSide = state[opposingSideKey];
     const aliveOpponents = opposingSide.filter(e => e.currentHp > 0);
@@ -257,11 +286,19 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     };
 
     if (aliveOpponents.length > 0) {
-        const xpPerUnit = Math.floor(xpYield / aliveOpponents.length);
-        newState = addLog(newState, `  ✨ ${xpYield} XP split among ${aliveOpponents.length} allies (${xpPerUnit} each)`);
-
+        // Per-receiver yield (level-gap + deceleration are receiver-specific),
+        // then split across the living party.
+        let totalAwarded = 0;
+        const awards: { id: string; amount: number }[] = [];
         for (const ally of aliveOpponents) {
-            newState = addExperience(newState, ally.id, xpPerUnit);
+            const amount = Math.max(1, Math.floor(calculateDeathXp(target, ally) / aliveOpponents.length));
+            awards.push({ id: ally.id, amount });
+            totalAwarded += amount;
+        }
+        newState = addLog(newState, `  ✨ ${totalAwarded} XP split among ${aliveOpponents.length} allies`);
+
+        for (const award of awards) {
+            newState = addExperience(newState, award.id, award.amount);
         }
     }
 
@@ -272,7 +309,7 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack(newState, 'onUnitFainted', context as any);
+        const { state: afterHook } = executeResolutionStack('onUnitFainted', context as any);
         newState = afterHook;
     }
 
@@ -289,17 +326,19 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     if (!target) return state;
     if (!source && healOverride === undefined) return state;
 
+    // healAmount is the INTENDED heal (calculateHeal no longer clamps to missing
+    // HP). This is the single choke point where intended vs applied diverge:
+    // the applied heal is clamped to max HP below and the overflow is recorded
+    // as the `last_overheal` counter for onHeal hooks (AUDHUMBLA v2).
     const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
-    // ...
-    // Standard Heal Logic
-    // ...
     const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
+    const appliedHeal = newCurrentHp - target.currentHp;
     const overheal = Math.max(0, target.currentHp + healAmount - target.maxHp);
 
     globalBattleEventBus.emit({
         type: 'HEAL',
         targetId: target.id,
-        amount: healAmount,
+        amount: appliedHeal,
         sourceId: source?.id || sourceId,
         timestamp: Date.now()
     });
@@ -317,7 +356,9 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
         }
     } as IBattleState;
 
-    newState = addLog(newState, `  → ${target.name} heals ${healAmount} HP`);
+    newState = addLog(newState, overheal > 0
+        ? `  → ${target.name} heals ${appliedHeal} HP (${overheal} Overheal)`
+        : `  → ${target.name} heals ${appliedHeal} HP`);
 
     // Trigger onHeal hook
     {
@@ -327,7 +368,7 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack(newState, 'onHeal', context as any);
+        const { state: afterHook } = executeResolutionStack('onHeal', context as any);
         newState = afterHook;
     }
 
@@ -350,13 +391,14 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     const { targetId, status, stacks, sourceId, power } = payload;
     const behavior = getStatusBehavior(status);
     if (!behavior) {
-        console.error(`[effectHandlers] No behavior found for status: ${status}. Payload:`, payload);
         return addLog(state, `  ⚠️ Error: Status effect "${status}" is not defined in StatusBehaviors!`);
     }
 
     const sourceEntity = sourceId
         ? (state.playerParty.find(e => e.id === sourceId) || state.enemyParty.find(e => e.id === sourceId))
         : undefined;
+
+    let newState = state;
 
     const initialTarget = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
     if (!initialTarget) return state;
@@ -375,7 +417,7 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     let remainingStacks = scaledStacks;
     let dualityLogs: string[] = [];
 
-    if (oppositeStatus) {
+    if (oppositeStatus && remainingStacks > 0) {
         const oppositeIndex = currentEffects.findIndex(s => s.type === oppositeStatus);
         if (oppositeIndex !== -1) {
             const opposite = currentEffects[oppositeIndex];
@@ -408,8 +450,6 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     }
 
     // 4. Update State
-    let newState = state;
-
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => {
             if (e.id !== targetId) return e;
@@ -418,14 +458,16 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
         });
 
     newState = {
-        ...state,
-        playerParty: updateParty(state.playerParty),
-        enemyParty: updateParty(state.enemyParty)
+        ...newState,
+        playerParty: updateParty(newState.playerParty),
+        enemyParty: updateParty(newState.enemyParty)
     };
 
-    // 4.5 Check Defeat (from immediate damage if any)
+    // 4.5 Check Defeat (from immediate damage if any). Only trigger when this
+    // application actually killed the target — applying a status to an entity
+    // that was already dead must not re-award death XP / re-fire faint hooks.
     const currentTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
-    if (currentTarget && currentTarget.currentHp <= 0) {
+    if (currentTarget && currentTarget.currentHp <= 0 && initialTarget.currentHp > 0) {
         newState = checkDefeat(newState, targetId);
         newState = addLog(newState, `  ☠️ ${currentTarget.name} DEFEATED`);
     }
@@ -453,6 +495,22 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
             element: 'None',
             timestamp: Date.now()
         });
+    }
+
+    // Trigger onStatusApplied hook
+    {
+        const postTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+        if (postTarget) {
+            const context = {
+                source: sourceEntity,
+                target: postTarget,
+                state: newState,
+                triggerDepth: 0,
+                statusApplied: status
+            };
+            const { state: afterHook } = executeResolutionStack('onStatusApplied', context as any);
+            newState = afterHook;
+        }
     }
 
     return newState;
@@ -504,7 +562,7 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
                 state: newState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack(newState, 'onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
             newState = afterHook;
         }
     }

@@ -1,5 +1,6 @@
-import { type HookDefinition, type HookContext, type HookResult, type MutationRequest } from './HookTypes';
+import { type HookDefinition, type HookContext, type HookResult, type MutationRequest, resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity } from '../types';
+import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
 
 export const CustomFirmware: Record<string, HookDefinition[]> = {
@@ -9,57 +10,45 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             priority: 40,
             onTurnEnd: (context: HookContext, owner: IBattleEntity): HookResult => {
                 let state = context.state;
-                if (owner.currentEnergy > 0) {
+                // Only hoard at the END of the OWNER's own turn (onTurnEnd fires
+                // for hooks on both sides; context.source is the ending entity).
+                if (context.source?.id === owner.id && owner.currentEnergy > 0) {
                     const energyToHoard = owner.currentEnergy;
-                    const recoilDamage = Math.max(1, Math.floor(owner.maxHp * 0.01 * energyToHoard));
+                    state = applyMutations(state, [
+                        { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'Energized', stacks: energyToHoard } },
+                        { type: 'COUNTER', targetId: '', payload: { key: resolveCounterKey('fafnir_hoard', 'OWNER', owner), operator: 'SET', amount: energyToHoard } },
+                        { type: 'LOG', targetId: '', payload: `${owner.name}'s HOARD_PROTOCOL retains ${energyToHoard} Energy!` }
+                    ]);
+                }
+                return { state };
+            }
+        },
+        {
+            id: "fafnir_v1_recoil",
+            priority: 40,
+            onTurnStart: (context: HookContext, owner: IBattleEntity): HookResult => {
+                let state = context.state;
+                // Recoil lands at the START of the owner's next turn — the moment
+                // the hoarded Energy is cashed in (1% max HP per point, min 1).
+                const hoardKey = resolveCounterKey('fafnir_hoard', 'OWNER', owner);
+                const hoarded = state.counters[hoardKey] || 0;
+                if (context.source?.id === owner.id && hoarded > 0) {
+                    const recoilDamage = Math.max(1, Math.floor(owner.maxHp * 0.01 * hoarded));
                     state = applyMutations(state, [
                         { type: 'HP', targetId: owner.id, payload: { amount: recoilDamage } },
-                        { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'Energized', stacks: energyToHoard } },
-                        { type: 'LOG', targetId: '', payload: `${owner.name}'s HOARD_PROTOCOL retains ${energyToHoard} Energy but takes ${recoilDamage} damage!` }
+                        { type: 'COUNTER', targetId: '', payload: { key: hoardKey, operator: 'RESET' } },
+                        { type: 'LOG', targetId: '', payload: `${owner.name}'s hoarded Energy burns its core for ${recoilDamage} damage!` }
                     ]);
                 }
                 return { state };
             }
         }
     ],
-    "gullinbursti_v1": [
-        {
-            id: "gullinbursti_v1_prepare",
-            priority: 40,
-            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                let state = context.state;
-                const hasDefensiveStatus = context.program?.actions.some(a => a.type === 'STATUS' && (a.target === 'SELF' || a.target === 'ALLIES'));
-                if (context.source?.id === owner.id && hasDefensiveStatus) {
-                    // Defensive status
-                    state = applyMutations(state, [{ type: 'COUNTER', targetId: '', payload: { key: 'gullin_discount', operator: 'SET', amount: 1 } }]);
-                }
-                const isAttack = context.program?.category === 'Attack';
-                if (context.source?.id === owner.id && isAttack && (state.counters['gullin_discount'] || 0) > 0) {
-                    // Refund 1 energy
-                    state = applyMutations(state, [
-                        { type: 'ENERGY', targetId: owner.id, payload: { amount: 1 } },
-                        { type: 'COUNTER', targetId: '', payload: { key: 'gullin_discount', operator: 'SET', amount: 0 } },
-                        { type: 'LOG', targetId: '', payload: `${owner.name}'s UNSTOPPABLE_MASS refunds 1 Energy!` }
-                    ]);
-                }
-                return { state };
-            }
-        }
-    ],
-    "gullinbursti_v2": [
-        {
-            id: "gullinbursti_v2_ram",
-            priority: 40,
-            onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
-                const isAttack = context.program?.category === 'Attack';
-                if (context.source?.id === owner.id && context.program?.element === 'Earth' && isAttack) {
-                    const sharpStacks = owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-                    return currentDamage + sharpStacks;
-                }
-                return currentDamage;
-            }
-        }
-    ],
+    // NOTE: gullinbursti_v1 / gullinbursti_v2 / audhumbla_v1 used to have hand-written
+    // implementations here with DIFFERENT hook ids than the hooks.json versions, so both
+    // registered and both fired (double Sharp damage bonus, two competing discount systems,
+    // double max-energy gains). The data-driven hooks.json versions match the OS
+    // descriptions, so the custom duplicates were removed.
     "fafnir_v2": [
         {
             id: "fafnir_v2_corrupted",
@@ -100,10 +89,14 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             priority: 40,
             onCardDraw: (context: HookContext, owner: IBattleEntity): HookResult => {
                 let state = context.state;
-                if ((state.counters['deck_shuffles'] || 0) > 0 && !(state.counters['hraesvelgr_max_energy'] || 0)) {
+                // deck_shuffles is genuinely global (one shared deck per side);
+                // the once-only guard is namespaced per owner so two Hraesvelgrs
+                // each get their own +1 Max Energy.
+                const guardKey = resolveCounterKey('hraesvelgr_max_energy', 'OWNER', owner);
+                if ((state.counters['deck_shuffles'] || 0) > 0 && !(state.counters[guardKey] || 0)) {
                     state = applyMutations(state, [
                         { type: 'MAX_ENERGY', targetId: owner.id, payload: { amount: 1 } },
-                        { type: 'COUNTER', targetId: '', payload: { key: 'hraesvelgr_max_energy', operator: 'SET', amount: 1 } },
+                        { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
                         { type: 'LOG', targetId: '', payload: `${owner.name}'s UPDRAFT_KERNEL increases Max Energy by 1!` }
                     ]);
                 }
@@ -123,7 +116,16 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                         : state.enemyParty.some((e: IBattleEntity) => e.id === context.target!.id);
 
                     if (isAlly) {
-                        const positiveStatuses = ['Strengthened', 'Sharp', 'Protect', 'Nimble', 'Regen', 'StableOS'];
+                        // The real buff StatusTypes (sourced from types.ts, not
+                        // free-form strings — 'Protect'/'Nimble' never existed).
+                        const positiveStatuses: string[] = [
+                            StatusType.Strengthened,
+                            StatusType.Sharp,
+                            StatusType.Regen,
+                            StatusType.StableOS,
+                            StatusType.Energized,
+                            StatusType.BarkShield
+                        ];
                         if (positiveStatuses.includes(context.statusApplied || '')) {
                             const healAmount = Math.max(1, Math.floor(context.target.maxHp * 0.05));
                             state = applyMutations(state, [
@@ -137,44 +139,19 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             }
         }
     ],
-    "audhumbla_v1": [
-        {
-            id: "audhumbla_v1_genesis",
-            priority: 40,
-            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                let state = context.state;
-                const isHealOrSkill = context.program?.category === 'Skill' || context.program?.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS');
-                if (context.source?.id === owner.id && isHealOrSkill) {
-                    const counterKey = `audhumbla_spells_${owner.id}`;
-                    let currentCount = state.counters[counterKey] || 0;
-                    currentCount++;
-                    if (currentCount >= 3) {
-                        state = applyMutations(state, [
-                            { type: 'MAX_ENERGY', targetId: owner.id, payload: { amount: 1 } },
-                            { type: 'COUNTER', targetId: '', payload: { key: counterKey, operator: 'RESET', amount: 0 } },
-                            { type: 'LOG', targetId: '', payload: `${owner.name}'s GENESIS_FIRMWARE increases Max Energy by 1!` }
-                        ]);
-                    } else {
-                        state = applyMutations(state, [
-                            { type: 'COUNTER', targetId: '', payload: { key: counterKey, operator: 'SET', amount: currentCount } }
-                        ]);
-                    }
-                }
-                return { state };
-            }
-        }
-    ],
     "huldra_v2": [
         {
             id: "huldra_v2_bark",
             priority: 40,
             onTurnStart: (context: HookContext, owner: IBattleEntity): HookResult => {
                 let state = context.state;
-                if (state.turn === 1 && !state.counters['huldra_shield_init']) {
+                // Once-only guard is per-owner: two Huldras each get a shield.
+                const guardKey = resolveCounterKey('huldra_shield_init', 'OWNER', owner);
+                if (state.turn === 1 && !state.counters[guardKey]) {
                     const shieldAmount = Math.floor(owner.maxHp * 0.5);
                     state = applyMutations(state, [
                         { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'BarkShield', stacks: shieldAmount } },
-                        { type: 'COUNTER', targetId: '', payload: { key: 'huldra_shield_init', operator: 'SET', amount: 1 } },
+                        { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
                         { type: 'LOG', targetId: '', payload: `${owner.name}'s BARK_SHIELD_OS activates a massive temporary shield!` }
                     ]);
                 }

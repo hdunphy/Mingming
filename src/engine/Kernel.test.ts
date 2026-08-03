@@ -125,6 +125,30 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         expect(mod).toBe(2.0);
     });
 
+    // 3b. Type Effectiveness is surfaced in the combat log
+    it('Effectiveness Log: "Super effective!" appears for a 2x matchup and not for neutral', () => {
+        const state = createMockState();
+
+        // Fire attack vs Nature target (e1) = 2.0x
+        const superState = effectHandlers['ATTACK'](state, { sourceId: 'p1', targetId: 'e1', power: 10, element: 'Fire' });
+        expect(superState.logs.some(l => l.includes('Super effective!'))).toBe(true);
+
+        // 'None' attack vs Nature target = neutral — no effectiveness line at all
+        const neutralState = effectHandlers['ATTACK'](state, { sourceId: 'p1', targetId: 'e1', power: 10, element: 'None' });
+        expect(neutralState.logs.some(l => l.toLowerCase().includes('effective'))).toBe(false);
+        // The damage line itself still appears
+        expect(neutralState.logs.some(l => l.includes('takes'))).toBe(true);
+    });
+
+    it('Effectiveness Log: "Not very effective..." appears for a 0.5x matchup', () => {
+        const state = createMockState();
+
+        // Nature attack vs Fire target (p1) = 0.5x
+        const resistedState = effectHandlers['ATTACK'](state, { sourceId: 'e1', targetId: 'p1', power: 10, element: 'Nature' });
+        expect(resistedState.logs.some(l => l.includes('Not very effective...'))).toBe(true);
+        expect(resistedState.logs.some(l => l.includes('Super effective!'))).toBe(false);
+    });
+
     // 4. Status Cancellation
     it('Status Cancellation: Applying Sharp to a Dazed unit nullifies both', () => {
         let state = createMockState();

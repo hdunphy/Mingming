@@ -575,8 +575,8 @@ body {
 }
 
 .card-description {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.8);
   margin-top: 6px;
   line-height: 1.3;
   flex: 1;
@@ -584,10 +584,11 @@ body {
 }
 
 .card-target {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.55);
   text-align: center;
   margin-top: 4px;
   padding-top: 4px;
@@ -789,7 +790,6 @@ body {
 
 .element-badge.light {
   background-color: var(--light);
-  color: #333;
 }
 
 .element-badge.dark {
@@ -800,6 +800,16 @@ body {
   background-color: #888;
 }
 
+/* Bright element fills need near-black text — white is unreadable on them
+   (e.g. the Ice cyan). Mirrors src/ui/utils/contrastText.ts. */
+.element-badge.ice,
+.element-badge.air,
+.element-badge.nature,
+.element-badge.light {
+  color: #0b0e14;
+  text-shadow: none;
+}
+
 .hp-bar-preview {
   position: absolute;
   top: 0;
@@ -808,15 +818,91 @@ body {
   z-index: 5;
 }
 
+/* ── Elemental breakdown chips on the hover damage preview ──
+   Absolutely positioned along the unit card's bottom edge so the
+   card never changes size while hovering targets. */
+.hud-preview-tags {
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.hud-preview-chip {
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  background: rgba(5, 5, 10, 0.92);
+}
+
+.hud-preview-chip-super {
+  color: #4dff88;
+  /* bright green — hits harder */
+  text-shadow: 0 0 6px rgba(77, 255, 136, 0.6);
+}
+
+.hud-preview-chip-weak {
+  color: #b98585;
+  /* dim red/gray — hits softer */
+}
+
+/* ── Element-matched card glow (battle hand) ──
+   Applied when the selected source unit's primary/secondary element
+   matches the card's element (×1.5 STAB). Pure class toggle; the color
+   arrives via the --stab-color/--stab-glow custom properties. */
+.program-card.stab-match {
+  border-color: var(--stab-color, #fff);
+  box-shadow: 0 0 14px var(--stab-glow, rgba(255, 255, 255, 0.4)), 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Keep the white selection signal on top of the element glow. */
+.program-card.stab-match.selected {
+  border-color: #fff;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4), 0 0 14px var(--stab-glow, rgba(255, 255, 255, 0.4));
+}
+
+/* Tiny ×1.5 pip next to the cost badge on element-matched cards */
+.card-stab-pip {
+  position: absolute;
+  top: 13px;
+  left: 42px;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  padding: 0 4px;
+  border-radius: 4px;
+  color: var(--stab-color, #fff);
+  border: 1px solid var(--stab-glow, rgba(255, 255, 255, 0.4));
+  background: rgba(5, 5, 10, 0.85);
+  pointer-events: none;
+  z-index: 2;
+}
+
 .card-cost {
-  background: var(--energy-blue);
+  /* Deepened from var(--energy-blue) so white text clears WCAG AA (~5.2:1);
+     the neon read is kept via the glow. */
+  background: #2563eb;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   width: 26px;
   height: 26px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-weight: bold;
+  font-weight: 800;
   font-size: 0.9rem;
   margin-bottom: 8px;
 }
@@ -1070,6 +1156,20 @@ body {
   padding-left: 8px;
 }
 
+.log-os-chip {
+  display: inline-block;
+  padding: 0 4px;
+  margin-right: 4px;
+  border: 1px solid #00d2ff;
+  border-radius: 3px;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #00d2ff;
+  background: rgba(0, 210, 255, 0.08);
+  vertical-align: 1px;
+}
+
 .action-button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
@@ -1115,9 +1215,9 @@ body {
 }
 
 .pile-label {
-  font-size: 0.5rem;
-  letter-spacing: 1.5px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.55);
   font-weight: 700;
 }
 
@@ -1653,4 +1753,498 @@ body {
   to {
     opacity: 1;
   }
+}
+/* ═══════════════════════════════════════════════════
+   Combat Juice — event-driven battle VFX
+   (floats, hit flashes, status rings, death glitch)
+   ═══════════════════════════════════════════════════ */
+
+/* Floating combat numbers (position via `left`; framer owns transform) */
+.hud-float {
+  position: absolute;
+  top: 4%;
+  font-weight: 900;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 120;
+  text-shadow: 0 0 8px currentColor, 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.hud-float-damage {
+  font-size: 1.35rem;
+}
+
+.hud-float-crit {
+  font-size: 1.9rem;
+  text-shadow: 0 0 16px currentColor, 0 0 4px #fff, 0 2px 3px rgba(0, 0, 0, 0.9);
+}
+
+.hud-float-heal {
+  font-size: 1.2rem;
+}
+
+.hud-float-absorbed {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+/* Hit flash — white/red scanline sweep over the unit card */
+.hud-hit-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 105;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(255, 255, 255, 0.12) 0px,
+      rgba(255, 255, 255, 0.12) 1px,
+      transparent 2px,
+      transparent 4px),
+    linear-gradient(120deg,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 70, 70, 0.55) 55%,
+      rgba(255, 255, 255, 0.65) 100%);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
+/* Heal — soft green pulse */
+.hud-heal-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 104;
+  background: radial-gradient(circle at 50% 60%,
+      rgba(74, 222, 128, 0.55) 0%,
+      rgba(74, 222, 128, 0.1) 75%);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
+/* Status applied — colored ring pulse (border/shadow colors set inline) */
+.hud-status-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 106;
+  border: 2px solid #fff;
+  opacity: 0;
+}
+
+/* Death: dead units desaturate INSIDE the card so the stamp stays neon */
+.hud-card.hud-dead .hud-sidebar,
+.hud-card.hud-dead .hud-body {
+  filter: grayscale(100%) brightness(55%);
+}
+
+.hud-terminated-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 115;
+}
+
+.hud-terminated-stamp {
+  display: inline-block;
+  padding: 2px 12px;
+  border: 2px solid rgba(255, 70, 70, 0.9);
+  border-radius: 3px;
+  color: #ff5555;
+  font-weight: 900;
+  font-size: 0.95rem;
+  letter-spacing: 3px;
+  background: rgba(12, 0, 0, 0.6);
+  text-shadow: 0 0 8px rgba(255, 60, 60, 0.8);
+  box-shadow: 0 0 14px rgba(255, 60, 60, 0.35);
+}
+
+/* Death glitch — a few frames of horizontal offset + CRT slice */
+.hud-card.hud-death-glitch {
+  animation: hud-death-glitch 0.45s steps(1) both;
+}
+
+@keyframes hud-death-glitch {
+  0% {
+    transform: translateX(0);
+    clip-path: none;
+    filter: none;
+  }
+
+  12% {
+    transform: translateX(-6px);
+    clip-path: inset(8% 0 55% 0);
+    filter: invert(0.75) hue-rotate(120deg);
+  }
+
+  24% {
+    transform: translateX(5px);
+    clip-path: inset(48% 0 18% 0);
+    filter: saturate(3) hue-rotate(-60deg);
+  }
+
+  38% {
+    transform: translateX(-3px);
+    clip-path: inset(20% 0 35% 0);
+    filter: invert(0.5);
+  }
+
+  52% {
+    transform: translateX(4px);
+    clip-path: inset(60% 0 5% 0);
+    filter: none;
+  }
+
+  70% {
+    transform: translateX(-2px);
+    clip-path: none;
+    filter: brightness(2);
+  }
+
+  100% {
+    transform: translateX(0);
+    clip-path: none;
+    filter: none;
+  }
+}
+
+/* Reduced motion: glitch degrades to a simple opacity pulse */
+@media (prefers-reduced-motion: reduce) {
+  .hud-card.hud-death-glitch {
+    animation: hud-death-fade 0.45s ease-out both;
+  }
+
+  @keyframes hud-death-fade {
+    0% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.35;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   Battle Report (post-battle reward overlay)
+   ═══════════════════════════════════════════════════ */
+
+/* Scrollable panel body: title/footer stay fixed, this scrolls if needed. */
+.report-body {
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 210, 255, 0.3) transparent;
+}
+
+.report-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.report-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+
+.report-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 210, 255, 0.25);
+  border-radius: 4px;
+}
+
+.report-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 210, 255, 0.45);
+}
+
+/* Two columns with aligned tops; collapses to one below ~1000px. */
+.report-columns {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .report-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Reward card tiles: fixed comfortable width, centered in their panel.
+   ProgramCard is content-box (min-width 140 + 24px padding + 2px border),
+   so it must be forced to border-box here to fit the 164px tile exactly. */
+.reward-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.reward-card-row .reveal-card {
+  width: 164px;
+}
+
+.reward-card-row .program-card-container {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+/* First-synthesis celebration: 10 full-size cards in a 5+5 two-row arc.
+   Faces are the real ProgramCards (shared RevealCard flip), sized to match the
+   battle-report reward row so names/costs/categories stay readable. */
+.celebration-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 158px);
+  gap: 20px 14px;
+  justify-content: center;
+  margin-top: 34px;
+  pointer-events: none;
+}
+
+.celebration-deck-grid .reveal-card {
+  width: 158px;
+}
+
+.celebration-deck-grid .program-card-container {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Cap the celebration so the whole beat (name slam → grid → caption) fits a
+   1280×720 viewport without clipping; scale down slightly when tight. */
+.celebration-content {
+  max-width: 96vw;
+}
+
+@media (max-height: 780px) {
+  .celebration-content {
+    transform: scale(0.88);
+  }
+}
+
+@media (max-width: 960px) {
+  .celebration-content {
+    transform: scale(0.78);
+  }
+}
+
+/* Blueprint acquisition box glow (keyframes were previously undefined). */
+.blueprint-flash {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 0, 255, 0.25);
+  }
+
+  50% {
+    box-shadow: 0 0 16px rgba(255, 0, 255, 0.6);
+  }
+}
+
+/* Unresolved choice groups breathe until the player picks.
+   Pulses box-shadow only — each group keeps its own (inline) border color,
+   and the cyan glow matches the CONTINUE button's "needs input" accent. */
+.choice-group-pending {
+  animation: choice-pending-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes choice-pending-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(0, 210, 255, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 14px rgba(0, 210, 255, 0.35), inset 0 0 10px rgba(0, 210, 255, 0.06);
+  }
+}
+
+/* CONTINUE button: smooth disabled→enabled fade + one-shot power-on flare. */
+.report-continue-btn {
+  transition: background 0.35s ease, color 0.35s ease, box-shadow 0.45s ease;
+}
+
+.report-continue-btn.armed {
+  animation: continue-power-on 0.55s ease-out;
+}
+
+@keyframes continue-power-on {
+  0% {
+    filter: brightness(0.5);
+    box-shadow: 0 0 0 rgba(0, 210, 255, 0);
+  }
+
+  60% {
+    filter: brightness(1.6);
+    box-shadow: 0 0 36px rgba(0, 210, 255, 0.85);
+  }
+
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-group-pending,
+  .report-continue-btn.armed,
+  .blueprint-flash {
+    animation: none;
+  }
+}
+
+/* === Type Chart (shared elemental matchup matrix) === */
+.type-chart-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.type-chart-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(20, 20, 35, 0.8);
+  color: #c2cad6;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: all 0.12s ease;
+}
+
+.type-chart-toggle:hover {
+  color: #eee;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.type-chart-toggle.open {
+  color: #fff;
+  border-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 22%, rgba(20, 20, 35, 0.8));
+}
+
+.type-chart {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: rgba(10, 10, 18, 0.75);
+  backdrop-filter: blur(6px);
+  font-family: 'Courier New', monospace;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tc-row {
+  display: grid;
+  grid-template-columns: 58px repeat(8, 46px);
+  align-items: stretch;
+  gap: 2px;
+  border-radius: 6px;
+}
+
+.tc-row:not(.tc-head-row):hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.tc-corner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #8a94a6;
+  line-height: 1.3;
+}
+
+.tc-col-head,
+.tc-row-head,
+.tc-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+}
+
+.tc-el-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.tc-el-icon { font-size: 12px; }
+
+.tc-cell {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.tc-cell.tc-strong {
+  color: #4dff88;
+  background: rgba(77, 255, 136, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(77, 255, 136, 0.25);
+}
+
+.tc-cell.tc-weak {
+  color: #c98080;
+  background: rgba(255, 80, 80, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 80, 80, 0.18);
+}
+
+.tc-cell.tc-neutral { color: rgba(255, 255, 255, 0.18); }
+
+.tc-footer {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9aa3b2;
+  white-space: nowrap;
+}
+
+/* --- Primed cost discount (nextProgramModifier, e.g. UNSTOPPABLE_MASS) --- */
+.card-cost.card-cost-discounted {
+    background: #0f7a3d;
+    color: #eafff2;
+    box-shadow: 0 0 8px rgba(46, 229, 132, 0.85);
+    animation: cost-discount-pulse 1.4s ease-in-out infinite;
+}
+.card-cost-original {
+    font-size: 0.55em;
+    margin-left: 3px;
+    opacity: 0.75;
+    text-decoration: line-through;
+}
+@keyframes cost-discount-pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(46, 229, 132, 0.6); }
+    50% { box-shadow: 0 0 12px rgba(46, 229, 132, 1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .card-cost.card-cost-discounted { animation: none; }
 }

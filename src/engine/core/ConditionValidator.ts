@@ -1,5 +1,20 @@
 import type { IBattleState, IBattleEntity, ProgramData, StatusType, ProgramConstraint } from '../types';
 import type { HookCondition, HookContext } from './HookTypes';
+import { resolveCounterKey } from './HookTypes';
+
+/**
+ * Statuses considered "negative" (debuffs) for condition checks like sourceDebuffCount.
+ * Mirrors the debuff lists previously embedded in hand-written hook conditions.
+ */
+const NEGATIVE_STATUSES: ReadonlyArray<string> = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed'];
+
+function compareValues(operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ', currentVal: number, value: number): boolean {
+    if (operator === 'LT') return currentVal < value;
+    if (operator === 'GT') return currentVal > value;
+    if (operator === 'LTE') return currentVal <= value;
+    if (operator === 'GTE') return currentVal >= value;
+    return currentVal === value;
+}
 
 /**
  * A purely functional, stateless utility for evaluating logic conditions.
@@ -20,7 +35,7 @@ export const ConditionValidator = {
                 return false;
             }
             const isSourcePlayer = context.source ? context.state.playerParty.some((e: IBattleEntity) => e.id === context.source?.id) : false;
-            if (condition.source === 'ALLY' && (isOwnerPlayer !== isSourcePlayer || context.source?.id === owner.id)) return false;
+            if (condition.source === 'ALLY' && isOwnerPlayer !== isSourcePlayer) return false;
             if (condition.source === 'OPPONENT' && isOwnerPlayer === isSourcePlayer) return false;
         }
 
@@ -29,7 +44,7 @@ export const ConditionValidator = {
                 return false;
             }
             const isTargetPlayer = context.target ? context.state.playerParty.some((e: IBattleEntity) => e.id === context.target?.id) : false;
-            if (condition.target === 'ALLY' && (isOwnerPlayer !== isTargetPlayer || context.target?.id === owner.id)) return false;
+            if (condition.target === 'ALLY' && isOwnerPlayer !== isTargetPlayer) return false;
             if (condition.target === 'OPPONENT' && isOwnerPlayer === isTargetPlayer) return false;
         }
 
@@ -59,6 +74,33 @@ export const ConditionValidator = {
         // 4. Status Check
         if (condition.statusApplied && context.statusApplied !== condition.statusApplied) return false;
 
+        // 4b. Status-In-Set Check (e.g. "any debuff", "any buff")
+        if (condition.statusAppliedIn) {
+            if (!context.statusApplied || !condition.statusAppliedIn.includes(context.statusApplied)) return false;
+        }
+
+        // 4c. Program Category Checks
+        if (condition.programCategoryIn) {
+            if (!context.program || !condition.programCategoryIn.includes(context.program.category)) return false;
+        }
+        if (condition.programCategoryNot) {
+            if (!context.program || condition.programCategoryNot.includes(context.program.category)) return false;
+        }
+
+        if (condition.programAppliesStatus !== undefined) {
+            const applies = !!context.program?.actions?.some(a => a.type === 'STATUS');
+            if (condition.programAppliesStatus !== applies) return false;
+        }
+
+        // 4d. Source Debuff Count Check (number of negative statuses on the source)
+        if (condition.sourceDebuffCount) {
+            const debuffCount = context.source
+                ? context.source.statusEffects.filter(s => NEGATIVE_STATUSES.includes(s.type)).length
+                : 0;
+            const { operator, value } = condition.sourceDebuffCount;
+            if (!compareValues(operator, debuffCount, value)) return false;
+        }
+
         // 5. Draw Check
         if (condition.isNaturalDraw !== undefined && context.isNaturalDraw !== condition.isNaturalDraw) return false;
 
@@ -79,11 +121,12 @@ export const ConditionValidator = {
             if (condition.sourceStatus.minStacks !== undefined && sourceStat.stacks < condition.sourceStatus.minStacks) return false;
         }
 
-        // 9. Counter Check
+        // 9. Counter Check (hook counters are OWNER-scoped by default so units
+        // sharing an OS count independently; scope: 'GLOBAL' reads the raw key)
         if (condition.counter) {
-            const { key, operator, value } = condition.counter;
+            const { key, operator, value, scope } = condition.counter;
             const currentCounters = context.state.counters || {};
-            const currentVal = currentCounters[key] || 0;
+            const currentVal = currentCounters[resolveCounterKey(key, scope, owner)] || 0;
             if (operator === 'LT' && !(currentVal < value)) return false;
             if (operator === 'GT' && !(currentVal > value)) return false;
             if (operator === 'LTE' && !(currentVal <= value)) return false;

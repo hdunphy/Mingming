@@ -1,0 +1,562 @@
+/* ═══════════════════════════════════════════════════════════════
+   DECK TERMINAL — neon terminal deck-builder
+   Pairs with DeckTerminal.tsx (base .deck-terminal layout comes
+   from index.css; everything here is dt-* scoped).
+   ═══════════════════════════════════════════════════════════════ */
+
+.dt-root {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ── Header ── */
+.dt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.dt-title {
+    font-family: 'Courier New', 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin: 0;
+    color: #f0f0f5;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary) 60%, transparent);
+}
+
+.dt-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dt-count {
+    font-family: 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(10, 10, 18, 0.7);
+}
+
+.dt-count.valid .dt-count-num { color: var(--hp-green); }
+.dt-count.invalid .dt-count-num { color: var(--hp-red); }
+.dt-count-sep, .dt-count-max { color: #8b95a6; font-size: 14px; }
+
+.dt-count-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    align-self: center;
+}
+.dt-count-badge.valid { color: var(--hp-green); border: 1px solid var(--hp-green); }
+.dt-count-badge.invalid { color: var(--hp-red); border: 1px solid var(--hp-red); }
+
+.dt-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(20, 20, 35, 0.9);
+    color: #ddd;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dt-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.dt-btn-suggest:not(:disabled) {
+    border-color: var(--accent-primary);
+    color: #e9d5ff;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 35%, transparent);
+}
+.dt-btn-suggest:not(:disabled):hover {
+    background: color-mix(in srgb, var(--accent-primary) 25%, rgba(20, 20, 35, 0.9));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary) 55%, transparent);
+}
+
+.dt-btn-clear:not(:disabled):hover {
+    border-color: var(--hp-red);
+    color: var(--hp-red);
+}
+.dt-btn-clear.armed {
+    border-color: var(--hp-red);
+    color: #fff;
+    background: color-mix(in srgb, var(--hp-red) 35%, rgba(20, 20, 35, 0.9));
+    animation: dt-arm-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes dt-arm-pulse {
+    0%, 100% { box-shadow: 0 0 4px color-mix(in srgb, var(--hp-red) 40%, transparent); }
+    50% { box-shadow: 0 0 14px color-mix(in srgb, var(--hp-red) 80%, transparent); }
+}
+
+/* ── Party strip ── */
+.dt-party-strip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+.dt-party-label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #98a2b3;
+    white-space: nowrap;
+}
+
+.dt-party-empty {
+    font-size: 12px;
+    font-style: italic;
+    color: #98a2b3;
+}
+
+.dt-party-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px 6px 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    background: rgba(10, 10, 18, 0.6);
+    white-space: nowrap;
+}
+
+.dt-party-disc {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.dt-party-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.dt-party-name { font-size: 13px; font-weight: 700; color: #f0f0f5; }
+.dt-party-level { font-size: 11px; font-weight: 600; color: #9aa3b2; font-family: 'Courier New', monospace; }
+
+.dt-element-chip {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid;
+}
+
+/* ── Body / panels ── */
+.dt-body {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    min-height: 0;
+}
+
+.dt-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 14px;
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.dt-inventory { flex: 3; }
+.dt-deck { flex: 2; }
+
+.dt-panel-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.dt-panel-title h2 {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.dt-panel-hint {
+    font-size: 11px;
+    font-weight: 600;
+    color: #aab4c4;
+    font-family: 'Courier New', monospace;
+}
+
+/* ── Filter chips ── */
+.dt-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.dt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    background: rgba(20, 20, 35, 0.8);
+    color: #c2cad6;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.dt-chip:hover { color: #eee; border-color: rgba(255, 255, 255, 0.25); }
+
+.dt-chip.active {
+    color: #fff;
+    border-color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 22%, rgba(20, 20, 35, 0.8));
+}
+
+.dt-chip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.dt-chip-count {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #96a0b0;
+}
+.dt-chip.active .dt-chip-count { color: #e6eaf2; }
+
+/* ── Toolbar (search + sort) ── */
+.dt-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.dt-search {
+    flex: 1;
+    min-width: 140px;
+    padding: 6px 10px;
+    background: rgba(10, 10, 18, 0.8);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: #eee;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+.dt-search:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary) 40%, transparent);
+}
+
+.dt-sort {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dt-sort-label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: #98a2b3;
+    margin-right: 2px;
+}
+
+.dt-sort-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--glass-border);
+    background: rgba(20, 20, 35, 0.8);
+    color: #aab4c4;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.dt-sort-btn.active {
+    color: #fff;
+    border-color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 22%, rgba(20, 20, 35, 0.8));
+}
+
+/* ── Inventory grid ── */
+.dt-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 14px;
+    max-height: 480px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 6px;
+}
+
+/* ── Empty states ── */
+.dt-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: #98a2b3;
+}
+
+.dt-empty p { margin: 4px 0; font-size: 13px; }
+.dt-empty-sub { font-size: 12px !important; color: #8b95a6; }
+.dt-empty-sub strong { color: #e9d5ff; }
+
+.dt-empty-glyph {
+    font-size: 32px;
+    color: color-mix(in srgb, var(--accent-primary) 55%, #333);
+    margin-bottom: 6px;
+    text-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 40%, transparent);
+}
+
+.dt-empty-inline {
+    grid-column: 1 / -1;
+    padding: 16px;
+    font-style: italic;
+}
+
+/* ── Deck stats ── */
+.dt-stats-block {
+    background: rgba(10, 10, 18, 0.6);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.dt-stats-label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #9aa3b2;
+    margin-bottom: 8px;
+}
+
+/* Mana curve */
+.dt-curve {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 84px;
+}
+
+.dt-curve-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
+
+.dt-curve-value {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #d6c9ff;
+    height: 14px;
+    line-height: 14px;
+}
+
+.dt-curve-bar-track {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.dt-curve-bar {
+    width: 100%;
+    background: linear-gradient(180deg, var(--accent-primary), color-mix(in srgb, var(--accent-primary) 45%, #000));
+    border-radius: 3px 3px 0 0;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary) 45%, transparent);
+    transition: height 0.25s ease;
+}
+
+.dt-curve-tick {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #a5aebe;
+    margin-top: 4px;
+    border-top: 1px solid var(--glass-border);
+    width: 100%;
+    text-align: center;
+    padding-top: 3px;
+}
+
+/* Element stacked bar */
+.dt-element-bar {
+    display: flex;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+}
+
+.dt-element-segment {
+    flex-basis: 0;
+    min-width: 3px;
+    transition: flex-grow 0.25s ease;
+}
+
+.dt-element-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-top: 8px;
+}
+
+.dt-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #c2cad6;
+}
+
+/* ── Deck rows ── */
+.dt-deck-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.dt-deck-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-left: 3px solid;
+    border-radius: 6px;
+    transition: background 0.12s ease;
+}
+
+.dt-deck-row:hover { background: rgba(255, 255, 255, 0.08); }
+
+.dt-cost-gem {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.dt-row-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8ecf3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dt-row-count {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-primary);
+    color: color-mix(in srgb, var(--accent-primary) 60%, #fff);
+}
+
+.dt-row-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.dt-row-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--glass-border);
+    background: rgba(10, 10, 18, 0.8);
+    color: #ccc;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.12s ease;
+}
+
+.dt-row-btn.plus:not(:disabled):hover { border-color: var(--hp-green); color: var(--hp-green); }
+.dt-row-btn.minus:hover { border-color: var(--hp-red); color: var(--hp-red); }
+.dt-row-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* ── Validity footer ── */
+.dt-validity-footer {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--hp-red);
+    border: 1px dashed color-mix(in srgb, var(--hp-red) 60%, transparent);
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: center;
+}
+
+/* ── Responsive (~1200px and below) ── */
+@media (max-width: 1000px) {
+    .dt-body { flex-direction: column; }
+    .dt-inventory, .dt-deck { width: 100%; }
+}

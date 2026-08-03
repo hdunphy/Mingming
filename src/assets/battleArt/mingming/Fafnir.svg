@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img">
+  <defs>
+    <radialGradient id="glow-fafnir" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#996633" stop-opacity="0.38"/>
+      <stop offset="65%" stop-color="#996633" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#996633" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="3" y="3" width="194" height="194" rx="26" fill="#0a0d13" stroke="#996633" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="100" cy="100" r="88" fill="url(#glow-fafnir)"/>
+  <g fill="#060810" stroke="#996633" stroke-opacity="0.9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- coiled serpent body: concentric rings -->
+    <circle cx="100" cy="118" r="52"/>
+    <circle cx="100" cy="118" r="31" fill="#0a0d13"/>
+    <circle cx="100" cy="118" r="13"/>
+    <!-- tail tip escaping the coil -->
+    <path d="M146 152 Q168 142 175 118 Q173 148 152 164 Q146 160 146 152 Z"/>
+    <!-- neck and head rising from the coil -->
+    <path d="M67 76 Q74 44 102 38 Q126 34 136 50 L120 52 Q132 58 138 68 Q118 80 98 72 Q80 84 67 76 Z"/>
+    <!-- horns -->
+    <path d="M104 40 Q106 18 122 10 Q116 30 116 42 Z"/>
+    <path d="M120 46 Q130 28 146 22 Q138 40 132 52 Z"/>
+    <!-- jaw barb -->
+    <path d="M134 66 Q144 70 148 78 Q138 78 130 74 Z"/>
+  </g>
+  <circle cx="116" cy="54" r="3" fill="#996633"/>
+</svg>

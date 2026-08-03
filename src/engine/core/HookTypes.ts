@@ -1,4 +1,16 @@
-import type { IBattleState, IBattleEntity, ProgramData, StatusType, ActionType } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData, StatusType, ActionType, ProgramCategory } from '../types';
+
+/**
+ * Counter scoping: 'OWNER' (the default for hook counters) namespaces the key
+ * per hook-owning entity (`key:ownerId`) so two units running the same OS keep
+ * independent counts. 'GLOBAL' uses the raw key for genuinely battle-wide
+ * counters (e.g. deck_shuffles, last_overheal).
+ */
+export type CounterScope = 'GLOBAL' | 'OWNER';
+
+export function resolveCounterKey(key: string, scope: CounterScope | undefined, owner: IBattleEntity): string {
+    return scope === 'GLOBAL' ? key : `${key}:${owner.id}`;
+}
 
 export enum HookPriority {
     SYSTEM = 100,
@@ -38,11 +50,16 @@ export type HookCondition = {
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;
+    statusAppliedIn?: StatusType[]; // Passes when the applied status is any of these
+    programCategoryIn?: string[]; // Passes when a program is in context and its category matches one of these
+    programCategoryNot?: string[]; // Passes when a program is in context and its category matches NONE of these
+    programAppliesStatus?: boolean; // Passes when the program in context does (true) / does not (false) contain a STATUS action
+    sourceDebuffCount?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number }; // Number of negative statuses on context.source
     isNaturalDraw?: boolean;
     isToken?: boolean;
     targetStatus?: { status: StatusType; minStacks?: number };
     sourceStatus?: { status: StatusType; minStacks?: number };
-    counter?: { key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
+    counter?: { key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number; scope?: CounterScope };
     currentEnergy?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
 };
 
@@ -63,7 +80,9 @@ export type HookAction = {
     dataId?: string; // For GENERATE_CARD
     key?: string; // For COUNTER key
     operator?: 'ADD' | 'SET' | 'RESET'; // For COUNTER operation
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scope?: CounterScope; // For COUNTER: 'OWNER' (default, per-entity) or 'GLOBAL'
+    appliesTo?: ProgramCategory; // For BUFF_NEXT_PROGRAM: restrict the buff to the next card of this category
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
     scalingKey?: string; // e.g., the key if scaling is 'COUNTER'
 };
 
@@ -81,9 +100,10 @@ export type ModifierDataHookDefinition = {
     trigger: 'onDamageCalculated' | 'onStatusDamageCalculated';
     priority: HookPriority;
     when?: HookCondition;
+    condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     multiplier?: number;
     bonus?: number;
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
     scalingKey?: string;
 };
 

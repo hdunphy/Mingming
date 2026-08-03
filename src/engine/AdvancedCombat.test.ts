@@ -43,10 +43,22 @@ function createMockState(): IBattleState {
         tempHp: 0, speed: 10, hooks: [], daemons: []
     };
 
+    const e2: IBattleEntity = {
+        id: 'e2', name: 'Minion', level: 10, experience: 0,
+        nickname: 'Minion',
+        definitionId: 'def2',
+        blueprintsCollected: 0,
+        attackIV: 0, defenseIV: 0, hpIV: 0,
+        maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
+        currentHp: 100, currentEnergy: 10,
+        primaryElement: 'Nature', statusEffects: [],
+        tempHp: 0, speed: 10, hooks: [], daemons: []
+    };
+
     return {
         sessionId: 'test', seed: '123', turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
         activeRelics: [],
-        playerParty: [p1], enemyParty: [e1],
+        playerParty: [p1], enemyParty: [e1, e2],
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         logs: [],
@@ -68,7 +80,8 @@ describe('Advanced Combat Mechanics', () => {
 
         // Setup: Enemy has 0 HP (already dead for this card play)
         const deadEnemy = { ...state.enemyParty[0], currentHp: 0 };
-        state = { ...state, enemyParty: [deadEnemy] };
+        state = { ...state, enemyParty: [deadEnemy, ...state.enemyParty.slice(1)] };
+
 
         // Mock a program with 2 actions
         const multiHitCard = { id: 'c1', dataId: 'card_fireball', currentCost: 2, isPlayable: true };

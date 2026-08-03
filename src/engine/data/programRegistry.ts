@@ -103,7 +103,17 @@ export const GetProgramData = (id: string): ProgramData => {
                 };
             }
             return inflatedAction;
-        }) || []
+        }) || [],
+        discardEffect: rawData.discardEffect ? rawData.discardEffect.map(action => {
+            const inflatedAction = inflateAction(action, id);
+            if (inflatedAction.conditionals) {
+                return {
+                    ...inflatedAction,
+                    conditionals: inflatedAction.conditionals.map((c: any) => inflateConstraint(c, id))
+                };
+            }
+            return inflatedAction;
+        }) : undefined
     };
 };
 

@@ -188,6 +188,42 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         actions: [{ type: 'STATUS', status: StatusType.Burn, stacks: 1, target: 'TARGET' }],
         rarity: 'Common'
     },
+    'card_heal_power': {
+        id: 'card_heal_power',
+        name: 'Nourish',
+        description: 'Power-based self heal (Heal category).',
+        element: 'None',
+        target: 'Single',
+        category: 'Heal',
+        baseCost: 1,
+        constraints: [],
+        actions: [{ type: 'HEAL', power: 25, target: 'SELF' }],
+        rarity: 'Common'
+    },
+    'card_heal_flat': {
+        id: 'card_heal_flat',
+        name: 'Mend',
+        description: 'Flat 20 HP self heal (Heal category).',
+        element: 'None',
+        target: 'Single',
+        category: 'Heal',
+        baseCost: 1,
+        constraints: [],
+        actions: [{ type: 'HEAL', power: 0, healOverride: 20, target: 'SELF' }],
+        rarity: 'Common'
+    },
+    'card_status_test': {
+        id: 'card_status_test',
+        name: 'Hex',
+        description: 'Apply 1 Dazed (Status category).',
+        element: 'None',
+        target: 'Single',
+        category: 'Status',
+        baseCost: 1,
+        constraints: [],
+        actions: [{ type: 'STATUS', status: StatusType.Dazed, stacks: 1, target: 'TARGET' }],
+        rarity: 'Common'
+    },
     'card_water_blast': {
         id: 'card_water_blast',
         name: 'Tsunami',
