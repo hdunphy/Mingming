@@ -42,6 +42,39 @@ const gameSlice = createSlice({
             state.roster = (state.roster as IMingmingState[]).filter(m => m.id !== id);
         },
 
+        /**
+         * Grants experience to a roster instance and runs the same level-up
+         * progression the battle path uses (`handleLevelUp` in effectHandlers),
+         * so a grant that crosses several thresholds behaves identically to
+         * earning that XP in combat: `experience` is cumulative and is never
+         * spent on a level, and levels are taken one threshold at a time.
+         *
+         * Derived stats (maxHp/attack/defense) are the battle-side half of
+         * handleLevelUp and have no roster counterpart to update -- they are
+         * recomputed from level + IVs by initializeBattleEntity when the unit
+         * next enters battle.
+         *
+         * This is a general game capability (a future XP relic/card grants it);
+         * it is deliberately NOT wired into applyRewardBundle -- see the note
+         * there on the rewards-grant-no-XP rule.
+         */
+        grantExperience: (state, action: PayloadAction<{ mingmingId: string, amount: number }>) => {
+            const { mingmingId, amount } = action.payload;
+            // Keep the save PlayerSaveSchema-valid: `experience` must remain a
+            // non-negative integer, and this action only ever grants XP.
+            if (!Number.isFinite(amount)) return;
+            const gain = Math.floor(amount);
+            if (gain <= 0) return;
+
+            const mm = state.roster.find(m => m.id === mingmingId);
+            if (!mm) return;
+
+            mm.experience += gain;
+            while (mm.experience >= getExpForLevel(mm.level + 1)) {
+                mm.level += 1;
+            }
+        },
+
         // --- Active Party (max 3) ---
         setActiveParty: (state, action: PayloadAction<string[]>) => {
             const ids = action.payload.slice(0, 3);
@@ -197,6 +230,18 @@ const gameSlice = createSlice({
             }
             state.gauntlet = null;
         },
+
+        // --- Sectors ---
+        /**
+         * Unlocks a sector by element. Same append completeGauntlet performs on
+         * a Gym clear, exposed as a standalone capability a relic or reward can
+         * grant directly. No-op if the sector is already unlocked.
+         */
+        unlockSector: (state, action: PayloadAction<string>) => {
+            if (state.unlockedSectors.includes(action.payload)) return;
+            (state.unlockedSectors as string[]).push(action.payload);
+        },
+
         syncPartyStats: (state, action: PayloadAction<ReadonlyArray<IBattleEntity>>) => {
             const party = action.payload;
             state.roster = state.roster.map(member => {
@@ -240,6 +285,7 @@ const gameSlice = createSlice({
 export const {
     addToRoster,
     removeFromRoster,
+    grantExperience,
     setActiveParty,
     addCardToInventory,
     addCardsToInventory,
@@ -258,6 +304,7 @@ export const {
     updateGauntlet,
     startGauntlet,
     completeGauntlet,
+    unlockSector,
     syncPartyStats,
     startNewGauntlet,
     updateMingmingOS,
