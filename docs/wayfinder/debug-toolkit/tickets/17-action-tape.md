@@ -3,7 +3,10 @@
 - Type: wayfinder:task
 - Status: open
 - Assignee:
-- Blocked by: [Debug gating scaffold](12-debug-gating-scaffold.md)
+- Blocked by: [Scenario schema & normalizer](10-scenario-schema-implementation.md) ([Debug gating scaffold](12-debug-gating-scaffold.md) closed)
+
+Correction 2026-08-03: originally listed as unblocked, but this ticket adds the optional `tape` field to
+the `ScenarioSchema` that ticket 10 creates, so it cannot land first.
 
 ## Question
 
