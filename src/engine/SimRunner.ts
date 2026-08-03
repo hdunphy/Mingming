@@ -101,5 +101,4 @@ export function runSimulation(): SimResult {
 // Ensure global accessibility for Console debugging
 if (typeof window !== 'undefined') {
     (window as any).runSim = runSimulation;
-    console.log("SimRunner loaded. Run `window.runSim()` to execute.");
 }

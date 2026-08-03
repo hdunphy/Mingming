@@ -7,9 +7,7 @@ import RosterTerminal from './ui/screens/RosterTerminal'
 import SynthesisLab from './ui/screens/SynthesisLab'
 import HubScreen from './ui/screens/HubScreen'
 import MainMenuView from './ui/components/MainMenuView'
-import BalanceTester from './ui/screens/BalanceTester'
 import SectorTerminal from './ui/screens/SectorTerminal'
-import CardStudio from './ui/screens/CardStudio'
 import RelicTerminal from './ui/screens/RelicTerminal'
 
 import { loadGame } from './engine/SaveSystem'
@@ -32,7 +30,7 @@ const debugLayer = DebugRoot ? (
   </Suspense>
 ) : null;
 
-type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'balance' | 'studio' | 'debug';
+type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'debug';
 
 const debugTab: { id: Tab; label: string; icon: string } = { id: 'debug', label: 'Debug', icon: '🐞' };
 
@@ -43,8 +41,6 @@ const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'roster', label: 'Roster', icon: '🤖' },
   { id: 'lab', label: 'Lab', icon: '🔬' },
   { id: 'relic', label: 'Relics', icon: '💎' },
-  { id: 'balance', label: 'Balance', icon: '⚖️' },
-  { id: 'studio', label: 'Studio', icon: '🏗️' },
   ...(import.meta.env.DEV ? [debugTab] : []),
 ];
 
@@ -121,8 +117,6 @@ function App() {
         {activeTab === 'roster' && <RosterTerminal />}
         {activeTab === 'lab' && <SynthesisLab />}
         {activeTab === 'relic' && <RelicTerminal />}
-        {activeTab === 'balance' && <BalanceTester />}
-        {activeTab === 'studio' && <CardStudio />}
         {activeTab === 'debug' && DebugRoot && (
           <Suspense fallback={null}>
             <DebugRoot mode="docked" />

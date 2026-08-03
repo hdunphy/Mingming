@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { GetProgramData, getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
-import CardForm from './CardForm';
+import CardForm from '../../ui/screens/CardForm';
 import './CardStudio.css';
 
 interface PowerscaleResult {

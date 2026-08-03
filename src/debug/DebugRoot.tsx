@@ -11,23 +11,32 @@
  * `scripts/assert-no-debug.mjs` proves it after the fact by grepping `dist/` for the
  * `__DEBUG_TOOLKIT__` marker exported below.
  *
- * Debug UI state lives here in React state/context — there is deliberately no `debugSlice`,
- * because registering one would require editing the production `src/ui/store/store.ts`.
- * Redux stays readable via `useSelector` and writable via `useDispatch` from inside this tree.
+ * This file owns the *chrome* only: the toggle chip, the hotkey, the two presentations and
+ * the panel selector strip. It owns no panel content. Panels register themselves in
+ * `./panels/index.ts` — see the "ADDING A PANEL" note there; adding one never touches this
+ * file. Shared debug UI state lives in `./debugUI.ts` so panels can read it without importing
+ * back into this module.
  *
- * This is the empty shell. Later tickets fill in the panels (scenario launcher, god tools,
- * the relocated Balance and Studio surfaces).
+ * There is deliberately no `debugSlice`, because registering one would require editing the
+ * production `src/ui/store/store.ts`. Redux stays readable via `useSelector` and writable via
+ * `useDispatch` from inside this tree.
  */
 
+import { useEffect, useMemo, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+
 import {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useSyncExternalStore,
-    type CSSProperties,
-    type ReactNode,
-} from 'react';
+    DebugUIContext,
+    getSnapshot,
+    setActivePanel,
+    setLastScenarioName,
+    setOpen,
+    subscribe,
+    toggleOpen,
+    useDebugUI,
+    type DebugPresentation,
+    type DebugUIContextValue,
+} from './debugUI';
+import { DEBUG_PANELS, resolveActivePanel } from './panels';
 
 /**
  * Build-gate marker. `scripts/assert-no-debug.mjs` fails the build if this string
@@ -35,77 +44,14 @@ import {
  */
 export const __DEBUG_TOOLKIT__ = '__DEBUG_TOOLKIT__';
 
-// --- Types ---
-
-export type DebugPresentation = 'floating' | 'docked';
-
-/** Panel identifiers are open-ended on purpose; later tickets register their own. */
-export type DebugPanelId = string;
-
-export interface DebugUIState {
-    /** Whether the floating layer's panel is expanded. The docked panel ignores this. */
-    isOpen: boolean;
-    /** Which panel is showing, in either presentation. `null` = none selected yet. */
-    activePanel: DebugPanelId | null;
-    /** `name` of the most recently loaded scenario, for "reload last" affordances. */
-    lastScenarioName: string | null;
-}
-
-export interface DebugUIContextValue extends DebugUIState {
-    /** How this subtree is mounted: the fixed-position layer, or the Debug tab. */
-    presentation: DebugPresentation;
-    setOpen: (open: boolean) => void;
-    toggleOpen: () => void;
-    setActivePanel: (panel: DebugPanelId | null) => void;
-    setLastScenarioName: (name: string | null) => void;
-}
-
-// --- Shared UI state ---
-//
-// Module-scoped so the floating layer and the docked tab — which mount as two separate
-// React subtrees in App.tsx — agree on the active panel and the last loaded scenario.
-// Plain subscribe/emit; no Redux, no store.ts edit.
-
-const initialState: DebugUIState = {
-    isOpen: false,
-    activePanel: null,
-    lastScenarioName: null,
-};
-
-let uiState: DebugUIState = initialState;
-const listeners = new Set<() => void>();
-
-function subscribe(listener: () => void): () => void {
-    listeners.add(listener);
-    return () => {
-        listeners.delete(listener);
-    };
-}
-
-function getSnapshot(): DebugUIState {
-    return uiState;
-}
-
-function patchUIState(patch: Partial<DebugUIState>): void {
-    uiState = { ...uiState, ...patch };
-    for (const listener of listeners) listener();
-}
-
-const setOpen = (open: boolean) => patchUIState({ isOpen: open });
-const toggleOpen = () => patchUIState({ isOpen: !uiState.isOpen });
-const setActivePanel = (panel: DebugPanelId | null) => patchUIState({ activePanel: panel });
-const setLastScenarioName = (name: string | null) => patchUIState({ lastScenarioName: name });
-
-const DebugUIContext = createContext<DebugUIContextValue | null>(null);
-
-/** Read the debug UI state from inside `src/debug/`. Throws if used outside `DebugRoot`. */
-export function useDebugUI(): DebugUIContextValue {
-    const ctx = useContext(DebugUIContext);
-    if (!ctx) {
-        throw new Error('useDebugUI() must be called inside <DebugRoot>.');
-    }
-    return ctx;
-}
+// Type re-exports only: the canonical runtime imports for panels are `../debugUI` (state)
+// and `./panels/types` (the panel contract).
+export type {
+    DebugPresentation,
+    DebugUIState,
+    DebugUIContextValue,
+} from './debugUI';
+export type { DebugPanel, DebugPanelId, DebugPanelProps } from './panels';
 
 // --- Hotkey ---
 
@@ -161,8 +107,9 @@ const floatingPanelStyle: CSSProperties = {
     right: '12px',
     bottom: '52px',
     zIndex: OVERLAY_Z,
-    width: 'min(360px, calc(100vw - 24px))',
-    maxHeight: 'min(60vh, 520px)',
+    // Wider than a tooltip because the relocated Balance/Studio surfaces are real screens.
+    width: 'min(720px, calc(100vw - 24px))',
+    maxHeight: 'min(70vh, 640px)',
     overflow: 'auto',
     padding: '12px',
     borderRadius: '8px',
@@ -175,27 +122,78 @@ const floatingPanelStyle: CSSProperties = {
 
 const dockedPanelStyle: CSSProperties = {
     padding: '16px',
+    height: '100%',
+    overflow: 'auto',
     color: '#e6e0ff',
     font: '13px/1.6 monospace',
 };
 
-function PanelPlaceholder({ presentation }: { presentation: DebugPresentation }): ReactNode {
-    const { activePanel, lastScenarioName } = useDebugUI();
+const stripStyle: CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+    marginBottom: '10px',
+    paddingBottom: '8px',
+    borderBottom: '1px solid rgba(122, 92, 255, 0.4)',
+};
+
+function tabStyle(isActive: boolean): CSSProperties {
+    return {
+        padding: '4px 10px',
+        borderRadius: '4px',
+        border: `1px solid ${isActive ? '#7a5cff' : 'rgba(122, 92, 255, 0.35)'}`,
+        background: isActive ? 'rgba(122, 92, 255, 0.25)' : 'transparent',
+        color: isActive ? '#e6e0ff' : '#a79ccc',
+        font: '600 11px/1.4 monospace',
+        letterSpacing: '0.06em',
+        cursor: 'pointer',
+    };
+}
+
+/** Panel selector strip. Reads the registry directly, so a new panel appears with no edit here. */
+function PanelStrip({ activeId }: { activeId: string | undefined }): ReactNode {
+    return (
+        <div style={stripStyle} role="tablist" aria-label="Debug panels">
+            {DEBUG_PANELS.map((panel) => (
+                <button
+                    key={panel.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={panel.id === activeId}
+                    style={tabStyle(panel.id === activeId)}
+                    onClick={() => setActivePanel(panel.id)}
+                >
+                    {panel.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+/** Body shared by both presentations: header, strip, active panel — or the empty state. */
+function DebugBody(): ReactNode {
+    const { presentation, activePanel, lastScenarioName } = useDebugUI();
+    const panel = resolveActivePanel(activePanel);
+
     return (
         <div>
             <div style={{ fontWeight: 700, letterSpacing: '0.1em', marginBottom: '8px' }}>
                 DEBUG TOOLKIT
+                {presentation === 'floating' && (
+                    <span style={{ float: 'right', opacity: 0.5, fontWeight: 400 }}>{HOTKEY_LABEL}</span>
+                )}
             </div>
-            <p style={{ margin: '0 0 8px' }}>
-                No panels registered yet. Scenario launcher, god tools, Balance and Studio land here
-                in later tickets.
-            </p>
-            <div style={{ opacity: 0.6 }}>
-                <div>presentation: {presentation}</div>
-                <div>active panel: {activePanel ?? '—'}</div>
-                <div>last scenario: {lastScenarioName ?? '—'}</div>
-                {presentation === 'floating' && <div>hotkey: {HOTKEY_LABEL}</div>}
-            </div>
+            <PanelStrip activeId={panel?.id} />
+            {panel ? (
+                <panel.Component presentation={presentation} />
+            ) : (
+                <p style={{ margin: 0, opacity: 0.6 }}>
+                    No panels registered. Add one in <code>src/debug/panels/index.ts</code>.
+                </p>
+            )}
+            {lastScenarioName && (
+                <div style={{ marginTop: '10px', opacity: 0.5 }}>last scenario: {lastScenarioName}</div>
+            )}
         </div>
     );
 }
@@ -220,7 +218,7 @@ function FloatingLayer(): ReactNode {
             </button>
             {isOpen && (
                 <div style={floatingPanelStyle} role="dialog" aria-label="Debug toolkit">
-                    <PanelPlaceholder presentation="floating" />
+                    <DebugBody />
                 </div>
             )}
         </>
@@ -231,7 +229,7 @@ function FloatingLayer(): ReactNode {
 function DockedPanel(): ReactNode {
     return (
         <div style={dockedPanelStyle}>
-            <PanelPlaceholder presentation="docked" />
+            <DebugBody />
         </div>
     );
 }
