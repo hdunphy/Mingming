@@ -3,7 +3,7 @@
 - Type: wayfinder:grilling
 - Status: open
 - Assignee:
-- Blocked by: [Scenario schema v1](02-scenario-schema.md)
+- Blocked by: — ([Scenario schema v1](02-scenario-schema.md) closed)
 
 ## Question
 
