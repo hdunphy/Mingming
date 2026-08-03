@@ -53,15 +53,15 @@ const StageBar: React.FC<{ percent: number; color: string; glow?: boolean }> = (
 interface StageSpriteProps {
     entity: IBattleEntity;
     isEnemy: boolean;
-    size: number;
     fx?: UnitFx;
 }
 
 /**
  * The big battle sprite + its event-driven FX. Mirrors MingmingUnit's
  * hit-shake / lunge / death-glitch behavior at stage scale.
+ * Frame size lives in CSS (viewport-clamped per spotlight side).
  */
-const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, size, fx }) => {
+const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
     const controls = useAnimation();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
     const [artBroken, setArtBroken] = React.useState(false);
@@ -120,7 +120,6 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, size, fx }) 
         <motion.div
             className={`stage-sprite-frame ${isDead ? 'stage-sprite-dead' : ''} ${deathGlitch ? 'stage-death-glitch' : ''}`}
             animate={controls}
-            style={{ width: size, height: size }}
         >
             {showArt ? (
                 <img
@@ -233,7 +232,7 @@ const BattleStage: React.FC<BattleStageProps> = ({
                         exit={{ opacity: 0, x: reduced ? 0 : 20 }}
                         transition={swapTransition}
                     >
-                        <StageSprite entity={player} isEnemy={false} size={240} fx={unitFx[player.id]} />
+                        <StageSprite entity={player} isEnemy={false} fx={unitFx[player.id]} />
                     </motion.div>
                 </AnimatePresence>
                 <div className="stage-plaque" style={{ borderColor: `${playerAccent}55` }}>
@@ -307,7 +306,7 @@ const BattleStage: React.FC<BattleStageProps> = ({
                         exit={{ opacity: 0, x: reduced ? 0 : -20 }}
                         transition={swapTransition}
                     >
-                        <StageSprite entity={enemy} isEnemy size={200} fx={unitFx[enemy.id]} />
+                        <StageSprite entity={enemy} isEnemy fx={unitFx[enemy.id]} />
                     </motion.div>
                 </AnimatePresence>
             </div>

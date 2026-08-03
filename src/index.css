@@ -58,7 +58,7 @@ body {
 
 .stage-area {
   flex: 1 1 auto;
-  /* 440 (not 600): with the console's min-content ~260px this fits a 720px-tall
+  /* 440 (not 600): with the console at 265px this fits a 720px-tall
      viewport without pushing the stage above the viewport top edge. */
   min-height: 440px;
   display: flex;
@@ -72,7 +72,8 @@ body {
 }
 
 .console-area {
-  flex: 0 0 220px;
+  /* 265: fits the enlarged hand row (195px) + footer without squeezing. */
+  flex: 0 0 265px;
   background: #0a0a0f;
   border-top: 2px solid var(--glass-border);
   position: relative;
@@ -526,7 +527,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: 140px;
+  height: 195px;
   width: 100%;
   padding: 0 20px;
   box-sizing: border-box;
@@ -534,20 +535,39 @@ body {
 }
 
 .hand-row .program-card {
-  margin-left: -60px;
+  margin-left: -70px;
 }
 
 .hand-row>*:first-child {
   margin-left: 0;
 }
 
+/* Battle-hand text scales with the bigger card face. */
+.hand-row .program-card .card-name {
+  font-size: 1rem;
+}
+
+.hand-row .program-card .card-description {
+  font-size: 0.75rem;
+}
+
+.hand-row .program-card .card-target {
+  font-size: 0.66rem;
+}
+
+.hand-row .program-card .card-cost {
+  width: 32px;
+  height: 32px;
+  font-size: 1.05rem;
+}
+
 .program-card {
-  width: 140px;
-  height: 200px;
+  width: 180px;
+  height: 255px;
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  padding: 10px 10px 8px;
+  border-radius: 14px;
+  padding: 12px 12px 10px;
   position: relative;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   cursor: pointer;
@@ -710,8 +730,9 @@ body {
   letter-spacing: 1px;
 }
 
-/* Combat Log — anchored just right of the player sidebar so it never fights
-   the center stage (player spotlight is bottom-left, enemy spotlight top-right). */
+/* Combat Log — hangs from the top CENTER of the stage. The spotlights sit on
+   the bottom-left / mid-right diagonal, so the top-middle band is the one spot
+   neither big sprite reaches. */
 .combat-log-container {
   width: 280px;
   background: var(--glass-bg);
@@ -722,13 +743,15 @@ body {
   flex-direction: column;
   overflow: hidden;
   position: absolute;
-  left: 350px;
+  left: 50%;
+  transform: translateX(-50%);
   top: 0;
   z-index: 50;
 }
 
 .log-messages {
-  max-height: 150px;
+  /* Shrinks on short viewports so the log never reaches the player sprite. */
+  max-height: clamp(90px, 16vh, 150px);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -2277,13 +2300,28 @@ body {
 }
 
 .stage-spot-player {
-  left: 4%;
-  bottom: 78px;
+  left: 17%;
+  bottom: 70px;
 }
 
 .stage-spot-enemy {
-  right: 3%;
-  top: 78px;
+  right: 13%;
+  /* Pulled down off the top edge (toward vertical center) so the enemy stack
+     clears the top-center combat log; clamped so it never sinks into the
+     console on short viewports. */
+  top: clamp(115px, 21vh, 165px);
+}
+
+/* Sprite frames scale with viewport width so the inward-shifted spotlights
+   still clear the centered combat log on narrower windows. */
+.stage-spot-player .stage-sprite-frame {
+  width: clamp(180px, 16vw, 260px);
+  height: clamp(180px, 16vw, 260px);
+}
+
+.stage-spot-enemy .stage-sprite-frame {
+  width: clamp(150px, 13vw, 215px);
+  height: clamp(150px, 13vw, 215px);
 }
 
 /* ── Floor platform: subtle element-tinted ellipse + perspective grid ── */
