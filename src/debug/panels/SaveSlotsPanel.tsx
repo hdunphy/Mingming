@@ -165,7 +165,7 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
     const legacyPresent = readLegacySaveRaw() !== null;
 
     // Same readout the save editor shows: is what is on disk in this slot what the store holds?
-    // It matters here because "branch this run" duplicates the *stored* bytes.
+    // It matters here because "Copy current save" duplicates the *stored* bytes.
     const persisted = ((): { data: unknown; error?: string } => {
         try {
             return loadGame();
@@ -277,15 +277,66 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
         </div>
     );
 
+    // Rendered in both presentations. Creating a slot mid-battle is an odd moment to want one,
+    // but "odd" is not "never" — and a control that exists or vanishes depending on how you
+    // opened the layer is worse than a slightly crowded overlay.
+    const createSection = (
+        <section style={sectionStyle}>
+            <div style={rowStyle}>
+                <span style={labelStyle}>+ new save slot</span>
+                <input
+                    style={textStyle}
+                    value={newName}
+                    placeholder="name"
+                    aria-label="new slot name"
+                    onChange={(e) => setNewName(e.target.value)}
+                />
+                <button
+                    type="button"
+                    style={buttonStyle()}
+                    onClick={() => {
+                        report('create fresh save', createSlotOp(newName));
+                        setNewName('');
+                    }}
+                >
+                    Create fresh save
+                </button>
+                <button
+                    type="button"
+                    style={buttonStyle()}
+                    onClick={() => {
+                        report(`copy ${activeId}`, createSlotOp(newName || 'copy', activeId));
+                        setNewName('');
+                    }}
+                >
+                    Copy current save
+                </button>
+            </div>
+            <div style={noteStyle}>
+                "Copy current save" duplicates the active slot's <em>stored</em> save, so the copy starts
+                byte-identical and diverges from there. Neither button switches — do that from the list
+                above, deliberately, because switching discards the live battle.
+                {!inSync && liveValid.valid && (
+                    <span style={{ color: WARN }}>
+                        {' '}
+                        The stored copy is currently behind the live state, so a copy taken now would miss
+                        the newest changes.
+                    </span>
+                )}
+            </div>
+        </section>
+    );
+
     if (presentation === 'floating') {
         return (
             <div>
                 {header}
                 {resultBanner}
                 {slotList}
+                {createSection}
                 <p style={{ ...noteStyle, margin: 0 }}>
                     Switching clears the live battle first, so a battle started here can never end into
-                    another slot. Create / branch / rename / delete are docked-only — open the Debug tab.
+                    another slot. Rename and delete are docked-only — open the Debug tab.
                 </p>
             </div>
         );
@@ -297,7 +348,7 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
             {resultBanner}
 
             <section style={sectionStyle}>
-                <div style={{ ...labelStyle, marginBottom: '6px' }}>slots</div>
+                <div style={{ ...labelStyle, marginBottom: '6px' }}>save slots</div>
                 {slotList}
                 <div style={noteStyle}>
                     Switching clears any live battle *before* the active pointer moves. Otherwise a debug
@@ -307,49 +358,7 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
                 </div>
             </section>
 
-            <section style={sectionStyle}>
-                <div style={rowStyle}>
-                    <span style={labelStyle}>new slot</span>
-                    <input
-                        style={textStyle}
-                        value={newName}
-                        placeholder="name"
-                        onChange={(e) => setNewName(e.target.value)}
-                    />
-                    <button
-                        type="button"
-                        style={buttonStyle()}
-                        onClick={() => {
-                            report('create empty slot', createSlotOp(newName));
-                            setNewName('');
-                        }}
-                    >
-                        create empty
-                    </button>
-                    <button
-                        type="button"
-                        style={buttonStyle()}
-                        onClick={() => {
-                            report(`branch ${activeId}`, createSlotOp(newName || 'branch', activeId));
-                            setNewName('');
-                        }}
-                    >
-                        branch this run
-                    </button>
-                </div>
-                <div style={noteStyle}>
-                    "Branch this run" duplicates the active slot's <em>stored</em> save, so the branch starts
-                    byte-identical and diverges from there. Neither button switches — do that from the list
-                    above, deliberately, because switching discards the live battle.
-                    {!inSync && liveValid.valid && (
-                        <span style={{ color: WARN }}>
-                            {' '}
-                            The stored copy is currently behind the live state, so a branch taken now would
-                            miss the newest changes.
-                        </span>
-                    )}
-                </div>
-            </section>
+            {createSection}
 
             <section style={sectionStyle}>
                 <div style={rowStyle}>

@@ -66,16 +66,36 @@ describe('SaveSlotsPanel', () => {
 
         expect(markup).toContain('scratch');
         expect(markup.match(/switch/g)?.length).toBeGreaterThan(0);
-        expect(markup).toContain('branch this run');
+        expect(markup).toContain('Copy current save');
     });
 
-    it('keeps create/branch/rename/delete out of the floating layer', () => {
+    it('labels the create controls as what they do, not as jargon', () => {
+        const markup = render('docked');
+
+        // These were `new slot` / `create empty` / `branch this run`, which read as reference
+        // documentation rather than buttons — the panel was twice searched and twice missed.
+        expect(markup).toContain('+ new save slot');
+        expect(markup).toContain('Create fresh save');
+        expect(markup).toContain('Copy current save');
+    });
+
+    it('offers slot creation in the floating layer too', () => {
         createSlot('scratch');
         const markup = render('floating');
 
         expect(markup).toContain('ACTIVE SLOT');
-        expect(markup).not.toContain('branch this run');
+        // A control that exists or vanishes depending on how the layer was opened is its own
+        // confusion, so creating is available from both presentations.
+        expect(markup).toContain('Create fresh save');
+        expect(markup).toContain('Copy current save');
+    });
+
+    it('still keeps rename and delete docked-only', () => {
+        createSlot('scratch');
+        const markup = render('floating');
+
         expect(markup).not.toContain('confirm delete');
+        expect(markup).not.toContain('new name');
         expect(markup).toContain('docked-only');
     });
 });
