@@ -31,16 +31,21 @@ import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { getActiveSlotId, listSlots } from '../../engine/SaveSlots';
-import { rollSeed } from '../../engine/core/SeedStream';
-import type { IPlayerSave } from '../../engine/gameTypes';
+import { SeedStream, rollSeed } from '../../engine/core/SeedStream';
+import { createOwnedProgram } from '../../engine/gameTypes';
+import type { IOwnedProgram, IPlayerSave } from '../../engine/gameTypes';
 import type {
     EnemyCombatMode,
+    IBattleEntity,
     IBattleState,
+    IMingmingState,
     IMove,
     StatusEffectInstance,
     StatusType,
 } from '../../engine/types';
 import { setBattleState } from '../../ui/store/battleSlice';
+import { loadSave } from '../../ui/store/gameSlice';
+import { prepareEdit, type SaveEditAction } from '../saveEdit';
 import { buildScenarioState } from './buildScenarioState';
 import type {
     ComposedSetup,
@@ -458,6 +463,101 @@ export function destinationSlot(): DestinationSlot {
     };
 }
 
+// --- Seeding an empty slot ---------------------------------------------------
+
+/**
+ * WHY A SCENARIO SEEDS THE SLOT IT LAUNCHES INTO
+ *
+ * A fresh slot starts from `createDefaultSave()`, whose `roster` is `[]`. Ending a scenario
+ * battle there returns to `App.tsx`, which falls through to `MainMenuView` — the starter
+ * picker — and that view renders no nav bar, so the docked Debug tab is unreachable until the
+ * slot has a roster. Worse, `syncPartyStats` had nothing to write into: the battle's XP and
+ * levels went nowhere.
+ *
+ * Seeding the empty slot from the battle turns the scratch slot into a real, continuable save:
+ * finish the battle, land in the hub with those mingmings, launch the next one.
+ *
+ * THE IDS MUST BE THE BATTLE'S IDS. `gameSlice`'s `syncPartyStats` (`gameSlice.ts:245`)
+ * matches roster members to battle entities *by id*, and `buildScenarioState` mints entity
+ * ids off its own `SeedStream`. A roster seeded from `ComposedSetup` instead — which carries
+ * no ids at all — would look right and silently drop every level and XP gain on the way out.
+ * So the roster is derived from the materialized `playerParty` and nothing else.
+ */
+
+/**
+ * Roster projection of a battle entity.
+ *
+ * `IBattleEntity extends IMingmingState`, so the persistent fields are already there; this
+ * picks exactly them and drops the derived/transient combat half (maxHp, currentHp, energy,
+ * statuses, daemons, intents), none of which the save is allowed to carry.
+ */
+function toRosterMember(entity: IBattleEntity): IMingmingState {
+    return {
+        id: entity.id,
+        definitionId: entity.definitionId,
+        level: entity.level,
+        experience: entity.experience,
+        blueprintsCollected: entity.blueprintsCollected,
+        attackIV: entity.attackIV,
+        defenseIV: entity.defenseIV,
+        hpIV: entity.hpIV,
+        ...(entity.nickname !== undefined ? { nickname: entity.nickname } : {}),
+        ...(entity.activeOS !== undefined ? { activeOS: entity.activeOS } : {}),
+    };
+}
+
+/** Id and name the seeded deck is written under, so a hub-side deck is recognisable as ours. */
+export const SEEDED_DECK_ID = 'scenario-seeded-deck';
+export const SEEDED_DECK_NAME = 'Scenario Deck';
+
+/**
+ * The save a scratch slot should hold once this battle exists in it. Pure — computes, does
+ * not dispatch, and is validated before anything is dispatched (see `launchScenario`).
+ *
+ * `roster` / `activeParty` come from `state.playerParty` (ids included, see above).
+ *
+ * The deck comes from `setup.player.deck`, which is *dataIds* — the output of `resolveDeck`.
+ * `IPlayerSave` stores a deck as `activeDeck.cards`, a list of `cardInventory` *instance*
+ * ids (`gameTypes.ts:20-24`), and `createBattleState` resolves one to the other exactly the
+ * way `savedDeck` above does (`battleFactories.ts:264-271`). So each dataId is minted into a
+ * fresh `IOwnedProgram` and the deck references those instance ids; anything else produces an
+ * `activeDeck` whose entries resolve to nothing and a next battle with no cards.
+ *
+ * Instance ids are minted off a `SeedStream` seeded with the scenario seed rather than
+ * `crypto.randomUUID()`, keeping the whole launch path deterministic.
+ *
+ * Non-destructive where it can be: existing inventory is appended to rather than replaced,
+ * relics are unioned, and an existing `activeDeck` is only replaced when the scenario actually
+ * resolved cards. `baseDecksGranted` is deliberately left alone — the scenario deck is not the
+ * species grant, and claiming it was would silently rob a later real synthesis of its base deck.
+ */
+export function seedSaveFromBattle(
+    save: IPlayerSave,
+    setup: ComposedSetup,
+    state: IBattleState,
+): IPlayerSave {
+    const rng = new SeedStream(setup.seed);
+    const roster = state.playerParty.map(toRosterMember);
+    const granted: IOwnedProgram[] = setup.player.deck.map((dataId) => createOwnedProgram(dataId, rng));
+
+    return {
+        ...save,
+        roster,
+        // `PlayerSaveSchema.activeParty` is capped at 3; a scenario file could carry more.
+        activeParty: roster.slice(0, MAX_PARTY).map((member) => member.id),
+        cardInventory: [...save.cardInventory, ...granted],
+        activeDeck:
+            granted.length > 0
+                ? {
+                      id: SEEDED_DECK_ID,
+                      name: SEEDED_DECK_NAME,
+                      cards: granted.map((card) => card.instanceId),
+                  }
+                : save.activeDeck,
+        relics: [...new Set([...save.relics, ...setup.player.relics])],
+    };
+}
+
 // --- Launch ------------------------------------------------------------------
 
 export interface LaunchResult {
@@ -466,10 +566,22 @@ export interface LaunchResult {
     seed?: string;
     state?: IBattleState;
     error?: string;
+    /** True when an empty active save was seeded from this battle's party and deck. */
+    seeded?: boolean;
+    /**
+     * Why the seed was refused. The battle still launched: an unseeded battle is merely
+     * inconvenient, a schema-invalid save wedges every autosave from that point on.
+     */
+    seedIssues?: ReadonlyArray<string>;
 }
 
-/** Anything that accepts `setBattleState`. `store.dispatch` satisfies it. */
-export type LaunchDispatch = (action: ReturnType<typeof setBattleState>) => void;
+/**
+ * Anything that accepts `setBattleState` *and* the `gameSlice` action that seeds the save.
+ * `store.dispatch` satisfies it. Widened rather than cast at the call site: seeding really
+ * does dispatch a second, different action, and hiding that behind an `as` would make the
+ * one place that writes a save from here invisible in the type.
+ */
+export type LaunchDispatch = (action: ReturnType<typeof setBattleState> | SaveEditAction) => void;
 
 /**
  * Materialize a setup and inject it: `dispatch(setBattleState(buildScenarioState(setup)))`.
@@ -479,8 +591,23 @@ export type LaunchDispatch = (action: ReturnType<typeof setBattleState>) => void
  *
  * A blank seed is rolled here, once, and reported back so the panel can pin it in the field:
  * a scenario you cannot re-run with the same seed is not a repro.
+ *
+ * `save` is the *active slot's* save. Pass it to get the empty-slot seeding described above;
+ * omit it (or pass null) and this is launch and nothing else. Seeding happens only when
+ * `save.roster` is empty — a slot branched from a real run with `Copy current save` keeps its
+ * own roster, untouched. That conditional is the entire safety property here.
+ *
+ * The seed is dispatched *before* the battle, and only after `prepareEdit` has validated the
+ * prospective save against `PlayerSaveSchema` without dispatching (`saveEdit.ts`, audit gap
+ * #18: a schema-invalid save fails the autosave with nothing but a `console.error`). Same
+ * ordering discipline as `switchToSlot`: get the save into its final shape while no battle
+ * exists that could end into it.
  */
-export function launchScenario(setup: ComposedSetup, dispatch: LaunchDispatch): LaunchResult {
+export function launchScenario(
+    setup: ComposedSetup,
+    dispatch: LaunchDispatch,
+    save?: IPlayerSave | null,
+): LaunchResult {
     const seed = setup.seed === UNROLLED_SEED || setup.seed.trim() === '' ? rollSeed() : setup.seed;
     const resolved: ComposedSetup = { ...setup, seed };
 
@@ -491,8 +618,27 @@ export function launchScenario(setup: ComposedSetup, dispatch: LaunchDispatch): 
         return { ok: false, error: String(err) };
     }
 
+    let seeded = false;
+    let seedIssues: ReadonlyArray<string> | undefined;
+
+    if (save && save.roster.length === 0) {
+        const prepared = prepareEdit(save, loadSave(seedSaveFromBattle(save, resolved, state)));
+        if (prepared.ok) {
+            dispatch(prepared.action);
+            seeded = true;
+        } else {
+            seedIssues = prepared.issues;
+            // The panel says so too, but the panel closes on launch — and this is exactly the
+            // class of failure that otherwise only ever shows up as lost progress.
+            console.warn(
+                '[launchScenario] Refused to seed the empty save — it would not pass ' +
+                    `PlayerSaveSchema:\n${prepared.issues.join('\n')}`,
+            );
+        }
+    }
+
     dispatch(setBattleState(state));
-    return { ok: true, seed, state };
+    return { ok: true, seed, state, seeded, ...(seedIssues ? { seedIssues } : {}) };
 }
 
 // --- Misc helpers the panel needs but should not own -------------------------

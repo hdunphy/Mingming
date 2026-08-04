@@ -33,7 +33,10 @@ vi.stubGlobal('localStorage', {
 import { createSlot, renameSlot, setActiveSlotId } from '../../engine/SaveSlots';
 import { createDefaultSave } from '../../engine/gameTypes';
 import type { IPlayerSave } from '../../engine/gameTypes';
+import { createBattleState } from '../../engine/data/battleFactories';
 import battleReducer from '../../ui/store/battleSlice';
+import gameReducer from '../../ui/store/gameSlice';
+import { validateSave } from '../saveEdit';
 import {
     baseDeckFor,
     cardOptions,
@@ -90,6 +93,15 @@ function playableDraft(): LauncherDraft {
 function makeStore() {
     return configureStore({
         reducer: { battle: battleReducer },
+        middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
+    });
+}
+
+/** Both slices — the seeding path writes `game` as well as `battle`. */
+function makeFullStore(save: IPlayerSave = createDefaultSave()) {
+    return configureStore({
+        reducer: { battle: battleReducer, game: gameReducer },
+        preloadedState: { game: save },
         middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
     });
 }
@@ -384,5 +396,112 @@ describe('launchScenario — compose, materialize, dispatch', () => {
         expect(result.ok).toBe(false);
         expect(result.error).toContain('no enemies');
         expect(store.getState().battle.battle).toBeNull();
+    });
+});
+
+describe('launchScenario — seeding an empty slot', () => {
+    /** A launchable two-unit setup with a relic, so every seeded field has something in it. */
+    function seedableSetup() {
+        return toComposedSetup(
+            {
+                ...playableDraft(),
+                party: [createUnit('fenrir', 12), createUnit('kraken', 9)],
+                relics: ['heatsink'],
+            },
+            makeSave(),
+        );
+    }
+
+    it('seeds an empty roster with the battle party — ids included, so XP syncs back', () => {
+        const store = makeFullStore();
+        const setup = seedableSetup();
+
+        const result = launchScenario(setup, store.dispatch, store.getState().game);
+
+        expect(result.ok).toBe(true);
+        expect(result.seeded).toBe(true);
+        expect(result.seedIssues).toBeUndefined();
+
+        const battle = store.getState().battle.battle!;
+        const save = store.getState().game;
+
+        // THE REGRESSION THAT MATTERS: syncPartyStats matches roster to battle entities by id.
+        expect(save.roster.map((m) => m.id)).toEqual(battle.playerParty.map((e) => e.id));
+        expect(save.activeParty).toEqual(battle.playerParty.map((e) => e.id));
+        expect(save.roster.map((m) => m.definitionId)).toEqual(['fenrir', 'kraken']);
+        expect(save.roster.map((m) => m.level)).toEqual([12, 9]);
+        expect(save.roster[0].experience).toBe(battle.playerParty[0].experience);
+        expect(save.roster[0].activeOS).toBe(battle.playerParty[0].activeOS);
+        expect(save.relics).toEqual(['heatsink']);
+
+        // Roster members are save shape, not battle shape.
+        expect(save.roster[0]).not.toHaveProperty('maxHp');
+        expect(save.roster[0]).not.toHaveProperty('currentHp');
+        expect(save.roster[0]).not.toHaveProperty('statusEffects');
+    });
+
+    it('leaves a populated roster alone — a slot branched from a real run is untouched', () => {
+        const populated = makeSave({
+            roster: [rosterMember('r1', 'kraken', 14)],
+            activeParty: ['r1'],
+            cardInventory: [{ instanceId: 'i1', dataId: 'ignite' }],
+            activeDeck: { id: 'd1', name: 'Real Deck', cards: ['i1'] },
+            relics: ['expansion_slot'],
+        });
+        const store = makeFullStore(populated);
+
+        const result = launchScenario(seedableSetup(), store.dispatch, populated);
+
+        expect(result.ok).toBe(true);
+        expect(result.seeded).toBe(false);
+        expect(store.getState().game).toEqual(populated);
+        // The battle still went in.
+        expect(store.getState().battle.battle).not.toBeNull();
+    });
+
+    it('does not touch the save at all when no save is passed', () => {
+        const store = makeFullStore();
+        const before = store.getState().game;
+
+        const result = launchScenario(seedableSetup(), store.dispatch);
+
+        expect(result.seeded).toBe(false);
+        expect(store.getState().game).toBe(before);
+        expect(store.getState().battle.battle).not.toBeNull();
+    });
+
+    it('produces a save that passes PlayerSaveSchema', () => {
+        const store = makeFullStore();
+        launchScenario(seedableSetup(), store.dispatch, store.getState().game);
+
+        expect(validateSave(store.getState().game)).toEqual({ valid: true, issues: [] });
+    });
+
+    it('seeds a coherent deck: the next battle from that save actually has those cards', () => {
+        const store = makeFullStore();
+        const setup = seedableSetup();
+        launchScenario(setup, store.dispatch, store.getState().game);
+
+        const save = store.getState().game;
+        expect(setup.player.deck.length).toBe(20);
+
+        // activeDeck holds cardInventory *instance* ids; the inventory maps them to dataIds.
+        const inventory = new Map(save.cardInventory.map((c) => [c.instanceId, c.dataId]));
+        expect(save.activeDeck).not.toBeNull();
+        expect(save.activeDeck!.cards.every((id) => inventory.has(id))).toBe(true);
+        expect(save.activeDeck!.cards.map((id) => inventory.get(id))).toEqual(setup.player.deck);
+
+        // The real creation path, from the seeded save: the scenario deck is what gets dealt.
+        // (An empty/incoherent activeDeck would silently fall back to the archetype deck, whose
+        // contents differ from every species base deck.)
+        const next = createBattleState(save, ['draugr'], undefined, { seed: 'next-battle' });
+        const dealt = [...next.playerDeck.drawpile, ...next.playerDeck.hand].map((c) => c.dataId);
+        expect(dealt.length).toBe(setup.player.deck.length);
+        expect([...dealt].sort()).toEqual([...setup.player.deck].sort());
+
+        // And the party carries over by id, which is what "continue into the next battle" means.
+        expect(next.playerParty.map((e) => e.id)).toEqual(
+            store.getState().battle.battle!.playerParty.map((e) => e.id),
+        );
     });
 });

@@ -597,7 +597,11 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
     // --- Actions ---
 
     const onLaunch = () => {
-        const result = launchScenario(setup, dispatch);
+        // The save is passed so an *empty* slot is seeded from this battle's party and deck —
+        // otherwise the battle ends into a rosterless save, `App.tsx` falls through to the
+        // starter picker (no nav bar, no way back to Debug) and syncPartyStats has nothing to
+        // write into. A slot that already has a roster is never touched.
+        const result = launchScenario(setup, dispatch, save);
         if (!result.ok) {
             setStatus({ ok: false, text: result.error ?? 'Launch failed.' });
             return;
@@ -605,7 +609,22 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
         // Pin the seed that actually ran: a scenario you cannot re-run identically is not a repro.
         patch({ seed: result.seed! });
         setLastScenarioName(draft.name);
-        setStatus({ ok: true, text: `Launched "${draft.name}" with seed ${result.seed}.` });
+        // Rewriting someone's save, even an empty one, is never allowed to be invisible.
+        const lines = [`Launched "${draft.name}" with seed ${result.seed}.`];
+        if (result.seeded) {
+            lines.push(
+                `Seeded the empty "${slot.name}" save from this battle: ${setup.player.party.length} ` +
+                    `mingming(s) (roster ids taken from the battle, so XP syncs back), ${deck.cards.length} ` +
+                    `card(s) and ${setup.player.relics.length} relic(s). ` +
+                    'Finish the battle and you land in the hub with them.',
+            );
+        } else if (result.seedIssues) {
+            lines.push(
+                `⚠ NOT seeded — the resulting save failed PlayerSaveSchema, so nothing was written ` +
+                    `(a bad save wedges every autosave after it):\n${result.seedIssues.join('\n')}`,
+            );
+        }
+        setStatus({ ok: true, text: lines.join('\n') });
         // Closes the floating layer. The docked Debug tab needs no close: `App.tsx` renders
         // `BattleArena` instead of the tab chain the moment `state.battle.battle` is non-null.
         setOpen(false);
