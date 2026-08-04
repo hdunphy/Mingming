@@ -58,6 +58,8 @@ import {
     type LauncherDraft,
     type LauncherUnit,
 } from '../scenarios/composeScenario';
+import { createSlotOp, switchToSlot } from '../saveSlots';
+import { listSlots } from '../../engine/SaveSlots';
 import { describeRegistryMismatch, loadScenario, saveScenario } from '../scenarios/scenarioIO';
 import { SCENARIO_FILE_EXTENSION } from '../scenarios/scenarioSchema';
 import { triggerDownload } from '../snapshotIO';
@@ -513,6 +515,9 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
         enemies: [createEnemyUnit()],
     }));
     const [showJson, setShowJson] = useState(true);
+    // Bumped after a slot operation. `listSlots()` reads localStorage, which is not reactive, so
+    // without this the dropdown would keep showing the pre-switch list.
+    const [slotRevision, setSlotRevision] = useState(0);
     const [status, setStatus] = useState<PanelStatus | null>(null);
     const [mismatchBanner, setMismatchBanner] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -527,6 +532,51 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
     // Read at render time, not memoized: localStorage is not reactive, and switching slots in
     // the Slots panel must be reflected the next time this panel draws.
     const slot = destinationSlot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- slotRevision is the invalidator
+    const slots = useMemo(() => listSlots(), [slotRevision, save]);
+
+    /**
+     * Retarget the launch without leaving the panel.
+     *
+     * Delegates to `switchToSlot` rather than reimplementing the pointer move, so the containment
+     * ordering (clear the live battle while the old slot is still active, then switch, then load)
+     * has exactly one implementation. A refusal there changes nothing, so surfacing it is enough.
+     *
+     * The draft is deliberately left alone: a mirrored party still holds the *previous* slot's
+     * roster ids, and silently rewriting someone's composition on a slot change would be worse
+     * than telling them.
+     */
+    const onSwitchSlot = (slotId: string) => {
+        if (slotId === slot.id) return;
+        const result = switchToSlot(slotId, dispatch);
+        setSlotRevision((n) => n + 1);
+        setStatus(
+            result.ok
+                ? {
+                      ok: true,
+                      text:
+                          `Now launching into ${slotId}. Your composition was kept — but a mirrored ` +
+                          `party still holds the previous slot's roster ids, so re-run "Mirror my ` +
+                          `save party" if you want this slot's roster.`,
+                  }
+                : { ok: false, text: `Slot switch refused — nothing changed:\n${result.issues.join('\n')}` },
+        );
+    };
+
+    /** Create an empty scratch slot and switch to it — the two-step you almost always want here. */
+    const onNewScratchSlot = () => {
+        const taken = new Set(slots.map((s) => s.name));
+        let name = 'scratch';
+        for (let n = 2; taken.has(name); n += 1) name = `scratch ${n}`;
+
+        const created = createSlotOp(name);
+        if (!created.ok || !created.slot) {
+            setSlotRevision((n) => n + 1);
+            setStatus({ ok: false, text: `Could not create a slot:\n${created.issues.join('\n')}` });
+            return;
+        }
+        onSwitchSlot(created.slot.id);
+    };
 
     const patch = (fields: Partial<LauncherDraft>) => setDraft((current) => ({ ...current, ...fields }));
 
@@ -947,7 +997,38 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                 {'\n'}
                 Finishing this battle writes XP, rewards and relics into that save — syncPartyStats
                 matches roster members by id, and a mirrored party reuses real ones. To break things
-                safely, switch to a scratch slot in the Slots panel first.
+                safely, launch into a scratch slot.
+                <div
+                    style={{
+                        display: 'flex',
+                        gap: '6px',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        marginTop: '8px',
+                    }}
+                >
+                    <span style={labelStyle}>launch into</span>
+                    <select
+                        value={slot.id}
+                        onChange={(event) => onSwitchSlot(event.target.value)}
+                        style={{ ...controlStyle, flex: '0 1 220px' }}
+                        aria-label="destination save slot"
+                        title="Switch the save slot this battle will end into"
+                    >
+                        {slots.map((option) => (
+                            <option key={option.id} value={option.id}>
+                                {option.name} ({option.id})
+                            </option>
+                        ))}
+                    </select>
+                    <button type="button" style={buttonStyle()} onClick={onNewScratchSlot}>
+                        + new scratch slot
+                    </button>
+                    <span style={{ ...noteStyle, margin: 0 }}>
+                        Switching clears any live battle first. Branch / rename / delete live in the
+                        Slots panel.
+                    </span>
+                </div>
             </div>
 
             {blockers.length > 0 && <div style={bannerStyle(BAD)}>{blockers.join('\n')}</div>}

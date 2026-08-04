@@ -79,6 +79,20 @@ describe('ScenarioLauncherPanel', () => {
         expect(markup).toContain('LAUNCH BATTLE INTO REAL SAVE');
     });
 
+    it('lets you retarget the slot without leaving the panel', () => {
+        renameSlot('slot_1', 'Real Save');
+        const markup = render();
+
+        // The gap this closes: the banner used to name a slot and then send you elsewhere to
+        // change it, which is the one moment you actually want the control to hand.
+        expect(markup).toContain('launch into');
+        expect(markup).toContain('aria-label="destination save slot"');
+        expect(markup).toContain('+ new scratch slot');
+        expect(markup).toContain('Real Save (slot_1)');
+        // Destructive slot management deliberately stays in one place.
+        expect(markup).toContain('Branch / rename / delete live in the');
+    });
+
     it('shows the three columns with the JSON pane visible by default', () => {
         const markup = render();
 
