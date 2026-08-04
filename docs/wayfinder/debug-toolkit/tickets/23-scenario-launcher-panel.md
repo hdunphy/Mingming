@@ -1,7 +1,7 @@
 # Scenario launcher panel
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: cowork-2026-08-03-opus5
 - Blocked by: [Save slots](24-save-slots.md) ([Scenario launcher UI prototype](04-scenario-launcher-ui-prototype.md) closed)
 
@@ -51,12 +51,15 @@ Done when: `npx vitest run` + `npx tsc -b` + `npm run build` all green (the buil
 `assert-no-debug`), and a composed scenario launches into a real battle from the Debug tab.
 
 
-## Resolution — built, awaiting manual acceptance
+## Resolution
 
 Implemented 2026-08-03. Verified: `npx vitest run` 53 files / 630 tests green (+30 from this
 ticket), `npx tsc -b` clean, `npm run build` clean including `assert-no-debug`.
 
-**Left open deliberately.** The ticket's Done-when includes "a composed scenario launches into a
+**Accepted 2026-08-03.** Henry ran the click-through and a composed scenario launches into a real
+battle from the Debug tab. The Done-when is met and the ticket is closed.
+
+~~Left open deliberately.~~ The ticket's Done-when includes "a composed scenario launches into a
 real battle from the Debug tab", and that cannot be verified without a browser. Everything up to
 and including the dispatch is tested against a real store; the React `onClick` wiring is not. See
 Outstanding below — closing this is Henry's click-through, not another session's work.
@@ -99,3 +102,27 @@ Open the Debug tab → Launcher, mirror a party, add an enemy, press Launch, con
 That exercises the only untested hop: `onClick` → the tested functions, plus the `<input type=file>`
 read path, the Blob download, `setOpen(false)` collapsing the floating layer, and `App.tsx` swapping
 to `BattleArena` once `state.battle.battle` is non-null. **Do it in a scratch save slot.**
+
+
+### What acceptance found
+
+The click-through failed the first time, and the cause was **not** in this panel. `App.tsx` checked
+`rosterSize === 0 → MainMenuView` *before* `isInBattle → BattleArena`, and a fresh save slot starts
+from `createDefaultSave()` with an empty roster — so Launch created the battle in the store and then
+rendered the main menu over it. Fixed in `9165b46` by making a live battle outrank an empty roster.
+
+That is the audit's blocker #6 (the roster-0 lockout), and it amends
+[Debug gating architecture](03-debug-gating-architecture.md) §2's decision to leave the early
+returns untouched. That decision held for *reaching* the debug layer — it is hoisted above both
+returns — but not for *rendering* a battle composed from an empty-roster slot.
+
+Two usability failures surfaced in the same pass and were fixed rather than documented:
+
+- The banner named the destination slot and then sent you to another panel to change it. The
+  Launcher now carries a slot dropdown and `+ new scratch slot` (`2eb08c0`).
+- The Slots panel's controls were labelled `new slot` / `create empty` / `branch this run` — the
+  panel was searched twice and missed twice. Relabelled to `+ new save slot` / `Create fresh save`
+  / `Copy current save`, and creation now works in the floating overlay too (`bd4acb9`).
+
+**This was the first bug found by driving the toolkit rather than by reading code**, which is the
+outstanding half of the map's destination.
