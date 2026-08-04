@@ -832,16 +832,27 @@ function processPreTurn(state: IBattleState): IBattleState {
         nextState = afterHook;
     }
 
-    // 3. Draw Cards for Player
+    // 3. Draw cards for the active side.
     nextState = executeDraw(nextState, nextSide, 0, true);
 
-    if (nextSide === 'PLAYER') {
-        const alivePlayers = nextState.playerParty.filter((e: IBattleEntity) => e.currentHp > 0);
-        const totalCardDraw = alivePlayers.length === 0
+    // Refill the active side's hand. The player always uses cards; the enemy
+    // only does in enemyMode 'CARDS'. MOVES enemies must NOT draw - their deck
+    // is empty by construction, and calling executeDraw with a real count would
+    // advance the RNG seed and change every existing MOVES battle and every
+    // recorded scenario.
+    //
+    // This was previously gated on `nextSide === 'PLAYER'`, so a CARDS enemy
+    // drew its opening hand at battle creation and then never drew again: once
+    // it had played through those cards it had nothing left, getBestAction
+    // found no plays, and the enemy silently passed every turn for the rest of
+    // the battle.
+    const activeSideUsesCards = nextSide === 'PLAYER' || (nextState.enemyMode ?? 'MOVES') === 'CARDS';
+    if (activeSideUsesCards) {
+        const aliveUnits = nextState[activePartyKey].filter((e: IBattleEntity) => e.currentHp > 0);
+        const totalCardDraw = aliveUnits.length === 0
             ? 0
-            : alivePlayers.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - alivePlayers.length + 1;
-        const cardsToDraw = Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState.playerDeck.hand.length);
-        console.log(`Drawing ${cardsToDraw} cards from ${totalCardDraw} total card draw`);
+            : aliveUnits.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveUnits.length + 1;
+        const cardsToDraw = Math.max(0, Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState[activeDeckKey].hand.length));
         nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
     }
 
