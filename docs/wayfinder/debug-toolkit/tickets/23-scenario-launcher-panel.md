@@ -3,7 +3,7 @@
 - Type: wayfinder:task
 - Status: open
 - Assignee:
-- Blocked by: — ([Scenario launcher UI prototype](04-scenario-launcher-ui-prototype.md) closed)
+- Blocked by: [Save slots](24-save-slots.md) ([Scenario launcher UI prototype](04-scenario-launcher-ui-prototype.md) closed)
 
 ## Question
 
@@ -28,12 +28,24 @@ Checklist:
   `loadScenario` / `saveScenario` so the registry-hash warning fires (ticket 02 §2).
 - Launch dispatches `setBattleState(buildScenarioState(setup))` and closes the debug layer.
 - CARDS-mode warning when enemies exist without decks — the failure mode fixed in `cf7ad48`.
+- **Name the destination slot before launching.** Ending a scenario battle writes XP, rewards and
+  relics into whatever save slot is active ([Save slots](24-save-slots.md) explains why). The
+  launcher must say which slot that is, in plain words, next to the Launch button.
 
-Deliberately unresolved, decide while building and note what you chose:
+### Changes from the approved prototype
 
-- Whether the JSON column keeps its width or collapses to a toggle once the form is trusted.
-- Whether relics belong here, given the save editor already grants them.
-- The ad-hoc card picker needs search and duplicate counts; the prototype's `prompt()` is a stand-in.
+Henry resolved all three of ticket 04's deferred questions on 2026-08-03. The committed mockup
+predates these, so where they conflict, this section wins:
+
+- **JSON column gets a show/hide button.** Visible by default, collapsible once the form is trusted.
+- **Ad-hoc deck mode is cut.** Deck modes are base decks / saved deck only. The workflow for an
+  arbitrary deck already exists end to end: save editor `grant cards` → build and save it in
+  `DeckTerminal` (the real deck builder, Milestone 3.1, constrained to `cardInventory`) → pick it
+  here under Saved deck. No new deck builder is needed. Drop the prototype's `prompt()` picker.
+- **Relics stay in the launcher and take precedence over the save.** This is already how the schema
+  behaves — `ComposedSetup.player.relics` is an explicit list, never read from `IPlayerSave` — so
+  the launcher is the authority for a scenario's relics and the save editor's grant-relic is for
+  ordinary play.
 
 Done when: `npx vitest run` + `npx tsc -b` + `npm run build` all green (the build runs
 `assert-no-debug`), and a composed scenario launches into a real battle from the Debug tab.
