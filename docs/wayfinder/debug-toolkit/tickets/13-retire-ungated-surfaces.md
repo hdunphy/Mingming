@@ -1,7 +1,7 @@
 # Retire the ungated surfaces
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: subagent-13-retire-ungated (cowork-2026-08-03-opus5)
 - Blocked by: [Debug gating scaffold](12-debug-gating-scaffold.md)
 
@@ -76,3 +76,12 @@ Properties to rely on:
 - The floating panel was widened (360px/60vh → 720px/70vh) and the docked panel given
   `height: 100%; overflow: auto`, because Balance and Studio are full screens rather than tooltips.
   Not specified by the ticket — trivially revertible if Henry dislikes it.
+
+
+## Resolution
+
+Shipped in `3b042ca`; the ticket was left open by the session that did the work.
+Closed during a bookkeeping sync on 2026-08-03 after verifying the code is present and the
+full suite, `tsc -b` and `npm run build` (including `assert-no-debug`) are green.
+
+Landed: Balance/Studio moved to src/debug/panels/, main.tsx runSim import DEV-gated, assert-no-debug green.

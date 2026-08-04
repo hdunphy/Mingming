@@ -1,7 +1,7 @@
 # Scenario materializer
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: subagent-11-materializer (cowork-2026-08-03-opus5)
 - Blocked by: [Determinism groundwork](09-determinism-groundwork.md), [Scenario schema & normalizer](10-scenario-schema-implementation.md)
 
@@ -64,3 +64,12 @@ Findings that qualify this ticket:
   as per-member `currentHp`. It is run context for the injection layer. Documented in the module
   header so it doesn't read as an oversight.
 - No injection, as instructed — the state is returned, nothing is dispatched.
+
+
+## Resolution
+
+Shipped in `a6388a4`; the ticket was left open by the session that did the work.
+Closed during a bookkeeping sync on 2026-08-03 after verifying the code is present and the
+full suite, `tsc -b` and `npm run build` (including `assert-no-debug`) are green.
+
+Landed: buildScenarioState.ts + tests under src/debug/scenarios/.

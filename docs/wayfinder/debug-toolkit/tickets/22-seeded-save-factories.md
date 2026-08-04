@@ -1,7 +1,7 @@
 # Seeded save factories
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: subagent-22-seeded-saves (cowork-2026-08-03-opus5)
 - Blocked by: [Determinism groundwork](09-determinism-groundwork.md)
 
@@ -51,3 +51,12 @@ No caller changes were needed. One landmine found and defused:
   site and is ignored, never used as a seed. Fixing the call site to
   `pickedIds.map(id => createOwnedProgram(id, rng))` would let the union narrow back and would also
   seed reward-card ids — deliberately left alone as out of scope. See the map's fog.
+
+
+## Resolution
+
+Shipped in `c224506`; the ticket was left open by the session that did the work.
+Closed during a bookkeeping sync on 2026-08-03 after verifying the code is present and the
+full suite, `tsc -b` and `npm run build` (including `assert-no-debug`) are green.
+
+Landed: Math.random/randomUUID removed from gameTypes.ts save factories.
