@@ -1,8 +1,8 @@
 # Save slots
 
 - Type: wayfinder:task
-- Status: open
-- Assignee:
+- Status: closed
+- Assignee: cowork-2026-08-03-opus5
 - Blocked by: —
 
 ## Question
@@ -50,3 +50,56 @@ Checklist:
 
 Deferred, deliberately: the player-facing slot picker in `MainMenuView` (126 lines today, so it is
 mostly new UI).
+
+
+## Resolution
+
+Implemented 2026-08-03. Verified: `npx vitest run` 51 files / 600 tests green (from 561 — +36 new,
+−1 deleted false-cover test), `npx tsc -b` clean, `npm run build` clean including `assert-no-debug`.
+
+Landed: `src/engine/SaveSlots.ts` (key derivation, index, migration, slot CRUD) + 23 tests;
+`src/engine/SaveSystem.ts` now addresses `getActiveSaveKey()` with **all four signatures
+unchanged**; `src/debug/saveSlots.ts` (Redux-touching ops) + 13 tests against the real app store;
+`src/debug/panels/SaveSlotsPanel.tsx` + smoke tests; one import and one entry in `panels/index.ts`.
+
+**`store.ts`, `App.tsx`, `BattleArena.tsx`, `HubScreen.tsx`, `SaveEditorPanel.tsx` and
+`DebugRoot.tsx` are byte-identical to before** — verified by diff. The gate invariant and the
+no-production-edits property both hold.
+
+### Storage and migration
+
+`mingming_saves` (index) + `mingming_save__<slotId>` (payloads) + `mingming_save` (legacy).
+
+First read after upgrade: no index → create one with slot `slot_1` named "Main", **copy** the legacy
+bytes in, mark active, read normally. The player sees their save exactly as before. The legacy key
+is never written or removed again — it is a frozen snapshot from the moment slots arrived. Second
+launch: index exists, adoption never re-runs. A *corrupt* index is rebuilt, but the legacy copy is
+only pasted back when the slot payload is absent, so a corrupt index cannot clobber real progress
+with a stale save.
+
+### Cross-write containment
+
+Lives in `switchToSlot` (`src/debug/saveSlots.ts`) — not the panel (a future caller could skip it)
+and not the engine (it cannot dispatch). The order **is** the guarantee: vet the target payload
+first (a refusal mutates nothing) → `setBattleState(null)` **while the old slot is still active**, so
+an in-flight battle cannot survive to end into the new slot → `setActiveSlotId` → immediately
+`loadSave` (or `resetSave` for an empty slot), or the previous slot's `state.game` would autosave
+into the new key on the next change.
+
+### Judgement calls
+
+- `deleteSave` wipes the active slot's payload but keeps the slot — defeat and hub restart should
+  not eject you from the slot you are in. Removing the index entry is `deleteSlot`'s job.
+- `deleteSlot` refuses to remove the last slot; an emptied index would be rebuilt by the next read,
+  silently re-adopting the legacy save.
+- "Branch this run" copies the slot's **stored** bytes, not live state; the panel warns when the
+  stored copy is behind live state so a branch is never silently stale.
+- Slot ids are `slot_N`, not UUIDs — `crypto.randomUUID` is not guaranteed under plain node, and
+  these ids surface in a debug UI where readable beats unique-forever.
+- Mid-battle (floating) presentation exposes **switch only**; create/branch/rename/delete are
+  docked-only. Switching stays reachable mid-battle deliberately — it is the containment move you
+  most want from the battle screen.
+- Two `SaveSystem.test.ts` describes gained `beforeEach(localStorage.clear())`. They had relied on
+  leftover state; once writing `mingming_save` means "legacy adoption", one read a stale slot. No
+  assertions or counts changed — they now genuinely exercise adoption instead of passing by
+  accident.

@@ -5,8 +5,18 @@
 
 import { z } from 'zod';
 import type { IPlayerSave } from './gameTypes';
+import { getActiveSaveKey } from './SaveSlots';
 
-const SAVE_KEY = 'mingming_save';
+/**
+ * The four functions below keep their exact signatures and address the *active save slot*
+ * (`./SaveSlots.ts`), which resolves to `mingming_save__<slotId>`. Nothing here takes a key:
+ * one of the six call sites is the autosave subscription in `src/ui/store/store.ts`, and
+ * threading a slot through it would mean editing production files on behalf of the debug
+ * toolkit. Slot selection is therefore a single write in the index, not a parameter.
+ *
+ * The pre-slot `mingming_save` key is adopted (copied, not moved) into the first slot on the
+ * first read after upgrading — see `./SaveSlots.ts`.
+ */
 
 // --- Zod Schemas ---
 
@@ -100,7 +110,7 @@ export function saveGame(state: IPlayerSave): { success: boolean; error?: string
         // Validate before saving
         PlayerSaveSchema.parse(state);
         const json = JSON.stringify(state);
-        localStorage.setItem(SAVE_KEY, json);
+        localStorage.setItem(getActiveSaveKey(), json);
         return { success: true };
     } catch (err) {
         if (err instanceof z.ZodError) {
@@ -116,7 +126,7 @@ export function saveGame(state: IPlayerSave): { success: boolean; error?: string
 
 export function loadGame(): { data: IPlayerSave | null; error?: string } {
     try {
-        const raw = localStorage.getItem(SAVE_KEY);
+        const raw = localStorage.getItem(getActiveSaveKey());
         if (!raw) return { data: null };
 
         const parsed = migrateSave(JSON.parse(raw));
@@ -138,10 +148,23 @@ export function loadGame(): { data: IPlayerSave | null; error?: string } {
     }
 }
 
+/**
+ * Wipe the active slot's save (defeat, and the hub's "restart" confirm). The slot itself
+ * survives as an empty slot — removing it from the index is `deleteSlot`'s job, and doing it
+ * here would drop the player out of the slot they are sitting in.
+ */
 export function deleteSave(): void {
-    localStorage.removeItem(SAVE_KEY);
+    try {
+        localStorage.removeItem(getActiveSaveKey());
+    } catch {
+        // localStorage may be unavailable (node, privacy modes). Nothing to remove either way.
+    }
 }
 
 export function hasSave(): boolean {
-    return localStorage.getItem(SAVE_KEY) !== null;
+    try {
+        return localStorage.getItem(getActiveSaveKey()) !== null;
+    } catch {
+        return false;
+    }
 }

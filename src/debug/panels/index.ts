@@ -19,6 +19,7 @@
 import BalanceTester from './BalanceTester';
 import GodToolsPanel from './GodToolsPanel';
 import SaveEditorPanel from './SaveEditorPanel';
+import SaveSlotsPanel from './SaveSlotsPanel';
 import SnapshotPanel from './SnapshotPanel';
 import CardStudio from './CardStudio';
 import type { DebugPanel } from './types';
@@ -31,6 +32,7 @@ export const DEBUG_PANELS = [
     { id: 'godtools', label: 'God Tools', Component: GodToolsPanel },
     { id: 'snapshot', label: 'Snapshot', Component: SnapshotPanel },
     { id: 'save', label: 'Save', Component: SaveEditorPanel },
+    { id: 'slots', label: 'Slots', Component: SaveSlotsPanel },
 ] as const satisfies readonly DebugPanel[];
 
 /** Union of every registered panel id — derived, so the registry stays the single source. */

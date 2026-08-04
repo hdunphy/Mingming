@@ -81,7 +81,7 @@ Crowd Control affects the "Action Economy" and must be budgeted differently:
 
 ## 2. Automated Simulation Pipeline (Batch Testing)
 
-Using the `SimRunner.ts` in a headless environment, we execute thousands of matches to find statistical outliers.
+Using `src/debug/balance/runBatch.ts` in a headless environment, we execute thousands of matches to find statistical outliers. Run them with `npm run balance` (vitest, `vitest.balance.config.ts`, matching `*.balance.ts` only — `npm test` and `npm run build` never see these).
 
 ### 2.1. "The Mirror Test"
 - **Setup:** Two identical MingMings and Decks fight 100 times with randomized seeds.
