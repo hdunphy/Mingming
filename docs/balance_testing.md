@@ -110,9 +110,27 @@ The Auditor flags specific combinations of Programs and OS variants that break t
 
 ---
 
-## 4. Proposed Tool: The Balance Auditor (`Auditor.ts`)
+## 4. The Balance Auditor
 
-A CLI utility that runs these tests and generates a `balance_report.json`.
+Runs these tests and generates a `balance_report.json`.
 
 - **Input:** `programRegistry.json`, `mingmingRegistry.json`, `firmwareRegistry.json`.
 - **Output:** A list of "Redline" cards that exceed their Energy Budget or have anomalous win rates in simulations.
+
+Implemented in `src/debug/balance/balanceReport.ts`, run by `npm run balance` (as a vitest
+`globalSetup` teardown, so it also writes after a red run — which is the run whose report you want).
+
+- `docs/balance/balance_report.json` — **committed and overwritten each run.** The sims are seeded
+  and the file records no timestamp, so it is stable: change a card, rerun, and `git diff docs/balance/`
+  is the answer to "what did that do".
+- `docs/balance/balance_redlines.csv` — one row per redline.
+- `docs/balance/balance_matchups.csv` — one row per simulated matchup, every metric, for sorting in a
+  spreadsheet.
+
+§1's budget formula lives in `src/debug/balance/powerscale.ts` and is the same code the Card Studio
+panel renders, so the panel and the committed report cannot disagree about a card's score.
+
+> `src/engine/sim/Simulator.ts` and the Balance Laboratory panel are **not** part of this pipeline.
+> They are a closed-form TTK approximation (zero-IV units, no statuses, hooks, cards or AI), kept
+> because they are instant enough to recompute as a slider drags. When they disagree with
+> `balance_report.json`, the report is the balance answer.

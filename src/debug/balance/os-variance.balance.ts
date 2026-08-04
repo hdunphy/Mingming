@@ -22,18 +22,29 @@
  * which is the accurate description of that failure.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { BALANCE_SPECIES, osVarianceScenario } from './balanceScenarios';
 import { quietly, summarizePaired } from './balanceReporting';
+import {
+    MATCHUP_THRESHOLDS,
+    pairedInput,
+    publishFragments,
+    recordMatchup,
+} from './balanceReport';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { runPairedBatch } from './runBatch';
 
 const SEEDS = 50;
 const MAX_TURNS = 60;
 
-/** §2.3: "outperforms the other by >15%". */
-const MAX_GAP = 0.15;
+/**
+ * §2.3: "outperforms the other by >15%".
+ *
+ * Shared with the auditor so a breach here always has a matching redline in
+ * `docs/balance/balance_report.json`.
+ */
+const MAX_GAP = MATCHUP_THRESHOLDS.osMaxGap;
 
 /**
  * Fewest decided games that can support a >15% claim. Below this the gap is dominated by
@@ -42,7 +53,10 @@ const MAX_GAP = 0.15;
  * as inconclusive; the stalling that caused it is redlined in the Mirror Test, which is
  * the accurate description of what is actually wrong with them.
  */
-const MIN_DECIDED_GAMES = 20;
+const MIN_DECIDED_GAMES = MATCHUP_THRESHOLDS.osMinDecidedGames;
+
+// Runs even when the assertions below go red, which is the run whose report matters.
+afterAll(publishFragments);
 
 describe('OS Variance Audit (balance_testing.md 2.3)', () => {
     it.each([...BALANCE_SPECIES])('%s: v1 and v2 are the same power level', species => {
@@ -52,6 +66,23 @@ describe('OS Variance Audit (balance_testing.md 2.3)', () => {
                 iterations: SEEDS,
                 maxTurns: MAX_TURNS,
             }),
+        );
+
+        // Recorded before the assertion, so a breach still reaches the committed report.
+        recordMatchup(
+            pairedInput(
+                {
+                    suite: 'os-variance',
+                    role: 'os-variance',
+                    id: `os:${species}`,
+                    label: `${v1} vs ${v2}`,
+                    player: species,
+                    playerOS: v1,
+                    enemy: species,
+                    enemyOS: v2,
+                },
+                paired,
+            ),
         );
 
         console.log(summarizePaired(`${v1} vs ${v2}`, paired));

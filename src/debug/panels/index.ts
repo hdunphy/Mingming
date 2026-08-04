@@ -20,6 +20,7 @@ import BalanceTester from './BalanceTester';
 import GodToolsPanel from './GodToolsPanel';
 import SaveEditorPanel from './SaveEditorPanel';
 import SaveSlotsPanel from './SaveSlotsPanel';
+import ScenarioLauncherPanel from './ScenarioLauncherPanel';
 import SnapshotPanel from './SnapshotPanel';
 import CardStudio from './CardStudio';
 import type { DebugPanel } from './types';
@@ -30,6 +31,7 @@ export const DEBUG_PANELS = [
     { id: 'balance', label: 'Balance', Component: BalanceTester },
     { id: 'studio', label: 'Studio', Component: CardStudio },
     { id: 'godtools', label: 'God Tools', Component: GodToolsPanel },
+    { id: 'launcher', label: 'Launcher', Component: ScenarioLauncherPanel },
     { id: 'snapshot', label: 'Snapshot', Component: SnapshotPanel },
     { id: 'save', label: 'Save', Component: SaveEditorPanel },
     { id: 'slots', label: 'Slots', Component: SaveSlotsPanel },

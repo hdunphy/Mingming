@@ -1,4 +1,29 @@
-
+/**
+ * Closed-form TTK matrix - a FAST APPROXIMATION, NOT BALANCE TRUTH.
+ *
+ * WHAT THIS MODEL IS
+ * ------------------
+ * One `calculateDamage` call per side against a zero-IV unit, then `ttk = ceil(maxHp /
+ * damage)`. That is the whole model. It has no statuses, no daemon hooks, no cards, no
+ * energy, no AI and no turn order - two units stand still and trade one fixed hit per turn
+ * until one falls over. Real battles in this engine are decided by which cards the
+ * `TacticalAI` finds and which statuses stick, none of which exists here.
+ *
+ * So a number out of this file is a stat-curve sanity check - does a level-40 fenrir
+ * two-shot a level-5 kraken - and not a balance verdict. The balance verdict lives in
+ * `src/debug/balance/`: seeded `battleReducer` battles with both sides played by the
+ * `TacticalAI`, written to `docs/balance/balance_report.json` by `npm run balance`.
+ *
+ * WHY IT IS KEPT ANYWAY
+ * ---------------------
+ * It is instant. `BalanceTester` recomputes the whole matrix as a level slider drags, which
+ * a real batch (seconds per matchup, minutes per suite) cannot do at any quality of
+ * implementation. Deleting it would cost that interaction and buy nothing.
+ *
+ * The label is the point: the two tools *will* disagree, often loudly, and this notice is
+ * what makes that expected rather than a bug report. See
+ * `docs/wayfinder/debug-toolkit/tickets/08-batch-sim-auditor-design.md` section 5.
+ */
 import { calculateDamage } from '../combatUtils';
 import { initializeBattleEntity } from '../types';
 import type { IBattleEntity, ProgramData, IBattleState } from '../types';

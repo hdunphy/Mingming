@@ -113,8 +113,11 @@ export function buildSnapshotFile(
  * into `src/debug/scenarios/`, so a Blob + synthetic anchor click is the whole mechanism.
  * Differs from the original in one respect: the object URL is revoked, because a debug
  * session exports dozens of snapshots and each leaked URL pins its Blob for the page's life.
+ *
+ * Exported because the scenario launcher's "save composition" writes the same kind of file
+ * from a `.scenario.json` string; a second copy of this would be a second thing to fix.
  */
-function triggerDownload(fileName: string, contents: string): void {
+export function triggerDownload(fileName: string, contents: string): void {
     const blob = new Blob([contents], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);

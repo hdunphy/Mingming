@@ -26,10 +26,16 @@
  * own redline (§2.2's turn count), which is the second describe block below.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { BALANCE_SPECIES, mirrorScenario } from './balanceScenarios';
 import { quietly, summarizePaired } from './balanceReporting';
+import {
+    MATCHUP_THRESHOLDS,
+    pairedInput,
+    publishFragments,
+    recordMatchup,
+} from './balanceReport';
 import { runPairedBatch, type PairedBatchResult } from './runBatch';
 
 /**
@@ -58,10 +64,10 @@ const MAX_TURNS = 60;
  * bias cannot hide in it (the smallest interesting asymmetry - the AI mis-signing one
  * side's board evaluation - would put this at 0% or 100%, not 55%).
  */
-const TOLERANCE = 0.10;
+const TOLERANCE = MATCHUP_THRESHOLDS.mirrorTolerance;
 
 /** §2.2's turn-count redline, applied here to the simplest possible matchup. */
-const STALL_TURN_LIMIT = 30;
+const STALL_TURN_LIMIT = MATCHUP_THRESHOLDS.stallTurnLimit;
 
 const results = new Map<string, PairedBatchResult>();
 
@@ -69,12 +75,36 @@ function mirrorOf(species: string): PairedBatchResult {
     const existing = results.get(species);
     if (existing) return existing;
 
-    const paired = quietly(() =>
-        runPairedBatch(mirrorScenario(species), { iterations: SEEDS, maxTurns: MAX_TURNS }),
-    );
+    const setup = mirrorScenario(species);
+    const paired = quietly(() => runPairedBatch(setup, { iterations: SEEDS, maxTurns: MAX_TURNS }));
     results.set(species, paired);
+
+    // Recorded here, before any assertion runs, so a mirror that breaches a redline still
+    // reaches the report. An assertion throws, and a batch that only ever existed inside a
+    // failed test is invisible in the diff the report exists to produce.
+    const os = setup.player.party[0].activeOS ?? '';
+    recordMatchup(
+        pairedInput(
+            {
+                suite: 'mirror',
+                role: 'mirror',
+                id: `mirror:${species}`,
+                label: `mirror ${species}`,
+                player: species,
+                playerOS: os,
+                enemy: species,
+                enemyOS: os,
+            },
+            paired,
+        ),
+    );
+
     return paired;
 }
+
+// `afterAll`, not the tail of the last test: it runs even when every test in the file went
+// red, and a red run is exactly the run whose report is worth having.
+afterAll(publishFragments);
 
 describe('Mirror Test - harness validation (balance_testing.md 2.1)', () => {
     it.each([...BALANCE_SPECIES])(
@@ -96,7 +126,7 @@ describe('Mirror Test - harness validation (balance_testing.md 2.1)', () => {
 
             // The same statement from the other direction: whatever moving first is worth,
             // it must be worth the same to both sides.
-            expect(paired.sideBias).toBeLessThanOrEqual(2 * TOLERANCE);
+            expect(paired.sideBias).toBeLessThanOrEqual(MATCHUP_THRESHOLDS.mirrorSideBias);
         },
     );
 

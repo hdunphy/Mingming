@@ -1,4 +1,17 @@
 
+/**
+ * Balance Laboratory - the UI over `engine/sim/Simulator.ts`.
+ *
+ * A FAST APPROXIMATION, NOT BALANCE TRUTH: the model behind every number on this screen is
+ * closed-form TTK over zero-IV units with no statuses, hooks, cards or AI (see that file's
+ * header). It is kept, and kept unchanged, because it is instant - live recompute as a
+ * slider drags is the entire reason this panel is usable, and a real batch is seconds per
+ * matchup.
+ *
+ * The real numbers come from `npm run balance` and land in
+ * `docs/balance/balance_report.json`. The banner below says so on screen, because two
+ * balance tools that disagree without explaining why read as a bug.
+ */
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
@@ -139,6 +152,18 @@ const BalanceTester: React.FC = () => {
                 <h1>⚖️ Balance Laboratory</h1>
                 <p>Iterate and simulate combat matchups to ensure fairness.</p>
             </header>
+
+            <div className="approximation-notice" role="note">
+                <strong>Fast approximation — not balance truth.</strong> This is a closed-form
+                time-to-kill model: one damage roll per side against zero-IV units, then
+                <code> ttk = ceil(maxHp / damage)</code>. No statuses, no daemon hooks, no cards,
+                no energy, no AI, no turn order. It exists because it is instant, which is the
+                only reason the sliders above can recompute live.
+                <br />
+                The balance verdict comes from the seeded batch simulator:
+                <code> npm run balance</code> → <code>docs/balance/balance_report.json</code>.
+                When the two disagree, that file is right and this panel is the approximation.
+            </div>
 
             <div className="tester-grid">
                 {/* Unit A Selection */}

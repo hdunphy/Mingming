@@ -17,6 +17,12 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
     test: {
         include: ['src/**/*.balance.ts'],
+        // The auditor (docs/wayfinder/debug-toolkit/tickets/21-balance-auditor-report.md).
+        // It has to be a globalSetup rather than a fourth suite: each *.balance.ts file
+        // runs in its own worker, so only the main process can see all of their results,
+        // and only a teardown is guaranteed to run after a red suite - which is precisely
+        // the run whose report matters.
+        globalSetup: ['./src/debug/balance/reportGlobalSetup.ts'],
         // A batch is minutes, not milliseconds. The default 5s timeout would fail every
         // test here before it produced a number.
         testTimeout: 30 * 60 * 1000,
