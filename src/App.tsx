@@ -82,12 +82,23 @@ function App() {
     prevInBattle.current = isInBattle;
   }, [isInBattle, gauntlet]);
 
-  if (rosterSize === 0) {
-    return <>{debugLayer}<MainMenuView /></>;
-  }
-
+  // A live battle outranks an empty roster. These used to be the other way round, which meant a
+  // scenario launched into a fresh save slot was created in the store and then never rendered:
+  // the slot's roster is empty, so this component returned MainMenuView and BattleArena never got
+  // a look in. Composing a party from scratch is the launcher's whole purpose, so roster-0 is the
+  // normal case there rather than an edge one.
+  //
+  // Safe in ordinary play: createBattleState throws on an empty party, so no battle can exist
+  // alongside an empty roster except by debug injection. The defeat path only deletes the *stored*
+  // save while the overlay is up — state.game.roster stays populated — and both wipe paths
+  // (BattleArena's handleDefeatReset, HubScreen's handleRestart) call window.location.reload()
+  // immediately after resetSave(), so there is no frame where this order shows the wrong screen.
   if (isInBattle) {
     return <>{debugLayer}<BattleArena /></>;
+  }
+
+  if (rosterSize === 0) {
+    return <>{debugLayer}<MainMenuView /></>;
   }
 
   return (
