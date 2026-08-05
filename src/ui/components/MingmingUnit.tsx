@@ -25,6 +25,10 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
     const badgeRef = React.useRef<HTMLDivElement>(null);
     const info = statusGlossary[type];
     const color = STATUS_COLORS[type] ?? '#ccc';
+    // BarkShield stacks are now a %maxHp float (docs/power_curve_spec.md rev 3) that
+    // decays by a multiplicative 20%/turn, so it won't land on a whole number most
+    // turns — round just for display, the stored value stays precise.
+    const displayStacks = Math.round(stacks * 10) / 10;
 
     return (
         <div
@@ -35,7 +39,7 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
             onMouseLeave={() => setShowTooltip(false)}
         >
             <span className="hud-status-icon">{info?.icon ?? '✦'}</span>
-            {stacks > 1 && <span className="hud-status-stacks">×{stacks}</span>}
+            {stacks > 1 && <span className="hud-status-stacks">×{displayStacks}</span>}
 
             {showTooltip && info && createPortal(
                 <div
@@ -56,7 +60,7 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
                 >
                     <div className="tooltip-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
                         <span className="tooltip-os-name" style={{ color }}>{info.name.toUpperCase()}</span>
-                        <span style={{ color, opacity: 0.85, fontSize: '0.7rem', fontWeight: 700 }}>×{stacks}</span>
+                        <span style={{ color, opacity: 0.85, fontSize: '0.7rem', fontWeight: 700 }}>×{displayStacks}</span>
                     </div>
                     <div className="tooltip-divider" />
                     <div className="tooltip-body">{info.description}</div>

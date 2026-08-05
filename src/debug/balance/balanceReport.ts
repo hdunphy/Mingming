@@ -173,6 +173,13 @@ export interface CardBudgetEntry {
     /** Section 1.3's upper bound for this cost. */
     budget: number;
     overBudgetBy: number;
+    /**
+     * Action types on this card that `calculatePowerscale` couldn't honestly price (see
+     * `powerscale.ts`'s `manualReview`) - non-empty means `score` is a floor, not the whole
+     * picture. A redline with entries here is still a real redline (the priced components
+     * alone already cleared the budget), just possibly worse than `overBudgetBy` shows.
+     */
+    manualReview: string[];
 }
 
 export interface BalanceReport {
@@ -258,7 +265,10 @@ function budgetRedline(entry: CardBudgetEntry): Redline {
         comparison: 'above',
         detail:
             `${entry.name} (${entry.id}) costs ${entry.cost} energy and scores ${entry.score}, ` +
-            `${round(entry.overBudgetBy, 1)} over the ${entry.budget} budget for that cost.`,
+            `${round(entry.overBudgetBy, 1)} over the ${entry.budget} budget for that cost.` +
+            (entry.manualReview.length > 0
+                ? ` (score excludes unscored ${entry.manualReview.join('/')} action(s) - actual value is at least this.)`
+                : ''),
     };
 }
 
@@ -278,7 +288,7 @@ export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: n
     for (const id of ids) {
         const card = registry[id] as ProgramData;
         const band = budgetBandFor(card.baseCost);
-        const { score, perEnergy } = calculatePowerscale(card);
+        const { score, perEnergy, manualReview } = calculatePowerscale(card);
         if (score > band.over) {
             entries.push({
                 id,
@@ -288,6 +298,7 @@ export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: n
                 perEnergy,
                 budget: band.over,
                 overBudgetBy: round(score - band.over, 1),
+                manualReview,
             });
         }
     }

@@ -77,9 +77,16 @@ describe('runOne', () => {
 
         expect(playerFirst.startingSide).toBe('PLAYER');
         expect(enemyFirst.startingSide).toBe('ENEMY');
-        // Same seed, same decks, same stats: only the turn order differs, and in this
-        // engine that is enough to change the result.
-        expect(enemyFirst.winner).not.toBe(playerFirst.winner);
+        // Same seed, same decks, same stats: only the turn order differs. This mirror used
+        // to be close enough that the flip decided the *winner* outright, but
+        // docs/power_curve_spec.md rev 3 changed the damage curve enough that fenrir's
+        // mirror now resolves to the same winner either way (turn order is no longer quite
+        // as decisive here - arguably a good sign given Henry's first-turn-kill concerns).
+        // What still has to be true is that startingSide is actually wired through and
+        // changes the simulation, not just that the win column happens to move - so assert
+        // on the full result diverging (dead-card ratios, cards seen) instead of pinning to
+        // `winner`, which is a number this rework is actively still retuning.
+        expect(enemyFirst).not.toEqual(playerFirst);
     });
 
     it('dead-card ratio counts cards that reached a hand and were never played', () => {

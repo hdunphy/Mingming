@@ -180,8 +180,15 @@ class BurnBehavior extends StatusBehavior {
             logs.push(`  🔥 ${entity.name} — Burn shreds ${defenseShred} defense`);
         }
 
-        // Permanent — never removed
-        return { updatedInstance: instance, damage, healing: 0, defenseShred, logs };
+        // docs/power_curve_spec.md rev 3: Burn now decays 1 stack/turn (was permanent).
+        // Tiers, def shred and the onApply overflow burst are unchanged.
+        const newStacks = instance.stacks - 1;
+        if (newStacks <= 0) {
+            logs.push(`  ✅ ${entity.name} — Burn wore off`);
+            return { updatedInstance: null, damage, healing: 0, defenseShred, logs };
+        }
+
+        return { updatedInstance: { ...instance, stacks: newStacks }, damage, healing: 0, defenseShred, logs };
     }
 }
 
@@ -328,9 +335,9 @@ class RegenBehavior extends StatusBehavior {
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        const healAmount = 5; // 5 HP per stack? Or just 5 total? User said "it should give HP every turn". 
-        // Let's do 5 HP per stack as a baseline for scaling.
-        const healing = healAmount * instance.stacks;
+        // docs/power_curve_spec.md rev 3: 3% maxHP per stack per turn (was flat 5 HP/stack).
+        const REGEN_PERCENT_PER_STACK = 0.03;
+        const healing = Math.floor(entity.maxHp * REGEN_PERCENT_PER_STACK * instance.stacks);
         const newStacks = instance.stacks - 1;
         const logs: string[] = [`  💚 ${entity.name} — Regen heals ${healing} HP (${instance.stacks} → ${newStacks} stacks)`];
 
@@ -401,8 +408,16 @@ class StableOSBehavior extends StatusBehavior {
     }
 }
 
-// --- BarkShield (Temporary Health, Decays 20% flat logic) ---
+// --- BarkShield (Temporary Health as % of maxHp, decays 20%/turn) ---
 
+/**
+ * docs/power_curve_spec.md rev 3: `stacks` now represents % of the holder's maxHp
+ * (was flat HP points), so a shield is level-proof the same way Burn/Regen/Poison
+ * already are. The absorb pool is recomputed from the holder's current maxHp each
+ * time damage lands (rather than stored as a flat HP amount up front) so the shield
+ * scales correctly if maxHp changes mid-battle. Same 20%/turn decay as before, just
+ * operating on the percent value instead of flat points.
+ */
 class BarkShieldBehavior extends StatusBehavior {
     readonly type = 'BarkShield' as const;
 
@@ -420,24 +435,29 @@ class BarkShieldBehavior extends StatusBehavior {
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
     }
 
-    onPostDamage(currentDamage: number, _defender: IBattleEntity, instances: StatusEffectInstance[]): PostDamageResult {
+    onPostDamage(currentDamage: number, defender: IBattleEntity, instances: StatusEffectInstance[]): PostDamageResult {
         const logs: string[] = [];
         let newDamage = currentDamage;
         const shieldIndex = instances.findIndex(s => s.type === 'BarkShield');
 
         if (shieldIndex !== -1 && currentDamage > 0) {
-            let shieldStacks = instances[shieldIndex].stacks;
-            const absorbed = Math.min(newDamage, shieldStacks);
+            const shieldPercent = instances[shieldIndex].stacks;
+            const shieldHp = Math.floor(defender.maxHp * (shieldPercent / 100));
+            const absorbed = Math.min(newDamage, shieldHp);
             newDamage -= absorbed;
-            shieldStacks -= absorbed;
+
+            // Convert the absorbed HP back into consumed percent so the stored
+            // stack value stays in the same % unit it was applied in.
+            const absorbedPercent = defender.maxHp > 0 ? (absorbed / defender.maxHp) * 100 : 0;
+            const remainingPercent = Math.max(0, shieldPercent - absorbedPercent);
             logs.push(`  🛡️ Bark Shield absorbed ${absorbed} damage!`);
 
-            if (shieldStacks <= 0) {
+            if (remainingPercent < 0.5) {
                 logs.push(`  🛡️ Bark Shield broke!`);
                 instances = instances.filter((_, i) => i !== shieldIndex);
             } else {
                 const newInstances = [...instances];
-                newInstances[shieldIndex] = { ...newInstances[shieldIndex], stacks: shieldStacks };
+                newInstances[shieldIndex] = { ...newInstances[shieldIndex], stacks: remainingPercent };
                 instances = newInstances;
             }
         }
@@ -446,14 +466,14 @@ class BarkShieldBehavior extends StatusBehavior {
 
     endTurn(instance: StatusEffectInstance, _entity: IBattleEntity): EndTurnResult {
         const logs: string[] = [];
-        const newStacks = Math.floor(instance.stacks * 0.8);
+        const newStacks = instance.stacks * 0.8;
         const lost = instance.stacks - newStacks;
 
-        if (lost > 0) {
-            logs.push(`  🛡️ Bark Shield decayed by ${lost}`);
+        if (lost > 0.05) {
+            logs.push(`  🛡️ Bark Shield decayed by ${lost.toFixed(1)}% maxHP`);
         }
 
-        if (newStacks <= 0) {
+        if (newStacks < 0.5) {
             return { updatedInstance: null, damage: 0, defenseShred: 0, logs };
         }
         return { updatedInstance: { ...instance, stacks: newStacks }, damage: 0, defenseShred: 0, logs };
