@@ -24,12 +24,11 @@ Every species ships **per-OS starting decks** — 32 decks across 16 species —
 
 ## Not yet specified
 
-- **The 32 deck designs themselves** — per-species archetype passes, probably batched by element so shared-pool species (sleipnir/hraesvelgr on Air's 10 cards) are designed together. Can't ticket until the [archetype identity template](tickets/04-archetype-identity-template.md) lands; the enabler matrix that feeds it is now in [research/01-firmware-truth.md](research/01-firmware-truth.md).
+- **The 32 deck designs themselves** — per-species archetype passes, probably batched by element so shared-pool species (sleipnir/hraesvelgr on Air's 10 cards) are designed together. Can't ticket until the [archetype identity template](tickets/04-archetype-identity-template.md) lands — which now waits on the [archetype possibility-space catalog](tickets/08-archetype-possibility-space.md) (the menu of what the engine supports) and the [OS design review](tickets/09-os-design-review.md) (decks are built for post-review firmware, not the year-old designs); the enabler matrix feeding all of it is in [research/01-firmware-truth.md](research/01-firmware-truth.md).
 - **New-card authoring waves** — which cards, how many, per element; shape depends entirely on the deck designs. Each card rev-3-priced and `npm run balance`-graded.
 - **Data-model implementation & migrations** — the blast radius and order are now written down ([research/02-data-model.md](research/02-data-model.md) §7); graduates into build tickets once [OS-swap rules](tickets/03-os-swap-deck-rules.md) lands. The registry+accessor+consumer-sweep step (v2 deck = copy of v1, behavior-identical) is safe to graduate first.
 - **Balance-suite wiring** — the three `balanceScenarios.ts` edits for per-OS 1v1 decks; team-battle scenario implementation per [ticket 05](tickets/05-team-battle-os-variance-design.md); what §2.3 asserts during the transition while some species still share a deck.
 - **Post-rebuild re-baseline** — which of the 9 OS-gap redlines, 7 mirror stalls (kraken/hel/audhumbla at 400/400 draws), and 20 budget overages survive once the defect fixes and real decks land; hand back to the power-curve-rebalance tickets.
-- **Firmware redesigns, if any** — where a mechanic stays unfeedable or degenerate even after [defect fixes](tickets/07-firmware-defect-fixes.md) and new cards, changing the firmware itself becomes a decision; not assumed.
 - **Playtest & ship criteria** — what Henry actually plays before a deck is "in the game," and whether decks ship per-sector-unlock or all at once. Related: whether wild/warden enemies opt into per-OS decks and firmware (choice points marked in the data-model audit).
 
 ## Out of scope

@@ -3,7 +3,7 @@
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: —
-- Blocked by: [01-firmware-truth-and-enabler-audit](01-firmware-truth-and-enabler-audit.md)
+- Blocked by: [01-firmware-truth-and-enabler-audit](01-firmware-truth-and-enabler-audit.md) (closed), [09-os-design-review](09-os-design-review.md) (its verdict on the 1v1-dead trio decides what this ticket must measure)
 
 ## Question
 
