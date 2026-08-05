@@ -128,6 +128,7 @@ Format per archetype — **Loop** / **Mechanics** / **Hosts** / **Enablers** (po
 - Enablers: 4 appliers (flash_freeze, glacial_slam, stunning_strike, entangle) + shatter payoff ⇒ 0–1 new.
 - 1v1: viable — vs MOVES enemies stun is fully effective (intent skipped).
 - Degeneracy: engine-proofed by StableOS. Stall: moderate — a stun deck that can't close damage drags fights; pair with shatter-style payoffs.
+- New card ideas: We could add bonus damage when shattering stunned targets or when the StableOS condition exists. 
 
 **C2. Sleep Setup / Permafrost** — NEW-CARDS
 - Loop: (a) offensive — sleep the enemy (3 incapacitated turns unless damaged), take free setup turns, then alpha-strike (waking them); or (b) draugr_v1's inversion — sleep YOURSELF, tank the 3 turns, wake into +3 Strengthened.
@@ -154,6 +155,7 @@ Format per archetype — **Loop** / **Mechanics** / **Hosts** / **Enablers** (po
 - Degeneracy: none. **Stall: HIGH — Weakened+heal is exactly the known mirror-stall shape (kraken/hel/audhumbla 400/400 draws); the 25% cap keeps net damage ≥56% (`Hooks.ts:66-74`) so it resolves, but slowly. Budget the deck's clock.**
 
 ### Family D — Resource Denial (all CARDS-mode-dependent)
+- *Note from Henry: We went away from enemey using cards and into them using MOVES because this is a single player game and it was easier to understand the intent of the AI. Originally they used cards, I'm open to going back to CARDS, but need to more thoroughly scrutinize both options.*
 
 **D1. Energy Drain** — NEW-CARDS + CARDS-mode only
 - Loop: negative-ENERGY cards strip the enemy's pool before they act; win the action-economy war.

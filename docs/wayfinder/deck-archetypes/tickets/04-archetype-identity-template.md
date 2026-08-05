@@ -3,7 +3,7 @@
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: —
-- Blocked by: [01-firmware-truth-and-enabler-audit](01-firmware-truth-and-enabler-audit.md) (closed), [08-archetype-possibility-space](08-archetype-possibility-space.md), [09-os-design-review](09-os-design-review.md)
+- Blocked by: [01-firmware-truth-and-enabler-audit](01-firmware-truth-and-enabler-audit.md) (closed), [08-archetype-possibility-space](08-archetype-possibility-space.md), [09-os-design-review](09-os-design-review.md) (closed). Note: decks for the three rework slots (valkyrie_v2, nidhoggr_v2, draugr_v2) additionally wait on [11-os-rework-specs](11-os-rework-specs.md) — pick a pilot species outside that trio.
 
 ## Question
 

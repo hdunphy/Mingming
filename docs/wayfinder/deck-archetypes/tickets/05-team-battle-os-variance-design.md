@@ -3,7 +3,7 @@
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: —
-- Blocked by: [01-firmware-truth-and-enabler-audit](01-firmware-truth-and-enabler-audit.md) (closed), [09-os-design-review](09-os-design-review.md) (its verdict on the 1v1-dead trio decides what this ticket must measure)
+- Blocked by: [01-firmware-truth-and-enabler-audit](01-firmware-truth-and-enabler-audit.md) (closed), [09-os-design-review](09-os-design-review.md) (closed — verdict: nidhoggr_v2 and draugr_v2 are reworked solo-live, so the team-scenario list is **valkyrie_v1**, plus EINHERJAR_RALLY wherever [11-os-rework-specs](11-os-rework-specs.md) rehomes it)
 
 ## Question
 
