@@ -182,10 +182,13 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 16 (Henry-approved 2026-08-05): real per-OS decks.
+        // v1 OUROBOROS - all-Water zero-cost storm (the loop counts WATER cards, so
+        // nothing here may be None-tier); serpents_coil is the cards-played payoff.
+        // v2 VENOM_TRENCH - tanky poison attrition into a contagion double-up.
         decks: {
-            "jormungandr_v1": ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "poison_injection", "poison_injection", "toxic_surge", "toxic_surge", "corrosive_leak", "capacitor"],
-            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "poison_injection", "poison_injection", "toxic_surge", "toxic_surge", "corrosive_leak", "capacitor"]
+            "jormungandr_v1": ["blind_spot", "poison_injection", "poison_injection", "corrosive_leak", "surge_protection", "surge_protection", "serpents_coil", "serpents_coil"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "toxic_surge", "toxic_surge", "capacitor", "contagion"]
         },
         moves: [
             {
