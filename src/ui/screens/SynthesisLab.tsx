@@ -11,7 +11,7 @@ import {
 } from '../store/gameSlice';
 import { getScrapYield } from '../../engine/RewardSystem';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { GetMingmingData } from '../../engine/data/mingmingRegistry';
+import { GetMingmingData, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { createMingmingInstance } from '../../engine/gameTypes';
 import type { IBlueprint } from '../../engine/gameTypes';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
@@ -247,7 +247,7 @@ export default function SynthesisLab() {
             setCelebration({
                 name: def.name,
                 element: def.primaryElement,
-                cardIds: [...def.baseDeck]
+                cardIds: getDeckForOS(def.id, selectedOS ?? undefined)
             });
             schedule(() => setCelebration(null), CELEBRATION_AUTO_DISMISS_MS);
         } else {

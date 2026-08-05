@@ -77,7 +77,12 @@ export interface IMingmingDefinition {
   readonly secondaryElement?: Element;
   readonly cardDraw: number; // Base contribution
   readonly availableOS: string[]; // IDs of OS variants
-  readonly baseDeck: string[]; // 10-card starter kit of program IDs granted on first synthesis
+  /**
+   * Ticket 13: per-OS starting decks (8-12 cards each per the deck template),
+   * keyed by firmware id — one entry per availableOS. Resolve through
+   * `getDeckForOS(definitionId, osId)` rather than indexing directly.
+   */
+  readonly decks: Record<string, string[]>;
   readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
 }

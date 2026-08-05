@@ -3,7 +3,7 @@ import { suggestDeckFill } from './deckSuggest';
 import type { DeckSuggestInput } from './deckSuggest';
 import type { IOwnedProgram, IActiveDeck } from './gameTypes';
 import type { IMingmingState } from './types';
-import { MingmingRegistry } from './data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from './data/mingmingRegistry';
 
 // --- Helpers -------------------------------------------------------------
 
@@ -43,13 +43,13 @@ function makeInput(partial: Partial<DeckSuggestInput>): DeckSuggestInput {
     };
 }
 
-const FENRIR_BASE = [...MingmingRegistry['fenrir'].baseDeck]; // 10 Fire cards
-const KRAKEN_BASE = [...MingmingRegistry['kraken'].baseDeck]; // 10 Water cards
+const FENRIR_BASE = getDeckForOS('fenrir'); // Fire cards (v1 slot)
+const KRAKEN_BASE = getDeckForOS('kraken'); // Water cards (v1 slot)
 
 // --- Tests ---------------------------------------------------------------
 
 describe('suggestDeckFill', () => {
-    it('fills to 10 * partySize when enough cards are owned', () => {
+    it('fills to MIN_DECK_SIZE * partySize (8, per the ticket-04 template) when enough cards are owned', () => {
         const inventory = [...makeCards(FENRIR_BASE), ...makeCards(KRAKEN_BASE)];
         const result = suggestDeckFill(makeInput({
             cardInventory: inventory,
@@ -57,11 +57,11 @@ describe('suggestDeckFill', () => {
             roster: [makeMember('m1', 'fenrir'), makeMember('m2', 'kraken')],
             activeParty: ['m1', 'm2']
         }));
-        expect(result).toHaveLength(20);
+        expect(result).toHaveLength(16);
         // All returned ids are real owned instances, no duplicates
         const ownedIds = new Set(inventory.map(c => c.instanceId));
         expect(result.every(id => ownedIds.has(id))).toBe(true);
-        expect(new Set(result).size).toBe(20);
+        expect(new Set(result).size).toBe(16);
     });
 
     it('prioritizes owned copies of the party species baseDeck, in baseDeck order', () => {
@@ -74,10 +74,11 @@ describe('suggestDeckFill', () => {
             roster: [makeMember('m1', 'fenrir')],
             activeParty: ['m1']
         }));
-        expect(result).toHaveLength(10);
-        // Suggested dataIds match the baseDeck listing exactly, in order
+        expect(result).toHaveLength(8);
+        // Suggested dataIds match the deck listing in order, truncated at the
+        // 8-card fill target (legacy 10-card decks shrink to 8-12 in the passes).
         const byInstance = new Map([...filler, ...baseCards].map(c => [c.instanceId, c.dataId]));
-        expect(result.map(id => byInstance.get(id))).toEqual(FENRIR_BASE);
+        expect(result.map(id => byInstance.get(id))).toEqual(FENRIR_BASE.slice(0, 8));
     });
 
     it('skips cards already in the deck and respects baseDeck copy counts', () => {
@@ -94,7 +95,7 @@ describe('suggestDeckFill', () => {
             activeParty: ['m1']
         }));
         // 9 more cards to reach the target of 10
-        expect(result).toHaveLength(9);
+        expect(result).toHaveLength(7);
         // Never suggests an instance already in the deck
         expect(result).not.toContain(firePokes[0].instanceId);
         // Only ONE more fire_poke copy is suggested (deck copy counts toward the 2 listed)
@@ -162,7 +163,7 @@ describe('suggestDeckFill', () => {
             roster: [makeMember('m1', 'fenrir')],
             activeParty: ['m1']
         }));
-        expect(result).toHaveLength(10);
+        expect(result).toHaveLength(8);
     });
 
     it('fills remaining slots with party-element cards by lowest cost first', () => {
@@ -194,6 +195,6 @@ describe('suggestDeckFill', () => {
             roster: [makeMember('m1', 'fenrir')],
             activeParty: ['m1', 'ghost1', 'ghost2'] // partySize = 1 => target 10
         }));
-        expect(result).toHaveLength(10);
+        expect(result).toHaveLength(8);
     });
 });

@@ -19,7 +19,7 @@ const TEMP_DEFINITION: IMingmingDefinition = {
     primaryElement: 'None',
     cardDraw: 1,
     availableOS: [],
-    baseDeck: [],
+    decks: {},
 };
 
 afterEach(() => {

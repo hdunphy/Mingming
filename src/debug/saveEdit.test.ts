@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultSave, createStarterSave } from '../engine/gameTypes';
 import type { IPlayerSave } from '../engine/gameTypes';
 import { getExpForLevel } from '../engine/types';
-import { MingmingRegistry } from '../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from '../engine/data/mingmingRegistry';
 import gameReducer from '../ui/store/gameSlice';
 import {
     buildAddToRoster,
@@ -115,7 +115,7 @@ describe('v1 verbs each produce a schema-valid save', () => {
         // addToRoster is preferred over a hand-built write precisely because of this:
         expect(after.baseDecksGranted).toContain('fenrir');
         expect(after.cardInventory.length).toBe(
-            before.cardInventory.length + MingmingRegistry['fenrir'].baseDeck.length,
+            before.cardInventory.length + getDeckForOS('fenrir').length,
         );
     });
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "spec": "docs/balance_testing.md",
   "command": "npm run balance",
-  "registryHash": "1:5e763093",
+  "registryHash": "1:e900e03a",
   "summary": {
     "redlines": 36,
     "cardRedlines": 20,

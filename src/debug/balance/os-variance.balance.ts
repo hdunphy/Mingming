@@ -1,13 +1,14 @@
 /**
  * OS Variance Audit - `docs/balance_testing.md` §2.3.
  *
- * "Same deck, different OS. OS v1 and OS v2 should offer different *playstyles*, not
- * different *power levels*. If one OS consistently outperforms the other by >15%, the
- * weaker one needs a buff or a lower cost."
+ * "OS v1 and OS v2 should offer different *playstyles*, not different *power levels*.
+ * If one OS consistently outperforms the other by >15%, the weaker one needs a buff
+ * or a lower cost."
  *
- * Implemented as a head-to-head: one species, one deck, v1 on one side and v2 on the
- * other. Everything except the firmware is held identical, so the result is the firmware's
- * contribution and nothing else. The alternative - running each variant against a fixed
+ * Implemented as a head-to-head: one species, EACH SIDE WITH ITS OWN OS's DECK
+ * (ticket 13 - the fix for the shared-deck confound; while a species' two deck slots
+ * still hold copies, this is identical to the old same-deck measurement). The result
+ * is the firmware-plus-its-deck's contribution. The alternative - running each variant against a fixed
  * benchmark opponent and comparing - was rejected because the registry has no opponent
  * that is competitive with every species; a benchmark a species beats (or loses to) 100%
  * of the time reports a 0% gap between two variants of wildly different power.

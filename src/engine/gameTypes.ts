@@ -5,7 +5,7 @@
 
 import type { IMingmingState } from "./types";
 import { getExpForLevel } from "./types";
-import { MingmingRegistry } from "./data/mingmingRegistry";
+import { MingmingRegistry, getDeckForOS } from "./data/mingmingRegistry";
 import { SeedStream, rollSeed } from "./core/SeedStream";
 
 // --- Card Inventory ---
@@ -24,7 +24,7 @@ export interface IActiveDeck {
 }
 
 export const DECK_SIZE = 40;
-export const MIN_DECK_SIZE = 10;
+export const MIN_DECK_SIZE = 8; // ticket 13: deck template allows 8-12 card starting decks
 
 // --- Blueprint ---
 
@@ -143,15 +143,15 @@ export function createStarterSave(
         hpIV: 10 + rng.nextInt(0, 5)
     };
 
-    // Starter deck cards come from the species' base deck kit in the registry
-    let starterCardIds: string[] = [];
-    const baseCards = MingmingRegistry[starterId].baseDeck;
-
-    // Pad up to the minimum deck size (base decks are exactly 10, matching MIN_DECK_SIZE)
-    while (starterCardIds.length < MIN_DECK_SIZE) {
-        starterCardIds.push(...baseCards);
+    // Starter deck cards come from the species' per-OS starting deck (ticket 13:
+    // starters carry no activeOS, so this resolves to the availableOS[0] slot).
+    // Grant the FULL deck (8-12 cards per the template) - never truncate; pad
+    // only if a deck somehow comes in under the minimum.
+    const baseCards = getDeckForOS(starterId);
+    let starterCardIds: string[] = [...baseCards];
+    while (starterCardIds.length < MIN_DECK_SIZE && baseCards.length > 0) {
+        starterCardIds.push(baseCards[starterCardIds.length % baseCards.length]);
     }
-    starterCardIds = starterCardIds.slice(0, MIN_DECK_SIZE);
 
     // Same stream, so instance ids are unique within the save and reproducible
     // across two calls with the same seed.

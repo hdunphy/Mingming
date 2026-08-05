@@ -21,7 +21,7 @@ import gameReducer, {
 import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint, IRewardBundle } from '../../engine/gameTypes';
 import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
-import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 
 function makeMingming(id: string): IMingmingState {
     return { id, definitionId: 'def_fire', level: 5, experience: 0, attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
@@ -77,7 +77,7 @@ describe('gameSlice', () => {
 
         it('first addToRoster of a species grants exactly its baseDeck cards and records it', () => {
             const state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
-            const expected = [...MingmingRegistry['fenrir'].baseDeck].sort();
+            const expected = getDeckForOS('fenrir').sort();
             expect(state.cardInventory).toHaveLength(10);
             expect(state.cardInventory.map(c => c.dataId).sort()).toEqual(expected);
             expect(state.baseDecksGranted).toEqual(['fenrir']);
@@ -100,7 +100,7 @@ describe('gameSlice', () => {
             expect(state.cardInventory).toHaveLength(20);
             expect(state.baseDecksGranted).toEqual(['fenrir', 'kraken']);
             const krakenCards = state.cardInventory.slice(10).map(c => c.dataId).sort();
-            expect(krakenCards).toEqual([...MingmingRegistry['kraken'].baseDeck].sort());
+            expect(krakenCards).toEqual(getDeckForOS('kraken').sort());
         });
 
         it('unknown definitionId grants nothing and does not crash', () => {

@@ -14,7 +14,12 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fenrir_v1", "fenrir_v2"],
-        baseDeck: ["fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "glass_cannon", "ignite", "ignite", "scorch", "ash_reclamation", "reckless_charge"],
+        // Ticket 04: the designed deck belongs to the v2 slot (CINDER_WALL_OS); the other slot
+        // holds a copy until its own deck lands (kraken first, ticket 14).
+        decks: {
+            "fenrir_v1": ["fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "glass_cannon", "ignite", "ignite", "scorch", "ash_reclamation", "reckless_charge"],
+            "fenrir_v2": ["fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "glass_cannon", "ignite", "ignite", "scorch", "ash_reclamation", "reckless_charge"]
+        },
         moves: [
             {
                 id: 'fenrir_bite',
@@ -53,7 +58,12 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["kraken_v1", "kraken_v2"],
-        baseDeck: ["water_slap", "water_slap", "whirlpool_v2", "whirlpool_v2", "pressure_point", "surge_protection", "blind_spot", "blind_spot", "ink_cloud", "scavenge_data"],
+        // Ticket 04: the designed deck belongs to the v1 slot (ABYSSAL_INK_SYS); the other slot
+        // holds a copy until its own deck lands (kraken first, ticket 14).
+        decks: {
+            "kraken_v1": ["water_slap", "water_slap", "whirlpool_v2", "whirlpool_v2", "pressure_point", "surge_protection", "blind_spot", "blind_spot", "ink_cloud", "scavenge_data"],
+            "kraken_v2": ["water_slap", "water_slap", "whirlpool_v2", "whirlpool_v2", "pressure_point", "surge_protection", "blind_spot", "blind_spot", "ink_cloud", "scavenge_data"]
+        },
         moves: [
             {
                 id: 'kraken_tentacle',
@@ -99,7 +109,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fafnir_v1", "fafnir_v2"],
-        baseDeck: ["boulder_smash", "boulder_smash", "spike_launch", "spike_launch", "stone_fist", "shield_shards", "shield_shards", "stone_bark", "spiked_carapace", "keen_edge"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "fafnir_v1": ["boulder_smash", "boulder_smash", "spike_launch", "spike_launch", "stone_fist", "shield_shards", "shield_shards", "stone_bark", "spiked_carapace", "keen_edge"],
+            "fafnir_v2": ["boulder_smash", "boulder_smash", "spike_launch", "spike_launch", "stone_fist", "shield_shards", "shield_shards", "stone_bark", "spiked_carapace", "keen_edge"]
+        },
         moves: [
             {
                 id: 'fafnir_smash',
@@ -131,7 +145,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["skoll_v1", "skoll_v2"],
-        baseDeck: ["fury_strike", "fury_strike", "fury_strike", "fire_punch_v2", "fire_punch_v2", "overdrive", "reckless_charge", "reckless_charge", "strength_burst", "all_in"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "skoll_v1": ["fury_strike", "fury_strike", "fury_strike", "fire_punch_v2", "fire_punch_v2", "overdrive", "reckless_charge", "reckless_charge", "strength_burst", "all_in"],
+            "skoll_v2": ["fury_strike", "fury_strike", "fury_strike", "fire_punch_v2", "fire_punch_v2", "overdrive", "reckless_charge", "reckless_charge", "strength_burst", "all_in"]
+        },
         moves: [
             {
                 id: 'skoll_bite',
@@ -163,7 +181,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
-        baseDeck: ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "poison_injection", "poison_injection", "toxic_surge", "toxic_surge", "corrosive_leak", "capacitor"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "jormungandr_v1": ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "poison_injection", "poison_injection", "toxic_surge", "toxic_surge", "corrosive_leak", "capacitor"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "poison_injection", "poison_injection", "toxic_surge", "toxic_surge", "corrosive_leak", "capacitor"]
+        },
         moves: [
             {
                 id: 'jorm_constrict',
@@ -195,7 +217,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["gullinbursti_v1", "gullinbursti_v2"],
-        baseDeck: ["rock_throw", "rock_throw", "stone_fist", "stone_fist", "tremor", "shield_shards", "keen_edge", "keen_edge", "stone_bark", "stone_bark"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "gullinbursti_v1": ["rock_throw", "rock_throw", "stone_fist", "stone_fist", "tremor", "shield_shards", "keen_edge", "keen_edge", "stone_bark", "stone_bark"],
+            "gullinbursti_v2": ["rock_throw", "rock_throw", "stone_fist", "stone_fist", "tremor", "shield_shards", "keen_edge", "keen_edge", "stone_bark", "stone_bark"]
+        },
         moves: [
             {
                 id: 'gullin_charge',
@@ -227,7 +253,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hraesvelgr_v1", "hraesvelgr_v2"],
-        baseDeck: ["gale_slash", "gale_slash", "cyclone", "cyclone", "gust_jab", "disorienting_gust", "disorienting_gust", "tailwind", "slipstream", "sky_dance"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "hraesvelgr_v1": ["gale_slash", "gale_slash", "cyclone", "cyclone", "gust_jab", "disorienting_gust", "disorienting_gust", "tailwind", "slipstream", "sky_dance"],
+            "hraesvelgr_v2": ["gale_slash", "gale_slash", "cyclone", "cyclone", "gust_jab", "disorienting_gust", "disorienting_gust", "tailwind", "slipstream", "sky_dance"]
+        },
         moves: [
             {
                 id: 'hraes_flap',
@@ -259,7 +289,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["sleipnir_v1", "sleipnir_v2"],
-        baseDeck: ["gust_jab", "gust_jab", "zephyr_strike", "zephyr_strike", "dust_devil", "dust_devil", "slipstream", "slipstream", "tailwind", "disorienting_gust"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "sleipnir_v1": ["gust_jab", "gust_jab", "zephyr_strike", "zephyr_strike", "dust_devil", "dust_devil", "slipstream", "slipstream", "tailwind", "disorienting_gust"],
+            "sleipnir_v2": ["gust_jab", "gust_jab", "zephyr_strike", "zephyr_strike", "dust_devil", "dust_devil", "slipstream", "slipstream", "tailwind", "disorienting_gust"]
+        },
         moves: [
             {
                 id: 'sleipnir_kick',
@@ -291,7 +325,12 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
-        baseDeck: ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "thistle_barrage", "pollen_cloud", "photosynthesis_v2", "photosynthesis_v2", "healing_mist", "soothe"],
+        // Ticket 04: the designed deck belongs to the v1 slot (GOSSIP_NODE); the other slot
+        // holds a copy until its own deck lands (kraken first, ticket 14).
+        decks: {
+            "ratatoskr_v1": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "thistle_barrage", "pollen_cloud", "photosynthesis_v2", "photosynthesis_v2", "healing_mist", "soothe"],
+            "ratatoskr_v2": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "thistle_barrage", "pollen_cloud", "photosynthesis_v2", "photosynthesis_v2", "healing_mist", "soothe"]
+        },
         moves: [
             {
                 id: 'rata_nut',
@@ -330,7 +369,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["huldra_v1", "huldra_v2"],
-        baseDeck: ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "huldra_v1": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"],
+            "huldra_v2": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"]
+        },
         moves: [
             {
                 id: 'huld_charm',
@@ -362,7 +405,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 2,
         availableOS: ["ymir_v1", "ymir_v2"],
-        baseDeck: ["ice_spear", "ice_spear", "shatter", "shatter", "glacial_slam", "flash_freeze", "flash_freeze", "cold_snap", "glacier_wall", "glacier_wall"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "ymir_v1": ["ice_spear", "ice_spear", "shatter", "shatter", "glacial_slam", "flash_freeze", "flash_freeze", "cold_snap", "glacier_wall", "glacier_wall"],
+            "ymir_v2": ["ice_spear", "ice_spear", "shatter", "shatter", "glacial_slam", "flash_freeze", "flash_freeze", "cold_snap", "glacier_wall", "glacier_wall"]
+        },
         moves: [
             {
                 id: 'ymir_smash',
@@ -394,7 +441,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["draugr_v1", "draugr_v2"],
-        baseDeck: ["frost_jab", "frost_jab", "ice_spear", "ice_spear", "shatter", "cold_snap", "cold_snap", "hoarfrost", "winters_grasp", "glacier_wall"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "draugr_v1": ["frost_jab", "frost_jab", "ice_spear", "ice_spear", "shatter", "cold_snap", "cold_snap", "hoarfrost", "winters_grasp", "glacier_wall"],
+            "draugr_v2": ["frost_jab", "frost_jab", "ice_spear", "ice_spear", "shatter", "cold_snap", "cold_snap", "hoarfrost", "winters_grasp", "glacier_wall"]
+        },
         moves: [
             {
                 id: 'draugr_slash',
@@ -426,7 +477,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["valkyrie_v1", "valkyrie_v2"],
-        baseDeck: ["radiant_spark", "radiant_spark", "smite", "smite", "smite", "lumen_surge", "lumen_surge", "scry", "healing_light", "aegis"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "valkyrie_v1": ["radiant_spark", "radiant_spark", "smite", "smite", "smite", "lumen_surge", "lumen_surge", "scry", "healing_light", "aegis"],
+            "valkyrie_v2": ["radiant_spark", "radiant_spark", "smite", "smite", "smite", "lumen_surge", "lumen_surge", "scry", "healing_light", "aegis"]
+        },
         moves: [
             {
                 id: 'valkyrie_smite',
@@ -472,7 +527,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["audhumbla_v1", "audhumbla_v2"],
-        baseDeck: ["radiant_spark", "radiant_spark", "smite", "smite", "healing_light", "healing_light", "purify", "uplift", "uplift", "lumen_surge"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "audhumbla_v1": ["radiant_spark", "radiant_spark", "smite", "smite", "healing_light", "healing_light", "purify", "uplift", "uplift", "lumen_surge"],
+            "audhumbla_v2": ["radiant_spark", "radiant_spark", "smite", "smite", "healing_light", "healing_light", "purify", "uplift", "uplift", "lumen_surge"]
+        },
         moves: [
             {
                 id: 'audhumbla_lick',
@@ -518,7 +577,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hel_v1", "hel_v2"],
-        baseDeck: ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "nightfall_edge", "dawns_respite", "umbral_feast", "dark_pact"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "hel_v1": ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "nightfall_edge", "dawns_respite", "umbral_feast", "dark_pact"],
+            "hel_v2": ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "nightfall_edge", "dawns_respite", "umbral_feast", "dark_pact"]
+        },
         moves: [
             {
                 id: 'hel_touch',
@@ -557,7 +620,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["nidhoggr_v1", "nidhoggr_v2"],
-        baseDeck: ["shadow_claw", "shadow_claw", "night_terror", "night_terror", "leech_strike", "venom_shade", "venom_shade", "creeping_dread", "curse_mark", "umbral_feast"],
+        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        decks: {
+            "nidhoggr_v1": ["shadow_claw", "shadow_claw", "night_terror", "night_terror", "leech_strike", "venom_shade", "venom_shade", "creeping_dread", "curse_mark", "umbral_feast"],
+            "nidhoggr_v2": ["shadow_claw", "shadow_claw", "night_terror", "night_terror", "leech_strike", "venom_shade", "venom_shade", "creeping_dread", "curse_mark", "umbral_feast"]
+        },
         moves: [
             {
                 id: 'nidhoggr_gnaw',
@@ -616,9 +683,22 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
             secondaryElement: 'None',
             cardDraw: 1,
             availableOS: [],
-            baseDeck: [],
+            decks: {},
             artReference: ''
         };
     }
     return data;
+};
+
+
+/**
+ * Ticket 13: per-OS starting decks. Resolves a species' deck for a firmware id,
+ * defaulting to `availableOS[0]` — the same rule `initializeBattleEntity` uses
+ * for a missing activeOS — and falling back to an empty list for unknown species.
+ */
+export const getDeckForOS = (definitionId: string, osId?: string): string[] => {
+    const def = GetMingmingData(definitionId);
+    const primary = def.availableOS[0];
+    const key = osId && def.decks[osId] ? osId : primary;
+    return def.decks[key] ? [...def.decks[key]] : [];
 };

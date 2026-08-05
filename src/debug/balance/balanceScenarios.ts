@@ -10,7 +10,7 @@
  * (for the OS audit) the firmware.
  */
 
-import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/scenarioSchema';
 
 /**
@@ -28,7 +28,8 @@ export const BALANCE_IV = 15;
  * future stub from silently joining the gauntlet.
  */
 export const BALANCE_SPECIES: ReadonlyArray<string> = Object.keys(MingmingRegistry).filter(
-    id => MingmingRegistry[id].availableOS.length > 0 && MingmingRegistry[id].baseDeck.length > 0,
+    id => MingmingRegistry[id].availableOS.length > 0
+        && MingmingRegistry[id].availableOS.every(os => getDeckForOS(id, os).length > 0),
 );
 
 /** The §2.2 control archetype: "Kraken Poison". */
@@ -48,7 +49,10 @@ function unit(definitionId: string, activeOS?: string): PartyMemberSetup {
 }
 
 function enemyUnit(definitionId: string, activeOS?: string): EnemySetup {
-    return { ...unit(definitionId, activeOS), deck: [...MingmingRegistry[definitionId].baseDeck] };
+    // Ticket 13: each side fights with ITS OS's deck - the fix for the shared-deck
+    // confound this whole map exists to kill.
+    const resolvedOS = activeOS ?? MingmingRegistry[definitionId].availableOS[0];
+    return { ...unit(definitionId, resolvedOS), deck: getDeckForOS(definitionId, resolvedOS) };
 }
 
 export interface MatchupSpec {
@@ -74,7 +78,7 @@ export function matchupScenario(spec: MatchupSpec): ComposedSetup {
         enemyMode: 'CARDS',
         player: {
             party: [unit(player, playerOS)],
-            deck: [...MingmingRegistry[player].baseDeck],
+            deck: getDeckForOS(player, playerOS ?? MingmingRegistry[player].availableOS[0]),
             relics: [],
         },
         enemies: [enemyUnit(enemy, enemyOS)],
