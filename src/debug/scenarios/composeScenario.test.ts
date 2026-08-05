@@ -179,7 +179,7 @@ describe('deck resolution', () => {
         const resolved = resolveDeck(draft, makeSave());
 
         expect(resolved.cards).toEqual(baseDeckFor(draft.party));
-        expect(resolved.cards.length).toBe(20);
+        expect(resolved.cards.length).toBe(18); // fenrir 10 + kraken 8 (ticket 14 pilot deck)
         expect(resolved.source).toContain('base decks');
     });
 
@@ -483,7 +483,7 @@ describe('launchScenario — seeding an empty slot', () => {
         launchScenario(setup, store.dispatch, store.getState().game);
 
         const save = store.getState().game;
-        expect(setup.player.deck.length).toBe(20);
+        expect(setup.player.deck.length).toBe(18); // fenrir 10 + kraken 8 (ticket 14 pilot deck)
 
         // activeDeck holds cardInventory *instance* ids; the inventory maps them to dataIds.
         const inventory = new Map(save.cardInventory.map((c) => [c.instanceId, c.dataId]));

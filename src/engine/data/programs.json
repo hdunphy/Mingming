@@ -610,7 +610,7 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Uncommon",
-        "baseCost": 1,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -648,6 +648,34 @@
             }
         ]
     },
+    "maelstrom": {
+        "id": "maelstrom",
+        "name": "Maelstrom",
+        "description": "Summon a crushing vortex: deal heavy Water damage and apply 1 Dazed.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 3,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 120,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
     "hydro_blast": {
         "id": "hydro_blast",
         "name": "Hydro Blast",
@@ -665,7 +693,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 150,
+                "power": 140,
                 "target": "TARGET"
             }
         ]
@@ -760,7 +788,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 20,
+                "power": 12,
                 "scaling": "CARDS_DRAWN",
                 "target": "TARGET"
             }

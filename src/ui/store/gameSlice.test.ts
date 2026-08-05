@@ -97,9 +97,9 @@ describe('gameSlice', () => {
         it('a different species grants its own kit', () => {
             let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
             state = gameReducer(state, addToRoster(makeSpecies('mm2', 'kraken')));
-            expect(state.cardInventory).toHaveLength(20);
+            expect(state.cardInventory).toHaveLength(18); // fenrir 10 + kraken 8 (ticket 14)
             expect(state.baseDecksGranted).toEqual(['fenrir', 'kraken']);
-            const krakenCards = state.cardInventory.slice(10).map(c => c.dataId).sort();
+            const krakenCards = state.cardInventory.slice(10).map(c => c.dataId).sort(); // after fenrir's 10
             expect(krakenCards).toEqual(getDeckForOS('kraken').sort());
         });
 
