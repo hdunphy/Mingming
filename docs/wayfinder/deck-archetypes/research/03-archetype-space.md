@@ -128,7 +128,6 @@ Format per archetype — **Loop** / **Mechanics** / **Hosts** / **Enablers** (po
 - Enablers: 4 appliers (flash_freeze, glacial_slam, stunning_strike, entangle) + shatter payoff ⇒ 0–1 new.
 - 1v1: viable — vs MOVES enemies stun is fully effective (intent skipped).
 - Degeneracy: engine-proofed by StableOS. Stall: moderate — a stun deck that can't close damage drags fights; pair with shatter-style payoffs.
-- New card ideas: We could add bonus damage when shattering stunned targets or when the StableOS condition exists. 
 
 **C2. Sleep Setup / Permafrost** — NEW-CARDS
 - Loop: (a) offensive — sleep the enemy (3 incapacitated turns unless damaged), take free setup turns, then alpha-strike (waking them); or (b) draugr_v1's inversion — sleep YOURSELF, tank the 3 turns, wake into +3 Strengthened.
@@ -155,7 +154,6 @@ Format per archetype — **Loop** / **Mechanics** / **Hosts** / **Enablers** (po
 - Degeneracy: none. **Stall: HIGH — Weakened+heal is exactly the known mirror-stall shape (kraken/hel/audhumbla 400/400 draws); the 25% cap keeps net damage ≥56% (`Hooks.ts:66-74`) so it resolves, but slowly. Budget the deck's clock.**
 
 ### Family D — Resource Denial (all CARDS-mode-dependent)
-- *Note from Henry: We went away from enemey using cards and into them using MOVES because this is a single player game and it was easier to understand the intent of the AI. Originally they used cards, I'm open to going back to CARDS, but need to more thoroughly scrutinize both options.*
 
 **D1. Energy Drain** — NEW-CARDS + CARDS-mode only
 - Loop: negative-ENERGY cards strip the enemy's pool before they act; win the action-economy war.
@@ -535,3 +533,52 @@ Totals: 21 POOL-READY (incl. re-deck-only), 21 NEW-CARDS, 0 pure ENGINE-WORK arc
 | Dark | hel / nidhoggr | LOW | Drain/stance/HP-cost (I1/K1/J2) vs Poison/faint (B1/L3) — distinct |
 
 **Stall-shape summary (for sim gating):** highest mirror-stall risk decks are C4, H1, I1, I3 (and any Light heal shell) — the documented kraken/hel/audhumbla 400/400 draws are this shape; the 25%-cap net-damage floor (`Hooks.ts:66-74`) guarantees eventual resolution but not fast resolution. Every such starter should ship with a clock (B1 Poison, I2 overheal-cannon, or H2 Sharp payoff). Infinite-loop watch list: sleipnir_v2 token guard (live bug), G2 replay of 3e cards, F4/M3 thin-deck storm interactions, J2 refund-vs-costReduction seam, K1 cheap-shifter cantrip loop, M1 discardEffect-draw chains.
+
+
+---
+
+## REVISION 2 — post-rework re-examination (2026-08-05, after tickets 07/09/10/11)
+
+Requested by Henry after the OS reworks landed. Re-derives **Table B** and the **element overlap** table against the current state: defect fixes ([07](../tickets/07-firmware-defect-fixes.md)), review verdicts ([09](../tickets/09-os-design-review.md)), tweaks ([10](../tickets/10-os-tweak-pass.md)), rework specs ([11](../tickets/11-os-rework-specs.md)). Rows not listed are unchanged from the original tables above.
+
+### New catalog entries (the reworks created archetypes the original menu lacked)
+
+- **H6 — Buff-Variety Snowball** (family H): layer *distinct* buff types, cash them as damage. Loop: alternate buff sources (Sharp, Strengthened, Regen, StableOS, Energized, BarkShield) → Light attacks at +10%/type (**valkyrie_v2 CRUSADER_KERNEL**). Partially fed today (her deck reaches 2 types → +20%); wants 1–2 more distinct-type Light buff cards. 1v1 ✓. Distinct from H2 (stack-count) by construction — wants breadth, not depth. Readiness: re-deck + NEW-CARDS-light.
+- **B5 — Threshold Feeder / Anti-Heal** (family B/J hybrid): chip anything — including yourself — across the 50% HP line, collect permanent stats per crossing (**nidhoggr_v2 BLOOD_SCENT_OS**: +2 Str +2 Sharp per crossing, re-armed by healing). Fed **today** by his own poison kit (DoT ticks cross the line) + the J-family self-damage line (`dark_pact`). The catalog's first archetype that *wants* the enemy to heal — stall kits (kraken/hel/audhumbla) feed it. 1v1 ✓. Bounded by the 25% cap. Readiness: POOL-READY.
+
+### Table B changes (status deltas only)
+
+| OS | was | now |
+|---|---|---|
+| huldra_v2 | bug-blocked (player-side never fired) | **fed today** — fixed (07), 50% maxHP locked (09); H1 Shield Wall live, deck must carry a clock |
+| sleipnir_v2 | fed ⚠ infinite token loop | **fed, clean** — `isToken:false` guard (07); FTK redline cleared |
+| ratatoskr_v2 | fed w/ self-daze caveat | **fed, clean** — enemy-only daze (10); its §2.3 redline cleared (18% → 6%) |
+| kraken_v1 | fed (any side's draws) | fed, own-side draws only (10) — F2/C3 unchanged as feeders |
+| jormungandr_v2 | fed (over-firing, 2× rate) | fed at the described rate (10) — passive halved, so its B1 deck needs the clock, not the OS |
+| ymir_v2 | fed (+50%) | fed (+35%, 10) — C1 unchanged |
+| hraesvelgr_v1 | **needs new cards — nothing in pool** | **COMMITTED** — Air discard package (~4–5 cards, 09); M1 Discard Windmill goes from unauthored to planned |
+| draugr_v1 | needs Ice sleep cards | **COMMITTED** — Ice sleep package (~2–3 cards, 09); C2 planned; dead "revived" text to drop |
+| draugr_v2 | mode-dead REWORK CANDIDATE | **rebuilt (11)**: −20% damage from attackers with 2+ debuff types, works vs intents. Feeder: C4 Weaken + **the v1 sleep package supplies debuff type #2 (Asleep)** — both draugr OSes share the same new enablers with different payoffs (the uniqueness rule working as intended) |
+| valkyrie_v1 | 1v1-dead + 0 enablers | **COMMITTED** — deliberate team OS + Light ally-buff cards (09); L1 planned; measured via team scenarios ([05](../tickets/05-team-battle-os-variance-design.md)) |
+| valkyrie_v2 | 1v1-dead REWORK CANDIDATE | **replaced (11)** — CRUSADER_KERNEL, feeder **H6** (new entry above) |
+| nidhoggr_v2 | 1v1-dead REWORK CANDIDATE | **replaced (11)** — BLOOD_SCENT_OS, feeder **B5** (new entry above); implementation = [ticket 12](../tickets/12-os-rework-implementation.md) |
+| — | EINHERJAR_RALLY (valkyrie_v2) | lives on as the **`einherjar_standard` team daemon card** (2e Light, exhaust) — L1-family tool, player-earnable, lands with the Light card work |
+
+**No-archetype / rework flags: none remain.** Every OS in the standard 32 now has a live or committed feeding archetype; valkyrie_v1 is team-by-design, not unserved. Still needs-new-cards (uncommitted): kraken_v2 (3e Water attacks), fafnir_v2 (Earth self-debuffs), huldra_v1 (~2–3 Nature ally-buffs), audhumbla_v2 (~2–3 overheal generators), hel_v1 (stance cards beyond the 2 in pool).
+
+### Element overlap — revised
+
+| Element | was | now | note |
+|---|---|---|---|
+| Air | **HIGH** | **RESOLVED (on commitment)** | discard package splits hraesvelgr (M1 windmill / F3 cycle) from sleipnir (E4 zero-cost / G1 token swarm). Henry's correction stands: the OSes never overlapped — only the card lists did |
+| Ice | **HIGH** | **RESOLVED (on commitment + rework)** | draugr = C2 sleep-wake aggro + rebuilt debuff-stack mitigation vs ymir = C1 stun cadence + few big +35% hits; the sleep package is the shared enabler, payoffs differ |
+| Earth | **HIGH** | **HIGH — deferred by decision** | fafnir_v2 and gullinbursti_v2 are both H2 Sharp payoffs on a 9-card pool; the sketched differentiators (fafnir: ~2–3 Earth self-debuff cards + E3 hoard lean; gullinbursti: ~1–2 Earth multi-hit cards + A4 prime) are **deliberately uncommitted — Henry deferred the split to the Earth deck pass (ticket 04 fog)**, which may resolve it without new cards |
+| Light | MODERATE | **LOW-MODERATE** | valkyrie finally has a live solo identity (H6 buff-variety attacks) distinct from audhumbla's I2/I3/E2 heal economy; both still shop in the buff/heal card space — watch in the deck pass |
+| Fire | MODERATE | **LOW-MODERATE** | fenrir's self-burn axis is now official (09): fenrir = B2/H2/J1 reckless burn-armor vs skoll = H3 retaliation + B2-refund tempo |
+| Water | LOW | LOW | unchanged |
+| Nature | LOW | LOW | huldra's ~2–3 buff cards still wanted; direction clear |
+| Dark | LOW | LOW | note: BLOOD_SCENT's self-damage line shares `dark_pact` with hel_v2's J2 — shared card, different payoffs (allowed) |
+
+### Stall/loop watch — revised
+
+Kraken's eternal mirror already eased from the tweaks alone (61 → 54.7 avg turns, 400 → 354 draws). BLOOD_SCENT is the first *systemic* anti-stall tool — its natural prey is exactly the C4/H1/I1/I3 stall shells. New loop-audit item from the reworks: BLOOD_SCENT heal-drop cycling (bounded by the 25% cap and HP cost — verified not degenerate in the 11 grilling) and CRUSADER + `core_overclock_daemon` stack-reader interaction (flagged in [ticket 12](../tickets/12-os-rework-implementation.md) tests).
