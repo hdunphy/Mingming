@@ -58,13 +58,28 @@ export const applyDamageModifiers = (
     });
 
     // 4. Scans for Status Modifiers (Strengthened, Weakened, Sharp, Dazed)
+    //
+    // docs/power_curve_spec.md rev 3: these four stack indefinitely (no cap on the
+    // StatusEffectInstance itself — PermanentStatusBehavior.onApply never clamps
+    // `stacks`, deliberately, so cards that read raw stack count for their own
+    // scaling — e.g. fenrir_v1's Strengthened-doubler daemon — still have a real
+    // number to work with). What's capped here is the *damage effect*: each stack
+    // is worth 2%, capped at a net 25% swing either way. This is also the fix for
+    // the mirror-match deadlock these used to cause — uncapped, the old 10%-floor
+    // formula let attacker-Weakened x defender-Sharp multiply down to ~1% net
+    // damage; capped at 25% each, the worst case is 0.75 x 0.75 = 56% net damage,
+    // which resolves in a handful of turns instead of never.
+    const STATUS_PCT_PER_STACK = 0.02;
+    const STATUS_PCT_CAP = 0.25;
+    const cappedPct = (stacks: number) => Math.min(STATUS_PCT_CAP, stacks * STATUS_PCT_PER_STACK);
+
     // Source side (Attacker)
     if (context.source) {
         for (const effect of context.source.statusEffects) {
             if (effect.type === 'Strengthened') {
-                damage *= (1 + (effect.stacks * 0.2));
+                damage *= (1 + cappedPct(effect.stacks));
             } else if (effect.type === 'Weakened') {
-                damage *= Math.max(0.1, 1 - (effect.stacks * 0.2));
+                damage *= (1 - cappedPct(effect.stacks));
             } else if (effect.type === 'DarkStance') {
                 // Stance system: while in Dark Stance the attacker deals +30% damage.
                 damage *= 1.3;
@@ -76,10 +91,10 @@ export const applyDamageModifiers = (
     if (context.target) {
         for (const effect of context.target.statusEffects) {
             if (effect.type === 'Dazed') {
-                damage *= (1 + (effect.stacks * 0.2));
+                damage *= (1 + cappedPct(effect.stacks));
             } else if (effect.type === 'Sharp') {
                 //sharp reduces incoming damage.
-                damage *= Math.max(0.1, 1 - (effect.stacks * 0.2));
+                damage *= (1 - cappedPct(effect.stacks));
             }
         }
     }

@@ -402,3 +402,29 @@ th.sortable:hover {
     color: white;
     cursor: pointer;
 }
+
+/*
+ * The "not balance truth" banner. Amber rather than red: the panel is not broken, it is
+ * answering a different question than docs/balance/balance_report.json does.
+ */
+.approximation-notice {
+    margin: 0 0 1.5rem;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid rgba(234, 179, 8, 0.45);
+    border-left: 4px solid #eab308;
+    border-radius: 8px;
+    background: rgba(234, 179, 8, 0.08);
+    color: #d9c48a;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.approximation-notice strong {
+    color: #eab308;
+}
+
+.approximation-notice code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    color: #f0e3b8;
+}

@@ -174,7 +174,7 @@ export function getBestAction(state: IBattleState): BattleAction {
     }
 
     // 3. Card-play tactical simulation: the player side (Balance Tester /
-    // SimRunner auto-battles), or card-user enemies (enemyMode === 'CARDS').
+    // the headless batch sims), or card-user enemies (enemyMode === 'CARDS').
     const MAX_DEPTH = 3; // Limit recursion to prevent hangs
 
     // Silence events during AI simulation to prevent log spam and side effects

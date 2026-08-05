@@ -169,6 +169,13 @@ describe('SaveSystem', () => {
 });
 
 describe('Gauntlet persistence (HP-only by design)', () => {
+    // Writing `mingming_save` directly now exercises the legacy-adoption path in SaveSlots:
+    // it is copied into the first slot only when no slot index exists yet. These blocks used
+    // to inherit whatever localStorage the block above left behind, so they clear it first.
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
     it('accepts persistedStats with hp only — matches what the game writes', () => {
         const save: IPlayerSave = {
             ...makeValidSave(),
@@ -207,6 +214,10 @@ describe('Gauntlet persistence (HP-only by design)', () => {
 });
 
 describe('Save migration', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
     it('loads a legacy v1 save missing blueprints/relics/gauntlet/unlockedSectors', () => {
         const legacy: any = makeValidSave();
         delete legacy.blueprints;

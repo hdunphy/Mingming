@@ -148,7 +148,10 @@ describe('Combat Utils - Damage Formula', () => {
         const state = { activeSide: 'PLAYER' } as any; // Mock state
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        expect(damage).toBe(19);
+        // levelBase = floor(2*50/5)+2 = 22; scaled = floor(22*40*100/100) = 880;
+        // reduced = 880/35 = 25.14 (docs/power_curve_spec.md rev 3: no +2, /35 not /50);
+        // modifier 1.0 (program element 'None' never grants STAB) -> floor(25.14) = 25.
+        expect(damage).toBe(25);
     });
 
     it('should match manual calculation for Level 100 (No STAB)', () => {
@@ -158,7 +161,9 @@ describe('Combat Utils - Damage Formula', () => {
         const state = { activeSide: 'PLAYER' } as any;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        expect(damage).toBe(35);
+        // levelBase = floor(2*100/5)+2 = 42; scaled = floor(42*40*100/100) = 1680;
+        // reduced = 1680/35 = 48.0; modifier 1.0 -> floor(48.0) = 48.
+        expect(damage).toBe(48);
     });
 
     it('should match STAB calculation', () => {
@@ -168,35 +173,37 @@ describe('Combat Utils - Damage Formula', () => {
         const state = { activeSide: 'PLAYER' } as any;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        expect(damage).toBe(29);
+        // Same base as the Level 50 case (25.14 reduced) but modifier is 1.5 for STAB:
+        // floor(25.14 * 1.5) = floor(37.71) = 37.
+        expect(damage).toBe(37);
     });
 });
 
 describe('Combat Utils - Heal Formula', () => {
     it('should calculate clamped heal', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 50, 10, 10);
-        // Level 50 -> levelBase 22.
-        // Atk 10. Power 5.
-        // Raw = ((22 * 5 * 10) / 50) + 2 = 24.
 
-        const target = createMockEntity('def', 'Water', undefined, 50, 10, 10);
+        const target = createMockEntity('def', 'Water', undefined, 50, 10, 10); // maxHp 100
         const damagedTarget = { ...target, currentHp: 50 }; // 50 missing.
 
+        // docs/power_curve_spec.md rev 3: calculateHeal no longer scales off the healer's
+        // level/attack - it's a flat % of the RECEIVING entity's maxHp. Raw = maxHp * power
+        // / 400 = 100 * 5 / 400 = 1.25, floor = 1. (calculateHeal itself still doesn't clamp
+        // to missing HP - that's applied by the caller - so this doesn't exercise the clamp;
+        // see the "not capped" case below for the same reason.)
         const heal = calculateHeal(attacker, damagedTarget, 5);
-        expect(heal).toBe(24);
+        expect(heal).toBe(1);
     });
 
     it('should calculate raw heal correctly when not capped', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 10, 5, 5);
-        // Level 10 -> levelBase 6.
-        // Atk 5. Power 5.
-        // Raw = ((6 * 5 * 5) / 50) + 2 = 5.
 
         const target = createMockEntity('def', 'Water', undefined, 50, 100, 100);
         const injuredTarget = { ...target, maxHp: 200, currentHp: 100 }; // 100 missing.
 
+        // Raw = maxHp * power / 400 = 200 * 5 / 400 = 2.5, floor = 2.
         const heal = calculateHeal(attacker, injuredTarget, 5);
-        expect(heal).toBe(5);
+        expect(heal).toBe(2);
     });
 });
 

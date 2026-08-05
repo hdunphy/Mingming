@@ -93,12 +93,14 @@ describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (real overheal)', () => {
     it('converts power-based (calculateHeal) overflow — the clamp no longer eats it', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
         const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_power: power 25, lvl 1, atk 10 -> intended heal 14. Overflow 9.
+        // card_heal_power: power 25, target maxHp 100. docs/power_curve_spec.md rev 3:
+        // calculateHeal = maxHp * power / 400 = 100 * 25 / 400 = 6.25 -> intended heal 6.
+        // 95/100 -> applied 5 (clamped to missing HP), overheal 1.
         let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 
         expect(state.playerParty[0].currentHp).toBe(100);
-        expect(state.enemyParty[0].currentHp).toBe(91); // 100 - 9 overflow
+        expect(state.enemyParty[0].currentHp).toBe(99); // 100 - 1 overflow
     });
 
     it('a heal fully absorbed by missing HP procs nothing', () => {
@@ -107,7 +109,7 @@ describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (real overheal)', () => {
         let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 
-        expect(state.playerParty[0].currentHp).toBe(64); // 50 + 14, no overflow
+        expect(state.playerParty[0].currentHp).toBe(56); // 50 + 6, no overflow
         expect(state.enemyParty[0].currentHp).toBe(100);
         expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(false);
     });

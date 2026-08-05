@@ -109,16 +109,20 @@ describe('Advanced Combat Mechanics', () => {
         });
 
         const state = createMockState();
-        const p1 = { ...state.playerParty[0], hooks: [hookId] };
-        const newState = { ...state, playerParty: [p1] };
-
-        const target = newState.enemyParty[0];
+        const target = state.enemyParty[0];
         const program = { element: 'None' } as ProgramData;
 
-        const damage = calculateDamage(p1, target, program, 10, newState);
+        // Compare against a hook-free baseline rather than a hardcoded magic number, so this
+        // test survives future curve retuning (docs/power_curve_spec.md) without needing its
+        // own number chased down every time the damage formula changes.
+        const baseline = calculateDamage(state.playerParty[0], target, program, 10, state);
 
-        // Normal calc for level 10: raw ~3. Doubled = 6.
-        expect(damage).toBeGreaterThan(4);
+        const p1 = { ...state.playerParty[0], hooks: [hookId] };
+        const newState = { ...state, playerParty: [p1] };
+        const doubled = calculateDamage(p1, newState.enemyParty[0], program, 10, newState);
+
+        expect(baseline).toBeGreaterThan(0);
+        expect(doubled).toBe(baseline * 2);
     });
 
     // 3. Burn Scaling (via StatusBehavior.endTurn)
@@ -135,18 +139,22 @@ describe('Advanced Combat Mechanics', () => {
         const result1 = burnBehavior.endTurn(burn1, entity);
         expect(result1.damage).toBe(Math.floor(1000 * burnConfig[0].damagePercent));
         expect(result1.defenseShred).toBe(Math.floor(100 * burnConfig[0].defShredPercent));
-        expect(result1.updatedInstance).not.toBeNull(); // Permanent
+        // docs/power_curve_spec.md rev 3: Burn now decays 1 stack/turn (was permanent) -
+        // 1 stack ticks its damage once, then wears off.
+        expect(result1.updatedInstance).toBeNull();
 
-        // 2 Stacks
+        // 2 Stacks - ticks at the 2-stack tier, then decays to 1 (not removed yet).
         const burn2: StatusEffectInstance = { id: 'b2', type: 'Burn', stacks: 2 };
         const result2 = burnBehavior.endTurn(burn2, entity);
         expect(result2.damage).toBe(Math.floor(1000 * burnConfig[1].damagePercent));
         expect(result2.defenseShred).toBe(Math.floor(100 * burnConfig[1].defShredPercent));
+        expect(result2.updatedInstance?.stacks).toBe(1);
 
-        // 3 Stacks
+        // 3 Stacks - ticks at the 3-stack (max) tier, then decays to 2.
         const burn3: StatusEffectInstance = { id: 'b3', type: 'Burn', stacks: 3 };
         const result3 = burnBehavior.endTurn(burn3, entity);
         expect(result3.damage).toBe(Math.floor(1000 * burnConfig[2].damagePercent));
         expect(result3.defenseShred).toBe(Math.floor(100 * burnConfig[2].defShredPercent));
+        expect(result3.updatedInstance?.stacks).toBe(2);
     });
 });

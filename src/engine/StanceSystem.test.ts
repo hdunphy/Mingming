@@ -176,7 +176,11 @@ describe('Light Stance: +50% healing', () => {
         const boosted = calculateHeal(stancedHealer, wounded, 10);
 
         expect(base).toBeGreaterThan(0);
-        expect(boosted).toBe(Math.floor(((((2 * 10) / 5) + 2) * 10 * 100 / 50 + 2) * 1.5));
+        // docs/power_curve_spec.md rev 3: calculateHeal is now a flat % of the RECEIVING
+        // entity's maxHp (`maxHp * power / 400`), not scaled by the healer's level/attack -
+        // the healer's own stats no longer matter here at all.
+        expect(base).toBe(Math.floor((wounded.maxHp * 10) / 400));
+        expect(boosted).toBe(Math.floor(((wounded.maxHp * 10) / 400) * 1.5));
         expect(boosted).toBeGreaterThan(base);
     });
 

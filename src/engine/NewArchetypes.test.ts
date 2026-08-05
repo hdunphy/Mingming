@@ -2,14 +2,22 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { createMockEntity } from './data/battleFactories';
+import { SeedStream } from './core/SeedStream';
 import { GetProgramData } from './data/programRegistry';
 
 describe('Advanced Archetypes Logic', () => {
     let initialState: IBattleState;
 
     beforeEach(() => {
-        const player = createMockEntity('Player', 'fenrir', 10);
-        const enemy = createMockEntity('Enemy', 'fenrir', 10);
+        // Fixed seed: createMockEntity rolls random IVs by default, which made the
+        // CARDS_DRAWN test below flaky under docs/power_curve_spec.md rev 3 (a low,
+        // unscaled power value can now floor to exactly 0 damage before any IV-driven
+        // attack/defense variance, where the old formula's flat +2 guaranteed a nonzero
+        // floor regardless of stats).
+        // Distinct seeds - the same seed for both would also make `rng.nextId('mm')` mint
+        // the same entity id for player and enemy, breaking every id-based lookup.
+        const player = createMockEntity('Player', 'fenrir', 10, 0, new SeedStream('new-archetypes-test-player'));
+        const enemy = createMockEntity('Enemy', 'fenrir', 10, 0, new SeedStream('new-archetypes-test-enemy'));
 
         initialState = {
             sessionId: 'test',
@@ -100,23 +108,27 @@ describe('Advanced Archetypes Logic', () => {
     });
 
     it('CARDS_DRAWN scaling should increase damage', () => {
-        // 1. Set cardsDrawnThisTurn to 10 to ensure a clear difference
-        let state: IBattleState = {
-            ...initialState,
-            cardsDrawnThisTurn: 10
-        };
-
-        const action: any = {
-            type: 'ATTACK',
-            power: 5,
-            scaling: 'CARDS_DRAWN'
-        };
-
+        // Compare a x10 multiplier against a x1 baseline rather than a hardcoded magic
+        // number: docs/power_curve_spec.md rev 3 dropped calculateDamage's flat +2 floor,
+        // so a low, off-curve power value (this test used power=5) can now floor to exactly
+        // 0 before any scaling - 0 * 10 is still 0, which made this test flaky depending on
+        // the entity's random IVs. Power=30 plus the fixed seed set in beforeEach keeps the
+        // baseline reliably nonzero (5 damage) without the x10 hit (50) overkilling fenrir's
+        // 60 maxHp - overkill would clamp `damageDealt` at the enemy's remaining HP and break
+        // the clean x10 relationship this test checks. The comparison itself doesn't need
+        // re-deriving every time the curve is retuned again, only this margin does.
+        const baselineState: IBattleState = { ...initialState, cardsDrawnThisTurn: 1 };
+        const scaledState: IBattleState = { ...initialState, cardsDrawnThisTurn: 10 };
+        const action: any = { type: 'ATTACK', power: 30, scaling: 'CARDS_DRAWN' };
         const executor = ActionExecutorRegistry['ATTACK'];
-        const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as any);
 
-        const damageDealt = initialState.enemyParty[0].currentHp - nextState.enemyParty[0].currentHp;
-        // Base damage for power 5 level 10 vs level 10 is ~2-3. With x10 it should be ~20-30.
-        expect(damageDealt).toBeGreaterThan(10);
+        const baselineNext = executor.execute(baselineState, baselineState.playerParty[0].id, baselineState.enemyParty[0].id, action, undefined, {} as any);
+        const scaledNext = executor.execute(scaledState, scaledState.playerParty[0].id, scaledState.enemyParty[0].id, action, undefined, {} as any);
+
+        const baselineDamage = initialState.enemyParty[0].currentHp - baselineNext.enemyParty[0].currentHp;
+        const scaledDamage = initialState.enemyParty[0].currentHp - scaledNext.enemyParty[0].currentHp;
+
+        expect(baselineDamage).toBeGreaterThan(0);
+        expect(scaledDamage).toBe(baselineDamage * 10);
     });
 });

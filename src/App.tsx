@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import './App.css'
 import { useDispatch, useSelector } from 'react-redux'
 import BattleArena from './ui/components/BattleArena'
@@ -7,9 +7,7 @@ import RosterTerminal from './ui/screens/RosterTerminal'
 import SynthesisLab from './ui/screens/SynthesisLab'
 import HubScreen from './ui/screens/HubScreen'
 import MainMenuView from './ui/components/MainMenuView'
-import BalanceTester from './ui/screens/BalanceTester'
 import SectorTerminal from './ui/screens/SectorTerminal'
-import CardStudio from './ui/screens/CardStudio'
 import RelicTerminal from './ui/screens/RelicTerminal'
 
 import { loadGame } from './engine/SaveSystem'
@@ -18,7 +16,23 @@ import type { RootState } from './ui/store/store'
 import { initAudio, playSfx } from './ui/audio/AudioEngine'
 import AudioControls from './ui/components/AudioControls'
 
-type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'balance' | 'studio';
+// The single import edge between the game and the debug toolkit. `import.meta.env.DEV` is
+// statically replaced by `false` in a production build, the ternary folds to `null`, and the
+// dynamic import becomes unreachable, so Rollup never emits the chunk. Verified after the fact
+// by `scripts/assert-no-debug.mjs`. Nothing else anywhere may import from `./debug/`.
+const DebugRoot = import.meta.env.DEV ? lazy(() => import('./debug/DebugRoot')) : null;
+
+// Fixed-position debug layer. Rendered in every path below — including both early returns —
+// so it stays reachable at roster 0, mid-battle and in the hub.
+const debugLayer = DebugRoot ? (
+  <Suspense fallback={null}>
+    <DebugRoot />
+  </Suspense>
+) : null;
+
+type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'debug';
+
+const debugTab: { id: Tab; label: string; icon: string } = { id: 'debug', label: 'Debug', icon: '🐞' };
 
 const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'hub', label: 'Hub', icon: '🏠' },
@@ -27,8 +41,7 @@ const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'roster', label: 'Roster', icon: '🤖' },
   { id: 'lab', label: 'Lab', icon: '🔬' },
   { id: 'relic', label: 'Relics', icon: '💎' },
-  { id: 'balance', label: 'Balance', icon: '⚖️' },
-  { id: 'studio', label: 'Studio', icon: '🏗️' },
+  ...(import.meta.env.DEV ? [debugTab] : []),
 ];
 
 function App() {
@@ -69,15 +82,28 @@ function App() {
     prevInBattle.current = isInBattle;
   }, [isInBattle, gauntlet]);
 
-  if (rosterSize === 0) {
-    return <MainMenuView />;
+  // A live battle outranks an empty roster. These used to be the other way round, which meant a
+  // scenario launched into a fresh save slot was created in the store and then never rendered:
+  // the slot's roster is empty, so this component returned MainMenuView and BattleArena never got
+  // a look in. Composing a party from scratch is the launcher's whole purpose, so roster-0 is the
+  // normal case there rather than an edge one.
+  //
+  // Safe in ordinary play: createBattleState throws on an empty party, so no battle can exist
+  // alongside an empty roster except by debug injection. The defeat path only deletes the *stored*
+  // save while the overlay is up — state.game.roster stays populated — and both wipe paths
+  // (BattleArena's handleDefeatReset, HubScreen's handleRestart) call window.location.reload()
+  // immediately after resetSave(), so there is no frame where this order shows the wrong screen.
+  if (isInBattle) {
+    return <>{debugLayer}<BattleArena /></>;
   }
 
-  if (isInBattle) {
-    return <BattleArena />;
+  if (rosterSize === 0) {
+    return <>{debugLayer}<MainMenuView /></>;
   }
 
   return (
+    <>
+    {debugLayer}
     <main style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Tab Navigation */}
       <nav className="main-nav" style={{ position: 'relative' }}>
@@ -102,10 +128,14 @@ function App() {
         {activeTab === 'roster' && <RosterTerminal />}
         {activeTab === 'lab' && <SynthesisLab />}
         {activeTab === 'relic' && <RelicTerminal />}
-        {activeTab === 'balance' && <BalanceTester />}
-        {activeTab === 'studio' && <CardStudio />}
+        {activeTab === 'debug' && DebugRoot && (
+          <Suspense fallback={null}>
+            <DebugRoot mode="docked" />
+          </Suspense>
+        )}
       </div>
     </main>
+    </>
   );
 }
 

@@ -83,7 +83,12 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   const scaled = Math.floor(levelBase * power * attacker.attack / target.defense);
 
   // Step 3: Reduction
-  const reduced = (scaled / 50) + 2;
+  // No flat bonus here (docs/power_curve_spec.md rev 3): the old `+2` was paid per hit,
+  // secretly inflating small/multi-hit attacks, and its relative weight shrank as units
+  // leveled up. /35 (was /50) keeps a 1e-40 card dealing the same ~7 damage at L10 that
+  // the old /50+2 formula gave, so existing pacing holds while the curve is now purely
+  // proportional to power at every level.
+  const reduced = scaled / 35;
 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);
@@ -105,13 +110,15 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   return Math.max(0, damage);
 }
 
-export function calculateHeal(attacker: IBattleEntity, _target: IBattleEntity, power: number): number {
-  const levelBase = ((2 * attacker.level) / 5) + 2;
-
-  // Dividing by 50 offsets the unmitigated 'attack' multiplier
-  // and brings the curve in line with the damage formula's pacing.
-  // We add +2 at the end to guarantee a minimum heal amount.
-  let rawHeal = ((levelBase * power * attacker.attack) / 50) + 2;
+export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, power: number): number {
+  // docs/power_curve_spec.md rev 3: heals are a fixed % of the RECEIVING entity's
+  // maxHp, not scaled by the healer's level/attack — level-proof by construction,
+  // since maxHp already carries the level scaling. 1 power heals 0.25% maxHp (the
+  // 4-power-per-1%-maxHp price — pricier than damage's 3-power-per-1%, deliberately,
+  // since healing doesn't advance the win condition the way damage does). No flat
+  // +2 floor and no attacker-stat scaling, per the same "+2 drifted with level" and
+  // "attack scaling made healing ~18x damage per power point" problems damage had.
+  let rawHeal = (target.maxHp * power) / 400;
 
   // Stance system: while in Light Stance the healer's heals are +50%.
   // (healOverride-based heals are boosted separately in HealExecutor.)

@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { IBattleState } from '../../engine/types';
 import { createBattleState } from '../../engine/data/battleFactories';
+import type { BattleOptions } from '../../engine/data/battleFactories';
 import { battleReducer } from '../../engine/battleReducer';
 import type { IPlayerSave } from '../../engine/gameTypes';
 
@@ -64,8 +65,15 @@ const battleSlice = createSlice({
         setBattleState: (state, action: PayloadAction<IBattleState | null>) => {
             state.battle = action.payload as any;
         },
-        startBattle: (state, action: PayloadAction<{ save: IPlayerSave; enemyIds: string[]; sectorElement?: any }>) => {
-            state.battle = createBattleState(action.payload.save, action.payload.enemyIds, action.payload.sectorElement) as any;
+        startBattle: (state, action: PayloadAction<{ save: IPlayerSave; enemyIds: string[]; sectorElement?: any; options?: BattleOptions }>) => {
+            // options carries seed + enemyMode; dropping it here made
+            // enemyMode: 'CARDS' and seeded battles unreachable from the UI.
+            state.battle = createBattleState(
+                action.payload.save,
+                action.payload.enemyIds,
+                action.payload.sectorElement,
+                action.payload.options
+            ) as any;
             state.selectedSourceId = null;
             state.selectedTargetId = null;
             state.selectedCardId = null;

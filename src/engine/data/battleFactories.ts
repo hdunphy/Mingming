@@ -5,32 +5,38 @@ import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
 import { GetRelic } from './relicRegistry';
 import { drawCards } from '../deckLogic';
-import { PRNG } from '../core/PRNG';
 import { generateIntents } from '../core/IntentUtils';
+import { SeedStream, rollSeed } from '../core/SeedStream';
 
-export function createMockEntity(name: string, mingmingId: string = 'fenrir', level: number = 10, experience: number = 0): IBattleEntity {
+export function createMockEntity(
+    name: string,
+    mingmingId: string = 'fenrir',
+    level: number = 10,
+    experience: number = 0,
+    rng: SeedStream = new SeedStream(rollSeed())
+): IBattleEntity {
     const definition = GetMingmingData(mingmingId);
 
     const instance: IMingmingState = {
-        id: crypto.randomUUID(),
+        id: rng.nextId('mm'),
         definitionId: mingmingId,
         nickname: name,
         level: level,
         experience: experience,
         blueprintsCollected: 0,
-        hpIV: Math.floor(Math.random() * 32),
-        attackIV: Math.floor(Math.random() * 32),
-        defenseIV: Math.floor(Math.random() * 32),
+        hpIV: rng.nextInt(0, 31),
+        attackIV: rng.nextInt(0, 31),
+        defenseIV: rng.nextInt(0, 31),
     };
 
     return initializeBattleEntity(instance, definition);
 }
 
-export function instantiateDeck(deckIds: string[]): ProgramEntity[] {
+export function instantiateDeck(deckIds: string[], rng: SeedStream = new SeedStream(rollSeed())): ProgramEntity[] {
     return deckIds.map((id, index) => {
         if (!id) console.error(`instantiateDeck got undefined at index ${index} in deckIds:`, deckIds);
         return {
-            id: crypto.randomUUID(),
+            id: rng.nextId('card'),
             dataId: id,
             currentCost: GetProgramData(id).baseCost,
             isPlayable: true
@@ -42,6 +48,14 @@ import { generateEncounter, getSectorSpecies } from './EncounterGenerator';
 import type { Element, EnemyCombatMode } from '../types';
 
 export interface BattleOptions {
+    /**
+     * Seed for every random decision made while *creating* the battle: party
+     * size, IVs, deck shuffles, opening draws, entity and card-instance ids.
+     * Omit it and one is rolled here, then threaded the same way - so the
+     * resulting battle is always reproducible from the seed it records.
+     */
+    readonly seed?: string;
+
     /**
      * How the enemy side fights, locked in at battle creation.
      * Defaults to 'MOVES' (telegraphed intents, no cards). Passing
@@ -57,6 +71,12 @@ export function createBattleState(
     options?: BattleOptions
 ): IBattleState {
     const enemyMode: EnemyCombatMode = options?.enemyMode ?? 'MOVES';
+
+    // One seed, threaded through every random decision below. When no seed is
+    // supplied we roll exactly once - the only non-deterministic call left on
+    // the creation path.
+    const battleSeed: string = options?.seed ?? rollSeed();
+    const rng = new SeedStream(battleSeed);
     const playerPartyMembers = save.activeParty
         .map(id => save.roster.find(m => m.id === id))
         .filter(Boolean) as IMingmingState[];
@@ -129,11 +149,11 @@ export function createBattleState(
 
         if (battleIndex === 0) {
             // Tier 1 (Grunt): Procedural 1-2 enemies
-            const count = Math.random() > 0.5 ? 2 : 1;
+            const count = rng.nextInt(1, 2);
             const encounter = generateEncounter({
                 sectorElement: primaryElement,
                 playerParty,
-                seed: Date.now().toString()
+                seed: rng.fork('encounter_grunt')
             });
             enemyParty = encounter.enemyParty.slice(0, count);
             enemyDeckIds = encounter.enemyDeckIds;
@@ -142,7 +162,7 @@ export function createBattleState(
             const encounter = generateEncounter({
                 sectorElement: secondaryElement,
                 playerParty,
-                seed: Date.now().toString()
+                seed: rng.fork('encounter_elite')
             });
             enemyParty = encounter.enemyParty;
             enemyDeckIds = encounter.enemyDeckIds;
@@ -155,7 +175,7 @@ export function createBattleState(
             const bossId = wardenPool[0]?.id ?? 'fenrir';
             const guardId = (wardenPool[1] ?? wardenPool[0])?.id ?? 'fenrir';
 
-            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, playerLevel + 2);
+            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, playerLevel + 2, 0, rng);
             const superBoss: IBattleEntity = {
                 ...boss,
                 maxHp: boss.maxHp * 1.5,
@@ -169,8 +189,8 @@ export function createBattleState(
                     { id: 'boss_blast', name: 'Core Blast', intentType: 'Attack', priority: 8, actions: [{ type: 'ATTACK', power: 15, element: 'None', target: 'Side' }] }
                 ]
             };
-            const guard1 = createMockEntity('Firewall Sentinel', guardId, playerLevel);
-            const guard2 = createMockEntity('Firewall Sentinel', guardId, playerLevel);
+            const guard1 = createMockEntity('Firewall Sentinel', guardId, playerLevel, 0, rng);
+            const guard2 = createMockEntity('Firewall Sentinel', guardId, playerLevel, 0, rng);
 
             enemyParty = [guard1, superBoss, guard2]; // Boss in middle
 
@@ -181,14 +201,14 @@ export function createBattleState(
         const encounter = generateEncounter({
             sectorElement,
             playerParty,
-            seed: Date.now().toString()
+            seed: rng.fork('encounter_sector')
         });
         enemyParty = encounter.enemyParty;
         enemyDeckIds = encounter.enemyDeckIds;
     } else {
         // Fallback or fixed encounters (e.g. initial dev test)
         const enemyLevel = Math.max(...playerParty.map(p => p.level));
-        enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel));
+        enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel, 0, rng));
 
         // Use the old archetype logic for fixed encounters if needed, or simple direct IDs
         enemyDeckIds = enemyIds.map(enemyId => {
@@ -234,8 +254,7 @@ export function createBattleState(
         };
 
         const list = lists[archetype];
-        const prng = new PRNG(Date.now().toString());
-        const { shuffled } = prng.shuffle(list.cards);
+        const shuffled = rng.shuffle(list.cards);
         return [list.daemon, ...shuffled.slice(0, 9)];
     };
 
@@ -251,12 +270,11 @@ export function createBattleState(
         playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
     }
 
-    const pDeckCardsRaw = instantiateDeck(playerDeckIds);
-    const initialSeed = Date.now().toString();
-    const { shuffled: pDeckCards, nextSeed: seedAfterPlayerShuffle } = new PRNG(initialSeed).shuffle(pDeckCardsRaw);
+    const pDeckCardsRaw = instantiateDeck(playerDeckIds, rng);
+    const pDeckCards = rng.shuffle(pDeckCardsRaw);
 
-    const eDeckCardsRaw = instantiateDeck(enemyDeckIds);
-    const { shuffled: eDeckCards, nextSeed: seedAfterEnemyShuffle } = new PRNG(seedAfterPlayerShuffle.toString()).shuffle(eDeckCardsRaw);
+    const eDeckCardsRaw = instantiateDeck(enemyDeckIds, rng);
+    const eDeckCards = rng.shuffle(eDeckCardsRaw);
 
     const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
     const enemyCardDraw = enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
@@ -269,7 +287,8 @@ export function createBattleState(
         discard: [],
         exhaust: []
     };
-    const { state: pDeckState, nextSeed: seed2 } = drawCards(pInitialDeck, playerCardDraw, seedAfterEnemyShuffle.toString());
+    const { state: pDeckState, nextSeed: seedAfterPlayerDraw } = drawCards(pInitialDeck, playerCardDraw, rng.seed);
+    rng.adopt(seedAfterPlayerDraw);
 
     // A battle with no enemies is unwinnable-by-definition and renders a ghost
     // arena (empty enemy column, instant hollow victory). Fail loudly instead.
@@ -286,18 +305,21 @@ export function createBattleState(
         discard: [],
         exhaust: []
     };
-    const { state: eDeckState, nextSeed: seed3 } = enemyMode === 'CARDS'
-        ? drawCards(eInitialDeck, enemyCardDraw, seed2)
-        : { state: eInitialDeck, nextSeed: seed2 };
+    const { state: eDeckState, nextSeed: seedAfterEnemyDraw } = enemyMode === 'CARDS'
+        ? drawCards(eInitialDeck, enemyCardDraw, rng.seed)
+        : { state: eInitialDeck, nextSeed: rng.seed };
+    rng.adopt(seedAfterEnemyDraw);
 
     // Intents are only telegraphed for move users.
     const finalEnemyParty = enemyMode === 'MOVES'
-        ? generateIntents(enemyParty, seed3, 1)
+        ? generateIntents(enemyParty, rng.seed, 1)
         : enemyParty;
 
     return {
-        sessionId: 'battle_' + Date.now(),
-        seed: seed3,
+        // sessionId lives inside IBattleState, so a wall-clock value would
+        // break every replay diff on its own. Derive it from the seed instead.
+        sessionId: 'battle_' + battleSeed,
+        seed: rng.seed,
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',

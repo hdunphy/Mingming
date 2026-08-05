@@ -879,7 +879,7 @@
         "target": "Single",
         "category": "Skill",
         "rarity": "Rare",
-        "baseCost": 1,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -895,7 +895,7 @@
     "feedback_loop_daemon": {
         "id": "feedback_loop_daemon",
         "name": "FEEDBACK_LOOP",
-        "description": "Daemon: Deal 10 damage to random enemy for each card draw.",
+        "description": "Daemon: Deal 7 damage to random enemy for each card draw.",
         "element": "Water",
         "target": "Self",
         "category": "Daemon",
