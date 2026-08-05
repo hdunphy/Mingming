@@ -1,19 +1,22 @@
 # OS-swap deck rules
 
 - Type: wayfinder:grilling
-- Status: open
-- Assignee: —
-- Blocked by: [02-per-os-deck-data-model-audit](02-per-os-deck-data-model-audit.md)
+- Status: closed
+- Assignee: wayfinder (Claude session, 2026-08-05, voice-mode grilling)
+- Blocked by: [02-per-os-deck-data-model-audit](02-per-os-deck-data-model-audit.md) (closed)
 
 ## Question
 
-Once starting decks are per-OS, what happens to a player's deck when they swap firmware mid-run? This is the game-design decision the data model has to serve, and it gates all implementation fog. The option space to grill (with the audit's facts about where decks/drafted cards actually live):
+Once starting decks are per-OS, what happens to a player's deck when they swap firmware mid-run? Card grant rules, swap cost/gating, and whether the enemy side uses per-OS decks.
 
-- **Deck follows OS wholesale** — swap firmware, swap to that OS's deck. What happens to drafted cards: kept, dropped, or re-draftable?
-- **Base-10 swaps, drafted cards persist** — the 10 starting cards trade out for the other OS's 10; everything earned in the run stays.
-- **OS locked at recruit** — choosing firmware is a recruit-time identity decision; no mid-run swap (does `FirmwareTerminal` change role?).
-- **Swap allowed, deck untouched** — cheapest, but recreates the exact mismatch this map exists to kill (a v1-built deck running under v2).
+## Resolution
 
-Also decide: does the *enemy* side (wardens, wild encounters) use per-OS decks, and does the player pick an OS at recruit or get a default?
+Grilled with Henry 2026-08-05 (voice-mode). Three rules:
 
-Numbers to bring: how often OS swapping actually matters today (any telemetry/dev-experience), and per option a worked example — e.g. sleipnir recruited under v1 (five 0-cost cards feeding MOMENTUM_DRIVE), swapped to v2 mid-run: what deck is the player holding under each rule?
+**1. Swap card grant — "B with a taste of the kit."** You fully own only the kit of the OS you compiled with. On your **first** swap to another OS you **pick 2 of its 8 starting cards** into your collection — once ever per OS per species; repeat swaps grant nothing. Rationale: the collection is one shared pool and player decks aren't element-locked, so a full-kit grant would be a ~50-scrap round trip to mine any species' best card (e.g. maelstrom for an unrelated build); the capped pick stops the mining while still bootstrapping the new playstyle. The pick count ships as a **tunable constant** (`OS_SWAP_PICK_COUNT = 2`) — playtesting may raise it to 3–4 with zero code work. The deck itself is never auto-edited; the player rebuilds (suggest-fill is already active-OS-aware from [ticket 13](13-per-os-deck-data-model.md)).
+
+**2. Swap cost — 1 blueprint (SPENT) + 25 scrap, hub-only.** `blueprintsCollected` stops being a dead affordance ("for OS swapping", checked nowhere) and becomes the gate it was named for: blueprints stay a meaningful pickup all game.
+
+**3. Enemies stay on MOVES/intents — a standing design decision, door deliberately open.** The cards→intents transition was a deliberate readability choice (Slay-the-Spire-style telegraphs). But Henry wants the CARDS enemy mode **kept alive in the codebase** — "there's something nice about playing against an opponent with cards," and it may be needed for multiplayer someday. It is naturally exercised daily: the entire balance suite runs enemies in CARDS mode, so it cannot rot. Enemy firmware + per-OS enemy decks are **ruled out of this map** as a future effort (recorded in Out of scope).
+
+Implementation graduates as [OS-swap implementation](15-os-swap-implementation.md): FirmwareTerminal reads `availableOS` (drops the `_v1/_v2` hardcode), requires + spends blueprint/scrap, pick-2 UI, species+OS grant keying with a save migration.
