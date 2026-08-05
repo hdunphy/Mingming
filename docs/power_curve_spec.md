@@ -12,7 +12,7 @@ All costs are in **power**. Conversions (level-proof by design):
 
 ## Engine changes required
 
-1. **calculateDamage** — remove the flat `+2`, change divisor `/50` → `/35` (keeps a 1e-40 dealing the same ~7–10 damage at L10, so pacing is preserved), add `Math.max(1, damage)` so nothing ever hits 0. *Why: the +2 was paid per hit, making small/multi hits secretly stronger, and its value shrank with level — card economics drifted as units leveled.*
+1. **calculateDamage** — remove the flat `+2`, change divisor `/50` → `/35` (keeps a 1e-40 dealing the same ~7–10 damage at L10, so pacing is preserved). Damage floor stays at **0** (the existing `Math.max(0, damage)`): attacks *can* deal nothing — a tanky Mingming with Sharp stacks shrugging off hits is a feature, not a bug. *Why the +2 goes: it was paid per hit, making small/multi hits secretly stronger, and its value shrank with level — card economics drifted as units leveled.*
 2. **calculateHeal** — replace with `maxHp × power / 200` (1 power heals 0.5% maxHP). Drop attack scaling and the flat +2. *Why: healing was ~18× damage per power point (natures_touch healed 47 HP at L10 for 1 energy).* LightStance ×1.5 stays on top.
 3. **Burn** — decays 1 stack/turn (was permanent). Keeps tiers 2/5/12% maxHP + def shred + overflow burst.
 4. **Regen** — heals 3% maxHP per stack per turn (was flat 5 HP).
