@@ -33,6 +33,5 @@ section,kind,subject,metric,value,threshold,comparison,detail
 2.3,OS_GAP,os:kraken,osGap,0.5,0.15,above,kraken_v2 wins 100.0% of the 87 decided games between kraken_v1 and kraken_v2 on an otherwise identical kraken. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:nidhoggr,osGap,0.4,0.15,above,nidhoggr_v2 wins 90.0% of the 40 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ratatoskr,osGap,0.18,0.15,above,ratatoskr_v1 wins 68.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:sleipnir,osGap,0.5,0.15,above,sleipnir_v2 wins 100.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:sleipnir,osGap,0.49,0.15,above,sleipnir_v2 wins 99.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ymir,osGap,0.38,0.15,above,ymir_v2 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.
-3,FTK,os:sleipnir,ftkCount,50,0,above,"50/100 runs were won on turn 1 by the side that moved first, so the loser never played a card."

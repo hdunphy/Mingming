@@ -674,7 +674,8 @@
                 "when": {
                     "source": "SELF",
                     "programElement": "Air",
-                    "actionType": "ATTACK"
+                    "actionType": "ATTACK",
+                    "isToken": false
                 },
                 "do": [
                     {

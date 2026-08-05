@@ -38,12 +38,12 @@ os:fenrir,os-variance,os-variance,fenrir,fenrir_v1,fenrir,fenrir_v2,100,33,66,1,
 os:gullinbursti,os-variance,os-variance,gullinbursti,gullinbursti_v1,gullinbursti,gullinbursti_v2,100,0,100,0,100,0,0,8.65,0.183,0.145,0,0,0,1,false,OS_GAP
 os:hel,os-variance,os-variance,hel,hel_v1,hel,hel_v2,100,0,0,100,0,0,0,61,0.018,0,0,100,0,0,true,
 os:hraesvelgr,os-variance,os-variance,hraesvelgr,hraesvelgr_v1,hraesvelgr,hraesvelgr_v2,100,10,90,0,100,0.1,0.1,3.65,0.238,0.139,0,0,0.08,0.8,false,OS_GAP
-os:huldra,os-variance,os-variance,huldra,huldra_v1,huldra,huldra_v2,100,42,56,2,98,0.4286,0.42,16.58,0.198,0.194,0,2,0.0714,0.14,false,
+os:huldra,os-variance,os-variance,huldra,huldra_v1,huldra,huldra_v2,100,44,55,1,99,0.4444,0.44,19.52,0.154,0.185,0,1,0.0051,0.111,false,
 os:jormungandr,os-variance,os-variance,jormungandr,jormungandr_v1,jormungandr,jormungandr_v2,100,14,86,0,100,0.14,0.14,6.83,0.133,0.136,0,0,0,0.72,false,OS_GAP
 os:kraken,os-variance,os-variance,kraken,kraken_v1,kraken,kraken_v2,100,0,87,13,87,0,0,13.77,0.06,0.049,0,13,-0.0287,1,false,OS_GAP
 os:nidhoggr,os-variance,os-variance,nidhoggr,nidhoggr_v1,nidhoggr,nidhoggr_v2,100,4,36,60,40,0.1,0.04,48.38,0.027,0.04,0,60,-0.05,0.8125,false,OS_GAP
 os:ratatoskr,os-variance,os-variance,ratatoskr,ratatoskr_v1,ratatoskr,ratatoskr_v2,100,68,32,0,100,0.68,0.68,5.79,0.02,0.021,0,0,-0.28,0.36,false,OS_GAP
 os:skoll,os-variance,os-variance,skoll,skoll_v1,skoll,skoll_v2,100,57,43,0,100,0.57,0.57,3.35,0.5209,0.5119,0,0,0.09,0.14,false,
-os:sleipnir,os-variance,os-variance,sleipnir,sleipnir_v1,sleipnir,sleipnir_v2,100,0,100,0,100,0,0,1,0.4543,0.194,50,0,0,1,false,OS_GAP FTK
+os:sleipnir,os-variance,os-variance,sleipnir,sleipnir_v1,sleipnir,sleipnir_v2,100,1,99,0,100,0.01,0.01,3.17,0.1162,0.1117,0,0,0.01,0.98,false,OS_GAP
 os:valkyrie,os-variance,os-variance,valkyrie,valkyrie_v1,valkyrie,valkyrie_v2,100,57,43,0,100,0.57,0.57,11.59,0.063,0.069,0,0,-0.01,0.14,false,
 os:ymir,os-variance,os-variance,ymir,ymir_v1,ymir,ymir_v2,100,12,88,0,100,0.12,0.12,12.05,0.205,0.235,0,0,0.08,0.76,false,OS_GAP

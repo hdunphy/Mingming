@@ -452,3 +452,79 @@ describe('getEffectiveCardCost (shared reducer/UI helper)', () => {
         expect(getEffectiveCardCost({ nextProgramModifier: undefined } as any, attackCard, 2)).toBe(2);
     });
 });
+
+// ---------------------------------------------------------------------------
+// Ticket 07 (deck-archetypes map, 2026-08-05): mechanical firmware defect fixes
+// ---------------------------------------------------------------------------
+
+describe('Ticket 07 - SLEIPNIR v2 WAR_STEED_OS token guard', () => {
+    it('an Air attack generates exactly one hoof_strike, and the token does not self-replicate', () => {
+        const sleipnir = makeUnit('sl1', 'Sleipnir', { activeOS: 'sleipnir_v2' });
+        let state = makeState([sleipnir], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'gust_jab', 0)
+        ]);
+
+        state = play(state, 'sl1', 'e1', 'c1');
+        const tokens = state.playerDeck.hand.filter(c => c.dataId === 'hoof_strike');
+        expect(tokens).toHaveLength(1);
+
+        // Playing the generated token must NOT generate another (isToken: false guard).
+        state = play(state, 'sl1', 'e1', tokens[0].id);
+        expect(state.playerDeck.hand.filter(c => c.dataId === 'hoof_strike')).toHaveLength(0);
+    });
+});
+
+describe('Ticket 07 - HULDRA v2 BARK_SHIELD_OS fires for both sides, linear shield', () => {
+    it('player-side Huldra gets the shield at her first turn boundary (end of turn 1), once', () => {
+        const huldra = makeUnit('h1', 'Huldra', { activeOS: 'huldra_v2', maxHp: 200, currentHp: 200 });
+        let state = makeState([huldra], [makeUnit('e1', 'Enemy')]);
+
+        // Battle starts mid-turn-1 (ACTION phase): no shield yet.
+        expect(state.playerParty[0].statusEffects.find(s => s.type === 'BarkShield')).toBeUndefined();
+
+        state = battleReducer(state, { type: 'END_TURN' }); // player turn 1 ends -> onTurnEnd
+        const shield = state.playerParty[0].statusEffects.find(s => s.type === 'BarkShield');
+        expect(shield).toBeDefined();
+        // Linear: flat percent stacks, independent of maxHp (was floor(maxHp*0.5) = 100 here).
+        expect(shield!.stacks).toBe(50);
+
+        // Once per battle: cycle a full round; the grant must not fire a second time
+        // (BarkShield's own decay schedule is irrelevant here - count the grant logs).
+        state = battleReducer(state, { type: 'END_TURN' }); // enemy -> player onTurnStart
+        state = battleReducer(state, { type: 'END_TURN' }); // player -> enemy again
+        const grants = state.logs.filter(l => l.includes("BARK_SHIELD_OS activates"));
+        expect(grants).toHaveLength(1);
+    });
+
+    it('enemy-side Huldra gets the shield at her turn-1 pre-turn', () => {
+        const huldra = makeUnit('eh1', 'Enemy Huldra', { activeOS: 'huldra_v2' });
+        let state = makeState([makeUnit('p1', 'Player')], [huldra]);
+
+        state = battleReducer(state, { type: 'END_TURN' }); // -> enemy onTurnStart
+        const shield = state.enemyParty[0].statusEffects.find(s => s.type === 'BarkShield');
+        expect(shield).toBeDefined();
+        expect(shield!.stacks).toBe(50);
+    });
+});
+
+describe('Ticket 07 - FAFNIR v2 duplicate hook removed', () => {
+    it('fafnir_v2 registers exactly one corrupted-gold hook (data-driven, no custom twin)', () => {
+        const os = getOSBehavior('fafnir_v2')!;
+        const ids = os.hooks.map(h => h.id);
+        expect(ids.filter(id => id === 'fafnir_v2_corrupted')).toHaveLength(1);
+        expect(os.hooks).toHaveLength(1);
+    });
+});
+
+describe("Ticket 07 - explicit 'ANY' source/target condition", () => {
+    it("target: 'ANY' matches by name, not by validator fall-through", async () => {
+        const { ConditionValidator } = await import('./core/ConditionValidator');
+        const owner = makeUnit('n1', 'Nidhoggr');
+        const other = makeUnit('e1', 'Enemy');
+        const state = makeState([owner], [other]);
+        const context: any = { state, target: other, source: other, triggerDepth: 0 };
+        expect(ConditionValidator.evaluateHookCondition({ target: 'ANY' }, context, owner)).toBe(true);
+        expect(ConditionValidator.evaluateHookCondition({ source: 'ANY' }, context, owner)).toBe(true);
+        expect(ConditionValidator.evaluateHookCondition({ target: 'SELF' }, context, owner)).toBe(false);
+    });
+});

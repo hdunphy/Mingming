@@ -3,6 +3,28 @@ import type { IBattleState, IBattleEntity } from '../types';
 import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
 
+/** Placeholder pending the OS design review (deck-archetypes ticket 09). */
+const HULDRA_V2_SHIELD_PERCENT = 50;
+
+/**
+ * BARK_SHIELD_OS: grant the once-per-battle shield at the owner's first turn
+ * boundary. Shared by the onTurnStart and onTurnEnd hooks; the per-owner
+ * counter guard makes whichever fires first the only one that acts.
+ */
+function grantHuldraShieldOnce(context: HookContext, owner: IBattleEntity): HookResult {
+    let state = context.state;
+    const guardKey = resolveCounterKey('huldra_shield_init', 'OWNER', owner);
+    if (!state.counters[guardKey]) {
+        state = applyMutations(state, [
+            // BarkShield stacks are a percent of maxHp (see StatusBehaviors).
+            { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'BarkShield', stacks: HULDRA_V2_SHIELD_PERCENT } },
+            { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
+            { type: 'LOG', targetId: '', payload: `${owner.name}'s BARK_SHIELD_OS activates a massive temporary shield!` }
+        ]);
+    }
+    return { state };
+}
+
 export const CustomFirmware: Record<string, HookDefinition[]> = {
     "fafnir_v1": [
         {
@@ -49,40 +71,14 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
     // registered and both fired (double Sharp damage bonus, two competing discount systems,
     // double max-energy gains). The data-driven hooks.json versions match the OS
     // descriptions, so the custom duplicates were removed.
-    "fafnir_v2": [
-        {
-            id: "fafnir_v2_corrupted",
-            priority: 40,
-            onStatusApplied: (context: HookContext, owner: IBattleEntity): HookResult => {
-                let state = context.state;
-                if (context.target?.id === owner.id) {
-                    const isNegative = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned'].includes(context.statusApplied || '');
-                    if (isNegative) {
-                        state = applyMutations(state, [
-                            { type: 'ENERGY', targetId: owner.id, payload: { amount: 1 } },
-                            { type: 'LOG', targetId: '', payload: `${owner.name}'s CORRUPTED_GOLD_OS gains 1 Energy from the debuff!` }
-                        ]);
-                    }
-                }
-                return { state };
-            }
-        }
-    ],
-    "hraesvelgr_v1": [
-        {
-            id: "hraesvelgr_v1_gale",
-            priority: 40,
-            onActionStart: (context: HookContext, _owner: IBattleEntity): HookResult => {
-                let state = context.state;
-                // Whenever you voluntarily discard... The discard system right now is via the DISCARD mutation.
-                // We'd need an `onDiscard` hook. To keep it simple, if they play a card that discards...
-                // Actually, if we use the generic DISCARD hook (wait, we don't have one).
-                // Let's hook `onPostDamage` or something?
-                // Let's just track it via the EventBus or add an onDiscard hook later. For now, leave empty.
-                return { state };
-            }
-        }
-    ],
+    // NOTE (ticket 07, 2026-08-05): fafnir_v2 previously had a hand-written duplicate here
+    // with the SAME id as the hooks.json version ("fafnir_v2_corrupted") — only the Set-dedup
+    // in hook collection prevented double energy. The data-driven hooks.json version is the
+    // survivor, matching the gullinbursti/audhumbla cleanup above.
+    //
+    // NOTE (ticket 07, 2026-08-05): hraesvelgr_v1's no-op onActionStart stub was deleted —
+    // the real GALE_FORCE_OS hook lives in hooks.json (trigger: onDiscarded) and is fully
+    // wired; it just has no enabler cards in the pool yet (see deck-archetypes map).
     "hraesvelgr_v2": [
         {
             id: "hraesvelgr_v2_updraft",
@@ -140,23 +136,29 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
         }
     ],
     "huldra_v2": [
+        // Ticket 07 (2026-08-05): two fixes.
+        // (1) The old `state.turn === 1` guard never matched for the player side — battles
+        //     start mid-turn-1 in the ACTION phase, so the player's first onTurnStart is
+        //     turn 2. The shield now lands on the owner's FIRST turn boundary (turn start
+        //     or turn end, whichever comes first), once per battle: enemy-side Huldra at
+        //     her turn-1 pre-turn, player-side Huldra at the end of turn 1 — in both cases
+        //     before the opposing side's first attack resolves against her.
+        // (2) BarkShield stacks ARE a percent of maxHp (StatusBehaviors), so the old
+        //     `floor(maxHp * 0.5)` stacks made the shield quadratic in maxHp. Now a flat
+        //     percent. HULDRA_V2_SHIELD_PERCENT = 50 is a placeholder matching the old
+        //     effective value at ~100 maxHp; the final number is the OS design review's
+        //     call (deck-archetypes ticket 09).
         {
-            id: "huldra_v2_bark",
+            id: "huldra_v2_bark_start",
             priority: 40,
-            onTurnStart: (context: HookContext, owner: IBattleEntity): HookResult => {
-                let state = context.state;
-                // Once-only guard is per-owner: two Huldras each get a shield.
-                const guardKey = resolveCounterKey('huldra_shield_init', 'OWNER', owner);
-                if (state.turn === 1 && !state.counters[guardKey]) {
-                    const shieldAmount = Math.floor(owner.maxHp * 0.5);
-                    state = applyMutations(state, [
-                        { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'BarkShield', stacks: shieldAmount } },
-                        { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
-                        { type: 'LOG', targetId: '', payload: `${owner.name}'s BARK_SHIELD_OS activates a massive temporary shield!` }
-                    ]);
-                }
-                return { state };
-            }
+            onTurnStart: (context: HookContext, owner: IBattleEntity): HookResult =>
+                grantHuldraShieldOnce(context, owner)
+        },
+        {
+            id: "huldra_v2_bark_end",
+            priority: 40,
+            onTurnEnd: (context: HookContext, owner: IBattleEntity): HookResult =>
+                grantHuldraShieldOnce(context, owner)
         }
     ],
     "ymir_v2": [

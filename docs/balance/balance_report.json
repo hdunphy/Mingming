@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "spec": "docs/balance_testing.md",
   "command": "npm run balance",
-  "registryHash": "1:1cba1e2c",
+  "registryHash": "1:e4a7f49f",
   "summary": {
-    "redlines": 37,
+    "redlines": 36,
     "cardRedlines": 20,
-    "matchupRedlines": 17,
+    "matchupRedlines": 16,
     "cardsAudited": 111,
     "matchupsAudited": 48,
     "suitesReported": [
@@ -1373,19 +1373,19 @@
       "enemy": "huldra",
       "enemyOS": "huldra_v2",
       "iterations": 100,
-      "playerWins": 42,
-      "enemyWins": 56,
-      "draws": 2,
-      "decisive": 98,
-      "decisiveWinRate": 0.4286,
-      "winRate": 0.42,
-      "averageTurns": 16.58,
-      "deadCardRatio": 0.198,
-      "enemyDeadCardRatio": 0.194,
+      "playerWins": 44,
+      "enemyWins": 55,
+      "draws": 1,
+      "decisive": 99,
+      "decisiveWinRate": 0.4444,
+      "winRate": 0.44,
+      "averageTurns": 19.52,
+      "deadCardRatio": 0.154,
+      "enemyDeadCardRatio": 0.185,
       "ftkCount": 0,
-      "truncatedCount": 2,
-      "firstMoverEdge": 0.0714,
-      "sideBias": 0.14,
+      "truncatedCount": 1,
+      "firstMoverEdge": 0.0051,
+      "sideBias": 0.111,
       "inconclusive": false,
       "redlines": []
     },
@@ -1573,19 +1573,19 @@
       "enemy": "sleipnir",
       "enemyOS": "sleipnir_v2",
       "iterations": 100,
-      "playerWins": 0,
-      "enemyWins": 100,
+      "playerWins": 1,
+      "enemyWins": 99,
       "draws": 0,
       "decisive": 100,
-      "decisiveWinRate": 0,
-      "winRate": 0,
-      "averageTurns": 1,
-      "deadCardRatio": 0.4543,
-      "enemyDeadCardRatio": 0.194,
-      "ftkCount": 50,
+      "decisiveWinRate": 0.01,
+      "winRate": 0.01,
+      "averageTurns": 3.17,
+      "deadCardRatio": 0.1162,
+      "enemyDeadCardRatio": 0.1117,
+      "ftkCount": 0,
       "truncatedCount": 0,
-      "firstMoverEdge": 0,
-      "sideBias": 1,
+      "firstMoverEdge": 0.01,
+      "sideBias": 0.98,
       "inconclusive": false,
       "redlines": [
         {
@@ -1593,20 +1593,10 @@
           "section": "2.3",
           "subject": "os:sleipnir",
           "metric": "osGap",
-          "value": 0.5,
+          "value": 0.49,
           "threshold": 0.15,
           "comparison": "above",
-          "detail": "sleipnir_v2 wins 100.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
-        },
-        {
-          "kind": "FTK",
-          "section": "3",
-          "subject": "os:sleipnir",
-          "metric": "ftkCount",
-          "value": 50,
-          "threshold": 0,
-          "comparison": "above",
-          "detail": "50/100 runs were won on turn 1 by the side that moved first, so the loser never played a card."
+          "detail": "sleipnir_v2 wins 99.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
         }
       ]
     },
@@ -2020,10 +2010,10 @@
       "section": "2.3",
       "subject": "os:sleipnir",
       "metric": "osGap",
-      "value": 0.5,
+      "value": 0.49,
       "threshold": 0.15,
       "comparison": "above",
-      "detail": "sleipnir_v2 wins 100.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
+      "detail": "sleipnir_v2 wins 99.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
     },
     {
       "kind": "OS_GAP",
@@ -2034,16 +2024,6 @@
       "threshold": 0.15,
       "comparison": "above",
       "detail": "ymir_v2 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost."
-    },
-    {
-      "kind": "FTK",
-      "section": "3",
-      "subject": "os:sleipnir",
-      "metric": "ftkCount",
-      "value": 50,
-      "threshold": 0,
-      "comparison": "above",
-      "detail": "50/100 runs were won on turn 1 by the side that moved first, so the loser never played a card."
     }
   ]
 }

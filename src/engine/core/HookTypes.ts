@@ -44,8 +44,9 @@ export type HookContext = {
 };
 
 export type HookCondition = {
-    source?: 'SELF' | 'ALLY' | 'OPPONENT';
-    target?: 'SELF' | 'ALLY' | 'OPPONENT';
+    /** 'ANY' = explicit always-match on this axis (ConditionValidator handles it by name). */
+    source?: 'SELF' | 'ALLY' | 'OPPONENT' | 'ANY';
+    target?: 'SELF' | 'ALLY' | 'OPPONENT' | 'ANY';
     actionType?: ActionType;
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };

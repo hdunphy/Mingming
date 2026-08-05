@@ -30,7 +30,10 @@ export const ConditionValidator = {
         // 1. Source & Target Checks
         const isOwnerPlayer = context.state.playerParty.some((e: IBattleEntity) => e.id === owner.id);
 
-        if (condition.source) {
+        // 'ANY' is an explicit always-match on the source/target axis (used by e.g.
+        // nidhoggr_v2's on-faint hook). Ticket 07 (2026-08-05): it previously "worked"
+        // only by falling through every branch below; now it is a named, typed value.
+        if (condition.source && condition.source !== 'ANY') {
             if (condition.source === 'SELF' && context.source?.id !== owner.id) {
                 return false;
             }
@@ -39,7 +42,7 @@ export const ConditionValidator = {
             if (condition.source === 'OPPONENT' && isOwnerPlayer === isSourcePlayer) return false;
         }
 
-        if (condition.target) {
+        if (condition.target && condition.target !== 'ANY') {
             if (condition.target === 'SELF' && context.target?.id !== owner.id) {
                 return false;
             }
