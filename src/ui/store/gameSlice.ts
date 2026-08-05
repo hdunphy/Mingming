@@ -8,7 +8,7 @@ import type {
     IRewardBundle,
     IGauntletState
 } from '../../engine/gameTypes';
-import { createDefaultSave, createStarterSave, DECK_SIZE } from '../../engine/gameTypes';
+import { createDefaultSave, createStarterSave, DECK_SIZE, deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
 import { getExpForLevel } from '../../engine/types';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
@@ -23,17 +23,21 @@ const gameSlice = createSlice({
         addToRoster: (state, action: PayloadAction<IMingmingState>) => {
             (state.roster as IMingmingState[]).push(action.payload);
 
-            // First-time synthesis of a species grants its starting deck kit
-            // (ticket 13: the deck of the OS the member was compiled with).
+            // First-time synthesis of a (species, OS) grants that OS's starting kit
+            // (ticket 13: per-OS decks; ticket 15: grants are keyed species+OS).
             const definition = MingmingRegistry[action.payload.definitionId];
-            if (definition && !state.baseDecksGranted.includes(definition.id)) {
-                for (const dataId of getDeckForOS(definition.id, action.payload.activeOS)) {
-                    (state.cardInventory as IOwnedProgram[]).push({
-                        instanceId: crypto.randomUUID(),
-                        dataId
-                    });
+            if (definition) {
+                const compiledOS = action.payload.activeOS ?? definition.availableOS[0];
+                const key = deckGrantKey(definition.id, compiledOS);
+                if (!state.baseDecksGranted.includes(key)) {
+                    for (const dataId of getDeckForOS(definition.id, compiledOS)) {
+                        (state.cardInventory as IOwnedProgram[]).push({
+                            instanceId: crypto.randomUUID(),
+                            dataId
+                        });
+                    }
+                    (state.baseDecksGranted as string[]).push(key);
                 }
-                (state.baseDecksGranted as string[]).push(definition.id);
             }
         },
         removeFromRoster: (state, action: PayloadAction<string>) => {
@@ -271,6 +275,49 @@ const gameSlice = createSlice({
                 mm.activeOS = activeOS;
             }
         },
+        /**
+         * Ticket 15: player-facing firmware swap. Costs 1 blueprint of the species
+         * (SPENT) + OS_SWAP_SCRAP_COST scrap; the first swap to an OS lets the player
+         * pick up to OS_SWAP_PICK_COUNT cards from that OS's starting kit (once ever
+         * per species+OS - repeat swaps grant nothing). Silent no-op when any cost
+         * or validation fails, matching spendScrap's convention. Debug tools keep
+         * using the bare updateMingmingOS above.
+         */
+        swapOS: (state, action: PayloadAction<{ id: string; targetOS: string; pickedCardIds?: string[] }>) => {
+            const { id, targetOS, pickedCardIds } = action.payload;
+            const mm = state.roster.find(m => m.id === id);
+            if (!mm) return;
+            const definition = MingmingRegistry[mm.definitionId];
+            if (!definition || !definition.availableOS.includes(targetOS)) return;
+            if (mm.activeOS === targetOS) return;
+
+            const blueprintIdx = state.blueprints.findIndex(b => b.architectureId === mm.definitionId);
+            if (blueprintIdx === -1) return;
+            if (state.scrapCount < OS_SWAP_SCRAP_COST) return;
+
+            // Spend: the species blueprint is consumed, plus scrap.
+            (state.blueprints as IBlueprint[]).splice(blueprintIdx, 1);
+            state.scrapCount -= OS_SWAP_SCRAP_COST;
+            mm.activeOS = targetOS;
+
+            // First swap to this OS: grant the picked cards (validated against the
+            // OS's starting deck, copies respected) and record the grant key.
+            const key = deckGrantKey(mm.definitionId, targetOS);
+            if (!state.baseDecksGranted.includes(key)) {
+                const pool = getDeckForOS(mm.definitionId, targetOS);
+                const picks = (pickedCardIds ?? []).slice(0, OS_SWAP_PICK_COUNT);
+                for (const dataId of picks) {
+                    const poolIdx = pool.indexOf(dataId);
+                    if (poolIdx === -1) continue; // not in the kit (or copies exhausted)
+                    pool.splice(poolIdx, 1);
+                    (state.cardInventory as IOwnedProgram[]).push({
+                        instanceId: crypto.randomUUID(),
+                        dataId
+                    });
+                }
+                (state.baseDecksGranted as string[]).push(key);
+            }
+        },
         resetSave: (state) => {
             void state;
             return createDefaultSave();
@@ -309,6 +356,7 @@ export const {
     syncPartyStats,
     startNewGauntlet,
     updateMingmingOS,
+    swapOS,
     resetSave,
     addRelic
 } = gameSlice.actions;

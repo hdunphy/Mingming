@@ -113,7 +113,7 @@ describe('v1 verbs each produce a schema-valid save', () => {
         expect(after.roster).toHaveLength(before.roster.length + 1);
         expect(after.roster[after.roster.length - 1].level).toBe(12);
         // addToRoster is preferred over a hand-built write precisely because of this:
-        expect(after.baseDecksGranted).toContain('fenrir');
+        expect(after.baseDecksGranted).toContain('fenrir:fenrir_v1'); // ticket 15: species+OS grant keys
         expect(after.cardInventory.length).toBe(
             before.cardInventory.length + getDeckForOS('fenrir').length,
         );
@@ -275,7 +275,7 @@ describe('parseSaveFileText', () => {
         expect(result.ok).toBe(true);
         if (result.ok) {
             expect(result.migrated).toBe(true);
-            expect(result.save.version).toBe(2);
+            expect(result.save.version).toBe(3);
             expect(result.save.unlockedSectors).toEqual([]);
         }
     });

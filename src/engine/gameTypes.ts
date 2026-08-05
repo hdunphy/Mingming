@@ -26,6 +26,15 @@ export interface IActiveDeck {
 export const DECK_SIZE = 40;
 export const MIN_DECK_SIZE = 8; // ticket 13: deck template allows 8-12 card starting decks
 
+// Ticket 15 (OS-swap rules): swapping firmware costs 1 blueprint (spent) + scrap,
+// and the FIRST swap to an OS grants a pick of its starting cards - once ever.
+// The pick count is deliberately a tunable constant (playtesting may raise it).
+export const OS_SWAP_SCRAP_COST = 25;
+export const OS_SWAP_PICK_COUNT = 2;
+
+/** baseDecksGranted key: which (species, OS) starting kits have been granted. */
+export const deckGrantKey = (definitionId: string, osId: string): string => `${definitionId}:${osId}`;
+
 // --- Blueprint ---
 
 export interface IBlueprint {
@@ -90,14 +99,14 @@ export interface IPlayerSave {
     readonly relics: ReadonlyArray<string>;
     readonly gauntlet: IGauntletState | null;
     readonly unlockedSectors: ReadonlyArray<string>;
-    readonly baseDecksGranted: ReadonlyArray<string>; // Species IDs whose base deck has already been granted
+    readonly baseDecksGranted: ReadonlyArray<string>; // deckGrantKey(species, os) entries - which starting kits were granted (ticket 15; legacy saves held bare species ids, migrated in SaveSystem v3)
 }
 
 // --- Factory Helpers ---
 
 export function createDefaultSave(): IPlayerSave {
     return {
-        version: 2,
+        version: 3, // keep in sync with SaveSystem.CURRENT_SAVE_VERSION
         roster: [],
         activeParty: [],
         cardInventory: [],
@@ -158,7 +167,7 @@ export function createStarterSave(
     const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => createOwnedProgram(dataId, rng));
 
     return {
-        version: 2,
+        version: 3, // keep in sync with SaveSystem.CURRENT_SAVE_VERSION
         roster: [starter],
         activeParty: [starter.id],
         cardInventory: starterCards,
@@ -172,7 +181,7 @@ export function createStarterSave(
         relics: [],
         gauntlet: null,
         unlockedSectors: ['Fire', 'Water', 'Nature'],
-        baseDecksGranted: [starterId]
+        baseDecksGranted: [deckGrantKey(starterId, MingmingRegistry[starterId].availableOS[0])]
     };
 }
 

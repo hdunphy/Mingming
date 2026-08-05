@@ -6,6 +6,8 @@
 import { z } from 'zod';
 import type { IPlayerSave } from './gameTypes';
 import { getActiveSaveKey } from './SaveSlots';
+import { GetMingmingData } from './data/mingmingRegistry';
+import { deckGrantKey } from './gameTypes';
 
 /**
  * The four functions below keep their exact signatures and address the *active save slot*
@@ -63,7 +65,7 @@ const GauntletStateSchema = z.object({
     }))
 });
 
-export const CURRENT_SAVE_VERSION = 2;
+export const CURRENT_SAVE_VERSION = 3;
 
 export const PlayerSaveSchema = z.object({
     version: z.number().int().min(1),
@@ -98,6 +100,25 @@ export function migrateSave(raw: unknown): unknown {
         if (!Array.isArray(save.unlockedSectors)) save.unlockedSectors = [];
         if (save.gauntlet === undefined) save.gauntlet = null;
         save.version = 2;
+    }
+
+    if ((save.version as number) < 3) {
+        // v2 -> v3 (ticket 15): baseDecksGranted moves from bare species ids to
+        // deckGrantKey(species, os). A legacy species entry is reinterpreted as
+        // "granted for the OS that species' roster member currently runs"
+        // (availableOS[0] when no member/activeOS exists) - the rule the
+        // data-model audit pre-approved.
+        if (Array.isArray(save.baseDecksGranted)) {
+            const roster = Array.isArray(save.roster) ? (save.roster as Array<Record<string, unknown>>) : [];
+            save.baseDecksGranted = (save.baseDecksGranted as unknown[]).map(entry => {
+                if (typeof entry !== 'string' || entry.includes(':')) return entry;
+                const member = roster.find(m => m && m.definitionId === entry);
+                const memberOS = member && typeof member.activeOS === 'string' ? member.activeOS : undefined;
+                const fallback = GetMingmingData(entry).availableOS[0] ?? `${entry}_v1`;
+                return deckGrantKey(entry, memberOS ?? fallback);
+            });
+        }
+        save.version = 3;
     }
 
     return save;

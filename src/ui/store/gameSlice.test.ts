@@ -80,7 +80,7 @@ describe('gameSlice', () => {
             const expected = getDeckForOS('fenrir').sort();
             expect(state.cardInventory).toHaveLength(10);
             expect(state.cardInventory.map(c => c.dataId).sort()).toEqual(expected);
-            expect(state.baseDecksGranted).toEqual(['fenrir']);
+            expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1']);
             // Each granted copy has a unique instance id
             const instanceIds = new Set(state.cardInventory.map(c => c.instanceId));
             expect(instanceIds.size).toBe(10);
@@ -91,14 +91,14 @@ describe('gameSlice', () => {
             state = gameReducer(state, addToRoster(makeSpecies('mm2', 'fenrir')));
             expect(state.roster).toHaveLength(2);
             expect(state.cardInventory).toHaveLength(10);
-            expect(state.baseDecksGranted).toEqual(['fenrir']);
+            expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1']);
         });
 
         it('a different species grants its own kit', () => {
             let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
             state = gameReducer(state, addToRoster(makeSpecies('mm2', 'kraken')));
             expect(state.cardInventory).toHaveLength(18); // fenrir 10 + kraken 8 (ticket 14)
-            expect(state.baseDecksGranted).toEqual(['fenrir', 'kraken']);
+            expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1', 'kraken:kraken_v1']);
             const krakenCards = state.cardInventory.slice(10).map(c => c.dataId).sort(); // after fenrir's 10
             expect(krakenCards).toEqual(getDeckForOS('kraken').sort());
         });
