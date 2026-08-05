@@ -1,22 +1,38 @@
 section,kind,subject,metric,value,threshold,comparison,detail
-1.3,CARD_OVER_BUDGET,equilibrium,score,7.6,7,above,"Equilibrium (equilibrium) costs 1 energy and scores 7.6, 0.6 over the 7 budget for that cost."
-1.3,CARD_OVER_BUDGET,glacier_wall,score,27,7,above,"Glacier Wall (glacier_wall) costs 1 energy and scores 27, 20 over the 7 budget for that cost."
-1.3,CARD_OVER_BUDGET,slipstream,score,3.6,3.5,above,"Slipstream (slipstream) costs 0 energy and scores 3.6, 0.1 over the 3.5 budget for that cost."
-1.3,CARD_OVER_BUDGET,spiked_carapace,score,21.6,13,above,"Spiked Carapace (spiked_carapace) costs 2 energy and scores 21.6, 8.6 over the 13 budget for that cost."
-1.3,CARD_OVER_BUDGET,stone_bark,score,27,7,above,"Stone Bark (stone_bark) costs 1 energy and scores 27, 20 over the 7 budget for that cost."
-2.2,TURN_COUNT,mirror:draugr,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:fafnir,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:gullinbursti,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
+1.3,CARD_OVER_BUDGET,blind_spot,score,1.5,1,above,"Blind Spot (blind_spot) costs 0 energy and scores 1.5, 0.5 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,brute_force,score,9.1,9,above,"Brute Force (brute_force) costs 2 energy and scores 9.1, 0.1 over the 9 budget for that cost."
+1.3,CARD_OVER_BUDGET,capacitor,score,6.3,4,above,"Capacitor (capacitor) costs 1 energy and scores 6.3, 2.3 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,cinder_slash,score,4.4,4,above,"Cinder Slash (cinder_slash) costs 1 energy and scores 4.4, 0.4 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,corrosive_leak,score,2.8,1,above,"Corrosive Leak (corrosive_leak) costs 0 energy and scores 2.8, 1.8 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,disorienting_gust,score,1.5,1,above,"Disorienting Gust (disorienting_gust) costs 0 energy and scores 1.5, 0.5 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,equilibrium,score,4.7,4,above,"Equilibrium (equilibrium) costs 1 energy and scores 4.7, 0.7 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,flash_freeze,score,5.5,4,above,"Flash Freeze (flash_freeze) costs 1 energy and scores 5.5, 1.5 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,glacial_slam,score,9.5,9,above,"Glacial Slam (glacial_slam) costs 2 energy and scores 9.5, 0.5 over the 9 budget for that cost."
+1.3,CARD_OVER_BUDGET,glacier_wall,score,5.4,4,above,"Glacier Wall (glacier_wall) costs 1 energy and scores 5.4, 1.4 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,glass_cannon,score,4.2,4,above,"Glass Cannon (glass_cannon) costs 1 energy and scores 4.2, 0.2 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,hoof_strike,score,1.1,1,above,"Hoof Strike (hoof_strike) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,hydro_blast,score,15,14,above,"Hydro Blast (hydro_blast) costs 3 energy and scores 15, 1 over the 14 budget for that cost."
+1.3,CARD_OVER_BUDGET,lumen_surge,score,4.5,4,above,"Lumen Surge (lumen_surge) costs 1 energy and scores 4.5, 0.5 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,scorch,score,16.8,9,above,"Scorch (scorch) costs 2 energy and scores 16.8, 7.8 over the 9 budget for that cost."
+1.3,CARD_OVER_BUDGET,sleep_powder,score,4.5,4,above,"Sleep Powder (sleep_powder) costs 1 energy and scores 4.5, 0.5 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,slipstream,score,1.4,1,above,"Slipstream (slipstream) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,stone_bark,score,5.4,4,above,"Stone Bark (stone_bark) costs 1 energy and scores 5.4, 1.4 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,stunning_strike,score,9.5,9,above,"Stunning Strike (stunning_strike) costs 2 energy and scores 9.5, 0.5 over the 9 budget for that cost."
+1.3,CARD_OVER_BUDGET,surge_protection,score,4.5,4,above,"Surge Protection (surge_protection) costs 1 energy and scores 4.5, 0.5 over the 4 budget for that cost."
+2.2,TURN_COUNT,mirror:audhumbla,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
+2.2,TURN_COUNT,mirror:draugr,averageTurns,42.99,30,above,Averages 43.0 turns with 260/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
+2.2,TURN_COUNT,mirror:gullinbursti,averageTurns,60.62,30,above,Averages 60.6 turns with 368/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
 2.2,TURN_COUNT,mirror:hel,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:nidhoggr,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:valkyrie,averageTurns,43.9,30,above,Averages 43.9 turns with 267/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:ymir,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.3,OS_GAP,os:fenrir,osGap,0.17,0.15,above,fenrir_v2 wins 67.0% of the 100 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
+2.2,TURN_COUNT,mirror:kraken,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
+2.2,TURN_COUNT,mirror:nidhoggr,averageTurns,54.08,30,above,Averages 54.1 turns with 323/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
+2.2,TURN_COUNT,mirror:ymir,averageTurns,57.71,30,above,Averages 57.7 turns with 372/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
+2.3,OS_GAP,os:fenrir,osGap,0.1667,0.15,above,fenrir_v2 wins 66.7% of the 99 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:gullinbursti,osGap,0.5,0.15,above,gullinbursti_v2 wins 100.0% of the 100 decided games between gullinbursti_v1 and gullinbursti_v2 on an otherwise identical gullinbursti. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:hraesvelgr,osGap,0.31,0.15,above,hraesvelgr_v2 wins 81.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:hraesvelgr,osGap,0.4,0.15,above,hraesvelgr_v2 wins 90.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:jormungandr,osGap,0.36,0.15,above,jormungandr_v2 wins 86.0% of the 100 decided games between jormungandr_v1 and jormungandr_v2 on an otherwise identical jormungandr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:kraken,osGap,0.35,0.15,above,kraken_v1 wins 85.0% of the 100 decided games between kraken_v1 and kraken_v2 on an otherwise identical kraken. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:ratatoskr,osGap,0.18,0.15,above,ratatoskr_v2 wins 68.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:kraken,osGap,0.5,0.15,above,kraken_v2 wins 100.0% of the 87 decided games between kraken_v1 and kraken_v2 on an otherwise identical kraken. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:nidhoggr,osGap,0.4,0.15,above,nidhoggr_v2 wins 90.0% of the 40 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:ratatoskr,osGap,0.18,0.15,above,ratatoskr_v1 wins 68.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:sleipnir,osGap,0.5,0.15,above,sleipnir_v2 wins 100.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
-3,FTK,gauntlet:kraken-vs-skoll,ftkCount,1,0,above,"1/100 runs were won on turn 1 by the side that moved first, so the loser never played a card."
+2.3,OS_GAP,os:ymir,osGap,0.38,0.15,above,ymir_v2 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.
 3,FTK,os:sleipnir,ftkCount,50,0,above,"50/100 runs were won on turn 1 by the side that moved first, so the loser never played a card."
