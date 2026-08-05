@@ -276,6 +276,34 @@ export function executeResolutionStack(
     }
 }
 
+/**
+ * General-purpose HP threshold event (ticket 12). A unit "crosses" when a single
+ * HP-loss application takes it from >=threshold to <threshold of maxHp. Only
+ * downward crossings fire; healing back above the line re-arms the unit by
+ * construction (the next drop is a fresh crossing). Detection lives at the three
+ * HP-loss sites (handleAttack — which also serves intents, hook damage and HP
+ * mutations —, status-apply overflow damage, and end-of-turn DoT ticks).
+ */
+export const HP_CROSSING_THRESHOLD = 0.5;
+
+export function crossedDownHalf(prevHp: number, newHp: number, maxHp: number): boolean {
+    if (maxHp <= 0) return false;
+    return prevHp / maxHp >= HP_CROSSING_THRESHOLD && newHp / maxHp < HP_CROSSING_THRESHOLD;
+}
+
+/** Fire the onHpThresholdCrossed stack for a unit that just crossed downward. */
+export function fireHpThresholdCrossed(state: IBattleState, unitId: string): IBattleState {
+    const unit = state.playerParty.find(e => e.id === unitId) || state.enemyParty.find(e => e.id === unitId);
+    if (!unit) return state;
+    const { state: afterHooks } = executeResolutionStack('onHpThresholdCrossed', {
+        source: unit,
+        target: unit,
+        state,
+        triggerDepth: 0
+    });
+    return afterHooks;
+}
+
 function executeResolutionStackInner(
     phase: keyof HookDefinition,
     initialContext: HookContext,

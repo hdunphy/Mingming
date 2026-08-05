@@ -12,7 +12,7 @@ function addLog(state: IBattleState, message: string): IBattleState {
 
 const HAND_SIZE_LIMIT = 9;
 
-import { executeResolutionStack } from './resolutionEngine';
+import { executeResolutionStack, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 
 export type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
 
@@ -255,6 +255,13 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         newState = addLog(newState, log);
     }
 
+    // Threshold event (ticket 12): handleAttack is the shared choke point for
+    // card attacks, intent attacks, hook ATTACK actions and HP mutations, so a
+    // single check here covers them all.
+    if (crossedDownHalf(target.currentHp, newCurrentHp, target.maxHp)) {
+        newState = fireHpThresholdCrossed(newState, targetId);
+    }
+
     // Death / XP Handling
     if (newCurrentHp <= 0) {
         newState = checkDefeat(newState, targetId);
@@ -462,6 +469,14 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
         playerParty: updateParty(newState.playerParty),
         enemyParty: updateParty(newState.enemyParty)
     };
+
+    // Threshold event (ticket 12): overflow/immediate damage (e.g. Burn overflow
+    // burst) bypasses handleAttack, so it needs its own crossing check.
+    const afterOverflowTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+    if (immediateDamage > 0 && afterOverflowTarget
+        && crossedDownHalf(initialTarget.currentHp, afterOverflowTarget.currentHp, initialTarget.maxHp)) {
+        newState = fireHpThresholdCrossed(newState, targetId);
+    }
 
     // 4.5 Check Defeat (from immediate damage if any). Only trigger when this
     // application actually killed the target — applying a status to an entity

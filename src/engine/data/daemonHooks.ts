@@ -21,7 +21,8 @@ export function initDaemonHooks() {
         'core_overclock_daemon',
         'cinder_armor_daemon',
         'feedback_loop_daemon',
-        'fertile_ground_daemon'
+        'fertile_ground_daemon',
+        'einherjar_standard'
     ];
 
     // Validate JSON on boot

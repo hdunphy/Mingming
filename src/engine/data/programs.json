@@ -2749,6 +2749,26 @@
             }
         ]
     },
+    "einherjar_standard": {
+        "id": "einherjar_standard",
+        "name": "Einherjar Standard",
+        "description": "Daemon: for every other active Mingming on your side, your Light attacks deal +10% damage.",
+        "element": "Light",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "einherjar_standard_hook"
+        ]
+    },
     "hoof_strike": {
         "id": "hoof_strike",
         "name": "Hoof Strike",

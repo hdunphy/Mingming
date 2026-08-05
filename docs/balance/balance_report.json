@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "spec": "docs/balance_testing.md",
   "command": "npm run balance",
-  "registryHash": "1:421c0302",
+  "registryHash": "1:5e763093",
   "summary": {
-    "redlines": 35,
+    "redlines": 36,
     "cardRedlines": 20,
-    "matchupRedlines": 15,
-    "cardsAudited": 111,
+    "matchupRedlines": 16,
+    "cardsAudited": 112,
     "matchupsAudited": 48,
     "suitesReported": [
       "mirror",
@@ -1473,19 +1473,19 @@
       "enemy": "nidhoggr",
       "enemyOS": "nidhoggr_v2",
       "iterations": 100,
-      "playerWins": 4,
-      "enemyWins": 36,
-      "draws": 60,
-      "decisive": 40,
-      "decisiveWinRate": 0.1,
-      "winRate": 0.04,
-      "averageTurns": 48.38,
-      "deadCardRatio": 0.027,
-      "enemyDeadCardRatio": 0.04,
+      "playerWins": 2,
+      "enemyWins": 35,
+      "draws": 63,
+      "decisive": 37,
+      "decisiveWinRate": 0.0541,
+      "winRate": 0.02,
+      "averageTurns": 49.6,
+      "deadCardRatio": 0.024,
+      "enemyDeadCardRatio": 0.039,
       "ftkCount": 0,
-      "truncatedCount": 60,
-      "firstMoverEdge": -0.05,
-      "sideBias": 0.8125,
+      "truncatedCount": 63,
+      "firstMoverEdge": -0.0946,
+      "sideBias": 0.8879,
       "inconclusive": false,
       "redlines": [
         {
@@ -1493,10 +1493,10 @@
           "section": "2.3",
           "subject": "os:nidhoggr",
           "metric": "osGap",
-          "value": 0.4,
+          "value": 0.4459,
           "threshold": 0.15,
           "comparison": "above",
-          "detail": "nidhoggr_v2 wins 90.0% of the 40 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost."
+          "detail": "nidhoggr_v2 wins 94.6% of the 37 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost."
         }
       ]
     },
@@ -1599,21 +1599,32 @@
       "enemy": "valkyrie",
       "enemyOS": "valkyrie_v2",
       "iterations": 100,
-      "playerWins": 57,
-      "enemyWins": 43,
+      "playerWins": 31,
+      "enemyWins": 69,
       "draws": 0,
       "decisive": 100,
-      "decisiveWinRate": 0.57,
-      "winRate": 0.57,
-      "averageTurns": 11.59,
-      "deadCardRatio": 0.063,
-      "enemyDeadCardRatio": 0.069,
+      "decisiveWinRate": 0.31,
+      "winRate": 0.31,
+      "averageTurns": 10.7,
+      "deadCardRatio": 0.082,
+      "enemyDeadCardRatio": 0.073,
       "ftkCount": 0,
       "truncatedCount": 0,
-      "firstMoverEdge": -0.01,
-      "sideBias": 0.14,
+      "firstMoverEdge": -0.05,
+      "sideBias": 0.38,
       "inconclusive": false,
-      "redlines": []
+      "redlines": [
+        {
+          "kind": "OS_GAP",
+          "section": "2.3",
+          "subject": "os:valkyrie",
+          "metric": "osGap",
+          "value": 0.19,
+          "threshold": 0.15,
+          "comparison": "above",
+          "detail": "valkyrie_v2 wins 69.0% of the 100 decided games between valkyrie_v1 and valkyrie_v2 on an otherwise identical valkyrie. The weaker variant needs a buff or a lower cost."
+        }
+      ]
     },
     {
       "id": "os:ymir",
@@ -1979,10 +1990,10 @@
       "section": "2.3",
       "subject": "os:nidhoggr",
       "metric": "osGap",
-      "value": 0.4,
+      "value": 0.4459,
       "threshold": 0.15,
       "comparison": "above",
-      "detail": "nidhoggr_v2 wins 90.0% of the 40 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost."
+      "detail": "nidhoggr_v2 wins 94.6% of the 37 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost."
     },
     {
       "kind": "OS_GAP",
@@ -1993,6 +2004,16 @@
       "threshold": 0.15,
       "comparison": "above",
       "detail": "sleipnir_v2 wins 99.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
+    },
+    {
+      "kind": "OS_GAP",
+      "section": "2.3",
+      "subject": "os:valkyrie",
+      "metric": "osGap",
+      "value": 0.19,
+      "threshold": 0.15,
+      "comparison": "above",
+      "detail": "valkyrie_v2 wins 69.0% of the 100 decided games between valkyrie_v1 and valkyrie_v2 on an otherwise identical valkyrie. The weaker variant needs a buff or a lower cost."
     },
     {
       "kind": "OS_GAP",

@@ -20,7 +20,7 @@ import { discardHand } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
-import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 import { getOSBehavior } from './data/firmwareRegistry';
 
 // --- Helpers ---
@@ -631,6 +631,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     const statusLogs: string[] = [];
     const defeatedThisTurn: string[] = [];
     const removedStatusQueue: { targetId: string, status: string }[] = [];
+    const hpCrossingsThisTick: string[] = [];
 
     const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
         let currentHp = entity.currentHp;
@@ -722,6 +723,12 @@ function processPostTurn(state: IBattleState): IBattleState {
             statusLogs.push(...result.logs);
         }
 
+        // Threshold event (ticket 12): DoT ticks bypass handleAttack, so record
+        // the crossing here (fired below, once the processed party is in state).
+        if (crossedDownHalf(entity.currentHp, currentHp, entity.maxHp)) {
+            hpCrossingsThisTick.push(entity.id);
+        }
+
         return { ...entity, currentHp, defense, statusEffects: newEffects, tempHp: 0 };
     });
 
@@ -738,6 +745,11 @@ function processPostTurn(state: IBattleState): IBattleState {
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0
     };
+
+    // 2.4 Fire threshold crossings from DoT ticks (ticket 12)
+    for (const crossedId of hpCrossingsThisTick) {
+        nextState = fireHpThresholdCrossed(nextState, crossedId);
+    }
 
     // 2.5 Dispatch onStatusRemoved Hooks
     for (const item of removedStatusQueue) {

@@ -788,11 +788,11 @@
     "draugr_v2": {
         "id": "draugr_v2",
         "name": "GRAVE_CHILL_OS",
-        "description": "Enemies afflicted with 2 or more negative status effects cost 1 additional Energy to execute their attacks against the Draugr.",
+        "description": "Enemies afflicted with 2 or more different negative statuses deal 20% less damage to the Draugr.",
         "hooks": [
             {
                 "id": "draugr_v2_chill",
-                "trigger": "onCostCalculated",
+                "trigger": "onDamageCalculated",
                 "priority": 40,
                 "when": {
                     "target": "SELF",
@@ -802,7 +802,7 @@
                         "value": 2
                     }
                 },
-                "bonus": 1
+                "multiplier": 0.8
             }
         ]
     },
@@ -814,22 +814,9 @@
     },
     "valkyrie_v2": {
         "id": "valkyrie_v2",
-        "name": "EINHERJAR_RALLY",
-        "description": "For every other active Mingming currently on your side of the field, Valkyrie's Light attacks deal +10% damage.",
-        "hooks": [
-            {
-                "id": "valkyrie_v2_rally",
-                "trigger": "onDamageCalculated",
-                "priority": 40,
-                "when": {
-                    "source": "SELF",
-                    "actionType": "ATTACK",
-                    "programElement": "Light"
-                },
-                "multiplier": 1.1,
-                "scaling": "ALIVE_ALLIES"
-            }
-        ]
+        "name": "CRUSADER_KERNEL",
+        "description": "Valkyrie's Light attacks deal +10% damage for every different positive status she currently has.",
+        "hooks": []
     },
     "audhumbla_v1": {
         "id": "audhumbla_v1",
@@ -1020,34 +1007,50 @@
     },
     "nidhoggr_v2": {
         "id": "nidhoggr_v2",
-        "name": "FALLEN_FEAST_OS",
-        "description": "Whenever any Mingming is defeated, Níðhöggr gains 3 stacks of Strengthened and 3 stacks of Sharp.",
+        "name": "BLOOD_SCENT_OS",
+        "description": "Whenever any Mingming drops below half of its maximum HP, Nidhoggr smells blood and gains 2 stacks of Strengthened and 2 stacks of Sharp. Healing above half re-arms the scent.",
         "hooks": [
             {
-                "id": "nidhoggr_v2_feast",
-                "trigger": "onUnitFainted",
+                "id": "nidhoggr_v2_bloodscent",
+                "trigger": "onHpThresholdCrossed",
                 "priority": 40,
-                "when": {
-                    "target": "ANY"
-                },
                 "do": [
                     {
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 3
+                        "stacks": 2
                     },
                     {
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Sharp",
-                        "stacks": 3
+                        "stacks": 2
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s FALLEN_FEAST_OS feeds on the defeated!"
+                        "text": "{owner}'s BLOOD_SCENT_OS smells blood! +2 Strengthened, +2 Sharp."
                     }
                 ]
+            }
+        ]
+    },
+    "einherjar_standard": {
+        "id": "einherjar_standard",
+        "name": "EINHERJAR_STANDARD",
+        "description": "Daemon: for every other active Mingming on your side of the field, your Light attacks deal +10% damage.",
+        "hooks": [
+            {
+                "id": "einherjar_standard_hook",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Light"
+                },
+                "multiplier": 1.1,
+                "scaling": "ALIVE_ALLIES"
             }
         ]
     },

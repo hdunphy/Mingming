@@ -137,5 +137,14 @@ export type HookDefinition = {
     onHeal?: EventHook;
     onUnitFainted?: EventHook;
     onDiscarded?: EventHook;
+    /**
+     * General-purpose threshold event (ticket 12): fires once whenever any unit
+     * crosses from >=50% to <50% of maxHp via any HP loss (attack, DoT tick,
+     * recoil, self-damage). Healing back above the line re-arms the unit
+     * naturally, since only downward crossings are detected. context.source and
+     * context.target are both the unit that crossed. First consumer: nidhoggr_v2
+     * BLOOD_SCENT_OS.
+     */
+    onHpThresholdCrossed?: EventHook;
     data?: DataHookDefinition | ModifierDataHookDefinition; // Reference to original data
 };

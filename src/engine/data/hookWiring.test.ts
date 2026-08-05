@@ -132,9 +132,9 @@ describe('data-driven condition translations', () => {
         seed: '42'
     });
 
-    it('draugr_v2_chill (onCostCalculated) charges +1 only when the source has 2+ debuffs', () => {
+    it('draugr_v2_chill (onDamageCalculated, ticket 12 rebuild) reduces damage 20% only when the source has 2+ debuff types', () => {
         const hook = getHook('draugr_v2_chill');
-        expect(hook?.onCostCalculated).toBeTypeOf('function');
+        expect(hook?.onDamageCalculated).toBeTypeOf('function');
 
         const draugr = makeEntity('draugr');
         const cleanAttacker = makeEntity('attacker_clean');
@@ -144,11 +144,11 @@ describe('data-driven condition translations', () => {
         ]);
         const state = makeState([cleanAttacker, debuffedAttacker], [draugr]);
 
-        const cleanCost = hook!.onCostCalculated!(2, { state, source: cleanAttacker, target: draugr, triggerDepth: 0 }, draugr);
-        expect(cleanCost).toBe(2);
+        const cleanDamage = hook!.onDamageCalculated!(20, { state, source: cleanAttacker, target: draugr, triggerDepth: 0 }, draugr);
+        expect(cleanDamage).toBe(20);
 
-        const taxedCost = hook!.onCostCalculated!(2, { state, source: debuffedAttacker, target: draugr, triggerDepth: 0 }, draugr);
-        expect(taxedCost).toBe(3);
+        const chilledDamage = hook!.onDamageCalculated!(20, { state, source: debuffedAttacker, target: draugr, triggerDepth: 0 }, draugr);
+        expect(chilledDamage).toBe(16);
     });
 
     it('fafnir_v2_corrupted fires only for debuffs (statusAppliedIn)', () => {

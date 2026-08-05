@@ -41,9 +41,9 @@ os:hraesvelgr,os-variance,os-variance,hraesvelgr,hraesvelgr_v1,hraesvelgr,hraesv
 os:huldra,os-variance,os-variance,huldra,huldra_v1,huldra,huldra_v2,100,44,55,1,99,0.4444,0.44,19.52,0.154,0.185,0,1,0.0051,0.111,false,
 os:jormungandr,os-variance,os-variance,jormungandr,jormungandr_v1,jormungandr,jormungandr_v2,100,28,72,0,100,0.28,0.28,6.81,0.133,0.136,0,0,0.02,0.44,false,OS_GAP
 os:kraken,os-variance,os-variance,kraken,kraken_v1,kraken,kraken_v2,100,2,92,6,94,0.0213,0.02,10.01,0.06,0.059,0,6,-0.0106,0.9574,false,OS_GAP
-os:nidhoggr,os-variance,os-variance,nidhoggr,nidhoggr_v1,nidhoggr,nidhoggr_v2,100,4,36,60,40,0.1,0.04,48.38,0.027,0.04,0,60,-0.05,0.8125,false,OS_GAP
+os:nidhoggr,os-variance,os-variance,nidhoggr,nidhoggr_v1,nidhoggr,nidhoggr_v2,100,2,35,63,37,0.0541,0.02,49.6,0.024,0.039,0,63,-0.0946,0.8879,false,OS_GAP
 os:ratatoskr,os-variance,os-variance,ratatoskr,ratatoskr_v1,ratatoskr,ratatoskr_v2,100,56,44,0,100,0.56,0.56,5.8,0.021,0.02,0,0,-0.32,0.12,false,
 os:skoll,os-variance,os-variance,skoll,skoll_v1,skoll,skoll_v2,100,57,43,0,100,0.57,0.57,3.35,0.5209,0.5119,0,0,0.09,0.14,false,
 os:sleipnir,os-variance,os-variance,sleipnir,sleipnir_v1,sleipnir,sleipnir_v2,100,1,99,0,100,0.01,0.01,3.17,0.1162,0.1117,0,0,0.01,0.98,false,OS_GAP
-os:valkyrie,os-variance,os-variance,valkyrie,valkyrie_v1,valkyrie,valkyrie_v2,100,57,43,0,100,0.57,0.57,11.59,0.063,0.069,0,0,-0.01,0.14,false,
+os:valkyrie,os-variance,os-variance,valkyrie,valkyrie_v1,valkyrie,valkyrie_v2,100,31,69,0,100,0.31,0.31,10.7,0.082,0.073,0,0,-0.05,0.38,false,OS_GAP
 os:ymir,os-variance,os-variance,ymir,ymir_v1,ymir,ymir_v2,100,15,85,0,100,0.15,0.15,13.98,0.18,0.193,0,0,0.09,0.7,false,OS_GAP

@@ -161,6 +161,40 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 grantHuldraShieldOnce(context, owner)
         }
     ],
+    // Ticket 12: valkyrie_v2 CRUSADER_KERNEL — her SOLO identity (v1 stays the
+    // team OS). +10% Light attack damage per DISTINCT positive status type on
+    // her — counts types, not stacks (variety snowball; contrast gullinbursti_v2
+    // which scales off raw Sharp stacks). EINHERJAR_RALLY lives on as the
+    // einherjar_standard team daemon card.
+    "valkyrie_v2": [
+        {
+            id: "valkyrie_v2_crusader",
+            priority: 40,
+            onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
+                if (context.source?.id === owner.id
+                    && context.program?.element === 'Light'
+                    && context.program?.actions?.some(a => a.type === 'ATTACK')) {
+                    const positiveStatuses: string[] = [
+                        StatusType.Strengthened,
+                        StatusType.Sharp,
+                        StatusType.Regen,
+                        StatusType.StableOS,
+                        StatusType.Energized,
+                        StatusType.BarkShield
+                    ];
+                    const distinctBuffTypes = new Set(
+                        owner.statusEffects
+                            .filter(s => positiveStatuses.includes(s.type))
+                            .map(s => s.type)
+                    ).size;
+                    if (distinctBuffTypes > 0) {
+                        return Math.floor(currentDamage * (1 + 0.1 * distinctBuffTypes));
+                    }
+                }
+                return currentDamage;
+            }
+        }
+    ],
     "ymir_v2": [
         {
             id: "ymir_v2_glacial",
