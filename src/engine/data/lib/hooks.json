@@ -68,7 +68,7 @@
     "fenrir_v2": {
         "id": "fenrir_v2",
         "name": "CINDER_WALL_OS",
-        "description": "Whenever Fenrir applies the Burn status to an enemy, he gains a stack of Sharp.",
+        "description": "Whenever Fenrir applies the Burn status to any unit - including himself - he gains a stack of Sharp.",
         "hooks": [
             {
                 "id": "fenrir_v2_hook",
@@ -96,13 +96,14 @@
     "kraken_v1": {
         "id": "kraken_v1",
         "name": "ABYSSAL_INK_SYS",
-        "description": "Drawing a card outside the draw phase applies 1 Dazed to a random enemy.",
+        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 1 Dazed to a random enemy.",
         "hooks": [
             {
                 "id": "kraken_v1_hook",
                 "trigger": "onCardDraw",
                 "priority": 40,
                 "when": {
+                    "source": "ALLY",
                     "isNaturalDraw": false
                 },
                 "do": [
@@ -171,7 +172,7 @@
     "ratatoskr_v2": {
         "id": "ratatoskr_v2",
         "name": "INSTIGATOR_OS",
-        "description": "Whenever Ratatoskr plays a 0-cost card, he applies 1 stack of Dazed to the target.",
+        "description": "Whenever Ratatoskr plays a 0-cost card at an enemy, he applies 1 stack of Dazed to the target.",
         "hooks": [
             {
                 "id": "ratatoskr_v2_hook",
@@ -179,6 +180,7 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
+                    "target": "OPPONENT",
                     "baseCost": 0
                 },
                 "do": [
@@ -547,6 +549,9 @@
                 "id": "jorm_v2_heal",
                 "trigger": "onTurnEnd",
                 "priority": 50,
+                "when": {
+                    "source": "SELF"
+                },
                 "do": [
                     {
                         "type": "HEAL",
@@ -749,7 +754,7 @@
         "id": "ymir_v2",
         "name": "GLACIAL_PACE_OS",
         "maxCardsPerTurn": 2,
-        "description": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 50% more base damage.",
+        "description": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 35% more base damage.",
         "hooks": []
     },
     "draugr_v1": {

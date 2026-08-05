@@ -23,15 +23,14 @@ section,kind,subject,metric,value,threshold,comparison,detail
 2.2,TURN_COUNT,mirror:draugr,averageTurns,42.99,30,above,Averages 43.0 turns with 260/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
 2.2,TURN_COUNT,mirror:gullinbursti,averageTurns,60.62,30,above,Averages 60.6 turns with 368/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
 2.2,TURN_COUNT,mirror:hel,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:kraken,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
+2.2,TURN_COUNT,mirror:kraken,averageTurns,54.71,30,above,Averages 54.7 turns with 354/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
 2.2,TURN_COUNT,mirror:nidhoggr,averageTurns,54.08,30,above,Averages 54.1 turns with 323/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
 2.2,TURN_COUNT,mirror:ymir,averageTurns,57.71,30,above,Averages 57.7 turns with 372/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
 2.3,OS_GAP,os:fenrir,osGap,0.1667,0.15,above,fenrir_v2 wins 66.7% of the 99 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:gullinbursti,osGap,0.5,0.15,above,gullinbursti_v2 wins 100.0% of the 100 decided games between gullinbursti_v1 and gullinbursti_v2 on an otherwise identical gullinbursti. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:hraesvelgr,osGap,0.4,0.15,above,hraesvelgr_v2 wins 90.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:jormungandr,osGap,0.36,0.15,above,jormungandr_v2 wins 86.0% of the 100 decided games between jormungandr_v1 and jormungandr_v2 on an otherwise identical jormungandr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:kraken,osGap,0.5,0.15,above,kraken_v2 wins 100.0% of the 87 decided games between kraken_v1 and kraken_v2 on an otherwise identical kraken. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:jormungandr,osGap,0.22,0.15,above,jormungandr_v2 wins 72.0% of the 100 decided games between jormungandr_v1 and jormungandr_v2 on an otherwise identical jormungandr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:kraken,osGap,0.4787,0.15,above,kraken_v2 wins 97.9% of the 94 decided games between kraken_v1 and kraken_v2 on an otherwise identical kraken. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:nidhoggr,osGap,0.4,0.15,above,nidhoggr_v2 wins 90.0% of the 40 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:ratatoskr,osGap,0.18,0.15,above,ratatoskr_v1 wins 68.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:sleipnir,osGap,0.49,0.15,above,sleipnir_v2 wins 99.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:ymir,osGap,0.38,0.15,above,ymir_v2 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:ymir,osGap,0.35,0.15,above,ymir_v2 wins 85.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.

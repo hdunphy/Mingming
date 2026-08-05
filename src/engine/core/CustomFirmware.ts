@@ -3,7 +3,7 @@ import type { IBattleState, IBattleEntity } from '../types';
 import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
 
-/** Placeholder pending the OS design review (deck-archetypes ticket 09). */
+/** Decided in the OS design review (deck-archetypes ticket 09): 50% of maxHP. */
 const HULDRA_V2_SHIELD_PERCENT = 50;
 
 /**
@@ -145,9 +145,9 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
         //     before the opposing side's first attack resolves against her.
         // (2) BarkShield stacks ARE a percent of maxHp (StatusBehaviors), so the old
         //     `floor(maxHp * 0.5)` stacks made the shield quadratic in maxHp. Now a flat
-        //     percent. HULDRA_V2_SHIELD_PERCENT = 50 is a placeholder matching the old
-        //     effective value at ~100 maxHp; the final number is the OS design review's
-        //     call (deck-archetypes ticket 09).
+        //     percent. HULDRA_V2_SHIELD_PERCENT = 50 matches the old
+        //     effective value at ~100 maxHp and was confirmed as the decided value by
+        //     the OS design review (deck-archetypes ticket 09).
         {
             id: "huldra_v2_bark_start",
             priority: 40,
@@ -167,8 +167,8 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             priority: 40,
             onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
                 if (context.source?.id === owner.id && context.program?.element === 'Ice') {
-                    // Ice cards deal 50% more base damage
-                    return currentDamage + Math.floor(currentDamage * 0.5);
+                    // Ice cards deal 35% more base damage (ticket 09: softened from 50%)
+                    return currentDamage + Math.floor(currentDamage * 0.35);
                 }
                 return currentDamage;
             }

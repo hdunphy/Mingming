@@ -432,7 +432,7 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         const withoutOS = runAttack();
         const withOS = runAttack('ymir_v2');
         expect(withoutOS).toBeGreaterThan(0);
-        expect(withOS).toBe(withoutOS + Math.floor(withoutOS * 0.5)); // ~1.5×
+        expect(withOS).toBe(withoutOS + Math.floor(withoutOS * 0.35)); // ticket 09: softened to ~1.35x
     });
 });
 
