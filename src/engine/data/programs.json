@@ -797,7 +797,7 @@
     "ink_stream": {
         "id": "ink_stream",
         "name": "Ink Stream",
-        "description": "Deal 20 power per card draw.",
+        "description": "Deal 15 power per card drawn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
