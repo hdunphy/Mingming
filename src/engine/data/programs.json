@@ -702,7 +702,7 @@
     "hydro_blast": {
         "id": "hydro_blast",
         "name": "Hydro Blast",
-        "description": "150 power.",
+        "description": "140 power.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -811,7 +811,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 12,
+                "power": 15,
                 "scaling": "CARDS_DRAWN",
                 "target": "TARGET"
             }
@@ -1116,7 +1116,7 @@
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 4,
+                "stacks": 5,
                 "target": "TARGET"
             }
         ]

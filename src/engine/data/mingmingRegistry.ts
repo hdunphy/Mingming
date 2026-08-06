@@ -62,7 +62,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v1 ABYSSAL_INK - draw engine (4 draw cards feed the ink) with ink_stream as the clock.
         // v2 TIDAL_CRUSH - ramp into 3e Water payoffs (maelstrom is new; capacitor fixed to 2e).
         decks: {
-            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "ink_cloud", "water_slap"],
+            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "surge_protection", "water_slap"],
             "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection", "water_slap", "water_slap"]
         },
         moves: [
