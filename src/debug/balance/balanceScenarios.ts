@@ -27,10 +27,34 @@ export const BALANCE_IV = 15;
  * is not a registry entry, so nothing needs filtering out - but the assertion keeps a
  * future stub from silently joining the gauntlet.
  */
-export const BALANCE_SPECIES: ReadonlyArray<string> = Object.keys(MingmingRegistry).filter(
+const ALL_BALANCE_SPECIES: ReadonlyArray<string> = Object.keys(MingmingRegistry).filter(
     id => MingmingRegistry[id].availableOS.length > 0
         && MingmingRegistry[id].availableOS.every(os => getDeckForOS(id, os).length > 0),
 );
+
+/**
+ * Ticket 17: `BALANCE_ONLY=kraken,jormungandr npm run balance` scopes every suite to the
+ * named species for the deck-tuning loop (Windows cmd: `set BALANCE_ONLY=kraken&& npm run
+ * balance`; PowerShell: `$env:BALANCE_ONLY='kraken'; npm run balance`). A scoped run
+ * never overwrites docs/balance/ - see reportGlobalSetup.
+ */
+const only = (process.env.BALANCE_ONLY ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+export const BALANCE_SPECIES: ReadonlyArray<string> =
+    only.length === 0 ? ALL_BALANCE_SPECIES : ALL_BALANCE_SPECIES.filter(id => only.includes(id));
+
+/**
+ * Ticket 17: contiguous shard of the (possibly scoped) species list, so a heavy suite can
+ * split across several `*.balance.ts` files and vitest's per-file worker pool can run
+ * them on separate cores. Deterministic: same list, same slices, any worker count.
+ */
+export function shardSpecies(index: number, count: number): ReadonlyArray<string> {
+    const size = Math.ceil(BALANCE_SPECIES.length / count);
+    return BALANCE_SPECIES.slice(index * size, (index + 1) * size);
+}
 
 /** The §2.2 control archetype: "Kraken Poison". */
 export const CONTROL_SPECIES = 'kraken';

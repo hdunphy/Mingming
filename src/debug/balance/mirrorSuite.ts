@@ -28,7 +28,7 @@
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { BALANCE_SPECIES, mirrorScenario } from './balanceScenarios';
+import { mirrorScenario } from './balanceScenarios';
 import { quietly, summarizePaired } from './balanceReporting';
 import {
     MATCHUP_THRESHOLDS,
@@ -69,6 +69,13 @@ const TOLERANCE = MATCHUP_THRESHOLDS.mirrorTolerance;
 /** §2.2's turn-count redline, applied here to the simplest possible matchup. */
 const STALL_TURN_LIMIT = MATCHUP_THRESHOLDS.stallTurnLimit;
 
+/**
+ * Ticket 17: the mirror suite is the heaviest in the pipeline (400 battles per species),
+ * so it is SHARDED - `mirror.shardN.balance.ts` files each call this factory with a slice
+ * of BALANCE_SPECIES, and vitest's per-file worker pool runs the shards on separate
+ * cores. Assertions are per-species, so sharding changes nothing about what is tested.
+ */
+export function defineMirrorSuites(species: ReadonlyArray<string>): void {
 const results = new Map<string, PairedBatchResult>();
 
 function mirrorOf(species: string): PairedBatchResult {
@@ -107,7 +114,7 @@ function mirrorOf(species: string): PairedBatchResult {
 afterAll(publishFragments);
 
 describe('Mirror Test - harness validation (balance_testing.md 2.1)', () => {
-    it.each([...BALANCE_SPECIES])(
+    it.each([...species])(
         '%s: identical decks split the decided games evenly',
         species => {
             const paired = mirrorOf(species);
@@ -131,7 +138,7 @@ describe('Mirror Test - harness validation (balance_testing.md 2.1)', () => {
     );
 
     it('reports the turn-order effect the pooled redline divides out', () => {
-        const edges = [...BALANCE_SPECIES]
+        const edges = [...species]
             .map(species => ({ species, edge: mirrorOf(species).firstMoverEdge }))
             .sort((a, b) => b.edge - a.edge);
 
@@ -153,7 +160,7 @@ describe('Mirror Test - harness validation (balance_testing.md 2.1)', () => {
 
 describe('Mirror Test - stalemate redline (balance_testing.md 2.2 turn count)', () => {
     it('every archetype can finish a game against itself', () => {
-        const stalled = [...BALANCE_SPECIES]
+        const stalled = [...species]
             .map(species => ({ species, paired: mirrorOf(species) }))
             .filter(({ paired }) => paired.pooled.averageTurns > STALL_TURN_LIMIT)
             .map(
@@ -170,3 +177,14 @@ describe('Mirror Test - stalemate redline (balance_testing.md 2.2 turn count)', 
         ).toEqual([]);
     });
 });
+
+if (species.length === 0) {
+    // A scoped run (BALANCE_ONLY) can leave a shard with nothing to do; vitest fails a
+    // file with zero tests, so register an explicit no-op instead.
+    describe('mirror shard', () => {
+        it('has no species in scope for this shard', () => {
+            expect(species).toEqual([]);
+        });
+    });
+}
+}

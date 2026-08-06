@@ -513,6 +513,8 @@ export function recordMatchup(input: MatchupInput): MatchupReport {
  * Call from an `afterAll` so it still runs when the suite went red. A suite that recorded
  * nothing writes nothing, and the merge then lists it under `suitesMissing`.
  */
+let fragmentSeq = 0;
+
 export function publishFragments(): void {
     if (pending.length === 0) return;
 
@@ -527,7 +529,14 @@ export function publishFragments(): void {
     mkdirSync(FRAGMENT_DIR, { recursive: true });
     for (const [suite, reports] of bySuite) {
         reports.sort((a, b) => byString(a.id, b.id));
-        writeFileSync(join(FRAGMENT_DIR, `${suite}.json`), JSON.stringify(reports), 'utf8');
+        // Ticket 17: a suite may now be SHARDED across several worker files, so the
+        // fragment name must be unique per worker (pid) and per publish (seq) - the
+        // merge sorts globally, so naming never reaches the report bytes.
+        writeFileSync(
+            join(FRAGMENT_DIR, `${suite}.${process.pid}-${fragmentSeq++}.json`),
+            JSON.stringify(reports),
+            'utf8',
+        );
     }
 }
 
@@ -637,8 +646,12 @@ export function matchupsCsv(report: BalanceReport): string {
  * a report that silently declines to update is worse than one that says what it covers.
  * `summary.suitesMissing` is how a partial run announces itself in the diff.
  */
-export function writeBalanceReport(): BalanceReport {
+export function writeBalanceReport(options?: { commitToDocs?: boolean }): BalanceReport {
     const report = assembleReport(readFragments());
+
+    // Ticket 17: a scoped run (BALANCE_ONLY=...) is a tuning tool, not a source of
+    // truth - it must never overwrite the committed report with partial coverage.
+    if (options?.commitToDocs === false) return report;
 
     mkdirSync(REPORT_DIR, { recursive: true });
     writeFileSync(REPORT_JSON_PATH, JSON.stringify(report, null, 2) + '\n', 'utf8');

@@ -25,7 +25,7 @@
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { BALANCE_SPECIES, osVarianceScenario } from './balanceScenarios';
+import { osVarianceScenario } from './balanceScenarios';
 import { quietly, summarizePaired } from './balanceReporting';
 import {
     MATCHUP_THRESHOLDS,
@@ -57,10 +57,17 @@ const MAX_GAP = MATCHUP_THRESHOLDS.osMaxGap;
 const MIN_DECIDED_GAMES = MATCHUP_THRESHOLDS.osMinDecidedGames;
 
 // Runs even when the assertions below go red, which is the run whose report matters.
+
+/**
+ * Ticket 17: sharded like the mirror suite - `os-variance.shardN.balance.ts` files call
+ * this factory with slices of BALANCE_SPECIES so the shards parallelize across workers.
+ */
+export function defineOsVarianceSuite(species: ReadonlyArray<string>): void {
 afterAll(publishFragments);
 
+
 describe('OS Variance Audit (balance_testing.md 2.3)', () => {
-    it.each([...BALANCE_SPECIES])('%s: v1 and v2 are the same power level', species => {
+    it.each([...species])('%s: v1 and v2 are the same power level', species => {
         const [v1, v2] = MingmingRegistry[species].availableOS;
         const paired = quietly(() =>
             runPairedBatch(osVarianceScenario(species), {
@@ -115,3 +122,12 @@ describe('OS Variance Audit (balance_testing.md 2.3)', () => {
         ).toBeLessThanOrEqual(MAX_GAP);
     });
 });
+
+if (species.length === 0) {
+    describe('os-variance shard', () => {
+        it('has no species in scope for this shard', () => {
+            expect(species).toEqual([]);
+        });
+    });
+}
+}
