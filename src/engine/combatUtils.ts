@@ -85,10 +85,21 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   // Step 3: Reduction
   // No flat bonus here (docs/power_curve_spec.md rev 3): the old `+2` was paid per hit,
   // secretly inflating small/multi-hit attacks, and its relative weight shrank as units
-  // leveled up. /35 (was /50) keeps a 1e-40 card dealing the same ~7 damage at L10 that
-  // the old /50+2 formula gave, so existing pacing holds while the curve is now purely
-  // proportional to power at every level.
-  const reduced = scaled / 35;
+  // leveled up, so the curve is now purely proportional to power at every level.
+  //
+  // The DIVISOR is the game's pace dial, and 45 is the rev-3.1 amendment (ticket 23).
+  // /35 was rev 3's choice, picked to preserve the pace the old /50+2 formula produced -
+  // but that pace turned out to be too fast to play in: a full turn removed 60-70% of a
+  // health pool, so even matchups resolved in 3-4.5 turns and any archetype that builds
+  // over time (poison attrition, momentum, discard windmills) never got to exist. /45
+  // is a deliberate ~22% slowdown that buys those archetypes room - even matchups land
+  // at ~5-6 turns, element/level-advantage routs still end in 2-3, and a first-turn kill
+  // needs a perfect setup rather than an ordinary curve-out.
+  //
+  // This is a GLOBAL divisor, so it moves absolute pace only: every card's damage is
+  // scaled by the same factor and relative card economics - the whole rev-3 budget - are
+  // untouched. Card prices deliberately did NOT change with it.
+  const reduced = scaled / 45;
 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);

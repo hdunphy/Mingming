@@ -214,10 +214,11 @@ describe('OS System - Kraken', () => {
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
 
-        // Base damage for power 100, atk 10 vs def 10:
-        // reduced = (200 / 50) + 2 = 6
-        // With 30% boost: 6 * 1.3 = 7.8 => 7.
+        // Base damage for power 100, atk 10 vs def 10, under the rev-3.1 pace
+        // (ticket 23, /45) and TIDAL_CRUSH's ticket-20 multiplier of 1.2:
+        // unboosted floors to 3, boosted 3 * 1.2 = 3.6 => 4.
+        // The bound still only passes when the OS boost actually landed.
 
-        expect(e1.currentHp).toBeLessThan(95); // 100 - 6 = 94. 100 - 7 = 93.
+        expect(e1.currentHp).toBeLessThan(97); // 100 - 3 = 97 unboosted, 100 - 4 = 96 boosted.
     });
 });

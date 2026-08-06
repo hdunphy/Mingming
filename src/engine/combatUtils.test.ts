@@ -149,9 +149,9 @@ describe('Combat Utils - Damage Formula', () => {
 
         const damage = calculateDamage(attacker, target, program, 40, state);
         // levelBase = floor(2*50/5)+2 = 22; scaled = floor(22*40*100/100) = 880;
-        // reduced = 880/35 = 25.14 (docs/power_curve_spec.md rev 3: no +2, /35 not /50);
-        // modifier 1.0 (program element 'None' never grants STAB) -> floor(25.14) = 25.
-        expect(damage).toBe(25);
+        // reduced = 880/45 = 19.55 (spec rev 3.1 / ticket 23: no +2, /45 not /35);
+        // modifier 1.0 (program element 'None' never grants STAB) -> floor(19.55) = 19.
+        expect(damage).toBe(19);
     });
 
     it('should match manual calculation for Level 100 (No STAB)', () => {
@@ -162,8 +162,8 @@ describe('Combat Utils - Damage Formula', () => {
 
         const damage = calculateDamage(attacker, target, program, 40, state);
         // levelBase = floor(2*100/5)+2 = 42; scaled = floor(42*40*100/100) = 1680;
-        // reduced = 1680/35 = 48.0; modifier 1.0 -> floor(48.0) = 48.
-        expect(damage).toBe(48);
+        // reduced = 1680/45 = 37.33; modifier 1.0 -> floor(37.33) = 37.
+        expect(damage).toBe(37);
     });
 
     it('should match STAB calculation', () => {
@@ -173,9 +173,9 @@ describe('Combat Utils - Damage Formula', () => {
         const state = { activeSide: 'PLAYER' } as any;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        // Same base as the Level 50 case (25.14 reduced) but modifier is 1.5 for STAB:
-        // floor(25.14 * 1.5) = floor(37.71) = 37.
-        expect(damage).toBe(37);
+        // Same base as the Level 50 case (19.55 reduced) but modifier is 1.5 for STAB:
+        // floor(19.55 * 1.5) = floor(29.33) = 29.
+        expect(damage).toBe(29);
     });
 });
 

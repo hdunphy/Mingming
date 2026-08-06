@@ -421,8 +421,10 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
 
     it('Ice cards from a ymir_v2 unit deal exactly +50% through the real reducer', () => {
         const runAttack = (activeOS?: string): number => {
-            const attacker = makeUnit('a1', 'Attacker', activeOS ? { activeOS } : {});
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy')], [
+            // Level 20, not the default 1: under the rev-3.1 pace (ticket 23, /45) a 20-power
+            // card at level 1 floors to 0 damage, which makes a +35% assertion meaningless.
+            const attacker = makeUnit('a1', 'Attacker', { level: 20, ...(activeOS ? { activeOS } : {}) });
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
                 card('c1', 'card_ice_strike', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');

@@ -18,7 +18,7 @@ All costs are in **power**. Conversions (level-proof by design):
 
 ## Engine changes required
 
-1. **calculateDamage** — remove the flat `+2`, change divisor `/50` → `/35` (keeps a 1e-40 dealing the same ~7–10 damage at L10, so pacing is preserved). Damage floor stays at **0** (the existing `Math.max(0, damage)`): attacks *can* deal nothing — a tanky Mingming with Sharp stacks shrugging off hits is a feature, not a bug. *Why the +2 goes: it was paid per hit, making small/multi hits secretly stronger, and its value shrank with level — card economics drifted as units leveled.*
+1. **calculateDamage** — remove the flat `+2`, change divisor `/50` → `/35` (keeps a 1e-40 dealing the same ~7–10 damage at L10, so pacing is preserved). **Superseded by rev 3.1 — the divisor is now `/45`; see the amendment at the end of this file.** Damage floor stays at **0** (the existing `Math.max(0, damage)`): attacks *can* deal nothing — a tanky Mingming with Sharp stacks shrugging off hits is a feature, not a bug. *Why the +2 goes: it was paid per hit, making small/multi hits secretly stronger, and its value shrank with level — card economics drifted as units leveled.*
 2. **calculateHeal** — replace with `maxHp × power / 400` (1 power heals 0.25% maxHP, matching the corrected 4-power-per-1% price above). Drop attack scaling and the flat +2. *Why: healing was ~18× damage per power point (natures_touch healed 47 HP at L10 for 1 energy).* LightStance ×1.5 stays on top.
 3. **Burn** — decays 1 stack/turn (was permanent). Keeps tiers 2/5/12% maxHP + def shred + overflow burst.
 4. **Regen** — heals 3% maxHP per stack per turn (was flat 5 HP).
@@ -108,3 +108,26 @@ Rescale ~36 %-status appliers to the 2%/stack world (mostly 1→2–3 stacks). B
 - Poison's `getScaledStacks` (attack × power scaling) is dead code — the STATUS pipeline never passes `power`. Delete or implement deliberately.
 - powerscale.ts bugs, confirmed against real card data, fixed in the rewrite: `action.target: 'TARGET'` (meaning "aimed at the opposing side") shadows `card.target: 'Side'/'All'` (meaning how much of that side) — every AOE card (`cyclone`, `tidal_wave_v2`, `entangle`, `heat_wave`) was scored as single-target. Fix separates the two axes: `action.target === 'SELF'` still means self (glass_cannon's recoil sub-action correctly flips negative), anything else defers to `card.target` for the count multiplier. Separately, `MULTIPLY_STATUS`/`CLEANSE`/`SEARCH`/`PLAY_LAST_CARD`/`TRIGGER_STATUS` all fall through the action-type branch scoring **0** today — that's `contagion`, `purify`, `scavenge_data`, `reprogram`, half of `toxic_surge`. `SHIFT_STANCE` and `MULTIPLY_STATUS` get real heuristic scores in the rewrite (using this doc's own ≈15-power stance value and a doubled-stack-count estimate, respectively); `CLEANSE`/`SEARCH`/`PLAY_LAST_CARD`/`TRIGGER_STATUS` get an explicit `manualReview` flag instead of a silent 0, since pricing them generically isn't honest (their value depends on board state a static formula can't see) — matches why `purify`/`aegis`/`scavenge_data`'s verdicts above were already hand-judged rather than formula-derived.
 - Pacing at the locked numbers: rout 2–3 turns, even 3–4, hard 7, boss 11–13 (targets: 3 and 10–12). Enemy HP is the pacing knob, not the curve.
+
+## rev 3.1 — pace amendment (ticket 23, 2026-08-06)
+
+**`calculateDamage` divisor `/35` → `/45`.** One constant. No card price changes.
+
+rev 3 chose `/35` to *preserve* the pace the old `/50 + 2` formula produced. Preserving it
+was the mistake: at that pace a single full turn removed **60–70% of a health pool**, so
+even matchups resolved in **3–4.5 turns**. That is not enough turns for a game to happen in.
+Anything that wins by building — poison attrition, momentum stacking, a discard windmill —
+was dead on arrival, because the game ended before its second payoff ever landed. The deck
+passes kept discovering this one archetype at a time.
+
+A/B simulation across the registry showed slowing damage ~22–30% moves even matchups to
+**~5.5–6.5 turns** while element- and level-advantage routs still close in **~3**, and FTK
+stays at 0 — a first-turn kill now needs a perfect setup rather than an ordinary curve-out.
+`/45` is that ~22% slowdown.
+
+**Card budgets and prices are unchanged, and that is not an oversight.** A global divisor
+scales every card by the same factor, so it moves *absolute* pace only; the rev-3 budget
+bands, the 1e = 40 power unit, and every relative card economics decision survive it intact.
+The one thing a longer game does change is the *value* of slow-build archetypes relative to
+burst ones — which is the entire point of the amendment, and shows up as jormungandr's §2.3
+swinging toward its attrition variant.

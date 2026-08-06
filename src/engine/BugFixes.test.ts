@@ -329,7 +329,9 @@ describe('XP pacing: decelerating span-based death XP with level-gap scaling', (
                 makeEntity({ id: 'p1', name: 'Hero', level: 10, experience: 800 }),
                 makeEntity({ id: 'p2', name: 'Ally', level: 10, experience: 800 })
             ],
-            enemyParty: [makeEntity({ id: 'e1', name: 'Foe', level: 10, currentHp: 5 })]
+            // 3 HP, not 5: fury_strike deals 4 under the rev-3.1 pace (ticket 23), and this
+            // test is about the XP split on a KO, not about the size of the hit.
+            enemyParty: [makeEntity({ id: 'e1', name: 'Foe', level: 10, currentHp: 3 })]
         });
         state = withHand(state, [{ id: 'h1', dataId: 'fury_strike' }]);
         state = battleReducer(state, { type: 'PLAY_PROGRAM', payload: { sourceId: 'p1', targetId: 'e1', programId: 'h1' } });

@@ -193,9 +193,9 @@ describe('Battle Reducer State Machine', () => {
         expect(p1?.currentEnergy).toBe(9);
 
         // Power check: Card1 has 10 power. (10 + 10) * 2 = 40.
-        // Base damage formula: Math.floor((6 * 40 * 1) / 50) + 2 = 6 damage.
-        // P2 started with 100 HP, should have 94 HP.
-        expect(p2?.currentHp).toBe(94);
+        // Base damage under the rev-3.1 pace (ticket 23): floor(6 * 40 / 45) = 5 damage.
+        // P2 started with 100 HP, should have 95 HP.
+        expect(p2?.currentHp).toBe(95);
 
         // Modifier should be consumed
         expect(p1?.nextProgramModifier).toBeUndefined();

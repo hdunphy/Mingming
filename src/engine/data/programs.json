@@ -1101,7 +1101,7 @@
     "corrosive_bolt": {
         "id": "corrosive_bolt",
         "name": "Corrosive Bolt",
-        "description": "Add 3 stacks of Poison.",
+        "description": "Add 4 stacks of Poison.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1116,7 +1116,7 @@
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 5,
+                "stacks": 4,
                 "target": "TARGET"
             }
         ]
@@ -1124,7 +1124,7 @@
     "acid_splash": {
         "id": "acid_splash",
         "name": "Acid Splash",
-        "description": "Add 2 stacks of Poison + 1 Dazed.",
+        "description": "Add 1 stack of Poison + 1 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1139,7 +1139,7 @@
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 2,
+                "stacks": 1,
                 "target": "TARGET"
             },
             {
