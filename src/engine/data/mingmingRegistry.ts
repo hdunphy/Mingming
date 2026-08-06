@@ -293,10 +293,12 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["sleipnir_v1", "sleipnir_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 21 (Air first pass): v1 MOMENTUM_DRIVE = zoo momentum - five 0-cost cards
+        // feed the Strengthened engine, Stampede/Trample cash it. v2 WAR_STEED_OS = discard-cost
+        // cavalry - the OS's free Hoof Strike tokens become the fodder Lance/Cavalry Charge spend.
         decks: {
-            "sleipnir_v1": ["gust_jab", "gust_jab", "zephyr_strike", "zephyr_strike", "dust_devil", "dust_devil", "slipstream", "slipstream", "tailwind", "disorienting_gust"],
-            "sleipnir_v2": ["gust_jab", "gust_jab", "zephyr_strike", "zephyr_strike", "dust_devil", "dust_devil", "slipstream", "slipstream", "tailwind", "disorienting_gust"]
+            "sleipnir_v1": ["water_slap", "water_slap", "slipstream", "slipstream", "disorienting_gust", "adrenaline", "tailwind", "zephyr_strike", "stampede", "stampede", "momentum_crash", "hoofbeat_daemon"],
+            "sleipnir_v2": ["lance", "lance", "cavalry_charge", "zephyr_strike", "zephyr_strike", "dust_devil", "tailwind", "water_slap"]
         },
         moves: [
             {

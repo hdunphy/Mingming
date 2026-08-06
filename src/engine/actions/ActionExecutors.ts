@@ -24,9 +24,12 @@ export abstract class ActionExecutor<T extends ProgramAction> {
 /**
  * Effective ATTACK power after attacker-only scaling.
  *
- * Currently handles SHARP_STACKS (+5 power per Sharp stack on the attacker),
- * which boosts the POWER fed into the damage formula so the bonus scales with
- * level/stats like any other power and survives resistances.
+ * Currently handles SHARP_STACKS (+5 power per Sharp stack on the attacker) and
+ * STRENGTH_STACKS (power MULTIPLIED by the attacker's Strengthened stacks - Momentum
+ * Crash cashing MOMENTUM_DRIVE), which boost the POWER fed into the damage formula so
+ * the bonus scales with level/stats like any other power and survives resistances.
+ * STRENGTH_STACKS reads RAW stacks on purpose: Strengthened's own damage bonus is
+ * capped at +-25%, and the whole point of the payoff card is to bypass that cap.
  *
  * Shared by AttackExecutor AND the UI hover preview (computeDamagePreview) so
  * the previewed number and the real reducer damage cannot drift for Sharp
@@ -40,6 +43,10 @@ export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<Atta
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
         return power + 5 * sharpStacks;
+    }
+    if (action.scaling === 'STRENGTH_STACKS') {
+        const strengthStacks = source.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
+        return power * strengthStacks;
     }
     return power;
 }
@@ -251,9 +258,22 @@ export class CleanseExecutor extends ActionExecutor<CleanseActionData> {
 
 export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: DiscardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
-        const { amount, isRandom } = actionData;
+        // `count` is the ticket-21 self-discard cost: N RANDOM cards off the acting
+        // side's own hand (the reducer has already routed targetId to the source and
+        // suppressed its generic multi-hit loop for DISCARD). `amount` stays the
+        // explicit form used by FORCE_DISCARD and discardEffect callers, which keep
+        // their existing top-N / opt-in-random behaviour. A hand shorter than N just
+        // discards what is there - the rest of the card still resolves.
+        const usesCost = typeof actionData.count === 'number';
+        const amount = usesCost ? (actionData.count as number) : (actionData.amount ?? 0);
+        // The COST form is deterministic, not random - it sheds the least useful cards
+        // first (see the DISCARD mutation in resolutionEngine). An explicit isRandom on
+        // the action still wins, so FORCE_DISCARD and legacy callers are untouched.
+        const isCostPriority = usesCost && actionData.isRandom === undefined;
+        const isRandom = actionData.isRandom ?? false;
         const isPlayerTarget = state.playerParty.some(e => e.id === targetId);
         const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+        const handOwner = (isPlayerTarget ? state.playerParty : state.enemyParty).find(e => e.id === targetId);
 
         const oldDiscardLength = state[deckKey].discard.length;
 
@@ -261,7 +281,7 @@ export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
             type: 'DISCARD',
             sourceId,
             targetId,
-            payload: { amount, isRandom }
+            payload: { amount, isRandom, isCostPriority }
         }]);
 
         const newDiscardLength = newState[deckKey].discard.length;
@@ -272,6 +292,7 @@ export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
 
             for (const c of discardedCards) {
                 const discardedData = GetProgramData(c.dataId);
+                newState = addLog(newState, `${handOwner?.name ?? 'Unknown'} discards ${discardedData.name}!`);
                 if (discardedData.discardEffect && discardedData.discardEffect.length > 0) {
                     newState = addLog(newState, `  ✨ ${discardedData.name} discard effect triggered!`);
 

@@ -325,12 +325,18 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     if (programData.actions) {
         for (const action of programData.actions) {
             //TODO: we don't need a hit count we can just loop through the actions array.
-            const hitCount = (action as any).count || 1;
+            // DISCARD reads `count` as "how many cards leave the hand" (the ticket-21
+            // self-discard cost), not as a repeat count - resolve it once and let the
+            // executor move all N in a single seeded shuffle.
+            const hitCount = action.type === 'DISCARD' ? 1 : ((action as any).count || 1);
 
             for (let i = 0; i < hitCount; i++) {
                 // Target Resolution (per hit)
                 let targetIds: string[] = [];
-                if (action.target === 'SELF' || action.target === 'Self') {
+                // DISCARD is always a self-cost: it empties the ACTING side's hand
+                // regardless of the card's declared target (Lance and Cavalry Charge
+                // both target an enemy). FORCE_DISCARD is the enemy-facing variant.
+                if (action.target === 'SELF' || action.target === 'Self' || action.type === 'DISCARD') {
                     targetIds = [sourceId];
                 } else if (programData.target === 'Side' || programData.target === 'All') {
                     const isOnPlayerSide = finalState.playerParty.some(e => e.id === targetId);

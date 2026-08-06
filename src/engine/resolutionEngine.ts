@@ -110,12 +110,31 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const amount = mutation.payload.amount;
                 const isRandom = mutation.payload.isRandom;
 
+                const isCostPriority = mutation.payload.isCostPriority;
+
                 let toDiscard = [...deck.hand];
                 if (isRandom) {
                     const prng = new PRNG(newState.seed);
                     const { shuffled, nextSeed } = prng.shuffle(toDiscard);
                     toDiscard = shuffled.slice(0, amount);
                     newState = { ...newState, seed: nextSeed };
+                } else if (isCostPriority) {
+                    // Paying a DISCARD cost is a DECISION, not a coin flip: shed the cards
+                    // whose loss helps most or hurts least. Cards with a discardEffect go
+                    // first (discarding them is upside - Feather Cache draws, War Molt
+                    // buffs), then the cheapest card, then hand order. No RNG at all, so a
+                    // replayed battle sheds exactly the same cards.
+                    const ranked = deck.hand.map((entity, index) => {
+                        const data = GetProgramData(entity.dataId);
+                        const hasDiscardEffect = !!(data.discardEffect && data.discardEffect.length > 0);
+                        const cost = typeof data.baseCost === 'number' ? data.baseCost : 99;
+                        return { entity, hasDiscardEffect, cost, index };
+                    });
+                    ranked.sort((a, b) =>
+                        (Number(b.hasDiscardEffect) - Number(a.hasDiscardEffect))
+                        || (a.cost - b.cost)
+                        || (a.index - b.index));
+                    toDiscard = ranked.slice(0, amount).map(r => r.entity);
                 } else {
                     toDiscard = toDiscard.slice(0, amount); // Top N cards
                 }

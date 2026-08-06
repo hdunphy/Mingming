@@ -265,7 +265,15 @@ export interface CleanseActionData extends ProgramAction {
 
 export interface DiscardActionData extends ProgramAction {
   readonly type: 'DISCARD';
-  readonly amount: number;
+  readonly amount?: number; // Explicit pile-move size (FORCE_DISCARD / discardEffect callers)
+  /**
+   * Self-discard COST (ticket 21). `{ "type": "DISCARD", "count": N }` in a card's
+   * action list removes N RANDOM cards from the ACTING side's own hand (the played
+   * card is already out of the hand by resolution time). `count` implies isRandom
+   * and self-targeting; the battleReducer deliberately does NOT read it as the
+   * generic multi-hit repeat for this action type.
+   */
+  readonly count?: number;
   readonly isRandom?: boolean; // If true, discards randomly instead of player choice (or first N cards)
 }
 

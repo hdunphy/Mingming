@@ -316,6 +316,35 @@
             }
         ]
     },
+    "hoofbeat_daemon": {
+        "id": "hoofbeat_daemon",
+        "name": "HOOFBEAT_DAEMON",
+        "description": "Daemon: whenever you play a 0-cost card, deal 10 damage to a random enemy.",
+        "hooks": [
+            {
+                "id": "hoofbeat_daemon_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 10,
+                        "element": "Air"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s HOOFBEAT_DAEMON stampedes into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
     "fertile_ground_daemon": {
         "id": "fertile_ground_daemon",
         "name": "FERTILE_GROUND",
@@ -646,7 +675,7 @@
     "sleipnir_v1": {
         "id": "sleipnir_v1",
         "name": "MOMENTUM_DRIVE",
-        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened.",
+        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 2 stacks of Strengthened.",
         "hooks": [
             {
                 "id": "sleipnir_v1_hook",
@@ -661,7 +690,7 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 1
+                        "stacks": 2
                     }
                 ]
             }
