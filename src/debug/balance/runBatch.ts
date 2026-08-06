@@ -160,6 +160,38 @@ function decideOutcome(state: IBattleState): BattleOutcome | null {
     return null;
 }
 
+/**
+ * Ticket 19: per-seed IV jitter. One roll per stat per SEED, applied identically to
+ * every unit on BOTH sides - each game stays fair while the absolute HP/damage
+ * numbers vary across the batch, decorrelating the kill-threshold seed families
+ * that made single power points flip 37-point cliffs (ticket 18's coil sweep).
+ * Deterministic: the roll is derived from the run seed, nothing else.
+ */
+export function applyStatJitter(setup: ComposedSetup, seed: string): ComposedSetup {
+    const magnitude = setup.statJitter ?? 0;
+    if (magnitude <= 0) return setup;
+
+    const roll = (tag: string): number =>
+        new PRNG(`ivjitter|${tag}|${seed}`).nextInt(-magnitude, magnitude).value;
+    const dAtk = roll('atk');
+    const dDef = roll('def');
+    const dHp = roll('hp');
+
+    const clampIV = (iv: number): number => Math.max(0, Math.min(31, iv));
+    const jitterUnit = <T extends { attackIV: number; defenseIV: number; hpIV: number }>(unit: T): T => ({
+        ...unit,
+        attackIV: clampIV(unit.attackIV + dAtk),
+        defenseIV: clampIV(unit.defenseIV + dDef),
+        hpIV: clampIV(unit.hpIV + dHp),
+    });
+
+    return {
+        ...setup,
+        player: { ...setup.player, party: setup.player.party.map(jitterUnit) },
+        enemies: setup.enemies.map(jitterUnit),
+    };
+}
+
 /** Card-instance ids currently held by a side. */
 function handIds(state: IBattleState, side: 'PLAYER' | 'ENEMY'): ReadonlyArray<string> {
     const deck = side === 'PLAYER' ? state.playerDeck : state.enemyDeck;
@@ -178,7 +210,7 @@ export function runOne(
     maxTurns: number = DEFAULT_MAX_TURNS,
     startingSide: Side = 'PLAYER',
 ): RunResult {
-    const built = buildScenarioState({ ...setup, seed });
+    const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
     let state: IBattleState = startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
 
     // Dead-card bookkeeping. `seen` accumulates every card instance that has ever been in

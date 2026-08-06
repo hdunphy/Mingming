@@ -3,33 +3,111 @@ import { battleReducer, validateProgramConstraints, type BattleAction } from '..
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
+import { PRNG } from '../core/PRNG';
+import { DEFAULT_GAME_CONFIG } from '../data/gameConfig';
 
-// Weights for scoring
-// Weights for scoring specific statuses
-const STATUS_SCORES: Record<string, number> = {
-    'Regen': 3,
-    'Strengthened': 5,
-    'Sharp': 5,
-    'Burn': -3,
-    'Poison': -3,
-    'Weakened': -3,
-    'Dazed': -5,
-    'Stunned': -8,
-    'Asleep': -6
-};
+/**
+ * Mechanics-aware board evaluation - docs/wayfinder/deck-archetypes/tickets/19-ai-measurement-upgrade.md.
+ *
+ * The old hand-typed STATUS_SCORES table valued Poison at a flat -3/stack against a
+ * quadratic mechanic and did not know Energized existed, so the AI never played
+ * contagion or capacitor (0 plays in 100 audited battles - ticket 18). Every value
+ * below is now DERIVED from what the mechanic actually does, in one currency:
+ * eval points = HP_POINTS x HP. Derivations are approximations only where a
+ * mechanic's value depends on the future (horizon constants, documented inline);
+ * DoT/HoT totals use the exact engine formulas from StatusBehaviors.ts.
+ */
+
+/** Eval currency: points per HP (kept from the original eval - HP x 2). */
+const HP_POINTS = 2;
+
+/**
+ * A side's per-turn damage throughput, as a fraction of a frame's maxHp. Base-deck
+ * battles decide in ~5 turns (balance suite averageTurns 5-6), so each side removes
+ * ~a full frame over ~5 turns => ~20%/turn. Used to convert "a turn" or "a % damage
+ * swing" into HP.
+ */
+const TURN_DAMAGE_FRACTION = 0.20;
+
+/** Statuses that scale future turns are valued over the average remaining battle length. */
+const STATUS_HORIZON_TURNS = 2.5;
+
+/** 1 energy ~ 1/4 of a turn's throughput (4-energy turns at the balance frame). */
+const ENERGY_TURN_FRACTION = 0.25;
+
+/** Mirrors Hooks.ts applyDamageModifiers: 2%/stack, net cap 25% either way. */
+const STATUS_PCT_PER_STACK = 0.02;
+const STATUS_PCT_CAP = 0.25;
+const cappedPct = (stacks: number): number => Math.min(STATUS_PCT_CAP, stacks * STATUS_PCT_PER_STACK);
+
+/** Total future Burn damage as a fraction of maxHp: tier table walked S -> 1 (Burn decays 1/turn). */
+function burnTotalPercent(stacks: number): number {
+    const tiers = DEFAULT_GAME_CONFIG.status.burnStacks;
+    let total = 0;
+    for (let s = stacks; s >= 1; s--) {
+        const tier = tiers[s - 1] ?? tiers[tiers.length - 1];
+        total += tier.damagePercent;
+    }
+    return total;
+}
+
+/**
+ * Eval contribution of one status instance on its holder (positive = good for the holder).
+ */
+function statusValue(type: string, stacks: number, entity: IBattleEntity): number {
+    const s = stacks;
+    switch (type) {
+        case 'Poison':
+            // 1% maxHp x stacks per tick, decrementing => total future damage
+            // = maxHp/100 x S(S+1)/2 (StatusBehaviors PoisonBehavior.endTurn).
+            return -HP_POINTS * entity.maxHp * 0.01 * (s * (s + 1) / 2);
+        case 'Burn':
+            // Tiered % maxHp per tick (2/5/12%), decays 1/turn. Def shred ignored (small).
+            return -HP_POINTS * entity.maxHp * burnTotalPercent(s);
+        case 'Regen':
+            // 3% maxHp x stacks per tick, decrementing; healing past full is wasted,
+            // so the total is capped at the holder's missing HP.
+            return HP_POINTS * Math.min(0.03 * (s * (s + 1) / 2) * entity.maxHp, entity.maxHp - entity.currentHp);
+        case 'Energized':
+            // +stacks energy next turn; 1 energy ~ ENERGY_TURN_FRACTION of a turn's damage.
+            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * ENERGY_TURN_FRACTION * s;
+        case 'Strengthened':
+            // +cappedPct outgoing damage over the horizon (own maxHp as the frame proxy -
+            // balance sims run same-species or same-level frames).
+            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+        case 'Weakened':
+            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+        case 'Sharp':
+            // -cappedPct incoming damage over the horizon.
+            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+        case 'Dazed':
+            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+        case 'Stunned':
+            // Lose the next turn entirely: one full turn of throughput.
+            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION;
+        case 'Asleep':
+            // Skip `stacks` turns (max 3), same per-turn value as Stunned.
+            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * s;
+        case 'BarkShield':
+            // Absorb pool of stacks% maxHp, decaying 20%/turn: worth ~80% of face value.
+            return HP_POINTS * entity.maxHp * (s / 100) * 0.8;
+        default:
+            // StableOS, stances, Awoken, marker statuses: situational, valued 0.
+            return 0;
+    }
+}
 
 /**
  * Calculates the 'Board Score' for a single entity.
- * Formula: (Current_HP * 2) + Sum(Status_Scores)
+ * Formula: (Current_HP x HP_POINTS) + Sum(mechanics-derived status values)
  */
 function getEntityScore(entity: IBattleEntity): number {
     if (entity.currentHp <= 0) return 0; // Dead units have 0 score
 
-    let score = entity.currentHp * 2;
+    let score = entity.currentHp * HP_POINTS;
 
     for (const status of entity.statusEffects) {
-        const val = STATUS_SCORES[status.type] || 0;
-        score += val * status.stacks;
+        score += statusValue(status.type, status.stacks, entity);
     }
 
     return score;
@@ -53,6 +131,13 @@ function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
     return myScore - oppScore + (oppDead * 50);
 }
 
+/** A depth-0 first action with the best same-turn continuation found behind it. */
+interface Candidate {
+    action: BattleAction;
+    score: number;
+    leafState: IBattleState;
+}
+
 /**
  * Recursive search to find the best sequence of actions for the current turn.
  * Simulates permutations of playable cards.
@@ -61,14 +146,15 @@ function findBestSequence(
     state: IBattleState,
     side: 'PLAYER' | 'ENEMY',
     depth: number,
-    maxDepth: number
-): { score: number; firstAction: BattleAction | null } {
+    maxDepth: number,
+    candidates?: Candidate[]
+): { score: number; firstAction: BattleAction | null; leafState: IBattleState } {
     // 1. Evaluate current state
     const currentScore = evaluateState(state, side);
 
     // 2. Base Cases
     if (depth >= maxDepth) {
-        return { score: currentScore, firstAction: null };
+        return { score: currentScore, firstAction: null, leafState: state };
     }
 
     // 3. Generate Valid Actions
@@ -81,11 +167,12 @@ function findBestSequence(
     const oppParty = state[oppPartyKey].filter(e => e.currentHp > 0);
 
     if (myParty.length === 0 || oppParty.length === 0) {
-        return { score: currentScore, firstAction: null };
+        return { score: currentScore, firstAction: null, leafState: state };
     }
 
     let bestScore = currentScore;
     let bestAction: BattleAction | null = null;
+    let bestLeaf: IBattleState = state;
 
     for (const card of hand) {
         const programData = GetProgramData(card.dataId);
@@ -134,8 +221,13 @@ function findBestSequence(
                 // Recursive Call
                 const result = findBestSequence(nextState, side, depth + 1, maxDepth);
 
+                if (depth === 0 && candidates) {
+                    candidates.push({ action, score: result.score, leafState: result.leafState });
+                }
+
                 if (result.score > bestScore) {
                     bestScore = result.score;
+                    bestLeaf = result.leafState;
                     if (depth === 0) {
                         bestAction = action;
                     }
@@ -144,7 +236,81 @@ function findBestSequence(
         }
     }
 
-    return { score: bestScore, firstAction: bestAction };
+    return { score: bestScore, firstAction: bestAction, leafState: bestLeaf };
+}
+
+// --- 1-turn lookahead (ticket 19) ---
+//
+// The same-turn search cannot value setup cards: capacitor's Energized pays out at the
+// next energy refill, which used to be past the horizon. The lookahead re-ranks the
+// top same-turn candidates by what the board looks like after playing out the turn,
+// letting both sides' end-of-turn statuses tick, and taking the best reply next turn.
+//
+// - The OPPONENT IS MODELED AS PASSING (their DoTs/decays still tick): modeling their
+//   real turn needs their hidden hand - perfect-info cheating or determinization at
+//   x2+ cost (rejected in ticket 19). This undervalues defense uniformly; documented.
+// - The next-turn hand is a CHANCE NODE: own drawpile CONTENTS are known, only order
+//   is hidden. Valued as the mean over LOOKAHEAD_DETERMINIZATIONS seed-derived
+//   reshuffles of the drawpile (deterministic per battle seed). A reshuffle of the
+//   discard pile (drawpile exhausted) falls back to the engine's own seeded shuffle.
+
+const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
+const LOOKAHEAD_TOP_N = 3;
+const LOOKAHEAD_DETERMINIZATIONS = 2;
+const LOOKAHEAD_REPLY_DEPTH = 2;
+/**
+ * Dominance pruning: when the best same-turn candidate leads the runner-up by more
+ * than this many eval points (12 = 6 HP), the decision is not close and the
+ * lookahead is skipped. Most moves are clear-cut; this keeps the lookahead's cost
+ * concentrated on the genuinely contested choices (setup-vs-tempo calls).
+ */
+const LOOKAHEAD_DOMINANCE_MARGIN = 12;
+
+function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
+    return party.every(e => e.currentHp <= 0);
+}
+
+/**
+ * Value of a candidate's leaf state one turn later: END_TURN (our ticks), opponent
+ * passes (their ticks), our energy refills (Energized cashes) and we draw a
+ * determinized hand, then the best depth-limited reply is scored.
+ */
+function lookaheadValue(
+    leaf: IBattleState,
+    side: 'PLAYER' | 'ENEMY',
+    candidateIndex: number
+): number {
+    const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+    let total = 0;
+
+    for (let d = 0; d < LOOKAHEAD_DETERMINIZATIONS; d++) {
+        // Determinize the unknown draw order: reshuffle our own drawpile copy.
+        const rng = new PRNG(`lookahead|${leaf.seed}|${leaf.turn}|${candidateIndex}|${d}`);
+        const { shuffled } = rng.shuffle([...leaf[deckKey].drawpile]);
+        const determinized: IBattleState = {
+            ...leaf,
+            [deckKey]: { ...leaf[deckKey], drawpile: shuffled }
+        };
+
+        // Our turn ends: our statuses tick, side flips (opponent refills/draws).
+        const afterOurEnd = battleReducer(determinized, { type: 'END_TURN' });
+
+        // Opponent passes: their statuses tick, side flips back, we refill + draw.
+        const afterTheirPass = battleReducer(afterOurEnd, { type: 'END_TURN' });
+
+        const oppKey = side === 'PLAYER' ? 'enemyParty' : 'playerParty';
+        const myKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+        if (allDead(afterTheirPass[oppKey]) || allDead(afterTheirPass[myKey])) {
+            // Battle decided by ticks alone - score the terminal board.
+            total += evaluateState(afterTheirPass, side);
+            continue;
+        }
+
+        // Best reply next turn, depth-limited.
+        total += findBestSequence(afterTheirPass, side, 0, LOOKAHEAD_REPLY_DEPTH).score;
+    }
+
+    return total / LOOKAHEAD_DETERMINIZATIONS;
 }
 
 export function getBestAction(state: IBattleState): BattleAction {
@@ -175,16 +341,60 @@ export function getBestAction(state: IBattleState): BattleAction {
 
     // 3. Card-play tactical simulation: the player side (Balance Tester /
     // the headless batch sims), or card-user enemies (enemyMode === 'CARDS').
-    const MAX_DEPTH = 3; // Limit recursion to prevent hangs
+    const side = state.activeSide;
 
     // Silence events during AI simulation to prevent log spam and side effects
     globalBattleEventBus.mute();
-    const result = findBestSequence(state, state.activeSide, 0, MAX_DEPTH);
-    globalBattleEventBus.unmute();
+    try {
+        const candidates: Candidate[] = [];
+        findBestSequence(state, side, 0, MAX_DEPTH, candidates);
 
-    if (result.firstAction) {
-        return result.firstAction;
+        // Only strictly-improving first actions qualify (same bar as the original
+        // greedy: it never acted unless some sequence beat standing pat).
+        const baseline = evaluateState(state, side);
+        const improving = candidates.filter(c => c.score > baseline);
+        if (improving.length === 0) {
+            return { type: 'END_TURN' };
+        }
+
+        // Sort by same-turn score (Array.prototype.sort is stable: ties keep
+        // hand/target enumeration order - deterministic).
+        improving.sort((a, b) => b.score - a.score);
+
+        // Lethal short-circuit: if the best same-turn line already ends the battle,
+        // take it - no future to weigh.
+        const oppPartyKey = side === 'PLAYER' ? 'enemyParty' : 'playerParty';
+        if (allDead(improving[0].leafState[oppPartyKey])) {
+            return improving[0].action;
+        }
+
+        const topN = improving.slice(0, LOOKAHEAD_TOP_N);
+        if (topN.length === 1) {
+            return topN[0].action;
+        }
+        if (topN[0].score - topN[1].score > LOOKAHEAD_DOMINANCE_MARGIN) {
+            return topN[0].action;
+        }
+        // Stalled battles (docs/balance_testing.md 2.2 calls >30 turns a stall) get
+        // greedy play only: the lookahead cannot un-stall a matchup whose decks
+        // cannot close, and 400-game 60-turn mirror stalls dominate suite wall-clock.
+        if (state.turn > 30) {
+            return topN[0].action;
+        }
+
+        // Re-rank the top candidates by their 1-turn lookahead value; ties resolve
+        // to the better same-turn score (earlier index), keeping determinism.
+        let best = topN[0];
+        let bestValue = -Infinity;
+        for (let i = 0; i < topN.length; i++) {
+            const value = lookaheadValue(topN[i].leafState, side, i);
+            if (value > bestValue) {
+                bestValue = value;
+                best = topN[i];
+            }
+        }
+        return best.action;
+    } finally {
+        globalBattleEventBus.unmute();
     }
-
-    return { type: 'END_TURN' };
 }

@@ -220,6 +220,15 @@ export const ComposedSetupSchema = z.object({
     /** Explicit list; never the procedural encounter branch. */
     enemies: z.array(EnemySetupSchema),
     gauntlet: GauntletContextSchema.nullable().optional(),
+    /**
+     * Ticket 19 (deck-archetypes): per-seed IV jitter magnitude. When set, every unit's
+     * atk/def/hp IVs are shifted by the SAME seed-derived roll in [-statJitter, +statJitter]
+     * (both sides identical - fair per game) before the state is built. Kills the
+     * pinned-stat kill-threshold cliffs the balance suite measured (ticket 18). Applied
+     * by `runBatch.applyStatJitter`, not by `buildScenarioState` - a recorded scenario
+     * file replays byte-identically; only batch runs jitter.
+     */
+    statJitter: z.number().int().min(0).max(15).optional(),
 });
 
 // --- Envelope ----------------------------------------------------------------
@@ -298,6 +307,8 @@ export interface ComposedSetup {
     };
     enemies: EnemySetup[];
     gauntlet?: GauntletContext | null;
+    /** Per-seed IV jitter magnitude (see ComposedSetupSchema.statJitter). */
+    statJitter?: number;
 }
 
 export interface ScenarioEnvelope {

@@ -19,6 +19,15 @@ import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/s
  */
 export const BALANCE_LEVEL = 15;
 
+/**
+ * Ticket 19: IV jitter magnitude for every balance scenario (mirrors, OS variance,
+ * gauntlet - they all compose through `matchupScenario`). 15±5 per Henry's ticket-18
+ * decision: same seed-derived roll for both sides, applied per seed by
+ * `runBatch.applyStatJitter`. Committed numbers are "win rate over a small stat
+ * neighborhood" rather than a single pinned frame.
+ */
+export const BALANCE_STAT_JITTER = 5;
+
 /** Middle of the 0..31 IV band, so no unit is rolled lucky. */
 export const BALANCE_IV = 15;
 
@@ -106,6 +115,7 @@ export function matchupScenario(spec: MatchupSpec): ComposedSetup {
             relics: [],
         },
         enemies: [enemyUnit(enemy, enemyOS)],
+        statJitter: BALANCE_STAT_JITTER,
     };
 }
 
