@@ -83,8 +83,8 @@ describe('suggestDeckFill', () => {
 
     it('skips cards already in the deck and respects baseDeck copy counts', () => {
         const baseCards = makeCards(FENRIR_BASE);
-        // desperate_strike appears twice in fenrir's baseDeck (ticket 26 deck pass); put ONE in the deck
-        const firePokes = baseCards.filter(c => c.dataId === 'desperate_strike');
+        // blood_rite appears twice in fenrir's baseDeck (ticket 28 deck pass); put ONE in the deck
+        const firePokes = baseCards.filter(c => c.dataId === 'blood_rite');
         expect(firePokes.length).toBe(2);
         const deck = makeDeck([firePokes[0].instanceId]);
 
@@ -98,9 +98,9 @@ describe('suggestDeckFill', () => {
         expect(result).toHaveLength(7);
         // Never suggests an instance already in the deck
         expect(result).not.toContain(firePokes[0].instanceId);
-        // Only ONE more desperate_strike copy is suggested (deck copy counts toward the 2 listed)
+        // Only ONE more blood_rite copy is suggested (deck copy counts toward the 2 listed)
         const byInstance = new Map(baseCards.map(c => [c.instanceId, c.dataId]));
-        const suggestedPokes = result.filter(id => byInstance.get(id) === 'desperate_strike');
+        const suggestedPokes = result.filter(id => byInstance.get(id) === 'blood_rite');
         expect(suggestedPokes).toEqual([firePokes[1].instanceId]);
     });
 
@@ -177,12 +177,12 @@ describe('suggestDeckFill', () => {
             roster: [makeMember('m1', 'fenrir'), makeMember('m2', 'fenrir')],
             activeParty: ['m1', 'm2']
         }));
-        // 10 base + 3 extras = 13 owned usable cards, target 20 => all 13 suggested
-        expect(result).toHaveLength(13);
+        // 9 base + 3 extras = 12 owned usable cards, target 20 => all 12 suggested
+        expect(result).toHaveLength(12);
         const byInstance = new Map([...baseCards, ...extras].map(c => [c.instanceId, c.dataId]));
         // The base kit comes first, then extras ordered cost-asc (desperate_strike cost 0 first)
-        expect(result.slice(0, 10).map(id => byInstance.get(id))).toEqual(FENRIR_BASE);
-        expect(result.slice(10).map(id => byInstance.get(id))).toEqual([
+        expect(result.slice(0, 9).map(id => byInstance.get(id))).toEqual(FENRIR_BASE);
+        expect(result.slice(9).map(id => byInstance.get(id))).toEqual([
             'desperate_strike', 'fury_strike', 'fury_strike'
         ]);
     });

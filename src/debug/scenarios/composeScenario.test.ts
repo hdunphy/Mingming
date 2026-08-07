@@ -179,7 +179,7 @@ describe('deck resolution', () => {
         const resolved = resolveDeck(draft, makeSave());
 
         expect(resolved.cards).toEqual(baseDeckFor(draft.party));
-        expect(resolved.cards.length).toBe(18); // fenrir 10 + kraken 8 (ticket 14 pilot deck)
+        expect(resolved.cards.length).toBe(17); // fenrir 9 + kraken 8 (ticket 28)
         expect(resolved.source).toContain('base decks');
     });
 
@@ -359,8 +359,8 @@ describe('launchScenario — compose, materialize, dispatch', () => {
         expect(battle!.playerParty.map((e) => e.definitionId)).toEqual(['fenrir']);
         expect(battle!.enemyParty.map((e) => e.definitionId)).toEqual(['draugr']);
         expect(battle!.playerParty[0].level).toBe(12);
-        // Base decks came through: 10 cards, dealt into hand + drawpile.
-        expect(battle!.playerDeck.drawpile.length + battle!.playerDeck.hand.length).toBe(10);
+        // Base decks came through: 9 cards, dealt into hand + drawpile.
+        expect(battle!.playerDeck.drawpile.length + battle!.playerDeck.hand.length).toBe(9);
         expect(battle!.enemyMode).toBe('MOVES');
     });
 
@@ -483,7 +483,7 @@ describe('launchScenario — seeding an empty slot', () => {
         launchScenario(setup, store.dispatch, store.getState().game);
 
         const save = store.getState().game;
-        expect(setup.player.deck.length).toBe(18); // fenrir 10 + kraken 8 (ticket 14 pilot deck)
+        expect(setup.player.deck.length).toBe(17); // fenrir 9 + kraken 8 (ticket 28)
 
         // activeDeck holds cardInventory *instance* ids; the inventory maps them to dataIds.
         const inventory = new Map(save.cardInventory.map((c) => [c.instanceId, c.dataId]));

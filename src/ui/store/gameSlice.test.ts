@@ -78,28 +78,28 @@ describe('gameSlice', () => {
         it('first addToRoster of a species grants exactly its baseDeck cards and records it', () => {
             const state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
             const expected = getDeckForOS('fenrir').sort();
-            expect(state.cardInventory).toHaveLength(10);
+            expect(state.cardInventory).toHaveLength(9);
             expect(state.cardInventory.map(c => c.dataId).sort()).toEqual(expected);
             expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1']);
             // Each granted copy has a unique instance id
             const instanceIds = new Set(state.cardInventory.map(c => c.instanceId));
-            expect(instanceIds.size).toBe(10);
+            expect(instanceIds.size).toBe(9);
         });
 
         it('second addToRoster of the same species grants nothing', () => {
             let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
             state = gameReducer(state, addToRoster(makeSpecies('mm2', 'fenrir')));
             expect(state.roster).toHaveLength(2);
-            expect(state.cardInventory).toHaveLength(10);
+            expect(state.cardInventory).toHaveLength(9);
             expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1']);
         });
 
         it('a different species grants its own kit', () => {
             let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
             state = gameReducer(state, addToRoster(makeSpecies('mm2', 'kraken')));
-            expect(state.cardInventory).toHaveLength(18); // fenrir 10 + kraken 8 (ticket 14)
+            expect(state.cardInventory).toHaveLength(17); // fenrir 9 + kraken 8 (ticket 28)
             expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1', 'kraken:kraken_v1']);
-            const krakenCards = state.cardInventory.slice(10).map(c => c.dataId).sort(); // after fenrir's 10
+            const krakenCards = state.cardInventory.slice(9).map(c => c.dataId).sort(); // after fenrir's 9
             expect(krakenCards).toEqual(getDeckForOS('kraken').sort());
         });
 

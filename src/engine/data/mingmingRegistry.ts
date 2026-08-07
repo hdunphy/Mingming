@@ -17,7 +17,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // Ticket 04: the designed deck belongs to the v2 slot (CINDER_WALL_OS); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
         decks: {
-            "fenrir_v1": ["desperate_strike", "desperate_strike", "glass_cannon", "glass_cannon", "berserk_rush", "berserk_rush", "battle_rhythm", "crimson_draw", "ragnarok_edge", "ragnarok_edge"],
+            "fenrir_v1": ["ember_mend", "blood_rite", "blood_rite", "berserk_rush", "berserk_rush", "battle_rhythm", "crimson_draw", "ragnarok_edge", "ragnarok_edge"],
             "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
         },
         moves: [

@@ -126,6 +126,22 @@ class PermanentStatusBehavior extends StatusBehavior {
 
 const BURN_MAX_STACKS = 3;
 
+/**
+ * Immediate damage per Burn stack applied past the cap, as a fraction of the target's max HP.
+ *
+ * Was the MAX TIER rate (0.08), which meant a single excess stack instantly dealt a full
+ * 3-stack turn of Burn AND bypassed defense - strictly better than the DoT it replaced.
+ * That made molten_core a 1-energy card worth up to 18 damage (24% of a 75 HP pool) while
+ * powerscale scored it 2.60 against a 3.00 cap, because static analysis cannot know the
+ * target already holds stacks. Measured: the burst was ~half of fenrir_v2's whole output
+ * and ended the matchup on turn 3, before fenrir_v1's below-50% archetype could function.
+ *
+ * NOTE the floor: at the current ~75-79 HP pools 0.01 rounds to 0, so overflow is a no-op
+ * today and only starts biting at 100+ max HP. That is intentional headroom, not an
+ * oversight - if overflow should always cost something, the change is Math.max(1, ...).
+ */
+const BURN_OVERFLOW_PERCENT = 0.01;
+
 class BurnBehavior extends StatusBehavior {
     readonly type = 'Burn' as const;
 
@@ -140,9 +156,7 @@ class BurnBehavior extends StatusBehavior {
         if (totalStacks > BURN_MAX_STACKS) {
             // Overflow: stacks beyond max deal immediate max-burn-tier damage per overflow stack
             const overflowStacks = totalStacks - BURN_MAX_STACKS;
-            const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
-            const maxTier = burnConfig[burnConfig.length - 1];
-            immediateDamage = Math.floor(target.maxHp * maxTier.damagePercent) * overflowStacks;
+            immediateDamage = Math.floor(target.maxHp * BURN_OVERFLOW_PERCENT) * overflowStacks;
             logs.push(`  🔥 ${target.name} — Burn overflow! ${overflowStacks} excess stack${overflowStacks !== 1 ? 's' : ''} deal ${immediateDamage} immediate damage`);
 
             // Set to max stacks

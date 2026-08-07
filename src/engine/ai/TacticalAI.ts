@@ -56,7 +56,15 @@ function handValue(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
     const frame = party[0];
     if (!frame) return 0;
     const window = Math.max(1, frame.maxEnergy);
-    const held = deck.hand.length;
+    // Cards already cast this turn still count as held. Without this the term is a
+    // double charge on the play decision: the search books the card's EFFECT in the leaf
+    // state and simultaneously books -1 card, so a play only looked good if it beat the
+    // stock value of the card it spent. On a 75 HP frame that is a 7.5-point toll, and
+    // every sub-4-damage card in the game became strictly worse than ending the turn.
+    // Counting in-flight cards makes PLAY neutral in this term while DRAW still gains and
+    // DISCARD still costs - which is the only thing the term was added to see.
+    const inFlight = side === state.activeSide ? (state.cardsPlayedThisTurn ?? 0) : 0;
+    const held = deck.hand.length + inFlight;
     return HP_POINTS * frame.maxHp * TURN_DAMAGE_FRACTION * CARD_VALUE_TURNS
         * (Math.min(held, window) + Math.max(0, held - window) * CARD_OVERDRAW_DISCOUNT);
 }
@@ -224,7 +232,17 @@ function findBestSequence(
 
         if (programData.target === 'Self') {
             potentialTargets = [...myParty]; // Self cards target own units
-        } else if (programData.actions.some(a => a.type === 'HEAL') && programData.target !== 'Side') {
+            // A lifesteal card (ATTACK on TARGET plus HEAL on SELF) is an attack, not a
+            // heal: its payload target is consumed by the ATTACK, and the HEAL resolves
+            // against the source regardless. Bucketing it with heals aimed the attack at
+            // the caster, so crimson_draw/blood_rite/leech_strike/drain_life hit their own
+            // Mingming and dealt zero to the opponent. Only cards with no TARGET-scoped
+            // ATTACK are ally-targeting.
+        } else if (
+            programData.actions.some(a => a.type === 'HEAL') &&
+            !programData.actions.some(a => a.type === 'ATTACK' && a.target === 'TARGET') &&
+            programData.target !== 'Side'
+        ) {
             potentialTargets = [...myParty]; // Heal cards target allies
         } else if (programData.target === 'Side' || programData.target === 'All') {
             // Side/All can target either side; try both

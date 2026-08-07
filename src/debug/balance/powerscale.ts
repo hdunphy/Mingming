@@ -135,13 +135,38 @@ export function budgetBandFor(cost: number): BudgetBand {
     return band;
 }
 
+/**
+ * Health pool a flat-HP effect is priced against. Current species sit at 75-79 max HP.
+ * Only used for effects denominated in literal HP (`damageOverride`), which have no
+ * power value of their own and are meaningless without a pool to be a fraction of.
+ */
+const ASSUMED_MAX_HP = 75;
+/** docs/power_curve_spec.md: damage costs 3 power per 1% of a health pool. */
+const POWER_PER_PERCENT_MAXHP = 3;
+
 // --- Status pricing (docs/power_curve_spec.md rev 3, "Status prices" table) ---
 // All in POWER, converted to the /10 score unit at the call site (matches ATTACK/HEAL).
 
-/** 2%/stack, 25% cap; offense stream (accelerates a fight, priced higher). */
-const OFFENSE_STREAM_POWER_PER_STACK = 15;
-/** 2%/stack, 25% cap; defense stream (stalls a fight, priced lower - see cap note below). */
-const DEFENSE_STREAM_POWER_PER_STACK = 10;
+/**
+ * 2%/stack, 25% cap; offense stream (accelerates a fight, priced higher).
+ *
+ * Ticket 28: 15 -> 5. The old price was never derived, and it was 3-6x what the status
+ * actually delivers. A 2%/stack damage modifier is worth 2% of the damage you have LEFT
+ * to deal. A pool is ~263 power, so a stack landed on turn 1 is worth 0.02 x 263 = 5.3
+ * power and one landed mid-fight about half that. Measured independently: 1 Strengthened
+ * on fenrir_v1 was worth +1.1 HP across a whole game, i.e. 3.7 power. 5 is the generous
+ * end of that range - a buff you land early does get the whole fight.
+ *
+ * The old 15 is why desperate_strike existed at all: it read as 1.35 score of upside for
+ * a self-hit the model also under-charged (see ASSUMED_MAX_HP below), so a card that costs
+ * 13% of a health pool to gain ~1 HP of damage scored comfortably UNDER its 0-cost cap.
+ */
+const OFFENSE_STREAM_POWER_PER_STACK = 5;
+/**
+ * 2%/stack, 25% cap; defense stream (stalls a fight, priced lower - see cap note below).
+ * Ticket 28: 10 -> 3.5, holding the 1.5:1 offense:defense ratio the old pair encoded.
+ */
+const DEFENSE_STREAM_POWER_PER_STACK = 3.5;
 /** Burn's cumulative price to reach N stacks (tiers are 1.5/3.5/8% maxHP); tiered, not linear.
  *  Ticket 26: rescaled WITH the tiers at the unchanged 3-power-per-1%-maxHP rate. This is not
  *  the re-pricing ticket 24 declined - that would have moved the price while the tiers stayed
@@ -197,11 +222,49 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
     const ASSUMED_STATUS_COUNT = 3;
 
     // Actions
+    // --- Mutually exclusive branches (ticket 28) ---
+    // A card like blood_rite ("+15 power above 50% HP, otherwise heal") or battle_rhythm
+    // ("2 Strength above 50%, otherwise 2 Sharp") resolves EXACTLY ONE of its two threshold
+    // branches, never both. The old code gave each branch the 0.7 condition discount and then
+    // SUMMED them, charging 1.4x for something worth 1.0x - so every either/or card in the
+    // registry read as over budget while delivering at or under its energy rate, and the cards
+    // built from them (fenrir_v1) were quietly underpowered for their price. Complementary
+    // HEALTH_THRESHOLD branches on the same subject are now scored as max(), not sum().
+    //
+    // Deliberately narrow: only paired GT/LT HEALTH_THRESHOLD conditionals on the same target
+    // group. A lone conditional (berserk_rush's "+17 below 50%") has nothing to be exclusive
+    // WITH and is untouched, and non-threshold conditionals (molten_core's `self_sharp`, which
+    // stacks ON TOP of an unconditional base) keep summing, which is correct for them.
+    //
+    // The 0.7 discount is intentionally kept on the surviving branch. You always get one half,
+    // but you do not choose which, so the branch is still not reliably the one you wanted.
+    const exclusivityKey = (action: ProgramAction): string | null => {
+        const conds = (action.conditionals ?? []) as ReadonlyArray<unknown>;
+        if (conds.length !== 1) return null;
+        const cond = conds[0] as { type?: string; target?: string; value?: string };
+        if (!cond || typeof cond !== 'object') return null;
+        if (cond.type !== 'HEALTH_THRESHOLD') return null;
+        const value = String(cond.value ?? '');
+        const direction = value.startsWith('GT') ? 'GT' : value.startsWith('LT') ? 'LT' : null;
+        if (!direction) return null;
+        return `HEALTH_THRESHOLD:${cond.target ?? ''}|${direction}`;
+    };
+    /** Best score seen for each threshold branch group, keyed by subject (direction stripped). */
+    const exclusiveGroups = new Map<string, number>();
+
     card.actions.forEach((action: ProgramAction) => {
         let actionScore = 0;
 
         if (action.type === 'ATTACK') {
-            let power = action.power || 0;
+            // `damageOverride` is LITERAL HP - it bypasses calculateDamage entirely - so it
+            // must not be read as curve power. desperate_strike's 10 HP self-hit is 13% of a
+            // 75 HP pool, which at the spec's 3-power-per-1%-maxHP rate is 40 power; the old
+            // code scored it as `power: 10` = 10 power, a 4x under-charge on the one term
+            // that was supposed to make the card cost something. Same bug on glass_cannon
+            // and dark_pact.
+            let power = typeof action.damageOverride === 'number'
+                ? (action.damageOverride / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP
+                : (action.power || 0);
             if (action.scaling === 'CARDS_PLAYED') power *= ASSUMED_CARDS_PLAYED;
             // Ticket 26: MISSING_HP is power-side now, priced at the cap - ASSUMED_HP_PERCENT
             // 0.5 means "assume half HP", which IS the MISSING_HP_PCT_CAP of 50.
@@ -319,8 +382,19 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
             if (amount > 0 && !actionIsSelfFacing && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
         }
 
-        score += actionScore;
+        const key = exclusivityKey(action);
+        if (key === null) {
+            score += actionScore;
+        } else {
+            // Bank per subject, keeping the largest branch; folded into `score` below once
+            // every branch has been seen.
+            const subject = key.split('|')[0];
+            const previous = exclusiveGroups.get(subject);
+            exclusiveGroups.set(subject, previous === undefined ? actionScore : Math.max(previous, actionScore));
+        }
     });
+
+    for (const branchScore of exclusiveGroups.values()) score += branchScore;
 
     // Daemon Premium
     if (card.category === 'Daemon') {

@@ -3368,10 +3368,10 @@
     "battle_rhythm": {
         "id": "battle_rhythm",
         "name": "Battle Rhythm",
-        "description": "If above 50% HP, gain 2 Strength. Otherwise gain 2 Sharp.",
+        "description": "25 power. If above 50% HP, gain 2 Strength. Otherwise gain 2 Sharp.",
         "element": "Fire",
-        "target": "Self",
-        "category": "Skill",
+        "target": "Single",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 1,
         "constraints": [
@@ -3380,6 +3380,11 @@
             "energy_base"
         ],
         "actions": [
+            {
+                "type": "ATTACK",
+                "power": 25,
+                "target": "TARGET"
+            },
             {
                 "type": "STATUS",
                 "status": "Strengthened",
@@ -3594,6 +3599,74 @@
                 "power": 34,
                 "target": "TARGET",
                 "scaling": "SHARP_STACKS"
+            }
+        ]
+    },
+    "blood_rite": {
+        "id": "blood_rite",
+        "name": "Blood Rite",
+        "description": "15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "GT:50"
+                    }
+                ]
+            },
+            {
+                "type": "HEAL",
+                "power": 40,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "LT:51"
+                    }
+                ]
+            }
+        ]
+    },
+    "ember_mend": {
+        "id": "ember_mend",
+        "name": "Ember Mend",
+        "description": "Heal 2.5% of your max HP.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Heal",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "HEAL",
+                "power": 10,
+                "target": "SELF"
             }
         ]
     }
