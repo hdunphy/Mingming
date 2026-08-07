@@ -94,6 +94,21 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
                 const elementPlayed = element || programToUse.element;
                 const multiplier = state.elementPlays?.[elementPlayed] || 1;
                 damage = Math.floor(damage * multiplier);
+            } else if (scaling === 'CARDS_DISCARDED') {
+                // Carrion Swoop: the windmill's payoff. Mirrors CARDS_PLAYED.
+                damage = Math.floor(damage * (state.cardsDiscardedThisTurn ?? 0));
+            } else if (scaling === 'ENERGY_SPENT') {
+                damage = Math.floor(damage * (state.lastEnergySpent ?? 0));
+            } else if (scaling === 'ENERGY_SPENT_SQUARED') {
+                // Thermal Lance: power x X^2, so ramping Energy is worth more than
+                // linearly more damage - the reason UPDRAFT_KERNEL's +1 matters.
+                const energySpent = state.lastEnergySpent ?? 0;
+                damage = Math.floor(damage * energySpent * energySpent);
+            } else if (scaling === 'BURN_TIMES_ENERGY') {
+                // Firestorm Talon: power x target's Burn stacks x X. Zero Burn = zero
+                // damage, so it is a payoff card, never an opener.
+                const burnStacks = target.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
+                damage = Math.floor(damage * burnStacks * (state.lastEnergySpent ?? 0));
             }
         }
 

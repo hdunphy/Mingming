@@ -463,7 +463,7 @@ describe('Ticket 07 - SLEIPNIR v2 WAR_STEED_OS token guard', () => {
     it('an Air attack generates exactly one hoof_strike, and the token does not self-replicate', () => {
         const sleipnir = makeUnit('sl1', 'Sleipnir', { activeOS: 'sleipnir_v2' });
         let state = makeState([sleipnir], [makeUnit('e1', 'Enemy')], [
-            card('c1', 'gust_jab', 0)
+            card('c1', 'dust_devil', 1)
         ]);
 
         state = play(state, 'sl1', 'e1', 'c1');

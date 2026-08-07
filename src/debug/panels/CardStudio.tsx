@@ -4,6 +4,7 @@ import type { ProgramData } from '../../engine/types';
 import { budgetBandFor, calculatePowerscale } from '../balance/powerscale';
 import CardForm from '../../ui/screens/CardForm';
 import './CardStudio.css';
+import { numericBaseCost } from '../../engine/types';
 
 /** Section 1.3 redline: more score than the cost is supposed to buy. */
 const OVER_BUDGET_STYLE: React.CSSProperties = { backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' };
@@ -196,8 +197,8 @@ const CardStudio: React.FC = () => {
                                             <span key={i} className="pill hook-pill">{h}</span>
                                         ))}
                                     </td>
-                                    <td className="score-cell" style={getEfficiencyStyle(card.baseCost, score)}>{score}</td>
-                                    <td className="score-cell per-energy" style={getEfficiencyStyle(card.baseCost, score)}>{perEnergy}</td>
+                                    <td className="score-cell" style={getEfficiencyStyle(numericBaseCost(card.baseCost), score)}>{score}</td>
+                                    <td className="score-cell per-energy" style={getEfficiencyStyle(numericBaseCost(card.baseCost), score)}>{perEnergy}</td>
                                 </tr>
                             );
                         })}

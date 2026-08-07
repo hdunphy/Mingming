@@ -15,6 +15,7 @@ import { type HookContext } from './core/Hooks';
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
+import { numericBaseCost } from './types';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { discardHand } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
@@ -30,7 +31,7 @@ function addLog(state: IBattleState, message: string): IBattleState {
 
 // Use the Registry to look up base costs.
 const GetBaseCost = (dataId: string): number => {
-    return GetProgramData(dataId).baseCost;
+    return numericBaseCost(GetProgramData(dataId).baseCost);
 };
 
 // --- Actions ---
@@ -167,6 +168,14 @@ export function doesModifierApply(source: IBattleEntity, programData: ProgramDat
  * cost and the paid cost can never drift apart.
  */
 export function getEffectiveCardCost(source: IBattleEntity, programData: ProgramData, currentCost: number): number {
+    // X-cost (ticket 22, Thermal Lance / Firestorm Talon): the card costs ALL the
+    // source's current Energy, minimum 1. Discounts do not apply - there is nothing to
+    // discount when the price IS your whole pool. Returning a live number here is what
+    // lets the AI, the UI cost pip and the reducer's own check all agree without any
+    // of them special-casing X.
+    if (programData.baseCost === 'X') {
+        return Math.max(1, source.currentEnergy);
+    }
     const reduction = doesModifierApply(source, programData)
         ? (source.nextProgramModifier?.costReduction || 0)
         : 0;
@@ -276,6 +285,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             exhaust: newExhaustPile
         },
         cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1,
+        // The X in an X-cost card, read by the ENERGY_SPENT* scalings while this card
+        // resolves. Recorded for every card so the scalings never see a stale value.
+        lastEnergySpent: finalCost,
         lastStatusConsumed: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
@@ -611,7 +623,7 @@ function handleEndTurn(state: IBattleState): IBattleState {
     newState = processPreTurn(newState);
 
     // Set Phase to ACTION for the next player
-    newState = { ...newState, phase: 'ACTION' as TurnPhase, cardsPlayedThisTurn: 0 };
+    newState = { ...newState, phase: 'ACTION' as TurnPhase, cardsPlayedThisTurn: 0, cardsDiscardedThisTurn: 0 };
 
     return newState;
 }
@@ -749,7 +761,8 @@ function processPostTurn(state: IBattleState): IBattleState {
         [activeDeckKey]: newDeckState,
         logs: [...state.logs, ...statusLogs],
         cardsPlayedThisTurn: 0,
-        cardsDrawnThisTurn: 0
+        cardsDrawnThisTurn: 0,
+        cardsDiscardedThisTurn: 0
     };
 
     // 2.4 Fire threshold crossings from DoT ticks (ticket 12)
@@ -892,6 +905,7 @@ function processPreTurn(state: IBattleState): IBattleState {
         playerParty: finalPlayerParty,
         enemyParty: finalEnemyParty,
         cardsPlayedThisTurn: 0,
+        cardsDiscardedThisTurn: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0

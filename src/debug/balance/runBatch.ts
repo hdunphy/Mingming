@@ -214,10 +214,14 @@ export function runOne(
     let state: IBattleState = startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
 
     // Dead-card bookkeeping. `seen` accumulates every card instance that has ever been in
-    // hand; `played` the ones a PLAY_PROGRAM actually consumed. A card discarded or
-    // exhausted by an effect stays in `seen` and out of `played` - it sat in hand
-    // unplayed, which is the metric. Ids are stable across reshuffles (they are assigned
-    // once by `instantiateDeck`), so a card drawn twice is counted once.
+    // hand; `played` the ones a PLAY_PROGRAM actually consumed. Ids are stable across
+    // reshuffles (assigned once by `instantiateDeck`), so a card drawn twice is counted once.
+    //
+    // Cards an EFFECT shed from hand (a DISCARD cost, Tempest, an enemy FORCE_DISCARD) are
+    // read off `state.discardedByEffect` and do NOT count as dead. The metric is "this card
+    // rotted in my hand", not "this card left my hand" - a discard archetype throwing cards
+    // away on purpose is the deck working, not failing. Before this fix the same hraesvelgr
+    // deck read 17-22% dead with one Tempest and 36% with two.
     const seen = { PLAYER: new Set<string>(), ENEMY: new Set<string>() };
     const played = { PLAYER: new Set<string>(), ENEMY: new Set<string>() };
 
@@ -277,11 +281,16 @@ export function runOne(
         winner = decideOutcome(state);
     }
 
+    const shed = {
+        PLAYER: new Set((state.discardedByEffect ?? []).filter(e => e.startsWith('PLAYER:')).map(e => e.slice(7))),
+        ENEMY: new Set((state.discardedByEffect ?? []).filter(e => e.startsWith('ENEMY:')).map(e => e.slice(6))),
+    };
+
     const deadRatio = (s: 'PLAYER' | 'ENEMY'): number => {
         const total = seen[s].size;
         if (total === 0) return 0;
         let dead = 0;
-        for (const id of seen[s]) if (!played[s].has(id)) dead++;
+        for (const id of seen[s]) if (!played[s].has(id) && !shed[s].has(id)) dead++;
         return dead / total;
     };
 

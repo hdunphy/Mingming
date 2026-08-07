@@ -1,6 +1,7 @@
 import type { IBattleState, IBattleEntity, ProgramData, StatusType, ProgramConstraint } from '../types';
 import type { HookCondition, HookContext } from './HookTypes';
 import { resolveCounterKey } from './HookTypes';
+import { numericBaseCost } from '../types';
 
 /**
  * Statuses considered "negative" (debuffs) for condition checks like sourceDebuffCount.
@@ -61,7 +62,7 @@ export const ConditionValidator = {
 
         // 3. Cost Check
         if (condition.baseCost !== undefined) {
-            const cost = context.program?.baseCost ?? 0;
+            const cost = numericBaseCost(context.program?.baseCost ?? 0);
             if (typeof condition.baseCost === 'number') {
                 if (cost !== condition.baseCost) return false;
             } else {

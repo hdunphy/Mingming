@@ -15,6 +15,7 @@ import { PRNG } from './PRNG';
 import { ConditionValidator } from './ConditionValidator';
 import { ActionExecutorRegistry } from '../actions/ActionExecutors';
 import { applyMutations } from '../resolutionEngine';
+import { numericBaseCost } from '../types';
 
 // Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
 const warnedBadConditions = new Set<string>();
@@ -119,7 +120,7 @@ export const HookFactory = {
                 // Written (globally, per heal event) by effectHandlers.handleHealEffect.
                 return context.state.counters['last_overheal'] || 0;
             case 'BASE_COST':
-                return context.program?.baseCost || 0;
+                return numericBaseCost(context.program?.baseCost ?? 0);
             case 'COUNTER':
                 // scalingKey reads are raw/global — pass an already-scoped key if needed.
                 if (scalingKey) return context.state.counters[scalingKey] || 0;

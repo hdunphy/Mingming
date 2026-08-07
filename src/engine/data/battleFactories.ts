@@ -38,7 +38,9 @@ export function instantiateDeck(deckIds: string[], rng: SeedStream = new SeedStr
         return {
             id: rng.nextId('card'),
             dataId: id,
-            currentCost: GetProgramData(id).baseCost,
+            // X-cost cards carry 0 here; their real price is resolved per play by
+            // getEffectiveCardCost from the source's current Energy.
+            currentCost: typeof GetProgramData(id).baseCost === 'number' ? (GetProgramData(id).baseCost as number) : 0,
             isPlayable: true
         };
     });

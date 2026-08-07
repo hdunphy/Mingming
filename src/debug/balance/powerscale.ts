@@ -48,6 +48,7 @@
  */
 
 import type { ProgramData, ProgramAction } from '../../engine/types';
+import { numericBaseCost } from '../../engine/types';
 
 export interface PowerscaleResult {
     /** Section 1.1's `Score`, rounded to one decimal. */
@@ -325,7 +326,7 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
         score *= 0.9;
     }
 
-    const costFactor = Math.pow(Math.max(card.baseCost, 0.5), 1.25);
+    const costFactor = Math.pow(Math.max(numericBaseCost(card.baseCost), 0.5), 1.25);
     const perEnergy = score / costFactor;
 
     return {

@@ -257,10 +257,13 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 4,
         availableOS: ["hraesvelgr_v1", "hraesvelgr_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 22 (Air, second half): v1 GALE_FORCE_OS = the discard WINDMILL - every
+        // voluntary discard is 10 Air damage, so Tempest and the discardEffect cards are
+        // the engine and Carrion Swoop is the payoff. v2 UPDRAFT_KERNEL = burn-X ramp -
+        // cycle the deck for +1 max Energy, then cash it through the X-cost cards.
         decks: {
-            "hraesvelgr_v1": ["gale_slash", "gale_slash", "cyclone", "cyclone", "gust_jab", "disorienting_gust", "disorienting_gust", "tailwind", "slipstream", "sky_dance"],
-            "hraesvelgr_v2": ["gale_slash", "gale_slash", "cyclone", "cyclone", "gust_jab", "disorienting_gust", "disorienting_gust", "tailwind", "slipstream", "sky_dance"]
+            "hraesvelgr_v1": ["feather_cache", "feather_cache", "war_molt", "war_molt", "sky_burial", "sky_burial", "tempest", "tempest", "carrion_swoop", "carrion_swoop", "zephyr_strike", "slipstream"],
+            "hraesvelgr_v2": ["sun_eaters_plunge", "thermal_lance", "firestorm_talon", "cinder_gust", "cinder_gust", "tailwind", "slipstream", "zephyr_strike"]
         },
         moves: [
             {

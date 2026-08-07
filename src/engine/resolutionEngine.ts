@@ -139,6 +139,19 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     toDiscard = toDiscard.slice(0, amount); // Top N cards
                 }
 
+                // CARDS_DISCARDED scaling (Carrion Swoop) counts every card that
+                // actually leaves the hand, however it left - cost, Tempest, or an
+                // enemy FORCE_DISCARD.
+                const shedSide = isPlayerTarget ? 'PLAYER' : 'ENEMY';
+                newState = {
+                    ...newState,
+                    cardsDiscardedThisTurn: (newState.cardsDiscardedThisTurn ?? 0) + toDiscard.length,
+                    discardedByEffect: [
+                        ...(newState.discardedByEffect ?? []),
+                        ...toDiscard.map(c => `${shedSide}:${c.id}`)
+                    ]
+                };
+
                 toDiscard.forEach(c => {
                     // Update the state with the discarded card first to avoid stale state during hooks
                     let currentDeck = newState[deckKey];

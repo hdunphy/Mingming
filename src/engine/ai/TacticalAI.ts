@@ -1,5 +1,5 @@
 
-import { battleReducer, validateProgramConstraints, type BattleAction } from '../battleReducer';
+import { battleReducer, validateProgramConstraints, getEffectiveCardCost, type BattleAction } from '../battleReducer';
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
@@ -192,11 +192,14 @@ function findBestSequence(
         }
 
         for (const source of myParty) {
-            if (source.currentEnergy < card.currentCost) continue;
+            // Per-source, per-candidate: an X-cost card prices itself at this source's
+            // current Energy, so the search sees its real cost without special-casing.
+            const effectiveCost = getEffectiveCardCost(source, programData, card.currentCost);
+            if (source.currentEnergy < effectiveCost) continue;
 
             for (const target of potentialTargets) {
                 // Validate constraints BEFORE simulating
-                if (!validateProgramConstraints(state, source, target, programData, card.currentCost)) {
+                if (!validateProgramConstraints(state, source, target, programData, effectiveCost)) {
                     continue; // Skip this card/target combo — constraints not met
                 }
 

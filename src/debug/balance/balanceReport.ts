@@ -45,6 +45,7 @@ import type { ProgramData } from '../../engine/types';
 import { computeRegistryHash } from '../scenarios/registryHash';
 import { budgetBandFor, calculatePowerscale } from './powerscale';
 import type { BatchResult, PairedBatchResult } from './runBatch';
+import { numericBaseCost } from '../../engine/types';
 
 /** Bump when the JSON shape changes, so an old report is never diffed against a new one. */
 export const BALANCE_REPORT_SCHEMA_VERSION = 1;
@@ -287,13 +288,13 @@ export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: n
     const entries: CardBudgetEntry[] = [];
     for (const id of ids) {
         const card = registry[id] as ProgramData;
-        const band = budgetBandFor(card.baseCost);
+        const band = budgetBandFor(numericBaseCost(card.baseCost));
         const { score, perEnergy, manualReview } = calculatePowerscale(card);
         if (score > band.over) {
             entries.push({
                 id,
                 name: card.name,
-                cost: card.baseCost,
+                cost: numericBaseCost(card.baseCost),
                 score,
                 perEnergy,
                 budget: band.over,

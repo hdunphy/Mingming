@@ -1,10 +1,10 @@
 # HANDOFF — deck-archetypes map (keep this current every session)
 
-*Last updated: 2026-08-07, after ticket 25 (pace completion) landed. **RUN THE AIR PROMPT NEXT** - hraesvelgr (ticket 22) and sleipnir both need re-gating under the new pace. If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
+*Last updated: 2026-08-07, after ticket 22 (hraesvelgr / Air complete) landed. **RUN THE AIR PROMPT NEXT** - hraesvelgr (ticket 22) and sleipnir both need re-gating under the new pace. If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
 ## Where things stand
 
-- Branch **card-dev**. Tickets 01–21 + 23 + 24 + 25 closed. **Ticket 22 (hraesvelgr) is written and its patch exists but is NOT committed** - it stopped on the dead-card band under the OLD pace; re-run it under rev 3.1.
+- Branch **card-dev**. Tickets 01–25 closed. **Air is complete — 8/32 decks live.** **Ticket 22 (hraesvelgr) is written and its patch exists but is NOT committed** - it stopped on the dead-card band under the OLD pace; re-run it under rev 3.1.
 - **THE CURVE IS NOW rev 3.3 (ticket 25): `10 / 30 / 65 / 105`, budget bands `1.0 / 3.0 / 6.5 / 10.5`.** Tuned §2.3 kraken 0.57 / jorm 0.33 / sleipnir 0.38; mirrors 5.1 / 6.6 / 4.4 — **average 5.40 turns, floor 3.8, FTK 0 registry-wide.** Pace target met. Two hard-won rules live in the spec's rev-3.2 note: an **exponential curve is incompatible with a turn-count floor** (every v1 lost 0/100 — the ramp deck becomes the fastest deck), and **a curve change under ~20% is invisible to status cards** because stacks are whole numbers, so status decks must be re-gated by hand and buffing the attack side is the finer instrument.
 - **`powerscale.ts` is the executable truth; `power_curve_spec.md` prose is rev 3 with rev-3.1 and rev-3.2 amendments appended.** Where they disagree, powerscale wins.
 - Pace history (ticket 23, rev 3.1): `calculateDamage` divisor `/35` -> `/45`. A full turn was removing 60-70% of a health pool, so evens ended in 3-4.5 turns and every build-over-time archetype was dead on arrival. Evens now land at **4.4-6.0 turns**, routs ~3, FTK still 0 registry-wide. **Card budgets and prices are UNCHANGED and should stay that way** - a global divisor moves absolute pace only, never relative card economics. Any number measured before 2026-08-06 evening is stale.
