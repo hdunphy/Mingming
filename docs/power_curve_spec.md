@@ -260,3 +260,54 @@ deck or OS context, so it cannot see that a conditional is *guaranteed* by the d
 TREACHERY_KERNEL grants Strengthened every time skoll is hit — the condition is near-certain,
 and the card measures at **33 damage per play against a 19.5 rate for its cost**. Conditionals
 that an OS makes free need manual review; the auditor will never flag them.
+
+## rev 3.5 — the status question, answered by NOT moving the percentage (ticket 30)
+
+The rev-3.4 note left an open design question: at the honest price, a pure 2%/stack status
+card cannot fill a 2e budget without hitting the 25% cap, so either statuses get stronger or
+status cards always need a rider. Ticket 29 took the "leave the percentage, pile on stacks"
+branch and produced `cold_snap` at 8 Weakened and `shield_shards` at 9 Sharp — numbers that
+stopped meaning anything to a reader.
+
+**Raising the percentage was modelled and rejected.** 4.5%/stack lands exactly on a legible
+stack ladder (1 / 2-3 / 5-6 / 8-9 for 0-3e) and it is arithmetically correct. It fails for two
+reasons that have nothing to do with the arithmetic:
+
+1. **It shrinks the cap in stack terms.** The 25% cap is 12.5 stacks at 2% but only 5.6 at
+   4.5%. Every headroom decision above a 2e budget gets tighter, not looser.
+2. **It is a silent, uncosted buff to 13 OS and daemon hooks.** `skoll_v1`, `sleipnir_v1`,
+   `draugr_v1`, `nidhoggr_v2`, `kraken_v1`, `fenrir_v1`, `fenrir_v2`, `huldra_v1`,
+   `ratatoskr_v2`, `ymir_v1`, `cinder_armor_daemon`, `defensive_daemon` all grant 1-3 stacks
+   as their whole payload. Changing the per-stack value multiplies every one of them by 2.25x,
+   and **none of it passes through powerscale** — firmware is not card data and is never
+   audited. A change that reprices half the firmware in the game while the auditor reports
+   nothing is not a pricing fix.
+
+**The percentage stays at 2% and the cap stays at 25%.** The fix is on the CARDS: a status
+card that cannot fill its budget on stacks should spend the rest on a second effect. That is
+also the better design outcome — it buys variety instead of bigger numbers.
+
+### Riders are cheaper than you think
+
+The palette, all already priced: ATTACK 10 power = 1.0 score, HEAL 10 power = 0.75, **DRAW 15
+power per card**, **ENERGY 20 power per point**, Poison `1.5 x S x (S+1)`, BarkShield 4 power
+per %maxHP, Stunned 55. A 1e card carrying 2 Weakened (0.70) has 2.3 score of room — which is
+one card of draw plus 8 power of attack, not six more stacks.
+
+### Correction to rev 3.4's "model blind spot" list
+
+Ticket 29 listed `scry`, `keen_edge`, `soothe`, `spiked_carapace`, `equilibrium`,
+`acid_splash` and `curse_mark` as cards the model cannot see. **That was wrong.** DRAW, HEAL,
+BarkShield and Poison are all priced; every one of those seven returns an empty `manualReview`
+and a real score. They were under budget for the ordinary reason and are legitimate rework
+candidates.
+
+The genuinely unpriced set is **three cards**, all using a `MANUAL_REVIEW_TYPES` action:
+`scavenge_data` (SEARCH), `reprogram` (PLAY_LAST_CARD), `purify` (CLEANSE). Those score 0.00
+and flag themselves.
+
+**A real scoring bug found while checking this, NOT yet fixed:** `soothe` removes a debuff by
+applying negative stacks, and the scorer reads `Math.abs(stacks)` before the debuff-on-self
+sign flip. So a card that REMOVES a debuff is priced as if it APPLIED one — `soothe` scores
+**-0.80** against a 1.0 cap. Any future cleanse-by-negative-stacks card will be mispriced the
+same way.

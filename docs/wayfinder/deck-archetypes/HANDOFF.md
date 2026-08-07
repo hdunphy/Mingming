@@ -1,6 +1,6 @@
 # HANDOFF — deck-archetypes map (keep this current every session)
 
-*Last updated: 2026-08-07, after tickets 26 (Fire decks), 27 (AI eval) and 28 (balance-model bug fixes) landed; ticket 29 (status top-up + descriptions) is in the working tree. If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
+*Last updated: 2026-08-07, after tickets 26-30 landed. If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
 ## Read this first: which band applies
 
@@ -14,18 +14,18 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 ## Where things stand
 
 - Branch **card-dev**. Tickets 01–28 closed; 29 in flight. **6 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll). The other 10 are placeholders — **do not read their numbers as balance signal.**
-- **Latest full gate (after ticket 28), tuned species only:**
+- **Latest full gate (after ticket 30), tuned species only:**
 
   | species | §2.3 | mirror turns | dead cards |
   |---|---|---|---|
   | kraken | 0.540 | 5.1 | 10.1% |
   | fenrir | 0.394 | 5.2 | 25.4% |
-  | sleipnir | 0.360 | 4.5 | 15.3% |
-  | jormungandr | 0.340 | 6.7 | 5.5% |
+  | jormungandr | 0.390 | 6.4 | 5.6% |
+  | sleipnir | 0.330 | 4.5 | 14.7% |
   | hraesvelgr | 0.310 | 3.2 | 4.0% |
-  | sköll | 0.650 | 3.7 | **45.9%** ← only open band breach |
+  | sköll | 0.690 | 3.3 | **51.2%** ← only open band breach |
 
-- **THE CURVE IS rev 3.4: `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`.** The constants have not moved since rev 3.3 — rev 3.4 is five *pricing* corrections, all documented in `power_curve_spec.md`. **`powerscale.ts` is the executable truth; where the prose disagrees, powerscale wins.**
+- **THE CURVE IS rev 3.5: `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`.** The constants have not moved since rev 3.3 — rev 3.4 is five *pricing* corrections, all documented in `power_curve_spec.md`. **`powerscale.ts` is the executable truth; where the prose disagrees, powerscale wins.**
 - **Cards STAY on-curve — fix enablers (OS/deck structure), never bend card economics.** Henry's law, proven three times now (kraken OS decomposition, MOMENTUM_DRIVE, and Burn overflow).
 
 ## Three engine/AI bugs found in ticket 28 — do not re-derive these
@@ -49,14 +49,17 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
-1. **Sköll dead cards 45.9%** (band 0.35) — the only open first-pass breach. Diagnosis is done, see below.
-2. **`brute_force` is the sköll pace driver**: 2e, **33.0 damage per play** against a 19.5 rate for its cost, cast 1.25×/game. It scores exactly at cap (6.50) only because its `+22 power if you have Strength` takes the 0.7 conditional discount — while skoll_v1's TREACHERY_KERNEL grants Strengthened every time sköll is hit, making the condition near-certain. **powerscale cannot see OS-guaranteed conditionals and never will**; this needs a manual call.
+1. **Sköll dead cards 51.2%** (band 0.35) — the only open first-pass breach. **Ticket 29 blamed the stat line and ticket 30's sweep disproved that**: walking skoll all the way from 60/105/55 to 85/80/55 buys 0.7 turns and only 5 points of dead cards. The cause is the DECK'S COST CURVE against a 2-Energy economy — skoll_v1 holds three 2e cards, so the optimal line every turn is "0e + one 2e" and all five 1e cards are structurally locked out. Stats 80/85/55 *plus* cutting to one 2e card reaches §2.3 0.588 / 4.3 turns / **33.6% dead** — in band. Neither lever alone is enough. Nothing committed; Henry's call.
+2. **Sköll's firmware over-feeds rather than ramps.** `TREACHERY_KERNEL` reads like a build-over-time engine, but measured peak Strength on skoll_v1 is **13.7 stacks in 3.4-turn games** (16.5 at 4.1 turns) against a 12.5-stack damage cap and an 8-stack cap on `CORE_OVERCLOCK`'s scaler. It is saturated by turn 2 — which is why dropping that multiplier 1.2 → 1.10 moved the mirror by 0.02 turns. The "gets scarier the more it is hurt" fantasy never plays as a curve. Firmware generosity question, not a stat question.
+3. **`brute_force` is the sköll pace driver**: 2e, **33.0 damage per play** against a 19.5 rate for its cost, cast 1.25×/game. It scores exactly at cap (6.50) only because its `+22 power if you have Strength` takes the 0.7 conditional discount — while skoll_v1's TREACHERY_KERNEL grants Strengthened every time sköll is hit, making the condition near-certain. **powerscale cannot see OS-guaranteed conditionals and never will**; this needs a manual call.
 3. **Sköll's dead cards are a pace symptom, not bad cards.** The game ends in 3.73 turns having drawn ~40 card instances against ~11 energy of casting. v1 play rates: `adrenaline` 27%, `overdrive` 46%, `fire_punch_v2` 48%, `fury_strike` 49%, `core_overclock_daemon` 50%. Slow the deck (brute_force) before touching the cards.
 4. **`scorch` was collateral damage from the Burn overflow fix** — a 2e card applying 4 Burn, whose 4th stack now overflows for nothing. skoll_v2's whole Burn plan delivers only 4.9 HP/game residual. Re-cost it.
-5. **The 11 cards ticket 29 deliberately did not top up** — 7 model blind spots (DRAW/CLEANSE/shield priced at zero) and 5 drawback cards. Listed in `power_curve_spec.md` rev 3.4. Do not "fix" them mechanically.
-6. **Are 2%/stack statuses under-powered?** At the honest price a pure status card cannot fill a 2e budget without hitting the 25% cap. Either statuses get stronger than 2%/stack, or status cards always need a rider. Open design question — decide before the remaining 10 species get their first pass, not after.
-7. `corrosive_leak` +1.8 budget redline, open since ticket 20.
-8. **Deferred by decision:** type-matrix tuning + AI-determinism (blowouts are legacy deck quality, not the matrix); valkyrie v1 team measurement (needs ticket 05 team scenarios); fafnir/gullinbursti split (settles in the Earth pass).
+5. **CORRECTION to ticket 29's "model blind spot" list.** `scry`, `keen_edge`, `soothe`, `spiked_carapace`, `equilibrium`, `acid_splash`, `curse_mark` are NOT blind spots — DRAW (15 power/card), ENERGY (20/point), HEAL, BarkShield and Poison are all priced, and all seven return an empty `manualReview`. They are ordinary rework candidates. The genuinely unpriced set is three cards using `MANUAL_REVIEW_TYPES`: `scavenge_data` (SEARCH), `reprogram` (PLAY_LAST_CARD), `purify` (CLEANSE) — they score 0.00 and flag themselves.
+6. **Scoring bug, found and NOT fixed:** `soothe` removes a debuff via negative stacks, but the scorer takes `Math.abs(stacks)` before the debuff-on-self sign flip, so removing a debuff is priced as applying one. `soothe` scores **-0.80** against a 1.0 cap. Any cleanse-by-negative-stacks card is mispriced the same way.
+7. **The status-percentage question is CLOSED — do not reopen it.** 2%/stack and the 25% cap stay. Raising to 4.5% was derived, built, measured and reverted: it shrinks the cap from 12.5 stacks to 5.6, and it silently multiplies **13 OS/daemon hooks by 2.25x** with none of it visible to powerscale, because firmware is not card data and is never audited. Status cards that cannot fill a budget on stacks spend the rest on a SECOND EFFECT — riders are cheap: ATTACK 10 power = 1.0 score, HEAL 10 = 0.75, DRAW 15/card, ENERGY 20/point, BarkShield 4/%maxHP, Stunned 55.
+8. **`Side` scope on a debuff is dangerous.** The AI's targeting bucket sends `Side`/`All` cards to BOTH parties, so a side-scoped debuff can be aimed at your own Mingming. A 0e side-wide Daze draft of `disorienting_gust` cost sleipnir 0.310 → 0.260 before it was re-cut single-target.
+9. `corrosive_leak` +1.8 budget redline, open since ticket 20.
+10. **Deferred by decision:** type-matrix tuning + AI-determinism (blowouts are legacy deck quality, not the matrix); valkyrie v1 team measurement (needs ticket 05 team scenarios); fafnir/gullinbursti split (settles in the Earth pass).
 
 ## Process
 

@@ -42,7 +42,7 @@
     "strength_burst": {
         "id": "strength_burst",
         "name": "Strength Burst",
-        "description": "Gain 13 Strength. (Exhaust)",
+        "description": "Gain 5 Strength and 1 Energy. Draw a card. (Exhaust)",
         "element": "Fire",
         "target": "Self",
         "category": "Skill",
@@ -58,7 +58,17 @@
             {
                 "type": "STATUS",
                 "status": "Strengthened",
-                "stacks": 13,
+                "stacks": 5,
+                "target": "SELF"
+            },
+            {
+                "type": "ENERGY",
+                "amount": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
                 "target": "SELF"
             }
         ]
@@ -299,7 +309,7 @@
     "shield_shards": {
         "id": "shield_shards",
         "name": "Shield Shards",
-        "description": "Gain 9 Sharp.",
+        "description": "Gain 2 Sharp and 5 BarkShield.",
         "element": "Earth",
         "target": "Self",
         "category": "Skill",
@@ -314,7 +324,13 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 9,
+                "stacks": 2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "BarkShield",
+                "stacks": 5,
                 "target": "SELF"
             }
         ]
@@ -859,10 +875,10 @@
     "blind_spot": {
         "id": "blind_spot",
         "name": "Blind Spot",
-        "description": "Add 2 Dazed.",
+        "description": "6 power. Apply 1 Dazed.",
         "element": "Water",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -872,9 +888,14 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 6,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 2,
+                "stacks": 1,
                 "target": "TARGET"
             }
         ]
@@ -882,10 +903,10 @@
     "ink_cloud": {
         "id": "ink_cloud",
         "name": "Ink Cloud",
-        "description": "Apply 5 Dazed to side.",
+        "description": "18 power to side. Apply 2 Dazed to side.",
         "element": "Water",
         "target": "Side",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -895,9 +916,14 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 18,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 5,
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -1229,7 +1255,7 @@
     "growth": {
         "id": "growth",
         "name": "Growth",
-        "description": "Add 2 Sharp",
+        "description": "Gain 1 Sharp. Heal with 8 power.",
         "element": "Nature",
         "target": "Single",
         "category": "Skill",
@@ -1244,8 +1270,13 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 2,
-                "target": "TARGET"
+                "stacks": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "HEAL",
+                "power": 8,
+                "target": "SELF"
             }
         ]
     },
@@ -1355,10 +1386,10 @@
     "pollen_cloud": {
         "id": "pollen_cloud",
         "name": "Pollen Cloud",
-        "description": "Add 2 Weakened.",
+        "description": "4 power. Apply 1 Weakened and 1 Poison.",
         "element": "Nature",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -1368,9 +1399,20 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 4,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 2,
+                "stacks": 1,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
                 "target": "TARGET"
             }
         ]
@@ -1489,10 +1531,10 @@
     "crippling_vine": {
         "id": "crippling_vine",
         "name": "Crippling Vine",
-        "description": "7 Weakened + 8 Dazed.",
+        "description": "30 power. Apply 2 Weakened, 2 Dazed and 3 Poison.",
         "element": "Nature",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -1502,15 +1544,26 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 30,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 7,
+                "stacks": 2,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 8,
+                "stacks": 2,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 3,
                 "target": "TARGET"
             }
         ]
@@ -1657,7 +1710,7 @@
     "uplift": {
         "id": "uplift",
         "name": "Uplift",
-        "description": "Strengthen side by 5 stacks.",
+        "description": "Strengthen side by 2 stacks. Heal side with 26 power.",
         "element": "Light",
         "target": "Side",
         "category": "Status",
@@ -1672,7 +1725,12 @@
             {
                 "type": "STATUS",
                 "status": "Strengthened",
-                "stacks": 5,
+                "stacks": 2,
+                "target": "SELF"
+            },
+            {
+                "type": "HEAL",
+                "power": 26,
                 "target": "TARGET"
             }
         ]
@@ -1680,7 +1738,7 @@
     "iron_bark": {
         "id": "iron_bark",
         "name": "Iron Bark",
-        "description": "Gain 9 Sharp.",
+        "description": "Gain 3 Sharp and 2 Regen.",
         "element": "Nature",
         "target": "Self",
         "category": "Skill",
@@ -1695,7 +1753,13 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 9,
+                "stacks": 3,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Regen",
+                "stacks": 2,
                 "target": "SELF"
             }
         ]
@@ -2344,7 +2408,7 @@
     "disorienting_gust": {
         "id": "disorienting_gust",
         "name": "Disorienting Gust",
-        "description": "Apply 2 Dazed.",
+        "description": "Apply 1 Dazed. Gain 1 Sharp.",
         "element": "Air",
         "target": "Single",
         "category": "Status",
@@ -2359,8 +2423,14 @@
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 2,
+                "stacks": 1,
                 "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 1,
+                "target": "SELF"
             }
         ]
     },
@@ -2440,10 +2510,10 @@
     "cold_snap": {
         "id": "cold_snap",
         "name": "Cold Snap",
-        "description": "Apply 8 Weakened.",
+        "description": "8 power. Apply 2 Weakened. Draw a card.",
         "element": "Ice",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -2453,20 +2523,30 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 8,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 8,
+                "stacks": 2,
                 "target": "TARGET"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
             }
         ]
     },
     "hoarfrost": {
         "id": "hoarfrost",
         "name": "Hoarfrost",
-        "description": "Apply 2 Weakened.",
+        "description": "6 power. Apply 1 Weakened.",
         "element": "Ice",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -2476,9 +2556,14 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 6,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 2,
+                "stacks": 1,
                 "target": "TARGET"
             }
         ]
@@ -2594,10 +2679,10 @@
     "winters_grasp": {
         "id": "winters_grasp",
         "name": "Winter's Grasp",
-        "description": "Apply 8 Weakened to side.",
+        "description": "22 power to side. Apply 2 Weakened to side.",
         "element": "Ice",
         "target": "Side",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -2607,9 +2692,14 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 22,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 8,
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -2890,10 +2980,10 @@
     "creeping_dread": {
         "id": "creeping_dread",
         "name": "Creeping Dread",
-        "description": "Apply 3 Weakened + 3 Dazed to side.",
+        "description": "8 power to side. Apply 1 Weakened and 1 Dazed to side. Draw 2.",
         "element": "Dark",
         "target": "Side",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -2903,16 +2993,26 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 8,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 3,
+                "stacks": 1,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 3,
+                "stacks": 1,
                 "target": "TARGET"
+            },
+            {
+                "type": "DRAW",
+                "amount": 2,
+                "target": "SELF"
             }
         ]
     },
