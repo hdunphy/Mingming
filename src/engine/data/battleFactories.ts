@@ -220,7 +220,7 @@ export function createBattleState(
             if (def.primaryElement === 'Nature') archetype = 'RATATOSKR';
 
             const lists = {
-                FENRIR: { daemon: 'fenrir_v1_daemon', cards: ['fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch'] },
+                FENRIR: { daemon: 'core_overclock_daemon', cards: ['fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch'] },
                 KRAKEN: { daemon: 'feedback_loop_daemon', cards: ['water_slap', 'whirlpool_v2', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'contagion'] },
                 RATATOSKR: { daemon: 'fertile_ground_daemon', cards: ['leaf_blade', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine'] }
             };
@@ -242,7 +242,7 @@ export function createBattleState(
     const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
         const lists = {
             FENRIR: {
-                daemon: 'fenrir_v1_daemon',
+                daemon: 'core_overclock_daemon',
                 cards: ['fire_poke', 'fire_punch_v2', 'fire_punch_v2', 'cinder_slash', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch', 'ignite', 'ignite', 'strength_burst']
             },
             KRAKEN: {

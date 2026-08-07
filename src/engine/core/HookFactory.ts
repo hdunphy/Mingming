@@ -13,7 +13,7 @@ import type { IBattleState, IBattleEntity, ActionType } from '../types';
 import { StatusType } from '../types';
 import { PRNG } from './PRNG';
 import { ConditionValidator } from './ConditionValidator';
-import { ActionExecutorRegistry } from '../actions/ActionExecutors';
+import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExecutors';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
 
@@ -107,7 +107,14 @@ export const HookFactory = {
             case 'SHARP_STACKS':
                 return owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
             case 'STRENGTH_STACKS':
-                return owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
+                // Ticket 26: same cap as the card-side scaler in ActionExecutors. Uncapped,
+                // core_overclock_daemon's x(1 + 0.20 * raw stacks) reaches x5.00 at 20 stacks
+                // on top of Strengthened's own capped +-25%, and the static scorer cannot see
+                // daemons at all (they carry empty `actions`), so nothing else would catch it.
+                return Math.min(
+                    owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0,
+                    STRENGTH_STACK_CAP
+                );
             case 'ALIVE_ALLIES': {
                 const isPlayer = context.state.playerParty.some((e: IBattleEntity) => e.id === owner.id);
                 const party = isPlayer ? context.state.playerParty : context.state.enemyParty;

@@ -19,7 +19,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Burn',
         icon: '🔥',
         description:
-            'At end of turn, takes 2% / 5% / 12% of max HP as damage at 1 / 2 / 3 stacks (2+ stacks also shred defense), and never wears off on its own. Caps at 3 stacks — excess stacks instead detonate immediately for top-tier damage each.',
+            'At end of turn, takes 1.5% / 3.5% / 8% of max HP as damage at 1 / 2 / 3 stacks (2+ stacks also shred defense), and decays 1 stack per turn. Caps at 3 stacks — excess stacks instead detonate immediately for top-tier damage each.',
     },
     Poison: {
         name: 'Poison',
@@ -91,13 +91,13 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Dark Stance',
         icon: '☾',
         description:
-            'While in Dark Stance, this unit deals +30% damage. Never wears off on its own and caps at 1 stack — but entering Light Stance replaces it.',
+            'While in Dark Stance, this unit deals +30% damage. decays 1 stack per turn and caps at 1 stack — but entering Light Stance replaces it.',
     },
     LightStance: {
         name: 'Light Stance',
         icon: '☀',
         description:
-            'While in Light Stance, this unit\'s heals restore +50% HP. Never wears off on its own and caps at 1 stack — but entering Dark Stance replaces it.',
+            'While in Light Stance, this unit\'s heals restore +50% HP. decays 1 stack per turn and caps at 1 stack — but entering Dark Stance replaces it.',
     },
 };
 

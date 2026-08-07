@@ -126,7 +126,7 @@ describe('Advanced Combat Mechanics', () => {
     });
 
     // 3. Burn Scaling (via StatusBehavior.endTurn)
-    it('Burn Scaling: 1 stack = 2%, 2 stacks = 5% + shred, 3 stacks = 12% + shred', () => {
+    it('Burn Scaling: 1 stack = 1.5%, 2 stacks = 3.5% + shred, 3 stacks = 8% + shred', () => {
         const burnBehavior = getStatusBehavior('Burn');
         const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
 

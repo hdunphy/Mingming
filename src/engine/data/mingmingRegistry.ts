@@ -17,8 +17,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // Ticket 04: the designed deck belongs to the v2 slot (CINDER_WALL_OS); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
         decks: {
-            "fenrir_v1": ["fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "glass_cannon", "ignite", "ignite", "scorch", "ash_reclamation", "reckless_charge"],
-            "fenrir_v2": ["fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "glass_cannon", "ignite", "ignite", "scorch", "ash_reclamation", "reckless_charge"]
+            "fenrir_v1": ["desperate_strike", "desperate_strike", "glass_cannon", "glass_cannon", "berserk_rush", "berserk_rush", "battle_rhythm", "crimson_draw", "ragnarok_edge", "ragnarok_edge"],
+            "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
         },
         moves: [
             {
@@ -148,8 +148,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         availableOS: ["skoll_v1", "skoll_v2"],
         // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
         decks: {
-            "skoll_v1": ["fury_strike", "fury_strike", "fury_strike", "fire_punch_v2", "fire_punch_v2", "overdrive", "reckless_charge", "reckless_charge", "strength_burst", "all_in"],
-            "skoll_v2": ["fury_strike", "fury_strike", "fury_strike", "fire_punch_v2", "fire_punch_v2", "overdrive", "reckless_charge", "reckless_charge", "strength_burst", "all_in"]
+            "skoll_v1": ["fury_strike", "fury_strike", "adrenaline", "adrenaline", "overdrive", "brute_force", "fire_punch_v2", "core_overclock_daemon", "water_slap"],
+            "skoll_v2": ["ignite", "scorch", "fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "fire_punch_v2", "fire_punch_v2", "water_slap"]
         },
         moves: [
             {

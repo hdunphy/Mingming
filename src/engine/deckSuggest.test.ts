@@ -83,8 +83,8 @@ describe('suggestDeckFill', () => {
 
     it('skips cards already in the deck and respects baseDeck copy counts', () => {
         const baseCards = makeCards(FENRIR_BASE);
-        // fire_poke appears twice in fenrir's baseDeck; put ONE owned fire_poke in the deck already
-        const firePokes = baseCards.filter(c => c.dataId === 'fire_poke');
+        // desperate_strike appears twice in fenrir's baseDeck (ticket 26 deck pass); put ONE in the deck
+        const firePokes = baseCards.filter(c => c.dataId === 'desperate_strike');
         expect(firePokes.length).toBe(2);
         const deck = makeDeck([firePokes[0].instanceId]);
 
@@ -98,9 +98,9 @@ describe('suggestDeckFill', () => {
         expect(result).toHaveLength(7);
         // Never suggests an instance already in the deck
         expect(result).not.toContain(firePokes[0].instanceId);
-        // Only ONE more fire_poke copy is suggested (deck copy counts toward the 2 listed)
+        // Only ONE more desperate_strike copy is suggested (deck copy counts toward the 2 listed)
         const byInstance = new Map(baseCards.map(c => [c.instanceId, c.dataId]));
-        const suggestedPokes = result.filter(id => byInstance.get(id) === 'fire_poke');
+        const suggestedPokes = result.filter(id => byInstance.get(id) === 'desperate_strike');
         expect(suggestedPokes).toEqual([firePokes[1].instanceId]);
     });
 

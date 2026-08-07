@@ -142,9 +142,12 @@ export function budgetBandFor(cost: number): BudgetBand {
 const OFFENSE_STREAM_POWER_PER_STACK = 15;
 /** 2%/stack, 25% cap; defense stream (stalls a fight, priced lower - see cap note below). */
 const DEFENSE_STREAM_POWER_PER_STACK = 10;
-/** Burn's cumulative price to reach N stacks (tiers are 2/5/12% maxHP); tiered, not linear. */
-const BURN_TIER_POWER = [6, 21, 60];
-const BURN_OVERFLOW_POWER_PER_STACK = 36;
+/** Burn's cumulative price to reach N stacks (tiers are 1.5/3.5/8% maxHP); tiered, not linear.
+ *  Ticket 26: rescaled WITH the tiers at the unchanged 3-power-per-1%-maxHP rate. This is not
+ *  the re-pricing ticket 24 declined - that would have moved the price while the tiers stayed
+ *  put (double-counting); this moves the tiers and lets the derived price follow. */
+const BURN_TIER_POWER = [4.5, 15, 40];
+const BURN_OVERFLOW_POWER_PER_STACK = 24;
 const ENERGIZED_POWER_PER_STACK = 35;
 const STUNNED_POWER = 55;
 const ASLEEP_POWER = 45;
@@ -200,7 +203,10 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
         if (action.type === 'ATTACK') {
             let power = action.power || 0;
             if (action.scaling === 'CARDS_PLAYED') power *= ASSUMED_CARDS_PLAYED;
-            else if (action.scaling === 'MISSING_HP' || action.scaling === 'HP_PERCENT') power *= ASSUMED_HP_PERCENT;
+            // Ticket 26: MISSING_HP is power-side now, priced at the cap - ASSUMED_HP_PERCENT
+            // 0.5 means "assume half HP", which IS the MISSING_HP_PCT_CAP of 50.
+            else if (action.scaling === 'MISSING_HP') power += (action.scalingPower || 0) * 50;
+            else if (action.scaling === 'HP_PERCENT') power *= ASSUMED_HP_PERCENT;
             else if (action.scaling === 'DISCARD_SIZE') power *= ASSUMED_DISCARD_SIZE;
             else if (action.scaling === 'STATUS_COUNT') power *= ASSUMED_STATUS_COUNT;
 

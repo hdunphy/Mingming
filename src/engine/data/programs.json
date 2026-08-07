@@ -19,16 +19,16 @@
             "defensive_daemon_hook"
         ]
     },
-    "fenrir_v1_daemon": {
-        "id": "fenrir_v1_daemon",
+    "core_overclock_daemon": {
+        "id": "core_overclock_daemon",
         "name": "CORE_OVERCLOCK",
-        "description": "Daemon: Strength bonus is doubled for the rest of battle.",
+        "description": "Daemon: +20% damage per stack of Strength (max 8 stacks).",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
-        "baseCost": 3,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -66,7 +66,7 @@
     "brute_force": {
         "id": "brute_force",
         "name": "Brute Force",
-        "description": "70 power. +30 power if you have Strength.",
+        "description": "50 power. +22 power if you have Strength.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -129,7 +129,7 @@
     "fury_strike": {
         "id": "fury_strike",
         "name": "Fury Strike",
-        "description": "20 power. Gain 1 Strength.",
+        "description": "15 power. Gain 1 Strength.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -157,7 +157,7 @@
     "cinder_slash": {
         "id": "cinder_slash",
         "name": "Cinder Slash",
-        "description": "1 Strength if target is burned. 35 power attack.",
+        "description": "1 Strength if target is burned. 21 power attack.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -171,7 +171,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 27,
+                "power": 21,
                 "target": "TARGET"
             },
             {
@@ -192,7 +192,7 @@
     "scorch": {
         "id": "scorch",
         "name": "Scorch",
-        "description": "Apply 6 Burn.",
+        "description": "Apply 4 Burn.",
         "element": "Fire",
         "target": "Single",
         "category": "Status",
@@ -207,7 +207,7 @@
             {
                 "type": "STATUS",
                 "status": "Burn",
-                "stacks": 6,
+                "stacks": 4,
                 "target": "TARGET"
             }
         ]
@@ -215,7 +215,7 @@
     "overdrive": {
         "id": "overdrive",
         "name": "Overdrive",
-        "description": "Gain 2 Strength. Deal 40 power.",
+        "description": "Gain 2 Strength. Deal 29 power.",
         "element": "Fire",
         "target": "Single",
         "category": "Skill",
@@ -272,7 +272,7 @@
     "fire_punch_v2": {
         "id": "fire_punch_v2",
         "name": "Fire Punch",
-        "description": "40 power.",
+        "description": "30 power.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -340,7 +340,7 @@
     "all_in": {
         "id": "all_in",
         "name": "All In",
-        "description": "Gain 4 Strength and 2 Burn to self.",
+        "description": "Gain 4 Strength and 3 Burn to self.",
         "element": "Fire",
         "target": "Self",
         "category": "Skill",
@@ -361,7 +361,7 @@
             {
                 "type": "STATUS",
                 "status": "Burn",
-                "stacks": 2,
+                "stacks": 3,
                 "target": "SELF"
             }
         ]
@@ -369,7 +369,7 @@
     "glass_cannon": {
         "id": "glass_cannon",
         "name": "Glass Cannon",
-        "description": "60 power. 20 recoil damage.",
+        "description": "45 power. 20 recoil damage.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -420,7 +420,7 @@
     "fire_poke": {
         "id": "fire_poke",
         "name": "Fire Poke",
-        "description": "30 power. Apply 1 Burn.",
+        "description": "22 power. Apply 1 Burn.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -577,7 +577,7 @@
     "overheat": {
         "id": "overheat",
         "name": "Overheat",
-        "description": "100 power + 1 Burn self. OR 40 power + 2 Burn self.",
+        "description": "75 power + 1 Burn self.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -1987,7 +1987,7 @@
     "hamstring": {
         "id": "hamstring",
         "name": "Hamstring",
-        "description": "20 power. Apply 2 Weakened.",
+        "description": "15 power. Apply 2 Weakened.",
         "element": "None",
         "target": "Single",
         "category": "Skill",
@@ -2015,7 +2015,7 @@
     "adrenaline": {
         "id": "adrenaline",
         "name": "Adrenaline",
-        "description": "10 power. Gain 2 Strengthened.",
+        "description": "8 power. Gain 2 Strengthened.",
         "element": "None",
         "target": "Single",
         "category": "Skill",
@@ -3328,6 +3328,272 @@
                 "type": "GENERATE_CARD",
                 "dataId": "sky_burial_ascended",
                 "target": "SELF"
+            }
+        ]
+    },
+    "berserk_rush": {
+        "id": "berserk_rush",
+        "name": "Berserk Rush",
+        "description": "17 power. +17 power if you are below 50% HP.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 17,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 17,
+                "target": "TARGET",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "LT:51"
+                    }
+                ]
+            }
+        ]
+    },
+    "battle_rhythm": {
+        "id": "battle_rhythm",
+        "name": "Battle Rhythm",
+        "description": "If above 50% HP, gain 2 Strength. Otherwise gain 2 Sharp.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 2,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "GT:50"
+                    }
+                ]
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 2,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "LT:51"
+                    }
+                ]
+            }
+        ]
+    },
+    "crimson_draw": {
+        "id": "crimson_draw",
+        "name": "Crimson Draw",
+        "description": "18 power. Heal 8.5% of your max HP.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 18,
+                "target": "TARGET"
+            },
+            {
+                "type": "HEAL",
+                "power": 34,
+                "target": "SELF"
+            }
+        ]
+    },
+    "ragnarok_edge": {
+        "id": "ragnarok_edge",
+        "name": "Ragnarok Edge",
+        "description": "30 power. +0.7 power per 1% of your max HP missing (max 50%).",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 30,
+                "target": "TARGET",
+                "scaling": "MISSING_HP",
+                "scalingPower": 0.7
+            }
+        ]
+    },
+    "bloodlust": {
+        "id": "bloodlust",
+        "name": "Bloodlust",
+        "description": "13 power. +0.35 power per 1% of your max HP missing (max 50%).",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 13,
+                "target": "TARGET",
+                "scaling": "MISSING_HP",
+                "scalingPower": 0.35
+            }
+        ]
+    },
+    "slag_strike": {
+        "id": "slag_strike",
+        "name": "Slag Strike",
+        "description": "21 power. Gain 1 Sharp.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 21,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "pyre_sacrifice": {
+        "id": "pyre_sacrifice",
+        "name": "Pyre Sacrifice",
+        "description": "60 power. Apply 3 Burn to the target and 3 Burn to yourself.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 60,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 3,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "ash_communion": {
+        "id": "ash_communion",
+        "name": "Ash Communion",
+        "description": "Consume your Burn. Heal with 30 power per stack consumed.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Heal",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "HEAL",
+                "power": 30,
+                "scaling": "STATUS_CONSUMED",
+                "target": "SELF"
+            }
+        ]
+    },
+    "cinder_lance": {
+        "id": "cinder_lance",
+        "name": "Cinder Lance",
+        "description": "34 power. +5 power per stack of Sharp.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 34,
+                "target": "TARGET",
+                "scaling": "SHARP_STACKS"
             }
         ]
     }

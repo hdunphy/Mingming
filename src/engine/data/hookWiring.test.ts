@@ -32,7 +32,7 @@ describe('programs.json hook wiring', () => {
     it('the five previously-inert daemon cards resolve to live hooks', () => {
         const expectations: Record<string, string> = {
             harden_daemon: 'defensive_daemon_hook',
-            fenrir_v1_daemon: 'daemon_double_strength',
+            core_overclock_daemon: 'daemon_double_strength',
             cinder_armor_daemon: 'daemon_burn_sharp_synergy',
             feedback_loop_daemon: 'daemon_draw_damage_proc',
             fertile_ground_daemon: 'daemon_extra_draw'

@@ -38,14 +38,29 @@ export abstract class ActionExecutor<T extends ProgramAction> {
  * multiply the computed DAMAGE afterwards — they intentionally stay inside
  * AttackExecutor.
  */
-/** Max Strengthened stacks a STRENGTH_STACKS scaler may multiply by - see ticket 23 follow-up. */
-const STRENGTH_STACK_CAP = 8;
+/** Max Strengthened stacks a STRENGTH_STACKS scaler may multiply by - see ticket 23 follow-up.
+ *  Shared with HookFactory.resolveScaling (ticket 26): the hook-side path was left uncapped
+ *  by ticket 24, so core_overclock_daemon could reach x5.00 at 20 stacks. */
+export const STRENGTH_STACK_CAP = 8;
 
-export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<AttackActionData, 'power' | 'scaling'>): number {
+/** Max % of maxHP-missing a MISSING_HP scaler may read (ticket 26). The cap is
+ *  budget / scalingPower, so it re-derives whenever the curve moves. */
+export const MISSING_HP_PCT_CAP = 50;
+
+export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower'>): number {
     const power = action.power || 0;
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
         return power + 5 * sharpStacks;
+    }
+    if (action.scaling === 'MISSING_HP') {
+        // Power-side (ticket 26): rides the divisor, STAB and resistances like every other
+        // power bonus. Was a flat post-damage add in AttackExecutor, which bypassed all three
+        // and disagreed with what powerscale charged for it.
+        const pctMissing = source.maxHp > 0
+            ? ((source.maxHp - source.currentHp) / source.maxHp) * 100
+            : 0;
+        return power + (action.scalingPower || 0) * Math.min(pctMissing, MISSING_HP_PCT_CAP);
     }
     if (action.scaling === 'STRENGTH_STACKS') {
         // Capped at STRENGTH_STACK_CAP so the card cannot exceed its cost's power budget:
@@ -81,9 +96,6 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             if (scaling === 'CARDS_PLAYED') {
                 const multiplier = state.cardsPlayedThisTurn;
                 damage = Math.floor(damage * multiplier);
-            } else if (scaling === 'MISSING_HP') {
-                const missingHp = source.maxHp - source.currentHp;
-                damage += Math.floor(missingHp * 0.5); // Example: 50% of missing HP
             } else if (scaling === 'STATUS_COUNT') {
                 const targetStatusCount = target.statusEffects.reduce((acc, s) => acc + s.stacks, 0);
                 damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
