@@ -168,3 +168,16 @@ decks — jormungandr's §2.3 fell 0.33 → 0.04 on the re-price alone, and the 
 available stack step (4→3, a 25% cut against the curve's 12.5%) only recovered it to 0.11.
 Status decks must be re-gated by hand after any curve move, and buffing the attack side is
 usually the finer instrument.
+
+## rev 3.3 — pace completion (ticket 25, 2026-08-07)
+
+**Curve `10/35/75/120` → `10/30/65/105`.** Bands 1.0/3.5/7.5/12.0 → **1.0/3.0/6.5/10.5**.
+
+rev 3.2 landed the tuned-species average at 4.73 turns — the 3-4 floor was on spec but the
+average sat ~0.3 short of the 5-6 target. This is the last ~14%. Measured after re-gate:
+kraken mirror 5.1, jormungandr 6.6, sleipnir 4.4 — **average 5.4, floor 4.2, FTK 0**.
+
+Re-gate needed (the 1e band takes a slightly harder cut than 3e, which favours the big-card
+OS): kraken fell to 0.28, fixed with TIDAL_CRUSH 1.2 → **1.15** and `ink_stream` 11 → **12**.
+`ink_stream` is a CARDS_DRAWN scaler and correspondingly twitchy — 13 overshot to 0.65 and
+pulled the mirror back to 4.9 turns; 12 is the seat.

@@ -124,7 +124,7 @@
     "kraken_v2": {
         "id": "kraken_v2",
         "name": "TIDAL_CRUSH_OS",
-        "description": "Water cards that cost 3 or more Energy deal 20% more damage.",
+        "description": "Water cards that cost 3 or more Energy deal 15% more damage.",
         "hooks": [
             {
                 "id": "kraken_v2_hook",
@@ -138,7 +138,7 @@
                         "value": 3
                     }
                 },
-                "multiplier": 1.2
+                "multiplier": 1.15
             }
         ]
     },
@@ -305,7 +305,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 6,
+                        "power": 5,
                         "element": "Water"
                     },
                     {
@@ -334,7 +334,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 9,
+                        "power": 8,
                         "element": "Air"
                     },
                     {
@@ -655,7 +655,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 9,
+                        "power": 8,
                         "element": "Air"
                     },
                     {
@@ -1099,7 +1099,7 @@
                     {
                         "type": "ATTACK",
                         "target": "ENEMIES",
-                        "power": 4,
+                        "power": 3,
                         "element": "Fire",
                         "scaling": "SHARP_STACKS"
                     },

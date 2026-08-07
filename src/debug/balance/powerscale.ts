@@ -120,9 +120,9 @@ export interface BudgetBand {
 // What changed is only how much power a card of a given cost is allowed to carry.
 export const BUDGET_BANDS: ReadonlyArray<BudgetBand> = [
     { cost: 0, over: 1.0, under: 0.8 },
-    { cost: 1, over: 3.5, under: 2.8 },
-    { cost: 2, over: 7.5, under: 6.0 },
-    { cost: 3, over: 12.0, under: 9.6 },
+    { cost: 1, over: 3.0, under: 2.4 },
+    { cost: 2, over: 6.5, under: 5.2 },
+    { cost: 3, over: 10.5, under: 8.4 },
 ];
 
 /** The band a card of this cost is budgeted against. Costs above 3 use the 3+ band. */

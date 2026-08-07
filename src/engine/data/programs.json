@@ -80,12 +80,12 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 58,
+                "power": 50,
                 "target": "TARGET"
             },
             {
                 "type": "ATTACK",
-                "power": 25,
+                "power": 22,
                 "target": "TARGET",
                 "conditionals": [
                     {
@@ -143,7 +143,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "target": "TARGET"
             },
             {
@@ -171,7 +171,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 31,
+                "power": 27,
                 "target": "TARGET"
             },
             {
@@ -235,7 +235,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 33,
+                "power": 29,
                 "target": "TARGET"
             }
         ]
@@ -286,7 +286,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 35,
+                "power": 30,
                 "target": "TARGET"
             }
         ]
@@ -383,12 +383,12 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 52,
+                "power": 45,
                 "target": "TARGET"
             },
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "target": "SELF",
                 "damageOverride": 20
             }
@@ -434,7 +434,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 26,
+                "power": 22,
                 "target": "TARGET"
             },
             {
@@ -568,7 +568,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "scaling": "SHARP_STACKS",
                 "target": "TARGET"
             }
@@ -591,7 +591,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 86,
+                "power": 75,
                 "target": "TARGET"
             },
             {
@@ -665,7 +665,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 17,
+                "power": 15,
                 "scaling": "CARDS_PLAYED",
                 "target": "TARGET"
             }
@@ -688,7 +688,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 103,
+                "power": 90,
                 "target": "TARGET"
             },
             {
@@ -716,7 +716,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 120,
+                "power": 105,
                 "target": "TARGET"
             }
         ]
@@ -738,7 +738,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 51,
+                "power": 45,
                 "target": "TARGET"
             }
         ]
@@ -797,7 +797,7 @@
     "ink_stream": {
         "id": "ink_stream",
         "name": "Ink Stream",
-        "description": "Deal 15 power per card drawn.",
+        "description": "Deal 12 power per card drawn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -811,7 +811,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 13,
+                "power": 12,
                 "scaling": "CARDS_DRAWN",
                 "target": "TARGET"
             }
@@ -834,7 +834,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 26,
+                "power": 22,
                 "target": "TARGET"
             },
             {
@@ -1008,7 +1008,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 9,
+                "power": 8,
                 "target": "TARGET"
             },
             {
@@ -1035,7 +1035,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "target": "TARGET"
             },
             {
@@ -1284,7 +1284,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 25,
+                "power": 22,
                 "scaling": "CARDS_PLAYED",
                 "target": "TARGET"
             }
@@ -1410,7 +1410,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 9,
+                "power": 8,
                 "count": 4,
                 "target": "TARGET"
             }
@@ -1615,7 +1615,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 26,
+                "power": 22,
                 "target": "TARGET"
             },
             {
@@ -1643,7 +1643,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 125,
+                "power": 108,
                 "scaling": "HP_PERCENT",
                 "target": "TARGET"
             }
@@ -1712,7 +1712,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 33,
+                "power": 29,
                 "target": "TARGET"
             },
             {
@@ -1813,7 +1813,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "target": "TARGET"
             },
             {
@@ -1841,7 +1841,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 9,
+                "power": 8,
                 "target": "TARGET"
             },
             {
@@ -1869,7 +1869,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 13,
+                "power": 11,
                 "scaling": "CARDS_PLAYED",
                 "target": "TARGET"
             }
@@ -1892,7 +1892,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 9,
+                "power": 8,
                 "scaling": "STRENGTH_STACKS",
                 "target": "TARGET"
             }
@@ -1915,7 +1915,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 22,
+                "power": 19,
                 "target": "TARGET"
             },
             {
@@ -1949,7 +1949,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 44,
+                "power": 38,
                 "target": "TARGET"
             },
             {
@@ -1975,7 +1975,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 75,
+                "power": 65,
                 "target": "TARGET"
             },
             {
@@ -2021,7 +2021,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 13,
+                "power": 11,
                 "count": 2,
                 "target": "TARGET"
             }
@@ -2044,7 +2044,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "target": "TARGET"
             },
             {
@@ -2071,7 +2071,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "target": "TARGET"
             },
             {
@@ -2099,7 +2099,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 21,
+                "power": 18,
                 "target": "TARGET"
             }
         ]
@@ -2188,7 +2188,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 9,
+                "power": 8,
                 "count": 3,
                 "target": "TARGET"
             }
@@ -2233,7 +2233,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 26,
+                "power": 22,
                 "target": "TARGET"
             },
             {
@@ -2330,12 +2330,12 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 22,
+                "power": 19,
                 "target": "TARGET"
             },
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 15,
                 "target": "TARGET",
                 "conditionals": [
                     {
@@ -2364,7 +2364,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 33,
+                "power": 29,
                 "target": "TARGET"
             },
             {
@@ -2489,7 +2489,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 10,
+                "power": 9,
                 "target": "TARGET"
             },
             {
@@ -2596,7 +2596,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 22,
+                "power": 19,
                 "target": "TARGET"
             },
             {
@@ -2655,7 +2655,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 25,
+                "power": 22,
                 "target": "TARGET"
             },
             {
@@ -2683,7 +2683,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 33,
+                "power": 29,
                 "target": "TARGET"
             },
             {
@@ -2762,7 +2762,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 35,
+                "power": 30,
                 "target": "TARGET"
             }
         ]
@@ -2784,7 +2784,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 22,
+                "power": 19,
                 "target": "TARGET"
             },
             {
@@ -2835,7 +2835,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 21,
+                "power": 18,
                 "target": "TARGET"
             }
         ]
@@ -2908,7 +2908,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 31,
+                "power": 27,
                 "target": "TARGET"
             }
         ]
