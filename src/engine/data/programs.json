@@ -42,7 +42,7 @@
     "strength_burst": {
         "id": "strength_burst",
         "name": "Strength Burst",
-        "description": "Gain 5 Strength. (Exhaust)",
+        "description": "Gain 13 Strength. (Exhaust)",
         "element": "Fire",
         "target": "Self",
         "category": "Skill",
@@ -58,7 +58,7 @@
             {
                 "type": "STATUS",
                 "status": "Strengthened",
-                "stacks": 5,
+                "stacks": 13,
                 "target": "SELF"
             }
         ]
@@ -66,7 +66,7 @@
     "brute_force": {
         "id": "brute_force",
         "name": "Brute Force",
-        "description": "50 power. +22 power if you have Strength.",
+        "description": "50 power. +15 power if you have Strength.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -85,7 +85,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 22,
+                "power": 15,
                 "target": "TARGET",
                 "conditionals": [
                     {
@@ -129,7 +129,7 @@
     "fury_strike": {
         "id": "fury_strike",
         "name": "Fury Strike",
-        "description": "15 power. Gain 1 Strength.",
+        "description": "25 power. Gain 1 Strength.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -143,7 +143,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 25,
                 "target": "TARGET"
             },
             {
@@ -192,10 +192,10 @@
     "scorch": {
         "id": "scorch",
         "name": "Scorch",
-        "description": "Apply 4 Burn.",
+        "description": "25 power. Apply 3 Burn.",
         "element": "Fire",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -205,9 +205,14 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 25,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Burn",
-                "stacks": 4,
+                "stacks": 3,
                 "target": "TARGET"
             }
         ]
@@ -215,7 +220,7 @@
     "overdrive": {
         "id": "overdrive",
         "name": "Overdrive",
-        "description": "Gain 2 Strength. Deal 29 power.",
+        "description": "Gain 2 Strength. Deal 54 power.",
         "element": "Fire",
         "target": "Single",
         "category": "Skill",
@@ -235,7 +240,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 29,
+                "power": 54,
                 "target": "TARGET"
             }
         ]
@@ -294,7 +299,7 @@
     "shield_shards": {
         "id": "shield_shards",
         "name": "Shield Shards",
-        "description": "Gain 2 Sharp.",
+        "description": "Gain 9 Sharp.",
         "element": "Earth",
         "target": "Self",
         "category": "Skill",
@@ -309,7 +314,7 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 2,
+                "stacks": 9,
                 "target": "SELF"
             }
         ]
@@ -554,7 +559,7 @@
     "spike_launch": {
         "id": "spike_launch",
         "name": "Spike Launch",
-        "description": "20 power. +5 power per Sharp stack you have.",
+        "description": "15 power. +5 power per Sharp stack you have.",
         "element": "Earth",
         "target": "Single",
         "category": "Attack",
@@ -651,7 +656,7 @@
     "serpents_coil": {
         "id": "serpents_coil",
         "name": "Serpent's Coil",
-        "description": "The world-serpent tightens: deal 17 Water damage for every card you played this turn.",
+        "description": "The world-serpent tightens: deal 15 Water damage for every card you played this turn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -702,7 +707,7 @@
     "hydro_blast": {
         "id": "hydro_blast",
         "name": "Hydro Blast",
-        "description": "140 power.",
+        "description": "105 power.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -724,7 +729,7 @@
     "tidal_wave_v2": {
         "id": "tidal_wave_v2",
         "name": "Tidal Wave",
-        "description": "60 power to side.",
+        "description": "45 power to side.",
         "element": "Water",
         "target": "Side",
         "category": "Attack",
@@ -820,7 +825,7 @@
     "pressure_point": {
         "id": "pressure_point",
         "name": "Pressure Point",
-        "description": "30 power. If Dazed, draw 1.",
+        "description": "22 power. If Dazed, draw 1.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -854,7 +859,7 @@
     "blind_spot": {
         "id": "blind_spot",
         "name": "Blind Spot",
-        "description": "Add 1 Dazed.",
+        "description": "Add 2 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Status",
@@ -869,7 +874,7 @@
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -877,7 +882,7 @@
     "ink_cloud": {
         "id": "ink_cloud",
         "name": "Ink Cloud",
-        "description": "Apply 2 Dazed to side.",
+        "description": "Apply 5 Dazed to side.",
         "element": "Water",
         "target": "Side",
         "category": "Status",
@@ -892,7 +897,7 @@
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 2,
+                "stacks": 5,
                 "target": "TARGET"
             }
         ]
@@ -994,7 +999,7 @@
     "whirlpool_v2": {
         "id": "whirlpool_v2",
         "name": "Whirlpool",
-        "description": "10 power. Draw a card.",
+        "description": "8 power. Draw a card.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1021,7 +1026,7 @@
     "surge_protection": {
         "id": "surge_protection",
         "name": "Surge Protection",
-        "description": "Deal 20 power + gain extra 1 Energy if you drew a card this turn.",
+        "description": "Deal 15 power + gain extra 1 Energy if you drew a card this turn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1224,7 +1229,7 @@
     "growth": {
         "id": "growth",
         "name": "Growth",
-        "description": "Add 1 Sharp",
+        "description": "Add 2 Sharp",
         "element": "Nature",
         "target": "Single",
         "category": "Skill",
@@ -1239,7 +1244,7 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -1270,7 +1275,7 @@
     "seed_bomb_v2": {
         "id": "seed_bomb_v2",
         "name": "Seed Bomb",
-        "description": "Deal 30 power per card played by host this turn.",
+        "description": "Deal 22 power per card played by host this turn.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -1350,7 +1355,7 @@
     "pollen_cloud": {
         "id": "pollen_cloud",
         "name": "Pollen Cloud",
-        "description": "Add 1 Weakened.",
+        "description": "Add 2 Weakened.",
         "element": "Nature",
         "target": "Single",
         "category": "Status",
@@ -1365,7 +1370,7 @@
             {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -1396,7 +1401,7 @@
     "thistle_barrage": {
         "id": "thistle_barrage",
         "name": "Thistle Barrage",
-        "description": "Deal 10 power x4 hits.",
+        "description": "Deal 8 power x4 hits.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -1484,7 +1489,7 @@
     "crippling_vine": {
         "id": "crippling_vine",
         "name": "Crippling Vine",
-        "description": "2 Weakened + 2 Dazed.",
+        "description": "7 Weakened + 8 Dazed.",
         "element": "Nature",
         "target": "Single",
         "category": "Status",
@@ -1499,13 +1504,13 @@
             {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 2,
+                "stacks": 7,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 2,
+                "stacks": 8,
                 "target": "TARGET"
             }
         ]
@@ -1601,7 +1606,7 @@
     "nettle_sting": {
         "id": "nettle_sting",
         "name": "Nettle Sting",
-        "description": "30 power and 1 stack of Poison.",
+        "description": "22 power and 1 stack of Poison.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -1629,7 +1634,7 @@
     "supernova_v2": {
         "id": "supernova_v2",
         "name": "Supernova",
-        "description": "Deal 150 power. Scale by HP (Bonus damage at full HP).",
+        "description": "Deal 108 power. Scale by HP (Bonus damage at full HP).",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
@@ -1652,7 +1657,7 @@
     "uplift": {
         "id": "uplift",
         "name": "Uplift",
-        "description": "Strengthen side by 2 stacks.",
+        "description": "Strengthen side by 5 stacks.",
         "element": "Light",
         "target": "Side",
         "category": "Status",
@@ -1667,7 +1672,7 @@
             {
                 "type": "STATUS",
                 "status": "Strengthened",
-                "stacks": 2,
+                "stacks": 5,
                 "target": "TARGET"
             }
         ]
@@ -1675,7 +1680,7 @@
     "iron_bark": {
         "id": "iron_bark",
         "name": "Iron Bark",
-        "description": "Gain 3 Sharp.",
+        "description": "Gain 9 Sharp.",
         "element": "Nature",
         "target": "Self",
         "category": "Skill",
@@ -1690,7 +1695,7 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 3,
+                "stacks": 9,
                 "target": "SELF"
             }
         ]
@@ -1698,7 +1703,7 @@
     "stunning_strike": {
         "id": "stunning_strike",
         "name": "Stunning Strike",
-        "description": "40 power + Stun.",
+        "description": "29 power + Stun.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -1987,7 +1992,7 @@
     "hamstring": {
         "id": "hamstring",
         "name": "Hamstring",
-        "description": "15 power. Apply 2 Weakened.",
+        "description": "20 power. Apply 2 Weakened.",
         "element": "None",
         "target": "Single",
         "category": "Skill",
@@ -2001,7 +2006,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 20,
                 "target": "TARGET"
             },
             {
@@ -2015,7 +2020,7 @@
     "adrenaline": {
         "id": "adrenaline",
         "name": "Adrenaline",
-        "description": "8 power. Gain 2 Strengthened.",
+        "description": "18 power. Gain 2 Strengthened.",
         "element": "None",
         "target": "Single",
         "category": "Skill",
@@ -2029,7 +2034,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 8,
+                "power": 18,
                 "target": "TARGET"
             },
             {
@@ -2043,7 +2048,7 @@
     "stampede": {
         "id": "stampede",
         "name": "Stampede",
-        "description": "The herd thunders: deal 15 Air damage for every card you played this turn.",
+        "description": "The herd thunders: deal 11 Air damage for every card you played this turn.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2066,7 +2071,7 @@
     "momentum_crash": {
         "id": "momentum_crash",
         "name": "Momentum Crash",
-        "description": "Cash the charge: deal 10 Air damage for every stack of Strengthened you have.",
+        "description": "Cash the charge: deal 8 Air damage for every stack of Strengthened you have.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2089,7 +2094,7 @@
     "trample": {
         "id": "trample",
         "name": "Trample",
-        "description": "25 power. If you are Strengthened, draw a card.",
+        "description": "19 power. If you are Strengthened, draw a card.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2123,7 +2128,7 @@
     "lance": {
         "id": "lance",
         "name": "Lance",
-        "description": "A devastating charge: 50 power. Discard a random card.",
+        "description": "A devastating charge: 38 power. Discard a random card.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2149,7 +2154,7 @@
     "cavalry_charge": {
         "id": "cavalry_charge",
         "name": "Cavalry Charge",
-        "description": "Full gallop: 90 power. Discard 2 random cards.",
+        "description": "Full gallop: 65 power. Discard 2 random cards.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2195,7 +2200,7 @@
     "gale_slash": {
         "id": "gale_slash",
         "name": "Gale Slash",
-        "description": "Deal 15 power x2 hits.",
+        "description": "Deal 11 power x2 hits.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2218,7 +2223,7 @@
     "zephyr_strike": {
         "id": "zephyr_strike",
         "name": "Zephyr Strike",
-        "description": "20 power. Draw a card.",
+        "description": "15 power. Draw a card.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2245,7 +2250,7 @@
     "dust_devil": {
         "id": "dust_devil",
         "name": "Dust Devil",
-        "description": "20 power. Apply 1 Dazed.",
+        "description": "25 power. Apply 1 Dazed.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2259,7 +2264,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 25,
                 "target": "TARGET"
             },
             {
@@ -2273,7 +2278,7 @@
     "cyclone": {
         "id": "cyclone",
         "name": "Cyclone",
-        "description": "25 power to side.",
+        "description": "18 power to side.",
         "element": "Air",
         "target": "Side",
         "category": "Attack",
@@ -2339,7 +2344,7 @@
     "disorienting_gust": {
         "id": "disorienting_gust",
         "name": "Disorienting Gust",
-        "description": "Apply 1 Dazed.",
+        "description": "Apply 2 Dazed.",
         "element": "Air",
         "target": "Single",
         "category": "Status",
@@ -2354,7 +2359,7 @@
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -2362,7 +2367,7 @@
     "sky_dance": {
         "id": "sky_dance",
         "name": "Sky Dance",
-        "description": "Deal 10 power x3 hits.",
+        "description": "Deal 8 power x3 hits.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2407,7 +2412,7 @@
     "ice_spear": {
         "id": "ice_spear",
         "name": "Ice Spear",
-        "description": "30 power. Apply 1 Weakened.",
+        "description": "22 power. Apply 1 Weakened.",
         "element": "Ice",
         "target": "Single",
         "category": "Attack",
@@ -2435,7 +2440,7 @@
     "cold_snap": {
         "id": "cold_snap",
         "name": "Cold Snap",
-        "description": "Apply 2 Weakened.",
+        "description": "Apply 8 Weakened.",
         "element": "Ice",
         "target": "Single",
         "category": "Status",
@@ -2450,7 +2455,7 @@
             {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 2,
+                "stacks": 8,
                 "target": "TARGET"
             }
         ]
@@ -2458,7 +2463,7 @@
     "hoarfrost": {
         "id": "hoarfrost",
         "name": "Hoarfrost",
-        "description": "Apply 1 Weakened.",
+        "description": "Apply 2 Weakened.",
         "element": "Ice",
         "target": "Single",
         "category": "Status",
@@ -2473,7 +2478,7 @@
             {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -2504,7 +2509,7 @@
     "shatter": {
         "id": "shatter",
         "name": "Shatter",
-        "description": "25 power. +20 power if target is Stunned.",
+        "description": "19 power. +15 power if target is Stunned.",
         "element": "Ice",
         "target": "Single",
         "category": "Attack",
@@ -2538,7 +2543,7 @@
     "glacial_slam": {
         "id": "glacial_slam",
         "name": "Glacial Slam",
-        "description": "40 power + Stun.",
+        "description": "29 power + Stun.",
         "element": "Ice",
         "target": "Single",
         "category": "Attack",
@@ -2589,7 +2594,7 @@
     "winters_grasp": {
         "id": "winters_grasp",
         "name": "Winter's Grasp",
-        "description": "Apply 2 Weakened to side.",
+        "description": "Apply 8 Weakened to side.",
         "element": "Ice",
         "target": "Side",
         "category": "Status",
@@ -2604,7 +2609,7 @@
             {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 2,
+                "stacks": 8,
                 "target": "TARGET"
             }
         ]
@@ -2663,7 +2668,7 @@
     "nightfall_edge": {
         "id": "nightfall_edge",
         "name": "Nightfall Edge",
-        "description": "12 power. Shift into Dark Stance: +30% damage while it holds.",
+        "description": "9 power. Shift into Dark Stance: +30% damage while it holds.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -2770,7 +2775,7 @@
     "leech_strike": {
         "id": "leech_strike",
         "name": "Leech Strike",
-        "description": "25 power. Heal 10 HP.",
+        "description": "19 power. Heal 10 HP.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -2829,7 +2834,7 @@
     "drain_life": {
         "id": "drain_life",
         "name": "Drain Life",
-        "description": "30 power. Heal 15 HP.",
+        "description": "22 power. Heal 15 HP.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -2857,7 +2862,7 @@
     "night_terror": {
         "id": "night_terror",
         "name": "Night Terror",
-        "description": "40 power. Apply 2 Weakened.",
+        "description": "54 power. Apply 2 Weakened.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -2871,7 +2876,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 29,
+                "power": 54,
                 "target": "TARGET"
             },
             {
@@ -2885,7 +2890,7 @@
     "creeping_dread": {
         "id": "creeping_dread",
         "name": "Creeping Dread",
-        "description": "Apply 1 Weakened + 1 Dazed to side.",
+        "description": "Apply 3 Weakened + 3 Dazed to side.",
         "element": "Dark",
         "target": "Side",
         "category": "Status",
@@ -2900,13 +2905,13 @@
             {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 1,
+                "stacks": 3,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 1,
+                "stacks": 3,
                 "target": "TARGET"
             }
         ]
@@ -2936,7 +2941,7 @@
     "boulder_smash": {
         "id": "boulder_smash",
         "name": "Boulder Smash",
-        "description": "40 power.",
+        "description": "30 power.",
         "element": "Earth",
         "target": "Single",
         "category": "Attack",
@@ -2958,7 +2963,7 @@
     "stone_fist": {
         "id": "stone_fist",
         "name": "Stone Fist",
-        "description": "25 power. Gain 1 Sharp.",
+        "description": "24 power. Gain 1 Sharp.",
         "element": "Earth",
         "target": "Single",
         "category": "Attack",
@@ -2972,7 +2977,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 19,
+                "power": 24,
                 "target": "TARGET"
             },
             {
@@ -3009,7 +3014,7 @@
     "tremor": {
         "id": "tremor",
         "name": "Tremor",
-        "description": "25 power to side.",
+        "description": "18 power to side.",
         "element": "Earth",
         "target": "Side",
         "category": "Attack",
@@ -3082,7 +3087,7 @@
     "smite": {
         "id": "smite",
         "name": "Smite",
-        "description": "35 power.",
+        "description": "27 power.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",

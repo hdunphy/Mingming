@@ -181,3 +181,82 @@ Re-gate needed (the 1e band takes a slightly harder cut than 3e, which favours t
 OS): kraken fell to 0.28, fixed with TIDAL_CRUSH 1.2 → **1.15** and `ink_stream` 11 → **12**.
 `ink_stream` is a CARDS_DRAWN scaler and correspondingly twitchy — 13 overshot to 0.65 and
 pulled the mirror back to 4.9 turns; 12 is the seat.
+
+## rev 3.4 — pricing corrections (ticket 28) and the status top-up (ticket 29, 2026-08-07)
+
+**The curve constants did not move.** `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`,
+unchanged from rev 3.3. What changed is *what the model charges for* — five places where
+powerscale was billing a card for value the engine never delivers, or failing to bill it for
+a cost the engine does.
+
+### 1. Mutually exclusive branches are scored `max()`, not `sum()`
+
+A card whose two `HEALTH_THRESHOLD` branches are complementary (`GT:50` / `LT:51`) resolves
+exactly ONE of them, never both. Each branch was taking the 0.7 condition discount and the
+two were then summed — a **1.4× charge for something worth 1.0×**. `blood_rite` scored 4.40
+against a 3.00 cap while measuring at *under* a 1e card's damage rate.
+
+Narrow by construction. Only paired GT/LT `HEALTH_THRESHOLD` conditionals on the same target
+group. A lone conditional (`berserk_rush`'s "+17 below 50%") has nothing to be exclusive
+*with*. Non-threshold conditionals that stack on an unconditional base — `molten_core`'s
+`self_sharp` — keep summing, which is correct for them. The 0.7 discount stays on the
+surviving branch: you always get one half, but you do not choose which.
+
+### 2. `damageOverride` is literal HP, not curve power
+
+It bypasses `calculateDamage` entirely. `desperate_strike`'s 10 HP self-hit is 13% of a 75 HP
+pool — 40 power at the spec's 3-power-per-1%-maxHP rate — and was being scored as `power: 10`,
+a **4× under-charge on the one term meant to make the card cost something**. Priced now
+against `ASSUMED_MAX_HP = 75`. Affects `desperate_strike`, `glass_cannon`, `dark_pact`.
+
+### 3. Stream statuses re-priced: Strengthened/Dazed **15 → 5**, Weakened/Sharp **10 → 3.5**
+
+The old prices were never derived. A 2%/stack damage modifier is worth 2% of the damage you
+have LEFT to deal: a pool is ~263 power, so a stack landed turn 1 is worth `0.02 × 263 = 5.3`
+power and one landed mid-fight about half that. Measured independently: 1 Strengthened on
+fenrir_v1 was worth **+1.1 HP across a whole game**, i.e. 3.7 power. 5 is the generous end of
+that range; 3.5 holds the old 1.5:1 offense:defense ratio.
+
+This is why `desperate_strike` existed: 1.35 score of upside for a self-hit the model also
+under-charged, so a card costing 13% of a health pool to gain ~1 HP of damage scored
+comfortably UNDER its 0-cost cap.
+
+### 4. Priced stacks are capped at the engine's cap
+
+`Hooks.ts` applies 2%/stack to a **net cap of 25%**, so the 13th stack and everything after it
+changes nothing — but the price was linear and uncapped. The model would charge 10.0 for 20
+stacks that deliver exactly what 13 do. Any card designed against the uncapped price is paying
+for stacks the engine throws away.
+
+### 5. What this implies for design — read this before pricing a status card
+
+At the honest price, **a pure 2%/stack status card cannot fill a 2e budget without running
+into the 25% cap.** 6.5 score at 5 power/stack is 13 stacks, which IS the cap. A 3e pure-status
+card is impossible. Statuses have to be paired with damage, draw, or scope (the Side ×2.2
+multiplier) to reach curve — or the status itself has to be worth more than 2%/stack. That is
+a live design question, deliberately left open.
+
+### Ticket 29: the top-up
+
+Ticket 28 left 32 stream-status cards reading under budget. Ticket 29 brings 21 of them back to
+curve — raising attack power where the card already had an attack, raising stacks where the
+status IS the card. Stack counts get noticeably larger as a result (`cold_snap` 2 → 8 Weakened,
+`shield_shards` 2 → 9 Sharp): that is the honest consequence of pricing a 2%/stack effect at 3.5
+power, and it changes the *texture* of status numbers across the registry.
+
+**Eleven cards were deliberately NOT topped up, and must not be "fixed" without thought:**
+
+- **Model blind spots** — `scry`, `keen_edge`, `soothe`, `spiked_carapace`, `equilibrium`,
+  `acid_splash`, `curse_mark`. Their score is dominated by an action powerscale prices at
+  **zero** (DRAW, CLEANSE, SEARCH, shields). The gap is the model failing to see the card, not
+  the card being weak. Buffing to "curve" here buffs straight past it.
+- **Drawback cards** — `desperate_strike`, `dark_pact`, `all_in`, `reckless_charge`,
+  `glass_cannon`. Under budget because the self-harm is now priced honestly. Whether they get
+  compensating power is a design call, not a mechanical top-up.
+
+**A known blind spot with no fix in the model:** powerscale is per-card static analysis with no
+deck or OS context, so it cannot see that a conditional is *guaranteed* by the deck's own OS.
+`brute_force` takes the 0.7 discount on `+22 power if you have Strength` while skoll_v1's
+TREACHERY_KERNEL grants Strengthened every time skoll is hit — the condition is near-certain,
+and the card measures at **33 damage per play against a 19.5 rate for its cost**. Conditionals
+that an OS makes free need manual review; the auditor will never flag them.

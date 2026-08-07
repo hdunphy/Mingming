@@ -148,6 +148,19 @@ const POWER_PER_PERCENT_MAXHP = 3;
 // All in POWER, converted to the /10 score unit at the call site (matches ATTACK/HEAL).
 
 /**
+ * Stacks that actually do something. Hooks.ts applies 2%/stack to a NET CAP of 25%, so
+ * the 13th stack and every stack after it changes nothing - but the price was linear and
+ * uncapped, so the model would happily charge a card 10.0 for 20 stacks that deliver the
+ * same 25% as 13. Any card designed against the uncapped price is paying for stacks the
+ * engine throws away.
+ */
+const streamStacks = (stacks: number): number =>
+    Math.min(stacks, Math.ceil(STATUS_PCT_CAP_MIRROR / STATUS_PCT_PER_STACK_MIRROR));
+/** Mirrors Hooks.ts applyDamageModifiers - kept in sync with the engine constants. */
+const STATUS_PCT_PER_STACK_MIRROR = 0.02;
+const STATUS_PCT_CAP_MIRROR = 0.25;
+
+/**
  * 2%/stack, 25% cap; offense stream (accelerates a fight, priced higher).
  *
  * Ticket 28: 15 -> 5. The old price was never derived, and it was 3-6x what the status
@@ -172,7 +185,15 @@ const DEFENSE_STREAM_POWER_PER_STACK = 3.5;
  *  the re-pricing ticket 24 declined - that would have moved the price while the tiers stayed
  *  put (double-counting); this moves the tiers and lets the derived price follow. */
 const BURN_TIER_POWER = [4.5, 15, 40];
-const BURN_OVERFLOW_POWER_PER_STACK = 24;
+/**
+ * Ticket 29: 24 -> 3, following the engine. Ticket 28 repriced the overflow burst from the
+ * max Burn tier (8% maxHP) to 0.01 of maxHP per excess stack, so an overflow stack is now
+ * worth 1% of a pool = 3 power at the spec rate - and on today's 75-79 HP pools it floors
+ * to 0 damage outright. Leaving the price at 24 kept charging cards a third of a 2-energy
+ * budget for an effect that no longer happens: `scorch` scored 6.40 against a 6.50 cap
+ * while its 4th Burn stack did literally nothing.
+ */
+const BURN_OVERFLOW_POWER_PER_STACK = 3;
 const ENERGIZED_POWER_PER_STACK = 35;
 const STUNNED_POWER = 55;
 const ASLEEP_POWER = 45;
@@ -283,9 +304,9 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
             const status = action.status;
 
             if (status === 'Strengthened' || status === 'Dazed') {
-                actionScore = (absStacks * OFFENSE_STREAM_POWER_PER_STACK) / 10.0;
+                actionScore = (streamStacks(absStacks) * OFFENSE_STREAM_POWER_PER_STACK) / 10.0;
             } else if (status === 'Weakened' || status === 'Sharp') {
-                actionScore = (absStacks * DEFENSE_STREAM_POWER_PER_STACK) / 10.0;
+                actionScore = (streamStacks(absStacks) * DEFENSE_STREAM_POWER_PER_STACK) / 10.0;
             } else if (status === 'Burn') {
                 actionScore = burnPower(absStacks) / 10.0;
             } else if (status === 'Poison') {
