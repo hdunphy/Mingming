@@ -76,12 +76,12 @@
     "brute_force": {
         "id": "brute_force",
         "name": "Brute Force",
-        "description": "50 power. +15 power if you have Strength.",
+        "description": "25 power. +8 power if you have Strength.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
-        "baseCost": 2,
+        "baseCost": 1,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -90,12 +90,12 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 50,
+                "power": 25,
                 "target": "TARGET"
             },
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 8,
                 "target": "TARGET",
                 "conditionals": [
                     {

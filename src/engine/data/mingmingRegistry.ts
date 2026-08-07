@@ -137,8 +137,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         id: "skoll",
         name: "Skoll",
         baseStats: {
-            hp: 60,
-            attack: 105,
+            hp: 70,
+            attack: 95,
             defense: 55,
             energy: 2
         },
@@ -148,7 +148,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         availableOS: ["skoll_v1", "skoll_v2"],
         // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
         decks: {
-            "skoll_v1": ["fury_strike", "fury_strike", "adrenaline", "adrenaline", "overdrive", "brute_force", "fire_punch_v2", "core_overclock_daemon", "water_slap"],
+            "skoll_v1": ["fury_strike", "fury_strike", "adrenaline", "adrenaline", "fire_punch_v2", "brute_force", "fire_punch_v2", "core_overclock_daemon", "water_slap"],
             "skoll_v2": ["ignite", "scorch", "fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "fire_punch_v2", "fire_punch_v2", "water_slap"]
         },
         moves: [

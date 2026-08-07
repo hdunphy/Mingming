@@ -1,6 +1,6 @@
 # HANDOFF — deck-archetypes map (keep this current every session)
 
-*Last updated: 2026-08-07, after tickets 26-30 landed. If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
+*Last updated: 2026-08-07, after tickets 26-31 landed. **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
 ## Read this first: which band applies
 
@@ -14,16 +14,16 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 ## Where things stand
 
 - Branch **card-dev**. Tickets 01–28 closed; 29 in flight. **6 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll). The other 10 are placeholders — **do not read their numbers as balance signal.**
-- **Latest full gate (after ticket 30), tuned species only:**
+- **Latest full gate (after ticket 31), tuned species only:**
 
   | species | §2.3 | mirror turns | dead cards |
   |---|---|---|---|
   | kraken | 0.540 | 5.1 | 10.1% |
   | fenrir | 0.394 | 5.2 | 25.4% |
   | jormungandr | 0.390 | 6.4 | 5.6% |
+  | sköll | 0.640 | 3.7 | 32.3% |
   | sleipnir | 0.330 | 4.5 | 14.7% |
   | hraesvelgr | 0.310 | 3.2 | 4.0% |
-  | sköll | 0.690 | 3.3 | **51.2%** ← only open band breach |
 
 - **THE CURVE IS rev 3.5: `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`.** The constants have not moved since rev 3.3 — rev 3.4 is five *pricing* corrections, all documented in `power_curve_spec.md`. **`powerscale.ts` is the executable truth; where the prose disagrees, powerscale wins.**
 - **Cards STAY on-curve — fix enablers (OS/deck structure), never bend card economics.** Henry's law, proven three times now (kraken OS decomposition, MOMENTUM_DRIVE, and Burn overflow).
@@ -49,10 +49,9 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
-1. **Sköll dead cards 51.2%** (band 0.35) — the only open first-pass breach. **Ticket 29 blamed the stat line and ticket 30's sweep disproved that**: walking skoll all the way from 60/105/55 to 85/80/55 buys 0.7 turns and only 5 points of dead cards. The cause is the DECK'S COST CURVE against a 2-Energy economy — skoll_v1 holds three 2e cards, so the optimal line every turn is "0e + one 2e" and all five 1e cards are structurally locked out. Stats 80/85/55 *plus* cutting to one 2e card reaches §2.3 0.588 / 4.3 turns / **33.6% dead** — in band. Neither lever alone is enough. Nothing committed; Henry's call.
-2. **Sköll's firmware over-feeds rather than ramps.** `TREACHERY_KERNEL` reads like a build-over-time engine, but measured peak Strength on skoll_v1 is **13.7 stacks in 3.4-turn games** (16.5 at 4.1 turns) against a 12.5-stack damage cap and an 8-stack cap on `CORE_OVERCLOCK`'s scaler. It is saturated by turn 2 — which is why dropping that multiplier 1.2 → 1.10 moved the mirror by 0.02 turns. The "gets scarier the more it is hurt" fantasy never plays as a curve. Firmware generosity question, not a stat question.
-3. **`brute_force` is the sköll pace driver**: 2e, **33.0 damage per play** against a 19.5 rate for its cost, cast 1.25×/game. It scores exactly at cap (6.50) only because its `+22 power if you have Strength` takes the 0.7 conditional discount — while skoll_v1's TREACHERY_KERNEL grants Strengthened every time sköll is hit, making the condition near-certain. **powerscale cannot see OS-guaranteed conditionals and never will**; this needs a manual call.
-3. **Sköll's dead cards are a pace symptom, not bad cards.** The game ends in 3.73 turns having drawn ~40 card instances against ~11 energy of casting. v1 play rates: `adrenaline` 27%, `overdrive` 46%, `fire_punch_v2` 48%, `fury_strike` 49%, `core_overclock_daemon` 50%. Slow the deck (brute_force) before touching the cards.
+1. **Sköll is CLOSED (ticket 31).** The cause was the deck's cost curve against a 2-Energy economy, not the stat line and not the daemon: three 2e cards in a 9-card deck makes "0e + one 2e" the whole turn, every turn, locking out all five 1e cards. Fixed by cutting `overdrive`, re-costing `brute_force` 2e → 1e (25 power, +8 with Strength), and softening the stat line to 70/95/55. **0.690 → 0.640, dead 50.9% → 32.3%.** Two useful negatives: a SINGLE 2e swap never clears the band (best is 43.0%), and enlarging the deck moves §2.3 a lot but dead cards barely — the metric counts instances that reached a hand, so a bigger deck just means more instances seen.
+2. **STILL OPEN — TREACHERY_KERNEL over-feeds.** Peak Strength on skoll_v1 measures **13.7 stacks in 3.4-turn games** (16.5 at 4.1) against a 12.5-stack damage cap and an 8-stack cap on `CORE_OVERCLOCK`'s scaler. The ramp is pinned by turn 2 and the rest is discarded — which is why dropping that multiplier 1.2 → 1.10 moved the mirror by 0.02 turns. "Gets scarier the more it is hurt" never plays as a *curve*. Nothing in the card layer can fix that; it is a firmware-generosity question and it is the natural next sköll ticket.
+3. **`brute_force`'s OS-guaranteed-conditional redline is closed** by the re-cost. It took the 0.7 uncertainty discount while the OS made Strength near-certain — priced as certain it was 72 power against a 65 cap; at 25+8 it is 33 against 30. **The general problem remains:** powerscale is per-card static analysis with no deck or OS context and will never flag this class. Check it by hand whenever a conditional's trigger is something the firmware supplies.
 4. **`scorch` was collateral damage from the Burn overflow fix** — a 2e card applying 4 Burn, whose 4th stack now overflows for nothing. skoll_v2's whole Burn plan delivers only 4.9 HP/game residual. Re-cost it.
 5. **CORRECTION to ticket 29's "model blind spot" list.** `scry`, `keen_edge`, `soothe`, `spiked_carapace`, `equilibrium`, `acid_splash`, `curse_mark` are NOT blind spots — DRAW (15 power/card), ENERGY (20/point), HEAL, BarkShield and Poison are all priced, and all seven return an empty `manualReview`. They are ordinary rework candidates. The genuinely unpriced set is three cards using `MANUAL_REVIEW_TYPES`: `scavenge_data` (SEARCH), `reprogram` (PLAY_LAST_CARD), `purify` (CLEANSE) — they score 0.00 and flag themselves.
 6. **Scoring bug, found and NOT fixed:** `soothe` removes a debuff via negative stacks, but the scorer takes `Math.abs(stacks)` before the debuff-on-self sign flip, so removing a debuff is priced as applying one. `soothe` scores **-0.80** against a 1.0 cap. Any cleanse-by-negative-stacks card is mispriced the same way.
