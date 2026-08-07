@@ -35,6 +35,32 @@ const STATUS_HORIZON_TURNS = 2.5;
 /** 1 energy ~ 1/4 of a turn's throughput (4-energy turns at the balance frame). */
 const ENERGY_TURN_FRACTION = 0.25;
 
+/**
+ * Ticket 27: cards in hand. The old eval scored HP and statuses only, so a card was worth
+ * ZERO - "draw a card" payoffs were invisible and discarding cost nothing. The limiting
+ * resource is ENERGY, not cards: a side casts about `maxEnergy` cards a turn however many it
+ * holds, so the first `maxEnergy` cards carry real value and the rest is overdraw worth a
+ * tenth as much. That is deliberately kind to discard archetypes - shedding cards you could
+ * never afford to cast is nearly free, which is the trade a windmill deck is making.
+ *
+ * This is the truthful reading, and it re-rates decks accordingly: kraken's §2.3 moves
+ * 0.57 -> 0.68, which says the kraken v1 list is stronger than the old eval could see.
+ * Accepted knowingly - Water gets re-gated after every species has had a first pass.
+ */
+const CARD_VALUE_TURNS = 0.25;
+const CARD_OVERDRAW_DISCOUNT = 0.1;
+
+function handValue(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
+    const party = side === 'PLAYER' ? state.playerParty : state.enemyParty;
+    const deck = side === 'PLAYER' ? state.playerDeck : state.enemyDeck;
+    const frame = party[0];
+    if (!frame) return 0;
+    const window = Math.max(1, frame.maxEnergy);
+    const held = deck.hand.length;
+    return HP_POINTS * frame.maxHp * TURN_DAMAGE_FRACTION * CARD_VALUE_TURNS
+        * (Math.min(held, window) + Math.max(0, held - window) * CARD_OVERDRAW_DISCOUNT);
+}
+
 /** Mirrors Hooks.ts applyDamageModifiers: 2%/stack, net cap 25% either way. */
 const STATUS_PCT_PER_STACK = 0.02;
 const STATUS_PCT_CAP = 0.25;
@@ -62,7 +88,7 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
             // = maxHp/100 x S(S+1)/2 (StatusBehaviors PoisonBehavior.endTurn).
             return -HP_POINTS * entity.maxHp * 0.01 * (s * (s + 1) / 2);
         case 'Burn':
-            // Tiered % maxHp per tick (2/5/12%), decays 1/turn. Def shred ignored (small).
+            // Tiered % maxHp per tick (1.5/3.5/8%), decays 1/turn. Def shred ignored (small).
             return -HP_POINTS * entity.maxHp * burnTotalPercent(s);
         case 'Regen':
             // 3% maxHp x stacks per tick, decrementing; healing past full is wasted,
@@ -104,11 +130,26 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
 function getEntityScore(entity: IBattleEntity): number {
     if (entity.currentHp <= 0) return 0; // Dead units have 0 score
 
-    let score = entity.currentHp * HP_POINTS;
+    // Ticket 27: HP is CONCAVE, not linear - the last sliver keeps you alive, the top of the
+    // bar is spendable. Linear HP made the AI take the bigger damage line right up to death
+    // (fenrir_v1 dove to 13.9% average HP in 40/40 games and cast its heal once). Blended 85%
+    // toward sqrt and 15% back toward linear per Henry: enough to make healing urgent while
+    // dying and spending cheap while healthy, without rewriting every matchup's instincts.
+    const hpFraction = entity.currentHp / Math.max(1, entity.maxHp);
+    const concavity = 0.85;
+    let score = HP_POINTS * entity.maxHp
+        * (concavity * Math.sqrt(hpFraction) + (1 - concavity) * hpFraction);
 
     for (const status of entity.statusEffects) {
         score += statusValue(status.type, status.stacks, entity);
     }
+
+    // Ticket 27: an INSTALLED daemon is worth something. Its whole value is future hooks, and
+    // scoring installs at 0 meant the AI almost never played one - core_overclock_daemon and
+    // hoofbeat_daemon both sat at an 18% play rate for 0 damage. Valued at half a turn's
+    // throughput apiece, a deliberate under-estimate since the alternative was zero. Measured:
+    // both rose to ~60% played.
+    score += (entity.daemons?.length ?? 0) * HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * 0.5;
 
     return score;
 }
@@ -128,7 +169,8 @@ function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
     // Kill bonus: strongly incentivize finishing off enemies
     const oppDead = state[oppPartyKey].filter(e => e.currentHp <= 0).length;
 
-    return myScore - oppScore + (oppDead * 50);
+    return myScore - oppScore + handValue(state, side)
+        - handValue(state, side === 'PLAYER' ? 'ENEMY' : 'PLAYER') + (oppDead * 50);
 }
 
 /** A depth-0 first action with the best same-turn continuation found behind it. */
