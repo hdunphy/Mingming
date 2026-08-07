@@ -352,3 +352,31 @@ model cannot see those effects, so it declines to invent a number for them.
 
 Nine daemons now carry a non-zero score for the first time. One is over budget -
 `fertile_ground_daemon` at **7.60 against a 6.5 band** - reported, deliberately not re-tuned here.
+
+## rev 3.7 — the band is a target, not a law (ticket 33)
+
+**Henry's ruling: the budget band is a target, not a law. Some cards ship over and some under,
+and that spread is intended.** `thorn_tithe` ships at **+0.1** and `thornguard` at **+0.3**, both
+recorded as accepted rather than as redlines to chase.
+
+This does **not** loosen the standing rule that *imbalance* is fixed at the enabler rather than by
+bending card economics. The two say different things:
+
+- **Small variance around the band is normal.** A card at 3.1 against a 3.0 cap is a card, not a
+  bug. Chasing every ±0.3 produces a registry of identical cards.
+- **A deck that wins 70/30 is still fixed at its enabler.** The OS, the deck's cost curve, the
+  mechanic — not by shaving the cards that happen to be in it.
+
+The auditor still reports every overage; the ticket decides which ones matter.
+
+### Corollary from ticket 33's knob round
+
+`hexbloom` hand-prices to **7.96 at its measured 6.8 consumed stacks**, 23% over its 6.5 band —
+genuinely off-curve, not band noise. The authorised fix was a half conversion, and it **failed
+in a way worth recording**: §2.3 barely moved (0.790 → 0.740) while the mirror **collapsed from
+20.6 turns back to 47.7, and decided games from 368/400 to 176/400**.
+
+The lesson is that `hexbloom` was not the imbalance — it was the *clock*. Gutting it removed the
+Poison pressure that was resolving the stall this whole pass existed to fix, and left the win-rate
+skew untouched because that skew comes from ALLURE_PROXY generating Weakened for free. **Enabler,
+not economics** — exactly the standing rule, arrived at from the other direction.

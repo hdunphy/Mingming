@@ -338,7 +338,14 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             const power = action.power || action.healOverride || 0;
             actionScore = (power / 10.0) * ACTION_WEIGHTS['HEAL'];
         } else if (action.type === 'STATUS') {
-            const stacks = action.stacks || 1;
+            // Ticket 33: STATUS_CONSUMED reads a count produced at runtime by a preceding
+            // consume action, which static analysis cannot see - the literal `stacks` is 1 and
+            // meaningless. Price at ASSUMED_STATUS_COUNT. This is a FLOOR, not a price, the
+            // same caveat ticket 32 carries for `slander` and the daemons: hexbloom at its
+            // realistic 6 consumed stacks hand-prices to 6.3 against a 6.5 band.
+            const stacks = action.scaling === 'STATUS_CONSUMED'
+                ? (action.stacks || 1) * ASSUMED_STATUS_COUNT
+                : (action.stacks || 1);
             const absStacks = Math.abs(stacks);
             const status = action.status;
 

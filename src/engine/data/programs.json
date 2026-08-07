@@ -3884,5 +3884,183 @@
                 "target": "TARGET"
             }
         ]
+    },
+    "thorn_tithe": {
+        "id": "thorn_tithe",
+        "name": "Thorn Tithe",
+        "description": "40 power. Gain 3 Weakened.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "hexbloom": {
+        "id": "hexbloom",
+        "name": "Hexbloom",
+        "description": "Consume all Weakened on the target. Apply that many Poison.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "consume": true,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "scaling": "STATUS_CONSUMED",
+                "target": "TARGET"
+            }
+        ]
+    },
+    "sap_vigor": {
+        "id": "sap_vigor",
+        "name": "Sap Vigor",
+        "description": "5 power. Gain 1 Strength.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 5,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "heartwood": {
+        "id": "heartwood",
+        "name": "Heartwood",
+        "description": "Gain 6 BarkShield. Apply 1 Poison.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "BarkShield",
+                "stacks": 6,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "thornguard": {
+        "id": "thornguard",
+        "name": "Thornguard",
+        "description": "20 power. Apply 3 Poison if you are shielded.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 3,
+                "target": "TARGET",
+                "conditionals": [
+                    {
+                        "type": "HAS_STATUS",
+                        "target": "SELF",
+                        "value": "BarkShield"
+                    }
+                ]
+            }
+        ]
+    },
+    "blightbloom": {
+        "id": "blightbloom",
+        "name": "Blightbloom",
+        "description": "20 power. Apply 5 Poison.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 5,
+                "target": "TARGET"
+            }
+        ]
     }
 }

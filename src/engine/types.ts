@@ -249,6 +249,10 @@ export interface StatusActionData extends ProgramAction {
   readonly status: StatusType;
   readonly stacks: number; // Negative value means remove stacks
   readonly consume?: boolean; // If true, completely removes status and returns stacks
+  /** Ticket 33: multiply `stacks` by the count removed by a preceding consume action in the
+   *  same card (hexbloom: "consume all Weakened, apply that many Poison"). Mirrors the
+   *  STATUS_CONSUMED path that already existed for HEAL only. */
+  readonly scaling?: 'STATUS_CONSUMED';
 }
 
 export interface HealActionData extends ProgramAction {

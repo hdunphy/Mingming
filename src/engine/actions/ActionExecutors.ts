@@ -156,6 +156,15 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: StatusActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { status, stacks, consume } = actionData;
 
+        // Ticket 33: STATUS_CONSUMED scaling, previously implemented for HEAL only. Multiply
+        // by the count a preceding consume action in the SAME card recorded (hexbloom:
+        // "consume all Weakened on the target, apply that many Poison"). The `consume` branch
+        // below returns early, so a consume action can never read its own multiplier - which
+        // is what guarantees the two actions resolve in the authored order.
+        const effectiveStacks = actionData.scaling === 'STATUS_CONSUMED'
+            ? (stacks || 0) * (state.lastStatusConsumed ?? 0)
+            : stacks;
+
         if (consume) {
             // Remove ALL stacks of the status and record how many were consumed
             // so a follow-up action with scaling: 'STATUS_CONSUMED' can use it
@@ -190,10 +199,13 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             return newState;
         }
 
-        if (stacks < 0) {
+        // A scaled apply that resolves to nothing must not create a 0-stack status instance.
+        if (actionData.scaling === 'STATUS_CONSUMED' && effectiveStacks === 0) return state;
+
+        if (effectiveStacks < 0) {
             // Contract (types.ts): negative stacks removes that many stacks,
             // deleting the status only when it reaches 0.
-            const removeCount = -stacks;
+            const removeCount = -effectiveStacks;
             const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                 party.map(e => {
                     if (e.id !== targetId) return e;
@@ -218,7 +230,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             type: 'STATUS',
             targetId: targetId,
             sourceId: sourceId,
-            payload: { status, stacks }
+            payload: { status, stacks: effectiveStacks }
         }]);
     }
 }

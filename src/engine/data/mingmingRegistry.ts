@@ -389,9 +389,21 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         cardDraw: 3,
         availableOS: ["huldra_v1", "huldra_v2"],
         // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 33 (Henry's design): real per-OS decks. Nature completes at 16/32.
+        // v1 ALLURE_PROXY - N2 buff-mirror hex. Every status she puts on her own side mirrors
+        //    1 Weakened onto a random enemy, so the deck debuffs for free and hexbloom cashes
+        //    the pile as Poison. thorn_tithe's SELF-Weakened is deliberate: the hook has no
+        //    positive-status filter and ALLY includes self, so a self-debuff mirrors too.
+        //    DELIBERATELY the weakest deck in the roster and team-leaning - see the ticket.
+        // v2 BARK_SHIELD_OS - H1 shield wall on a Poison clock. Distinct from jormungandr_v2's
+        //    poison attrition at the payoff level because a shield DECAYS and a heal does not:
+        //    she is the fast poison deck that must win inside the shield's life, where jorm's
+        //    2 HP/turn trickle rewards the opposite. heartwood earns its slot on shield UPTIME
+        //    (keeping thornguard's conditional live), not on mitigation - a 1e budget buys 7%
+        //    maxHP against an OS that grants 50%.
         decks: {
-            "huldra_v1": ["water_slap", "water_slap", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"],
-            "huldra_v2": ["water_slap", "water_slap", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"]
+            "huldra_v1": ["growth", "growth", "soothe", "water_slap", "iron_bark", "iron_bark", "thorn_tithe", "thorn_tithe", "hexbloom"],
+            "huldra_v2": ["sap_vigor", "sap_vigor", "water_slap", "nettle_sting", "nettle_sting", "heartwood", "thornguard", "thornguard", "blightbloom"]
         },
         moves: [
             {

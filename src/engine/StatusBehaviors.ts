@@ -425,6 +425,19 @@ class StableOSBehavior extends StatusBehavior {
 // --- BarkShield (Temporary Health as % of maxHp, decays 20%/turn) ---
 
 /**
+ * Fraction of a BarkShield pool retained each turn (0.8 = the historical 20%/turn decay).
+ * Ticket 33: extracted so it can be swept. Henry's question was whether 20%/turn is too fast
+ * when the enemy is also chipping the pool from the other side - huldra_v2's 50% grant is a
+ * third gone by her third turn before anyone attacks it.
+ *
+ * REGISTRY-WIDE, not huldra's. glacier_wall, stone_bark, spiked_carapace and shield_shards all
+ * grant BarkShield, and Earth and Ice are both still placeholder species - a slower decay
+ * silently buffs their future decks. Swept and reported in ticket 33; left at 0.8 pending the
+ * Earth/Ice passes.
+ */
+const BARKSHIELD_DECAY_RETAINED = 0.8;
+
+/**
  * docs/power_curve_spec.md rev 3: `stacks` now represents % of the holder's maxHp
  * (was flat HP points), so a shield is level-proof the same way Burn/Regen/Poison
  * already are. The absorb pool is recomputed from the holder's current maxHp each
@@ -480,7 +493,7 @@ class BarkShieldBehavior extends StatusBehavior {
 
     endTurn(instance: StatusEffectInstance, _entity: IBattleEntity): EndTurnResult {
         const logs: string[] = [];
-        const newStacks = instance.stacks * 0.8;
+        const newStacks = instance.stacks * BARKSHIELD_DECAY_RETAINED;
         const lost = instance.stacks - newStacks;
 
         if (lost > 0.05) {

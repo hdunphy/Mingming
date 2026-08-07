@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "spec": "docs/balance_testing.md",
   "command": "npm run balance",
-  "registryHash": "1:540fc3e9",
+  "registryHash": "1:0ee879a5",
   "summary": {
-    "redlines": 44,
-    "cardRedlines": 29,
+    "redlines": 46,
+    "cardRedlines": 31,
     "matchupRedlines": 15,
-    "cardsAudited": 147,
+    "cardsAudited": 153,
     "matchupsAudited": 48,
     "suitesReported": [
       "mirror",
@@ -229,6 +229,16 @@
         "manualReview": []
       },
       {
+        "id": "thornguard",
+        "name": "Thornguard",
+        "cost": 1,
+        "score": 3.3,
+        "perEnergy": 3.3,
+        "budget": 3,
+        "overBudgetBy": 0.3,
+        "manualReview": []
+      },
+      {
         "id": "photosynthesis_v2",
         "name": "Photosynthesis",
         "cost": 1,
@@ -327,6 +337,16 @@
         "budget": 3,
         "overBudgetBy": 0.1,
         "manualReview": []
+      },
+      {
+        "id": "thorn_tithe",
+        "name": "Thorn Tithe",
+        "cost": 1,
+        "score": 3.1,
+        "perEnergy": 3.1,
+        "budget": 3,
+        "overBudgetBy": 0.1,
+        "manualReview": []
       }
     ]
   },
@@ -347,9 +367,9 @@
       "decisive": 1500,
       "decisiveWinRate": 0.4113,
       "winRate": 0.4113,
-      "averageTurns": 6.7,
-      "deadCardRatio": 0.1532,
-      "enemyDeadCardRatio": 0.1566,
+      "averageTurns": 6.31,
+      "deadCardRatio": 0.1458,
+      "enemyDeadCardRatio": 0.1491,
       "ftkCount": 0,
       "truncatedCount": 0,
       "firstMoverEdge": null,
@@ -555,9 +575,9 @@
       "decisive": 100,
       "decisiveWinRate": 0,
       "winRate": 0,
-      "averageTurns": 12.02,
-      "deadCardRatio": 0.395,
-      "enemyDeadCardRatio": 0.165,
+      "averageTurns": 6.25,
+      "deadCardRatio": 0.285,
+      "enemyDeadCardRatio": 0.0389,
       "ftkCount": 0,
       "truncatedCount": 0,
       "firstMoverEdge": 0,
@@ -994,32 +1014,21 @@
       "enemy": "huldra",
       "enemyOS": "huldra_v1",
       "iterations": 400,
-      "playerWins": 79,
-      "enemyWins": 72,
-      "draws": 249,
-      "decisive": 151,
-      "decisiveWinRate": 0.5232,
-      "winRate": 0.1975,
-      "averageTurns": 54.63,
-      "deadCardRatio": 0.1605,
-      "enemyDeadCardRatio": 0.161,
+      "playerWins": 183,
+      "enemyWins": 185,
+      "draws": 32,
+      "decisive": 368,
+      "decisiveWinRate": 0.4973,
+      "winRate": 0.4575,
+      "averageTurns": 20.58,
+      "deadCardRatio": 0.0017,
+      "enemyDeadCardRatio": 0.0061,
       "ftkCount": 0,
-      "truncatedCount": 249,
-      "firstMoverEdge": 0.1225,
-      "sideBias": 0.0578,
+      "truncatedCount": 32,
+      "firstMoverEdge": -0.0109,
+      "sideBias": 0.0058,
       "inconclusive": false,
-      "redlines": [
-        {
-          "kind": "TURN_COUNT",
-          "section": "2.2",
-          "subject": "mirror:huldra",
-          "metric": "averageTurns",
-          "value": 54.63,
-          "threshold": 30,
-          "comparison": "above",
-          "detail": "Averages 54.6 turns with 249/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all."
-        }
-      ]
+      "redlines": []
     },
     {
       "id": "mirror:jormungandr",
@@ -1496,21 +1505,32 @@
       "enemy": "huldra",
       "enemyOS": "huldra_v2",
       "iterations": 100,
-      "playerWins": 16,
-      "enemyWins": 23,
-      "draws": 61,
-      "decisive": 39,
-      "decisiveWinRate": 0.4103,
-      "winRate": 0.16,
-      "averageTurns": 55.21,
-      "deadCardRatio": 0.142,
-      "enemyDeadCardRatio": 0.133,
+      "playerWins": 79,
+      "enemyWins": 21,
+      "draws": 0,
+      "decisive": 100,
+      "decisiveWinRate": 0.79,
+      "winRate": 0.79,
+      "averageTurns": 13.54,
+      "deadCardRatio": 0,
+      "enemyDeadCardRatio": 0.0044,
       "ftkCount": 0,
-      "truncatedCount": 61,
-      "firstMoverEdge": 0.0641,
-      "sideBias": 0.1905,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.03,
+      "sideBias": 0.58,
       "inconclusive": false,
-      "redlines": []
+      "redlines": [
+        {
+          "kind": "OS_GAP",
+          "section": "2.3",
+          "subject": "os:huldra",
+          "metric": "osGap",
+          "value": 0.29,
+          "threshold": 0.15,
+          "comparison": "above",
+          "detail": "huldra_v1 wins 79.0% of the 100 decided games between huldra_v1 and huldra_v2 on an otherwise identical huldra. The weaker variant needs a buff or a lower cost."
+        }
+      ]
     },
     {
       "id": "os:jormungandr",
@@ -2027,6 +2047,26 @@
     {
       "kind": "CARD_OVER_BUDGET",
       "section": "1.3",
+      "subject": "thorn_tithe",
+      "metric": "score",
+      "value": 3.1,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Thorn Tithe (thorn_tithe) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
+      "subject": "thornguard",
+      "metric": "score",
+      "value": 3.3,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Thornguard (thornguard) costs 1 energy and scores 3.3, 0.3 over the 3 budget for that cost."
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
       "subject": "water_slap",
       "metric": "score",
       "value": 1.2,
@@ -2107,16 +2147,6 @@
     {
       "kind": "TURN_COUNT",
       "section": "2.2",
-      "subject": "mirror:huldra",
-      "metric": "averageTurns",
-      "value": 54.63,
-      "threshold": 30,
-      "comparison": "above",
-      "detail": "Averages 54.6 turns with 249/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all."
-    },
-    {
-      "kind": "TURN_COUNT",
-      "section": "2.2",
       "subject": "mirror:nidhoggr",
       "metric": "averageTurns",
       "value": 60.69,
@@ -2163,6 +2193,16 @@
       "threshold": 0.15,
       "comparison": "above",
       "detail": "hraesvelgr_v2 wins 69.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost."
+    },
+    {
+      "kind": "OS_GAP",
+      "section": "2.3",
+      "subject": "os:huldra",
+      "metric": "osGap",
+      "value": 0.29,
+      "threshold": 0.15,
+      "comparison": "above",
+      "detail": "huldra_v1 wins 79.0% of the 100 decided games between huldra_v1 and huldra_v2 on an otherwise identical huldra. The weaker variant needs a buff or a lower cost."
     },
     {
       "kind": "OS_GAP",
