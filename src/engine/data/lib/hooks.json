@@ -305,7 +305,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 7,
+                        "power": 6,
                         "element": "Water"
                     },
                     {
@@ -334,7 +334,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 10,
+                        "power": 9,
                         "element": "Air"
                     },
                     {
@@ -655,7 +655,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 10,
+                        "power": 9,
                         "element": "Air"
                     },
                     {
@@ -1099,7 +1099,7 @@
                     {
                         "type": "ATTACK",
                         "target": "ENEMIES",
-                        "power": 5,
+                        "power": 4,
                         "element": "Fire",
                         "scaling": "SHARP_STACKS"
                     },

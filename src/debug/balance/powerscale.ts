@@ -114,11 +114,15 @@ export interface BudgetBand {
     under: number | null;
 }
 
+// rev 3.2 (ticket 24): the curve moved 10/40/90/140 -> 10/35/75/120, so the bands move
+// with it. The POWER UNIT itself is unchanged - a point of power still buys the same
+// fraction of a health pool - so the per-status prices below are deliberately NOT rescaled.
+// What changed is only how much power a card of a given cost is allowed to carry.
 export const BUDGET_BANDS: ReadonlyArray<BudgetBand> = [
     { cost: 0, over: 1.0, under: 0.8 },
-    { cost: 1, over: 4.0, under: 3.2 },
-    { cost: 2, over: 9.0, under: 7.2 },
-    { cost: 3, over: 14.0, under: 11.2 },
+    { cost: 1, over: 3.5, under: 2.8 },
+    { cost: 2, over: 7.5, under: 6.0 },
+    { cost: 3, over: 12.0, under: 9.6 },
 ];
 
 /** The band a card of this cost is budgeted against. Costs above 3 use the 3+ band. */

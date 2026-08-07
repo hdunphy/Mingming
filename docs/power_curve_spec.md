@@ -131,3 +131,40 @@ bands, the 1e = 40 power unit, and every relative card economics decision surviv
 The one thing a longer game does change is the *value* of slow-build archetypes relative to
 burst ones — which is the entire point of the amendment, and shows up as jormungandr's §2.3
 swinging toward its attrition variant.
+
+## rev 3.2 — curve re-price (ticket 24, 2026-08-07)
+
+**Damage curve `50E−10` → `10 / 35 / 75 / 120`.** Budget bands move with it:
+`BUDGET_BANDS` 1.0 / 4.0 / 9.0 / 14.0 → **1.0 / 3.5 / 7.5 / 12.0**.
+
+rev 3.1 slowed the game by dividing damage globally. This does the other half: the curve
+itself was calibrated to ~3-turn games. Measured at the balance frame, damage ≈ 0.30 ×
+power and a health pool ≈ 79 HP ≈ 263 power, so a deck spending both its Energy on 1e
+damage removed 80 power ≈ 31% of a pool per turn. Sleipnir landed exactly there (28.6%,
+3.17 turns). 10/35/75/120 measures at **5.3 turns average across the tuned species, minimum
+3.7, FTK 0** — the 5–6 target with a 3–4 floor.
+
+**The power UNIT is unchanged and the per-status prices are deliberately NOT rescaled.**
+A point of power still buys the same fraction of a health pool: cards carry less power, so
+they deal proportionally less damage, and the "1% maxHP = 3 power" conversion still holds.
+Only the *budget* per Energy moved. Rescaling the status prices as well would have
+double-counted the change.
+
+### Two findings from the A/B, both worth keeping
+
+**1. An exponential curve is incompatible with a turn-count floor.** `5+10E²`
+(5/15/45/95) and `5+10E^1.5` (5/15/33/57) were both measured. Every v1 deck in the
+registry lost **0/100**, and mirrors ran 10–19 turns. The shape cuts 1e by 62% while
+cutting 3e by only 32%, so cheap decks collapse and expensive decks win everything — the
+*ramp* deck becomes the fastest deck, which is backwards from a minimum turn count. This is
+structural to the shape, not the constants; do not revisit without changing the Energy
+ceiling.
+
+**2. A global curve change under ~20% is invisible to status cards.** Status is quantised
+in whole stacks: at a 0.875 ratio, `corrosive_bolt`'s 4 Poison stacks round straight back
+to 4. Across the whole registry only **5 status stacks** changed. Attack cards take the
+full cut, status cards take none, so any small curve cut systematically favours status
+decks — jormungandr's §2.3 fell 0.33 → 0.04 on the re-price alone, and the smallest
+available stack step (4→3, a 25% cut against the curve's 12.5%) only recovered it to 0.11.
+Status decks must be re-gated by hand after any curve move, and buffing the attack side is
+usually the finer instrument.

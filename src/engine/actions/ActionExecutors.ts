@@ -38,6 +38,9 @@ export abstract class ActionExecutor<T extends ProgramAction> {
  * multiply the computed DAMAGE afterwards — they intentionally stay inside
  * AttackExecutor.
  */
+/** Max Strengthened stacks a STRENGTH_STACKS scaler may multiply by - see ticket 23 follow-up. */
+const STRENGTH_STACK_CAP = 8;
+
 export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<AttackActionData, 'power' | 'scaling'>): number {
     const power = action.power || 0;
     if (action.scaling === 'SHARP_STACKS') {
@@ -45,8 +48,12 @@ export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<Atta
         return power + 5 * sharpStacks;
     }
     if (action.scaling === 'STRENGTH_STACKS') {
+        // Capped at STRENGTH_STACK_CAP so the card cannot exceed its cost's power budget:
+        // uncapped, Momentum Crash measured 29.3 damage a play (38% of a health pool) off
+        // a nominal 10 power - an effective ~98 power for 1 Energy against a 40 budget.
+        // The cap is budget / power, so it re-derives whenever the curve moves.
         const strengthStacks = source.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
-        return power * strengthStacks;
+        return power * Math.min(strengthStacks, STRENGTH_STACK_CAP);
     }
     return power;
 }
