@@ -47,8 +47,23 @@ export const STRENGTH_STACK_CAP = 8;
  *  budget / scalingPower, so it re-derives whenever the curve moves. */
 export const MISSING_HP_PCT_CAP = 50;
 
-export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower'>): number {
+export function getEffectiveAttackPower(
+    source: IBattleEntity,
+    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower'>,
+    target?: IBattleEntity,
+): number {
     const power = action.power || 0;
+    if (action.scaling === 'DAZED_STACKS') {
+        // Ticket 32: reads the TARGET's raw Dazed stacks, deliberately UNCAPPED. The 2%/stack
+        // damage effect is capped at +-25% in Hooks.ts, and bypassing that cap is the entire
+        // point of a payoff card. Henry's law: per-stack scaling attacks should underperform
+        // early and overperform late - that is the shape, not a bug. Cap only if a balance run
+        // shows it running away (the STRENGTH_STACKS cap was added AFTER measurement, not
+        // before). `target` is optional so the UI preview can call this without one; with no
+        // target the card reads as 0 power, which is what an unaimed card is worth.
+        const dazed = target?.statusEffects.find(s => s.type === 'Dazed')?.stacks || 0;
+        return power * dazed;
+    }
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
         return power + 5 * sharpStacks;
@@ -89,7 +104,7 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
 
             // SHARP_STACKS scaling handled by the shared helper (also used by
             // the UI damage preview, so preview and reality cannot drift).
-            const effectivePower = getEffectiveAttackPower(source, actionData);
+            const effectivePower = getEffectiveAttackPower(source, actionData, target);
 
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
@@ -367,12 +382,12 @@ export class ExhaustExecutor extends ActionExecutor<ExhaustActionData> {
 
 export class ReturnExecutor extends ActionExecutor<ReturnActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: ReturnActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
-        const { amount, sourcePile, destinationPile } = actionData;
+        const { amount, sourcePile, destinationPile, filter } = actionData;
         return applyMutations(state, [{
             type: 'RETURN',
             sourceId,
             targetId,
-            payload: { amount, sourcePile, destinationPile }
+            payload: { amount, sourcePile, destinationPile, filter }
         }]);
     }
 }

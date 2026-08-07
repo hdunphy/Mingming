@@ -336,9 +336,19 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
         // Ticket 04: the designed deck belongs to the v1 slot (GOSSIP_NODE); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
+        // Ticket 32 (Henry's design): real per-OS decks. Ratatoskr is attack 55 - the lowest
+        // frame in the roster - offset by 3 Energy and cardDraw 4, so both decks win on card
+        // VOLUME, never on a multiplied single hit. That is also what separates him from
+        // sleipnir_v1, which runs the same 0-cost fuel into a raw-Strength multiplier.
+        // v1 GOSSIP_NODE - card spam. Five 0-costs, each of which echo_chamber turns into a
+        //    Feedback token that re-triggers the OS (the daemon excludes tokens, the OS does
+        //    not), so every real 0-cost is worth two procs. seed_bomb x2 is the payoff.
+        // v2 INSTIGATOR_OS - Dazed stacking. Same fuel, opposite payoff: slander reads the
+        //    target's RAW Dazed stacks and so ignores the +-25% cap the OS would otherwise
+        //    pay into.
         decks: {
-            "ratatoskr_v1": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "thistle_barrage", "pollen_cloud", "photosynthesis_v2", "photosynthesis_v2", "healing_mist", "soothe"],
-            "ratatoskr_v2": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "thistle_barrage", "pollen_cloud", "photosynthesis_v2", "photosynthesis_v2", "healing_mist", "soothe"]
+            "ratatoskr_v1": ["forage", "forage", "water_slap", "water_slap", "healing_mist", "squirrel_away", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
+            "ratatoskr_v2": ["pollen_cloud", "pollen_cloud", "water_slap", "water_slap", "nagging_bite", "nagging_bite", "crippling_vine", "slander", "echo_chamber_v2"]
         },
         moves: [
             {
@@ -380,8 +390,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         availableOS: ["huldra_v1", "huldra_v2"],
         // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
         decks: {
-            "huldra_v1": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"],
-            "huldra_v2": ["leaf_blade", "leaf_blade", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"]
+            "huldra_v1": ["water_slap", "water_slap", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"],
+            "huldra_v2": ["water_slap", "water_slap", "nettle_sting", "nettle_sting", "stunning_strike", "sleep_powder", "sleep_powder", "crippling_vine", "rejuvenation", "overgrowth"]
         },
         moves: [
             {

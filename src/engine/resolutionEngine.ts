@@ -1,9 +1,10 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
+import { numericBaseCost } from './types';
 import { globalBattleEventBus } from './events';
 import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
-import { drawCards, discardCard, exhaustCard, returnCard, searchCard } from './deckLogic';
+import { drawCards, discardCard, exhaustCard, returnCard, searchCard, HAND_SIZE_LIMIT } from './deckLogic';
 import { PRNG } from './core/PRNG';
 import { GetProgramData } from './data/programRegistry';
 
@@ -210,7 +211,16 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
 
                 let sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
                 let sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
-                let toReturn = sourcePile.slice(0, mutation.payload.amount);
+                // Ticket 32: optional cost predicate, then clamp to the space actually left in
+                // hand - RETURN previously ignored HAND_SIZE_LIMIT and silently dropped the
+                // overflow, which makes a "return everything" card unpredictable.
+                const maxCost = mutation.payload.filter?.maxCost;
+                const eligible = maxCost === undefined
+                    ? sourcePile
+                    : sourcePile.filter(c => numericBaseCost(GetProgramData(c.dataId).baseCost) <= maxCost);
+                const headroom = Math.max(0, HAND_SIZE_LIMIT - deck.hand.length);
+                const requested = mutation.payload.amount ?? eligible.length;
+                let toReturn = eligible.slice(0, Math.min(requested, headroom));
 
                 toReturn.forEach(c => {
                     deck = returnCard(deck, c.id, sourcePileStr as any, mutation.payload.destinationPile || 'HAND');

@@ -128,7 +128,7 @@ describe('OS System - Fenrir', () => {
 });
 
 describe('OS System - Ratatoskr', () => {
-    it('v1 (GOSSIP_NODE): heals all allies for 1 HP on 0-cost programs', () => {
+    it('v1 (GOSSIP_NODE): heals all allies for 2.5% of max HP on 0-cost programs', () => {
         let state = createInitialState('ratatoskr_v1');
         state = {
             ...state,
@@ -138,7 +138,9 @@ describe('OS System - Ratatoskr', () => {
 
         const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
-        expect(newState.playerParty[0].currentHp).toBe(51);
+        // Ticket 32: the flat healOverride of 1 became a power-based heal so it scales
+        // with level (maxHp * 10 / 400 = 2.5% of max HP). This frame heals 2, not 1.
+        expect(newState.playerParty[0].currentHp).toBe(52);
     });
 
     it('v2 (INSTIGATOR_OS): applies 1 Dazed to target on 0-cost programs', () => {

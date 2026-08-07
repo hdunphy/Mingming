@@ -241,7 +241,7 @@ export interface AttackActionData extends ProgramAction {
   readonly power: number;
   readonly element?: Element;
   readonly scalingPower?: number; // MISSING_HP: power added per 1% of maxHP missing (ticket 26)
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY';
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -301,6 +301,8 @@ export interface ReturnActionData extends ProgramAction {
   readonly amount: number;
   readonly sourcePile?: 'DISCARD' | 'EXHAUST'; // Default: DISCARD
   readonly destinationPile?: 'HAND' | 'DRAW'; // Default: HAND
+  /** Ticket 32: optional predicate applied before the slice. */
+  readonly filter?: { readonly maxCost?: number };
 }
 
 export interface SearchActionData extends ProgramAction {

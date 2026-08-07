@@ -194,7 +194,7 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
             enemyDeck: {
                 ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
                 hand: [
-                    { id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true },
+                    { id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true },
                     { id: 'eh2', dataId: 'seed_bomb_v2', currentCost: 2, isPlayable: true }
                 ]
             }
@@ -239,7 +239,7 @@ describe('Enemy combat mode guard (locked at battle creation)', () => {
             enemyParty: [makeEntity({ id: 'e1', name: 'CardUser', primaryElement: 'Nature' })],
             enemyDeck: {
                 ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
-                hand: [{ id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true }]
+                hand: [{ id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true }]
             }
         } as any);
         const action = getBestAction(state);
@@ -253,7 +253,7 @@ describe('Enemy combat mode guard (locked at battle creation)', () => {
             enemyParty: [makeEntity({ id: 'e1', name: 'MoveUser', currentIntent: null } as any)],
             enemyDeck: {
                 ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
-                hand: [{ id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true }]
+                hand: [{ id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true }]
             }
         } as any);
         expect(getBestAction(state).type).toBe('END_TURN');

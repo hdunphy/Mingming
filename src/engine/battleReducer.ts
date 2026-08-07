@@ -17,7 +17,7 @@ import { type HookContext } from './core/Hooks';
 import { GetProgramData } from './data/programRegistry';
 import { numericBaseCost } from './types';
 import { effectHandlers, checkDefeat } from './effectHandlers';
-import { discardHand } from './deckLogic';
+import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
@@ -54,7 +54,7 @@ export type BattleAction =
 
 // --- Constants ---
 
-const HAND_SIZE_LIMIT = 9;
+// HAND_SIZE_LIMIT now lives in deckLogic.ts - see the import above.
 const TRANSFER_COST = 2; // Source pays 2
 const TRANSFER_GAIN = 1; // Target gains 1
 

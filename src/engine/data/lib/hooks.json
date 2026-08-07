@@ -145,7 +145,7 @@
     "ratatoskr_v1": {
         "id": "ratatoskr_v1",
         "name": "GOSSIP_NODE",
-        "description": "0-cost programs heal all allies for 1 HP.",
+        "description": "0-cost programs heal all allies for 2.5% of their max HP.",
         "hooks": [
             {
                 "id": "ratatoskr_v1_hook",
@@ -159,7 +159,7 @@
                     {
                         "type": "HEAL",
                         "target": "ALLIES",
-                        "healOverride": 1
+                        "power": 10
                     },
                     {
                         "type": "LOG",

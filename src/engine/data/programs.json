@@ -1235,7 +1235,7 @@
     "echo_chamber_v2": {
         "id": "echo_chamber_v2",
         "name": "Echo Chamber",
-        "description": "Daemon: 0-cost programs generate 0-cost 5 power tokens.",
+        "description": "Daemon: whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
         "element": "Nature",
         "target": "Self",
         "category": "Daemon",
@@ -1306,7 +1306,7 @@
     "seed_bomb_v2": {
         "id": "seed_bomb_v2",
         "name": "Seed Bomb",
-        "description": "Deal 22 power per card played by host this turn.",
+        "description": "Deal 15 power per card played by host this turn.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -1320,7 +1320,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 22,
+                "power": 15,
                 "scaling": "CARDS_PLAYED",
                 "target": "TARGET"
             }
@@ -1564,28 +1564,6 @@
                 "type": "STATUS",
                 "status": "Poison",
                 "stacks": 3,
-                "target": "TARGET"
-            }
-        ]
-    },
-    "leaf_blade": {
-        "id": "leaf_blade",
-        "name": "Leaf Blade",
-        "description": "10 power.",
-        "element": "Nature",
-        "target": "Single",
-        "category": "Attack",
-        "rarity": "Common",
-        "baseCost": 0,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "ATTACK",
-                "power": 10,
                 "target": "TARGET"
             }
         ]
@@ -3352,7 +3330,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 3,
+                "power": 10,
                 "target": "TARGET"
             }
         ]
@@ -3772,6 +3750,138 @@
                 "type": "HEAL",
                 "power": 10,
                 "target": "SELF"
+            }
+        ]
+    },
+    "forage": {
+        "id": "forage",
+        "name": "Forage",
+        "description": "Draw 1. Take damage equal to 15 power.",
+        "element": "None",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "SELF"
+            }
+        ]
+    },
+    "squirrel_away": {
+        "id": "squirrel_away",
+        "name": "Squirrel Away",
+        "description": "Draw 2.",
+        "element": "None",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "DRAW",
+                "amount": 2,
+                "target": "SELF"
+            }
+        ]
+    },
+    "nagging_bite": {
+        "id": "nagging_bite",
+        "name": "Nagging Bite",
+        "description": "15 power. +20 power if the target is Dazed.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET",
+                "conditionals": [
+                    {
+                        "type": "HAS_STATUS",
+                        "target": "TARGET",
+                        "value": "Dazed"
+                    }
+                ]
+            }
+        ]
+    },
+    "hoarders_cache": {
+        "id": "hoarders_cache",
+        "name": "Hoarder's Cache",
+        "description": "Return every 0-cost card from your discard pile to your hand, up to your hand limit.",
+        "element": "Nature",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "RETURN",
+                "target": "SELF",
+                "sourcePile": "DISCARD",
+                "destinationPile": "HAND",
+                "filter": {
+                    "maxCost": 0
+                }
+            }
+        ]
+    },
+    "slander": {
+        "id": "slander",
+        "name": "Slander",
+        "description": "5 power per stack of Dazed on the target.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 5,
+                "scaling": "DAZED_STACKS",
+                "target": "TARGET"
             }
         ]
     }

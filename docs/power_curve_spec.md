@@ -311,3 +311,44 @@ applying negative stacks, and the scorer reads `Math.abs(stacks)` before the deb
 sign flip. So a card that REMOVES a debuff is priced as if it APPLIED one — `soothe` scores
 **-0.80** against a 1.0 cap. Any future cleanse-by-negative-stacks card will be mispriced the
 same way.
+
+## rev 3.6 — per-stack scaling attacks, and daemons finally get a score (ticket 32)
+
+### Henry's design law for per-stack scaling attacks
+
+**A per-stack scaling attack should underperform early and overperform late. That is the shape,
+not a bug.** The card is the payoff for building a board state, so it should feel weak drawn on
+turn 1 and disproportionate once the engine runs.
+
+Two consequences for pricing:
+
+1. **Do not cap pre-emptively.** `STRENGTH_STACKS` is capped at 8, but that cap was added by
+   ticket 24 *after* measurement showed `momentum_crash` at 29.3 damage a play. Measure first.
+   `DAZED_STACKS` (ticket 32) ships **uncapped** for the same reason and did not need one:
+   `slander` measured 13.7 stacks at cast for 16.8 damage per play on an attack-55 frame — on
+   rate for a 2e card, not running away.
+2. **The static score is a FLOOR, not a price.** powerscale has no deck or OS context (the same
+   limitation ticket 29 documented for `brute_force` and ticket 28 for Burn overflow). It prices
+   a scaling attack at `ASSUMED_STATUS_COUNT = 3`; `slander` in the deck built around it sees
+   **13.7**. A scaling card must always be hand-priced against its deck's realistic count, and
+   the ticket must say so in writing.
+
+### Daemons are scored now
+
+Daemons carry empty `actions`, so every one of them scored **0.00** and the existing "Daemon
+Premium x1.5" multiplied nothing. Ticket 27 priced daemons for the *AI*; the static side stayed
+blind until now. A daemon's registered hooks' `do` actions are scored once and multiplied by
+`EXPECTED_DAEMON_PROCS = 4`, then the premium and exhaust discount apply as before.
+
+`GENERATE_CARD` is priced as **the generated card's own score**, recursively, with a `seen` guard
+so a token that generates itself is scored once and cannot spin.
+
+This too is a floor: `echo_chamber_v2` scores **4.90** against a 6.5 band, and in ratatoskr_v1 -
+five 0-costs each procing it - it runs at roughly twice that.
+
+**Hook shapes with no `do` array still score 0** and that is correct, not an oversight:
+`core_overclock_daemon` is a pure damage multiplier and `einherjar_standard` is a passive. The
+model cannot see those effects, so it declines to invent a number for them.
+
+Nine daemons now carry a non-zero score for the first time. One is over budget -
+`fertile_ground_daemon` at **7.60 against a 6.5 band** - reported, deliberately not re-tuned here.

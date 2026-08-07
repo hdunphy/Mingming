@@ -4,7 +4,9 @@ import { GetProgramData } from './data/programRegistry';
 import { globalBattleEventBus } from './events';
 import { PRNG } from './core/PRNG';
 
-const HAND_SIZE_LIMIT = 9;
+/** Ticket 32: single source of truth. battleReducer.ts and resolutionEngine.ts import this
+ *  rather than re-declaring their own copies (all three previously said 9 independently). */
+export const HAND_SIZE_LIMIT = 9;
 
 /**
  * Handles drawing cards from the deck.

@@ -48,6 +48,8 @@
  */
 
 import type { ProgramData, ProgramAction } from '../../engine/types';
+import HOOK_LIBRARY from '../../engine/data/lib/hooks.json';
+import { GetProgramData } from '../../engine/data/programRegistry';
 import { numericBaseCost } from '../../engine/types';
 
 export interface PowerscaleResult {
@@ -219,6 +221,17 @@ function burnPower(stacks: number): number {
 }
 
 /** Action types whose value depends on board state a static pass can't see - flag, don't guess. */
+/**
+ * Ticket 32: daemons carry empty `actions` - their whole value is in hooks, so the static model
+ * scored every one of them 0.00 and the existing "Daemon Premium x1.5" multiplied nothing.
+ * Price one proc's worth of the hook's `do` actions against a fixed expected-proc count.
+ *
+ * This is a FLOOR, not a price. powerscale has no deck context (the same limitation ticket 29
+ * documented for `brute_force`), so a daemon in a deck built around it - echo_chamber in
+ * ratatoskr_v1, where five 0-costs each proc it - runs at roughly twice this.
+ */
+const EXPECTED_DAEMON_PROCS = 4;
+
 const MANUAL_REVIEW_TYPES = new Set([
     'CLEANSE', 'SEARCH', 'PLAY_LAST_CARD', 'TRIGGER_STATUS',
     'GENERATE_CARD', 'DISCARD', 'EXHAUST', 'RETURN', 'TAUNT',
@@ -232,7 +245,29 @@ const MANUAL_REVIEW_TYPES = new Set([
  * Pure and synchronous - no registry lookup, no I/O. Scaling actions are evaluated against
  * section 1.2's "Standard Mid-Turn" baselines rather than a real board.
  */
-export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
+/**
+ * The `do` actions of every hook a daemon card registers, flattened. LOG entries are dropped -
+ * they are flavour, not value. Returns [] for hook shapes that carry no `do` at all (a pure
+ * damage multiplier like core_overclock_daemon), which correctly leaves those scoring 0 rather
+ * than inventing a number for an effect this model cannot see.
+ */
+function daemonHookActions(card: ProgramData): ProgramAction[] {
+    const ids = (card as unknown as { hooks?: ReadonlyArray<string> }).hooks;
+    if (!ids || ids.length === 0) return [];
+    const wanted = new Set(ids);
+    const out: ProgramAction[] = [];
+    for (const entry of Object.values(HOOK_LIBRARY as Record<string, unknown>)) {
+        const hooks = (entry as { hooks?: ReadonlyArray<{ id: string; do?: ReadonlyArray<ProgramAction> }> }).hooks;
+        if (!hooks) continue;
+        for (const h of hooks) {
+            if (!wanted.has(h.id) || !h.do) continue;
+            for (const a of h.do) if ((a.type as string) !== 'LOG') out.push(a);
+        }
+    }
+    return out;
+}
+
+export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string> = new Set()): PowerscaleResult => {
     let score = 0;
     const manualReview: string[] = [];
 
@@ -293,6 +328,10 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
             else if (action.scaling === 'HP_PERCENT') power *= ASSUMED_HP_PERCENT;
             else if (action.scaling === 'DISCARD_SIZE') power *= ASSUMED_DISCARD_SIZE;
             else if (action.scaling === 'STATUS_COUNT') power *= ASSUMED_STATUS_COUNT;
+            // Ticket 32: DAZED_STACKS reads the TARGET's stacks, which static analysis cannot
+            // see, so this is a FLOOR not a price - the same no-deck-context limit ticket 29
+            // documented for brute_force. ratatoskr_v2's realistic count at cast is ~10, not 3.
+            else if (action.scaling === 'DAZED_STACKS') power *= ASSUMED_STATUS_COUNT;
 
             actionScore = (power / 10.0) * ACTION_WEIGHTS['ATTACK'];
         } else if (action.type === 'HEAL') {
@@ -355,6 +394,19 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
                 : OFFENSE_STREAM_POWER_PER_STACK;
             actionScore = (impliedExtraStacks * perStackPower) / 10.0;
             manualReview.push(action.type);
+        } else if (action.type === 'GENERATE_CARD') {
+            // Ticket 32: a generated card is worth the card it generates. Recursion is bounded
+            // by `seen` - a token that generates itself is scored once and then contributes
+            // nothing, so feedback_token -> feedback_token cannot spin.
+            const dataId = (action as unknown as { dataId?: string }).dataId;
+            if (dataId && !seen.has(dataId)) {
+                const next = new Set(seen);
+                next.add(dataId);
+                actionScore = calculatePowerscale(GetProgramData(dataId), next).score;
+            } else {
+                actionScore = 0;
+                manualReview.push(action.type);
+            }
         } else if (MANUAL_REVIEW_TYPES.has(action.type)) {
             actionScore = 0;
             manualReview.push(action.type);
@@ -379,7 +431,9 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
         // || card.target` let the ever-present 'TARGET' shadow the real Side/All value).
         const actionIsSelfFacing = (action.target || '').toUpperCase() === 'SELF';
         const scope = actionIsSelfFacing ? 'SELF' : (card.target || 'Single').toUpperCase();
-        if (scope === 'SELF') actionScore *= 0.9;
+        // GENERATE_CARD is already a whole-card score (scope included) - do not scope it twice.
+        if (action.type === 'GENERATE_CARD') { /* no scope multiplier */ }
+        else if (scope === 'SELF') actionScore *= 0.9;
         else if (scope === 'SIDE') actionScore *= 2.2;
         else if (scope === 'ALL') actionScore *= 4.0;
         else actionScore *= 1.0;
@@ -416,6 +470,25 @@ export const calculatePowerscale = (card: ProgramData): PowerscaleResult => {
     });
 
     for (const branchScore of exclusiveGroups.values()) score += branchScore;
+
+    // Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
+    // `do` actions once and multiply by the expected proc count. Recursion is bounded by
+    // `seen`: a token that generates itself is scored once and then contributes nothing, so
+    // feedback_token -> feedback_token cannot spin.
+    if (card.category === 'Daemon' && score === 0) {
+        const doActions = daemonHookActions(card);
+        if (doActions.length > 0) {
+            const proc = calculatePowerscale({
+                ...card,
+                category: 'Skill',
+                exhaust: false,
+                isToken: false,
+                actions: doActions,
+            } as ProgramData, new Set([...seen, card.id]));
+            score = proc.score * EXPECTED_DAEMON_PROCS;
+            for (const m of proc.manualReview) manualReview.push(m);
+        }
+    }
 
     // Daemon Premium
     if (card.category === 'Daemon') {

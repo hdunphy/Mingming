@@ -222,7 +222,7 @@ export function createBattleState(
             const lists = {
                 FENRIR: { daemon: 'core_overclock_daemon', cards: ['fire_poke', 'fire_punch_v2', 'cinder_slash', 'brute_force', 'fury_strike', 'scorch'] },
                 KRAKEN: { daemon: 'feedback_loop_daemon', cards: ['water_slap', 'whirlpool_v2', 'surge_protection', 'poison_injection', 'acid_splash', 'toxic_surge', 'corrosive_bolt', 'contagion'] },
-                RATATOSKR: { daemon: 'fertile_ground_daemon', cards: ['leaf_blade', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine'] }
+                RATATOSKR: { daemon: 'fertile_ground_daemon', cards: ['water_slap', 'nettle_sting', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'crippling_vine'] }
             };
             const list = lists[archetype];
             return [list.daemon, ...list.cards.slice(0, 9)];
@@ -251,7 +251,7 @@ export function createBattleState(
             },
             RATATOSKR: {
                 daemon: 'fertile_ground_daemon',
-                cards: ['leaf_blade', 'leaf_blade', 'nettle_sting', 'nettle_sting', 'thistle_barrage', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'pollen_cloud', 'crippling_vine']
+                cards: ['water_slap', 'water_slap', 'nettle_sting', 'nettle_sting', 'thistle_barrage', 'thistle_barrage', 'seed_bomb_v2', 'soothe', 'pollen_cloud', 'pollen_cloud', 'crippling_vine']
             }
         };
 
