@@ -4,6 +4,7 @@ import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
+import { executeCostCalculated } from '../resolutionEngine';
 import { DEFAULT_GAME_CONFIG } from '../data/gameConfig';
 
 /**
@@ -255,7 +256,19 @@ function findBestSequence(
         for (const source of myParty) {
             // Per-source, per-candidate: an X-cost card prices itself at this source's
             // current Energy, so the search sees its real cost without special-casing.
-            const effectiveCost = getEffectiveCardCost(source, programData, card.currentCost);
+            const printedCost = getEffectiveCardCost(source, programData, card.currentCost);
+            // Ticket 36: onCostCalculated can zero a card's cost (hel_v2 UNDERWORLD_GATEWAY).
+            // getEffectiveCardCost does NOT run that hook - the reducer applies it separately
+            // in handlePlayProgram - so the AI must price the card the same way or it will skip
+            // cards it can actually afford. Without this, Hel never considers soul_tithe (3e on
+            // a 2-Energy frame) and it measures as a 100% dead card for a reason that looks
+            // nothing like balance.
+            //
+            // The returned state is DISCARDED on purpose: the search must not leak state, and
+            // cost hooks are modifiers, not mutators. Target is `undefined` here because the
+            // candidate target is not chosen until the loop below - the signature allows it,
+            // and inventing one would silently mis-price target-conditional cost hooks.
+            const effectiveCost = executeCostCalculated(state, source, undefined, programData, printedCost).cost;
             if (source.currentEnergy < effectiveCost) continue;
 
             for (const target of potentialTargets) {

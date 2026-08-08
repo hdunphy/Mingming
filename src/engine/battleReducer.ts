@@ -412,6 +412,17 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         }
     }
 
+    // 8. System Layer: onActionEnd (ticket 36). Fires ONCE PER PROGRAM, after every action has
+    // resolved - the symmetric partner to the onActionStart dispatch in step 5. It is outside
+    // the action loop deliberately: a multi-action card must not flip Hel's stance mid-card.
+    // And it is end-of-action rather than start because the card that SETS a stance must not
+    // benefit from it - on onActionStart every Dark card would self-buff and switching would
+    // cost nothing, which erases the design.
+    {
+        const { state: afterEnd } = executeResolutionStack('onActionEnd', { ...context, state: finalState });
+        finalState = afterEnd;
+    }
+
     // Clear the modifier after this card resolves, whether or not it applied:
     // the charge is spent by the NEXT card, full stop (a category-restricted
     // buff like UNSTOPPABLE_MASS simply grants no discount if that next card

@@ -41,9 +41,12 @@ describe('per-OS starting decks', () => {
                 const program = GetProgramData(dataId);
                 expect(program, `${osId}: unknown program '${dataId}'`).toBeDefined();
                 expect(program.id).not.toBe('missing');
+                // Ticket 36: dual-type species may run cards of their SECONDARY element too
+                // (Hel is Dark/Light). Every other species has secondaryElement 'None', so the
+                // allowed set collapses back to [primary, 'None'] for them - a no-op.
                 expect(
-                    [def.primaryElement, 'None'],
-                    `${osId}: '${dataId}' is ${program.element}, expected ${def.primaryElement} or None`,
+                    [def.primaryElement, def.secondaryElement, 'None'],
+                    `${osId}: '${dataId}' is ${program.element}, expected ${def.primaryElement}, ${def.secondaryElement} or None`,
                 ).toContain(program.element);
                 expect(program.isToken ?? false, `${osId}: '${dataId}' is a token`).toBe(false);
             }

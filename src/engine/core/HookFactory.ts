@@ -50,7 +50,7 @@ export const HookFactory = {
         const priority = data.priority;
         const id = data.id;
 
-        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated') {
+        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated' || data.trigger === 'onHealCalculated') {
             const modifierData = data as ModifierDataHookDefinition;
             return {
                 id,
@@ -64,7 +64,11 @@ export const HookFactory = {
                             ? this.resolveScaling(modifierData.scaling, modifierData.scalingKey, context, owner)
                             : 1;
 
-                        if (modifierData.multiplier) newDamage *= (1 + ((modifierData.multiplier - 1) * scaleFactor));
+                        // `!== undefined`, not truthiness: ticket 36's UNDERWORLD_GATEWAY zeroes
+                        // Hel's card costs with `"multiplier": 0`, and 0 is falsy - the old guard
+                        // silently dropped the whole hook. Every other multiplier in the registry
+                        // is non-zero, so this is a no-op for them.
+                        if (modifierData.multiplier !== undefined) newDamage *= (1 + ((modifierData.multiplier - 1) * scaleFactor));
                         if (modifierData.bonus) newDamage += (modifierData.bonus * scaleFactor);
                         return Math.floor(newDamage);
                     }

@@ -359,8 +359,11 @@ export interface ForceDiscardActionData extends ProgramAction {
 
 /**
  * Shifts the SOURCE of the card into a stance (Watcher model): 'Dark' grants
- * DarkStance (+30% outgoing damage), 'Light' grants LightStance (+50% healing).
+ * DarkStance (+30% outgoing damage), 'Light' grants LightStance (-30% damage taken).
  * Stances are mutually exclusive and cap at 1 stack; entering one removes the other.
+ *
+ * Ticket 36: LightStance used to grant +50% healing. It is a defensive stance now -
+ * the healing multiplier moved onto hel_v2's firmware via `onHealCalculated`.
  */
 export interface ShiftStanceActionData extends ProgramAction {
   readonly type: 'SHIFT_STANCE';

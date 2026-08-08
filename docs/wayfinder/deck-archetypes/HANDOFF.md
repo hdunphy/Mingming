@@ -1,6 +1,6 @@
 # HANDOFF — deck-archetypes map (keep this current every session)
 
-*Last updated: 2026-08-08, after tickets 26-35 landed. **Nature COMPLETE: 16/32 decks live. ALL EIGHT TUNED SPECIES PASS EVERY FIRST-PASS BAND.** **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
+*Last updated: 2026-08-08, after tickets 26-36 landed. **18/32 decks live — Hel is done and Dark is half done. Hel is the roster's first DUAL-TYPE Mingming (Dark/Light).** **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
 ## Read this first: which band applies
 
@@ -13,7 +13,8 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Where things stand
 
-- Branch **card-dev**. Tickets 01–35 closed. **8 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra). **Water, Air, Fire and Nature are all complete.** The other 8 are placeholders — **do not read their numbers as balance signal.**
+- Branch **card-dev**. Tickets 01–36 closed. **9 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel). **Water, Air, Fire and Nature are complete; Dark is half done** — nidhoggr finishes it. The other 7 are placeholders — **do not read their numbers as balance signal.**
+- **Hel (ticket 36) is in band but carries one open breach: `FTK os:hel` at 4/100, all of them v2 on the play.** Both authorised knob rounds are spent. She deals 75 damage a game into an 80 HP pool; her games average **1.7 turns** and **28% are mutual kills**, so her §2.3 dead-card figure (0.368) is reading game length, not deck quality.
 - **Latest full gate (after ticket 34), tuned species only — every one passes, FTK 0, mirror mean 6.0 turns (inside the 5-6 target for the first time):**
 
   | species | §2.3 | mirror turns | dead cards |
@@ -26,6 +27,8 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
   | jormungandr | 0.390 | 6.4 | 5.6% |
   | sleipnir | 0.330 | 4.5 | 14.7% |
   | hraesvelgr | 0.310 | 3.2 | 4.0% |
+
+  Hel (ticket 36, measured at `1:de7fbe06`): §2.3 **0.500**, mirror **5.4** turns at 400/400, dead 10.6% / 10.2% — but see the FTK breach above.
 
 - **THE CURVE IS rev 3.9: `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`.** The constants have not moved since rev 3.3 — rev 3.4 is five *pricing* corrections, all documented in `power_curve_spec.md`. **`powerscale.ts` is the executable truth; where the prose disagrees, powerscale wins.**
 - **Cards STAY on-curve — fix enablers (OS/deck structure), never bend card economics.** Henry's law, proven three times now (kraken OS decomposition, MOMENTUM_DRIVE, and Burn overflow).
@@ -58,7 +61,10 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 5. **Diagnostic lesson from tickets 33/34: when ONE card decides a matchup, isolate every clause on it before naming a cause.** huldra_v1 was blamed on ALLURE_PROXY (measured 3.5 Weakened, a bit player), then on Sharp (cutting it 3→2→1 moved §2.3 by 0.02). It was the Regen riding along on the same card — every `iron_bark` variant without it measured **0.000** regardless of buff type or magnitude.
 6. **huldra_v1 is still a one-card deck.** Even after the fix, `iron_bark` ×1 measures 0.030 and ×0 measures 0.000. Its damage is two `thorn_tithe` and one `hexbloom`; it needs a real payoff, which is a design call and not a knob.
 7. **`overgrowth` (3 Regen, 1e) is in no deck and scores 3.60 vs a 3.0 band** — re-check before it enters one. It was a corrected 7.20 before ticket 34.
-8. **Next species: hel or draugr.** Hel is the most broken thing left — **0/400 decided** at the 61-turn cap.
+8. **Next species: nidhoggr** — he finishes Dark, and he is now the most broken thing left: **396/400 draws at 60.7 turns**, unchanged since baseline. He shares the Dark pool with Hel, so `venom_shade` (1.8) and `curse_mark` (1.3) — both well under band, both in his placeholder deck — are his to fix, not Hel's.
+8b. **`applyDamageModifiers` double-applies modifier hooks on self-target (found in ticket 36).** It collects hooks from `[source, target]`, which is the SAME entity on a self-damage card (`forage`, `dark_pact`, fenrir's recoil), so every hook the caster owns is applied twice. The heal-side twin `applyHealModifiers` dedupes by id; the damage side was deliberately left alone because fixing it re-gates eight tuned species. Take it as its own ticket with a full run.
+8c. **`multiplier: 0` used to be silently dropped** — `HookFactory` guarded with `if (multiplier)` and 0 is falsy. Fixed to `!== undefined` in ticket 36. If you write a data hook that zeroes something, that guard is why it works.
+8d. **Cost hooks are NOT run by `getEffectiveCardCost`.** The reducer applies `onCostCalculated` separately in `handlePlayProgram`, so anything that prices a card independently must run it too. `TacticalAI` and `CardHand.tsx` both did not, and both were fixed in ticket 36 — the AI skipped a 3e card it could afford, and the UI rendered it greyed out as unplayable.
 6. **Sköll is CLOSED (ticket 31).** The cause was the deck's cost curve against a 2-Energy economy, not the stat line and not the daemon: three 2e cards in a 9-card deck makes "0e + one 2e" the whole turn, every turn, locking out all five 1e cards. Fixed by cutting `overdrive`, re-costing `brute_force` 2e → 1e (25 power, +8 with Strength), and softening the stat line to 70/95/55. **0.690 → 0.640, dead 50.9% → 32.3%.** Two useful negatives: a SINGLE 2e swap never clears the band (best is 43.0%), and enlarging the deck moves §2.3 a lot but dead cards barely — the metric counts instances that reached a hand, so a bigger deck just means more instances seen.
 7. **STILL OPEN — TREACHERY_KERNEL over-feeds.** Peak Strength on skoll_v1 measures **13.7 stacks in 3.4-turn games** (16.5 at 4.1) against a 12.5-stack damage cap and an 8-stack cap on `CORE_OVERCLOCK`'s scaler. The ramp is pinned by turn 2 and the rest is discarded — which is why dropping that multiplier 1.2 → 1.10 moved the mirror by 0.02 turns. "Gets scarier the more it is hurt" never plays as a *curve*. Nothing in the card layer can fix that; it is a firmware-generosity question and it is the natural next sköll ticket.
 8. **`brute_force`'s OS-guaranteed-conditional redline is closed** by the re-cost. It took the 0.7 uncertainty discount while the OS made Strength near-certain — priced as certain it was 72 power against a 65 cap; at 25+8 it is 33 against 30. **The general problem remains:** powerscale is per-card static analysis with no deck or OS context and will never flag this class. Check it by hand whenever a conditional's trigger is something the firmware supplies.

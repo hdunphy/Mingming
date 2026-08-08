@@ -146,7 +146,7 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   return Math.max(0, damage);
 }
 
-export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, power: number): number {
+export function calculateHeal(_attacker: IBattleEntity, target: IBattleEntity, power: number): number {
   // docs/power_curve_spec.md rev 3: heals are a fixed % of the RECEIVING entity's
   // maxHp, not scaled by the healer's level/attack — level-proof by construction,
   // since maxHp already carries the level scaling. 1 power heals 0.25% maxHp (the
@@ -154,13 +154,13 @@ export function calculateHeal(attacker: IBattleEntity, target: IBattleEntity, po
   // since healing doesn't advance the win condition the way damage does). No flat
   // +2 floor and no attacker-stat scaling, per the same "+2 drifted with level" and
   // "attack scaling made healing ~18x damage per power point" problems damage had.
-  let rawHeal = (target.maxHp * power) / 400;
+  const rawHeal = (target.maxHp * power) / 400;
 
-  // Stance system: while in Light Stance the healer's heals are +50%.
-  // (healOverride-based heals are boosted separately in HealExecutor.)
-  if (attacker.statusEffects?.some(s => s.type === 'LightStance')) {
-    rawHeal *= 1.5;
-  }
+  // Ticket 36: the LightStance +50% healing branch that used to sit here is gone.
+  // LightStance is a DEFENSIVE stance now (-30% damage taken, in applyDamageModifiers)
+  // and healing multipliers ride the `onHealCalculated` modifier path instead, applied
+  // once at the heal choke point in effectHandlers - which is what finally makes the
+  // power-based and healOverride pipelines agree.
 
   // Returns the INTENDED heal, deliberately NOT clamped to the target's missing
   // HP. Clamping happens at the single application choke point

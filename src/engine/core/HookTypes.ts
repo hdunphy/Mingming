@@ -89,7 +89,7 @@ export type HookAction = {
 
 export type DataHookDefinition = {
     id: string;
-    trigger: keyof Omit<HookDefinition, 'id' | 'priority' | 'onDamageCalculated' | 'onStatusDamageCalculated'>;
+    trigger: keyof Omit<HookDefinition, 'id' | 'priority' | 'onDamageCalculated' | 'onStatusDamageCalculated' | 'onHealCalculated'>;
     priority: HookPriority;
     when?: HookCondition;
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
@@ -98,7 +98,7 @@ export type DataHookDefinition = {
 
 export type ModifierDataHookDefinition = {
     id: string;
-    trigger: 'onDamageCalculated' | 'onStatusDamageCalculated';
+    trigger: 'onDamageCalculated' | 'onStatusDamageCalculated' | 'onCostCalculated' | 'onHealCalculated';
     priority: HookPriority;
     when?: HookCondition;
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
@@ -125,7 +125,16 @@ export type HookDefinition = {
     onDamageCalculated?: DamageModifierHook;
     onStatusDamageCalculated?: DamageModifierHook; // New hook for Burn/Poison scaling
     onCostCalculated?: DamageModifierHook; // Same signature as damage hook (returns a number)
+    /** Ticket 36: healing had NO modifier path at all - `onHeal` fires after the heal resolves
+     *  and is a reaction hook. Same signature as the damage modifier (takes a number, returns
+     *  one) so it slots into the existing modifier family unchanged. */
+    onHealCalculated?: DamageModifierHook;
     onActionStart?: EventHook;
+    /** Ticket 36: symmetric partner to onActionStart, dispatched ONCE PER PROGRAM after the
+     *  multi-hit action loop finishes - never once per action, or a multi-action card would
+     *  flip Hel's stance mid-card. End-of-action rather than start is the whole design: the
+     *  card that sets a stance must not benefit from it, only the next card does. */
+    onActionEnd?: EventHook;
     onModifierPhase?: EventHook;
     onPostDamage?: EventHook;
     onCardDraw?: EventHook;

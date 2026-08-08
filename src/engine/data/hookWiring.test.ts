@@ -171,18 +171,35 @@ describe('data-driven condition translations', () => {
         expect(fafnirAfterDebuff.currentEnergy).toBe(1);
     });
 
-    it('hel_v2_underworld skips Attack cards and 0-cost cards (programCategoryNot + baseCost)', () => {
-        const hook = getHook('hel_v2_underworld');
+    it('hel_v2_underworld_toll taxes EVERY card with a printed cost, and only those (baseCost)', () => {
+        // Ticket 36 amendment: the old hook was gated to Dark non-Attacks. It now charges
+        // every card - element and category are gone from the `when` - because the OS zeroes
+        // her Energy cost outright rather than paying-then-refunding. Only the baseCost > 0
+        // guard survives, so 0-cost cards stay genuinely free.
+        const hook = getHook('hel_v2_underworld_toll');
         const hel = makeEntity('hel');
         const state = makeState([hel], [makeEntity('e')]);
 
         const darkAttack: any = { id: 'atk', category: 'Attack', element: 'Dark', baseCost: 2, actions: [] };
         const attackResult = hook!.onActionStart!({ state, source: hel, program: darkAttack, triggerDepth: 0 }, hel);
-        expect(attackResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
+        expect(attackResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(true);
 
-        const darkSpell: any = { id: 'spell', category: 'Skill', element: 'Dark', baseCost: 2, actions: [] };
-        const spellResult = hook!.onActionStart!({ state, source: hel, program: darkSpell, triggerDepth: 0 }, hel);
+        const lightSkill: any = { id: 'spell', category: 'Skill', element: 'Light', baseCost: 2, actions: [] };
+        const spellResult = hook!.onActionStart!({ state, source: hel, program: lightSkill, triggerDepth: 0 }, hel);
         expect(spellResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(true);
+
+        const freebie: any = { id: 'free', category: 'Attack', element: 'Dark', baseCost: 0, actions: [] };
+        const freeResult = hook!.onActionStart!({ state, source: hel, program: freebie, triggerDepth: 0 }, hel);
+        expect(freeResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
+    });
+
+    it('hel_v2_underworld_cost zeroes the Energy cost of her cards (onCostCalculated multiplier 0)', () => {
+        const hook = getHook('hel_v2_underworld_cost');
+        const hel = makeEntity('hel');
+        const state = makeState([hel], [makeEntity('e')]);
+
+        const bigSpell: any = { id: 'soul_tithe', category: 'Attack', element: 'Dark', baseCost: 3, actions: [] };
+        expect(hook!.onCostCalculated!(3, { state, source: hel, program: bigSpell, triggerDepth: 0 } as any, hel)).toBe(0);
     });
 
     it('RANDOM_ENEMY targeting advances the state seed (no repeated picks forever)', () => {

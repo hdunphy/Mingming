@@ -97,7 +97,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Light Stance',
         icon: '☀',
         description:
-            'While in Light Stance, this unit\'s heals restore +50% HP. decays 1 stack per turn and caps at 1 stack — but entering Dark Stance replaces it.',
+            'While in Light Stance, this unit takes 30% less damage. decays 1 stack per turn and caps at 1 stack — but entering Dark Stance replaces it.',
     },
 };
 

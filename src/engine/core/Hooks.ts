@@ -13,6 +13,67 @@ export { getHook, registerHook } from './HookRegistry';
 
 import { GetProgramData } from '../data/programRegistry';
 
+/**
+ * Ticket 36: healing had no modifier path at all. `onHeal` fires AFTER the heal has
+ * resolved (a reaction hook - audhumbla_v2 converts overheal into damage with it), so
+ * there was nowhere to scale a heal before it landed. This is the heal-side twin of
+ * `applyDamageModifiers`: same hook collection (entity hooks + OS hooks + daemons),
+ * same priority sort, applied at the single heal choke point in effectHandlers.
+ */
+export const applyHealModifiers = (
+    initialHeal: number,
+    context: HookContext
+): number => {
+    let heal = initialHeal;
+    // DEDUPED BY ID, unlike applyDamageModifiers. A self-heal has source === target, so the
+    // naive [source, target] pair collects the same entity twice and every one of its hooks
+    // gets applied twice - hel_v2's 1.5x became 2.25x on her own heals, which is every heal
+    // she casts. (applyDamageModifiers has the same latent bug for self-damage cards; it is
+    // deliberately NOT touched here - see the ticket write-up.)
+    const entities = [context.source, context.target]
+        .filter((e): e is IBattleEntity => !!e)
+        .filter((e, i, arr) => arr.findIndex(other => other.id === e.id) === i);
+
+    // 1. Collect Hooks as Pairs
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
+    entities.forEach(e => {
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
+        if (e.activeOS) {
+            const os = getOSBehavior(e.activeOS);
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        // Scan Daemons
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) {
+                    data.hooks.forEach(h => entityHooks.add(h));
+                }
+            });
+        }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered.onHealCalculated) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
+    });
+
+    // 2. Sort by Priority
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
+
+    // 3. Apply Modifiers
+    hookPairs.forEach(pair => {
+        if (pair.hook.onHealCalculated) {
+            heal = pair.hook.onHealCalculated(heal, context, pair.owner);
+        }
+    });
+
+    return Math.floor(heal);
+};
+
 export const applyDamageModifiers = (
     initialDamage: number,
     context: HookContext
@@ -95,6 +156,13 @@ export const applyDamageModifiers = (
             } else if (effect.type === 'Sharp') {
                 //sharp reduces incoming damage.
                 damage *= (1 - cappedPct(effect.stacks));
+            } else if (effect.type === 'LightStance') {
+                // Stance system (ticket 36): while in Light Stance the DEFENDER takes -30%
+                // damage. Symmetric with the source-side DarkStance +30% branch above, and
+                // flat rather than stack-scaled because StanceBehavior.onApply caps stacks
+                // at 1. LightStance used to grant +50% healing; that moved to hel_v2's
+                // firmware, where the frame actually wants it.
+                damage *= 0.7;
             }
         }
     }

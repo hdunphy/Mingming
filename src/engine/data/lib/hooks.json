@@ -938,27 +938,40 @@
     },
     "hel_v1": {
         "id": "hel_v1",
-        "name": "EQUINOX_TOGGLE",
-        "description": "Stance-shift cards move Hel between Dark Stance (+30% damage) and Light Stance (+50% healing). Each shift synchronizes the OS: draw 1 card.",
+        "name": "TWILIGHT_CADENCE",
+        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +30% damage dealt. Light Stance: -30% damage taken.",
         "hooks": [
             {
-                "id": "hel_v1_equinox_sync",
-                "trigger": "onStatusApplied",
+                "id": "hel_v1_cadence_dark",
+                "trigger": "onActionEnd",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "target": "SELF",
-                    "statusAppliedIn": ["DarkStance", "LightStance"]
+                    "programElement": "Dark"
                 },
                 "do": [
                     {
-                        "type": "DRAW",
+                        "type": "STATUS",
                         "target": "SELF",
-                        "amount": 1
-                    },
+                        "status": "DarkStance",
+                        "stacks": 1
+                    }
+                ]
+            },
+            {
+                "id": "hel_v1_cadence_light",
+                "trigger": "onActionEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Light"
+                },
+                "do": [
                     {
-                        "type": "LOG",
-                        "text": "EQUINOX: stance shift synchronized — drew 1"
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "LightStance",
+                        "stacks": 1
                     }
                 ]
             }
@@ -967,16 +980,23 @@
     "hel_v2": {
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
-        "description": "Hel's Dark spells cost HP instead of Energy.",
+        "description": "Hel's cards cost health, not energy: casting drains 5% of her max HP per point of the card's printed cost. Her healing is increased by 50%.",
         "hooks": [
             {
-                "id": "hel_v2_underworld",
+                "id": "hel_v2_underworld_cost",
+                "trigger": "onCostCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 0
+            },
+            {
+                "id": "hel_v2_underworld_toll",
                 "trigger": "onActionStart",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "programElement": "Dark",
-                    "programCategoryNot": ["Attack"],
                     "baseCost": {
                         "operator": "GT",
                         "value": 0
@@ -984,22 +1004,25 @@
                 },
                 "do": [
                     {
-                        "type": "ENERGY",
-                        "target": "SELF",
-                        "amount": 1,
-                        "scaling": "BASE_COST"
-                    },
-                    {
                         "type": "HP",
                         "target": "SELF",
-                        "amount": -1,
+                        "percentMaxHP": -10,
                         "scaling": "BASE_COST"
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s UNDERWORLD_GATEWAY paid HP instead of Energy!"
+                        "text": "{owner}'s UNDERWORLD_GATEWAY pays in blood!"
                     }
                 ]
+            },
+            {
+                "id": "hel_v2_lifeblood",
+                "trigger": "onHealCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 1.5
             }
         ]
     },

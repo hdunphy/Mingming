@@ -506,3 +506,44 @@ rather than only softening the numbers.
 **All eight tuned species are unchanged and still pass every band** — §2.3 and the mirror are
 same-species, so the matrix never applied there. That is the correct blast radius: this change only
 touches cross-element play.
+
+
+## rev 3.10 — healing gets a modifier path, and the enabler is where a healing boost belongs (ticket 36)
+
+**`onHealCalculated` exists now.** Until ticket 36 healing had *no* modifier path at all: `onHeal`
+fires **after** the heal resolves (a reaction hook — audhumbla_v2 turns overheal into damage with
+it), and the modifier family was `onDamageCalculated` / `onStatusDamageCalculated` /
+`onCostCalculated` only. There was nowhere to scale a heal *before* it landed, so anything wanting
+to boost healing had to be hardcoded — which is exactly what LightStance was, in **two places that
+disagreed with each other**: `calculateHeal` boosted power-based heals and `HealExecutor` boosted
+`healOverride` heals, so half the cards in any given deck silently missed the buff.
+
+`applyHealModifiers` now runs at the **single heal choke point** (`effectHandlers.handleHealEffect`),
+which both pipelines converge on. One call, every heal, no double-application.
+
+### Put a healing multiplier on the ENABLER, not on the cards
+
+hel_v2's UNDERWORLD_GATEWAY charges 5% of max HP per point of a card's printed cost. At that rate a
+1e power-20 heal restores exactly what it costs — net zero — so heal riders are unprintable on that
+frame *unless* something lifts them. The fix is the standing law applied to healing: **the
+multiplier goes on the firmware and the cards stay on-curve.**
+
+| multiplier | net per `dawnstrike` | full-hand turn (2 riders + 2 others) |
+|---|---|---|
+| ×1.0 | 0 | −8 HP/turn |
+| **×1.5 — shipping** | **+2** | **−4 HP/turn** |
+| ×2.0 | +4 | 0 HP/turn — **the clock is gone** |
+
+×2.0 exactly cancels the self-drain that is the whole point of the frame. 1.5 keeps it. (It is also
+the same +50% retired from LightStance in the same ticket — the number did not change, it moved to
+the frame that wanted it.)
+
+### Two scorer-adjacent facts worth recording
+
+- **A percentage cost scales with level; a flat one does not.** UNDERWORLD_GATEWAY charges
+  `%maxHP × printed cost`, which keeps the HP-per-Energy rate flat as costs grow — a 3e card costs
+  exactly 3× a 1e card at every level. This is the same lesson that moved `forage` and GOSSIP_NODE
+  to power-based, and it is why 3e access is not a loophole for her.
+- **`healOverride` is flat HP and powerscale prices it as curve power**, so a card healing with
+  `healOverride` delivers roughly 5× what it is charged for. New cards heal with `power`. The five
+  heal-bearing cards in ticket 36 all do.

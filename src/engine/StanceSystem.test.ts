@@ -5,11 +5,14 @@ import { StatusType } from './types';
 import { calculateHeal } from './combatUtils';
 
 /**
- * Stance system (Hel / EQUINOX_TOGGLE):
+ * Stance system (Hel / TWILIGHT_CADENCE):
  * - DarkStance / LightStance are mutually exclusive, cap at 1 stack, never decay.
- * - DarkStance: +30% outgoing damage. LightStance: +50% healing.
+ * - DarkStance: +30% outgoing damage. LightStance: -30% damage TAKEN (ticket 36 - it
+ *   used to grant +50% healing, which was dead weight on a defense-60 striker; the
+ *   +50% moved onto hel_v2's UNDERWORLD_GATEWAY via the new onHealCalculated path).
  * - SHIFT_STANCE card actions shift the SOURCE's stance (Watcher model).
- * - hel_v1 OS draws 1 card whenever its owner gains a stance.
+ * - hel_v1 TWILIGHT_CADENCE sets her stance from the ELEMENT of the card she just cast,
+ *   on onActionEnd - so the card that sets a stance never benefits from it.
  *
  * These tests use the REAL program registry (nightfall_edge / dawns_respite /
  * shadow_claw are real cards) and the real reducer.
@@ -120,7 +123,8 @@ describe('Stance exclusivity and stacking', () => {
 
 describe('Dark Stance: +30% outgoing damage', () => {
     it('an identical attack deals exactly +30% (floored) while in Dark Stance, through the real reducer', () => {
-        // shadow_claw: plain 10-power Dark attack, cost 0, no side effects.
+        // shadow_claw: 0-cost Dark poke, 5 power + 1 Weakened (ticket 36 redesign). The
+        // Weakened lands on the TARGET after the hit, so it cannot skew this measurement.
         const baseState = makeState({}, [card('c1', 'shadow_claw', 0)]);
         const afterBase = play(baseState, 'c1');
         const baseDamage = 200 - afterBase.enemyParty[0].currentHp;
@@ -151,21 +155,26 @@ describe('Dark Stance: +30% outgoing damage', () => {
     });
 });
 
-describe('Light Stance: +50% healing', () => {
-    it('boosts healOverride-based heals by 50% through the real reducer', () => {
-        // Dawn's Respite heals BEFORE it shifts (Watcher ordering), so the first
-        // play heals the base 10 and the second play (already in Light Stance)
-        // heals the boosted 15.
-        let state = makeState({ currentHp: 100 }, [card('c1', 'dawns_respite'), card('c2', 'dawns_respite')]);
+describe('Light Stance: -30% damage taken', () => {
+    it('an identical attack lands for exactly -30% (floored) into Light Stance, through the real reducer', () => {
+        const baseState = makeState({}, [card('c1', 'nights_bite')]);
+        const baseDamage = 200 - play(baseState, 'c1').enemyParty[0].currentHp;
+        expect(baseDamage).toBeGreaterThan(0);
 
-        state = play(state, 'c1', PLAYER_ID);
-        expect(state.playerParty[0].currentHp).toBe(110); // base 10, shift happens after
+        const guardedState: IBattleState = {
+            ...baseState,
+            enemyParty: [{
+                ...baseState.enemyParty[0],
+                statusEffects: [{ id: 's1', type: StatusType.LightStance, stacks: 1 }]
+            }]
+        };
+        const guardedDamage = 200 - play(guardedState, 'c1').enemyParty[0].currentHp;
 
-        state = play(state, 'c2', PLAYER_ID);
-        expect(state.playerParty[0].currentHp).toBe(125); // 10 * 1.5 = 15 while in Light Stance
+        expect(guardedDamage).toBe(Math.floor(baseDamage * 0.7));
+        expect(guardedDamage).toBeLessThan(baseDamage);
     });
 
-    it('boosts power-based heals in calculateHeal by exactly 1.5x', () => {
+    it('no longer boosts healing at all - the +50% retired to hel_v2 UNDERWORLD_GATEWAY', () => {
         const healer = makeEntity(PLAYER_ID, 'Healer');
         const stancedHealer = makeEntity(PLAYER_ID, 'Healer', {
             statusEffects: [{ id: 's1', type: StatusType.LightStance, stacks: 1 }]
@@ -173,15 +182,23 @@ describe('Light Stance: +50% healing', () => {
         const wounded = makeEntity(ENEMY_ID, 'Wounded', { currentHp: 1 }); // plenty of missing HP
 
         const base = calculateHeal(healer, wounded, 10);
-        const boosted = calculateHeal(stancedHealer, wounded, 10);
+        const stanced = calculateHeal(stancedHealer, wounded, 10);
 
-        expect(base).toBeGreaterThan(0);
-        // docs/power_curve_spec.md rev 3: calculateHeal is now a flat % of the RECEIVING
-        // entity's maxHp (`maxHp * power / 400`), not scaled by the healer's level/attack -
-        // the healer's own stats no longer matter here at all.
+        // docs/power_curve_spec.md rev 3: calculateHeal is a flat % of the RECEIVING
+        // entity's maxHp (`maxHp * power / 400`), not scaled by the healer's stats.
         expect(base).toBe(Math.floor((wounded.maxHp * 10) / 400));
-        expect(boosted).toBe(Math.floor(((wounded.maxHp * 10) / 400) * 1.5));
-        expect(boosted).toBeGreaterThan(base);
+        expect(stanced).toBe(base);
+    });
+
+    it('leaves healOverride heals alone in either stance', () => {
+        // Dawn's Respite heals 10 flat and then shifts. Both plays heal the same 10 now.
+        let state = makeState({ currentHp: 100 }, [card('c1', 'dawns_respite'), card('c2', 'dawns_respite')]);
+
+        state = play(state, 'c1', PLAYER_ID);
+        expect(state.playerParty[0].currentHp).toBe(110);
+
+        state = play(state, 'c2', PLAYER_ID); // already in Light Stance
+        expect(state.playerParty[0].currentHp).toBe(120);
     });
 
     it('does not boost heals while in Dark Stance', () => {
@@ -195,51 +212,109 @@ describe('Light Stance: +50% healing', () => {
     });
 });
 
-describe('hel_v1 EQUINOX_TOGGLE OS', () => {
-    it('draws 1 card when the owner shifts stance', () => {
-        let state = makeState(
-            { activeOS: 'hel_v1' },
-            [card('c1', 'nightfall_edge')],
-            [card('d1', 'shadow_claw', 0), card('d2', 'shadow_claw', 0)]
-        );
-
+describe('hel_v1 TWILIGHT_CADENCE OS', () => {
+    it('a Dark card leaves her in Dark Stance at end of action', () => {
+        let state = makeState({ activeOS: 'hel_v1' }, [card('c1', 'shadow_claw', 0)]);
         state = play(state, 'c1');
 
-        expect(state.playerDeck.hand).toHaveLength(1); // played card left the hand, 1 drawn
-        expect(state.playerDeck.drawpile).toHaveLength(1);
-        expect(state.logs.some(l => l.includes('EQUINOX: stance shift synchronized — drew 1'))).toBe(true);
+        expect(getStatus(state.playerParty[0], StatusType.DarkStance)?.stacks).toBe(1);
+        expect(getStatus(state.playerParty[0], StatusType.LightStance)).toBeUndefined();
     });
 
-    it('does NOT draw again when re-entering the same stance (no actual shift)', () => {
+    it('a Light card leaves her in Light Stance and strips Dark', () => {
         let state = makeState(
             { activeOS: 'hel_v1' },
-            [card('c1', 'nightfall_edge'), card('c2', 'nightfall_edge')],
-            [card('d1', 'shadow_claw', 0), card('d2', 'shadow_claw', 0)]
+            [card('c1', 'shadow_claw', 0), card('c2', 'pale_mercy', 0)]
         );
-
-        state = play(state, 'c1'); // shift: draws 1 → hand = [c2, d1]
-        expect(state.playerDeck.hand).toHaveLength(2);
-
-        state = play(state, 'c2'); // already in Dark Stance: no shift, no draw → hand = [d1]
-        expect(state.playerDeck.hand).toHaveLength(1);
-        expect(state.playerDeck.drawpile).toHaveLength(1);
-    });
-
-    it('draws on every real shift (Dark → Light → Dark)', () => {
-        let state = makeState(
-            { activeOS: 'hel_v1' },
-            [card('c1', 'nightfall_edge'), card('c2', 'dawns_respite'), card('c3', 'nightfall_edge')],
-            [card('d1', 'shadow_claw', 0), card('d2', 'shadow_claw', 0), card('d3', 'shadow_claw', 0)]
-        );
-
         state = play(state, 'c1');
+        expect(getStatus(state.playerParty[0], StatusType.DarkStance)?.stacks).toBe(1);
+
         state = play(state, 'c2', PLAYER_ID);
-        state = play(state, 'c3');
+        expect(getStatus(state.playerParty[0], StatusType.LightStance)?.stacks).toBe(1);
+        expect(getStatus(state.playerParty[0], StatusType.DarkStance)).toBeUndefined();
+    });
 
-        // 3 plays left the hand, 3 shifts drew 3 cards.
-        expect(state.playerDeck.hand).toHaveLength(3);
-        expect(state.playerDeck.drawpile).toHaveLength(0);
-        expect(state.logs.filter(l => l.includes('EQUINOX: stance shift synchronized')).length).toBe(3);
+    it('a None-element card commits to NO stance, and does not clear the one she holds', () => {
+        // Designed third option: Tackle / water_slap / hamstring are how she acts without
+        // committing. The hooks are element-gated, so a None card simply never fires one.
+        let state = makeState(
+            { activeOS: 'hel_v1' },
+            [card('c1', 'water_slap', 0), card('c2', 'shadow_claw', 0), card('c3', 'water_slap', 0)]
+        );
+        state = play(state, 'c1');
+        expect(getStatus(state.playerParty[0], StatusType.DarkStance)).toBeUndefined();
+        expect(getStatus(state.playerParty[0], StatusType.LightStance)).toBeUndefined();
+
+        state = play(state, 'c2');
+        expect(getStatus(state.playerParty[0], StatusType.DarkStance)?.stacks).toBe(1);
+
+        state = play(state, 'c3');
+        expect(getStatus(state.playerParty[0], StatusType.DarkStance)?.stacks).toBe(1);
+    });
+
+    it('the card that SETS the stance never benefits from it - only the next one does', () => {
+        // This is the whole reason the trigger is onActionEnd rather than onActionStart.
+        const fresh = makeState({ activeOS: 'hel_v1' }, [card('c1', 'nights_bite')]);
+        const afterFresh = play(fresh, 'c1');
+        const openingDamage = 200 - afterFresh.enemyParty[0].currentHp;
+
+        // ...and she is holding Dark Stance once it resolves.
+        expect(getStatus(afterFresh.playerParty[0], StatusType.DarkStance)?.stacks).toBe(1);
+
+        const braced = makeState(
+            { activeOS: 'hel_v1', statusEffects: [{ id: 's1', type: StatusType.DarkStance, stacks: 1 }] },
+            [card('c1', 'nights_bite')]
+        );
+        const followUpDamage = 200 - play(braced, 'c1').enemyParty[0].currentHp;
+
+        expect(openingDamage).toBeGreaterThan(0);
+        expect(followUpDamage).toBe(Math.floor(openingDamage * 1.3));
+    });
+
+    it('fires once per PROGRAM, not once per action - a multi-action card cannot flip her mid-card', () => {
+        // dawnstrike is Light and has two actions (ATTACK then HEAL). One stance, one apply.
+        let state = makeState({ activeOS: 'hel_v1' }, [card('c1', 'dawnstrike')]);
+        state = play(state, 'c1');
+
+        const stances = state.playerParty[0].statusEffects.filter(
+            s => s.type === StatusType.LightStance || s.type === StatusType.DarkStance
+        );
+        expect(stances).toHaveLength(1);
+        expect(stances[0].type).toBe(StatusType.LightStance);
+        expect(stances[0].stacks).toBe(1);
+    });
+});
+
+describe('hel_v2 UNDERWORLD_GATEWAY', () => {
+    it('boosts her healing by 50% through the new onHealCalculated path', () => {
+        // dawns_respite: 1e, heals 10 flat. The toll is 10% of 200 maxHp x 1 printed
+        // Energy = 20 HP, charged at action start; the heal then lands at 10 x 1.5 = 15.
+        let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'dawns_respite')]);
+        state = play(state, 'c1', PLAYER_ID);
+
+        expect(state.playerParty[0].currentHp).toBe(95); // 100 - 20 toll + 15 boosted heal
+        expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays in blood'))).toBe(true);
+    });
+
+    it('charges no toll for a 0-cost card', () => {
+        let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'water_slap', 0)]);
+        state = play(state, 'c1');
+
+        expect(state.playerParty[0].currentHp).toBe(100);
+        expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
+    });
+
+    it('lets her cast a 3e card on a 2-Energy frame, and charges 30% of her pool for it', () => {
+        let state = makeState(
+            { activeOS: 'hel_v2', currentHp: 200, currentEnergy: 2, maxEnergy: 2 },
+            [card('c1', 'soul_tithe', 3)]
+        );
+        const before = state.enemyParty[0].currentHp;
+        state = play(state, 'c1');
+
+        expect(state.enemyParty[0].currentHp).toBeLessThan(before); // it actually resolved
+        expect(state.playerParty[0].currentHp).toBe(140);           // 3 x 10% of 200 = 60 HP
+        expect(state.playerParty[0].currentEnergy).toBe(2);         // and cost her no Energy
     });
 });
 

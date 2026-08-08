@@ -245,13 +245,12 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
         if (!target) return state;
         if (!source && healOverride === undefined) return state;
 
-        // Stance system: Light Stance boosts the healer's heals by +50%.
-        // Power-based heals get the boost inside calculateHeal; healOverride-based
-        // heals (e.g. Leech Strike, Ash Reclamation) are boosted here so BOTH
-        // pipelines respect the stance without double-applying.
-        const lightStanceBoost = source?.statusEffects.some(s => s.type === 'LightStance') ? 1.5 : 1;
+        // Ticket 36: the LightStance +50% branch is gone from both heal pipelines.
+        // Heal multipliers are `onHealCalculated` hooks now, applied once at the heal
+        // choke point (effectHandlers.handleHealEffect) that every heal - power-based
+        // or healOverride - funnels through.
         const baseHeal = healOverride !== undefined
-            ? Math.floor(healOverride * lightStanceBoost)
+            ? healOverride
             : calculateHeal(source as any, target, power);
         // STATUS_CONSUMED scaling: heal per stack removed by a preceding
         // consume action in the same card (e.g. Ash Reclamation).

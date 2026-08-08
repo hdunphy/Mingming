@@ -605,13 +605,26 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             energy: 2
         },
         primaryElement: "Dark",
-        secondaryElement: "None",
+        // Ticket 36: the roster's first dual-type Mingming, and the first secondaryElement
+        // that is not "None". getModifierBreakdown already reads secondaryElement for STAB,
+        // so her Light cards hit at 1.5x with no further work. Do NOT add a Light: 1.0 entry
+        // to ElementalMatrix to "balance" it - absent means neutral there; an explicit 1.0
+        // gets multiplied by SECONDARY_MITIGATION and becomes a silent 25% penalty.
+        secondaryElement: "Light",
         cardDraw: 4,
         availableOS: ["hel_v1", "hel_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 36 (Henry's design): Hel is the roster's first dual-type Mingming (Dark/Light).
+        // v1 TWILIGHT_CADENCE - the element she casts sets her stance at end of action, so the
+        //    card that sets a stance never benefits from it, only the next one. Dark = +30%
+        //    dealt, Light = -30% taken. None-element cards set NO stance, which makes Tackle
+        //    and hamstring the only way to act without committing. eclipse cashes the brace.
+        // v2 UNDERWORLD_GATEWAY - her cards cost no Energy at all; each one drains 5% maxHP per
+        //    point of its PRINTED cost instead, so she is the only Mingming who casts 3e freely
+        //    (soul_tithe) and her own hand is her clock (~24 HP on a full hand). Healing is
+        //    boosted 1.5x at the OS so the heal cards stay on-curve.
         decks: {
-            "hel_v1": ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "nightfall_edge", "dawns_respite", "umbral_feast", "dark_pact"],
-            "hel_v2": ["shadow_claw", "leech_strike", "leech_strike", "drain_life", "drain_life", "curse_mark", "nightfall_edge", "dawns_respite", "umbral_feast", "dark_pact"]
+            "hel_v1": ["shadow_claw", "shadow_claw", "pale_mercy", "pale_mercy", "water_slap", "nights_bite", "nights_bite", "purify", "lumen_surge", "hamstring", "eclipse"],
+            "hel_v2": ["pale_mercy", "pale_mercy", "forage", "forage", "dawnstrike", "dawnstrike", "venom_shade", "soul_tithe", "squirrel_away", "last_rites"]
         },
         moves: [
             {

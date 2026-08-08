@@ -5,6 +5,7 @@ import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { GetMingmingData } from './data/mingmingRegistry';
 import { drawCards } from './deckLogic';
+import { applyHealModifiers } from './core/Hooks';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -337,7 +338,17 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     // HP). This is the single choke point where intended vs applied diverge:
     // the applied heal is clamped to max HP below and the overflow is recorded
     // as the `last_overheal` counter for onHeal hooks (AUDHUMBLA v2).
-    const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+    // Ticket 36: `onHealCalculated` runs here and ONLY here. Both pipelines converge on
+    // this line - power-based heals arrive via calculateHeal, card heals as healOverride -
+    // so one call covers every heal in the game and cannot double-apply. This replaced the
+    // old LightStance +50%, which was hardcoded twice and disagreed between the two paths.
+    const intendedHeal = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+    const healAmount = applyHealModifiers(intendedHeal, {
+        source: source,
+        target: target,
+        state: state,
+        triggerDepth: 0
+    } as any);
     const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
     const appliedHeal = newCurrentHp - target.currentHp;
     const overheal = Math.max(0, target.currentHp + healAmount - target.maxHp);
