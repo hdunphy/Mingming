@@ -116,13 +116,13 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
     });
 
     // 3. Type Effectiveness
-    it('Type Effectiveness: Fire Program on Nature MingMing deals 2.0x damage', () => {
+    it('Type Effectiveness: Fire Program on Nature MingMing deals 1.5x damage (ticket 35)', () => {
         const attacker = { primaryElement: 'Water', level: 10, attack: 10 } as IBattleEntity; // Non-STAB
         const target = { primaryElement: 'Nature', defense: 10 } as IBattleEntity;
         const program = { element: 'Fire' } as ProgramData;
 
         const mod = calculateModifier(attacker, target, program);
-        expect(mod).toBe(2.0);
+        expect(mod).toBe(1.5);
     });
 
     // 3b. Type Effectiveness is surfaced in the combat log
@@ -140,12 +140,16 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         expect(neutralState.logs.some(l => l.includes('takes'))).toBe(true);
     });
 
-    it('Effectiveness Log: "Not very effective..." appears for a 0.5x matchup', () => {
+    it('Effectiveness Log: "Not very effective..." can no longer fire (ticket 35)', () => {
+        // The matrix is asymmetric now - resistance was removed, so `effectiveness` is never
+        // below 1 and this branch in effectHandlers is unreachable via the elemental path. The
+        // log line is deliberately left in place for a future matrix that reintroduces
+        // resistance; this test pins the CURRENT design so its removal is a conscious act.
         const state = createMockState();
 
-        // Nature attack vs Fire target (p1) = 0.5x
+        // Nature attack vs Fire target (p1): Fire used to resist this at 0.5x, now neutral.
         const resistedState = effectHandlers['ATTACK'](state, { sourceId: 'e1', targetId: 'p1', power: 10, element: 'Nature' });
-        expect(resistedState.logs.some(l => l.includes('Not very effective...'))).toBe(true);
+        expect(resistedState.logs.some(l => l.includes('Not very effective...'))).toBe(false);
         expect(resistedState.logs.some(l => l.includes('Super effective!'))).toBe(false);
     });
 

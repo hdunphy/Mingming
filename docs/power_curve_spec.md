@@ -430,3 +430,79 @@ mean lands at **6.0 turns** — inside the 5-6 target for the first time.
 Blast radius was small: two cards (`iron_bark`, `overgrowth`) and two enemy intents (`kraken_regen`,
 `audhumbla_milk`). `overgrowth` fell from a corrected 7.20 to **3.60** against a 3.0 band; it is in
 no deck and should be re-checked before it enters one.
+
+## rev 3.9 — type advantage is soft and asymmetric (ticket 35)
+
+**Henry's decision: advantage 2.0 -> 1.5, and resistance removed entirely (0.5 -> absent).** A bad
+matchup means you simply do not get the bonus; it never means your damage is halved. Doing extra
+damage feels good, having yours halved felt awful, and type advantage still has to reward bringing
+the right deck to a gym or boss.
+
+### Where the old 4x came from
+
+STAB cancels in the ratio (1.5 / 1.5), so the swing was entirely the reciprocal `2.0 / 0.5` pair:
+
+| | before | after |
+|---|---|---|
+| advantaged attacker, with STAB | 1.5 x 2.0 = **3.00** | 1.5 x 1.5 = **2.25** |
+| disadvantaged reply, with STAB | 1.5 x 0.5 = **0.75** | 1.5 x 1.0 = **1.50** |
+| **swing between the two sides** | **4.00x** | **1.50x** |
+
+### Resisted pairs are ABSENT from the table, not written as 1.0
+
+This is load-bearing. `getModifierBreakdown` multiplies any *defined* secondary-element entry by
+`SECONDARY_MITIGATION` (0.75), so an explicit `1.0` would silently become `1.0 x 0.75` — a 25%
+penalty on a matchup that is meant to be neutral. Absence means "no interaction", which is what
+asymmetric requires. A consequence worth knowing: mitigation can now only ever scale a real
+advantage (1.5 x 0.75 = 1.125), so `effectiveness` is never below 1 and the "Not very effective..."
+log in `effectHandlers.ts` is **unreachable via the elemental path**. The line is left in place for a
+future matrix that reintroduces resistance, and a test pins the current behaviour so removing it is
+a conscious act.
+
+### Why 1.5 and not smaller — measured, and the reason it stops here
+
+A **persistent multiplicative** damage modifier is a win condition, not matchup flavour: it applies
+to every attack all game, so shrinking it only makes the same outcome arrive more slowly. Measured
+over 1,440 games per variant:
+
+| adv / dis | ratio | cross-element spread | avg deviation from 50% |
+|---|---|---|---|
+| 2.0 / 0.5 (old) | 4.00x | 0% – 100% | 42.2 |
+| 1.5 / 0.75 | 2.00x | 0% – 100% | 28.8 |
+| 2.0 / 1.0 | 2.00x | 1% – 99% | 38.0 |
+| **1.5 / 1.0 (shipped)** | **1.50x** | 5% – 95% | 30.2 |
+| 1.25 / 0.8 | 1.56x | 2% – 98% | 28.3 |
+| 1.15 / 0.9 | 1.28x | 5% – 95% | 27.7 |
+| 1.05 / 1.0 | 1.05x | 11% – 89% | 27.4 |
+
+**Even a 5% edge still produced an 89/11 split**, and pace is not the amplifier either — 8.6-turn
+games measured the same spread as 4.4-turn ones (deviation 41.6 vs 42.2), because more turns means
+less variance and a persistent edge converts more reliably.
+
+So 1.5 is chosen for **feel**, and the residual lopsidedness is accepted as the price of type
+mattering at all. **If it ever needs to be a true coin flip, change the mechanism's SHAPE — do not
+shave this number again.** The options, in the order they were judged most promising: make it
+non-persistent (first hit each turn, or once per battle), make it **additive** (+N flat damage rather
+than xN, which is self-limiting and does not compound), pay it out in energy/draw instead of damage,
+or rubber-band it (the resisted side draws a card when hit super-effectively).
+
+### Measured effect
+
+Cross-element average deviation **42.2 -> 31.3**. Element win rates moved a long way, and the biggest
+winner is the one that was being punished for nothing:
+
+| element | before | after | |
+|---|---|---|---|
+| Fire | 68% | 44% | -25 |
+| Nature | 62% | 53% | -8 |
+| Water | 34% | 30% | -4 |
+| **Air** | **36%** | **72%** | **+36** |
+
+Air was resisted *by* Fire while Fire had no advantage over Air — a one-way punishment with no
+reciprocal upside, so Air simply lost for free. Several pairs had that shape (`Air->Earth`,
+`Water->Earth`, and `Earth->Earth` self-resist). Removing resistance fixed a genuine asymmetry
+rather than only softening the numbers.
+
+**All eight tuned species are unchanged and still pass every band** — §2.3 and the mirror are
+same-species, so the matrix never applied there. That is the correct blast radius: this change only
+touches cross-element play.

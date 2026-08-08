@@ -2,18 +2,43 @@
 import type { Element, IBattleEntity, ProgramData, IBattleState } from './types';
 
 /**
- * Elemental Advantage Matrix based on legacy Rules.cs
- * Source Element -> Target Element -> Multiplier
+ * Elemental Advantage Matrix. Source Element -> Target Element -> Multiplier.
+ *
+ * Ticket 35 (Henry): SOFT AND ASYMMETRIC. Advantage is **1.5x** (was 2.0) and **resistance is
+ * gone entirely** (was 0.5) - a bad matchup means you simply do not get the bonus, never that
+ * your damage is halved. Doing extra damage feels good; having yours halved felt awful, and the
+ * two compounded: STAB cancels in the ratio, so the old 2.0/0.5 pair was a flat 4x swing
+ * between the two sides.
+ *
+ * RESISTED PAIRS ARE ABSENT FROM THE TABLE, NOT LISTED AS 1.0 - and that is load-bearing.
+ * `getModifierBreakdown` multiplies any *defined* secondary-element entry by
+ * SECONDARY_MITIGATION, so an explicit `1.0` would silently become 1.0 x 0.75 = a 25% PENALTY
+ * on a matchup that is meant to be neutral. Absent means "no interaction", which is what
+ * asymmetric requires.
+ *
+ * The relationships the removed entries used to encode, kept readable here: Fire was resisted
+ * by Water and Earth; Water by Nature and Ice; Earth by Water and Earth; Air by Fire and Earth;
+ * Nature by Fire; Ice by Air. Each is now simply an absence of advantage in that direction.
+ *
+ * Why 1.5/1.0 and not something smaller: measured over 1,440 games per variant, a PERSISTENT
+ * MULTIPLICATIVE damage modifier is a win condition rather than matchup flavour - it applies to
+ * every attack all game, so shrinking it only makes the same outcome arrive more slowly. Even
+ * 1.05/1.0 still produced an 89/11 cross-element split, and doubling game length did not help
+ * (8.6-turn games measured the same spread as 4.4-turn ones). This number is therefore chosen
+ * for FEEL - enough to reward bringing the right deck to a gym or boss - and the residual
+ * lopsidedness is accepted as the price of type mattering at all. If it ever needs to be a true
+ * coin flip, change the mechanism's SHAPE (first-hit-only, additive, or paying out in energy or
+ * draw instead of damage), do not shave this number again. See ticket 35.
  */
 export const ElementalMatrix: Record<Element, Partial<Record<Element, number>>> = {
-  Fire: { Water: 0.5, Earth: 0.5, Nature: 2.0, Ice: 2.0 },
-  Water: { Fire: 2.0, Earth: 2.0, Nature: 0.5, Ice: 0.5 },
-  Earth: { Fire: 2.0, Water: 0.5, Earth: 0.5 },
-  Air: { Fire: 0.5, Earth: 0.5, Ice: 2.0 },
-  Nature: { Fire: 0.5, Water: 2.0, Earth: 2.0, Air: 2.0 },
-  Ice: { Water: 2.0, Earth: 2.0, Air: 0.5 },
-  Light: { Dark: 2.0 },
-  Dark: { Light: 2.0 },
+  Fire: { Nature: 1.5, Ice: 1.5 },
+  Water: { Fire: 1.5, Earth: 1.5 },
+  Earth: { Fire: 1.5 },
+  Air: { Ice: 1.5 },
+  Nature: { Water: 1.5, Earth: 1.5, Air: 1.5 },
+  Ice: { Water: 1.5, Earth: 1.5 },
+  Light: { Dark: 1.5 },
+  Dark: { Light: 1.5 },
   None: {}
 };
 
