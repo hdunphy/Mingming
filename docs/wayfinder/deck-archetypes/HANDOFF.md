@@ -1,6 +1,6 @@
 # HANDOFF — deck-archetypes map (keep this current every session)
 
-*Last updated: 2026-08-07, after tickets 26-33 landed. **Nature COMPLETE: 16/32 decks live.** **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
+*Last updated: 2026-08-08, after tickets 26-34 landed. **Nature COMPLETE: 16/32 decks live. ALL EIGHT TUNED SPECIES PASS EVERY FIRST-PASS BAND.** **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
 ## Read this first: which band applies
 
@@ -13,12 +13,12 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Where things stand
 
-- Branch **card-dev**. Tickets 01–33 closed. **8 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra). **Water, Air, Fire and Nature are all complete.** The other 8 are placeholders — **do not read their numbers as balance signal.**
-- **Latest full gate (after ticket 33), tuned species only:**
+- Branch **card-dev**. Tickets 01–34 closed. **8 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra). **Water, Air, Fire and Nature are all complete.** The other 8 are placeholders — **do not read their numbers as balance signal.**
+- **Latest full gate (after ticket 34), tuned species only — every one passes, FTK 0, mirror mean 6.0 turns (inside the 5-6 target for the first time):**
 
   | species | §2.3 | mirror turns | dead cards |
   |---|---|---|---|
-  | huldra | **0.790** ✗ | 20.6 | 0.2% |
+  | huldra | 0.660 | 15.3 | 0.6% |
   | sköll | 0.640 | 3.7 | 32.3% |
   | ratatoskr | 0.590 | 4.7 | 3.8% |
   | kraken | 0.540 | 5.1 | 10.1% |
@@ -27,7 +27,7 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
   | sleipnir | 0.330 | 4.5 | 14.7% |
   | hraesvelgr | 0.310 | 3.2 | 4.0% |
 
-- **THE CURVE IS rev 3.7: `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`.** The constants have not moved since rev 3.3 — rev 3.4 is five *pricing* corrections, all documented in `power_curve_spec.md`. **`powerscale.ts` is the executable truth; where the prose disagrees, powerscale wins.**
+- **THE CURVE IS rev 3.8: `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`.** The constants have not moved since rev 3.3 — rev 3.4 is five *pricing* corrections, all documented in `power_curve_spec.md`. **`powerscale.ts` is the executable truth; where the prose disagrees, powerscale wins.**
 - **Cards STAY on-curve — fix enablers (OS/deck structure), never bend card economics.** Henry's law, proven three times now (kraken OS decomposition, MOMENTUM_DRIVE, and Burn overflow).
 
 ## Three engine/AI bugs found in ticket 28 — do not re-derive these
@@ -51,10 +51,10 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
-1. **OPEN — huldra_v1 §2.3 = 0.790, breaching from the HIGH side.** The design expected v1 to be the *weakest* deck in the roster; it came out the strongest. The enabler is **ALLURE_PROXY generating Weakened for free** — no positive-status filter, and ALLY includes self, so `thorn_tithe`'s self-debuff mirrors too (**that is load-bearing, do not "fix" it**) — which `hexbloom` then cashes quadratically: **6.8 Weakened consumed per cast**, hand-pricing to **7.96 against a 6.5 band**. Every authorised knob is exhausted; see ticket 33. **This is an OS decision, not a card one.**
-2. **Read ticket 33's knob round before touching `hexbloom`.** Halving the conversion barely moved the skew (0.790 → 0.740) and **collapsed the mirror from 20.6 turns back to 47.7, decided 368/400 → 176/400**. `hexbloom` is not the imbalance, it is the CLOCK — it is what resolves huldra's stall. Enabler, not economics, arrived at from the other direction.
-3. **BarkShield decay is NOT the binding constraint.** Swept 0.8 / 0.9 / 0.95: §2.3 moves five points and the mirror not at all — the enemy chips the pool faster than it decays. Left at 0.8. Re-test at the Earth/Ice passes, which inherit it via `glacier_wall`, `stone_bark`, `spiked_carapace`, `shield_shards`.
-4. **The budget band is a TARGET, not a law (Henry, ticket 33).** Some cards ship over and some under and that spread is intended — `thorn_tithe` +0.1 and `thornguard` +0.3 are accepted, not redlines to chase. This does not loosen the rule that *imbalance* is fixed at the enabler; it means ±0.3 around a band is normal.
+1. **Regen's stacks are DURATION, not intensity (ticket 34) — do not re-derive this.** A flat 3% of maxHP per turn, lasting `stacks` turns. The engine used to multiply by stacks, making one application worth `1.5·N(N+1)` percent of a pool, and with a flat 1/turn decay it was **the only uncapped heal in the game** — 15 stacks healed 45% of a pool EVERY TURN. **Poison looks identical and is NOT**: Poison's stacks are intensity (`1.5·S(S+1)` is correct for it), Regen's are duration (`12·stacks`). Three places model this — engine, AI eval, powerscale — keep them in lockstep.
+2. **Diagnostic lesson from tickets 33/34: when ONE card decides a matchup, isolate every clause on it before naming a cause.** huldra_v1 was blamed on ALLURE_PROXY (measured 3.5 Weakened, a bit player), then on Sharp (cutting it 3→2→1 moved §2.3 by 0.02). It was the Regen riding along on the same card — every `iron_bark` variant without it measured **0.000** regardless of buff type or magnitude.
+3. **huldra_v1 is still a one-card deck.** Even after the fix, `iron_bark` ×1 measures 0.030 and ×0 measures 0.000. Its damage is two `thorn_tithe` and one `hexbloom`; it needs a real payoff, which is a design call and not a knob.
+4. **`overgrowth` (3 Regen, 1e) is in no deck and scores 3.60 vs a 3.0 band** — re-check before it enters one. It was a corrected 7.20 before ticket 34.
 5. **Next species: hel or draugr.** Hel is the most broken thing left — **0/400 decided** at the 61-turn cap.
 6. **Sköll is CLOSED (ticket 31).** The cause was the deck's cost curve against a 2-Energy economy, not the stat line and not the daemon: three 2e cards in a 9-card deck makes "0e + one 2e" the whole turn, every turn, locking out all five 1e cards. Fixed by cutting `overdrive`, re-costing `brute_force` 2e → 1e (25 power, +8 with Strength), and softening the stat line to 70/95/55. **0.690 → 0.640, dead 50.9% → 32.3%.** Two useful negatives: a SINGLE 2e swap never clears the band (best is 43.0%), and enlarging the deck moves §2.3 a lot but dead cards barely — the metric counts instances that reached a hand, so a bigger deck just means more instances seen.
 7. **STILL OPEN — TREACHERY_KERNEL over-feeds.** Peak Strength on skoll_v1 measures **13.7 stacks in 3.4-turn games** (16.5 at 4.1) against a 12.5-stack damage cap and an 8-stack cap on `CORE_OVERCLOCK`'s scaler. The ramp is pinned by turn 2 and the rest is discarded — which is why dropping that multiplier 1.2 → 1.10 moved the mirror by 0.02 turns. "Gets scarier the more it is hurt" never plays as a *curve*. Nothing in the card layer can fix that; it is a firmware-generosity question and it is the natural next sköll ticket.

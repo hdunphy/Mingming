@@ -101,7 +101,8 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
         case 'Regen':
             // 3% maxHp x stacks per tick, decrementing; healing past full is wasted,
             // so the total is capped at the holder's missing HP.
-            return HP_POINTS * Math.min(0.03 * (s * (s + 1) / 2) * entity.maxHp, entity.maxHp - entity.currentHp);
+            // Ticket 34: flat 3%/turn for `s` turns - LINEAR in stacks, not triangular.
+            return HP_POINTS * Math.min(0.03 * s * entity.maxHp, entity.maxHp - entity.currentHp);
         case 'Energized':
             // +stacks energy next turn; 1 energy ~ ENERGY_TURN_FRACTION of a turn's damage.
             return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * ENERGY_TURN_FRACTION * s;

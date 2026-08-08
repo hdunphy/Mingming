@@ -209,8 +209,14 @@ function poisonPower(stacks: number): number {
 }
 
 function regenPower(stacks: number): number {
-    // ~3 * S * (S+1): same decaying-accumulation shape as Poison, at Regen's 3%/stack/turn.
-    return 3 * stacks * (stacks + 1);
+    // Ticket 34: Regen is a FLAT 3% of maxHP per turn and `stacks` is DURATION, so one
+    // application heals 3% x S of a pool - LINEAR, not the triangular shape Poison has.
+    // At the spec's heal rate of 4 power per 1% maxHP that is 12 power per stack.
+    //
+    // The old formula was 3*S*(S+1), which was wrong twice over: it used Poison's triangular
+    // shape for a status that no longer has one, AND it applied damage's 3-power-per-1% rate
+    // instead of heal's 4, so it under-charged by 2x on top of the wrong curve.
+    return 12 * stacks;
 }
 
 function burnPower(stacks: number): number {

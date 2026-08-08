@@ -380,3 +380,53 @@ The lesson is that `hexbloom` was not the imbalance — it was the *clock*. Gutt
 Poison pressure that was resolving the stall this whole pass existed to fix, and left the win-rate
 skew untouched because that skew comes from ALLURE_PROXY generating Weakened for free. **Enabler,
 not economics** — exactly the standing rule, arrived at from the other direction.
+
+## rev 3.8 — Regen is a duration, not an intensity (ticket 34)
+
+**Henry's correction: Regen heals a FLAT 3% of maxHP per turn, and `stacks` is how many TURNS it
+lasts.** 3 stacks = 3% a turn for three turns, then it falls off. It was never meant to be an
+intensity multiplier.
+
+The engine multiplied the heal by the stack count, which made it the most broken status in the
+registry in two compounding ways:
+
+**1. Quadratic, not linear.** One application of N stacks healed `3% x (N + N-1 + ... + 1)` =
+`1.5·N(N+1)` percent of a pool. Now it heals `3% x N` — linear.
+
+| stacks | old total | new total |
+|---|---|---|
+| 2 | 9% | 6% |
+| 5 | **45%** | 15% |
+| 8 | **108%** | 24% |
+| 15 | **360%** | 45% |
+
+**2. Unbounded, because the decay is a flat 1/turn.** Regen was the ONLY uncapped heal in the game:
+Burn caps at 3 stacks, the 2%/stack statuses cap at a 25% effect, BarkShield decays
+multiplicatively. Regen had no cap and a flat −1/turn, so a card granting **2 per play accumulated
+forever** while **1 per play was a treadmill** that exactly cancelled the decay.
+
+That single property was a step function, and it decided a whole matchup. huldra_v1 with
+`iron_bark` at 2 Regen won **79%** of its §2.3; at 1 Regen it won **1%**; at 0 it won **0%**. The
+buff riding alongside was irrelevant — Sharp, Strength, more Strength and Strength-plus-damage all
+measured 0.000 without the Regen. Fifteen stacks was healing **45% of a health pool every turn**.
+
+### Pricing follows the shape
+
+`regenPower()` was `3·S(S+1)` — wrong twice. It used Poison's triangular shape for a status that no
+longer has one, *and* it applied damage's 3-power-per-1%-maxHP rate instead of heal's 4, so it
+under-charged by 2x on top of the wrong curve. It is now **`12 · stacks`**: 3% x S of a pool at 4
+power per 1%.
+
+Poison's `1.5·S(S+1)` is unchanged and remains correct — Poison genuinely is a decaying DoT whose
+per-turn damage scales with stacks. **The two statuses look alike and are not**: Poison's stacks are
+intensity, Regen's are duration.
+
+### Effect
+
+huldra §2.3 **0.790 -> 0.660** (inside the first-pass band), mirror **20.6 -> 15.3 turns**, decided
+368 -> 385/400. **All eight tuned species now pass every first-pass band**, and the tuned mirror
+mean lands at **6.0 turns** — inside the 5-6 target for the first time.
+
+Blast radius was small: two cards (`iron_bark`, `overgrowth`) and two enemy intents (`kraken_regen`,
+`audhumbla_milk`). `overgrowth` fell from a corrected 7.20 to **3.60** against a 3.0 band; it is in
+no deck and should be re-checked before it enters one.
