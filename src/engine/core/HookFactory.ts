@@ -168,6 +168,16 @@ export const HookFactory = {
                 scaleFactor = this.resolveScaling(action.scaling, action.scalingKey, context, owner, Array.isArray(targetId) ? targetId[0] : (targetId ?? undefined));
             }
 
+            // Ticket 36: per-turn escalation, composed on top of whatever `scaling` resolved.
+            // `playsThisTurn` has ALREADY been incremented for the card being resolved (the
+            // reducer bumps it before it dispatches onActionStart), so the plays that came
+            // BEFORE this one is `playsThisTurn - 1` - which makes the first cast of a turn
+            // cost exactly its base rate.
+            if (action.escalatePerPlay) {
+                const priorPlays = Math.max(0, (owner.playsThisTurn ?? 1) - 1);
+                scaleFactor *= (1 + action.escalatePerPlay * priorPlays);
+            }
+
             if (action.type === 'COUNTER') {
                 // OS counters are OWNER-scoped by default (key becomes
                 // `key:ownerId`) so two units with the same OS never share a
@@ -195,9 +205,13 @@ export const HookFactory = {
 
             // To ensure scaling/percent max HP is respected (legacy Hook logic):
             if (action.type === 'HP' as any) {
-                const rawAmount = action.percentMaxHP
+                // Ticket 36: floor the PRODUCT, not just the percentage. The floor used to sit
+                // inside the percentage and every scaleFactor was an integer, so it never showed;
+                // `escalatePerPlay` introduced fractional factors and 22.5 HP of damage started
+                // reaching entities. A no-op for every integer scaling.
+                const rawAmount = Math.floor(action.percentMaxHP
                     ? Math.max(1, Math.floor(owner.maxHp * (Math.abs(action.percentMaxHP) / 100))) * scaleFactor
-                    : (action.amount ?? 0) * scaleFactor;
+                    : (action.amount ?? 0) * scaleFactor);
 
                 const finalIsHeal = (action.percentMaxHP ? action.percentMaxHP : (action.amount ?? 0)) > 0;
 

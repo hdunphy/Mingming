@@ -73,6 +73,18 @@ export type HookAction = {
     power?: number;
     element?: Element;
     percentMaxHP?: number;
+    /**
+     * Ticket 36: multiply this action by `1 + escalatePerPlay x (plays already made by the
+     * owner this turn)`. Composes with `scaling` rather than replacing it, and resets every
+     * turn with `playsThisTurn`.
+     *
+     * It exists because hel_v2's UNDERWORLD_GATEWAY had a flat per-cast price and she has no
+     * Energy limit, so nothing stopped her emptying and refilling her hand on turn one - 6.5
+     * casts on the turn she scored a first-turn kill. A flat toll cannot brake that: doubling
+     * it moved section 2.3 by 48 points and the FTK count by zero. An escalating one does,
+     * without capping her casts, which is the OS's whole identity.
+     */
+    escalatePerPlay?: number;
     costReduction?: number;
     flatBonus?: number;
     multiplier?: number;

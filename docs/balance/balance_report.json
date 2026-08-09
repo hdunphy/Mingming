@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "spec": "docs/balance_testing.md",
   "command": "npm run balance",
-  "registryHash": "1:de7fbe06",
+  "registryHash": "1:d7238b5d",
   "summary": {
-    "redlines": 46,
+    "redlines": 45,
     "cardRedlines": 32,
-    "matchupRedlines": 14,
+    "matchupRedlines": 13,
     "cardsAudited": 159,
     "matchupsAudited": 48,
     "suitesReported": [
@@ -1430,32 +1430,21 @@
       "enemy": "hel",
       "enemyOS": "hel_v2",
       "iterations": 100,
-      "playerWins": 36,
-      "enemyWins": 36,
-      "draws": 28,
-      "decisive": 72,
-      "decisiveWinRate": 0.5,
-      "winRate": 0.36,
-      "averageTurns": 1.71,
-      "deadCardRatio": 0.3676,
-      "enemyDeadCardRatio": 0.1975,
-      "ftkCount": 4,
+      "playerWins": 23,
+      "enemyWins": 16,
+      "draws": 61,
+      "decisive": 39,
+      "decisiveWinRate": 0.5897,
+      "winRate": 0.23,
+      "averageTurns": 2.16,
+      "deadCardRatio": 0.3045,
+      "enemyDeadCardRatio": 0.3072,
+      "ftkCount": 0,
       "truncatedCount": 0,
-      "firstMoverEdge": -0.3333,
-      "sideBias": 0.0372,
+      "firstMoverEdge": -0.1667,
+      "sideBias": 0.139,
       "inconclusive": false,
-      "redlines": [
-        {
-          "kind": "FTK",
-          "section": "3",
-          "subject": "os:hel",
-          "metric": "ftkCount",
-          "value": 4,
-          "threshold": 0,
-          "comparison": "above",
-          "detail": "4/100 runs were won on turn 1 by the side that moved first, so the loser never played a card."
-        }
-      ]
+      "redlines": []
     },
     {
       "id": "os:hraesvelgr",
@@ -2212,16 +2201,6 @@
       "threshold": 0.15,
       "comparison": "above",
       "detail": "ymir_v2 wins 100.0% of the 37 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost."
-    },
-    {
-      "kind": "FTK",
-      "section": "3",
-      "subject": "os:hel",
-      "metric": "ftkCount",
-      "value": 4,
-      "threshold": 0,
-      "comparison": "above",
-      "detail": "4/100 runs were won on turn 1 by the side that moved first, so the loser never played a card."
     }
   ]
 }

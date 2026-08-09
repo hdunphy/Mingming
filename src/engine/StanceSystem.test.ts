@@ -287,13 +287,35 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
 
 describe('hel_v2 UNDERWORLD_GATEWAY', () => {
     it('boosts her healing by 50% through the new onHealCalculated path', () => {
-        // dawns_respite: 1e, heals 10 flat. The toll is 10% of 200 maxHp x 1 printed
-        // Energy = 20 HP, charged at action start; the heal then lands at 10 x 1.5 = 15.
+        // dawns_respite: 1e, heals 10 flat. The FIRST cast of a turn pays the base rate -
+        // 5% of 200 maxHp x 1 printed Energy = 10 HP - charged at action start; the heal
+        // then lands at 10 x 1.5 = 15.
         let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'dawns_respite')]);
         state = play(state, 'c1', PLAYER_ID);
 
-        expect(state.playerParty[0].currentHp).toBe(95); // 100 - 20 toll + 15 boosted heal
+        expect(state.playerParty[0].currentHp).toBe(105); // 100 - 10 toll + 15 boosted heal
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays in blood'))).toBe(true);
+    });
+
+    it('escalates: every further card that turn costs 125% more than the last step', () => {
+        // Ticket 36 second pass. A FLAT toll cannot brake her - she has no Energy limit, so
+        // nothing stopped her emptying and refilling her hand on turn one (6.5 casts on the
+        // turn she scored a first-turn kill, and doubling the flat rate moved the FTK count
+        // by zero). The multiplier is `1 + 1.25 x plays already made this turn`, so on a 200
+        // maxHp frame a 1e card costs 10, then 22, then 35.
+        let state = makeState(
+            { activeOS: 'hel_v2', currentHp: 200, cardDraw: 4 },
+            [card('c1', 'nights_bite'), card('c2', 'nights_bite'), card('c3', 'nights_bite')]
+        );
+
+        const tolls: number[] = [];
+        for (const id of ['c1', 'c2', 'c3']) {
+            const before = state.playerParty[0].currentHp;
+            state = play(state, id);
+            tolls.push(before - state.playerParty[0].currentHp);
+        }
+
+        expect(tolls).toEqual([10, 22, 35]);
     });
 
     it('charges no toll for a 0-cost card', () => {
@@ -304,7 +326,7 @@ describe('hel_v2 UNDERWORLD_GATEWAY', () => {
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
     });
 
-    it('lets her cast a 3e card on a 2-Energy frame, and charges 30% of her pool for it', () => {
+    it('lets her cast a 3e card on a 2-Energy frame, and charges 15% of her pool for it', () => {
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, currentEnergy: 2, maxEnergy: 2 },
             [card('c1', 'soul_tithe', 3)]
@@ -313,7 +335,7 @@ describe('hel_v2 UNDERWORLD_GATEWAY', () => {
         state = play(state, 'c1');
 
         expect(state.enemyParty[0].currentHp).toBeLessThan(before); // it actually resolved
-        expect(state.playerParty[0].currentHp).toBe(140);           // 3 x 10% of 200 = 60 HP
+        expect(state.playerParty[0].currentHp).toBe(170);           // 3 x 5% of 200 = 30 HP
         expect(state.playerParty[0].currentEnergy).toBe(2);         // and cost her no Energy
     });
 });

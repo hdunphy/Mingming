@@ -35,6 +35,10 @@ const HookActionSchema = z.object({
     element: z.string().optional(),
     amount: z.number().optional(),
     percentMaxHP: z.number().optional(),
+    // Ticket 36. NOTE: zod strips unknown keys, so a field added to HookAction but not
+    // listed here is silently dropped between hooks.json and the engine - which is exactly
+    // how this one spent three sim runs looking like a no-op.
+    escalatePerPlay: z.number().optional(),
     costReduction: z.number().optional(),
     flatBonus: z.number().optional(),
     multiplier: z.number().optional(),

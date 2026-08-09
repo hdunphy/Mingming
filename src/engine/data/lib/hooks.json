@@ -980,7 +980,7 @@
     "hel_v2": {
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
-        "description": "Hel's cards cost health, not energy: casting drains 5% of her max HP per point of the card's printed cost. Her healing is increased by 50%.",
+        "description": "Hel's cards cost health, not energy: casting drains 5% of her max HP per point of the card's printed cost, and every further card that turn costs 125% more. Her healing is increased by 50%.",
         "hooks": [
             {
                 "id": "hel_v2_underworld_cost",
@@ -1006,8 +1006,9 @@
                     {
                         "type": "HP",
                         "target": "SELF",
-                        "percentMaxHP": -10,
-                        "scaling": "BASE_COST"
+                        "percentMaxHP": -5,
+                        "scaling": "BASE_COST",
+                        "escalatePerPlay": 1.25
                     },
                     {
                         "type": "LOG",

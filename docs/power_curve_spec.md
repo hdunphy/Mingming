@@ -547,3 +547,28 @@ the frame that wanted it.)
 - **`healOverride` is flat HP and powerscale prices it as curve power**, so a card healing with
   `healOverride` delivers roughly 5× what it is charged for. New cards heal with `power`. The five
   heal-bearing cards in ticket 36 all do.
+
+### Addendum (ticket 36, second pass): the bands assume an Energy constraint
+
+`BUDGET_BANDS` prices a card against the Energy it costs, and every band above 1e quietly assumes
+the Energy is the *limiting* resource — a 3e card is priced as **a whole turn** for a 2-Energy
+species, which is why 10.5 is worth roughly three times 3.0 rather than three times the damage.
+
+hel_v2's UNDERWORLD_GATEWAY removes that constraint: her cards cost no Energy at all. `soul_tithe`
+scores **10.4 against the 10.5 band** — correct arithmetic, wrong frame. She casts it for 12 HP as
+one of four-plus actions in the same turn, and it measured **37 damage a play**, the single biggest
+number in her deck.
+
+**Any OS that removes the Energy constraint must have its payoff cards hand-priced, not
+curve-priced.** The curve has no term for "how many of these can you cast in a turn".
+
+Two mechanism notes from the same pass:
+
+- **An escalating cost is ordered, and a search will game it.** Charging more per card played this
+  turn does not stop an alpha strike; the AI simply casts the expensive card first and pays the base
+  rate. Escalation taxes the tail. To brake an opener you need a cap, a prepaid cost, or a smaller
+  card.
+- **A cost that feeds the payoff is not a clock.** `last_rites` scales on the caster's missing HP
+  and hel_v2 pays her costs in HP, so the "clock" made her burst *bigger* — she hit 25% harder on
+  the turn she killed. Check that a resource cost does not appear on the scaling side of any card in
+  the same deck.
