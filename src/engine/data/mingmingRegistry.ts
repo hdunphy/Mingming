@@ -664,10 +664,20 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["nidhoggr_v1", "nidhoggr_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 39 (Henry's design): Dark completes here.
+        // v1 ROOT_CORRUPTION - poison stops decaying at 2+ stacks, so it is a permanent RATE
+        //    rather than a decaying burst, and the deck's question every turn is hold or cash.
+        //    wither_feast is the cash-in: it triggers the poison three times, then eats it.
+        // v2 BLOOD_SCENT - anything crossing below half HP pays him 1 Energy and a card, so he
+        //    opens the window himself (leech_strike) and swings rend_marrow into it at +87.5%.
+        //    Nothing else in the roster reads the ENEMY's health bar.
+        //    Tuned (knob 7): leech_strike went to 2e and night_terror came out for water_slap -
+        //    that swap is what crossed the band. umbral_feast consumes HIS OWN Poison, which in
+        //    the gate matchup is mostly the pile v1 put there: it was eating v1's win condition
+        //    for ~33 HP a cast, which is why blight_bloom trades Poison AWAY for raw power.
         decks: {
-            "nidhoggr_v1": ["shadow_claw", "shadow_claw", "night_terror", "night_terror", "leech_strike", "venom_shade", "venom_shade", "creeping_dread", "curse_mark", "umbral_feast"],
-            "nidhoggr_v2": ["shadow_claw", "shadow_claw", "night_terror", "night_terror", "leech_strike", "venom_shade", "venom_shade", "creeping_dread", "curse_mark", "umbral_feast"]
+            "nidhoggr_v1": ["rot_seed", "rot_seed", "shadow_claw", "water_slap", "venom_shade", "venom_shade", "curse_mark", "blight_bloom", "blight_bloom", "wither_feast"],
+            "nidhoggr_v2": ["shadow_claw", "shadow_claw", "bloodletting", "bloodletting", "leech_strike", "leech_strike", "umbral_feast", "water_slap", "rend_marrow", "rend_marrow"]
         },
         moves: [
             {

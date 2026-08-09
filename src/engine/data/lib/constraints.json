@@ -43,5 +43,16 @@
         "type": "CARDS_DRAWN",
         "target": "SELF",
         "value": 1
+    },
+    "self_poisoned": {
+        "type": "HAS_STATUS",
+        "target": "SELF",
+        "value": "Poison"
+    },
+    "target_poisoned_6": {
+        "type": "HAS_STATUS",
+        "target": "TARGET",
+        "value": "Poison",
+        "minStacks": 6
     }
 }

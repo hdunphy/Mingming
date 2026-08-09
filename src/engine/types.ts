@@ -56,6 +56,8 @@ export interface ProgramConstraint {
   readonly type: ProgramConstraintType;
   readonly target: 'SELF' | 'TARGET';
   readonly value: string | number;
+  /** Ticket 39: HAS_STATUS only - require at least this many stacks, not merely presence. */
+  readonly minStacks?: number;
   readonly error?: string; // Validation error
 }
 

@@ -2797,10 +2797,10 @@
     "venom_shade": {
         "id": "venom_shade",
         "name": "Venom Shade",
-        "description": "Add 3 stacks of Poison.",
+        "description": "12 power. Add 3 stacks of Poison.",
         "element": "Dark",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -2809,6 +2809,11 @@
             "energy_base"
         ],
         "actions": [
+            {
+                "type": "ATTACK",
+                "power": 12,
+                "target": "TARGET"
+            },
             {
                 "type": "STATUS",
                 "status": "Poison",
@@ -2820,10 +2825,10 @@
     "curse_mark": {
         "id": "curse_mark",
         "name": "Curse Mark",
-        "description": "Add 2 stacks of Poison + 1 Weakened.",
+        "description": "17 power. Add 2 stacks of Poison + 1 Weakened.",
         "element": "Dark",
         "target": "Single",
-        "category": "Status",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -2832,6 +2837,11 @@
             "energy_base"
         ],
         "actions": [
+            {
+                "type": "ATTACK",
+                "power": 17,
+                "target": "TARGET"
+            },
             {
                 "type": "STATUS",
                 "status": "Poison",
@@ -2849,12 +2859,12 @@
     "leech_strike": {
         "id": "leech_strike",
         "name": "Leech Strike",
-        "description": "19 power. Heal 10 HP.",
+        "description": "40 power. Heal 30 power.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
-        "baseCost": 1,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -2863,13 +2873,12 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 19,
+                "power": 40,
                 "target": "TARGET"
             },
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 10,
+                "power": 30,
                 "target": "SELF"
             }
         ]
@@ -2877,9 +2886,9 @@
     "umbral_feast": {
         "id": "umbral_feast",
         "name": "Umbral Feast",
-        "description": "Consume Poison to heal 10 HP per stack.",
+        "description": "Consume your own Poison. Heal 5 power per stack consumed.",
         "element": "Dark",
-        "target": "Single",
+        "target": "Self",
         "category": "Heal",
         "rarity": "Uncommon",
         "baseCost": 1,
@@ -2887,19 +2896,18 @@
             "not_stunned",
             "not_asleep",
             "energy_base",
-            "target_poisoned"
+            "self_poisoned"
         ],
         "actions": [
             {
                 "type": "STATUS",
                 "status": "Poison",
                 "consume": true,
-                "target": "TARGET"
+                "target": "SELF"
             },
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 10,
+                "power": 5,
                 "scaling": "STATUS_CONSUMED",
                 "target": "SELF"
             }
@@ -4221,6 +4229,149 @@
             {
                 "type": "DRAW",
                 "amount": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "rot_seed": {
+        "id": "rot_seed",
+        "name": "Rot Seed",
+        "description": "Add 2 stacks of Poison.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "blight_bloom": {
+        "id": "blight_bloom",
+        "name": "Blight Bloom",
+        "description": "50 power. Add 2 stacks of Poison.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 50,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "wither_feast": {
+        "id": "wither_feast",
+        "name": "Wither Feast",
+        "description": "Trigger the target's Poison five times, then consume it.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base",
+            "target_poisoned_6"
+        ],
+        "actions": [
+            {
+                "type": "TRIGGER_STATUS",
+                "status": "Poison",
+                "target": "TARGET",
+                "count": 5
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "consume": true,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "rend_marrow": {
+        "id": "rend_marrow",
+        "name": "Rend Marrow",
+        "description": "40 power. +35 power if the target is below half HP.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 35,
+                "target": "TARGET",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "TARGET",
+                        "value": "LT:50"
+                    }
+                ]
+            }
+        ]
+    },
+    "bloodletting": {
+        "id": "bloodletting",
+        "name": "Bloodletting",
+        "description": "18 power. Add 2 stacks of Poison to yourself.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 18,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 2,
                 "target": "SELF"
             }
         ]

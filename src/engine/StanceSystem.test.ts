@@ -206,9 +206,10 @@ describe('Light Stance: -30% damage taken', () => {
             { currentHp: 100, statusEffects: [{ id: 's1', type: StatusType.DarkStance, stacks: 1 }] },
             [card('c1', 'leech_strike')]
         );
-        // leech_strike: attack + healOverride 10 on SELF; Dark Stance must not touch the heal.
+        // leech_strike: attack + a power-30 heal on SELF (ticket 39 moved it off healOverride);
+        // Dark Stance must not touch the heal. calculateHeal = maxHp * power / 400 = 200*30/400.
         state = play(state, 'c1');
-        expect(state.playerParty[0].currentHp).toBe(110);
+        expect(state.playerParty[0].currentHp).toBe(115);
     });
 });
 

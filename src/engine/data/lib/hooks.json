@@ -1061,7 +1061,7 @@
     "nidhoggr_v2": {
         "id": "nidhoggr_v2",
         "name": "BLOOD_SCENT_OS",
-        "description": "Whenever any Mingming drops below half of its maximum HP, Nidhoggr smells blood and gains 2 stacks of Strengthened and 2 stacks of Sharp. Healing above half re-arms the scent.",
+        "description": "Whenever any Mingming drops below half of its maximum HP, Nidhoggr smells blood: gain 1 Energy and draw a card. Healing above half re-arms the scent.",
         "hooks": [
             {
                 "id": "nidhoggr_v2_bloodscent",
@@ -1069,20 +1069,18 @@
                 "priority": 40,
                 "do": [
                     {
-                        "type": "STATUS",
+                        "type": "ENERGY",
                         "target": "SELF",
-                        "status": "Strengthened",
-                        "stacks": 2
+                        "amount": 1
                     },
                     {
-                        "type": "STATUS",
+                        "type": "DRAW",
                         "target": "SELF",
-                        "status": "Sharp",
-                        "stacks": 2
+                        "amount": 1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s BLOOD_SCENT_OS smells blood! +2 Strengthened, +2 Sharp."
+                        "text": "{owner}'s BLOOD_SCENT_OS smells blood! +1 Energy, draw 1."
                     }
                 ]
             }

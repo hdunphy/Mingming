@@ -107,28 +107,47 @@ describe('Ticket 12 - VALKYRIE v2 CRUSADER_KERNEL (distinct buff types, not stac
     });
 });
 
-describe('Ticket 12 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', () => {
-    const nid = () => makeUnit('n1', 'Nidhoggr', { activeOS: 'nidhoggr_v2' });
+describe('Ticket 12/39 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', () => {
+    // Ticket 39 changed what the hook PAYS, not when it fires: +2 Strengthened / +2 Sharp
+    // became +1 Energy and a card. The stack version paid ~34 power across a whole game -
+    // one 1e card's worth - and it arrived after the kill window had already opened. These
+    // tests still pin the trigger conditions; only the payout assertions moved.
+    //
+    // Asserting on the OS log rather than on Energy wherever a turn boundary is involved:
+    // processPreTurn resets currentEnergy at the start of his turn, so Energy granted during
+    // the OPPONENT's turn is wiped. That asymmetry is documented and deliberate (ticket 39 §6).
+    const nid = () => makeUnit('n1', 'Nidhoggr', { activeOS: 'nidhoggr_v2', currentEnergy: 0 });
+    const scentProcs = (state: IBattleState) =>
+        state.logs.filter(l => l.includes('BLOOD_SCENT_OS smells blood')).length;
 
     it('procs when direct damage drops the enemy below 50%', () => {
         let state = makeState([nid()], [makeUnit('e1', 'Enemy', { currentHp: 51 })]);
         state = applyMutations(state, [{ type: 'HP', targetId: 'e1', payload: { amount: 5 } }]);
         expect(state.enemyParty[0].currentHp).toBeLessThan(50);
-        expect(str(state.playerParty[0], 'Strengthened')).toBe(2);
-        expect(str(state.playerParty[0], 'Sharp')).toBe(2);
+        expect(scentProcs(state)).toBe(1);
+        expect(state.playerParty[0].currentEnergy).toBe(1);
     });
 
     it('does NOT proc on damage that stays above the line', () => {
         let state = makeState([nid()], [makeUnit('e1', 'Enemy', { currentHp: 90 })]);
         state = applyMutations(state, [{ type: 'HP', targetId: 'e1', payload: { amount: 5 } }]);
-        expect(str(state.playerParty[0], 'Strengthened')).toBe(0);
+        expect(scentProcs(state)).toBe(0);
+        expect(state.playerParty[0].currentEnergy).toBe(0);
     });
 
     it('procs on his OWN crossing (self-inflicted included)', () => {
         let state = makeState([nid()], [makeUnit('e1', 'Enemy')]);
         state = applyMutations(state, [{ type: 'HP', targetId: 'n1', payload: { amount: 55 } }]);
         expect(state.playerParty[0].currentHp).toBeLessThan(50);
-        expect(str(state.playerParty[0], 'Strengthened')).toBe(2);
+        expect(scentProcs(state)).toBe(1);
+    });
+
+    it('draws a card as well as granting the Energy', () => {
+        let state = makeState([nid()], [makeUnit('e1', 'Enemy', { currentHp: 51 })]);
+        state = { ...state, playerDeck: { ...state.playerDeck, drawpile: [card('d1', 'test_strike', 1)] } };
+        state = applyMutations(state, [{ type: 'HP', targetId: 'e1', payload: { amount: 5 } }]);
+        expect(state.playerDeck.hand).toHaveLength(1);
+        expect(state.playerDeck.drawpile).toHaveLength(0);
     });
 
     it('healing above the line RE-ARMS the scent (anti-heal)', () => {
@@ -137,8 +156,7 @@ describe('Ticket 12 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', () 
         state = applyMutations(state, [{ type: 'HP', targetId: 'e1', payload: { amount: 10, isHeal: true } }]); // back above 50
         expect(state.enemyParty[0].currentHp).toBeGreaterThanOrEqual(50);
         state = applyMutations(state, [{ type: 'HP', targetId: 'e1', payload: { amount: 10 } }]); // proc 2
-        expect(str(state.playerParty[0], 'Strengthened')).toBe(4);
-        expect(str(state.playerParty[0], 'Sharp')).toBe(4);
+        expect(scentProcs(state)).toBe(2);
     });
 
     it('procs on DoT ticks (poison crossing at end of enemy turn)', () => {
@@ -150,7 +168,7 @@ describe('Ticket 12 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', () 
         state = battleReducer(state, { type: 'END_TURN' }); // player -> enemy
         state = battleReducer(state, { type: 'END_TURN' }); // enemy turn ends: poison ticks 3% = 3 -> 48
         expect(state.enemyParty[0].currentHp).toBeLessThan(50);
-        expect(str(state.playerParty[0], 'Strengthened')).toBe(2);
+        expect(scentProcs(state)).toBe(1);
     });
 });
 

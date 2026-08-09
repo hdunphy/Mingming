@@ -1,8 +1,8 @@
 # Níðhöggr decks (ticket 39) — Dark completes at 20/32
 
 - Type: wayfinder:task
-- Status: open
-- Assignee:
+- Status: closed
+- Assignee: implementation session (Opus), 2026-08-09
 - Blocked by: none
 
 *Design and costing done with Henry on 2026-08-09. Every number below is verified against HEAD
@@ -474,3 +474,67 @@ Report on close:
 - v2's self-poison from `bloodletting` kills him in the v1 matchup, or the mirror stalls on mutual
   self-poison.
 - Any change here moves a **tuned** species other than Hel by more than the ±4 §2.3 noise band.
+
+---
+
+## Resolution (implementation session, 2026-08-09)
+
+**Dark is complete at 20/32.** Everything in §2, §4, §5, §6 and §7 shipped as written. Registry
+`1:a045b578`, 766/766 tests, `tsc -b` and `vite build` clean.
+
+### Gate
+
+| metric | before | after | band |
+|---|---|---|---|
+| §2.3 | **0.000** | **0.310** | 0.30–0.70 ✓ |
+| mirror turns | **60.65** | **4.58** | ≤30 ✓ |
+| mirror decided | 4/400 | **400/400** | ≥60% ✓ |
+| dead cards, os / mirror | | 0.127 / 0.189 | ≤0.35 ✓ |
+| ftk | 0 | 0 | 0 ✓ |
+
+**Redlines 45 → 45.** `TURN_COUNT mirror:nidhoggr` **cleared** — the stall this ticket existed to
+kill. `OS_GAP os:nidhoggr` gained, which is the strict ±15% assertion the first pass ignores.
+**Every other tuned matchup is byte-identical except hel**, which moved 0.508 → 0.545 on the
+`venom_shade` buff — §9 asked for that check and predicted pace rather than §2.3; it moved both, but
+inside hel's documented ±8 and still in band.
+
+### It took four knobs, and one of them had to go backwards
+
+1. **`wither_feast` count 3 → 5** (top of range). At 3 the detonate fired **7 times in 100 games**:
+   cashing beat holding by only `3S − 2.5S`, so the AI preferred `blight_bloom`. This is the
+   knock-on from ticket 40's horizon cap — the two numbers are coupled.
+2. **`minStacks` is inert.** 4 / 6 / 8 all measured 26–27%; the AI holds to ~18 stacks regardless of
+   the floor, so the gate never binds. Left at 6.
+3. **`bloodletting` self-Poison → self-Dazed made it WORSE** (0.290 → 0.170) and was reverted. §5.1's
+   warning runs in both directions: v1's ROOT_CORRUPTION makes v2's **own** self-inflicted Poison
+   permanent, so that drawback was working for v1 all along.
+4. **`umbral_feast` heal 8 → 5**, the authorised floor. Heal **3** reached 0.390 but is outside the
+   5–12 range and was not taken. **This is the strongest remaining lever if more margin is wanted.**
+5. **`blight_bloom` 35 power / 4 Poison → 50 / 2**, trading Poison *away* — see below.
+7. **`leech_strike` to 2e**, `night_terror` out. This is what crossed the line, 0.290 → 0.310.
+   §7 does not say what replaces it: `water_slap` shipped, and `hamstring` (which §7 names, and which
+   would have fixed the missing neutral tier) was measured at **0.250** and rejected.
+
+### The finding: v1 was feeding its win condition to v2
+
+`umbral_feast` consumes **its own** Poison — and in the gate matchup that Poison is overwhelmingly
+what v1 put there. v1 builds ~19 stacks and v2 eats them for **~33 HP a cast, 2.2 casts a game**. The
+deck was converting its own clock into the opponent's sustain.
+
+That is why trading Poison away for raw power on `blight_bloom` helped: **direct damage is the one
+thing `umbral_feast` cannot convert.** It is the mirror image of §3's lesson — under ROOT_CORRUPTION
+small poison applications have the best rate, but only if the enemy cannot cash them.
+
+### Reported per §9 and §12
+
+- `wither_feast`: **38.0 damage a play at 18.4 stacks** at count 3, cast 0.07/game — a floor, not a
+  price, exactly as §4 and §9 warned. Raising count to 5 is what made the AI reach for it.
+- **BLOOD_SCENT procs: 0.87/game enemy-crossed, 0.64/game self-crossed.** §6's `ENERGY`-vs-`Energized`
+  question is answered: the self-crossing half is small, the Energy-wipe asymmetry costs little,
+  **keep `ENERGY`.**
+- Peak Poison on the enemy: **19.1 average** — §3's permanence math confirmed.
+- Card scores all in band: `rot_seed` 0.90, `bloodletting` 1.00, `venom_shade` 3.00, `curse_mark`
+  3.00, `blight_bloom` 5.90, `leech_strike` 6.00, `rend_marrow` 6.50. `wither_feast` 0.30 (manual
+  review) and `umbral_feast` 0.10 (scorer-blind) are the two §4/§10 predicted.
+- `category` Status → Attack on `venom_shade`/`curse_mark` was inert as §11 predicted.
+- No X-cost card reaches him, so the `numericBaseCost()` hazard stays latent.

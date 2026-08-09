@@ -157,11 +157,17 @@ export const ConditionValidator = {
      */
     evaluateCardConstraint(constraint: ProgramConstraint, source: IBattleEntity, subject: IBattleEntity, cost: number, state?: IBattleState): boolean {
         switch (constraint.type) {
-            case 'HAS_STATUS':
-                if (!subject.statusEffects.some(s => s.type === constraint.value)) {
-                    return false;
-                }
+            case 'HAS_STATUS': {
+                const held = subject.statusEffects.find(s => s.type === constraint.value);
+                if (!held) return false;
+                // Ticket 39: optional stack floor so a payoff card can refuse to be
+                // played early. The AI validates through this same path
+                // (TacticalAI -> validateProgramConstraints), which is the point:
+                // without it the search cashes wither_feast at the first stack it
+                // sees and the sim measures a card nobody would ever play that way.
+                if (constraint.minStacks !== undefined && held.stacks < constraint.minStacks) return false;
                 break;
+            }
 
             case 'HEALTH_THRESHOLD':
                 // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
