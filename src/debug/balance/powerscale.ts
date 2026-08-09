@@ -202,6 +202,28 @@ const ASLEEP_POWER = 45;
 /** 4 power/1%maxHP; BarkShield's `stacks` is %maxHP as of the StatusBehaviors.ts rev 3 change. */
 const SHIELD_POWER_PER_PERCENT = 4;
 
+/**
+ * Ticket 46: CLEANSE is priced now, from measurement rather than a guess.
+ *
+ * A cleanse is worth whatever the debuffs it removes would have cost to apply, so the price is
+ * the debuff load a unit actually carries. Sampled at every side-turn across all 90 pairings of
+ * the ten tuned species (4,922 samples, 540 games), valuing each held status with the tables
+ * above:
+ *
+ *   - a unit is carrying at least one debuff **63.3%** of the time
+ *   - **median load when loaded: 15 power** (p25 7, p75 38.5)
+ *   - trimmed mean, top 5% dropped: 13.4-16.9 depending on how Poison's tail is valued
+ *
+ * The raw mean (51.8) is useless here - it is dominated by nidhoggr's runaway poison piles,
+ * where the triangular `poisonPower` reaches 6,678 for a single unit. Robust statistics agree
+ * across both valuations, which is why the median is the number to trust.
+ *
+ * Shipped at **10, deliberately under the measurement** (Henry: lowball it). Two reasons beyond
+ * caution: a cleanse does nothing at all on the 36.7% of turns with no debuff to remove, and it
+ * has to be in hand at the right moment - neither of which a static price can see.
+ */
+const CLEANSE_POWER = 10;
+
 function poisonPower(stacks: number): number {
     // 1.5 * S * (S+1): decaying-DoT total lifetime damage at 1%maxHP/stack/turn, priced at
     // damage's 3-power-per-1% rate.
@@ -239,7 +261,8 @@ function burnPower(stacks: number): number {
 const EXPECTED_DAEMON_PROCS = 4;
 
 const MANUAL_REVIEW_TYPES = new Set([
-    'CLEANSE', 'SEARCH', 'PLAY_LAST_CARD', 'TRIGGER_STATUS',
+    // Ticket 46: CLEANSE left this set - it is priced from measured debuff load now.
+    'SEARCH', 'PLAY_LAST_CARD', 'TRIGGER_STATUS',
     'GENERATE_CARD', 'DISCARD', 'EXHAUST', 'RETURN', 'TAUNT',
     'BUFF_NEXT_PROGRAM', 'REDIRECT_TARGET', 'FORCE_DISCARD',
 ]);
@@ -433,6 +456,8 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
                 actionScore = 0;
                 manualReview.push(action.type);
             }
+        } else if (action.type === 'CLEANSE') {
+            actionScore = CLEANSE_POWER / 10.0;
         } else if (MANUAL_REVIEW_TYPES.has(action.type)) {
             actionScore = 0;
             manualReview.push(action.type);
