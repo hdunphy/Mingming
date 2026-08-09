@@ -160,7 +160,7 @@ export function calculateHeal(_attacker: IBattleEntity, target: IBattleEntity, p
   // LightStance is a DEFENSIVE stance now (-30% damage taken, in applyDamageModifiers)
   // and healing multipliers ride the `onHealCalculated` modifier path instead, applied
   // once at the heal choke point in effectHandlers - which is what finally makes the
-  // power-based and healOverride pipelines agree.
+  // power-based and engine flat-heal pipelines agree.
 
   // Returns the INTENDED heal, deliberately NOT clamped to the target's missing
   // HP. Clamping happens at the single application choke point

@@ -82,7 +82,7 @@ describe('Bug fix: PLAY_LAST_CARD (Reprogram) echoes the PREVIOUS card', () => {
 });
 
 describe('Bug fix: STATUS consume + STATUS_CONSUMED heal scaling (Ash Reclamation)', () => {
-    it('consumes all Burn stacks and heals 10 per stack consumed', () => {
+    it('consumes all Burn stacks and heals per stack consumed', () => {
         let state = makeState({
             playerParty: [makeEntity({ id: 'p1', name: 'Hero', currentHp: 40 })],
             enemyParty: [makeEntity({
@@ -96,8 +96,9 @@ describe('Bug fix: STATUS consume + STATUS_CONSUMED heal scaling (Ash Reclamatio
 
         // Burn fully consumed from the target
         expect(state.enemyParty[0].statusEffects.find(s => s.type === 'Burn')).toBeUndefined();
-        // Healed 10 per stack: 40 + 30 = 70
-        expect(state.playerParty[0].currentHp).toBe(70);
+        // Ticket 43: power-based now, so the heal scales with the frame instead of being a flat
+        // 10. calculateHeal = 100 maxHp * 30 power / 400 = 7 per stack, x3 consumed = 21.
+        expect(state.playerParty[0].currentHp).toBe(61);
     });
 });
 

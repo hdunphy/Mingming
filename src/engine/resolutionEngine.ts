@@ -26,7 +26,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                         sourceId: mutation.sourceId || 'SYSTEM',
                         targetId: mutation.targetId,
                         power: 0,
-                        healOverride: mutation.payload.amount
+                        flatHeal: mutation.payload.amount
                     });
                 } else {
                     const target = newState.playerParty.find(e => e.id === mutation.targetId) || newState.enemyParty.find(e => e.id === mutation.targetId);

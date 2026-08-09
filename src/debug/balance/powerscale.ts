@@ -341,7 +341,12 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
 
             actionScore = (power / 10.0) * ACTION_WEIGHTS['ATTACK'];
         } else if (action.type === 'HEAL') {
-            const power = action.power || action.healOverride || 0;
+            // Ticket 43: `healOverride` is gone from the data model - heals are power-based, so
+            // this reads `power` only. And STATUS_CONSUMED applies HERE too: ticket 33 added the
+            // multiplier to the STATUS branch and left this one reading a literal, so a card
+            // healing "per stack consumed" was priced as if it consumed exactly one.
+            const raw = action.power || 0;
+            const power = action.scaling === 'STATUS_CONSUMED' ? raw * ASSUMED_STATUS_COUNT : raw;
             actionScore = (power / 10.0) * ACTION_WEIGHTS['HEAL'];
         } else if (action.type === 'STATUS') {
             // Ticket 33: STATUS_CONSUMED reads a count produced at runtime by a preceding
@@ -349,9 +354,17 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // meaningless. Price at ASSUMED_STATUS_COUNT. This is a FLOOR, not a price, the
             // same caveat ticket 32 carries for `slander` and the daemons: hexbloom at its
             // realistic 6 consumed stacks hand-prices to 6.3 against a 6.5 band.
-            const stacks = (action.scaling === 'STATUS_CONSUMED' || action.scaling === 'WEAKENED_STACKS')
-                ? (action.stacks || 1) * ASSUMED_STATUS_COUNT
-                : (action.stacks || 1);
+            // Ticket 43: a `consume: true` action REMOVES the status; it was falling through to
+            // the apply path and being scored as if it granted one stack, so consuming Poison off
+            // an enemy ADDED to the card's score. `stacks` is absent on a consume (it takes the
+            // whole pile), so it prices at the same ASSUMED_STATUS_COUNT the scalings use, and
+            // the score is negated below.
+            const isConsume = (action as unknown as { consume?: boolean }).consume === true;
+            const stacks = isConsume
+                ? ASSUMED_STATUS_COUNT
+                : (action.scaling === 'STATUS_CONSUMED' || action.scaling === 'WEAKENED_STACKS')
+                    ? (action.stacks || 1) * ASSUMED_STATUS_COUNT
+                    : (action.stacks || 1);
             const absStacks = Math.abs(stacks);
             const status = action.status;
 
@@ -464,6 +477,10 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             const isDebuff = DEBUFFS.includes(action.status);
             if (isDebuff && actionIsSelfFacing) actionScore *= -1;
             if (isBuff && !actionIsSelfFacing && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
+            // Ticket 43: removing a status is worth the negation of applying it, which gives the
+            // right sign in all four cases once the two flips above have run - cleansing a debuff
+            // off yourself is a gain, eating a debuff you placed on the enemy is a loss.
+            if ((action as unknown as { consume?: boolean }).consume === true) actionScore *= -1;
         } else if (action.type === 'ENERGY') {
             const amount = action.amount || 0;
             if (amount < 0 && actionIsSelfFacing) actionScore *= -1;

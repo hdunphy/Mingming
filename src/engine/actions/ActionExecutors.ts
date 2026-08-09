@@ -249,21 +249,20 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
 
 export class HealExecutor extends ActionExecutor<HealActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: HealActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
-        const { power, healOverride } = actionData;
+        const { power } = actionData;
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
         let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
         let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
         if (!target) return state;
-        if (!source && healOverride === undefined) return state;
+        if (!source) return state;
 
-        // Ticket 36: the LightStance +50% branch is gone from both heal pipelines.
-        // Heal multipliers are `onHealCalculated` hooks now, applied once at the heal
-        // choke point (effectHandlers.handleHealEffect) that every heal - power-based
-        // or healOverride - funnels through.
-        const baseHeal = healOverride !== undefined
-            ? healOverride
-            : calculateHeal(source as any, target, power);
+        // Ticket 36: the LightStance +50% branch is gone from both heal pipelines. Heal
+        // multipliers are `onHealCalculated` hooks now, applied once at the heal choke point
+        // (effectHandlers.handleHealEffect) that every heal funnels through.
+        // Ticket 43: `healOverride` is gone - every card heal is power-based, so it scales with
+        // level. A flat heal was overpowered on a level-5 frame and negligible on a level-50 one.
+        const baseHeal = calculateHeal(source as any, target, power);
         // STATUS_CONSUMED scaling: heal per stack removed by a preceding
         // consume action in the same card (e.g. Ash Reclamation).
         const healAmount = actionData.scaling === 'STATUS_CONSUMED'

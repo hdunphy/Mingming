@@ -6,8 +6,7 @@
     },
     "heal_self": {
         "type": "HEAL",
-        "power": 0,
-        "healOverride": 15,
+        "power": 60,
         "target": "SELF"
     },
     "draw_card": {

@@ -269,7 +269,6 @@ export interface StatusActionData extends ProgramAction {
 export interface HealActionData extends ProgramAction {
   readonly type: 'HEAL';
   readonly power: number;
-  readonly healOverride?: number;
 }
 
 export interface DrawActionData extends ProgramAction {

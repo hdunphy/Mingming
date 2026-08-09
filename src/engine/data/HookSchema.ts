@@ -42,7 +42,6 @@ const HookActionSchema = z.object({
     costReduction: z.number().optional(),
     flatBonus: z.number().optional(),
     multiplier: z.number().optional(),
-    healOverride: z.number().optional(),
     text: z.string().optional(),
     dataId: z.string().optional(),
     key: z.string().optional(),

@@ -324,25 +324,31 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     return newState;
 }
 
-function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; healOverride?: number }): IBattleState {
-    const { sourceId, targetId, power, healOverride } = payload;
+/**
+ * Ticket 43: `flatHeal` is the ENGINE-INTERNAL flat-HP path, used by hook and mutation heals
+ * (`applyMutations` HP with `isHeal`, e.g. a percentMaxHP firmware heal). It is deliberately not
+ * reachable from card data any more - `healOverride` was removed from `HealActionData` because a
+ * flat heal does not scale with level, so it was overpowered early and negligible late.
+ */
+function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; flatHeal?: number }): IBattleState {
+    const { sourceId, targetId, power, flatHeal } = payload;
     // ... find entities ...
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
     let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
     let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
     if (!target) return state;
-    if (!source && healOverride === undefined) return state;
+    if (!source && flatHeal === undefined) return state;
 
     // healAmount is the INTENDED heal (calculateHeal no longer clamps to missing
     // HP). This is the single choke point where intended vs applied diverge:
     // the applied heal is clamped to max HP below and the overflow is recorded
     // as the `last_overheal` counter for onHeal hooks (AUDHUMBLA v2).
     // Ticket 36: `onHealCalculated` runs here and ONLY here. Both pipelines converge on
-    // this line - power-based heals arrive via calculateHeal, card heals as healOverride -
+    // this line - card heals arrive via calculateHeal, engine flat heals as `flatHeal` -
     // so one call covers every heal in the game and cannot double-apply. This replaced the
     // old LightStance +50%, which was hardcoded twice and disagreed between the two paths.
-    const intendedHeal = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+    const intendedHeal = flatHeal !== undefined ? flatHeal : calculateHeal(source as any, target, power);
     const healAmount = applyHealModifiers(intendedHeal, {
         source: source,
         target: target,

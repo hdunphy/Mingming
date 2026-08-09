@@ -190,15 +190,16 @@ describe('Light Stance: -30% damage taken', () => {
         expect(stanced).toBe(base);
     });
 
-    it('leaves healOverride heals alone in either stance', () => {
-        // Dawn's Respite heals 10 flat and then shifts. Both plays heal the same 10 now.
+    it('leaves heals alone in either stance', () => {
+        // Dawn's Respite heals and then shifts. Ticket 43 made it power-based: 200 maxHp * 25
+        // power / 400 = 12 a cast, the same in or out of stance.
         let state = makeState({ currentHp: 100 }, [card('c1', 'dawns_respite'), card('c2', 'dawns_respite')]);
 
         state = play(state, 'c1', PLAYER_ID);
-        expect(state.playerParty[0].currentHp).toBe(110);
+        expect(state.playerParty[0].currentHp).toBe(112);
 
         state = play(state, 'c2', PLAYER_ID); // already in Light Stance
-        expect(state.playerParty[0].currentHp).toBe(120);
+        expect(state.playerParty[0].currentHp).toBe(124);
     });
 
     it('does not boost heals while in Dark Stance', () => {
@@ -288,13 +289,13 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
 
 describe('hel_v2 UNDERWORLD_GATEWAY', () => {
     it('boosts her healing by 50% through the new onHealCalculated path', () => {
-        // dawns_respite: 1e, heals 10 flat. The FIRST cast of a turn pays the base rate -
-        // 5% of 200 maxHp x 1 printed Energy = 10 HP - charged at action start; the heal
-        // then lands at 10 x 1.5 = 15.
+        // dawns_respite: 1e, a power-25 heal (ticket 43). The FIRST cast of a turn pays the base
+        // rate - 5% of 200 maxHp x 1 printed Energy = 10 HP - charged at action start; the heal
+        // is 200*25/400 = 12, boosted to 18 by the OS.
         let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'dawns_respite')]);
         state = play(state, 'c1', PLAYER_ID);
 
-        expect(state.playerParty[0].currentHp).toBe(105); // 100 - 10 toll + 15 boosted heal
+        expect(state.playerParty[0].currentHp).toBe(108); // 100 - 10 toll + 18 boosted heal
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays in blood'))).toBe(true);
     });
 

@@ -544,7 +544,7 @@
     "ash_reclamation": {
         "id": "ash_reclamation",
         "name": "Ash Reclamation",
-        "description": "Consume Burn to heal 10 HP per stack.",
+        "description": "Consume Burn. Heal with 30 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Heal",
@@ -565,8 +565,7 @@
             },
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 10,
+                "power": 30,
                 "scaling": "STATUS_CONSUMED",
                 "target": "SELF"
             }
@@ -1283,7 +1282,7 @@
     "healing_mist": {
         "id": "healing_mist",
         "name": "Healing Mist",
-        "description": "Heal 5 HP.",
+        "description": "Heal with 15 power.",
         "element": "Nature",
         "target": "Self",
         "category": "Heal",
@@ -1297,8 +1296,7 @@
         "actions": [
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 5,
+                "power": 15,
                 "target": "SELF"
             }
         ]
@@ -1329,7 +1327,7 @@
     "rejuvenation": {
         "id": "rejuvenation",
         "name": "Rejuvenation",
-        "description": "Draw a card and heal 10 HP.",
+        "description": "Draw a card. Heal with 25 power.",
         "element": "Nature",
         "target": "Self",
         "category": "Heal",
@@ -1348,8 +1346,7 @@
             },
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 10,
+                "power": 25,
                 "target": "SELF"
             }
         ]
@@ -1420,7 +1417,7 @@
     "natures_touch": {
         "id": "natures_touch",
         "name": "Nature's Touch",
-        "description": "Heal side 15 HP.",
+        "description": "Heal your side with 15 power.",
         "element": "Nature",
         "target": "Side",
         "category": "Heal",
@@ -1434,8 +1431,7 @@
         "actions": [
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 15,
+                "power": 15,
                 "target": "TARGET"
             }
         ]
@@ -2769,7 +2765,7 @@
     "dawns_respite": {
         "id": "dawns_respite",
         "name": "Dawn's Respite",
-        "description": "Heal 10 HP. Shift into Light Stance: -30% damage taken while it holds.",
+        "description": "Heal with 25 power. Shift into Light Stance: -30% damage taken while it holds.",
         "element": "Dark",
         "target": "Self",
         "category": "Skill",
@@ -2783,8 +2779,7 @@
         "actions": [
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 10,
+                "power": 25,
                 "target": "SELF"
             },
             {
@@ -2916,7 +2911,7 @@
     "drain_life": {
         "id": "drain_life",
         "name": "Drain Life",
-        "description": "22 power. Heal 15 HP.",
+        "description": "22 power. Heal with 60 power.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -2935,8 +2930,7 @@
             },
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 15,
+                "power": 60,
                 "target": "SELF"
             }
         ]
@@ -3201,7 +3195,7 @@
     "healing_light": {
         "id": "healing_light",
         "name": "Healing Light",
-        "description": "Heal 20 HP.",
+        "description": "Heal with 45 power.",
         "element": "Light",
         "target": "Self",
         "category": "Heal",
@@ -3215,8 +3209,7 @@
         "actions": [
             {
                 "type": "HEAL",
-                "power": 0,
-                "healOverride": 20,
+                "power": 45,
                 "target": "SELF"
             }
         ]

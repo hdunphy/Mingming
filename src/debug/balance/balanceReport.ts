@@ -654,6 +654,20 @@ export function writeBalanceReport(options?: { commitToDocs?: boolean }): Balanc
     // truth - it must never overwrite the committed report with partial coverage.
     if (options?.commitToDocs === false) return report;
 
+    // Ticket 43: the same protection, for the case ticket 17 did not cover. Running ONE suite
+    // file - `npx vitest run --config vitest.balance.config.ts src/debug/balance/mirror.shard1
+    // .balance.ts` - is not a scoped run, so it fell straight through and overwrote the
+    // committed report with whatever single suite had reported. It cost a corrupted baseline
+    // comparison during ticket 42 (17 matchups instead of 48) before anyone noticed. If a suite
+    // did not report, this run cannot speak for the repo.
+    if (report.summary.suitesMissing.length > 0) {
+        console.log(
+            `\n[balance-report] PARTIAL RUN - no results from ${report.summary.suitesMissing.join(', ')}.` +
+            `\n  docs/balance/ left untouched. Run the full suite before trusting a diff.`,
+        );
+        return report;
+    }
+
     mkdirSync(REPORT_DIR, { recursive: true });
     writeFileSync(REPORT_JSON_PATH, JSON.stringify(report, null, 2) + '\n', 'utf8');
     writeFileSync(REDLINES_CSV_PATH, redlinesCsv(report), 'utf8');

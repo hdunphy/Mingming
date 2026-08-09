@@ -81,7 +81,8 @@ describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (real overheal)', () => {
     it('converts healOverride overflow into exact Light damage on a random enemy', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
         const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_flat: healOverride 20 on SELF. 95/100 -> applied 5, overheal 15.
+        // card_heal_flat: a power-80 heal on SELF = 20 on the 100-maxHp frame (ticket 43 moved
+        // it off healOverride). 95/100 -> applied 5, overheal 15.
         let state = makeState([aud], [enemy], [card('c1', 'card_heal_flat', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 

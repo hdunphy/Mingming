@@ -209,9 +209,9 @@
                 },
                 "do": [
                     {
-                        "type": "HEAL",
+                        "type": "HP",
                         "target": "SELF",
-                        "healOverride": 5
+                        "percentMaxHP": 5
                     },
                     {
                         "type": "LOG",
@@ -583,9 +583,9 @@
                 },
                 "do": [
                     {
-                        "type": "HEAL",
+                        "type": "HP",
                         "target": "SELF",
-                        "healOverride": 2
+                        "percentMaxHP": 2.5
                     }
                 ]
             }

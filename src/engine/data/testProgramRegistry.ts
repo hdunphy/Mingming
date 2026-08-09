@@ -209,7 +209,9 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         category: 'Heal',
         baseCost: 1,
         constraints: [],
-        actions: [{ type: 'HEAL', power: 0, healOverride: 20, target: 'SELF' }],
+        // Ticket 43: power-based, like every card heal now. On the 100-maxHp test frame
+        // calculateHeal = 100 * 80 / 400 = 20, so this fixture heals exactly what it used to.
+        actions: [{ type: 'HEAL', power: 80, target: 'SELF' }],
         rarity: 'Common'
     },
     'card_status_test': {
