@@ -1,4 +1,4 @@
-import { MingmingRegistry } from './mingmingRegistry';
+import { MingmingRegistry, PLAYABLE_SPECIES } from './mingmingRegistry';
 import { ProgramRegistry } from './programRegistry';
 import type { Element, IBattleEntity, IMingmingState, IMingmingDefinition } from '../types';
 import { initializeBattleEntity, getExpForLevel } from '../types';
@@ -34,7 +34,8 @@ export interface IGeneratedEncounter {
  * (which consumes it directly).
  */
 export function getSectorSpecies(element: Element): IMingmingDefinition[] {
-    return Object.values(MingmingRegistry).filter(def => def.primaryElement === element);
+    // Ticket 42: `isControl` entries are measuring instruments, not wild Mingmings.
+    return Object.values(MingmingRegistry).filter(def => !def.isControl && def.primaryElement === element);
 }
 
 export function generateEncounter(options: IEncounterOptions): IGeneratedEncounter {
@@ -53,7 +54,7 @@ export function generateEncounter(options: IEncounterOptions): IGeneratedEncount
     const eligibleMingmingIds = getSectorSpecies(sectorElement).map(def => def.id);
 
     // Fallback to all if none found (shouldn't happen with valid sectorElement)
-    const pool = eligibleMingmingIds.length > 0 ? eligibleMingmingIds : Object.keys(MingmingRegistry);
+    const pool = eligibleMingmingIds.length > 0 ? eligibleMingmingIds : [...PLAYABLE_SPECIES];
 
     const enemyPartyStates: IMingmingState[] = [];
     for (let i = 0; i < partySize; i++) {

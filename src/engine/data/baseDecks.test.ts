@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MingmingRegistry, getDeckForOS } from './mingmingRegistry';
+import { MingmingRegistry, getDeckForOS, PLAYABLE_SPECIES } from './mingmingRegistry';
 import { GetProgramData } from './programRegistry';
 
 /**
@@ -11,10 +11,14 @@ import { GetProgramData } from './programRegistry';
  * deck pass lands.
  */
 describe('per-OS starting decks', () => {
-    const speciesIds = Object.keys(MingmingRegistry);
+    const speciesIds = [...PLAYABLE_SPECIES];
 
-    it('registry still has exactly 16 species', () => {
-        expect(speciesIds).toHaveLength(16);
+    it('registry still has exactly 16 PLAYABLE species (the control is not one)', () => {
+        expect(PLAYABLE_SPECIES).toHaveLength(16);
+        expect(PLAYABLE_SPECIES).not.toContain('control');
+        // Ticket 42: the control lives in the registry so the balance harness can resolve it,
+        // but it must never be enumerated as a playable Mingming.
+        expect(Object.keys(MingmingRegistry)).toHaveLength(17);
     });
 
     it.each(speciesIds)('%s: decks keys match availableOS exactly', id => {

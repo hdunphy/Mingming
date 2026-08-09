@@ -37,7 +37,12 @@ export const BALANCE_IV = 15;
  * future stub from silently joining the gauntlet.
  */
 const ALL_BALANCE_SPECIES: ReadonlyArray<string> = Object.keys(MingmingRegistry).filter(
-    id => MingmingRegistry[id].availableOS.length > 0
+    // Ticket 42: the control is an instrument, not a species to balance. It is excluded from
+    // the mirror and §2.3 entirely - it carries one firmware, so `osVarianceScenario` would
+    // throw on it, and "the control against itself" measures nothing. It appears only as the
+    // gauntlet benchmark, where BALANCE_ONLY scoping must not filter it out either.
+    id => id !== 'control'
+        && MingmingRegistry[id].availableOS.length > 0
         && MingmingRegistry[id].availableOS.every(os => getDeckForOS(id, os).length > 0),
 );
 
@@ -65,8 +70,13 @@ export function shardSpecies(index: number, count: number): ReadonlyArray<string
     return BALANCE_SPECIES.slice(index * size, (index + 1) * size);
 }
 
-/** The §2.2 control archetype: "Kraken Poison". */
-export const CONTROL_SPECIES = 'kraken';
+/**
+ * The §2.2 benchmark. Ticket 42: this was `kraken` - a real, elemental, tuned deck, which made
+ * the yardstick both skewed (kraken sits well below the field) and MOVING (every kraken retune
+ * silently rescaled every other species' reading). It is now a purpose-built None-element deck
+ * with no firmware and every card priced exactly at band, so the measurement is absolute.
+ */
+export const CONTROL_SPECIES = 'control';
 
 function unit(definitionId: string, activeOS?: string): PartyMemberSetup {
     const definition = MingmingRegistry[definitionId];

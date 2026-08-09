@@ -595,6 +595,79 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         ],
         artReference: "Audhumbla.svg"
     },
+    // ---------------------------------------------------------------------------
+    // Ticket 42: THE CONTROL. Not a playable Mingming - a measuring instrument.
+    //
+    // Every gate we had measures a DIFFERENCE. Section 2.3 is same-species, so it reports the
+    // gap between two firmwares and is blind to where both sit; the mirror is a species against
+    // itself. The archetype gauntlet does compare across species, but its benchmark was kraken -
+    // a real, elemental, tuned deck that itself sits well below the field, so the yardstick both
+    // skewed and DRIFTED with every kraken retune. That is how nidhoggr reached a 94% field
+    // average while passing its own section 2.3.
+    //
+    // This deck fixes the yardstick:
+    //  - Element None. `None: {}` in ElementalMatrix and no element has a None entry, so it is
+    //    elementally inert in BOTH directions - no STAB, no advantage, no resistance. Every
+    //    species meets it on identical terms, which removes the largest confound in a round
+    //    robin (measured: the Fire decks beat poison decks by +57 points on the matrix alone).
+    //  - No firmware (NULL_FIRMWARE, hooks: []).
+    //  - Median frame: 82/85/78 across the 16 species, rounded to 80/85/80 on the 5s rule.
+    //  - Every card priced EXACTLY at its band ceiling - 1.0 / 3.0 / 6.5.
+    //
+    // That last point is what makes it useful: the control IS the power curve made playable, so
+    // a win rate against it reads directly as "how far above its printed cost does this deck
+    // actually perform" - which is the one thing powerscale cannot see, because deck synergy,
+    // firmware and sequencing never appear in a per-card static score.
+    //
+    // DO NOT TUNE THIS DECK. Its whole value is that it never moves. It is excluded from
+    // BALANCE_SPECIES (mirror and section 2.3) and is only ever the gauntlet benchmark.
+    // ---------------------------------------------------------------------------
+    "control": {
+        id: "control",
+        name: "Control",
+        isControl: true,
+        // CALIBRATED, and the calibration is itself the headline measurement. On the MEDIAN
+        // species frame (82/85/78) this deck - on-curve cards, no firmware - lost 97.9% of 1600
+        // games against the whole registry. Every real deck is roughly two tiers above what its
+        // own cards are priced at, because a deck's power is cards PLUS firmware PLUS synergy
+        // and the curve only prices the first. The gap measured here is what the other two are
+        // worth: +37% HP and +24% attack over the median frame to reach the roster's midpoint.
+        //
+        // At 110/105/95 the control sits at 52.2% overall AND discriminates across the full
+        // range - nidhoggr 0%, huldra 0%, hel 25%, skoll 43%, hraesvelgr 79%, kraken 93%,
+        // jormungandr 100%. On the median frame everything read 0-4% and the instrument had no
+        // resolution at all.
+        baseStats: {
+            hp: 110,
+            attack: 105,
+            defense: 95,
+            energy: 2
+        },
+        primaryElement: "None",
+        secondaryElement: "None",
+        cardDraw: 3,
+        availableOS: ["control_v1"],
+        decks: {
+            "control_v1": ["baseline_jab", "baseline_jab", "baseline_scuff", "baseline_scuff", "baseline_strike", "baseline_strike", "baseline_snare", "baseline_snare", "baseline_slam", "baseline_slam"]
+        },
+        moves: [
+            {
+                id: 'control_jab',
+                name: 'Jab',
+                intentType: 'Attack',
+                priority: 10,
+                actions: [{ type: 'ATTACK', power: 10, element: 'None', target: 'Single' }]
+            },
+            {
+                id: 'control_slam',
+                name: 'Slam',
+                intentType: 'Attack',
+                priority: 6,
+                actions: [{ type: 'ATTACK', power: 65, element: 'None', target: 'Single' }]
+            }
+        ],
+        artReference: "Control.svg"
+    },
     "hel": {
         id: "hel",
         name: "Hel",
@@ -744,6 +817,17 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
     return data;
 };
 
+
+/**
+ * Ticket 42: the PLAYABLE roster - every registry entry except measuring instruments.
+ *
+ * `MingmingRegistry` is the unit-definition lookup and the balance control lives in it because
+ * the harness resolves stats and decks through it. Anything player-facing - encounters, the
+ * roster count, drop pools - must enumerate through here instead, or the control shows up as a
+ * wild Mingming.
+ */
+export const PLAYABLE_SPECIES: ReadonlyArray<string> =
+    Object.keys(MingmingRegistry).filter(id => !MingmingRegistry[id].isControl);
 
 /**
  * Ticket 13: per-OS starting decks. Resolves a species' deck for a firmware id,

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { IBattleState, IBattleEntity, IMove } from '../types';
 import { battleReducer } from '../battleReducer';
 import { createMockEntity } from './battleFactories';
-import { MingmingRegistry } from './mingmingRegistry';
+import { MingmingRegistry, PLAYABLE_SPECIES } from './mingmingRegistry';
 import { generateIntents } from '../core/IntentUtils';
 
 /**
@@ -58,7 +58,7 @@ afterEach(() => {
 
 describe('Mingming registry movesets', () => {
     it('ALL 16 species define a non-empty moves array (no Struggle fallback)', () => {
-        const speciesIds = Object.keys(MingmingRegistry);
+        const speciesIds = [...PLAYABLE_SPECIES];
         expect(speciesIds).toHaveLength(16);
         for (const id of speciesIds) {
             const moves = MingmingRegistry[id].moves;

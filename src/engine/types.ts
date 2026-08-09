@@ -87,6 +87,13 @@ export interface IMingmingDefinition {
   readonly decks: Record<string, string[]>;
   readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
+  /**
+   * Ticket 42: a measuring instrument rather than a playable Mingming (the balance control).
+   * It lives in the registry because the balance harness resolves units and decks through it,
+   * but it must never reach a player: excluded from wild encounters, from the playable roster
+   * count, and from the mirror/§2.3 suites. Use `PLAYABLE_SPECIES` to enumerate the roster.
+   */
+  readonly isControl?: boolean;
 }
 
 /**

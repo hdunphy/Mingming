@@ -1027,6 +1027,12 @@
             }
         ]
     },
+    "control_v1": {
+        "id": "control_v1",
+        "name": "NULL_FIRMWARE",
+        "description": "No firmware. The control carries none by design - it is the power curve made playable, so anything it beats is under curve and anything that beats it is over.",
+        "hooks": []
+    },
     "nidhoggr_v1": {
         "id": "nidhoggr_v1",
         "name": "ROOT_CORRUPTION",
