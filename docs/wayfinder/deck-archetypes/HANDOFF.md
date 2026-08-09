@@ -13,7 +13,7 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Where things stand
 
-- Branch **card-dev**. Tickets 01–43 closed. **DARK IS COMPLETE — 20/32 decks live, 10 of 16 species tuned.** **10 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel, nidhoggr). **Water, Air, Fire, Nature and Dark are all complete.** The other 6 are placeholders — **do not read their numbers as balance signal.**
+- Branch **card-dev**. Tickets 01–44 closed. **DARK IS COMPLETE — 20/32 decks live, 10 of 16 species tuned.** **10 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel, nidhoggr). **Water, Air, Fire, Nature and Dark are all complete.** The other 6 are placeholders — **do not read their numbers as balance signal.**
 - **Hel (ticket 36) passes every first-pass band** after a second pass that added `escalatePerPlay`. Read her §2.3 as **±8, not ±4**: 61% of her games are mutual kills, so 0.590 is computed over ~40 decided games. **Her FTK is reduced, not eliminated** — ~1.6% over 800 games, 0 in the committed 100-game sample.
 - **Latest full gate (after ticket 34), tuned species only — every one passes, FTK 0, mirror mean 6.0 turns (inside the 5-6 target for the first time):**
 
@@ -21,10 +21,10 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
   |---|---|---|---|
   | huldra | 0.470 | 11.7 | 1.0% |
   | sköll | 0.640 | 3.7 | 32.3% |
-  | ratatoskr | 0.590 | 4.7 | 3.8% |
+  | ratatoskr | **0.200** | 4.4 | 6.0% | OUT OF BAND |
   | kraken | 0.540 | 5.1 | 10.1% |
   | fenrir | 0.394 | 5.2 | 25.4% |
-  | jormungandr | 0.390 | 6.4 | 5.6% |
+  | jormungandr | **0.240** | 6.4 | 5.2% | OUT OF BAND |
   | sleipnir | 0.330 | 4.5 | 14.7% |
   | hraesvelgr | 0.310 | 3.2 | 4.0% |
   | nidhoggr | 0.310 | 4.6 | 18.9% |
@@ -64,6 +64,9 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 7. **`overgrowth` (3 Regen, 1e) is in no deck and scores 3.60 vs a 3.0 band** — re-check before it enters one. It was a corrected 7.20 before ticket 34.
 8. **Next species: nidhoggr** — he finishes Dark, and he is now the most broken thing left: **396/400 draws at 60.7 turns**, unchanged since baseline. He shares the Dark pool with Hel, so `venom_shade` (1.8) and `curse_mark` (1.3) — both well under band, both in his placeholder deck — are his to fix, not Hel's.
 8a. **THE POISON EVAL IS HORIZON-CAPPED (ticket 40) — do not re-derive this.** `S(S+1)/2` is the right total for DECAYING poison and only if the battle lasts S more turns; at 18 stacks it priced a pile at **171% of a health bar**. Now `min(S(S+1)/2, S x STATUS_HORIZON_TURNS)`. It matters most under nidhoggr_v1's ROOT_CORRUPTION, where poison does not decay at all, so the triangular shape is simply WRONG and the AI would never cash a detonate. **Cashing beats holding only when the horizon is below 3**, so there is no gentler setting available. Cost: **huldra 0.660 -> 0.030** (her old number was propped up by the bug — she is the one-card deck this file has flagged since ticket 34), ratatoskr 0.610 -> 0.330, jormungandr 0.390 -> 0.310. Everything else byte-identical.
+8-DIFF. **DIFF THE MATCHUP TABLE, NOT JUST THE REDLINE SET.** A redline that was ALREADY lit hides any amount of movement underneath it: ticket 43 dropped os:ratatoskr 0.330 -> 0.180 and the review missed it entirely, because `OS_GAP os:ratatoskr` appeared in both the before and after lists so the set diff was empty. Compare decisiveWinRate/turns/deadCards per matchup every time.
+8-TERMINAL. **A LOSS IS TERMINAL IN THE EVAL NOW (ticket 44), not -50.** `evaluateState` returns +-10000 when either side is wiped, so a win dominates any board and a loss is worse than any board. A MUTUAL kill lands at 0, between them - which is what a draw is worth. The per-unit +-50 from ticket 38 still governs multi-unit parties. **Two species fell out of band on the correctness fixes and need passes: os:jormungandr 0.240 and os:ratatoskr 0.200.** valkyrie also collapsed (control 0.53 -> 1.00) on ticket 43's healing_light conversion - her deck pass starts weaker than any pre-43 number suggests.
+8-BURN. **Burn's eval is horizon-capped too (ticket 44).** Same fix as Poison: the decay sum is the right total only if the battle lasts `stacks` turns. At 8%/turn top tier, 10 stacks read as 69% of a health bar and 15 as 109%. Below ~3 stacks nothing changed.
 8-HEAL. **`healOverride` NO LONGER EXISTS IN CARD DATA (ticket 43).** Every card heal is power-based so it scales with level; a flat heal was overpowered early and negligible late. The field is gone from `HealActionData` AND `HookSchema`. The engine-internal flat path is called `flatHeal` and is reachable only from `applyMutations` (hook/percentMaxHP heals) - do not reintroduce it on a card.
 8-HEAL-b. **The scorer now prices `consume` and `STATUS_CONSUMED` heals correctly.** A consume used to score as an APPLY (eating an enemy's Poison ADDED to the card), and `STATUS_CONSUMED` never reached the HEAL branch. Both fixed; `soothe`'s negative-stacks sign bug (item 14) is a DIFFERENT path and is still open.
 8-HEAL-c. **`ash_communion` scores 9.70 against a 6.5 band and is in fenrir_v2.** Newly visible, not newly strong - the card never changed. Wants a fenrir polish pass.

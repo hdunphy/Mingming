@@ -23,6 +23,13 @@ import { DEFAULT_GAME_CONFIG } from '../data/gameConfig';
 const HP_POINTS = 2;
 
 /**
+ * Ticket 44: the value of ending the game. Deliberately far above any reachable board score - a
+ * full 200 HP frame with every buff is worth a few hundred - so that winning dominates every
+ * positional consideration and losing is worse than any board, rather than competing with them.
+ */
+const TERMINAL_SCORE = 10000;
+
+/**
  * A side's per-turn damage throughput, as a fraction of a frame's maxHp. Base-deck
  * battles decide in ~5 turns (balance suite averageTurns 5-6), so each side removes
  * ~a full frame over ~5 turns => ~20%/turn. Used to convert "a turn" or "a % damage
@@ -83,7 +90,14 @@ function burnTotalPercent(stacks: number): number {
         const tier = tiers[s - 1] ?? tiers[tiers.length - 1];
         total += tier.damagePercent;
     }
-    return total;
+    // Ticket 44: the same shape ticket 40 found in Poison. The decay sum is the right TOTAL, but
+    // only if the battle lasts `stacks` more turns, and it does not - battles run 5-6. Burn's
+    // top tier is 8%/turn, so the sum runs away fast: 10 stacks reads as 69% of a health bar,
+    // which the holder will be dead long before collecting. Capped at the per-turn rate over the
+    // same horizon every other future-scaling status uses. Below ~3 stacks the sum still binds,
+    // because Burn genuinely does decay away inside the horizon.
+    const perTurn = (tiers[Math.min(stacks, tiers.length) - 1] ?? tiers[tiers.length - 1]).damagePercent;
+    return Math.min(total, perTurn * STATUS_HORIZON_TURNS);
 }
 
 /**
@@ -194,6 +208,19 @@ function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
     const oppScore = state[oppPartyKey].reduce((sum, e) => sum + getEntityScore(e), 0);
 
     // Kill bonus: strongly incentivize finishing off enemies
+    // Ticket 44: the TERMINAL case, which ticket 38's flat -50 only approximated. Losing your
+    // last unit is not "a unit worth 50 points died", it is the game. Scoring it as a constant
+    // meant a board with enough upside could still outrank being alive.
+    //
+    // The symmetry falls out for free and is the point: a win is +TERMINAL, a loss -TERMINAL,
+    // and a MUTUAL kill lands at exactly 0 - between the two, which is what a draw is worth.
+    // The per-unit +-50 below still governs multi-unit parties where some but not all are down.
+    const myAlive = state[myPartyKey].some(e => e.currentHp > 0);
+    const oppAlive = state[oppPartyKey].some(e => e.currentHp > 0);
+    if (!myAlive || !oppAlive) {
+        return (oppAlive ? 0 : TERMINAL_SCORE) - (myAlive ? 0 : TERMINAL_SCORE);
+    }
+
     const oppDead = state[oppPartyKey].filter(e => e.currentHp <= 0).length;
     // Ticket 38: the kill bonus used to have no counterpart, so A MUTUAL KILL EVALUATED AS A
     // WIN. A dead unit scores 0 (getEntityScore's early return) and the concave HP curve makes
