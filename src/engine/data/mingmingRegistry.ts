@@ -633,13 +633,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // and the curve only prices the first. The gap measured here is what the other two are
         // worth: +37% HP and +24% attack over the median frame to reach the roster's midpoint.
         //
-        // At 110/105/95 the control sits at 52.2% overall AND discriminates across the full
-        // range - nidhoggr 0%, huldra 0%, hel 25%, skoll 43%, hraesvelgr 79%, kraken 93%,
-        // jormungandr 100%. On the median frame everything read 0-4% and the instrument had no
-        // resolution at all.
+        // Ticket 45 (Henry): RE-TARGETED TO ~25%, not the median. The control is meant to be the
+        // FLOOR - the worst deck in the game - not the midpoint, so "what beats the control" is a
+        // low bar every real deck should clear and the interesting reading is by how much.
+        // Measured across all 16 species: 110/105/95 -> 33.0%, 105/100/95 -> 26.9%,
+        // 105/100/90 -> 17.4%, 90/90/85 -> 3.3%. DEFENSE is the dominant stat here - 90 -> 95 is
+        // worth ~14 points on its own, far more than HP.
         baseStats: {
-            hp: 110,
-            attack: 105,
+            hp: 105,
+            attack: 100,
             defense: 95,
             energy: 2
         },
@@ -648,7 +650,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         cardDraw: 3,
         availableOS: ["control_v1"],
         decks: {
-            "control_v1": ["baseline_jab", "baseline_jab", "baseline_scuff", "baseline_scuff", "baseline_strike", "baseline_strike", "baseline_snare", "baseline_snare", "baseline_slam", "baseline_slam"]
+            "control_v1": ["baseline_jab", "baseline_jab", "baseline_scuff", "baseline_scuff", "baseline_strike", "baseline_strike", "baseline_snare", "baseline_snare", "baseline_slam", "baseline_purge"]
         },
         moves: [
             {

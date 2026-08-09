@@ -4490,5 +4490,31 @@
                 "target": "TARGET"
             }
         ]
+    },
+    "baseline_purge": {
+        "id": "baseline_purge",
+        "name": "Baseline Purge",
+        "description": "30 power. Cleanse all debuffs.",
+        "element": "None",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 30,
+                "target": "TARGET"
+            },
+            {
+                "type": "CLEANSE",
+                "target": "SELF"
+            }
+        ]
     }
 }
