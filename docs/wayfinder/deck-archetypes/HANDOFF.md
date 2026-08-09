@@ -13,13 +13,13 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Where things stand
 
-- Branch **card-dev**. Tickets 01–36, 38 and 40 closed (37 and 39 are the other session's design tickets; **39 nidhoggr is IN FLIGHT** — built and parked, blocked on huldra). **9 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel). **Water, Air, Fire and Nature are complete; Dark is half done** — nidhoggr finishes it. The other 7 are placeholders — **do not read their numbers as balance signal.**
+- Branch **card-dev**. Tickets 01–36, 38, 40 and 41 closed (37 and 39 are the other session's design tickets; **39 nidhoggr is IN FLIGHT** — built and parked, blocked on huldra). **9 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel). **Water, Air, Fire and Nature are complete; Dark is half done** — nidhoggr finishes it. The other 7 are placeholders — **do not read their numbers as balance signal.**
 - **Hel (ticket 36) passes every first-pass band** after a second pass that added `escalatePerPlay`. Read her §2.3 as **±8, not ±4**: 61% of her games are mutual kills, so 0.590 is computed over ~40 decided games. **Her FTK is reduced, not eliminated** — ~1.6% over 800 games, 0 in the committed 100-game sample.
 - **Latest full gate (after ticket 34), tuned species only — every one passes, FTK 0, mirror mean 6.0 turns (inside the 5-6 target for the first time):**
 
   | species | §2.3 | mirror turns | dead cards |
   |---|---|---|---|
-  | huldra | 0.660 | 15.3 | 0.6% |
+  | huldra | 0.470 | 11.7 | 1.0% |
   | sköll | 0.640 | 3.7 | 32.3% |
   | ratatoskr | 0.590 | 4.7 | 3.8% |
   | kraken | 0.540 | 5.1 | 10.1% |
@@ -63,6 +63,8 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 7. **`overgrowth` (3 Regen, 1e) is in no deck and scores 3.60 vs a 3.0 band** — re-check before it enters one. It was a corrected 7.20 before ticket 34.
 8. **Next species: nidhoggr** — he finishes Dark, and he is now the most broken thing left: **396/400 draws at 60.7 turns**, unchanged since baseline. He shares the Dark pool with Hel, so `venom_shade` (1.8) and `curse_mark` (1.3) — both well under band, both in his placeholder deck — are his to fix, not Hel's.
 8a. **THE POISON EVAL IS HORIZON-CAPPED (ticket 40) — do not re-derive this.** `S(S+1)/2` is the right total for DECAYING poison and only if the battle lasts S more turns; at 18 stacks it priced a pile at **171% of a health bar**. Now `min(S(S+1)/2, S x STATUS_HORIZON_TURNS)`. It matters most under nidhoggr_v1's ROOT_CORRUPTION, where poison does not decay at all, so the triangular shape is simply WRONG and the AI would never cash a detonate. **Cashing beats holding only when the horizon is below 3**, so there is no gentler setting available. Cost: **huldra 0.660 -> 0.030** (her old number was propped up by the bug — she is the one-card deck this file has flagged since ticket 34), ratatoskr 0.610 -> 0.330, jormungandr 0.390 -> 0.310. Everything else byte-identical.
+8a1. **A CONSUME card has no budget ceiling; a READ card does (ticket 41).** hexbloom consuming the Weakened pile made its value scale with how long you saved up - x3 measured **13.90 against a 6.5 band**. Reading the pile without spending it (`WEAKENED_STACKS`) turns the card into a RATE capped by the pile size, so x2 is enough and scores 6.30. Any future 'cash in a hoard' card has this problem by construction.
+8a1b. **huldra_v1's damage is capped by her own enabler.** `thorn_tithe` self-Weakens her 3 to feed the ALLURE_PROXY mirror, so she swings at the -25% floor, and huldra_v2 is a BarkShield+Sharp mitigation deck. Flat power does not work on her - a 65-power card measured 8.2 damage. Poison (%maxHP DoT) ignores both sides of that.
 8a2. **Burn may carry the same shape problem** — `burnTotalPercent(s)` sums the tiered ticks with no horizon cap. Unmeasured.
 8b. **CLOSED in ticket 38** — `applyDamageModifiers`' self-target double-apply is fixed (deduped by id, like the heal side). It had made `core_overclock_daemon` 1.44× and `thermal_overload` 1.5625× against yourself only.
 8b2. **THE EVAL NOW PENALISES YOUR OWN DEATHS (ticket 38) — do not re-derive this.** `evaluateState` had `+ (oppDead * 50)` with no counterpart, so **a mutual kill evaluated as a WIN**: a dead unit scores 0, the concave HP curve makes a nearly-dead one nearly worthless anyway, and trading ~63 points for `oppScore + 50` is always positive. hel_v2's mutual kills ran at 61% before the fix and 35% after. The symmetric `- (myDead * 50)` is deliberately conservative — **the truer term is that losing your LAST unit in 1v1 is a loss, not −50**, and that one WILL move every matchup, so it needs its own ticket and a full re-baseline.

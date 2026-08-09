@@ -349,7 +349,7 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // meaningless. Price at ASSUMED_STATUS_COUNT. This is a FLOOR, not a price, the
             // same caveat ticket 32 carries for `slander` and the daemons: hexbloom at its
             // realistic 6 consumed stacks hand-prices to 6.3 against a 6.5 band.
-            const stacks = action.scaling === 'STATUS_CONSUMED'
+            const stacks = (action.scaling === 'STATUS_CONSUMED' || action.scaling === 'WEAKENED_STACKS')
                 ? (action.stacks || 1) * ASSUMED_STATUS_COUNT
                 : (action.stacks || 1);
             const absStacks = Math.abs(stacks);

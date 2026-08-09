@@ -3922,7 +3922,7 @@
     "hexbloom": {
         "id": "hexbloom",
         "name": "Hexbloom",
-        "description": "Consume all Weakened on the target. Apply that many Poison.",
+        "description": "Apply 2 Poison per stack of Weakened on the target. The Weakened remains.",
         "element": "Nature",
         "target": "Single",
         "category": "Status",
@@ -3936,15 +3936,9 @@
         "actions": [
             {
                 "type": "STATUS",
-                "status": "Weakened",
-                "consume": true,
-                "target": "TARGET"
-            },
-            {
-                "type": "STATUS",
                 "status": "Poison",
-                "stacks": 1,
-                "scaling": "STATUS_CONSUMED",
+                "stacks": 2,
+                "scaling": "WEAKENED_STACKS",
                 "target": "TARGET"
             }
         ]

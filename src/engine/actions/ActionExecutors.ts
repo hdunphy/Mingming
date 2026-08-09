@@ -161,8 +161,20 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
         // "consume all Weakened on the target, apply that many Poison"). The `consume` branch
         // below returns early, so a consume action can never read its own multiplier - which
         // is what guarantees the two actions resolve in the authored order.
+        // Ticket 41: WEAKENED_STACKS reads the TARGET's Weakened WITHOUT consuming it, so the
+        // pile survives and the card can be cast again off the same standing resource. That is
+        // the whole difference from STATUS_CONSUMED, which spends its input - and it is what
+        // makes hexbloom price honestly. Consuming turns the card into a hoard dump whose value
+        // scales with however long you saved up (x3 measured 13.90 against a 6.5 band); not
+        // consuming turns it into a RATE, so x2 is enough and x2 scores 6.30.
+        const weakenedOnTarget = actionData.scaling === 'WEAKENED_STACKS'
+            ? ((state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId))
+                ?.statusEffects.find(s => s.type === 'Weakened')?.stacks ?? 0)
+            : 0;
         const effectiveStacks = actionData.scaling === 'STATUS_CONSUMED'
             ? (stacks || 0) * (state.lastStatusConsumed ?? 0)
+            : actionData.scaling === 'WEAKENED_STACKS'
+            ? (stacks || 0) * weakenedOnTarget
             : stacks;
 
         if (consume) {
@@ -200,7 +212,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
         }
 
         // A scaled apply that resolves to nothing must not create a 0-stack status instance.
-        if (actionData.scaling === 'STATUS_CONSUMED' && effectiveStacks === 0) return state;
+        if ((actionData.scaling === 'STATUS_CONSUMED' || actionData.scaling === 'WEAKENED_STACKS') && effectiveStacks === 0) return state;
 
         if (effectiveStacks < 0) {
             // Contract (types.ts): negative stacks removes that many stacks,

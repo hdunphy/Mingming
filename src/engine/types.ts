@@ -252,7 +252,9 @@ export interface StatusActionData extends ProgramAction {
   /** Ticket 33: multiply `stacks` by the count removed by a preceding consume action in the
    *  same card (hexbloom: "consume all Weakened, apply that many Poison"). Mirrors the
    *  STATUS_CONSUMED path that already existed for HEAL only. */
-  readonly scaling?: 'STATUS_CONSUMED';
+  /** Ticket 41: WEAKENED_STACKS multiplies `stacks` by the TARGET's current Weakened, without
+   *  consuming it - a standing resource read, not a spend. */
+  readonly scaling?: 'STATUS_CONSUMED' | 'WEAKENED_STACKS';
 }
 
 export interface HealActionData extends ProgramAction {
