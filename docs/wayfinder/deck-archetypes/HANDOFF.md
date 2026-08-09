@@ -1,6 +1,6 @@
 # HANDOFF — deck-archetypes map (keep this current every session)
 
-*Last updated: 2026-08-08, after tickets 26-36 landed. **18/32 decks live — Hel is done and Dark is half done. Hel is the roster's first DUAL-TYPE Mingming (Dark/Light).** **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
+*Last updated: 2026-08-09, after tickets 26-38 landed. **18/32 decks live — Hel is done and Dark is half done. Hel is the roster's first DUAL-TYPE Mingming (Dark/Light).** **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
 ## Read this first: which band applies
 
@@ -13,7 +13,7 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Where things stand
 
-- Branch **card-dev**. Tickets 01–36 closed. **9 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel). **Water, Air, Fire and Nature are complete; Dark is half done** — nidhoggr finishes it. The other 7 are placeholders — **do not read their numbers as balance signal.**
+- Branch **card-dev**. Tickets 01–36 and 38 closed (37 is another session's). **9 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel). **Water, Air, Fire and Nature are complete; Dark is half done** — nidhoggr finishes it. The other 7 are placeholders — **do not read their numbers as balance signal.**
 - **Hel (ticket 36) passes every first-pass band** after a second pass that added `escalatePerPlay`. Read her §2.3 as **±8, not ±4**: 61% of her games are mutual kills, so 0.590 is computed over ~40 decided games. **Her FTK is reduced, not eliminated** — ~1.6% over 800 games, 0 in the committed 100-game sample.
 - **Latest full gate (after ticket 34), tuned species only — every one passes, FTK 0, mirror mean 6.0 turns (inside the 5-6 target for the first time):**
 
@@ -28,7 +28,7 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
   | sleipnir | 0.330 | 4.5 | 14.7% |
   | hraesvelgr | 0.310 | 3.2 | 4.0% |
 
-  Hel (ticket 36, measured at `1:d7238b5d`): §2.3 **0.590**, mirror **5.4** turns at 400/400, dead 10.6% / 10.2%.
+  Hel (tickets 36+38, at `1:d7238b5d`): §2.3 **0.508**, mirror **5.4** turns at 400/400, dead 26.7% / 10.2%. ratatoskr moved 0.590 → **0.610** in the same run (inside noise).
 
 - **THE CURVE IS rev 3.9: `10 / 30 / 65 / 105`, bands `1.0 / 3.0 / 6.5 / 10.5`.** The constants have not moved since rev 3.3 — rev 3.4 is five *pricing* corrections, all documented in `power_curve_spec.md`. **`powerscale.ts` is the executable truth; where the prose disagrees, powerscale wins.**
 - **Cards STAY on-curve — fix enablers (OS/deck structure), never bend card economics.** Henry's law, proven three times now (kraken OS decomposition, MOMENTUM_DRIVE, and Burn overflow).
@@ -62,7 +62,8 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 6. **huldra_v1 is still a one-card deck.** Even after the fix, `iron_bark` ×1 measures 0.030 and ×0 measures 0.000. Its damage is two `thorn_tithe` and one `hexbloom`; it needs a real payoff, which is a design call and not a knob.
 7. **`overgrowth` (3 Regen, 1e) is in no deck and scores 3.60 vs a 3.0 band** — re-check before it enters one. It was a corrected 7.20 before ticket 34.
 8. **Next species: nidhoggr** — he finishes Dark, and he is now the most broken thing left: **396/400 draws at 60.7 turns**, unchanged since baseline. He shares the Dark pool with Hel, so `venom_shade` (1.8) and `curse_mark` (1.3) — both well under band, both in his placeholder deck — are his to fix, not Hel's.
-8b. **`applyDamageModifiers` double-applies modifier hooks on self-target (found in ticket 36).** It collects hooks from `[source, target]`, which is the SAME entity on a self-damage card (`forage`, `dark_pact`, fenrir's recoil), so every hook the caster owns is applied twice. The heal-side twin `applyHealModifiers` dedupes by id; the damage side was deliberately left alone because fixing it re-gates eight tuned species. Take it as its own ticket with a full run.
+8b. **CLOSED in ticket 38** — `applyDamageModifiers`' self-target double-apply is fixed (deduped by id, like the heal side). It had made `core_overclock_daemon` 1.44× and `thermal_overload` 1.5625× against yourself only.
+8b2. **THE EVAL NOW PENALISES YOUR OWN DEATHS (ticket 38) — do not re-derive this.** `evaluateState` had `+ (oppDead * 50)` with no counterpart, so **a mutual kill evaluated as a WIN**: a dead unit scores 0, the concave HP curve makes a nearly-dead one nearly worthless anyway, and trading ~63 points for `oppScore + 50` is always positive. hel_v2's mutual kills ran at 61% before the fix and 35% after. The symmetric `- (myDead * 50)` is deliberately conservative — **the truer term is that losing your LAST unit in 1v1 is a loss, not −50**, and that one WILL move every matchup, so it needs its own ticket and a full re-baseline.
 8c. **`multiplier: 0` used to be silently dropped** — `HookFactory` guarded with `if (multiplier)` and 0 is falsy. Fixed to `!== undefined` in ticket 36. If you write a data hook that zeroes something, that guard is why it works.
 8c2. **`zod` STRIPS UNKNOWN KEYS — a hook-action field added to `HookTypes.ts` but not to `HookSchema.ts` does not exist at runtime.** `firmwareRegistry`/`daemonHooks` parse `hooks.json` through the schema, and a dropped field fails *silently*: ticket 36's `escalatePerPlay` produced three sim runs whose numbers were **byte-identical to the flat rates**, which is the only reason it was caught. If a new data field looks like a no-op, log it inside `HookFactory` before you tune anything.
 8c3. **An escalating cost is ORDERED, and the AI games it.** hel_v2's toll rises with cards played this turn, so the search simply front-loads the expensive card and pays the base rate for it. Escalation taxes the tail, never the opener — if the thing you want to stop is an alpha strike, escalation is the wrong shape.

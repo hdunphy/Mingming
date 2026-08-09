@@ -178,9 +178,18 @@ function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
 
     // Kill bonus: strongly incentivize finishing off enemies
     const oppDead = state[oppPartyKey].filter(e => e.currentHp <= 0).length;
+    // Ticket 38: the kill bonus used to have no counterpart, so A MUTUAL KILL EVALUATED AS A
+    // WIN. A dead unit scores 0 (getEntityScore's early return) and the concave HP curve makes
+    // a nearly-dead one worth very little on top of that, so trading your own last ~60 points
+    // for `oppScore + 50` was always correct arithmetic - even though the result is a DRAW.
+    // It went unnoticed until hel_v2, who pays HP for her cards: 61% of her games ended as
+    // mutual kills. Symmetric and same magnitude, deliberately: the conservative fix. (A truer
+    // one would make losing your LAST unit near-terminal rather than -50, but that is a bigger
+    // change to every matchup's instincts than this evidence supports.)
+    const myDead = state[myPartyKey].filter(e => e.currentHp <= 0).length;
 
     return myScore - oppScore + handValue(state, side)
-        - handValue(state, side === 'PLAYER' ? 'ENEMY' : 'PLAYER') + (oppDead * 50);
+        - handValue(state, side === 'PLAYER' ? 'ENEMY' : 'PLAYER') + (oppDead * 50) - (myDead * 50);
 }
 
 /** A depth-0 first action with the best same-turn continuation found behind it. */

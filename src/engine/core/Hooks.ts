@@ -25,11 +25,10 @@ export const applyHealModifiers = (
     context: HookContext
 ): number => {
     let heal = initialHeal;
-    // DEDUPED BY ID, unlike applyDamageModifiers. A self-heal has source === target, so the
-    // naive [source, target] pair collects the same entity twice and every one of its hooks
-    // gets applied twice - hel_v2's 1.5x became 2.25x on her own heals, which is every heal
-    // she casts. (applyDamageModifiers has the same latent bug for self-damage cards; it is
-    // deliberately NOT touched here - see the ticket write-up.)
+    // DEDUPED BY ID. A self-heal has source === target, so the naive [source, target] pair
+    // collects the same entity twice and every one of its hooks gets applied twice - hel_v2's
+    // 1.5x became 2.25x on her own heals, which is every heal she casts. `applyDamageModifiers`
+    // carried the identical bug for self-DAMAGE cards and was fixed to match in ticket 38.
     const entities = [context.source, context.target]
         .filter((e): e is IBattleEntity => !!e)
         .filter((e, i, arr) => arr.findIndex(other => other.id === e.id) === i);
@@ -79,7 +78,14 @@ export const applyDamageModifiers = (
     context: HookContext
 ): number => {
     let damage = initialDamage;
-    const entities = [context.source, context.target].filter((e): e is IBattleEntity => !!e);
+    // Ticket 38: DEDUPED BY ID. On a self-damage card (`forage`, `dark_pact`, fenrir's recoil)
+    // source === target, so the naive pair collected the caster twice and applied every hook it
+    // owns twice - core_overclock_daemon's 1.2x became 1.44x, thermal_overload's 1.25x became
+    // 1.5625x, and only against yourself. Found in ticket 36 on the heal side, where hel_v2's
+    // 1.5x healing measured 2.25x; left until now because fixing it re-gates every tuned species.
+    const entities = [context.source, context.target]
+        .filter((e): e is IBattleEntity => !!e)
+        .filter((e, i, arr) => arr.findIndex(other => other.id === e.id) === i);
 
     // 1. Collect Hooks as Pairs
     const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
