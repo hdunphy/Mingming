@@ -94,8 +94,25 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
     switch (type) {
         case 'Poison':
             // 1% maxHp x stacks per tick, decrementing => total future damage
-            // = maxHp/100 x S(S+1)/2 (StatusBehaviors PoisonBehavior.endTurn).
-            return -HP_POINTS * entity.maxHp * 0.01 * (s * (s + 1) / 2);
+            // = maxHp/100 x S(S+1)/2 (StatusBehaviors PoisonBehavior.endTurn) - but ONLY if
+            // the battle lasts S more turns, and it does not. Ticket 40 caps the sum at the
+            // same horizon every other future-scaling status is valued over, which matters in
+            // two places:
+            //
+            //  - A big pile was priced above the opponent's whole health bar. At 18 stacks on
+            //    an 87 HP frame the uncapped sum is 171% of maxHp; the enemy dies long before
+            //    collecting it.
+            //  - nidhoggr_v1's ROOT_CORRUPTION stops poison decaying at 2+ stacks, so the
+            //    triangular shape is not merely optimistic there, it is the WRONG SHAPE -
+            //    corrupted poison is linear in turns. The uncapped value made cashing the pile
+            //    in (`wither_feast`) score ~200 points WORSE than holding it, so the AI never
+            //    played the deck's payoff card once in 100 games. Same failure family as
+            //    ticket 34's Regen: the engine and the eval have to model the same shape.
+            //
+            // The cap is the honest floor for both shapes - hold or cash, you collect about
+            // STATUS_HORIZON_TURNS more ticks either way, which is exactly the break-even the
+            // detonate is designed around.
+            return -HP_POINTS * entity.maxHp * 0.01 * Math.min(s * (s + 1) / 2, s * STATUS_HORIZON_TURNS);
         case 'Burn':
             // Tiered % maxHp per tick (1.5/3.5/8%), decays 1/turn. Def shred ignored (small).
             return -HP_POINTS * entity.maxHp * burnTotalPercent(s);
