@@ -66,6 +66,19 @@ export interface PowerscaleResult {
      * alone - a low score with entries here is "unscored", not "underpowered".
      */
     manualReview: string[];
+    /**
+     * Ticket 26: how much of `score` came from ATTACK actions, and how much from STATUS.
+     *
+     * The deck report's `measuredScore` replaces exactly these two terms with what the card
+     * measurably did, and leaves every deterministic term (DRAW, ENERGY, flat heal) alone -
+     * a card that draws 2 always draws 2, and re-measuring it just re-derives the constant.
+     * They are reported rather than recomputed so the two numbers cannot drift apart.
+     *
+     * Both are post-multiplier, so `score - damagePortion - statusPortion` is the part of the
+     * card the static pass prices correctly by construction.
+     */
+    damagePortion: number;
+    statusPortion: number;
 }
 
 /**
@@ -346,7 +359,12 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         return `HEALTH_THRESHOLD:${cond.target ?? ''}|${direction}`;
     };
     /** Best score seen for each threshold branch group, keyed by subject (direction stripped). */
-    const exclusiveGroups = new Map<string, number>();
+    const exclusiveGroups = new Map<string, { score: number; type: string }>();
+
+    // Ticket 26: the ATTACK and STATUS shares of `score`, tracked alongside it so the deck
+    // report can swap exactly those two terms for measured ones.
+    let damagePortion = 0;
+    let statusPortion = 0;
 
     /**
      * Ticket 47: self-facing debuff REMOVAL, banked separately so the card's total removal can
@@ -566,16 +584,24 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             removalScore += actionScore;
         } else if (key === null) {
             score += actionScore;
+            if (action.type === 'ATTACK') damagePortion += actionScore;
+            else if (action.type === 'STATUS') statusPortion += actionScore;
         } else {
             // Bank per subject, keeping the largest branch; folded into `score` below once
             // every branch has been seen.
             const subject = key.split('|')[0];
             const previous = exclusiveGroups.get(subject);
-            exclusiveGroups.set(subject, previous === undefined ? actionScore : Math.max(previous, actionScore));
+            if (previous === undefined || actionScore > previous.score) {
+                exclusiveGroups.set(subject, { score: actionScore, type: action.type });
+            }
         }
     });
 
-    for (const branchScore of exclusiveGroups.values()) score += branchScore;
+    for (const branch of exclusiveGroups.values()) {
+        score += branch.score;
+        if (branch.type === 'ATTACK') damagePortion += branch.score;
+        else if (branch.type === 'STATUS') statusPortion += branch.score;
+    }
 
     // Ticket 47: a partial removal cannot be worth more than removing EVERYTHING.
     //
@@ -589,7 +615,9 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     // does, and two half-removals summing past a full cleanse is exactly the case this catches.
     // Removals inside an either/or threshold branch keep the existing max() path and are not
     // capped - no such card exists, and folding them in would break that accounting.
-    score += Math.min(removalScore, CLEANSE_POWER / 10.0);
+    const cappedRemoval = Math.min(removalScore, CLEANSE_POWER / 10.0);
+    score += cappedRemoval;
+    statusPortion += cappedRemoval;
 
     // Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
     // `do` actions once and multiply by the expected proc count. Recursion is bounded by
@@ -606,6 +634,8 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
                 actions: doActions,
             } as ProgramData, new Set([...seen, card.id]));
             score = proc.score * EXPECTED_DAEMON_PROCS;
+            damagePortion = proc.damagePortion * EXPECTED_DAEMON_PROCS;
+            statusPortion = proc.statusPortion * EXPECTED_DAEMON_PROCS;
             for (const m of proc.manualReview) manualReview.push(m);
         }
     }
@@ -613,11 +643,15 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     // Daemon Premium
     if (card.category === 'Daemon') {
         score *= 1.5;
+        damagePortion *= 1.5;
+        statusPortion *= 1.5;
     }
 
     // Exhaust/Token Discount
     if (card.exhaust || card.isToken) {
         score *= 0.9;
+        damagePortion *= 0.9;
+        statusPortion *= 0.9;
     }
 
     const costFactor = Math.pow(Math.max(numericBaseCost(card.baseCost), 0.5), 1.25);
@@ -627,5 +661,7 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         score: Math.round(score * 10) / 10,
         perEnergy: Math.round(perEnergy * 10) / 10,
         manualReview,
+        damagePortion: Math.round(damagePortion * 10) / 10,
+        statusPortion: Math.round(statusPortion * 10) / 10,
     };
 };

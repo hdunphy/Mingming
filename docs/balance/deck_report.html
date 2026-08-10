@@ -1,0 +1,5817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mingming — Deck Balance Report</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --good-text:      #006300;
+
+    --series-1: #2a78d6; /* blue    */
+    --series-2: #eb6834; /* orange  */
+    --series-3: #1baf7a; /* aqua    */
+    --series-4: #eda100; /* yellow  */
+    --series-5: #e87ba4; /* magenta */
+    --series-6: #008300; /* green   */
+    --series-7: #4a3aa7; /* violet  */
+    --series-8: #e34948; /* red     */
+
+    --status-good:     #0ca30c;
+    --status-warning:  #fab219;
+    --status-serious:  #ec835a;
+    --status-critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --good-text:      #0ca30c;
+      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+      --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --good-text:      #0ca30c;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  main { max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; }
+
+  header.top {
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 20px 16px;
+  }
+  header.top .inner { max-width: 1180px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .run-meta { color: var(--text-secondary); font-size: 12.5px; }
+  .run-meta span.sep { color: var(--text-muted); margin: 0 6px; }
+
+  button.theme-toggle {
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+    border-radius: 6px; padding: 6px 10px; font-size: 12.5px; cursor: pointer;
+  }
+
+
+  section { margin-top: 36px; }
+  section > h2 { font-size: 15.5px; margin: 0 0 4px; }
+  section > p.lede { color: var(--text-secondary); font-size: 12.5px; margin: 0 0 14px; max-width: 820px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 1px 6px; border-radius: 4px; text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+  .badge.real { color: var(--status-good); border-color: var(--status-good); background: color-mix(in srgb, var(--status-good) 12%, transparent); }
+  .badge.low  { color: var(--text-muted); border-color: var(--baseline); }
+
+  /* ---- Stat tiles ---- */
+  .subject-block { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); padding: 16px 18px 18px; margin-bottom: 16px; }
+  .subject-block .subject-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .subject-head .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .subject-head h3 { margin: 0; font-size: 14.5px; }
+  .subject-head .os-tag { color: var(--text-secondary); font-size: 12px; }
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; }
+  .tile { border: 1px solid var(--grid); border-radius: 8px; padding: 10px 12px; }
+  .tile .label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; display:flex; justify-content: space-between; align-items:center; }
+  .tile .value { font-size: 20px; font-variant-numeric: proportional-nums; }
+  .tile .sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .tile .delta-good { color: var(--good-text); }
+  .tile .delta-bad { color: var(--status-critical); }
+  .callout-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .callout { border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; flex: 1 1 200px; }
+  .callout .k { color: var(--text-muted); font-size: 10.5px; text-transform: uppercase; }
+  .callout .v { font-size: 13px; margin-top: 2px; }
+
+  /* ---- Controls ---- */
+  .controls-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .controls-row select, .controls-row input[type="search"] {
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+    border-radius: 6px; padding: 6px 10px; font-size: 12.5px;
+  }
+  .controls-row label { font-size: 12px; color: var(--text-secondary); }
+
+  /* ---- Tables ---- */
+  table { width: 100%; border-collapse: collapse; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  caption { caption-side: bottom; text-align: left; font-size: 11px; color: var(--text-muted); padding: 8px 4px 0; }
+  th, td { text-align: left; padding: 8px 10px; font-size: 12.5px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  thead th { color: var(--text-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface-1); }
+  thead th:hover { color: var(--text-primary); }
+  thead th .arrow { opacity: 0.4; font-size: 10px; margin-left: 3px; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: color-mix(in srgb, var(--series-1) 6%, transparent); }
+  .card-link { color: var(--series-1); text-decoration: underline dotted; cursor: help; }
+  .row-muted td { color: var(--text-muted); }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; }
+
+  /* ---- Bars (simple div bars) ---- */
+  .bar-chart { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .bar-row { display: grid; grid-template-columns: 150px 1fr 56px; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+  .bar-row .name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { position: relative; height: 18px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+  .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px 0 0 4px; }
+  .bar-fill.static { background: var(--series-1); }
+  .bar-fill.measured { background: var(--series-2); top: 50%; height: 8px; border-radius: 4px; }
+  .bar-track.split { height: 20px; }
+  .bar-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .legend { display: flex; gap: 16px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
+  .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+  /* ---- Matchup drill-down ---- */
+  .matchup-detail { display: none; }
+  .matchup-detail.open { display: table-row; }
+  .matchup-detail td { background: var(--page); padding: 14px 16px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px 16px; }
+  .detail-grid .k { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; overflow-wrap: break-word; }
+  .detail-grid .v { font-size: 13px; margin-top: 2px; }
+  tr.matchup-row { cursor: pointer; }
+  tr.matchup-row td.expand-icon { width: 18px; color: var(--text-muted); }
+
+  /* ---- Redlines ---- */
+  .redline-group { margin-bottom: 14px; }
+  .redline-group h4 { font-size: 12.5px; margin: 0 0 6px; display: flex; align-items: center; gap: 6px; }
+  .status-icon { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .status-icon.critical { background: var(--status-critical); }
+  .status-icon.serious { background: var(--status-serious); }
+  .status-icon.warning { background: var(--status-warning); }
+  .redline-list { list-style: none; margin: 0; padding: 0; }
+  .redline-list li { padding: 6px 10px; border-bottom: 1px solid var(--grid); font-size: 12.5px; background: var(--surface-1); }
+  .redline-list li:first-child { border-radius: 8px 8px 0 0; }
+  .redline-list li:last-child { border-radius: 0 0 8px 8px; border-bottom: none; }
+  .redline-list { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .redline-list .metric-val { color: var(--text-secondary); }
+
+  /* ---- Appendix ---- */
+  details.appendix-block { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
+  details.appendix-block summary { cursor: pointer; font-size: 13.5px; font-weight: 600; }
+  details.appendix-block .os-desc { color: var(--text-secondary); font-size: 12.5px; margin: 10px 0; }
+  .mini-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 10px; }
+  .mini-card { border: 1px solid var(--grid); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; }
+  .mini-card .mc-name { font-weight: 600; font-size: 12.5px; }
+  .mini-card .mc-meta { color: var(--text-muted); margin: 2px 0 4px; }
+  .mini-card .mc-desc { color: var(--text-secondary); }
+
+  footer.page-footer { max-width: 1180px; margin: 40px auto 0; padding: 16px 20px 40px; color: var(--text-muted); font-size: 11.5px; border-top: 1px solid var(--border); }
+  .loader-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .loader-row input[type="file"] { font-size: 12px; }
+
+  /* tooltip */
+  .tooltip-pop {
+    position: fixed; z-index: 50; max-width: 280px; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18); display: none; color: var(--text-primary);
+  }
+  .tooltip-pop .tt-name { font-weight: 700; margin-bottom: 3px; }
+  .tooltip-pop .tt-meta { color: var(--text-muted); font-size: 11px; margin-bottom: 6px; }
+  .tooltip-pop .tt-desc { color: var(--text-secondary); }
+</style>
+</head>
+<body class="viz-root" data-theme="light">
+
+<header class="top">
+  <div class="inner">
+    <div>
+      <h1>Deck Balance Report</h1>
+      <div class="run-meta">
+        subjects: <strong id="meta-subjects"></strong>
+        <span class="sep">·</span> control: <strong id="meta-control"></strong>
+        <span class="sep">·</span> registryHash <code id="meta-hash"></code>
+        <span class="sep">·</span> generated <span id="meta-time"></span>
+      </div>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle dark mode</button>
+  </div>
+</header>
+
+<main>
+
+  <section id="summary">
+    <h2>Summary — per subject</h2>
+    <p class="lede">One block per deck under test. Every number is pooled across that subject's matchups in this
+      run &mdash; win rate is from the subject's own side, so a deck that sat on the enemy side of a batch still
+      reads its own result. Damage per turn counts every point of HP the subject removed, however it got there,
+      which is why it can exceed the sum of the per-card direct-damage column below.</p>
+    <div id="subject-blocks"></div>
+  </section>
+
+  <section id="cards">
+    <h2>Card leaderboard</h2>
+    <p class="lede">Sortable and filterable. <strong>Static score</strong> is what powerscale prices the card at from its text; <strong>measured score</strong> replaces only its damage and status terms with what the card actually did. A wide &Delta; means the card performs differently than its text implies, not that the two formulas disagree. <strong>Dead rate</strong> counts copies that reached hand and were never played (the same convention as the deck-level ratio); <strong>play rate</strong> counts casts per time the card entered hand, which is a different question. Rows built on fewer than 20 plays are muted. Click a card name for its appendix.</p>
+    <div class="controls-row">
+      <label>Subject
+        <select id="card-filter-subject"></select>
+      </label>
+      <label>Cost
+        <select id="card-filter-cost">
+          <option value="">all</option>
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3+</option>
+        </select>
+      </label>
+      <input type="search" id="card-search" placeholder="search card name or id…" />
+    </div>
+    <div class="table-wrap">
+      <table id="card-table">
+        <thead><tr>
+          <th data-key="name">Card</th>
+          <th data-key="subjectId">Subject</th>
+          <th class="num" data-key="cost">Cost</th>
+          <th class="num" data-key="timesPlayed">Plays</th>
+          <th class="num" data-key="playRate">Play rate</th>
+          <th class="num" data-key="deadRate">Dead rate</th>
+          <th class="num" data-key="avgDirectDamagePerPlay">Dmg/play</th>
+          <th class="num" data-key="staticScore">Static score</th>
+          <th class="num" data-key="measuredScore">Measured score</th>
+          <th class="num" data-key="scoreDelta">&Delta;</th>
+        </tr></thead>
+        <tbody id="card-tbody"></tbody>
+      </table>
+      <div id="tooltip" class="tooltip-pop"></div>
+    </div>
+  </section>
+
+  <section id="power-chart">
+    <h2>Static vs. measured power</h2>
+    <p class="lede">Top 8 cards by sample size. Blue is the static powerscale price; orange is what the card measured.
+      A wide gap is the signal this report exists to surface — most often a per-stack scaler whose static score
+      is a floor rather than a price.</p>
+    <div class="bar-chart">
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--series-1)"></span>Static score (real)</span>
+        <span><span class="swatch" style="background:var(--series-2)"></span>Measured score</span>
+      </div>
+      <div id="power-bars"></div>
+    </div>
+  </section>
+
+  <section id="statuses">
+    <h2>Status leaderboard</h2>
+    <p class="lede">Stacks that actually LANDED, attributed to the card that applied them:
+      stacks applied per game, which cards are the main applier, and how that compares across subjects.</p>
+    <div class="table-wrap">
+      <table id="status-table">
+        <thead><tr>
+          <th data-key="name">Status</th>
+          <th data-key="subjectId">Subject</th>
+          <th class="num" data-key="avgStacksPerGame">Avg stacks/game</th>
+          <th class="num" data-key="avgApplicationsPerGame">Avg applications/game</th>
+          <th data-key="topSourceCards">Top source card</th>
+        </tr></thead>
+        <tbody id="status-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="matchups">
+    <h2>Matchup drill-down</h2>
+    <p class="lede">One row per subject per matchup. Rows built on fewer iterations than the run's confidence
+      floor are badged <span class="badge low">low sample</span> &mdash; a thin sample is a confidence flag, never
+      a balance finding. Click a row to expand its turn order, damage and per-matchup top cards and statuses;
+      usage shifts by opponent, so those are worth reading per row rather than only in aggregate.</p>
+    <div class="controls-row">
+      <label>Subject
+        <select id="matchup-filter-subject"></select>
+      </label>
+      <label>Opponent
+        <input type="search" id="matchup-search" placeholder="search opponent…" />
+      </label>
+    </div>
+    <div class="table-wrap">
+      <table id="matchup-table">
+        <thead><tr>
+          <th class="expand-icon"></th>
+          <th data-key="opponent">Opponent</th>
+          <th data-key="subject">Subject</th>
+          <th class="num" data-key="iterations">N</th>
+          <th class="num" data-key="decisiveWinRate">Decisive WR</th>
+          <th class="num" data-key="averageTurns">Avg turns</th>
+          <th class="num" data-key="deadCardRatio">Dead % (you)</th>
+          <th class="num" data-key="enemyDeadCardRatio">Dead % (opp)</th>
+          <th>Flags</th>
+        </tr></thead>
+        <tbody id="matchup-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="redlines">
+    <h2>Redlines</h2>
+    <p class="lede"><code>CARD_OVER_BUDGET</code> rows are, carried verbatim
+      from the committed <code>balance_redlines.csv</code>. The three new kinds proposed in the design doc are
+      shown with example rows so you can react to the severity coloring and
+      grouping before the thresholds are locked in.</p>
+    <div id="redline-groups"></div>
+  </section>
+
+  <section id="appendix">
+    <h2>Archetype &amp; card appendix</h2>
+    <p class="lede">One block per subject — OS firmware description + authored archetype summary + full card grid.
+      Meant to make the standing "every card/deck needs an appendix" report rule automatic instead of
+      hand-typed. The OS text is pulled from the firmware registry at generation time; the archetype summary is
+      authored (design intent is not derivable from card data) and a subject with none is flagged by the
+      generator rather than shipping blank.</p>
+    <div id="appendix-blocks"></div>
+  </section>
+
+</main>
+
+<footer class="page-footer">
+  <div>This page is self-contained: the report it was generated with is embedded below. Use the loader to point it at any other generated <code>deck_report.json</code>.<code>*_deck_report.json</code> a balance run produced.</div>
+  <div class="loader-row">
+    <label for="json-loader">Load a different report JSON:</label>
+    <input type="file" id="json-loader" accept="application/json" />
+    <span id="loader-status"></span>
+  </div>
+</footer>
+
+<script type="application/json" id="report-data">{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-10T16:33:38.562Z",
+  "command": "npm run balance:deck -- --subjects kraken_v1,kraken_v2,ratatoskr_v1,ratatoskr_v2,draugr_v1,draugr_v2,ymir_v1,ymir_v2,nidhoggr_v1,nidhoggr_v2,hel_v1,hel_v2 --iterations 80",
+  "registryHash": "1:6b38742e",
+  "config": {
+    "suites": [
+      "vs-control",
+      "mirror",
+      "os-variance"
+    ],
+    "iterations": 80,
+    "maxTurns": 60,
+    "seedBase": "deck-report",
+    "thresholds": {
+      "matchupIterations": 150,
+      "cardPlays": 20,
+      "deadRate": 0.5,
+      "powerDivergence": 1
+    }
+  },
+  "control": {
+    "species": "control",
+    "os": "control_v1"
+  },
+  "subjects": [
+    {
+      "id": "kraken_v1",
+      "species": "kraken",
+      "os": "kraken_v1",
+      "osFirmwareDescription": "Whenever Kraken's side draws a card outside the draw phase, apply 1 Dazed to a random enemy.",
+      "archetypeSummary": "ABYSSAL_INK draw engine - four draw cards feed the ink, ink_stream is the clock.",
+      "cardList": [
+        {
+          "id": "whirlpool_v2",
+          "count": 2
+        },
+        {
+          "id": "pressure_point",
+          "count": 2
+        },
+        {
+          "id": "ink_stream",
+          "count": 2
+        },
+        {
+          "id": "surge_protection",
+          "count": 1
+        },
+        {
+          "id": "water_slap",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.671,
+        "winRate": 0.671,
+        "averageTurns": 6.09,
+        "avgDamagePerTurnDealt": 12.18,
+        "avgDamagePerTurnTaken": 10.34,
+        "avgStatusApplicationsPerGame": 6.18,
+        "avgStatusStacksPerGame": 4.97,
+        "mostUsedCard": "water_slap",
+        "leastUsedCard": "whirlpool_v2",
+        "highestDamageCard": "ink_stream",
+        "deadCardIds": [],
+        "deadCardRatio": 0.0901,
+        "mostUsedStatus": "Dazed",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": -0.09375,
+        "sideBias": 0.11250000000000004,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "kraken_v2",
+      "species": "kraken",
+      "os": "kraken_v2",
+      "osFirmwareDescription": "Water cards that cost 3 or more Energy deal 15% more damage.",
+      "archetypeSummary": "TIDAL_CRUSH ramp into 3-energy Water payoffs.",
+      "cardList": [
+        {
+          "id": "maelstrom",
+          "count": 1
+        },
+        {
+          "id": "hydro_blast",
+          "count": 1
+        },
+        {
+          "id": "capacitor",
+          "count": 2
+        },
+        {
+          "id": "surge_protection",
+          "count": 2
+        },
+        {
+          "id": "water_slap",
+          "count": 2
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.469,
+        "winRate": 0.469,
+        "averageTurns": 6.09,
+        "avgDamagePerTurnDealt": 11.28,
+        "avgDamagePerTurnTaken": 10.98,
+        "avgStatusApplicationsPerGame": 4.41,
+        "avgStatusStacksPerGame": 6.3,
+        "mostUsedCard": "water_slap",
+        "leastUsedCard": "maelstrom",
+        "highestDamageCard": "hydro_blast",
+        "deadCardIds": [],
+        "deadCardRatio": 0.1063,
+        "mostUsedStatus": "Energized",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": -0.16875,
+        "sideBias": 0.0625,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "ratatoskr_v1",
+      "species": "ratatoskr",
+      "os": "ratatoskr_v1",
+      "osFirmwareDescription": "0-cost programs heal all allies for 2.5% of their max HP.",
+      "archetypeSummary": "GOSSIP_NODE card spam. Five 0-costs, each doubled by echo_chamber tokens; seed_bomb is the payoff. shrug_off is its only answer to a status clock.",
+      "cardList": [
+        {
+          "id": "forage",
+          "count": 2
+        },
+        {
+          "id": "water_slap",
+          "count": 2
+        },
+        {
+          "id": "healing_mist",
+          "count": 1
+        },
+        {
+          "id": "shrug_off",
+          "count": 1
+        },
+        {
+          "id": "nettle_sting",
+          "count": 2
+        },
+        {
+          "id": "seed_bomb_v2",
+          "count": 2
+        },
+        {
+          "id": "echo_chamber_v2",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.644,
+        "winRate": 0.644,
+        "averageTurns": 5.22,
+        "avgDamagePerTurnDealt": 14.15,
+        "avgDamagePerTurnTaken": 13.62,
+        "avgStatusApplicationsPerGame": 4.08,
+        "avgStatusStacksPerGame": 3.94,
+        "mostUsedCard": "water_slap",
+        "leastUsedCard": "seed_bomb_v2",
+        "highestDamageCard": "seed_bomb_v2",
+        "deadCardIds": [],
+        "deadCardRatio": 0.0371,
+        "mostUsedStatus": "Poison",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": -0.06874999999999998,
+        "sideBias": 0.012500000000000011,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "ratatoskr_v2",
+      "species": "ratatoskr",
+      "os": "ratatoskr_v2",
+      "osFirmwareDescription": "Whenever Ratatoskr plays a 0-cost card at an enemy, he applies 1 stack of Dazed to the target.",
+      "archetypeSummary": "INSTIGATOR_OS Dazed stacking. Same fuel, opposite payoff: slander reads raw Dazed stacks and ignores the +-25% cap.",
+      "cardList": [
+        {
+          "id": "pollen_cloud",
+          "count": 2
+        },
+        {
+          "id": "water_slap",
+          "count": 2
+        },
+        {
+          "id": "nagging_bite",
+          "count": 2
+        },
+        {
+          "id": "crippling_vine",
+          "count": 1
+        },
+        {
+          "id": "slander",
+          "count": 1
+        },
+        {
+          "id": "echo_chamber_v2",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.508,
+        "winRate": 0.508,
+        "averageTurns": 5.63,
+        "avgDamagePerTurnDealt": 12.65,
+        "avgDamagePerTurnTaken": 12.16,
+        "avgStatusApplicationsPerGame": 28.64,
+        "avgStatusStacksPerGame": 31.65,
+        "mostUsedCard": "water_slap",
+        "leastUsedCard": "slander",
+        "highestDamageCard": "nagging_bite",
+        "deadCardIds": [],
+        "deadCardRatio": 0.0471,
+        "mostUsedStatus": "Dazed",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": 0,
+        "sideBias": 0.024999999999999967,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "draugr_v1",
+      "species": "draugr",
+      "os": "draugr_v1",
+      "osFirmwareDescription": "Draugr can act while Asleep. Whenever it wakes from Asleep or is revived, it gains 1 Energized and draws a card.",
+      "archetypeSummary": "PERMAFROST_WAKE - sleeps on purpose. Asleep is a stance he pays a card to enter; nightmare and barrow_rot cash it, and the wake pays 1 Energized and a card.",
+      "cardList": [
+        {
+          "id": "grave_rest",
+          "count": 2
+        },
+        {
+          "id": "barrow_rot",
+          "count": 1
+        },
+        {
+          "id": "deathless_slumber",
+          "count": 1
+        },
+        {
+          "id": "dread_tidings",
+          "count": 2
+        },
+        {
+          "id": "glacier_wall",
+          "count": 1
+        },
+        {
+          "id": "ice_spear",
+          "count": 1
+        },
+        {
+          "id": "nightmare",
+          "count": 2
+        },
+        {
+          "id": "barrow_king",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.669,
+        "winRate": 0.669,
+        "averageTurns": 7.73,
+        "avgDamagePerTurnDealt": 10.85,
+        "avgDamagePerTurnTaken": 11.37,
+        "avgStatusApplicationsPerGame": 11.77,
+        "avgStatusStacksPerGame": 23.06,
+        "mostUsedCard": "barrow_rot",
+        "leastUsedCard": "barrow_king",
+        "highestDamageCard": "nightmare",
+        "deadCardIds": [
+          "barrow_king"
+        ],
+        "deadCardRatio": 0.2051,
+        "mostUsedStatus": "BarkShield",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": -0.06874999999999998,
+        "sideBias": 0.03750000000000003,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "draugr_v2",
+      "species": "draugr",
+      "os": "draugr_v2",
+      "osFirmwareDescription": "Enemies afflicted with 2 or more different negative statuses deal 20% less damage to the Draugr.",
+      "archetypeSummary": "GRAVE_CHILL_OS - cheap debuff variety, cashed by rimebreaker, which scales on the same distinct-debuff count the firmware gates on.",
+      "cardList": [
+        {
+          "id": "rimefrost",
+          "count": 2
+        },
+        {
+          "id": "water_slap",
+          "count": 1
+        },
+        {
+          "id": "frost_bite",
+          "count": 1
+        },
+        {
+          "id": "numbing_gale",
+          "count": 1
+        },
+        {
+          "id": "killing_frost",
+          "count": 1
+        },
+        {
+          "id": "ice_spear",
+          "count": 1
+        },
+        {
+          "id": "glacial_slam",
+          "count": 1
+        },
+        {
+          "id": "rimebreaker",
+          "count": 2
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.663,
+        "winRate": 0.663,
+        "averageTurns": 8.81,
+        "avgDamagePerTurnDealt": 10.36,
+        "avgDamagePerTurnTaken": 8.46,
+        "avgStatusApplicationsPerGame": 18.14,
+        "avgStatusStacksPerGame": 25.33,
+        "mostUsedCard": "rimefrost",
+        "leastUsedCard": "glacial_slam",
+        "highestDamageCard": "rimebreaker",
+        "deadCardIds": [],
+        "deadCardRatio": 0.1238,
+        "mostUsedStatus": "Dazed",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": -0.025000000000000022,
+        "sideBias": 0.07499999999999996,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "ymir_v1",
+      "species": "ymir",
+      "os": "ymir_v1",
+      "osFirmwareDescription": "At the start of Ymir's turn, it gains 5 Bark Shield.",
+      "archetypeSummary": "GLACIER_HEART_SYS - the wall IS the weapon. 5 BarkShield at turn start, cast off as damage by avalanche without consuming it.",
+      "cardList": [
+        {
+          "id": "frost_ward",
+          "count": 2
+        },
+        {
+          "id": "rimeguard",
+          "count": 2
+        },
+        {
+          "id": "thaw",
+          "count": 1
+        },
+        {
+          "id": "ice_spear",
+          "count": 2
+        },
+        {
+          "id": "avalanche",
+          "count": 2
+        },
+        {
+          "id": "flash_freeze",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.696,
+        "winRate": 0.696,
+        "averageTurns": 10.87,
+        "avgDamagePerTurnDealt": 7.35,
+        "avgDamagePerTurnTaken": 5.27,
+        "avgStatusApplicationsPerGame": 16.5,
+        "avgStatusStacksPerGame": 41.45,
+        "mostUsedCard": "frost_ward",
+        "leastUsedCard": "ice_spear",
+        "highestDamageCard": "avalanche",
+        "deadCardIds": [],
+        "deadCardRatio": 0.1163,
+        "mostUsedStatus": "BarkShield",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": 0.006249999999999978,
+        "sideBias": 0.08750000000000002,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "ymir_v2",
+      "species": "ymir",
+      "os": "ymir_v2",
+      "osFirmwareDescription": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 25% more base damage.",
+      "archetypeSummary": "GLACIAL_PACE - two big cards a turn, no 0-costs and no neutral tier, since a None card gets neither STAB nor the Ice bonus.",
+      "cardList": [
+        {
+          "id": "bracing_cold",
+          "count": 2
+        },
+        {
+          "id": "thaw",
+          "count": 1
+        },
+        {
+          "id": "ice_spear",
+          "count": 2
+        },
+        {
+          "id": "numbing_gale",
+          "count": 2
+        },
+        {
+          "id": "glacial_maul",
+          "count": 2
+        },
+        {
+          "id": "glacial_slam",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.638,
+        "winRate": 0.638,
+        "averageTurns": 10.58,
+        "avgDamagePerTurnDealt": 7.47,
+        "avgDamagePerTurnTaken": 6.33,
+        "avgStatusApplicationsPerGame": 12.12,
+        "avgStatusStacksPerGame": 24.92,
+        "mostUsedCard": "glacial_maul",
+        "leastUsedCard": "bracing_cold",
+        "highestDamageCard": "glacial_maul",
+        "deadCardIds": [],
+        "deadCardRatio": 0.2308,
+        "mostUsedStatus": "BarkShield",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": 0.05625000000000002,
+        "sideBias": 0.08750000000000002,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "nidhoggr_v1",
+      "species": "nidhoggr",
+      "os": "nidhoggr_v1",
+      "osFirmwareDescription": "Poison afflicting Níðhöggr's enemies does not lose stacks at the end of their turn (a final single stack still fades).",
+      "archetypeSummary": "ROOT_CORRUPTION turns poison into a permanent RATE; wither_feast cashes the pile.",
+      "cardList": [
+        {
+          "id": "rot_seed",
+          "count": 2
+        },
+        {
+          "id": "shadow_claw",
+          "count": 1
+        },
+        {
+          "id": "water_slap",
+          "count": 1
+        },
+        {
+          "id": "venom_shade",
+          "count": 2
+        },
+        {
+          "id": "curse_mark",
+          "count": 1
+        },
+        {
+          "id": "blight_bloom",
+          "count": 2
+        },
+        {
+          "id": "wither_feast",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.619,
+        "winRate": 0.619,
+        "averageTurns": 5.74,
+        "avgDamagePerTurnDealt": 11.01,
+        "avgDamagePerTurnTaken": 10.83,
+        "avgStatusApplicationsPerGame": 11.87,
+        "avgStatusStacksPerGame": 22.8,
+        "mostUsedCard": "water_slap",
+        "leastUsedCard": "wither_feast",
+        "highestDamageCard": "blight_bloom",
+        "deadCardIds": [
+          "wither_feast"
+        ],
+        "deadCardRatio": 0.1463,
+        "mostUsedStatus": "Poison",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": 0.018750000000000044,
+        "sideBias": 0.18750000000000006,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "nidhoggr_v2",
+      "species": "nidhoggr",
+      "os": "nidhoggr_v2",
+      "osFirmwareDescription": "Whenever any Mingming drops below half of its maximum HP, Nidhoggr smells blood: gain 1 Energy and draw a card. Healing above half re-arms the scent.",
+      "archetypeSummary": "BLOOD_SCENT pays 1 Energy and a card per below-half crossing.",
+      "cardList": [
+        {
+          "id": "shadow_claw",
+          "count": 2
+        },
+        {
+          "id": "bloodletting",
+          "count": 2
+        },
+        {
+          "id": "leech_strike",
+          "count": 2
+        },
+        {
+          "id": "umbral_feast",
+          "count": 1
+        },
+        {
+          "id": "water_slap",
+          "count": 1
+        },
+        {
+          "id": "rend_marrow",
+          "count": 2
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.719,
+        "winRate": 0.719,
+        "averageTurns": 5.63,
+        "avgDamagePerTurnDealt": 12.88,
+        "avgDamagePerTurnTaken": 10.47,
+        "avgStatusApplicationsPerGame": 7.8,
+        "avgStatusStacksPerGame": 12.73,
+        "mostUsedCard": "water_slap",
+        "leastUsedCard": "umbral_feast",
+        "highestDamageCard": "rend_marrow",
+        "deadCardIds": [],
+        "deadCardRatio": 0.1316,
+        "mostUsedStatus": "Poison",
+        "ftkCount": 0,
+        "ftkRate": 0,
+        "truncatedCount": 0,
+        "firstMoverEdge": 0.018750000000000044,
+        "sideBias": 0.08750000000000002,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "hel_v1",
+      "species": "hel",
+      "os": "hel_v1",
+      "osFirmwareDescription": "The element Hel casts sets her stance at the end of the action. Dark Stance: +30% damage dealt. Light Stance: -30% damage taken.",
+      "archetypeSummary": "TWILIGHT_CADENCE sets her stance from the element she casts, at end of action.",
+      "cardList": [
+        {
+          "id": "shadow_claw",
+          "count": 2
+        },
+        {
+          "id": "pale_mercy",
+          "count": 2
+        },
+        {
+          "id": "water_slap",
+          "count": 1
+        },
+        {
+          "id": "nights_bite",
+          "count": 2
+        },
+        {
+          "id": "purify",
+          "count": 1
+        },
+        {
+          "id": "lumen_surge",
+          "count": 1
+        },
+        {
+          "id": "hamstring",
+          "count": 1
+        },
+        {
+          "id": "eclipse",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.688,
+        "winRate": 0.667,
+        "averageTurns": 5.18,
+        "avgDamagePerTurnDealt": 13.27,
+        "avgDamagePerTurnTaken": 14.11,
+        "avgStatusApplicationsPerGame": 22.8,
+        "avgStatusStacksPerGame": 19.82,
+        "mostUsedCard": "water_slap",
+        "leastUsedCard": "purify",
+        "highestDamageCard": "eclipse",
+        "deadCardIds": [],
+        "deadCardRatio": 0.1394,
+        "mostUsedStatus": "Weakened",
+        "ftkCount": 3,
+        "ftkRate": 0.0063,
+        "truncatedCount": 0,
+        "firstMoverEdge": -0.0625,
+        "sideBias": 0.050000000000000044,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    },
+    {
+      "id": "hel_v2",
+      "species": "hel",
+      "os": "hel_v2",
+      "osFirmwareDescription": "Hel's cards cost health, not energy: casting drains 5% of her max HP per point of the card's printed cost, and every further card that turn costs 125% more. Her healing is increased by 50%.",
+      "archetypeSummary": "UNDERWORLD_GATEWAY zeroes her Energy cost and taxes every card at 5% maxHP - the only Mingming who casts 3-energy cards freely, with her own hand as her clock.",
+      "cardList": [
+        {
+          "id": "pale_mercy",
+          "count": 2
+        },
+        {
+          "id": "forage",
+          "count": 2
+        },
+        {
+          "id": "dawnstrike",
+          "count": 2
+        },
+        {
+          "id": "venom_shade",
+          "count": 1
+        },
+        {
+          "id": "soul_tithe",
+          "count": 1
+        },
+        {
+          "id": "squirrel_away",
+          "count": 1
+        },
+        {
+          "id": "last_rites",
+          "count": 1
+        }
+      ],
+      "summary": {
+        "decisiveWinRate": 0.351,
+        "winRate": 0.317,
+        "averageTurns": 4.3,
+        "avgDamagePerTurnDealt": 17.22,
+        "avgDamagePerTurnTaken": 13.26,
+        "avgStatusApplicationsPerGame": 10.61,
+        "avgStatusStacksPerGame": 8.41,
+        "mostUsedCard": "pale_mercy",
+        "leastUsedCard": "squirrel_away",
+        "highestDamageCard": "soul_tithe",
+        "deadCardIds": [
+          "forage",
+          "squirrel_away"
+        ],
+        "deadCardRatio": 0.251,
+        "mostUsedStatus": "Weakened",
+        "ftkCount": 3,
+        "ftkRate": 0.0063,
+        "truncatedCount": 0,
+        "firstMoverEdge": 0,
+        "sideBias": 0.024999999999999967,
+        "sampleSize": 480,
+        "confidence": "ok"
+      }
+    }
+  ],
+  "cards": [
+    {
+      "cardId": "ink_stream",
+      "name": "Ink Stream",
+      "cost": 1,
+      "element": "Water",
+      "description": "Deal 12 power per card drawn.",
+      "subjectId": "kraken_v1",
+      "timesSeen": 960,
+      "timesPlayed": 2267,
+      "handEntries": 2914,
+      "playRate": 0.778,
+      "timesDeadInHand": 8,
+      "deadRate": 0.008,
+      "directDamageDealt": 19004,
+      "avgDirectDamagePerPlay": 8.4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.534,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 3.18,
+      "scoreDelta": 1.98,
+      "sampleSize": 2267,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "pressure_point",
+      "name": "Pressure Point",
+      "cost": 1,
+      "element": "Water",
+      "description": "22 power. If Dazed, draw 1.",
+      "subjectId": "kraken_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1899,
+      "handEntries": 2866,
+      "playRate": 0.663,
+      "timesDeadInHand": 100,
+      "deadRate": 0.104,
+      "directDamageDealt": 9232,
+      "avgDirectDamagePerPlay": 4.9,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.259,
+      "statusesApplied": {
+        "Dazed": 1350
+      },
+      "staticScore": 3.1,
+      "measuredScore": 3.25,
+      "scoreDelta": 0.15,
+      "sampleSize": 1899,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "surge_protection",
+      "name": "Surge Protection",
+      "cost": 1,
+      "element": "Water",
+      "description": "Deal 15 power + gain extra 1 Energy if you drew a card this turn.",
+      "subjectId": "kraken_v1",
+      "timesSeen": 480,
+      "timesPlayed": 1303,
+      "handEntries": 1450,
+      "playRate": 0.899,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 3893,
+      "avgDirectDamagePerPlay": 3,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.109,
+      "statusesApplied": {},
+      "staticScore": 4,
+      "measuredScore": 3.63,
+      "scoreDelta": -0.37,
+      "sampleSize": 1303,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "kraken_v1",
+      "timesSeen": 480,
+      "timesPlayed": 1330,
+      "handEntries": 1402,
+      "playRate": 0.949,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 1875,
+      "avgDirectDamagePerPlay": 1.4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.053,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 0.54,
+      "scoreDelta": -0.66,
+      "sampleSize": 1330,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "whirlpool_v2",
+      "name": "Whirlpool",
+      "cost": 1,
+      "element": "Water",
+      "description": "8 power. Draw a card.",
+      "subjectId": "kraken_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1066,
+      "handEntries": 2772,
+      "playRate": 0.385,
+      "timesDeadInHand": 238,
+      "deadRate": 0.248,
+      "directDamageDealt": 1602,
+      "avgDirectDamagePerPlay": 1.5,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.045,
+      "statusesApplied": {
+        "Dazed": 1037
+      },
+      "staticScore": 2.2,
+      "measuredScore": 2.47,
+      "scoreDelta": 0.27,
+      "sampleSize": 1066,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "hydro_blast",
+      "name": "Hydro Blast",
+      "cost": 3,
+      "element": "Water",
+      "description": "105 power.",
+      "subjectId": "kraken_v2",
+      "timesSeen": 320,
+      "timesPlayed": 394,
+      "handEntries": 799,
+      "playRate": 0.493,
+      "timesDeadInHand": 59,
+      "deadRate": 0.184,
+      "directDamageDealt": 10432,
+      "avgDirectDamagePerPlay": 26.5,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.316,
+      "statusesApplied": {},
+      "staticScore": 10.5,
+      "measuredScore": 10.05,
+      "scoreDelta": -0.45,
+      "sampleSize": 394,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "maelstrom",
+      "name": "Maelstrom",
+      "cost": 3,
+      "element": "Water",
+      "description": "Summon a crushing vortex: deal heavy Water damage and apply 1 Dazed.",
+      "subjectId": "kraken_v2",
+      "timesSeen": 320,
+      "timesPlayed": 239,
+      "handEntries": 787,
+      "playRate": 0.304,
+      "timesDeadInHand": 136,
+      "deadRate": 0.425,
+      "directDamageDealt": 5423,
+      "avgDirectDamagePerPlay": 22.7,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.164,
+      "statusesApplied": {
+        "Dazed": 188
+      },
+      "staticScore": 9.5,
+      "measuredScore": 9.12,
+      "scoreDelta": -0.38,
+      "sampleSize": 239,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "surge_protection",
+      "name": "Surge Protection",
+      "cost": 1,
+      "element": "Water",
+      "description": "Deal 15 power + gain extra 1 Energy if you drew a card this turn.",
+      "subjectId": "kraken_v2",
+      "timesSeen": 800,
+      "timesPlayed": 1811,
+      "handEntries": 1993,
+      "playRate": 0.909,
+      "timesDeadInHand": 2,
+      "deadRate": 0.003,
+      "directDamageDealt": 5408,
+      "avgDirectDamagePerPlay": 3,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.164,
+      "statusesApplied": {},
+      "staticScore": 4,
+      "measuredScore": 3.63,
+      "scoreDelta": -0.37,
+      "sampleSize": 1811,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "kraken_v2",
+      "timesSeen": 800,
+      "timesPlayed": 1897,
+      "handEntries": 1947,
+      "playRate": 0.974,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 2644,
+      "avgDirectDamagePerPlay": 1.4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.08,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 0.53,
+      "scoreDelta": -0.67,
+      "sampleSize": 1897,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "capacitor",
+      "name": "Capacitor",
+      "cost": 2,
+      "element": "None",
+      "description": "Gain 2 Energy next turn.",
+      "subjectId": "kraken_v2",
+      "timesSeen": 640,
+      "timesPlayed": 1055,
+      "handEntries": 1568,
+      "playRate": 0.673,
+      "timesDeadInHand": 78,
+      "deadRate": 0.122,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "Energized": 2110
+      },
+      "staticScore": 6.3,
+      "measuredScore": 6.3,
+      "scoreDelta": 0,
+      "sampleSize": 1055,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "seed_bomb_v2",
+      "name": "Seed Bomb",
+      "cost": 2,
+      "element": "Nature",
+      "description": "Deal 15 power per card played by host this turn.",
+      "subjectId": "ratatoskr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1472,
+      "handEntries": 2452,
+      "playRate": 0.6,
+      "timesDeadInHand": 58,
+      "deadRate": 0.06,
+      "directDamageDealt": 21397,
+      "avgDirectDamagePerPlay": 14.5,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.603,
+      "statusesApplied": {},
+      "staticScore": 3.8,
+      "measuredScore": 5.52,
+      "scoreDelta": 1.72,
+      "sampleSize": 1472,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "nettle_sting",
+      "name": "Nettle Sting",
+      "cost": 1,
+      "element": "Nature",
+      "description": "22 power and 1 stack of Poison.",
+      "subjectId": "ratatoskr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1957,
+      "handEntries": 2420,
+      "playRate": 0.809,
+      "timesDeadInHand": 32,
+      "deadRate": 0.033,
+      "directDamageDealt": 8205,
+      "avgDirectDamagePerPlay": 4.2,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.231,
+      "statusesApplied": {
+        "Poison": 1892
+      },
+      "staticScore": 2.5,
+      "measuredScore": 1.89,
+      "scoreDelta": -0.61,
+      "sampleSize": 1957,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "ratatoskr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 2355,
+      "handEntries": 2413,
+      "playRate": 0.976,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 1873,
+      "avgDirectDamagePerPlay": 0.8,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.053,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 0.3,
+      "scoreDelta": -0.9,
+      "sampleSize": 2355,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "forage",
+      "name": "Forage",
+      "cost": 0,
+      "element": "None",
+      "description": "Draw 1. Take damage equal to 15 power.",
+      "subjectId": "ratatoskr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 2191,
+      "handEntries": 2267,
+      "playRate": 0.966,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 0,
+      "measuredScore": 1.3,
+      "scoreDelta": 1.3,
+      "sampleSize": 2191,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "healing_mist",
+      "name": "Healing Mist",
+      "cost": 0,
+      "element": "Nature",
+      "description": "Heal with 15 power.",
+      "subjectId": "ratatoskr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 1164,
+      "handEntries": 1209,
+      "playRate": 0.963,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 1,
+      "measuredScore": 1,
+      "scoreDelta": 0,
+      "sampleSize": 1164,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "shrug_off",
+      "name": "Shrug Off",
+      "cost": 0,
+      "element": "Nature",
+      "description": "Remove 2 Dazed and 2 Weakened.",
+      "subjectId": "ratatoskr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 1176,
+      "handEntries": 1220,
+      "playRate": 0.964,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 1,
+      "measuredScore": 0,
+      "scoreDelta": -1,
+      "sampleSize": 1176,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "echo_chamber_v2",
+      "name": "Echo Chamber",
+      "cost": 2,
+      "element": "Nature",
+      "description": "Daemon: whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+      "subjectId": "ratatoskr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 467,
+      "handEntries": 535,
+      "playRate": 0.873,
+      "timesDeadInHand": 13,
+      "deadRate": 0.027,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 4.9,
+      "measuredScore": 4.9,
+      "scoreDelta": 0,
+      "sampleSize": 467,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "nagging_bite",
+      "name": "Nagging Bite",
+      "cost": 1,
+      "element": "Nature",
+      "description": "15 power. +20 power if the target is Dazed.",
+      "subjectId": "ratatoskr_v2",
+      "timesSeen": 640,
+      "timesPlayed": 1507,
+      "handEntries": 1823,
+      "playRate": 0.827,
+      "timesDeadInHand": 5,
+      "deadRate": 0.008,
+      "directDamageDealt": 8931,
+      "avgDirectDamagePerPlay": 5.9,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.261,
+      "statusesApplied": {},
+      "staticScore": 2.9,
+      "measuredScore": 2.25,
+      "scoreDelta": -0.65,
+      "sampleSize": 1507,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "crippling_vine",
+      "name": "Crippling Vine",
+      "cost": 2,
+      "element": "Nature",
+      "description": "30 power. Apply 2 Weakened, 2 Dazed and 3 Poison.",
+      "subjectId": "ratatoskr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 884,
+      "handEntries": 935,
+      "playRate": 0.945,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 5256,
+      "avgDirectDamagePerPlay": 5.9,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.154,
+      "statusesApplied": {
+        "Weakened": 1734,
+        "Dazed": 1734,
+        "Poison": 2601
+      },
+      "staticScore": 6.5,
+      "measuredScore": 5.76,
+      "scoreDelta": -0.74,
+      "sampleSize": 884,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "slander",
+      "name": "Slander",
+      "cost": 2,
+      "element": "Nature",
+      "description": "5 power per stack of Dazed on the target.",
+      "subjectId": "ratatoskr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 387,
+      "handEntries": 916,
+      "playRate": 0.422,
+      "timesDeadInHand": 48,
+      "deadRate": 0.15,
+      "directDamageDealt": 4387,
+      "avgDirectDamagePerPlay": 11.3,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.128,
+      "statusesApplied": {},
+      "staticScore": 1.5,
+      "measuredScore": 4.3,
+      "scoreDelta": 2.8,
+      "sampleSize": 387,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "ratatoskr_v2",
+      "timesSeen": 960,
+      "timesPlayed": 2423,
+      "handEntries": 2499,
+      "playRate": 0.97,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 2560,
+      "avgDirectDamagePerPlay": 1.1,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.075,
+      "statusesApplied": {
+        "Dazed": 1762
+      },
+      "staticScore": 1.2,
+      "measuredScore": 0.9,
+      "scoreDelta": -0.3,
+      "sampleSize": 2423,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "pollen_cloud",
+      "name": "Pollen Cloud",
+      "cost": 0,
+      "element": "Nature",
+      "description": "4 power. Apply 1 Weakened and 1 Poison.",
+      "subjectId": "ratatoskr_v2",
+      "timesSeen": 640,
+      "timesPlayed": 1729,
+      "handEntries": 1795,
+      "playRate": 0.963,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 84,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.002,
+      "statusesApplied": {
+        "Weakened": 1729,
+        "Dazed": 1729,
+        "Poison": 1729
+      },
+      "staticScore": 1.1,
+      "measuredScore": 1.32,
+      "scoreDelta": 0.22,
+      "sampleSize": 1729,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "echo_chamber_v2",
+      "name": "Echo Chamber",
+      "cost": 2,
+      "element": "Nature",
+      "description": "Daemon: whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+      "subjectId": "ratatoskr_v2",
+      "timesSeen": 480,
+      "timesPlayed": 400,
+      "handEntries": 800,
+      "playRate": 0.5,
+      "timesDeadInHand": 80,
+      "deadRate": 0.167,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 4.9,
+      "measuredScore": 4.9,
+      "scoreDelta": 0,
+      "sampleSize": 400,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "nightmare",
+      "name": "Nightmare",
+      "cost": 2,
+      "element": "Ice",
+      "description": "30 power. +70 power if you are Asleep.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1567,
+      "handEntries": 2787,
+      "playRate": 0.562,
+      "timesDeadInHand": 62,
+      "deadRate": 0.065,
+      "directDamageDealt": 33559,
+      "avgDirectDamagePerPlay": 21.4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.834,
+      "statusesApplied": {},
+      "staticScore": 6.5,
+      "measuredScore": 8.13,
+      "scoreDelta": 1.63,
+      "sampleSize": 1567,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "ice_spear",
+      "name": "Ice Spear",
+      "cost": 1,
+      "element": "Ice",
+      "description": "22 power. Apply 1 Weakened.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 589,
+      "handEntries": 1348,
+      "playRate": 0.437,
+      "timesDeadInHand": 119,
+      "deadRate": 0.248,
+      "directDamageDealt": 2798,
+      "avgDirectDamagePerPlay": 4.8,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.07,
+      "statusesApplied": {
+        "Weakened": 459
+      },
+      "staticScore": 2.6,
+      "measuredScore": 2.2,
+      "scoreDelta": -0.4,
+      "sampleSize": 589,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "barrow_rot",
+      "name": "Barrow Rot",
+      "cost": 0,
+      "element": "Ice",
+      "description": "5 power. +10 power if you are Asleep.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 1223,
+      "handEntries": 1351,
+      "playRate": 0.905,
+      "timesDeadInHand": 3,
+      "deadRate": 0.006,
+      "directDamageDealt": 2517,
+      "avgDirectDamagePerPlay": 2.1,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.063,
+      "statusesApplied": {},
+      "staticScore": 1,
+      "measuredScore": 0.78,
+      "scoreDelta": -0.22,
+      "sampleSize": 1223,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "barrow_king",
+      "name": "Barrow King",
+      "cost": 3,
+      "element": "Ice",
+      "description": "95 power. Apply 2 Weakened.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 70,
+      "handEntries": 1313,
+      "playRate": 0.053,
+      "timesDeadInHand": 411,
+      "deadRate": 0.856,
+      "directDamageDealt": 1375,
+      "avgDirectDamagePerPlay": 19.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.034,
+      "statusesApplied": {
+        "Weakened": 84
+      },
+      "staticScore": 10.2,
+      "measuredScore": 7.86,
+      "scoreDelta": -2.34,
+      "sampleSize": 70,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "grave_rest",
+      "name": "Grave Rest",
+      "cost": 0,
+      "element": "Ice",
+      "description": "Sleep yourself. Heal with 15 power.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 2452,
+      "handEntries": 2710,
+      "playRate": 0.905,
+      "timesDeadInHand": 6,
+      "deadRate": 0.006,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "Asleep": 2795
+      },
+      "staticScore": 0,
+      "measuredScore": 5.1,
+      "scoreDelta": 5.1,
+      "sampleSize": 2452,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "deathless_slumber",
+      "name": "Deathless Slumber",
+      "cost": 1,
+      "element": "Ice",
+      "description": "Remove 2 each of Weakened, Dazed, Poison and Burn from yourself. Sleep yourself. Heal with 45 power.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 779,
+      "handEntries": 1344,
+      "playRate": 0.58,
+      "timesDeadInHand": 78,
+      "deadRate": 0.163,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "Asleep": 838
+      },
+      "staticScore": 3,
+      "measuredScore": 7.1,
+      "scoreDelta": 4.1,
+      "sampleSize": 779,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "dread_tidings",
+      "name": "Dread Tidings",
+      "cost": 1,
+      "element": "Ice",
+      "description": "Draw a card. If you are Asleep, draw 2 more and gain 3 Strengthened.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1228,
+      "handEntries": 2623,
+      "playRate": 0.468,
+      "timesDeadInHand": 246,
+      "deadRate": 0.256,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "Strengthened": 2655
+      },
+      "staticScore": 3.2,
+      "measuredScore": 3.4,
+      "scoreDelta": 0.2,
+      "sampleSize": 1228,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "glacier_wall",
+      "name": "Glacier Wall",
+      "cost": 1,
+      "element": "Ice",
+      "description": "Gain 8 BarkShield.",
+      "subjectId": "draugr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 530,
+      "handEntries": 1338,
+      "playRate": 0.396,
+      "timesDeadInHand": 158,
+      "deadRate": 0.329,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "BarkShield": 4240
+      },
+      "staticScore": 2.9,
+      "measuredScore": 2.9,
+      "scoreDelta": 0,
+      "sampleSize": 530,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "rimebreaker",
+      "name": "Rimebreaker",
+      "cost": 2,
+      "element": "Ice",
+      "description": "25 power for each different debuff on the target.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 640,
+      "timesPlayed": 1112,
+      "handEntries": 1979,
+      "playRate": 0.562,
+      "timesDeadInHand": 38,
+      "deadRate": 0.059,
+      "directDamageDealt": 17336,
+      "avgDirectDamagePerPlay": 15.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.396,
+      "statusesApplied": {},
+      "staticScore": 7.5,
+      "measuredScore": 5.92,
+      "scoreDelta": -1.58,
+      "sampleSize": 1112,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "ice_spear",
+      "name": "Ice Spear",
+      "cost": 1,
+      "element": "Ice",
+      "description": "22 power. Apply 1 Weakened.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 480,
+      "timesPlayed": 710,
+      "handEntries": 1334,
+      "playRate": 0.532,
+      "timesDeadInHand": 76,
+      "deadRate": 0.158,
+      "directDamageDealt": 3730,
+      "avgDirectDamagePerPlay": 5.3,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.085,
+      "statusesApplied": {
+        "Weakened": 503
+      },
+      "staticScore": 2.6,
+      "measuredScore": 2.4,
+      "scoreDelta": -0.2,
+      "sampleSize": 710,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "numbing_gale",
+      "name": "Numbing Gale",
+      "cost": 1,
+      "element": "Ice",
+      "description": "20 power. Apply 2 Dazed.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 583,
+      "handEntries": 969,
+      "playRate": 0.602,
+      "timesDeadInHand": 27,
+      "deadRate": 0.084,
+      "directDamageDealt": 2547,
+      "avgDirectDamagePerPlay": 4.4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.058,
+      "statusesApplied": {
+        "Dazed": 1126
+      },
+      "staticScore": 3,
+      "measuredScore": 2.66,
+      "scoreDelta": -0.34,
+      "sampleSize": 583,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "frost_bite",
+      "name": "Frost Bite",
+      "cost": 1,
+      "element": "Ice",
+      "description": "15 power. Apply 2 Burn.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 684,
+      "handEntries": 971,
+      "playRate": 0.704,
+      "timesDeadInHand": 10,
+      "deadRate": 0.031,
+      "directDamageDealt": 2216,
+      "avgDirectDamagePerPlay": 3.2,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.051,
+      "statusesApplied": {
+        "Burn": 1344
+      },
+      "staticScore": 3,
+      "measuredScore": 2.73,
+      "scoreDelta": -0.27,
+      "sampleSize": 684,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "killing_frost",
+      "name": "Killing Frost",
+      "cost": 1,
+      "element": "Ice",
+      "description": "13 power. Apply 2 Weakened and 2 Dazed.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 600,
+      "handEntries": 950,
+      "playRate": 0.632,
+      "timesDeadInHand": 26,
+      "deadRate": 0.081,
+      "directDamageDealt": 1687,
+      "avgDirectDamagePerPlay": 2.8,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.039,
+      "statusesApplied": {
+        "Weakened": 1008,
+        "Dazed": 1180
+      },
+      "staticScore": 3,
+      "measuredScore": 2.77,
+      "scoreDelta": -0.23,
+      "sampleSize": 600,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 947,
+      "handEntries": 979,
+      "playRate": 0.967,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 1499,
+      "avgDirectDamagePerPlay": 1.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.034,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 0.6,
+      "scoreDelta": -0.6,
+      "sampleSize": 947,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "glacial_slam",
+      "name": "Glacial Slam",
+      "cost": 2,
+      "element": "Ice",
+      "description": "15 power. Apply Stun.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 396,
+      "handEntries": 944,
+      "playRate": 0.419,
+      "timesDeadInHand": 74,
+      "deadRate": 0.231,
+      "directDamageDealt": 1203,
+      "avgDirectDamagePerPlay": 3,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.027,
+      "statusesApplied": {
+        "Stunned": 382
+      },
+      "staticScore": 7,
+      "measuredScore": 6.65,
+      "scoreDelta": -0.35,
+      "sampleSize": 396,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "rimefrost",
+      "name": "Rimefrost",
+      "cost": 0,
+      "element": "Ice",
+      "description": "Apply 1 Weakened and 1 Dazed.",
+      "subjectId": "draugr_v2",
+      "timesSeen": 640,
+      "timesPlayed": 1872,
+      "handEntries": 1925,
+      "playRate": 0.972,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "Weakened": 1588,
+        "Dazed": 1872
+      },
+      "staticScore": 0.9,
+      "measuredScore": 0.9,
+      "scoreDelta": 0,
+      "sampleSize": 1872,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "avalanche",
+      "name": "Avalanche",
+      "cost": 2,
+      "element": "Ice",
+      "description": "9 power for each stack of Bark Shield you hold.",
+      "subjectId": "ymir_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1600,
+      "handEntries": 3192,
+      "playRate": 0.501,
+      "timesDeadInHand": 97,
+      "deadRate": 0.101,
+      "directDamageDealt": 29141,
+      "avgDirectDamagePerPlay": 18.2,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.76,
+      "statusesApplied": {},
+      "staticScore": 2.7,
+      "measuredScore": 6.92,
+      "scoreDelta": 4.22,
+      "sampleSize": 1600,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "ice_spear",
+      "name": "Ice Spear",
+      "cost": 1,
+      "element": "Ice",
+      "description": "22 power. Apply 1 Weakened.",
+      "subjectId": "ymir_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1313,
+      "handEntries": 3197,
+      "playRate": 0.411,
+      "timesDeadInHand": 208,
+      "deadRate": 0.217,
+      "directDamageDealt": 4766,
+      "avgDirectDamagePerPlay": 3.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.124,
+      "statusesApplied": {
+        "Weakened": 662
+      },
+      "staticScore": 2.6,
+      "measuredScore": 1.78,
+      "scoreDelta": -0.82,
+      "sampleSize": 1313,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "rimeguard",
+      "name": "Rimeguard",
+      "cost": 1,
+      "element": "Ice",
+      "description": "12 power. Gain 5 Bark Shield.",
+      "subjectId": "ymir_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1625,
+      "handEntries": 3174,
+      "playRate": 0.512,
+      "timesDeadInHand": 112,
+      "deadRate": 0.117,
+      "directDamageDealt": 2819,
+      "avgDirectDamagePerPlay": 1.7,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.073,
+      "statusesApplied": {
+        "BarkShield": 6578
+      },
+      "staticScore": 3,
+      "measuredScore": 2.26,
+      "scoreDelta": -0.74,
+      "sampleSize": 1625,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "thaw",
+      "name": "Thaw",
+      "cost": 1,
+      "element": "Ice",
+      "description": "8 power. Gain 3 Strengthened and 3 Sharp.",
+      "subjectId": "ymir_v1",
+      "timesSeen": 480,
+      "timesPlayed": 768,
+      "handEntries": 1559,
+      "playRate": 0.493,
+      "timesDeadInHand": 71,
+      "deadRate": 0.148,
+      "directDamageDealt": 857,
+      "avgDirectDamagePerPlay": 1.1,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.022,
+      "statusesApplied": {
+        "Strengthened": 2106,
+        "Sharp": 1662
+      },
+      "staticScore": 3.1,
+      "measuredScore": 2.62,
+      "scoreDelta": -0.48,
+      "sampleSize": 768,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "flash_freeze",
+      "name": "Flash Freeze",
+      "cost": 2,
+      "element": "Ice",
+      "description": "10 power. Apply Stun.",
+      "subjectId": "ymir_v1",
+      "timesSeen": 480,
+      "timesPlayed": 722,
+      "handEntries": 1582,
+      "playRate": 0.456,
+      "timesDeadInHand": 67,
+      "deadRate": 0.14,
+      "directDamageDealt": 775,
+      "avgDirectDamagePerPlay": 1.1,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.02,
+      "statusesApplied": {
+        "Stunned": 716
+      },
+      "staticScore": 6.5,
+      "measuredScore": 5.91,
+      "scoreDelta": -0.59,
+      "sampleSize": 722,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "frost_ward",
+      "name": "Frost Ward",
+      "cost": 0,
+      "element": "Ice",
+      "description": "Gain 3 Bark Shield.",
+      "subjectId": "ymir_v1",
+      "timesSeen": 960,
+      "timesPlayed": 2724,
+      "handEntries": 3184,
+      "playRate": 0.856,
+      "timesDeadInHand": 3,
+      "deadRate": 0.003,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "BarkShield": 8172
+      },
+      "staticScore": 1.1,
+      "measuredScore": 1.1,
+      "scoreDelta": 0,
+      "sampleSize": 2724,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "glacial_maul",
+      "name": "Glacial Maul",
+      "cost": 2,
+      "element": "Ice",
+      "description": "65 power.",
+      "subjectId": "ymir_v2",
+      "timesSeen": 640,
+      "timesPlayed": 1091,
+      "handEntries": 1713,
+      "playRate": 0.637,
+      "timesDeadInHand": 42,
+      "deadRate": 0.066,
+      "directDamageDealt": 19555,
+      "avgDirectDamagePerPlay": 17.9,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.516,
+      "statusesApplied": {},
+      "staticScore": 6.5,
+      "measuredScore": 6.81,
+      "scoreDelta": 0.31,
+      "sampleSize": 1091,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "ice_spear",
+      "name": "Ice Spear",
+      "cost": 1,
+      "element": "Ice",
+      "description": "22 power. Apply 1 Weakened.",
+      "subjectId": "ymir_v2",
+      "timesSeen": 960,
+      "timesPlayed": 929,
+      "handEntries": 3075,
+      "playRate": 0.302,
+      "timesDeadInHand": 374,
+      "deadRate": 0.39,
+      "directDamageDealt": 2442,
+      "avgDirectDamagePerPlay": 2.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.064,
+      "statusesApplied": {
+        "Weakened": 437
+      },
+      "staticScore": 2.6,
+      "measuredScore": 1.4,
+      "scoreDelta": -1.2,
+      "sampleSize": 929,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "numbing_gale",
+      "name": "Numbing Gale",
+      "cost": 1,
+      "element": "Ice",
+      "description": "20 power. Apply 2 Dazed.",
+      "subjectId": "ymir_v2",
+      "timesSeen": 640,
+      "timesPlayed": 564,
+      "handEntries": 1734,
+      "playRate": 0.325,
+      "timesDeadInHand": 220,
+      "deadRate": 0.344,
+      "directDamageDealt": 2252,
+      "avgDirectDamagePerPlay": 4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.059,
+      "statusesApplied": {
+        "Dazed": 797
+      },
+      "staticScore": 3,
+      "measuredScore": 2.02,
+      "scoreDelta": -0.98,
+      "sampleSize": 564,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "bracing_cold",
+      "name": "Bracing Cold",
+      "cost": 1,
+      "element": "Ice",
+      "description": "15 power. Gain 3 Strengthened.",
+      "subjectId": "ymir_v2",
+      "timesSeen": 640,
+      "timesPlayed": 490,
+      "handEntries": 1688,
+      "playRate": 0.29,
+      "timesDeadInHand": 252,
+      "deadRate": 0.394,
+      "directDamageDealt": 1261,
+      "avgDirectDamagePerPlay": 2.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.033,
+      "statusesApplied": {
+        "Strengthened": 1392
+      },
+      "staticScore": 2.9,
+      "measuredScore": 2.48,
+      "scoreDelta": -0.42,
+      "sampleSize": 490,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "glacial_slam",
+      "name": "Glacial Slam",
+      "cost": 2,
+      "element": "Ice",
+      "description": "15 power. Apply Stun.",
+      "subjectId": "ymir_v2",
+      "timesSeen": 320,
+      "timesPlayed": 499,
+      "handEntries": 851,
+      "playRate": 0.586,
+      "timesDeadInHand": 30,
+      "deadRate": 0.094,
+      "directDamageDealt": 987,
+      "avgDirectDamagePerPlay": 2,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.026,
+      "statusesApplied": {
+        "Stunned": 497
+      },
+      "staticScore": 7,
+      "measuredScore": 6.25,
+      "scoreDelta": -0.75,
+      "sampleSize": 499,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "thaw",
+      "name": "Thaw",
+      "cost": 1,
+      "element": "Ice",
+      "description": "8 power. Gain 3 Strengthened and 3 Sharp.",
+      "subjectId": "ymir_v2",
+      "timesSeen": 480,
+      "timesPlayed": 583,
+      "handEntries": 1538,
+      "playRate": 0.379,
+      "timesDeadInHand": 128,
+      "deadRate": 0.267,
+      "directDamageDealt": 357,
+      "avgDirectDamagePerPlay": 0.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.009,
+      "statusesApplied": {
+        "Strengthened": 1555,
+        "Sharp": 1543
+      },
+      "staticScore": 3.1,
+      "measuredScore": 2.83,
+      "scoreDelta": -0.27,
+      "sampleSize": 583,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "blight_bloom",
+      "name": "Blight Bloom",
+      "cost": 2,
+      "element": "Dark",
+      "description": "50 power. Add 2 stacks of Poison.",
+      "subjectId": "nidhoggr_v1",
+      "timesSeen": 958,
+      "timesPlayed": 1156,
+      "handEntries": 1714,
+      "playRate": 0.674,
+      "timesDeadInHand": 169,
+      "deadRate": 0.176,
+      "directDamageDealt": 15771,
+      "avgDirectDamagePerPlay": 13.6,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.52,
+      "statusesApplied": {
+        "Poison": 2160
+      },
+      "staticScore": 5.9,
+      "measuredScore": 6.08,
+      "scoreDelta": 0.18,
+      "sampleSize": 1156,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "wither_feast",
+      "name": "Wither Feast",
+      "cost": 2,
+      "element": "Dark",
+      "description": "Trigger the target's Poison five times, then consume it.",
+      "subjectId": "nidhoggr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 240,
+      "handEntries": 908,
+      "playRate": 0.264,
+      "timesDeadInHand": 247,
+      "deadRate": 0.515,
+      "directDamageDealt": 7996,
+      "avgDirectDamagePerPlay": 33.3,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.264,
+      "statusesApplied": {},
+      "staticScore": -1.8,
+      "measuredScore": 12.65,
+      "scoreDelta": 14.45,
+      "sampleSize": 240,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "venom_shade",
+      "name": "Venom Shade",
+      "cost": 1,
+      "element": "Dark",
+      "description": "12 power. Add 3 stacks of Poison.",
+      "subjectId": "nidhoggr_v1",
+      "timesSeen": 960,
+      "timesPlayed": 1091,
+      "handEntries": 1684,
+      "playRate": 0.648,
+      "timesDeadInHand": 193,
+      "deadRate": 0.201,
+      "directDamageDealt": 2763,
+      "avgDirectDamagePerPlay": 2.5,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.091,
+      "statusesApplied": {
+        "Poison": 3234
+      },
+      "staticScore": 3,
+      "measuredScore": 2.76,
+      "scoreDelta": -0.24,
+      "sampleSize": 1091,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "curse_mark",
+      "name": "Curse Mark",
+      "cost": 1,
+      "element": "Dark",
+      "description": "17 power. Add 2 stacks of Poison + 1 Weakened.",
+      "subjectId": "nidhoggr_v1",
+      "timesSeen": 477,
+      "timesPlayed": 530,
+      "handEntries": 841,
+      "playRate": 0.63,
+      "timesDeadInHand": 92,
+      "deadRate": 0.193,
+      "directDamageDealt": 2176,
+      "avgDirectDamagePerPlay": 4.1,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.072,
+      "statusesApplied": {
+        "Poison": 1030,
+        "Weakened": 515
+      },
+      "staticScore": 3,
+      "measuredScore": 2.86,
+      "scoreDelta": -0.14,
+      "sampleSize": 530,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "nidhoggr_v1",
+      "timesSeen": 480,
+      "timesPlayed": 793,
+      "handEntries": 826,
+      "playRate": 0.96,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 1208,
+      "avgDirectDamagePerPlay": 1.5,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.04,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 0.58,
+      "scoreDelta": -0.62,
+      "sampleSize": 793,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "shadow_claw",
+      "name": "Shadow Claw",
+      "cost": 0,
+      "element": "Dark",
+      "description": "5 power. Apply 1 Weakened.",
+      "subjectId": "nidhoggr_v1",
+      "timesSeen": 479,
+      "timesPlayed": 779,
+      "handEntries": 828,
+      "playRate": 0.941,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 395,
+      "avgDirectDamagePerPlay": 0.5,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.013,
+      "statusesApplied": {
+        "Weakened": 778
+      },
+      "staticScore": 0.9,
+      "measuredScore": 0.59,
+      "scoreDelta": -0.31,
+      "sampleSize": 779,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "rot_seed",
+      "name": "Rot Seed",
+      "cost": 0,
+      "element": "Dark",
+      "description": "Add 2 stacks of Poison.",
+      "subjectId": "nidhoggr_v1",
+      "timesSeen": 959,
+      "timesPlayed": 1613,
+      "handEntries": 1680,
+      "playRate": 0.96,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "Poison": 3226
+      },
+      "staticScore": 0.9,
+      "measuredScore": 0.9,
+      "scoreDelta": 0,
+      "sampleSize": 1613,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "rend_marrow",
+      "name": "Rend Marrow",
+      "cost": 2,
+      "element": "Dark",
+      "description": "40 power. +35 power if the target is below half HP.",
+      "subjectId": "nidhoggr_v2",
+      "timesSeen": 640,
+      "timesPlayed": 782,
+      "handEntries": 1399,
+      "playRate": 0.559,
+      "timesDeadInHand": 98,
+      "deadRate": 0.153,
+      "directDamageDealt": 12025,
+      "avgDirectDamagePerPlay": 15.4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.345,
+      "statusesApplied": {},
+      "staticScore": 6.5,
+      "measuredScore": 5.84,
+      "scoreDelta": -0.66,
+      "sampleSize": 782,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "leech_strike",
+      "name": "Leech Strike",
+      "cost": 2,
+      "element": "Dark",
+      "description": "40 power. Heal 30 power.",
+      "subjectId": "nidhoggr_v2",
+      "timesSeen": 640,
+      "timesPlayed": 787,
+      "handEntries": 1357,
+      "playRate": 0.58,
+      "timesDeadInHand": 115,
+      "deadRate": 0.18,
+      "directDamageDealt": 8176,
+      "avgDirectDamagePerPlay": 10.4,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.235,
+      "statusesApplied": {},
+      "staticScore": 6,
+      "measuredScore": 5.95,
+      "scoreDelta": -0.05,
+      "sampleSize": 787,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "bloodletting",
+      "name": "Bloodletting",
+      "cost": 0,
+      "element": "Dark",
+      "description": "18 power. Add 2 stacks of Poison to yourself.",
+      "subjectId": "nidhoggr_v2",
+      "timesSeen": 640,
+      "timesPlayed": 1029,
+      "handEntries": 1361,
+      "playRate": 0.756,
+      "timesDeadInHand": 38,
+      "deadRate": 0.059,
+      "directDamageDealt": 4418,
+      "avgDirectDamagePerPlay": 4.3,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.127,
+      "statusesApplied": {
+        "Poison": 2058
+      },
+      "staticScore": 1,
+      "measuredScore": 2.53,
+      "scoreDelta": 1.53,
+      "sampleSize": 1029,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "nidhoggr_v2",
+      "timesSeen": 478,
+      "timesPlayed": 835,
+      "handEntries": 890,
+      "playRate": 0.938,
+      "timesDeadInHand": 2,
+      "deadRate": 0.004,
+      "directDamageDealt": 1256,
+      "avgDirectDamagePerPlay": 1.5,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.036,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 0.57,
+      "scoreDelta": -0.63,
+      "sampleSize": 835,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "shadow_claw",
+      "name": "Shadow Claw",
+      "cost": 0,
+      "element": "Dark",
+      "description": "5 power. Apply 1 Weakened.",
+      "subjectId": "nidhoggr_v2",
+      "timesSeen": 799,
+      "timesPlayed": 1468,
+      "handEntries": 1576,
+      "playRate": 0.931,
+      "timesDeadInHand": 0,
+      "deadRate": 0,
+      "directDamageDealt": 826,
+      "avgDirectDamagePerPlay": 0.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.024,
+      "statusesApplied": {
+        "Weakened": 1459
+      },
+      "staticScore": 0.9,
+      "measuredScore": 0.61,
+      "scoreDelta": -0.29,
+      "sampleSize": 1468,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "umbral_feast",
+      "name": "Umbral Feast",
+      "cost": 1,
+      "element": "Dark",
+      "description": "Consume your own Poison. Heal 5 power per stack consumed.",
+      "subjectId": "nidhoggr_v2",
+      "timesSeen": 320,
+      "timesPlayed": 351,
+      "handEntries": 663,
+      "playRate": 0.529,
+      "timesDeadInHand": 89,
+      "deadRate": 0.278,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 2,
+      "measuredScore": 1,
+      "scoreDelta": -1,
+      "sampleSize": 351,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "eclipse",
+      "name": "Eclipse",
+      "cost": 2,
+      "element": "Dark",
+      "description": "40 power. +30 power if you are in Light Stance.",
+      "subjectId": "hel_v1",
+      "timesSeen": 460,
+      "timesPlayed": 873,
+      "handEntries": 1041,
+      "playRate": 0.839,
+      "timesDeadInHand": 17,
+      "deadRate": 0.037,
+      "directDamageDealt": 17085,
+      "avgDirectDamagePerPlay": 19.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.517,
+      "statusesApplied": {
+        "DarkStance": 735
+      },
+      "staticScore": 6.1,
+      "measuredScore": 9.43,
+      "scoreDelta": 3.33,
+      "sampleSize": 873,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "nights_bite",
+      "name": "Night's Bite",
+      "cost": 1,
+      "element": "Dark",
+      "description": "20 power. Apply 2 Dazed.",
+      "subjectId": "hel_v1",
+      "timesSeen": 908,
+      "timesPlayed": 1444,
+      "handEntries": 1969,
+      "playRate": 0.733,
+      "timesDeadInHand": 118,
+      "deadRate": 0.13,
+      "directDamageDealt": 10148,
+      "avgDirectDamagePerPlay": 7,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.307,
+      "statusesApplied": {
+        "Dazed": 2644,
+        "DarkStance": 317
+      },
+      "staticScore": 3,
+      "measuredScore": 5.67,
+      "scoreDelta": 2.67,
+      "sampleSize": 1444,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "shadow_claw",
+      "name": "Shadow Claw",
+      "cost": 0,
+      "element": "Dark",
+      "description": "5 power. Apply 1 Weakened.",
+      "subjectId": "hel_v1",
+      "timesSeen": 913,
+      "timesPlayed": 1850,
+      "handEntries": 1954,
+      "playRate": 0.947,
+      "timesDeadInHand": 8,
+      "deadRate": 0.009,
+      "directDamageDealt": 2151,
+      "avgDirectDamagePerPlay": 1.2,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.065,
+      "statusesApplied": {
+        "Weakened": 1831,
+        "DarkStance": 909
+      },
+      "staticScore": 0.9,
+      "measuredScore": 2.84,
+      "scoreDelta": 1.94,
+      "sampleSize": 1850,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "hamstring",
+      "name": "Hamstring",
+      "cost": 1,
+      "element": "None",
+      "description": "20 power. Apply 2 Weakened.",
+      "subjectId": "hel_v1",
+      "timesSeen": 457,
+      "timesPlayed": 496,
+      "handEntries": 961,
+      "playRate": 0.516,
+      "timesDeadInHand": 138,
+      "deadRate": 0.302,
+      "directDamageDealt": 1913,
+      "avgDirectDamagePerPlay": 3.9,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.058,
+      "statusesApplied": {
+        "Weakened": 940
+      },
+      "staticScore": 2.7,
+      "measuredScore": 2.16,
+      "scoreDelta": -0.54,
+      "sampleSize": 496,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "water_slap",
+      "name": "Tackle",
+      "cost": 0,
+      "element": "None",
+      "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
+      "subjectId": "hel_v1",
+      "timesSeen": 462,
+      "timesPlayed": 905,
+      "handEntries": 946,
+      "playRate": 0.957,
+      "timesDeadInHand": 4,
+      "deadRate": 0.009,
+      "directDamageDealt": 1725,
+      "avgDirectDamagePerPlay": 1.9,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.052,
+      "statusesApplied": {},
+      "staticScore": 1.2,
+      "measuredScore": 0.72,
+      "scoreDelta": -0.48,
+      "sampleSize": 905,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "pale_mercy",
+      "name": "Pale Mercy",
+      "cost": 0,
+      "element": "Light",
+      "description": "Heal with 14 power.",
+      "subjectId": "hel_v1",
+      "timesSeen": 901,
+      "timesPlayed": 1748,
+      "handEntries": 1886,
+      "playRate": 0.927,
+      "timesDeadInHand": 24,
+      "deadRate": 0.027,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "LightStance": 1216
+      },
+      "staticScore": 0.9,
+      "measuredScore": 2.7,
+      "scoreDelta": 1.8,
+      "sampleSize": 1748,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "purify",
+      "name": "Purify",
+      "cost": 1,
+      "element": "Light",
+      "description": "Cleanse all debuffs.",
+      "subjectId": "hel_v1",
+      "timesSeen": 469,
+      "timesPlayed": 399,
+      "handEntries": 982,
+      "playRate": 0.406,
+      "timesDeadInHand": 184,
+      "deadRate": 0.392,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "LightStance": 230
+      },
+      "staticScore": 0.9,
+      "measuredScore": 2.7,
+      "scoreDelta": 1.8,
+      "sampleSize": 399,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "lumen_surge",
+      "name": "Lumen Surge",
+      "cost": 1,
+      "element": "Light",
+      "description": "Gain 1 Energy next turn. Draw a card.",
+      "subjectId": "hel_v1",
+      "timesSeen": 456,
+      "timesPlayed": 420,
+      "handEntries": 941,
+      "playRate": 0.446,
+      "timesDeadInHand": 176,
+      "deadRate": 0.386,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "Energized": 420,
+        "LightStance": 272
+      },
+      "staticScore": 4.5,
+      "measuredScore": 6.3,
+      "scoreDelta": 1.8,
+      "sampleSize": 420,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "soul_tithe",
+      "name": "Soul Tithe",
+      "cost": 3,
+      "element": "Dark",
+      "description": "90 power. Draw a card.",
+      "subjectId": "hel_v2",
+      "timesSeen": 320,
+      "timesPlayed": 485,
+      "handEntries": 549,
+      "playRate": 0.883,
+      "timesDeadInHand": 4,
+      "deadRate": 0.013,
+      "directDamageDealt": 12893,
+      "avgDirectDamagePerPlay": 26.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.363,
+      "statusesApplied": {},
+      "staticScore": 10.4,
+      "measuredScore": 11.5,
+      "scoreDelta": 1.1,
+      "sampleSize": 485,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "last_rites",
+      "name": "Last Rites",
+      "cost": 2,
+      "element": "Dark",
+      "description": "30 power. +0.7 power per 1% of your max HP missing (max 50%).",
+      "subjectId": "hel_v2",
+      "timesSeen": 320,
+      "timesPlayed": 321,
+      "handEntries": 563,
+      "playRate": 0.57,
+      "timesDeadInHand": 67,
+      "deadRate": 0.209,
+      "directDamageDealt": 5977,
+      "avgDirectDamagePerPlay": 18.6,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.168,
+      "statusesApplied": {},
+      "staticScore": 6.5,
+      "measuredScore": 7.07,
+      "scoreDelta": 0.57,
+      "sampleSize": 321,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "dawnstrike",
+      "name": "Dawnstrike",
+      "cost": 1,
+      "element": "Light",
+      "description": "15 power. Heal with 20 power.",
+      "subjectId": "hel_v2",
+      "timesSeen": 636,
+      "timesPlayed": 581,
+      "handEntries": 1034,
+      "playRate": 0.562,
+      "timesDeadInHand": 174,
+      "deadRate": 0.274,
+      "directDamageDealt": 2971,
+      "avgDirectDamagePerPlay": 5.1,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0.084,
+      "statusesApplied": {},
+      "staticScore": 2.9,
+      "measuredScore": 3.34,
+      "scoreDelta": 0.44,
+      "sampleSize": 581,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "venom_shade",
+      "name": "Venom Shade",
+      "cost": 1,
+      "element": "Dark",
+      "description": "12 power. Add 3 stacks of Poison.",
+      "subjectId": "hel_v2",
+      "timesSeen": 316,
+      "timesPlayed": 246,
+      "handEntries": 523,
+      "playRate": 0.47,
+      "timesDeadInHand": 140,
+      "deadRate": 0.443,
+      "directDamageDealt": 759,
+      "avgDirectDamagePerPlay": 3.1,
+      "residualDamageShare": 0,
+      "damageShareOfSubject": 0.021,
+      "statusesApplied": {
+        "Poison": 714
+      },
+      "staticScore": 3,
+      "measuredScore": 2.97,
+      "scoreDelta": -0.03,
+      "sampleSize": 246,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "pale_mercy",
+      "name": "Pale Mercy",
+      "cost": 0,
+      "element": "Light",
+      "description": "Heal with 14 power.",
+      "subjectId": "hel_v2",
+      "timesSeen": 951,
+      "timesPlayed": 1680,
+      "handEntries": 1771,
+      "playRate": 0.949,
+      "timesDeadInHand": 18,
+      "deadRate": 0.019,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {
+        "LightStance": 433
+      },
+      "staticScore": 0.9,
+      "measuredScore": 2.7,
+      "scoreDelta": 1.8,
+      "sampleSize": 1680,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "forage",
+      "name": "Forage",
+      "cost": 0,
+      "element": "None",
+      "description": "Draw 1. Take damage equal to 15 power.",
+      "subjectId": "hel_v2",
+      "timesSeen": 626,
+      "timesPlayed": 305,
+      "handEntries": 1048,
+      "playRate": 0.291,
+      "timesDeadInHand": 361,
+      "deadRate": 0.577,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 0,
+      "measuredScore": 1.3,
+      "scoreDelta": 1.3,
+      "sampleSize": 305,
+      "confidence": "ok",
+      "isMocked": false
+    },
+    {
+      "cardId": "squirrel_away",
+      "name": "Squirrel Away",
+      "cost": 1,
+      "element": "None",
+      "description": "Draw 2.",
+      "subjectId": "hel_v2",
+      "timesSeen": 317,
+      "timesPlayed": 41,
+      "handEntries": 509,
+      "playRate": 0.081,
+      "timesDeadInHand": 277,
+      "deadRate": 0.874,
+      "directDamageDealt": 0,
+      "avgDirectDamagePerPlay": 0,
+      "residualDamageShare": null,
+      "damageShareOfSubject": 0,
+      "statusesApplied": {},
+      "staticScore": 2.3,
+      "measuredScore": 2.3,
+      "scoreDelta": 0,
+      "sampleSize": 41,
+      "confidence": "ok",
+      "isMocked": false
+    }
+  ],
+  "statuses": [
+    {
+      "statusId": "Dazed",
+      "name": "Dazed",
+      "subjectId": "kraken_v1",
+      "totalStacksApplied": 2387,
+      "totalApplicationEvents": 2965,
+      "avgStacksPerGame": 4.97,
+      "avgApplicationsPerGame": 6.18,
+      "topSourceCards": [
+        "Pressure Point",
+        "Whirlpool"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Energized",
+      "name": "Energized",
+      "subjectId": "kraken_v2",
+      "totalStacksApplied": 2110,
+      "totalApplicationEvents": 1055,
+      "avgStacksPerGame": 4.4,
+      "avgApplicationsPerGame": 2.2,
+      "topSourceCards": [
+        "Capacitor"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Dazed",
+      "name": "Dazed",
+      "subjectId": "kraken_v2",
+      "totalStacksApplied": 915,
+      "totalApplicationEvents": 1064,
+      "avgStacksPerGame": 1.91,
+      "avgApplicationsPerGame": 2.22,
+      "topSourceCards": [
+        "Pressure Point",
+        "Whirlpool",
+        "Maelstrom"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Poison",
+      "name": "Poison",
+      "subjectId": "ratatoskr_v1",
+      "totalStacksApplied": 1892,
+      "totalApplicationEvents": 1957,
+      "avgStacksPerGame": 3.94,
+      "avgApplicationsPerGame": 4.08,
+      "topSourceCards": [
+        "Nettle Sting"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Dazed",
+      "name": "Dazed",
+      "subjectId": "ratatoskr_v2",
+      "totalStacksApplied": 6869,
+      "totalApplicationEvents": 7971,
+      "avgStacksPerGame": 14.31,
+      "avgApplicationsPerGame": 16.61,
+      "topSourceCards": [
+        "Tackle",
+        "Crippling Vine",
+        "Pollen Cloud"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Poison",
+      "name": "Poison",
+      "subjectId": "ratatoskr_v2",
+      "totalStacksApplied": 4860,
+      "totalApplicationEvents": 3163,
+      "avgStacksPerGame": 10.13,
+      "avgApplicationsPerGame": 6.59,
+      "topSourceCards": [
+        "Crippling Vine",
+        "Pollen Cloud",
+        "Nettle Sting"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "ratatoskr_v2",
+      "totalStacksApplied": 3463,
+      "totalApplicationEvents": 2613,
+      "avgStacksPerGame": 7.21,
+      "avgApplicationsPerGame": 5.44,
+      "topSourceCards": [
+        "Crippling Vine",
+        "Pollen Cloud"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "BarkShield",
+      "name": "BarkShield",
+      "subjectId": "draugr_v1",
+      "totalStacksApplied": 4240,
+      "totalApplicationEvents": 530,
+      "avgStacksPerGame": 8.83,
+      "avgApplicationsPerGame": 1.1,
+      "topSourceCards": [
+        "Glacier Wall"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Asleep",
+      "name": "Asleep",
+      "subjectId": "draugr_v1",
+      "totalStacksApplied": 3633,
+      "totalApplicationEvents": 3231,
+      "avgStacksPerGame": 7.57,
+      "avgApplicationsPerGame": 6.73,
+      "topSourceCards": [
+        "Grave Rest",
+        "Deathless Slumber"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Strengthened",
+      "name": "Strengthened",
+      "subjectId": "draugr_v1",
+      "totalStacksApplied": 2655,
+      "totalApplicationEvents": 1228,
+      "avgStacksPerGame": 5.53,
+      "avgApplicationsPerGame": 2.56,
+      "topSourceCards": [
+        "Dread Tidings"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "draugr_v1",
+      "totalStacksApplied": 543,
+      "totalApplicationEvents": 659,
+      "avgStacksPerGame": 1.13,
+      "avgApplicationsPerGame": 1.37,
+      "topSourceCards": [
+        "Ice Spear",
+        "Barrow King"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Dazed",
+      "name": "Dazed",
+      "subjectId": "draugr_v2",
+      "totalStacksApplied": 4178,
+      "totalApplicationEvents": 3055,
+      "avgStacksPerGame": 8.7,
+      "avgApplicationsPerGame": 6.36,
+      "topSourceCards": [
+        "Rimefrost",
+        "Killing Frost",
+        "Numbing Gale"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "draugr_v2",
+      "totalStacksApplied": 3099,
+      "totalApplicationEvents": 3182,
+      "avgStacksPerGame": 6.46,
+      "avgApplicationsPerGame": 6.63,
+      "topSourceCards": [
+        "Rimefrost",
+        "Killing Frost",
+        "Ice Spear"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Burn",
+      "name": "Burn",
+      "subjectId": "draugr_v2",
+      "totalStacksApplied": 1344,
+      "totalApplicationEvents": 684,
+      "avgStacksPerGame": 2.8,
+      "avgApplicationsPerGame": 1.43,
+      "topSourceCards": [
+        "Frost Bite"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "BarkShield",
+      "name": "BarkShield",
+      "subjectId": "draugr_v2",
+      "totalStacksApplied": 1208,
+      "totalApplicationEvents": 151,
+      "avgStacksPerGame": 2.52,
+      "avgApplicationsPerGame": 0.31,
+      "topSourceCards": [
+        "Glacier Wall"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Asleep",
+      "name": "Asleep",
+      "subjectId": "draugr_v2",
+      "totalStacksApplied": 1098,
+      "totalApplicationEvents": 891,
+      "avgStacksPerGame": 2.29,
+      "avgApplicationsPerGame": 1.86,
+      "topSourceCards": [
+        "Grave Rest",
+        "Deathless Slumber"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Strengthened",
+      "name": "Strengthened",
+      "subjectId": "draugr_v2",
+      "totalStacksApplied": 847,
+      "totalApplicationEvents": 349,
+      "avgStacksPerGame": 1.76,
+      "avgApplicationsPerGame": 0.73,
+      "topSourceCards": [
+        "Dread Tidings"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Stunned",
+      "name": "Stunned",
+      "subjectId": "draugr_v2",
+      "totalStacksApplied": 382,
+      "totalApplicationEvents": 396,
+      "avgStacksPerGame": 0.8,
+      "avgApplicationsPerGame": 0.83,
+      "topSourceCards": [
+        "Glacial Slam"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "BarkShield",
+      "name": "BarkShield",
+      "subjectId": "ymir_v1",
+      "totalStacksApplied": 14750,
+      "totalApplicationEvents": 4349,
+      "avgStacksPerGame": 30.73,
+      "avgApplicationsPerGame": 9.06,
+      "topSourceCards": [
+        "Frost Ward",
+        "Rimeguard"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Strengthened",
+      "name": "Strengthened",
+      "subjectId": "ymir_v1",
+      "totalStacksApplied": 2106,
+      "totalApplicationEvents": 768,
+      "avgStacksPerGame": 4.39,
+      "avgApplicationsPerGame": 1.6,
+      "topSourceCards": [
+        "Thaw"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Sharp",
+      "name": "Sharp",
+      "subjectId": "ymir_v1",
+      "totalStacksApplied": 1662,
+      "totalApplicationEvents": 768,
+      "avgStacksPerGame": 3.46,
+      "avgApplicationsPerGame": 1.6,
+      "topSourceCards": [
+        "Thaw"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Stunned",
+      "name": "Stunned",
+      "subjectId": "ymir_v1",
+      "totalStacksApplied": 716,
+      "totalApplicationEvents": 722,
+      "avgStacksPerGame": 1.49,
+      "avgApplicationsPerGame": 1.5,
+      "topSourceCards": [
+        "Flash Freeze"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "ymir_v1",
+      "totalStacksApplied": 662,
+      "totalApplicationEvents": 1313,
+      "avgStacksPerGame": 1.38,
+      "avgApplicationsPerGame": 2.74,
+      "topSourceCards": [
+        "Ice Spear"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "BarkShield",
+      "name": "BarkShield",
+      "subjectId": "ymir_v2",
+      "totalStacksApplied": 5441.7,
+      "totalApplicationEvents": 1870,
+      "avgStacksPerGame": 11.34,
+      "avgApplicationsPerGame": 3.9,
+      "topSourceCards": [
+        "Frost Ward",
+        "Rimeguard"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Strengthened",
+      "name": "Strengthened",
+      "subjectId": "ymir_v2",
+      "totalStacksApplied": 2947,
+      "totalApplicationEvents": 1073,
+      "avgStacksPerGame": 6.14,
+      "avgApplicationsPerGame": 2.24,
+      "topSourceCards": [
+        "Thaw",
+        "Bracing Cold"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Sharp",
+      "name": "Sharp",
+      "subjectId": "ymir_v2",
+      "totalStacksApplied": 1543,
+      "totalApplicationEvents": 583,
+      "avgStacksPerGame": 3.21,
+      "avgApplicationsPerGame": 1.21,
+      "topSourceCards": [
+        "Thaw"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Stunned",
+      "name": "Stunned",
+      "subjectId": "ymir_v2",
+      "totalStacksApplied": 798,
+      "totalApplicationEvents": 800,
+      "avgStacksPerGame": 1.66,
+      "avgApplicationsPerGame": 1.67,
+      "topSourceCards": [
+        "Glacial Slam",
+        "Flash Freeze"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Dazed",
+      "name": "Dazed",
+      "subjectId": "ymir_v2",
+      "totalStacksApplied": 797,
+      "totalApplicationEvents": 564,
+      "avgStacksPerGame": 1.66,
+      "avgApplicationsPerGame": 1.18,
+      "topSourceCards": [
+        "Numbing Gale"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "ymir_v2",
+      "totalStacksApplied": 437,
+      "totalApplicationEvents": 929,
+      "avgStacksPerGame": 0.91,
+      "avgApplicationsPerGame": 1.94,
+      "topSourceCards": [
+        "Ice Spear"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Poison",
+      "name": "Poison",
+      "subjectId": "nidhoggr_v1",
+      "totalStacksApplied": 9650,
+      "totalApplicationEvents": 4390,
+      "avgStacksPerGame": 20.1,
+      "avgApplicationsPerGame": 9.15,
+      "topSourceCards": [
+        "Venom Shade",
+        "Rot Seed",
+        "Blight Bloom"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "nidhoggr_v1",
+      "totalStacksApplied": 1293,
+      "totalApplicationEvents": 1309,
+      "avgStacksPerGame": 2.69,
+      "avgApplicationsPerGame": 2.73,
+      "topSourceCards": [
+        "Shadow Claw",
+        "Curse Mark"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Poison",
+      "name": "Poison",
+      "subjectId": "nidhoggr_v2",
+      "totalStacksApplied": 4516,
+      "totalApplicationEvents": 2137,
+      "avgStacksPerGame": 9.41,
+      "avgApplicationsPerGame": 4.45,
+      "topSourceCards": [
+        "Bloodletting",
+        "Venom Shade",
+        "Rot Seed"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "nidhoggr_v2",
+      "totalStacksApplied": 1593,
+      "totalApplicationEvents": 1607,
+      "avgStacksPerGame": 3.32,
+      "avgApplicationsPerGame": 3.35,
+      "topSourceCards": [
+        "Shadow Claw",
+        "Curse Mark"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "hel_v1",
+      "totalStacksApplied": 2771,
+      "totalApplicationEvents": 2346,
+      "avgStacksPerGame": 5.77,
+      "avgApplicationsPerGame": 4.89,
+      "topSourceCards": [
+        "Shadow Claw",
+        "Hamstring"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Dazed",
+      "name": "Dazed",
+      "subjectId": "hel_v1",
+      "totalStacksApplied": 2644,
+      "totalApplicationEvents": 1444,
+      "avgStacksPerGame": 5.51,
+      "avgApplicationsPerGame": 3.01,
+      "topSourceCards": [
+        "Night's Bite"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "DarkStance",
+      "name": "DarkStance",
+      "subjectId": "hel_v1",
+      "totalStacksApplied": 1961,
+      "totalApplicationEvents": 4167,
+      "avgStacksPerGame": 4.09,
+      "avgApplicationsPerGame": 8.68,
+      "topSourceCards": [
+        "Shadow Claw",
+        "Eclipse",
+        "Night's Bite"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "LightStance",
+      "name": "LightStance",
+      "subjectId": "hel_v1",
+      "totalStacksApplied": 1718,
+      "totalApplicationEvents": 2567,
+      "avgStacksPerGame": 3.58,
+      "avgApplicationsPerGame": 5.35,
+      "topSourceCards": [
+        "Pale Mercy",
+        "Lumen Surge",
+        "Purify"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Energized",
+      "name": "Energized",
+      "subjectId": "hel_v1",
+      "totalStacksApplied": 420,
+      "totalApplicationEvents": 420,
+      "avgStacksPerGame": 0.88,
+      "avgApplicationsPerGame": 0.88,
+      "topSourceCards": [
+        "Lumen Surge"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Weakened",
+      "name": "Weakened",
+      "subjectId": "hel_v2",
+      "totalStacksApplied": 985,
+      "totalApplicationEvents": 825,
+      "avgStacksPerGame": 2.05,
+      "avgApplicationsPerGame": 1.72,
+      "topSourceCards": [
+        "Shadow Claw",
+        "Hamstring"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Dazed",
+      "name": "Dazed",
+      "subjectId": "hel_v2",
+      "totalStacksApplied": 940,
+      "totalApplicationEvents": 485,
+      "avgStacksPerGame": 1.96,
+      "avgApplicationsPerGame": 1.01,
+      "topSourceCards": [
+        "Night's Bite"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Poison",
+      "name": "Poison",
+      "subjectId": "hel_v2",
+      "totalStacksApplied": 714,
+      "totalApplicationEvents": 246,
+      "avgStacksPerGame": 1.49,
+      "avgApplicationsPerGame": 0.51,
+      "topSourceCards": [
+        "Venom Shade"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "DarkStance",
+      "name": "DarkStance",
+      "subjectId": "hel_v2",
+      "totalStacksApplied": 662,
+      "totalApplicationEvents": 1441,
+      "avgStacksPerGame": 1.38,
+      "avgApplicationsPerGame": 3,
+      "topSourceCards": [
+        "Shadow Claw",
+        "Eclipse",
+        "Night's Bite"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "LightStance",
+      "name": "LightStance",
+      "subjectId": "hel_v2",
+      "totalStacksApplied": 599,
+      "totalApplicationEvents": 1961,
+      "avgStacksPerGame": 1.25,
+      "avgApplicationsPerGame": 4.09,
+      "topSourceCards": [
+        "Pale Mercy",
+        "Lumen Surge",
+        "Purify"
+      ],
+      "isMocked": false
+    },
+    {
+      "statusId": "Energized",
+      "name": "Energized",
+      "subjectId": "hel_v2",
+      "totalStacksApplied": 136,
+      "totalApplicationEvents": 136,
+      "avgStacksPerGame": 0.28,
+      "avgApplicationsPerGame": 0.28,
+      "topSourceCards": [
+        "Lumen Surge"
+      ],
+      "isMocked": false
+    }
+  ],
+  "matchups": [
+    {
+      "id": "deck:kraken_v1-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "kraken_v1 vs control",
+      "subject": "kraken",
+      "subjectOS": "kraken_v1",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 25,
+      "enemyWins": 135,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.844,
+      "winRate": 0.844,
+      "averageTurns": 7.39,
+      "deadCardRatio": 0.0738,
+      "enemyDeadCardRatio": 0.0727,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0687,
+      "sideBias": 0.6875,
+      "avgDamagePerTurnDealt": 11.59,
+      "avgDamagePerTurnTaken": 8.36,
+      "topCardsThisMatchup": [
+        "Ink Stream",
+        "Pressure Point",
+        "Surge Protection"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:kraken_v1-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "kraken_v1 mirror",
+      "subject": "kraken",
+      "subjectOS": "kraken_v1",
+      "opponent": "kraken",
+      "opponentOS": "kraken_v1",
+      "iterations": 160,
+      "playerWins": 89,
+      "enemyWins": 71,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.556,
+      "winRate": 0.556,
+      "averageTurns": 5.28,
+      "deadCardRatio": 0.107,
+      "enemyDeadCardRatio": 0.1031,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0937,
+      "sideBias": 0.1125,
+      "avgDamagePerTurnDealt": 12.98,
+      "avgDamagePerTurnTaken": 13,
+      "topCardsThisMatchup": [
+        "Ink Stream",
+        "Pressure Point",
+        "Surge Protection"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:kraken_v1-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "kraken_v1 vs kraken_v2",
+      "subject": "kraken",
+      "subjectOS": "kraken_v1",
+      "opponent": "kraken",
+      "opponentOS": "kraken_v2",
+      "iterations": 160,
+      "playerWins": 98,
+      "enemyWins": 62,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.613,
+      "winRate": 0.613,
+      "averageTurns": 5.6,
+      "deadCardRatio": 0.0906,
+      "enemyDeadCardRatio": 0.1328,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0375,
+      "sideBias": 0.225,
+      "avgDamagePerTurnDealt": 12.21,
+      "avgDamagePerTurnTaken": 10.44,
+      "topCardsThisMatchup": [
+        "Ink Stream",
+        "Pressure Point",
+        "Surge Protection"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:kraken_v2-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "kraken_v2 vs control",
+      "subject": "kraken",
+      "subjectOS": "kraken_v2",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 72,
+      "enemyWins": 88,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.55,
+      "winRate": 0.55,
+      "averageTurns": 7.53,
+      "deadCardRatio": 0.0763,
+      "enemyDeadCardRatio": 0.082,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 0.1,
+      "avgDamagePerTurnDealt": 10.59,
+      "avgDamagePerTurnTaken": 8.5,
+      "topCardsThisMatchup": [
+        "Hydro Blast",
+        "Maelstrom",
+        "Surge Protection"
+      ],
+      "topStatusesThisMatchup": [
+        "Energized",
+        "Dazed"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:kraken_v2-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "kraken_v2 mirror",
+      "subject": "kraken",
+      "subjectOS": "kraken_v2",
+      "opponent": "kraken",
+      "opponentOS": "kraken_v2",
+      "iterations": 160,
+      "playerWins": 75,
+      "enemyWins": 85,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.469,
+      "winRate": 0.469,
+      "averageTurns": 5.16,
+      "deadCardRatio": 0.1039,
+      "enemyDeadCardRatio": 0.1055,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.1687,
+      "sideBias": 0.0625,
+      "avgDamagePerTurnDealt": 13.2,
+      "avgDamagePerTurnTaken": 13.27,
+      "topCardsThisMatchup": [
+        "Ink Stream",
+        "Pressure Point",
+        "Surge Protection"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:kraken_v2-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "kraken_v1 vs kraken_v2",
+      "subject": "kraken",
+      "subjectOS": "kraken_v2",
+      "opponent": "kraken",
+      "opponentOS": "kraken_v1",
+      "iterations": 160,
+      "playerWins": 98,
+      "enemyWins": 62,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.388,
+      "winRate": 0.388,
+      "averageTurns": 5.6,
+      "deadCardRatio": 0.0906,
+      "enemyDeadCardRatio": 0.1328,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0375,
+      "sideBias": 0.225,
+      "avgDamagePerTurnDealt": 10.44,
+      "avgDamagePerTurnTaken": 12.21,
+      "topCardsThisMatchup": [
+        "Hydro Blast",
+        "Maelstrom",
+        "Surge Protection"
+      ],
+      "topStatusesThisMatchup": [
+        "Energized",
+        "Dazed"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ratatoskr_v1-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "ratatoskr_v1 vs control",
+      "subject": "ratatoskr",
+      "subjectOS": "ratatoskr_v1",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 0,
+      "enemyWins": 160,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 1,
+      "winRate": 1,
+      "averageTurns": 5.76,
+      "deadCardRatio": 0.1306,
+      "enemyDeadCardRatio": 0.0397,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 1,
+      "avgDamagePerTurnDealt": 14.52,
+      "avgDamagePerTurnTaken": 11.42,
+      "topCardsThisMatchup": [
+        "Seed Bomb",
+        "Nettle Sting",
+        "Feedback"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ratatoskr_v1-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "ratatoskr_v1 mirror",
+      "subject": "ratatoskr",
+      "subjectOS": "ratatoskr_v1",
+      "opponent": "ratatoskr",
+      "opponentOS": "ratatoskr_v1",
+      "iterations": 160,
+      "playerWins": 79,
+      "enemyWins": 81,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.494,
+      "winRate": 0.494,
+      "averageTurns": 4.56,
+      "deadCardRatio": 0.0435,
+      "enemyDeadCardRatio": 0.042,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0687,
+      "sideBias": 0.0125,
+      "avgDamagePerTurnDealt": 16.57,
+      "avgDamagePerTurnTaken": 16.78,
+      "topCardsThisMatchup": [
+        "Seed Bomb",
+        "Nettle Sting",
+        "Feedback"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ratatoskr_v1-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "ratatoskr_v1 vs ratatoskr_v2",
+      "subject": "ratatoskr",
+      "subjectOS": "ratatoskr_v1",
+      "opponent": "ratatoskr",
+      "opponentOS": "ratatoskr_v2",
+      "iterations": 160,
+      "playerWins": 70,
+      "enemyWins": 90,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.438,
+      "winRate": 0.438,
+      "averageTurns": 5.33,
+      "deadCardRatio": 0.028,
+      "enemyDeadCardRatio": 0.0603,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.1375,
+      "sideBias": 0.125,
+      "avgDamagePerTurnDealt": 11.69,
+      "avgDamagePerTurnTaken": 13.28,
+      "topCardsThisMatchup": [
+        "Seed Bomb",
+        "Nettle Sting",
+        "Feedback"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ratatoskr_v2-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "ratatoskr_v2 vs control",
+      "subject": "ratatoskr",
+      "subjectOS": "ratatoskr_v2",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 84,
+      "enemyWins": 76,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.475,
+      "winRate": 0.475,
+      "averageTurns": 6.96,
+      "deadCardRatio": 0.0906,
+      "enemyDeadCardRatio": 0.0377,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.125,
+      "sideBias": 0.05,
+      "avgDamagePerTurnDealt": 9.71,
+      "avgDamagePerTurnTaken": 9.76,
+      "topCardsThisMatchup": [
+        "Nagging Bite",
+        "Crippling Vine",
+        "Slander"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed",
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ratatoskr_v2-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "ratatoskr_v2 mirror",
+      "subject": "ratatoskr",
+      "subjectOS": "ratatoskr_v2",
+      "opponent": "ratatoskr",
+      "opponentOS": "ratatoskr_v2",
+      "iterations": 160,
+      "playerWins": 78,
+      "enemyWins": 82,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.488,
+      "winRate": 0.488,
+      "averageTurns": 4.61,
+      "deadCardRatio": 0.0433,
+      "enemyDeadCardRatio": 0.0424,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 0.025,
+      "avgDamagePerTurnDealt": 16.38,
+      "avgDamagePerTurnTaken": 16.32,
+      "topCardsThisMatchup": [
+        "Seed Bomb",
+        "Nettle Sting",
+        "Feedback"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ratatoskr_v2-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "ratatoskr_v1 vs ratatoskr_v2",
+      "subject": "ratatoskr",
+      "subjectOS": "ratatoskr_v2",
+      "opponent": "ratatoskr",
+      "opponentOS": "ratatoskr_v1",
+      "iterations": 160,
+      "playerWins": 70,
+      "enemyWins": 90,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.563,
+      "winRate": 0.563,
+      "averageTurns": 5.33,
+      "deadCardRatio": 0.028,
+      "enemyDeadCardRatio": 0.0603,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.1375,
+      "sideBias": 0.125,
+      "avgDamagePerTurnDealt": 13.28,
+      "avgDamagePerTurnTaken": 11.69,
+      "topCardsThisMatchup": [
+        "Nagging Bite",
+        "Crippling Vine",
+        "Slander"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed",
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:draugr_v1-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "draugr_v1 vs control",
+      "subject": "draugr",
+      "subjectOS": "draugr_v1",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 0,
+      "enemyWins": 160,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 1,
+      "winRate": 1,
+      "averageTurns": 6.91,
+      "deadCardRatio": 0.0869,
+      "enemyDeadCardRatio": 0.2119,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 1,
+      "avgDamagePerTurnDealt": 12.6,
+      "avgDamagePerTurnTaken": 9.8,
+      "topCardsThisMatchup": [
+        "Nightmare",
+        "Barrow Rot",
+        "Ice Spear"
+      ],
+      "topStatusesThisMatchup": [
+        "BarkShield",
+        "Asleep",
+        "Strengthened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:draugr_v1-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "draugr_v1 mirror",
+      "subject": "draugr",
+      "subjectOS": "draugr_v1",
+      "opponent": "draugr",
+      "opponentOS": "draugr_v1",
+      "iterations": 160,
+      "playerWins": 77,
+      "enemyWins": 83,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.481,
+      "winRate": 0.481,
+      "averageTurns": 6.64,
+      "deadCardRatio": 0.2403,
+      "enemyDeadCardRatio": 0.2466,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0687,
+      "sideBias": 0.0375,
+      "avgDamagePerTurnDealt": 13.61,
+      "avgDamagePerTurnTaken": 14.15,
+      "topCardsThisMatchup": [
+        "Nightmare",
+        "Ice Spear",
+        "Barrow Rot"
+      ],
+      "topStatusesThisMatchup": [
+        "Asleep",
+        "BarkShield",
+        "Strengthened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:draugr_v1-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "draugr_v1 vs draugr_v2",
+      "subject": "draugr",
+      "subjectOS": "draugr_v1",
+      "opponent": "draugr",
+      "opponentOS": "draugr_v2",
+      "iterations": 160,
+      "playerWins": 84,
+      "enemyWins": 76,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.525,
+      "winRate": 0.525,
+      "averageTurns": 9.64,
+      "deadCardRatio": 0.1631,
+      "enemyDeadCardRatio": 0.0763,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0125,
+      "sideBias": 0.05,
+      "avgDamagePerTurnDealt": 7.69,
+      "avgDamagePerTurnTaken": 10.58,
+      "topCardsThisMatchup": [
+        "Nightmare",
+        "Barrow King",
+        "Ice Spear"
+      ],
+      "topStatusesThisMatchup": [
+        "BarkShield",
+        "Asleep",
+        "Strengthened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:draugr_v2-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "draugr_v2 vs control",
+      "subject": "draugr",
+      "subjectOS": "draugr_v2",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 4,
+      "enemyWins": 156,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.975,
+      "winRate": 0.975,
+      "averageTurns": 10.05,
+      "deadCardRatio": 0.0688,
+      "enemyDeadCardRatio": 0.0575,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 0.95,
+      "avgDamagePerTurnDealt": 8.05,
+      "avgDamagePerTurnTaken": 5.65,
+      "topCardsThisMatchup": [
+        "Rimebreaker",
+        "Numbing Gale",
+        "Ice Spear"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed",
+        "Weakened",
+        "Burn"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:draugr_v2-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "draugr_v2 mirror",
+      "subject": "draugr",
+      "subjectOS": "draugr_v2",
+      "opponent": "draugr",
+      "opponentOS": "draugr_v2",
+      "iterations": 160,
+      "playerWins": 86,
+      "enemyWins": 74,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.538,
+      "winRate": 0.538,
+      "averageTurns": 6.73,
+      "deadCardRatio": 0.2375,
+      "enemyDeadCardRatio": 0.242,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.025,
+      "sideBias": 0.075,
+      "avgDamagePerTurnDealt": 13.5,
+      "avgDamagePerTurnTaken": 13.74,
+      "topCardsThisMatchup": [
+        "Nightmare",
+        "Ice Spear",
+        "Barrow Rot"
+      ],
+      "topStatusesThisMatchup": [
+        "BarkShield",
+        "Asleep",
+        "Strengthened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:draugr_v2-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "draugr_v1 vs draugr_v2",
+      "subject": "draugr",
+      "subjectOS": "draugr_v2",
+      "opponent": "draugr",
+      "opponentOS": "draugr_v1",
+      "iterations": 160,
+      "playerWins": 84,
+      "enemyWins": 76,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.475,
+      "winRate": 0.475,
+      "averageTurns": 9.64,
+      "deadCardRatio": 0.1631,
+      "enemyDeadCardRatio": 0.0763,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0125,
+      "sideBias": 0.05,
+      "avgDamagePerTurnDealt": 10.58,
+      "avgDamagePerTurnTaken": 7.69,
+      "topCardsThisMatchup": [
+        "Rimebreaker",
+        "Ice Spear",
+        "Numbing Gale"
+      ],
+      "topStatusesThisMatchup": [
+        "Dazed",
+        "Weakened",
+        "Burn"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ymir_v1-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "ymir_v1 vs control",
+      "subject": "ymir",
+      "subjectOS": "ymir_v1",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 0,
+      "enemyWins": 160,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 1,
+      "winRate": 1,
+      "averageTurns": 7.71,
+      "deadCardRatio": 0.12,
+      "enemyDeadCardRatio": 0.1344,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 1,
+      "avgDamagePerTurnDealt": 11.28,
+      "avgDamagePerTurnTaken": 2.61,
+      "topCardsThisMatchup": [
+        "Avalanche",
+        "Ice Spear",
+        "Rimeguard"
+      ],
+      "topStatusesThisMatchup": [
+        "BarkShield",
+        "Strengthened",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ymir_v1-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "ymir_v1 mirror",
+      "subject": "ymir",
+      "subjectOS": "ymir_v1",
+      "opponent": "ymir",
+      "opponentOS": "ymir_v1",
+      "iterations": 160,
+      "playerWins": 73,
+      "enemyWins": 87,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.456,
+      "winRate": 0.456,
+      "averageTurns": 13.92,
+      "deadCardRatio": 0.0875,
+      "enemyDeadCardRatio": 0.0831,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0062,
+      "sideBias": 0.0875,
+      "avgDamagePerTurnDealt": 4.82,
+      "avgDamagePerTurnTaken": 5.37,
+      "topCardsThisMatchup": [
+        "Avalanche",
+        "Ice Spear",
+        "Rimeguard"
+      ],
+      "topStatusesThisMatchup": [
+        "BarkShield",
+        "Sharp",
+        "Strengthened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ymir_v1-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "ymir_v1 vs ymir_v2",
+      "subject": "ymir",
+      "subjectOS": "ymir_v1",
+      "opponent": "ymir",
+      "opponentOS": "ymir_v2",
+      "iterations": 160,
+      "playerWins": 101,
+      "enemyWins": 59,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.631,
+      "winRate": 0.631,
+      "averageTurns": 10.98,
+      "deadCardRatio": 0.1269,
+      "enemyDeadCardRatio": 0.2725,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0938,
+      "sideBias": 0.2625,
+      "avgDamagePerTurnDealt": 7.81,
+      "avgDamagePerTurnTaken": 7,
+      "topCardsThisMatchup": [
+        "Avalanche",
+        "Ice Spear",
+        "Rimeguard"
+      ],
+      "topStatusesThisMatchup": [
+        "BarkShield",
+        "Strengthened",
+        "Sharp"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ymir_v2-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "ymir_v2 vs control",
+      "subject": "ymir",
+      "subjectOS": "ymir_v2",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 0,
+      "enemyWins": 160,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 1,
+      "winRate": 1,
+      "averageTurns": 6.49,
+      "deadCardRatio": 0.1688,
+      "enemyDeadCardRatio": 0.35,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 1,
+      "avgDamagePerTurnDealt": 13.41,
+      "avgDamagePerTurnTaken": 6.63,
+      "topCardsThisMatchup": [
+        "Glacial Maul",
+        "Numbing Gale",
+        "Ice Spear"
+      ],
+      "topStatusesThisMatchup": [
+        "Strengthened",
+        "Dazed",
+        "Stunned"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ymir_v2-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "ymir_v2 mirror",
+      "subject": "ymir",
+      "subjectOS": "ymir_v2",
+      "opponent": "ymir",
+      "opponentOS": "ymir_v2",
+      "iterations": 160,
+      "playerWins": 87,
+      "enemyWins": 73,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.544,
+      "winRate": 0.544,
+      "averageTurns": 14.26,
+      "deadCardRatio": 0.07,
+      "enemyDeadCardRatio": 0.0781,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0563,
+      "sideBias": 0.0875,
+      "avgDamagePerTurnDealt": 5.12,
+      "avgDamagePerTurnTaken": 5.06,
+      "topCardsThisMatchup": [
+        "Avalanche",
+        "Ice Spear",
+        "Rimeguard"
+      ],
+      "topStatusesThisMatchup": [
+        "BarkShield",
+        "Sharp",
+        "Strengthened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:ymir_v2-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "ymir_v1 vs ymir_v2",
+      "subject": "ymir",
+      "subjectOS": "ymir_v2",
+      "opponent": "ymir",
+      "opponentOS": "ymir_v1",
+      "iterations": 160,
+      "playerWins": 101,
+      "enemyWins": 59,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.369,
+      "winRate": 0.369,
+      "averageTurns": 10.98,
+      "deadCardRatio": 0.1269,
+      "enemyDeadCardRatio": 0.2725,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0938,
+      "sideBias": 0.2625,
+      "avgDamagePerTurnDealt": 7,
+      "avgDamagePerTurnTaken": 7.81,
+      "topCardsThisMatchup": [
+        "Glacial Maul",
+        "Ice Spear",
+        "Numbing Gale"
+      ],
+      "topStatusesThisMatchup": [
+        "Strengthened",
+        "Sharp",
+        "Dazed"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:nidhoggr_v1-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "nidhoggr_v1 vs control",
+      "subject": "nidhoggr",
+      "subjectOS": "nidhoggr_v1",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 6,
+      "enemyWins": 154,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.963,
+      "winRate": 0.963,
+      "averageTurns": 6.3,
+      "deadCardRatio": 0.1161,
+      "enemyDeadCardRatio": 0.1169,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0125,
+      "sideBias": 0.925,
+      "avgDamagePerTurnDealt": 10.8,
+      "avgDamagePerTurnTaken": 9.36,
+      "topCardsThisMatchup": [
+        "Blight Bloom",
+        "Wither Feast",
+        "Venom Shade"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:nidhoggr_v1-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "nidhoggr_v1 mirror",
+      "subject": "nidhoggr",
+      "subjectOS": "nidhoggr_v1",
+      "opponent": "nidhoggr",
+      "opponentOS": "nidhoggr_v1",
+      "iterations": 160,
+      "playerWins": 95,
+      "enemyWins": 65,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.594,
+      "winRate": 0.594,
+      "averageTurns": 4.53,
+      "deadCardRatio": 0.1789,
+      "enemyDeadCardRatio": 0.192,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0188,
+      "sideBias": 0.1875,
+      "avgDamagePerTurnDealt": 12.23,
+      "avgDamagePerTurnTaken": 10.93,
+      "topCardsThisMatchup": [
+        "Blight Bloom",
+        "Wither Feast",
+        "Venom Shade"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:nidhoggr_v1-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "nidhoggr_v1 vs nidhoggr_v2",
+      "subject": "nidhoggr",
+      "subjectOS": "nidhoggr_v1",
+      "opponent": "nidhoggr",
+      "opponentOS": "nidhoggr_v2",
+      "iterations": 160,
+      "playerWins": 48,
+      "enemyWins": 112,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.3,
+      "winRate": 0.3,
+      "averageTurns": 6.38,
+      "deadCardRatio": 0.1431,
+      "enemyDeadCardRatio": 0.1106,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 0.4,
+      "avgDamagePerTurnDealt": 10.35,
+      "avgDamagePerTurnTaken": 12.21,
+      "topCardsThisMatchup": [
+        "Blight Bloom",
+        "Wither Feast",
+        "Venom Shade"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:nidhoggr_v2-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "nidhoggr_v2 vs control",
+      "subject": "nidhoggr",
+      "subjectOS": "nidhoggr_v2",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 0,
+      "enemyWins": 160,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 1,
+      "winRate": 1,
+      "averageTurns": 5.95,
+      "deadCardRatio": 0.1044,
+      "enemyDeadCardRatio": 0.1031,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 1,
+      "avgDamagePerTurnDealt": 14.62,
+      "avgDamagePerTurnTaken": 9.75,
+      "topCardsThisMatchup": [
+        "Rend Marrow",
+        "Leech Strike",
+        "Bloodletting"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:nidhoggr_v2-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "nidhoggr_v2 mirror",
+      "subject": "nidhoggr",
+      "subjectOS": "nidhoggr_v2",
+      "opponent": "nidhoggr",
+      "opponentOS": "nidhoggr_v2",
+      "iterations": 160,
+      "playerWins": 73,
+      "enemyWins": 87,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.456,
+      "winRate": 0.456,
+      "averageTurns": 4.56,
+      "deadCardRatio": 0.1809,
+      "enemyDeadCardRatio": 0.1933,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0188,
+      "sideBias": 0.0875,
+      "avgDamagePerTurnDealt": 11.54,
+      "avgDamagePerTurnTaken": 11.59,
+      "topCardsThisMatchup": [
+        "Blight Bloom",
+        "Wither Feast",
+        "Venom Shade"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:nidhoggr_v2-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "nidhoggr_v1 vs nidhoggr_v2",
+      "subject": "nidhoggr",
+      "subjectOS": "nidhoggr_v2",
+      "opponent": "nidhoggr",
+      "opponentOS": "nidhoggr_v1",
+      "iterations": 160,
+      "playerWins": 48,
+      "enemyWins": 112,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.7,
+      "winRate": 0.7,
+      "averageTurns": 6.38,
+      "deadCardRatio": 0.1431,
+      "enemyDeadCardRatio": 0.1106,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 0.4,
+      "avgDamagePerTurnDealt": 12.21,
+      "avgDamagePerTurnTaken": 10.35,
+      "topCardsThisMatchup": [
+        "Rend Marrow",
+        "Leech Strike",
+        "Bloodletting"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison",
+        "Weakened"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:hel_v1-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "hel_v1 vs control",
+      "subject": "hel",
+      "subjectOS": "hel_v1",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 3,
+      "enemyWins": 157,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.981,
+      "winRate": 0.981,
+      "averageTurns": 7.46,
+      "deadCardRatio": 0.0613,
+      "enemyDeadCardRatio": 0.046,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0062,
+      "sideBias": 0.9625,
+      "avgDamagePerTurnDealt": 11.66,
+      "avgDamagePerTurnTaken": 9.09,
+      "topCardsThisMatchup": [
+        "Eclipse",
+        "Night's Bite",
+        "Hamstring"
+      ],
+      "topStatusesThisMatchup": [
+        "Weakened",
+        "Dazed",
+        "DarkStance"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:hel_v1-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "hel_v1 mirror",
+      "subject": "hel",
+      "subjectOS": "hel_v1",
+      "opponent": "hel",
+      "opponentOS": "hel_v1",
+      "iterations": 160,
+      "playerWins": 84,
+      "enemyWins": 76,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.525,
+      "winRate": 0.525,
+      "averageTurns": 5.44,
+      "deadCardRatio": 0.108,
+      "enemyDeadCardRatio": 0.1125,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.0625,
+      "sideBias": 0.05,
+      "avgDamagePerTurnDealt": 14.51,
+      "avgDamagePerTurnTaken": 14.4,
+      "topCardsThisMatchup": [
+        "Eclipse",
+        "Night's Bite",
+        "Shadow Claw"
+      ],
+      "topStatusesThisMatchup": [
+        "Weakened",
+        "Dazed",
+        "DarkStance"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:hel_v1-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "hel_v1 vs hel_v2",
+      "subject": "hel",
+      "subjectOS": "hel_v1",
+      "opponent": "hel",
+      "opponentOS": "hel_v2",
+      "iterations": 160,
+      "playerWins": 79,
+      "enemyWins": 66,
+      "draws": 15,
+      "decisive": 145,
+      "decisiveWinRate": 0.545,
+      "winRate": 0.494,
+      "averageTurns": 2.65,
+      "deadCardRatio": 0.2643,
+      "enemyDeadCardRatio": 0.3499,
+      "ftkCount": 3,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.169,
+      "sideBias": 0.0873,
+      "avgDamagePerTurnDealt": 15.29,
+      "avgDamagePerTurnTaken": 27.63,
+      "topCardsThisMatchup": [
+        "Eclipse",
+        "Night's Bite",
+        "Shadow Claw"
+      ],
+      "topStatusesThisMatchup": [
+        "Weakened",
+        "Dazed",
+        "DarkStance"
+      ],
+      "redlineFlags": [
+        "FTK"
+      ],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:hel_v2-vs-control",
+      "suite": "vs-control",
+      "role": "vs-control",
+      "label": "hel_v2 vs control",
+      "subject": "hel",
+      "subjectOS": "hel_v2",
+      "opponent": "control",
+      "opponentOS": "control_v1",
+      "iterations": 160,
+      "playerWins": 120,
+      "enemyWins": 8,
+      "draws": 32,
+      "decisive": 128,
+      "decisiveWinRate": 0.063,
+      "winRate": 0.05,
+      "averageTurns": 4.64,
+      "deadCardRatio": 0.172,
+      "enemyDeadCardRatio": 0.3081,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0.0391,
+      "sideBias": 0.874,
+      "avgDamagePerTurnDealt": 14.65,
+      "avgDamagePerTurnTaken": 10.81,
+      "topCardsThisMatchup": [
+        "Soul Tithe",
+        "Last Rites",
+        "Dawnstrike"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:hel_v2-mirror",
+      "suite": "mirror",
+      "role": "mirror",
+      "label": "hel_v2 mirror",
+      "subject": "hel",
+      "subjectOS": "hel_v2",
+      "opponent": "hel",
+      "opponentOS": "hel_v2",
+      "iterations": 160,
+      "playerWins": 78,
+      "enemyWins": 82,
+      "draws": 0,
+      "decisive": 160,
+      "decisiveWinRate": 0.488,
+      "winRate": 0.488,
+      "averageTurns": 5.59,
+      "deadCardRatio": 0.0949,
+      "enemyDeadCardRatio": 0.0915,
+      "ftkCount": 0,
+      "truncatedCount": 0,
+      "firstMoverEdge": 0,
+      "sideBias": 0.025,
+      "avgDamagePerTurnDealt": 14.42,
+      "avgDamagePerTurnTaken": 14.33,
+      "topCardsThisMatchup": [
+        "Eclipse",
+        "Night's Bite",
+        "Shadow Claw"
+      ],
+      "topStatusesThisMatchup": [
+        "Weakened",
+        "Dazed",
+        "DarkStance"
+      ],
+      "redlineFlags": [],
+      "confidence": "ok",
+      "inconclusive": false
+    },
+    {
+      "id": "deck:hel_v2-os-variance",
+      "suite": "os-variance",
+      "role": "os-variance",
+      "label": "hel_v1 vs hel_v2",
+      "subject": "hel",
+      "subjectOS": "hel_v2",
+      "opponent": "hel",
+      "opponentOS": "hel_v1",
+      "iterations": 160,
+      "playerWins": 79,
+      "enemyWins": 66,
+      "draws": 15,
+      "decisive": 145,
+      "decisiveWinRate": 0.455,
+      "winRate": 0.413,
+      "averageTurns": 2.65,
+      "deadCardRatio": 0.2643,
+      "enemyDeadCardRatio": 0.3499,
+      "ftkCount": 3,
+      "truncatedCount": 0,
+      "firstMoverEdge": -0.169,
+      "sideBias": 0.0873,
+      "avgDamagePerTurnDealt": 27.63,
+      "avgDamagePerTurnTaken": 15.29,
+      "topCardsThisMatchup": [
+        "Soul Tithe",
+        "Last Rites",
+        "Dawnstrike"
+      ],
+      "topStatusesThisMatchup": [
+        "Poison"
+      ],
+      "redlineFlags": [
+        "FTK"
+      ],
+      "confidence": "ok",
+      "inconclusive": false
+    }
+  ],
+  "redlines": [
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "ink_stream",
+      "metric": "scoreDelta",
+      "value": 1.65,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Ink Stream prices at 1.2 statically and measures 3.18 over 2267 plays in kraken_v1 (+1.98). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "pressure_point",
+      "metric": "staticScore",
+      "value": 3.1,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Pressure Point costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "surge_protection",
+      "metric": "staticScore",
+      "value": 4,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Surge Protection costs 1 energy and scores 4, 1 over the 3 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "surge_protection",
+      "metric": "staticScore",
+      "value": 4,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Surge Protection costs 1 energy and scores 4, 1 over the 3 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "slander",
+      "metric": "scoreDelta",
+      "value": 1.87,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Slander prices at 1.5 statically and measures 4.3 over 387 plays in ratatoskr_v2 (+2.8). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "pollen_cloud",
+      "metric": "staticScore",
+      "value": 1.1,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Pollen Cloud costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "DEAD_CARD_HIGH",
+      "subject": "barrow_king",
+      "metric": "deadRate",
+      "value": 0.856,
+      "threshold": 0.5,
+      "comparison": "above",
+      "detail": "Barrow King reached hand 480 times in draugr_v1 and was never played 86% of the time. The deck-level ratio cannot name a trap card; this does."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "deathless_slumber",
+      "metric": "scoreDelta",
+      "value": 1.37,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Deathless Slumber prices at 3 statically and measures 7.1 over 779 plays in draugr_v1 (+4.1). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "dread_tidings",
+      "metric": "staticScore",
+      "value": 3.2,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Dread Tidings costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "rimebreaker",
+      "metric": "staticScore",
+      "value": 7.5,
+      "threshold": 6.5,
+      "comparison": "above",
+      "detail": "Rimebreaker costs 2 energy and scores 7.5, 1 over the 6.5 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "glacial_slam",
+      "metric": "staticScore",
+      "value": 7,
+      "threshold": 6.5,
+      "comparison": "above",
+      "detail": "Glacial Slam costs 2 energy and scores 7, 0.5 over the 6.5 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "avalanche",
+      "metric": "scoreDelta",
+      "value": 1.56,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Avalanche prices at 2.7 statically and measures 6.92 over 1600 plays in ymir_v1 (+4.22). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "thaw",
+      "metric": "staticScore",
+      "value": 3.1,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Thaw costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "frost_ward",
+      "metric": "staticScore",
+      "value": 1.1,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Frost Ward costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "glacial_slam",
+      "metric": "staticScore",
+      "value": 7,
+      "threshold": 6.5,
+      "comparison": "above",
+      "detail": "Glacial Slam costs 2 energy and scores 7, 0.5 over the 6.5 budget for that cost."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "thaw",
+      "metric": "staticScore",
+      "value": 3.1,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Thaw costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "DEAD_CARD_HIGH",
+      "subject": "wither_feast",
+      "metric": "deadRate",
+      "value": 0.515,
+      "threshold": 0.5,
+      "comparison": "above",
+      "detail": "Wither Feast reached hand 480 times in nidhoggr_v1 and was never played 52% of the time. The deck-level ratio cannot name a trap card; this does."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "wither_feast",
+      "metric": "scoreDelta",
+      "value": 8.03,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Wither Feast prices at -1.8 statically and measures 12.65 over 240 plays in nidhoggr_v1 (+14.45). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "bloodletting",
+      "metric": "scoreDelta",
+      "value": 1.53,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Bloodletting prices at 1 statically and measures 2.53 over 1029 plays in nidhoggr_v2 (+1.53). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "shadow_claw",
+      "metric": "scoreDelta",
+      "value": 2.16,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Shadow Claw prices at 0.9 statically and measures 2.84 over 1850 plays in hel_v1 (+1.94). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "water_slap",
+      "metric": "staticScore",
+      "value": 1.2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Tackle costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "pale_mercy",
+      "metric": "scoreDelta",
+      "value": 2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Pale Mercy prices at 0.9 statically and measures 2.7 over 1748 plays in hel_v1 (+1.8). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "purify",
+      "metric": "scoreDelta",
+      "value": 2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Purify prices at 0.9 statically and measures 2.7 over 399 plays in hel_v1 (+1.8). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "1.3",
+      "kind": "CARD_OVER_BUDGET",
+      "subject": "lumen_surge",
+      "metric": "staticScore",
+      "value": 4.5,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Lumen Surge costs 1 energy and scores 4.5, 1.5 over the 3 budget for that cost."
+    },
+    {
+      "section": "deck-report",
+      "kind": "POWER_DIVERGENCE",
+      "subject": "pale_mercy",
+      "metric": "scoreDelta",
+      "value": 2,
+      "threshold": 1,
+      "comparison": "above",
+      "detail": "Pale Mercy prices at 0.9 statically and measures 2.7 over 1680 plays in hel_v2 (+1.8). Either an underpriced sleeper or an overpriced dud - a per-stack scaler reading high is expected, not a defect."
+    },
+    {
+      "section": "deck-report",
+      "kind": "DEAD_CARD_HIGH",
+      "subject": "forage",
+      "metric": "deadRate",
+      "value": 0.577,
+      "threshold": 0.5,
+      "comparison": "above",
+      "detail": "Forage reached hand 626 times in hel_v2 and was never played 58% of the time. The deck-level ratio cannot name a trap card; this does."
+    },
+    {
+      "section": "deck-report",
+      "kind": "DEAD_CARD_HIGH",
+      "subject": "squirrel_away",
+      "metric": "deadRate",
+      "value": 0.874,
+      "threshold": 0.5,
+      "comparison": "above",
+      "detail": "Squirrel Away reached hand 317 times in hel_v2 and was never played 87% of the time. The deck-level ratio cannot name a trap card; this does."
+    }
+  ],
+  "notes": {
+    "instrumentationPending": []
+  }
+}</script>
+
+<script>
+const raw = JSON.parse(document.getElementById('report-data').textContent);
+let DATA = raw;
+
+const pct = (x) => (x == null ? '—' : (x * 100).toFixed(1) + '%');
+const num = (x, d = 1) => (x == null ? '—' : Number(x).toFixed(d));
+const signed = (x, d = 1) => (x == null ? '—' : (x > 0 ? '+' : '') + Number(x).toFixed(d));
+const lowSampleFloor = () => (DATA.config && DATA.config.thresholds && DATA.config.thresholds.cardPlays) || 20;
+const cardMap = () => {
+  const m = new Map();
+  DATA.cards.forEach(c => { if (!m.has(c.cardId)) m.set(c.cardId, c); });
+  return m;
+};
+
+function toggleTheme() {
+  const el = document.documentElement;
+  const cur = el.getAttribute('data-theme');
+  el.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+}
+
+function subjectColor(id, subjects) {
+  const idx = subjects.findIndex(s => s.id === id);
+  return idx === 1 ? 'var(--series-3)' : 'var(--series-1)';
+}
+
+function renderHeader() {
+  document.getElementById('meta-subjects').textContent = DATA.subjects.map(s => s.id).join(', ');
+  document.getElementById('meta-control').textContent = DATA.control ? `${DATA.control.species} (${DATA.control.os})` : 'none';
+  document.getElementById('meta-hash').textContent = DATA.registryHash;
+  document.getElementById('meta-time').textContent = new Date(DATA.generatedAt).toLocaleString();
+}
+
+function renderSubjectBlocks() {
+  const host = document.getElementById('subject-blocks');
+  host.innerHTML = '';
+  DATA.subjects.forEach(s => {
+    const sm = s.summary;
+    const block = document.createElement('div');
+    block.className = 'subject-block';
+    block.innerHTML = `
+      <div class="subject-head">
+        <span class="dot" style="background:${subjectColor(s.id, DATA.subjects)}"></span>
+        <h3>${s.id}</h3>
+        <span class="os-tag">${s.os} ${sm.confidence === 'low-sample' ? '<span class=\"badge low\">low sample</span>' : ''}</span>
+      </div>
+      <div class="tile-grid">
+        <div class="tile"><div class="label">Decisive WR</div><div class="value">${pct(sm.decisiveWinRate)}</div><div class="sub">n=${sm.sampleSize}</div></div>
+        <div class="tile"><div class="label">Avg pace</div><div class="value">${num(sm.averageTurns)}</div><div class="sub">turns</div></div>
+        <div class="tile"><div class="label">Dmg/turn</div><div class="value">${num(sm.avgDamagePerTurnDealt)}</div><div class="sub">taken ${num(sm.avgDamagePerTurnTaken)}</div></div>
+        <div class="tile"><div class="label">Dead cards</div><div class="value">${pct(sm.deadCardRatio)}</div><div class="sub">pooled ratio</div></div>
+        <div class="tile"><div class="label">FTK rate</div><div class="value">${pct(sm.ftkRate)}</div><div class="sub">${sm.ftkCount} of ${sm.sampleSize}</div></div>
+        <div class="tile"><div class="label">Side bias</div><div class="value">${num(sm.sideBias, 2)}</div><div class="sub">first-mover edge ${signed(sm.firstMoverEdge, 2)}</div></div>
+      </div>
+      <div class="callout-row">
+        <div class="callout"><div class="k">Most used card</div><div class="v">${cardName(sm.mostUsedCard)}</div></div>
+        <div class="callout"><div class="k">Least used card</div><div class="v">${cardName(sm.leastUsedCard)}</div></div>
+        <div class="callout"><div class="k">Highest damage card</div><div class="v">${cardName(sm.highestDamageCard)}</div></div>
+        <div class="callout"><div class="k">Most used status</div><div class="v">${sm.mostUsedStatus}</div></div>
+      </div>
+    `;
+    host.appendChild(block);
+  });
+}
+
+function cardName(id) {
+  const c = cardMap().get(id);
+  return c ? c.name : id;
+}
+
+// ---- Cards table ----
+let cardSort = { key: 'staticScore', dir: -1 };
+function populateCardFilters() {
+  const sel = document.getElementById('card-filter-subject');
+  sel.innerHTML = '<option value="">all subjects</option>' + DATA.subjects.map(s => `<option value="${s.id}">${s.id}</option>`).join('');
+}
+function filteredCards() {
+  const subj = document.getElementById('card-filter-subject').value;
+  const cost = document.getElementById('card-filter-cost').value;
+  const q = document.getElementById('card-search').value.trim().toLowerCase();
+  return DATA.cards.filter(c => {
+    if (subj && c.subjectId !== subj) return false;
+    if (cost) {
+      if (cost === '3' && c.cost < 3) return false;
+      if (cost !== '3' && String(c.cost) !== cost) return false;
+    }
+    if (q && !(c.name.toLowerCase().includes(q) || c.cardId.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function renderCardTable() {
+  const rows = filteredCards().slice().sort((a, b) => {
+    const va = a[cardSort.key], vb = b[cardSort.key];
+    if (typeof va === 'string') return va.localeCompare(vb) * cardSort.dir;
+    return ((va ?? -Infinity) - (vb ?? -Infinity)) * cardSort.dir;
+  });
+  const tbody = document.getElementById('card-tbody');
+  tbody.innerHTML = rows.map(c => `
+    <tr class="${c.confidence === 'low-sample' ? 'row-muted' : ''}" title="${c.confidence === 'low-sample' ? 'Low sample: fewer than ' + lowSampleFloor() + ' plays, so the measured columns carry a wide error bar.' : ''}">
+      <td><span class="card-link" data-card="${c.cardId}-${c.subjectId}">${c.name}</span></td>
+      <td>${c.subjectId}</td>
+      <td class="num">${c.cost}</td>
+      <td class="num">${c.timesPlayed ?? '—'}</td>
+      <td class="num">${pct(c.playRate)}</td>
+      <td class="num">${pct(c.deadRate)}</td>
+      <td class="num">${num(c.avgDirectDamagePerPlay)}</td>
+      <td class="num">${num(c.staticScore)}</td>
+      <td class="num">${num(c.measuredScore)}</td>
+      <td class="num" style="color:${c.scoreDelta >= 0 ? 'var(--good-text)' : 'var(--status-critical)'}">${signed(c.scoreDelta)}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="10" style="color:var(--text-muted)">No cards match the current filters.</td></tr>';
+  attachCardTooltips();
+}
+function attachCardTooltips() {
+  const tip = document.getElementById('tooltip');
+  document.querySelectorAll('.card-link').forEach(el => {
+    el.addEventListener('mousemove', (e) => {
+      const [id, subj] = el.dataset.card.split('-').length > 1 ? [el.dataset.card.split('-')[0], el.dataset.card.split('-').slice(1).join('-')] : [el.dataset.card, ''];
+      const c = DATA.cards.find(x => x.cardId === id && x.subjectId === subj) || DATA.cards.find(x => x.cardId === id);
+      if (!c) return;
+      tip.innerHTML = `<div class="tt-name">${c.name}</div><div class="tt-meta">${c.cardId} · ${c.cost}e · ${c.element}</div><div class="tt-desc">${c.description}</div>`;
+      tip.style.display = 'block';
+      tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 300) + 'px';
+      tip.style.top = Math.min(e.clientY + 14, window.innerHeight - 120) + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('#card-table thead th[data-key]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      cardSort.dir = (cardSort.key === key) ? -cardSort.dir : -1;
+      cardSort.key = key;
+      renderCardTable();
+    });
+  });
+});
+
+// ---- Power divergence bar chart ----
+function renderPowerBars() {
+  const top = DATA.cards.slice().sort((a, b) => b.sampleSize - a.sampleSize).slice(0, 8);
+  const maxVal = Math.max(...top.map(c => Math.max(c.staticScore, c.measuredScore))) * 1.15;
+  const host = document.getElementById('power-bars');
+  host.innerHTML = top.map(c => `
+    <div class="bar-row">
+      <div class="name">${c.name} <span style="color:var(--text-muted)">(${c.subjectId})</span></div>
+      <div class="bar-track split">
+        <div class="bar-fill static" style="width:${(c.staticScore / maxVal * 100).toFixed(1)}%"></div>
+        <div class="bar-fill measured" style="width:${(c.measuredScore / maxVal * 100).toFixed(1)}%"></div>
+      </div>
+      <div class="bar-val">${num(c.staticScore)} / ${num(c.measuredScore)}</div>
+    </div>
+  `).join('');
+}
+
+// ---- Statuses table ----
+function renderStatusTable() {
+  const tbody = document.getElementById('status-tbody');
+  tbody.innerHTML = DATA.statuses.map(s => `
+    <tr>
+      <td>${s.name}</td>
+      <td>${s.subjectId}</td>
+      <td class="num">${num(s.avgStacksPerGame)}</td>
+      <td class="num">${num(s.avgApplicationsPerGame)}</td>
+      <td>${s.topSourceCards.join(', ')}</td>
+    </tr>
+  `).join('');
+}
+
+// ---- Matchups ----
+let expandedRow = null;
+function populateMatchupFilters() {
+  const sel = document.getElementById('matchup-filter-subject');
+  sel.innerHTML = '<option value="">all subjects</option>' + DATA.subjects.map(s => `<option value="${s.id}">${s.id}</option>`).join('');
+}
+function filteredMatchups() {
+  const subj = document.getElementById('matchup-filter-subject').value;
+  const q = document.getElementById('matchup-search').value.trim().toLowerCase();
+  return DATA.matchups.filter(m => {
+    if (subj && m.subject !== subj) return false;
+    if (q && !m.opponent.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function renderMatchupTable() {
+  const rows = filteredMatchups();
+  const tbody = document.getElementById('matchup-tbody');
+  tbody.innerHTML = rows.map(m => {
+    const flagBadges = (m.redlineFlags || []).map(f => `<span class="badge" style="border-color:var(--status-serious);color:var(--status-serious)">${f}</span>`).join(' ')
+      + (m.confidence === 'low-sample' ? ' <span class="badge low">low sample</span>' : '')
+      + (m.isMocked ? '' : '');
+    return `
+    <tr class="matchup-row" data-id="${m.id}">
+      <td class="expand-icon">▸</td>
+      <td>${m.opponent} <span style="color:var(--text-muted)">(${m.opponentOS})</span></td>
+      <td>${m.subject}</td>
+      <td class="num">${m.iterations}</td>
+      <td class="num">${pct(m.decisiveWinRate)}</td>
+      <td class="num">${num(m.averageTurns)}</td>
+      <td class="num">${pct(m.deadCardRatio)}</td>
+      <td class="num">${pct(m.enemyDeadCardRatio)}</td>
+      <td>${flagBadges}</td>
+    </tr>
+    <tr class="matchup-detail" data-detail-for="${m.id}"><td colspan="9">
+      <div class="detail-grid">
+        <div><div class="k">W / L / D</div><div class="v">${m.playerWins} / ${m.enemyWins} / ${m.draws}</div></div>
+        <div><div class="k">Winrate (raw)</div><div class="v">${pct(m.winRate)}</div></div>
+        <div><div class="k">First-mover edge</div><div class="v">${signed(m.firstMoverEdge, 2)}</div></div>
+        <div><div class="k">Side bias</div><div class="v">${num(m.sideBias, 2)}</div></div>
+        <div><div class="k">FTK / truncated</div><div class="v">${m.ftkCount} / ${m.truncatedCount}</div></div>
+        <div><div class="k">Dmg/turn dealt</div><div class="v">${num(m.avgDamagePerTurnDealt)}</div></div>
+        <div><div class="k">Dmg/turn taken</div><div class="v">${num(m.avgDamagePerTurnTaken)}</div></div>
+        <div><div class="k">Top cards this matchup</div><div class="v">${(m.topCardsThisMatchup || []).map(cardName).join(', ') || '—'}</div></div>
+        <div><div class="k">Top statuses this matchup</div><div class="v">${(m.topStatusesThisMatchup || []).join(', ') || '—'}</div></div>
+      </div>
+    </td></tr>
+  `; }).join('') || '<tr><td colspan="9" style="color:var(--text-muted)">No matchups match the current filters.</td></tr>';
+
+  tbody.querySelectorAll('tr.matchup-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const id = tr.dataset.id;
+      const detail = tbody.querySelector(`tr[data-detail-for="${id}"]`);
+      const icon = tr.querySelector('.expand-icon');
+      const nowOpen = !detail.classList.contains('open');
+      tbody.querySelectorAll('.matchup-detail.open').forEach(d => d.classList.remove('open'));
+      tbody.querySelectorAll('.expand-icon').forEach(i => i.textContent = '▸');
+      if (nowOpen) { detail.classList.add('open'); icon.textContent = '▾'; }
+    });
+  });
+}
+
+// ---- Redlines ----
+function renderRedlines() {
+  const groups = {};
+  DATA.redlines.forEach(r => { (groups[r.kind] = groups[r.kind] || []).push(r); });
+  const sevFor = (kind) => ({
+    CARD_OVER_BUDGET: 'serious', TURN_COUNT: 'warning', OS_GAP: 'serious',
+    FTK: 'critical', DEAD_CARD_HIGH: 'warning', POWER_DIVERGENCE: 'serious', LOW_SAMPLE: 'warning'
+  }[kind] || 'warning');
+  const host = document.getElementById('redline-groups');
+  host.innerHTML = Object.entries(groups).map(([kind, items]) => `
+    <div class="redline-group">
+      <h4><span class="status-icon ${sevFor(kind)}"></span>${kind} <span style="color:var(--text-muted);font-weight:400">(${items.length})</span>
+        ${items[0].isMocked ? '' : ''}</h4>
+      <ul class="redline-list">
+        ${items.map(r => `<li><strong>${r.subject}</strong> — <span class="metric-val">${r.metric} ${num(r.value, 2)} vs. threshold ${num(r.threshold, 2)} (${r.comparison})</span><br><span style="color:var(--text-secondary)">${r.detail}</span></li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+// ---- Appendix ----
+function renderAppendix() {
+  const host = document.getElementById('appendix-blocks');
+  host.innerHTML = DATA.subjects.map(s => {
+    const cards = DATA.cards.filter(c => c.subjectId === s.id);
+    return `
+    <details class="appendix-block" open>
+      <summary>${s.id} — ${s.species} / ${s.os}</summary>
+      <div class="os-desc"><strong>OS:</strong> ${s.osFirmwareDescription}</div>
+      <div class="os-desc"><strong>Archetype:</strong> ${s.archetypeSummary}</div>
+      <div class="mini-cards">
+        ${cards.map(c => `
+          <div class="mini-card">
+            <div class="mc-name">${c.name} <span style="color:var(--text-muted);font-weight:400">${c.cost}e</span></div>
+            <div class="mc-meta">${c.cardId} · ${c.element} · static ${num(c.staticScore)}</div>
+            <div class="mc-desc">${c.description}</div>
+          </div>
+        `).join('')}
+      </div>
+    </details>
+  `; }).join('');
+}
+
+function renderAll() {
+  renderHeader();
+  renderSubjectBlocks();
+  populateCardFilters();
+  renderCardTable();
+  renderPowerBars();
+  renderStatusTable();
+  populateMatchupFilters();
+  renderMatchupTable();
+  renderRedlines();
+  renderAppendix();
+}
+
+['card-filter-subject','card-filter-cost','card-search'].forEach(id =>
+  document.getElementById(id) && document.getElementById(id).addEventListener('input', renderCardTable));
+['matchup-filter-subject','matchup-search'].forEach(id =>
+  document.getElementById(id) && document.getElementById(id).addEventListener('input', renderMatchupTable));
+
+document.getElementById('json-loader').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      DATA = JSON.parse(reader.result);
+      document.getElementById('loader-status').textContent = `Loaded ${file.name}`;
+      renderAll();
+    } catch (err) {
+      document.getElementById('loader-status').textContent = `Failed to parse ${file.name}: ${err.message}`;
+    }
+  };
+  reader.readAsText(file);
+});
+
+renderAll();
+</script>
+</body>
+</html>
