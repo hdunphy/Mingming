@@ -1,7 +1,7 @@
 # Ymir decks (ticket 50) — Ice completes: the wall is the weapon
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee:
 - Blocked by: [48-draugr-decks](48-draugr-decks.md) (closed)
 
@@ -445,3 +445,101 @@ endings were converted.
 One commit, author `Henry Dunphy <hdunphy15@gmail.com>` via
 `git -c user.name=... -c user.email=... commit --author=...`. Never stage `package-lock.json` or
 `node_modules`. Git locks that cannot be unlinked go to `_to_delete/git-locks/`.
+
+---
+
+## Resolution
+
+**Shipped, first try, no knob rounds used.** Commit `<HASH>`, registryHash `1:6b38742e`, redlines
+**43 → 42**.
+
+### Gates (§10)
+
+| gate | baseline | shipped | verdict |
+|---|---|---|---|
+| **`mirror:ymir` avg turns** | **60.0** | **14.06** | ✓ **TURN_COUNT redline closed** |
+| **`mirror:ymir` decided** | **72/400 (18%)** | **400/400 (100%)** | ✓ 328 draws → **0** |
+| **§2.3 `os:ymir`** | **0.030** | **0.620** | ✓ **OS_GAP redline closed** |
+| `os:ymir` avg turns | 45.1 | 10.72 | ✓ (4 truncated → 0) |
+| `gauntlet:control-vs-ymir:ymir_v1` | 0.000, 18.4 turns | 0.000, **7.5 turns** | ✓ reported |
+| `gauntlet:control-vs-ymir:ymir_v2` | 0.000, 15.3 turns | 0.000, **6.5 turns** | ✓ reported |
+| dead cards per side | 0.000 / 0.000 | see below | ✓ under 0.35 |
+| FTK | 0 | **0** | ✓ |
+| `flash_freeze` | 5.5 / 3.0 | **6.5 / 6.5** | ✓ **redline closed** |
+
+**The control rows stayed at 0.000 and the turn counts halved.** §10 called that a pass provided the
+mirror closed, and it did. What changed is not whether Ymir wins but *how long it takes* — 18.4 → 7.5
+turns. The species was never weak; it could not finish, and now it can.
+
+**Dead cards, the one number worth watching:** ymir_v2 reads **0.354 against the control**, right on
+the 0.35 bar, while sitting at 0.277 in §2.3 and 0.076 in the mirror. It is the honest consequence of
+§9's curve — **no 0-cost cards at all**, so a 3-card draw on 2 Energy leaves something rotting in
+short games, and the control games are now 6.5 turns. Not a breach, but the first knob to reach for
+if it drifts.
+
+### The design measures as designed
+
+- **`avalanche` casts at a median of 8.7 BarkShield stacks** (mean 8.98, min 3.0, max **19.8**, n=241)
+  — §4 predicted 7–10. It plays **3.01 times a game for 20.2 damage a play**, which is 8.7 × 9 ≈ 78
+  power converting at the expected rate.
+- **Standing BarkShield at the start of Ymir's turn: 6.47 stacks mean.** The §3 table's steady state
+  of 25 is the *unhit* ceiling; under fire it settles near 6.5, which means the shield is being spent
+  as ammunition rather than hoarded. **`onTurnStart` was the right call** — at turn end this would
+  read near zero and `avalanche` would be a dead card.
+- `frost_ward` 5.21 plays/game — the 0e feeder runs every turn it can.
+- The fractional-stack floor mattered: casts land on values like 8.7 and 19.8 before flooring.
+
+### Card scores — all seven matched the ticket's Python port EXACTLY, zero deltas
+
+`frost_ward` 1.10, `rimeguard` 3.00, `thaw` 3.10, `avalanche` 2.70 (a floor, not a price — realistic
+cast is ~78 power), `bracing_cold` 2.90, `glacial_maul` 6.50, `flash_freeze` 6.50.
+
+### Redline ledger, 43 → 42
+
+**Closed (3):** `TURN_COUNT mirror:ymir` (60.0), `OS_GAP os:ymir` (0.469 gap), `CARD_OVER_BUDGET
+flash_freeze` (5.5).
+**Added (2), both the deliberate +0.1s from §8:** `frost_ward` 1.1, `thaw` 3.1.
+
+**Ice's three standing "stop the game sold at half price" card redlines are now two-thirds closed** —
+`glacier_wall` (ticket 48) and `flash_freeze` (here). `glacial_slam` remains 0.5 over at 7.0, accepted
+in ticket 48 §5 because Stun's 55-power price leaves no seat on the 2e band for a Stun card that also
+does anything.
+
+### Blast radius (§11)
+
+- **Draugr's rows are byte-identical** — `mirror:draugr` 6.66 turns / 400 decided, `os:draugr` 0.530,
+  control 0.000 / 0.070. `ice_spear` and `numbing_gale` are shared but unchanged, and `flash_freeze`
+  is in no draugr deck.
+- **No committed card score outside this ticket moved.** `BARKSHIELD_STACKS` is additive and no
+  existing card used it.
+- **The gauntlet aggregates' win rates did not move at all** (slot 1 stays 0.185, slot 2 0.321) —
+  only their turn counts and dead-card ratios did, because ymir was already at 0.000 in both slots.
+  Contrast ticket 48, where draugr's swing moved slot 1 by five points.
+
+### Findings that outlive ymir
+
+1. **`shatter` is structurally dead and no card change fixes it (§6).** `StunnedBehavior.endTurn`
+   always returns `null`, and the end-of-turn loop processes the *active* side, so a Stun applied on
+   turn T is gone before the applier's turn T+1. Any "+damage if the target is Stunned" payoff must
+   be cast **in the same turn as the stun**, which after ticket 48 costs 2e + 1e = 3 Energy. No Ice
+   species has that. Left in the registry as a drop-only card; the fix, if ever wanted, is a 0-cost
+   payoff, not a re-cost.
+2. **`maxCardsPerTurn` is inert whenever it equals the energy cap (§5).** At 2 Energy with no 0-cost
+   cards, 2 cards a turn is already the maximum, so GLACIAL_PACE's "drawback" cost nothing and its
+   +35% was being paid for by nothing — which is exactly why v2 won 97% of decided games against v1
+   on an identical deck. Softened to **+25%** and priced as the pure bonus it is. **The cap stays as a
+   guard against a future 0e-heavy build.** Generalises: a card-count cap is only a cost if the deck
+   can actually play more cards than it.
+3. **A shield granted at end of turn is worth nothing to a shield-payoff deck.** It is eaten before
+   the owner acts. `onTurnStart` is the trigger for anything a card is supposed to read.
+4. **BarkShield stacks are fractional** (`shieldPercent − absorbedPercent`, then ×0.8 decay). Any
+   scaler reading them must floor, or it reproduces ticket 36's fractional-product bug.
+
+### Left open
+
+- **ymir_v2's dead cards at 0.354 vs the control** — on the bar, caused by having no 0-cost cards.
+- **`glacial_slam` still 0.5 over** at 7.0.
+- **Both ymir slots still beat the control 100/100.** Ymir is at the strong extreme of the roster, and
+  the +25% GLACIAL_PACE knob is the obvious lever for a later polish pass — §10 explicitly deferred it.
+- **v1 and v2 did NOT converge into the same deck** (§13's risk): 0.620 with distinct turn counts and
+  dead-card profiles. The huldra_v2 adjacency §3 warned about did not materialise either.

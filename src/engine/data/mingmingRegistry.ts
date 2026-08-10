@@ -442,12 +442,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Ice",
         secondaryElement: "None",
-        cardDraw: 2,
+        // Ticket 50: 2 -> 3. At draw 2 the hand size WAS the constraint GLACIAL_PACE's
+        // maxCardsPerTurn was supposed to be, so "play what you drew" was the only line.
+        // At 3 it becomes "pick 2 of 3" - card pressure, not an energy trade (see §5).
+        cardDraw: 3,
         availableOS: ["ymir_v1", "ymir_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 50 (Henry's design): ICE COMPLETES. Ymir was never weak - it was unkillable
+        // and could not kill, a 60-turn mirror at 72/400 decided.
+        // v1 GLACIER_HEART_SYS - the wall IS the weapon. 5 BarkShield at TURN START (not end:
+        //    a shield granted at end of turn is eaten before he acts, and `avalanche` would read
+        //    zero), self-capping at 5x the grant through the 20%/turn decay. `avalanche` casts
+        //    the standing pile off as damage without consuming it.
+        // v2 GLACIAL_PACE - two big cards a turn. NO 0-cost cards, and no neutral tier at all:
+        //    a None-element card gets neither STAB nor the Ice bonus, so it is worth ~40% less
+        //    here than the same card in Ice. Deliberate deviation from the ticket-04 three-tier
+        //    rulebook, same shape as draugr_v2.
         decks: {
-            "ymir_v1": ["ice_spear", "ice_spear", "shatter", "shatter", "glacial_slam", "flash_freeze", "flash_freeze", "cold_snap", "glacier_wall", "glacier_wall"],
-            "ymir_v2": ["ice_spear", "ice_spear", "shatter", "shatter", "glacial_slam", "flash_freeze", "flash_freeze", "cold_snap", "glacier_wall", "glacier_wall"]
+            "ymir_v1": ["frost_ward", "frost_ward", "rimeguard", "rimeguard", "thaw", "ice_spear", "ice_spear", "avalanche", "avalanche", "flash_freeze"],
+            "ymir_v2": ["bracing_cold", "bracing_cold", "thaw", "ice_spear", "ice_spear", "numbing_gale", "numbing_gale", "glacial_maul", "glacial_maul", "glacial_slam"]
         },
         moves: [
             {

@@ -382,6 +382,10 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // FLOOR caveat applies - draugr_v2's realistic count at cast is 3, which is what
             // ASSUMED_STATUS_COUNT happens to be. Coincidence, not derivation.
             else if (action.scaling === 'DISTINCT_STATUS') power *= ASSUMED_STATUS_COUNT;
+            // Ticket 50: BARKSHIELD_STACKS reads the SOURCE's own shield, which static analysis
+            // cannot see either. Same FLOOR caveat - avalanche's realistic cast is 7-10 stacks
+            // (GLACIER_HEART's 5 plus survivors), not the 3 this assumes.
+            else if (action.scaling === 'BARKSHIELD_STACKS') power *= ASSUMED_STATUS_COUNT;
 
             actionScore = (power / 10.0) * ACTION_WEIGHTS['ATTACK'];
         } else if (action.type === 'HEAL') {

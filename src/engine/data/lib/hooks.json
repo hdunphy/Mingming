@@ -757,23 +757,26 @@
     },
     "ymir_v1": {
         "id": "ymir_v1",
-        "name": "RIME_HEART_SYS",
-        "description": "Enemies that deal damage to the Jötunn automatically receive 1 stack of Weakened.",
+        "name": "GLACIER_HEART_SYS",
+        "description": "At the start of Ymir's turn, it gains 5 Bark Shield.",
         "hooks": [
             {
                 "id": "ymir_v1_hook",
-                "trigger": "onPostDamage",
+                "trigger": "onTurnStart",
                 "priority": 40,
                 "when": {
-                    "target": "SELF",
-                    "source": "OPPONENT"
+                    "source": "SELF"
                 },
                 "do": [
                     {
                         "type": "STATUS",
-                        "target": "SOURCE",
-                        "status": "Weakened",
-                        "stacks": 1
+                        "target": "SELF",
+                        "status": "BarkShield",
+                        "stacks": 5
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s GLACIER_HEART thickens. +5 Bark Shield."
                     }
                 ]
             }
@@ -783,7 +786,7 @@
         "id": "ymir_v2",
         "name": "GLACIAL_PACE_OS",
         "maxCardsPerTurn": 2,
-        "description": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 35% more base damage.",
+        "description": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 25% more base damage.",
         "hooks": []
     },
     "draugr_v1": {

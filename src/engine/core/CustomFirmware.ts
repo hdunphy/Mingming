@@ -201,8 +201,17 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             priority: 40,
             onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
                 if (context.source?.id === owner.id && context.program?.element === 'Ice') {
-                    // Ice cards deal 35% more base damage (ticket 09: softened from 50%)
-                    return currentDamage + Math.floor(currentDamage * 0.35);
+                    // Ice cards deal more base damage. Ticket 09 softened 50% -> 35%; ticket 50
+                    // takes it to 25%, because the `maxCardsPerTurn: 2` drawback that was meant
+                    // to pay for it is INERT: at 2 Energy with no 0-cost cards the most Ymir can
+                    // play in a turn is already 2, so the cap never binds. That is why v2 won 97%
+                    // of 96 decided games against v1 on an identical deck. The cap stays as a
+                    // guard against a future 0e-heavy build; the multiplier is priced as the pure
+                    // bonus it actually is.
+                    //
+                    // NOTE: powerscale cannot see this - it is firmware, not card data - so every
+                    // Ice card in ymir_v2 is worth 25% more than its printed score says.
+                    return currentDamage + Math.floor(currentDamage * 0.25);
                 }
                 return currentDamage;
             }

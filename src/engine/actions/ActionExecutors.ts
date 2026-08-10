@@ -78,6 +78,18 @@ export function getEffectiveAttackPower(
         ).size;
         return power * distinct;
     }
+    if (action.scaling === 'BARKSHIELD_STACKS') {
+        // Ticket 50: reads the SOURCE's own standing BarkShield - avalanche casts the wall at
+        // them. Uncapped, per Henry's law that per-stack scalers should underperform early and
+        // overperform late; the 20%/turn decay and incoming damage already bound the pile.
+        //
+        // FLOOR IS LOAD-BEARING. BarkShield stacks are FRACTIONAL: onPostDamage stores
+        // `shieldPercent - absorbedPercent` and the end-of-turn decay multiplies by 0.8, so a
+        // live shield is routinely 7.36 stacks. Without the floor this reproduces ticket 36's
+        // fractional-product bug, which put 22.5 HP of damage into an entity.
+        const shield = source.statusEffects.find(s => s.type === 'BarkShield')?.stacks || 0;
+        return power * Math.floor(shield);
+    }
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
         return power + 5 * sharpStacks;

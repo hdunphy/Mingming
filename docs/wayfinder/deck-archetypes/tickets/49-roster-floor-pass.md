@@ -3,9 +3,9 @@
 - Type: wayfinder:task
 - Status: **open** — this is a backlog record, not an implementation. Nothing here has been actioned.
 - Assignee:
-- Blocked by: the ymir deck pass, then [50-cleanse-rework](50-cleanse-rework.md) — ticket 50 changes
+- Blocked by: the ymir deck pass, then [51-cleanse-rework](51-cleanse-rework.md) — ticket 51 changes
   the control deck, so every control number below is re-read after it lands. Henry's sequencing:
-  ymir → 50 → this.
+  ymir → 51 → this.
 
 *Every number below was read from the committed report at **`cfa4306`, registryHash `1:4d47138a`** —
 the first run in which the gauntlet measured both firmwares (ticket 47 §"The gauntlet only ever
@@ -95,13 +95,13 @@ per-side 0.35 bar should become an actual redline.
 
 ## 4. Henry's open question: is the control's cleanse inflating its wins?
 
-**LARGELY SUPERSEDED by [ticket 50](50-cleanse-rework.md)** — Henry's answer was to remove the
+**LARGELY SUPERSEDED by [ticket 51](51-cleanse-rework.md)** — Henry's answer was to remove the
 confound rather than measure it: `baseline_purge`'s CLEANSE becomes a Poison/Burn shed, and cleanse
-stops being printable on any card. **Run the before/after per-deck comparison anyway** when 50 lands;
+stops being printable on any card. **Run the before/after per-deck comparison anyway** when 51 lands;
 it is the same measurement and it finally quantifies how much of this floor was cleanse. The
 reasoning below is why that question was worth asking, and it stands.
 
-**Raised by Henry, not yet measured. Do not tune any deck against a control number until 50 lands.**
+**Raised by Henry, not yet measured. Do not tune any deck against a control number until 51 lands.**
 
 `baseline_purge` (2e, 30 power + CLEANSE) went into the control in ticket 45, deliberately at 2 Energy
 so it would be "a real answer at a real price" rather than a hard counter to poison. Ticket 47 found
