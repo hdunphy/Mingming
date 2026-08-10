@@ -31,7 +31,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Asleep',
         icon: '💤',
         description:
-            'Cannot act. Always applied at 3 stacks (reapplying resets it to 3), loses 1 stack per turn, and taking any damage wakes the sleeper; waking grants 1 turn of StableOS.',
+            'Cannot act. Always applied at 3 stacks (reapplying resets it to 3), and loses 1 stack per turn AND 1 stack per incoming attack - so three hits break it, absorbed ones included. Statuses and damage-over-time do not. Waking grants 1 turn of StableOS.',
     },
     Weakened: {
         name: 'Weakened',

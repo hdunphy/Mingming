@@ -1,7 +1,7 @@
 # Draugr decks (ticket 48) — a Mingming that fights in its sleep
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee:
 - Blocked by: none
 
@@ -615,3 +615,123 @@ trailing newline. Surgical edits only — a whole-file diff means the line endin
 One commit, author `Henry Dunphy <hdunphy15@gmail.com>` via
 `git -c user.name=... -c user.email=... commit --author=...`. Never stage `package-lock.json` or
 `node_modules`. Git locks that cannot be unlinked go to `_to_delete/git-locks/`.
+
+---
+
+## Resolution
+
+**Shipped.** Commit `<HASH>`, registryHash `1:5fa91002`, redlines **44 → 43**.
+
+### Gates (§8)
+
+| gate | baseline | shipped | verdict |
+|---|---|---|---|
+| `gauntlet:control-vs-draugr:draugr_v1` | 0.790 | **0.000** | ✓ (fail was ≥0.60) |
+| `gauntlet:control-vs-draugr:draugr_v2` | 0.770 | **0.070** | ✓ |
+| §2.3 `os:draugr` | 0.510 | **0.530** | ✓ in band |
+| `mirror:draugr` avg turns | **42.06** | **6.66** | ✓ **TURN_COUNT redline closed** |
+| `mirror:draugr` decided | 397/400 | **400/400** | ✓ |
+| dead cards per side (§2.3 / mirror) | 0.001 / 0.002 | 0.149 / 0.088, 0.242 / 0.241 | ✓ under 0.35 |
+| FTK | 0 | **0** | ✓ |
+
+The old ~0% dead-card figures were an artifact of games that never ended — in 42 turns every card
+eventually gets played. The new numbers are what a deck that finishes actually looks like.
+
+### The design measures as specified
+
+- **Asleep on 65.1% of his turns**; PERMAFROST_WAKE procs **2.77/game** (design assumed ~50% and ~3).
+- `nightmare` **2.98 casts/game asleep for 19.9 damage a play**, against 0.62 casts awake for 6.5.
+  The card is doing exactly the job it was printed for.
+- `grave_rest` 6.5 plays/game, `deathless_slumber` 2.73 — the sleep loop runs every turn it can.
+- `rimebreaker` **2.60 plays/game at 16.1 damage**, distinct-at-cast **median 2, mean 2.37** — the
+  design assumed 3. It is priced at `ASSUMED_STATUS_COUNT` = 3, so **the card is charged for a board
+  draugr_v2 does not reliably build.** Left as-is (it is the deck's only clock and already the
+  weaker deck), recorded for the ymir/Ice polish pass.
+
+### Card scores — all 13 matched the ticket's Python port EXACTLY, zero deltas
+
+Then two shipped changes moved two of them (below). Over-band on purpose: `dread_tidings` 3.20 (+0.2,
+§4), `rimebreaker` 7.50 (+1.0, §4), `glacial_slam` 7.00 (+0.5, §5 — down from 8.4). `glacier_wall`
+5.40 → **2.90**, redline closed. `flash_freeze` stays at 5.50 as §5 predicted; it is ymir's.
+
+### Two adjustment rounds, and the first one was a measured no-op
+
+**Round 1 — knob 1 (Asleep discount 0.5 → 0.6, `nightmare` 70 → 55): §2.3 unchanged at 0.990, field
+0.778 → 0.720.** Not shipped. The ticket's own first knob moved the gate by zero.
+
+**The diagnosis the knobs would never have found:** §2.3 read **0.990** on the first run — v1 crushing
+v2, the opposite of the skew §8 warned about. A field round robin (ticket 47's rule: field first,
+direction second) said this was a real power gap and not a counter — **v1 0.778 against the field,
+v2 0.356** — and named the cause by isolation:
+
+| `deathless_slumber`'s defensive clause | §2.3 | v1 vs field |
+|---|---|---|
+| full CLEANSE, as designed | 0.990 | 0.778 |
+| knob 1 instead (nightmare re-price) | 0.990 | 0.720 |
+| partial shed, −2 of four debuffs | 0.830 | 0.605 |
+| removed entirely | 0.630 | 0.573 |
+
+**One clause on one card was worth 36 points of §2.3 and 20 points of field; the ticket's first knob
+was worth 6 and 0.** And look at *which* decks v1 was beating: huldra 1.00, hel 0.98, nidhoggr 0.96,
+ratatoskr 0.84 — every status deck in the roster. Statuses cannot wake him, so he cleansed on a clock
+the opponent had no way to interrupt.
+
+**This is the third independent confirmation in three tickets that a full cleanse is a SWITCH, not a
+dial** — ticket 45 priced the control's at 2 Energy for this reason, ticket 47 measured `purify`
+swinging ratatoskr 0.21 → 0.65, and here it is 0.99 → 0.63.
+
+**Round 2, Henry's calls:** `deathless_slumber`'s CLEANSE → a partial shed (−2 Weakened, Dazed,
+Poison, Burn), which prices at exactly **3.00 / 3.0** because ticket 47's removal cap bounds it; and
+knob 3, `grave_rest`'s heal **30 → 15** (20 measured 0.710, one point outside the band).
+
+### Deviations from the ticket
+
+- **`deathless_slumber` is a partial shed, not a CLEANSE** (§4). Henry's call after the isolation above.
+- **`grave_rest` heals 15, not 30** (knob 3). It now scores **0.00 against a 0.8–1.0 band** — and it is
+  the most-played card in the deck at 6.5 plays a game. That is `ASLEEP_SELF_POWER`'s documented
+  caveat biting from the other side: the card's real value is the STANCE, which powerscale prices at
+  a flat −1.1 and cannot see the payoff of. **Do not "fix" this by buffing the heal.**
+- **The 0.5 Asleep-conditional discount is unchanged**, and the measurement says it is wrong: he is
+  asleep **65.1%** of his turns, not the ~50% the discount assumes, so `nightmare` and `barrow_rot`
+  are under-charged as printed. Henry's call to leave it and record the number rather than re-price
+  two cards mid-ticket for no measured balance gain.
+- **One test fixture moved.** `runBatch.test.ts` used `mirrorScenario('draugr')` as its *stalemate*
+  fixture — three tests asserting that a runner terminates on a mirror that never ends. Draugr now
+  ends its mirror in 6.7 turns, so the fixture is retired to `STALEMATE_SPECIES = 'audhumbla'` with a
+  comment saying that when this breaks again, the deck got better.
+
+### Blast radius (§9)
+
+- **ymir moved, as predicted, and moved further than expected.** Both re-costs are in its placeholder
+  decks. `mirror:ymir` **392 → 328 draws** and its `MIRROR_WIN_RATE` redline **closed**; `os:ymir`
+  went from 63 truncated / 37 decided to **4 truncated / 96 decided**, 0.000 → 0.031. **Cutting
+  `glacier_wall` from 15 to 8 BarkShield is a large part of what was stalling ymir.** Reported, not
+  tuned — ymir is the next ticket.
+- **No committed card score outside this ticket moved.** Verified structurally: only the six ticket
+  cards use a self-facing Asleep, an Asleep-only conditional, or `DISTINCT_STATUS`.
+- **The control's aggregate fell** — pooled 0.301 → 0.254, slot 1 **0.235 → 0.185**, slot 2 0.367 →
+  0.323 — entirely because draugr stopped being a free win for it. Worth stating as a general fact:
+  **the floor aggregate is measured against a moving roster, so it drops every time a placeholder
+  gets a real deck.** Ticket 45's 0.237 calibration is not wrong; it is dated.
+
+### Redline ledger, 44 → 43
+
+**Closed (3):** `TURN_COUNT mirror:draugr` (42.1 — the ticket's target), `CARD_OVER_BUDGET
+glacier_wall` (5.4), `MIRROR_WIN_RATE mirror:ymir` (0.625).
+**Added (2), both deliberate:** `dread_tidings` 3.2, `rimebreaker` 7.5.
+**Improved but still lit (3):** `glacial_slam` 8.4 → 7.0, `os:ymir` 0.500 → 0.469, `mirror:ymir`
+60.87 → 59.98.
+
+766/766 tests, `tsc --noEmit` and `vite build` clean.
+
+### Left open
+
+- **draugr_v1 is at 0.573 against the field** (ratatoskr_v1 is 0.469) and both decks beat the control
+  ~100%. Draugr went from one of the roster's weakest species to one of its strongest. Every §8 gate
+  passes and the first pass is a gate rather than a deep tune, so it ships — logged in ticket 49.
+- **draugr_v2 at 0.356** loses 0.00–0.06 to sleipnir, sköll, huldra and nidhoggr while beating the
+  control 0.93. A weak-but-real deck; knob 5 (`rimebreaker` 25 → 30) was left unused.
+- **`rimebreaker` is priced for 3 distinct debuffs and gets 2.37.**
+- **`grave_rest` scores 0.00** and is the deck's most-played card — a pricing blind spot, not a weak card.
+- **The MOVES/intents asymmetry from §3.3 stands:** `handleExecuteIntent` still blocks a sleeping
+  unit, so a Draugr on intents will not act in its sleep.

@@ -480,10 +480,21 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["draugr_v1", "draugr_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 48 (Henry's design): Draugr sleeps ON PURPOSE.
+        // v1 PERMAFROST_WAKE - `actsWhileAsleep` turns Asleep from a lost turn into a STANCE he
+        //    pays a card to enter, and the payoff cards read "+N power if you are Asleep". The
+        //    enemy takes the stance away by hitting him (Asleep now loses a stack per incoming
+        //    attack), and the wake pays 1 Energized and a card. That makes a two-turn rhythm:
+        //    a SLEEP turn on 2 energy (grave_rest -> nightmare, 100 power) and an AWAKE turn on
+        //    3 where StableOS blocks re-sleeping and barrow_king lands - the only 3-cost in Ice,
+        //    castable only because the wake banks the energy.
+        // v2 GRAVE_CHILL_OS - unrelated, and unchanged since ticket 12: enemies carrying 2+
+        //    DISTINCT debuffs deal 20% less to Draugr. Fed with cheap variety and cashed by
+        //    rimebreaker, which scales on the same distinct count - so the firmware and the win
+        //    condition want the identical board.
         decks: {
-            "draugr_v1": ["frost_jab", "frost_jab", "ice_spear", "ice_spear", "shatter", "cold_snap", "cold_snap", "hoarfrost", "winters_grasp", "glacier_wall"],
-            "draugr_v2": ["frost_jab", "frost_jab", "ice_spear", "ice_spear", "shatter", "cold_snap", "cold_snap", "hoarfrost", "winters_grasp", "glacier_wall"]
+            "draugr_v1": ["grave_rest", "grave_rest", "barrow_rot", "deathless_slumber", "dread_tidings", "dread_tidings", "glacier_wall", "ice_spear", "nightmare", "nightmare", "barrow_king"],
+            "draugr_v2": ["rimefrost", "rimefrost", "water_slap", "frost_bite", "numbing_gale", "killing_frost", "ice_spear", "glacial_slam", "rimebreaker", "rimebreaker"]
         },
         moves: [
             {

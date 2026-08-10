@@ -789,7 +789,8 @@
     "draugr_v1": {
         "id": "draugr_v1",
         "name": "PERMAFROST_WAKE",
-        "description": "Whenever a Draugr recovers from the Asleep status or is revived, it gains 3 strength.",
+        "actsWhileAsleep": true,
+        "description": "Draugr can act while Asleep. Whenever it wakes from Asleep or is revived, it gains 1 Energized and draws a card.",
         "hooks": [
             {
                 "id": "draugr_v1_wake",
@@ -803,12 +804,17 @@
                     {
                         "type": "STATUS",
                         "target": "SELF",
-                        "status": "Strengthened",
-                        "stacks": 3
+                        "status": "Energized",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "DRAW",
+                        "target": "SELF",
+                        "amount": 1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s PERMAFROST_WAKE activates! Gain 3 Strengthened."
+                        "text": "{owner} stirs from the barrow! +1 Energy next turn, draw 1."
                     }
                 ]
             }

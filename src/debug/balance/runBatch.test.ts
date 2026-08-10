@@ -21,6 +21,15 @@ import type { ComposedSetup } from '../scenarios/scenarioSchema';
 /** Fenrir's mirror resolves in two or three turns, so batches here are cheap. */
 const scenario: ComposedSetup = mirrorScenario('fenrir');
 
+/**
+ * A species whose mirror genuinely never finishes, used as the stalemate fixture below.
+ * `audhumbla` is an untuned placeholder sitting on a 61-turn mirror redline. When its deck
+ * pass lands this will start deciding games and three tests will go red - repoint it at
+ * whatever still stalls, or build a synthetic never-ending setup. (Ticket 48 retired `draugr`
+ * from this role by giving it decks that actually kill.)
+ */
+const STALEMATE_SPECIES = 'audhumbla';
+
 /** Keep the engine's per-kill logging out of the test reporter. */
 function quiet<T>(fn: () => T): T {
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -51,10 +60,14 @@ describe('runOne', () => {
     });
 
     it('always terminates, and reports a turn count within the cap', () => {
-        // Two ice decks that cannot finish each other off - the case that hangs a runner
-        // with no turn cap. `draugr`'s mirror stalls for the full 60 turns in the balance
-        // suite, so this is the real stalemate, not a contrived one.
-        const stalemate = mirrorScenario('draugr');
+        // Two decks that cannot finish each other off - the case that hangs a runner with no
+        // turn cap. `STALEMATE_SPECIES` is a real stalling mirror from the balance suite rather
+        // than a contrived one, which is the point and also the fragility: when that species
+        // gets a deck pass the fixture stops stalling and these three tests go red. That is the
+        // deck improving, not the runner breaking. Repoint it at whatever still stalls.
+        //
+        // It was `draugr` until ticket 48 gave it real decks and closed its 42-turn mirror.
+        const stalemate = mirrorScenario(STALEMATE_SPECIES);
         const result = quiet(() => runOne(stalemate, 'stall', 8));
 
         expect(result.truncated).toBe(true);
@@ -136,7 +149,7 @@ describe('runBatch', () => {
 
     it('scores a stalemate as draws, not as a loss for either side', () => {
         const batch = quiet(() =>
-            runBatch(mirrorScenario('draugr'), { iterations: 4, maxTurns: 6 }),
+            runBatch(mirrorScenario(STALEMATE_SPECIES), { iterations: 4, maxTurns: 6 }),
         );
 
         expect(batch.draws).toBe(batch.iterations);
@@ -170,7 +183,7 @@ describe('runPairedBatch', () => {
 
     it('reports no edge and no bias when nothing was decided', () => {
         const paired = quiet(() =>
-            runPairedBatch(mirrorScenario('draugr'), { iterations: 3, maxTurns: 6 }),
+            runPairedBatch(mirrorScenario(STALEMATE_SPECIES), { iterations: 3, maxTurns: 6 }),
         );
 
         expect(paired.pooled.decisive).toBe(0);

@@ -126,9 +126,24 @@ export function validateProgramConstraints(
     cost: number
 ): boolean {
 
+    // Ticket 48: PERMAFROST_WAKE lets Draugr act in its sleep. The `not_asleep` constraint stays
+    // PRINTED on all 171 cards - Asleep still shuts down everyone else - and the OS waives that one
+    // check for its owner. Deliberately NOT done by stripping `not_asleep` from Draugr's cards:
+    // that would let any species holding one of them act while slept.
+    //
+    // There is no other Asleep gate on this path. The incapacitation check in `handleExecuteIntent`
+    // is the enemy-INTENT path, so a Draugr running MOVES will still not act asleep. Recorded, not
+    // fixed: the balance suite runs CARDS on both sides.
+    const waivesAsleep = source.activeOS
+        ? getOSBehavior(source.activeOS)?.actsWhileAsleep === true
+        : false;
+
     // 2. Custom Constraints
     if (program.constraints) {
         for (const constraint of program.constraints) {
+            if (waivesAsleep && constraint.type === 'NOT_STATUS' && constraint.value === 'Asleep') {
+                continue;
+            }
             const subject = constraint.target === 'SELF' ? source : target;
             if (!subject) {
                 // If it requires a target and no target is selected? 

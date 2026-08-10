@@ -12,6 +12,14 @@ export interface OSDefinition {
     hooks: HookDefinition[];
     /** Per-unit cap on cards played each turn (e.g. GLACIAL_PACE_OS: 2). Undefined = unlimited. */
     maxCardsPerTurn?: number;
+    /**
+     * Ticket 48: the owner may play cards while Asleep (draugr_v1 PERMAFROST_WAKE).
+     *
+     * The `not_asleep` constraint stays PRINTED on every card - this waives that one check for
+     * this OS's owner only, so Asleep still shuts down everyone else and a card cannot become
+     * castable-while-asleep for whoever happens to draft it.
+     */
+    actsWhileAsleep?: boolean;
 }
 
 export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {};
@@ -52,7 +60,8 @@ function initFirmwareHooks() {
                 name: data.name || 'CUSTOM_OS',
                 description: data.description || 'Custom Firmware',
                 hooks,
-                maxCardsPerTurn: data.maxCardsPerTurn
+                maxCardsPerTurn: data.maxCardsPerTurn,
+                actsWhileAsleep: data.actsWhileAsleep
             };
             hooks.forEach((hook: any) => registerHook(hook));
         }

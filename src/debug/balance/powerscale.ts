@@ -199,6 +199,17 @@ const BURN_OVERFLOW_POWER_PER_STACK = 3;
 const ENERGIZED_POWER_PER_STACK = 35;
 const STUNNED_POWER = 55;
 const ASLEEP_POWER = 45;
+/**
+ * Ticket 48: self-applied Asleep is NOT the enemy-facing effect. The sleeper keeps their turn,
+ * their energy and their draw; all they lose is access to cards carrying `not_asleep`. Priced at
+ * a tenth of the enemy-facing rate.
+ *
+ * CAVEAT, same class as `brute_force`'s OS-guaranteed conditional (HANDOFF item 8): this price
+ * assumes the deck can act while asleep. For a deck that CANNOT, self-sleep really does cost a
+ * whole turn (~55 power) and this model under-charges it 5x. Any self-sleep card printed outside
+ * a sleep deck must be hand-checked.
+ */
+const ASLEEP_SELF_POWER = 11;
 /** 4 power/1%maxHP; BarkShield's `stacks` is %maxHP as of the StatusBehaviors.ts rev 3 change. */
 const SHIELD_POWER_PER_PERCENT = 4;
 
@@ -367,6 +378,10 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // see, so this is a FLOOR not a price - the same no-deck-context limit ticket 29
             // documented for brute_force. ratatoskr_v2's realistic count at cast is ~10, not 3.
             else if (action.scaling === 'DAZED_STACKS') power *= ASSUMED_STATUS_COUNT;
+            // Ticket 48: DISTINCT_STATUS counts distinct debuff TYPES on the target, so the same
+            // FLOOR caveat applies - draugr_v2's realistic count at cast is 3, which is what
+            // ASSUMED_STATUS_COUNT happens to be. Coincidence, not derivation.
+            else if (action.scaling === 'DISTINCT_STATUS') power *= ASSUMED_STATUS_COUNT;
 
             actionScore = (power / 10.0) * ACTION_WEIGHTS['ATTACK'];
         } else if (action.type === 'HEAL') {
@@ -412,7 +427,10 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             } else if (status === 'Stunned') {
                 actionScore = STUNNED_POWER / 10.0;
             } else if (status === 'Asleep') {
-                actionScore = ASLEEP_POWER / 10.0;
+                // `actionIsSelfFacing` is computed further down (it also drives the sign
+                // flips), so read the field directly here rather than hoisting it.
+                const selfSleep = (action.target || '').toUpperCase() === 'SELF';
+                actionScore = (selfSleep ? ASLEEP_SELF_POWER : ASLEEP_POWER) / 10.0;
             } else if (status === 'BarkShield') {
                 actionScore = (absStacks * SHIELD_POWER_PER_PERCENT) / 10.0;
             } else if (['Vulnerable'].includes(status)) {
@@ -497,7 +515,18 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
 
         // Condition Discount
         if (action.conditionals && action.conditionals.length > 0) {
-            actionScore *= 0.7;
+            // Ticket 48: the flat 0.7 assumes you get the effect ~70% of the time. A self-Asleep
+            // gate is worth less than that, because StableOS forces an awake turn after every
+            // wake - so Draugr is asleep at most every OTHER turn. Deliberately narrow: only when
+            // that is the action's ONLY conditional. A second condition falls back to 0.7.
+            const onlyCond = action.conditionals.length === 1
+                ? action.conditionals[0] as { type?: string; target?: string; value?: string }
+                : null;
+            const asleepGated = onlyCond
+                && onlyCond.type === 'HAS_STATUS'
+                && onlyCond.target === 'SELF'
+                && onlyCond.value === 'Asleep';
+            actionScore *= asleepGated ? 0.5 : 0.7;
         }
 
         // Penalties

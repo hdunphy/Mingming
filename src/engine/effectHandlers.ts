@@ -186,13 +186,26 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     // Apply Damage
     const newCurrentHp = Math.max(0, target.currentHp - finalDamage);
 
-    // Wake up if Asleep and actually taken damage (a shield that absorbs the
-    // full hit should not wake the sleeper, so check post-mitigation damage).
+    // Ticket 48: Asleep loses ONE STACK per incoming attack instead of ending on the first point
+    // of damage. It is applied at ASLEEP_INITIAL_STACKS (3), so it takes three attacks to break -
+    // plus the natural 1/turn decay in `StatusBehaviors.ts`, which is unchanged. Both clocks run.
+    //
+    // Three deliberate departures from the old rule:
+    //  - No `finalDamage > 0` requirement. A fully absorbed hit still counts, which is what stops
+    //    `glacier_wall` from keeping Draugr asleep forever - a live anti-synergy before this.
+    //  - `sourceId === 'SYSTEM'` is skipped. That literal is how `resolutionEngine` dispatches
+    //    status and hook HP mutations through this handler, and skipping it is what enforces
+    //    "statuses do not wake him". End-of-turn DoT ticks bypass `handleAttack` entirely, but
+    //    TRIGGER_STATUS and Burn overflow do not - without this guard a poison detonate would
+    //    wake him.
+    //  - `onStatusRemoved` fires only when the last stack goes, not on every chip.
     let wakesUp = false;
-    if (finalDamage > 0) {
-        const sleepIndex = target.statusEffects.findIndex(s => s.type === 'Asleep');
-        if (sleepIndex !== -1) {
-            wakesUp = true;
+    let sleepChipped = false;
+    if (sourceId !== 'SYSTEM') {
+        const sleeping = target.statusEffects.find(s => s.type === 'Asleep');
+        if (sleeping) {
+            sleepChipped = true;
+            wakesUp = sleeping.stacks <= 1;
         }
     }
 
@@ -221,6 +234,18 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
 
             if (wakesUp) {
                 newStatus = newStatus.filter(s => s.type !== 'Asleep');
+                // Ticket 48: the natural expiry path in `battleReducer` has always granted a turn
+                // of StableOS on waking, and `statusGlossary` has always CLAIMED the damage path
+                // does too. It did not. Matching them closes that drift and is load-bearing for
+                // draugr_v1: StableOS is what forces an awake turn after every wake, which is the
+                // whole two-turn rhythm.
+                if (!newStatus.some(s => s.type === 'StableOS')) {
+                    const stableApply = getStatusBehavior('StableOS').onApply(newStatus, 1, e);
+                    newStatus = stableApply.updatedEffects;
+                }
+            } else if (sleepChipped) {
+                newStatus = newStatus.map(s =>
+                    s.type === 'Asleep' ? { ...s, stacks: s.stacks - 1 } : s);
             }
 
             return { ...e, currentHp: newCurrentHp, statusEffects: newStatus };

@@ -7,7 +7,7 @@ import { numericBaseCost } from '../types';
  * Statuses considered "negative" (debuffs) for condition checks like sourceDebuffCount.
  * Mirrors the debuff lists previously embedded in hand-written hook conditions.
  */
-const NEGATIVE_STATUSES: ReadonlyArray<string> = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed'];
+export const NEGATIVE_STATUSES: ReadonlyArray<string> = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed'];
 
 function compareValues(operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ', currentVal: number, value: number): boolean {
     if (operator === 'LT') return currentVal < value;

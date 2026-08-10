@@ -8,6 +8,7 @@ import { GetProgramData } from '../data/programRegistry';
 import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
+import { NEGATIVE_STATUSES } from '../core/ConditionValidator';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -63,6 +64,19 @@ export function getEffectiveAttackPower(
         // target the card reads as 0 power, which is what an unaimed card is worth.
         const dazed = target?.statusEffects.find(s => s.type === 'Dazed')?.stacks || 0;
         return power * dazed;
+    }
+    if (action.scaling === 'DISTINCT_STATUS') {
+        // Ticket 48: counts DISTINCT negative statuses on the target, not stacks. `STATUS_COUNT`
+        // could not be reused - it reads total stacks and adds +25% each, uncapped, so thirteen
+        // stacks is +325%. Uncapped by the same reasoning as DAZED_STACKS, and it reads the same
+        // NEGATIVE_STATUSES list GRAVE_CHILL_OS gates on, so draugr_v2's payoff and its firmware
+        // agree about what a debuff is by construction. `target` optional for the UI preview.
+        const distinct = new Set(
+            (target?.statusEffects ?? [])
+                .filter(s => s.stacks > 0 && NEGATIVE_STATUSES.includes(s.type))
+                .map(s => s.type),
+        ).size;
+        return power * distinct;
     }
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;

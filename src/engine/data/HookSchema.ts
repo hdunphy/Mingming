@@ -70,6 +70,10 @@ export const HookLibraryItemSchema = z.object({
     name: z.string(),
     description: z.string().optional(),
     maxCardsPerTurn: z.number().optional(),
+    // Ticket 48: zod STRIPS unknown keys, so a field that is not declared here does not exist at
+    // runtime no matter what hooks.json says. That is exactly how `escalatePerPlay` cost ticket 36
+    // three byte-identical sim runs (HANDOFF 8c2).
+    actsWhileAsleep: z.boolean().optional(),
     hooks: z.array(HookDefinitionSchema).optional()
 });
 

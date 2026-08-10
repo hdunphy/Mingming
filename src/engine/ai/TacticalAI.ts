@@ -6,6 +6,7 @@ import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
 import { DEFAULT_GAME_CONFIG } from '../data/gameConfig';
+import { getOSBehavior } from '../data/firmwareRegistry';
 
 /**
  * Mechanics-aware board evaluation - docs/wayfinder/deck-archetypes/tickets/19-ai-measurement-upgrade.md.
@@ -153,6 +154,12 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
             // Lose the next turn entirely: one full turn of throughput.
             return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION;
         case 'Asleep':
+            // Ticket 48: Asleep is only a lost turn for a unit that CANNOT act through it. At three
+            // stacks the line below prices it at -60% of a health pool, so without this the search
+            // would never play a self-sleep card and draugr_v1 would measure as unplayable for a
+            // reason that looks nothing like balance. Same failure family as ticket 40's Poison
+            // horizon, caught before the run this time.
+            if (getOSBehavior(entity.activeOS ?? '')?.actsWhileAsleep) return 0;
             // Skip `stacks` turns (max 3), same per-turn value as Stunned.
             return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * s;
         case 'BarkShield':
