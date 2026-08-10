@@ -4516,5 +4516,34 @@
                 "target": "SELF"
             }
         ]
+    },
+    "shrug_off": {
+        "id": "shrug_off",
+        "name": "Shrug Off",
+        "description": "Remove 2 Dazed and 2 Weakened.",
+        "element": "Nature",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": -2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": -2,
+                "target": "SELF"
+            }
+        ]
     }
 }

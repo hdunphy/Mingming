@@ -337,6 +337,12 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     /** Best score seen for each threshold branch group, keyed by subject (direction stripped). */
     const exclusiveGroups = new Map<string, number>();
 
+    /**
+     * Ticket 47: self-facing debuff REMOVAL, banked separately so the card's total removal can
+     * be capped at the price of removing everything. See the fold-in below `forEach`.
+     */
+    let removalScore = 0;
+
     card.actions.forEach((action: ProgramAction) => {
         let actionScore = 0;
 
@@ -506,6 +512,12 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // right sign in all four cases once the two flips above have run - cleansing a debuff
             // off yourself is a gain, eating a debuff you placed on the enemy is a loss.
             if ((action as unknown as { consume?: boolean }).consume === true) actionScore *= -1;
+            // Ticket 47: NEGATIVE `stacks` is the other way to remove a status, and it had no
+            // flip at all. `absStacks` strips the sign before the tables are read, so `soothe`
+            // ("remove 1 Weakened, remove 1 Dazed" on SELF) priced as if it APPLIED both and
+            // then took the self-debuff negation above - scoring -0.80 for a card that helps
+            // you. Same argument as the consume flip, same shape of fix.
+            if ((action.stacks ?? 0) < 0) actionScore *= -1;
         } else if (action.type === 'ENERGY') {
             const amount = action.amount || 0;
             if (amount < 0 && actionIsSelfFacing) actionScore *= -1;
@@ -513,7 +525,13 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         }
 
         const key = exclusivityKey(action);
-        if (key === null) {
+        const removesOwnDebuff = action.type === 'STATUS'
+            && actionIsSelfFacing
+            && DEBUFFS.includes(action.status)
+            && ((action.stacks ?? 0) < 0 || (action as unknown as { consume?: boolean }).consume === true);
+        if (removesOwnDebuff && key === null) {
+            removalScore += actionScore;
+        } else if (key === null) {
             score += actionScore;
         } else {
             // Bank per subject, keeping the largest branch; folded into `score` below once
@@ -525,6 +543,20 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     });
 
     for (const branchScore of exclusiveGroups.values()) score += branchScore;
+
+    // Ticket 47: a partial removal cannot be worth more than removing EVERYTHING.
+    //
+    // CLEANSE wipes every debuff for `CLEANSE_POWER`, so a card that sheds two named statuses
+    // is strictly dominated by one that sheds all of them - yet the status tables priced
+    // "remove 2 Dazed + 2 Weakened" at 1.70 against a full cleanse's 1.00, because they price
+    // the stacks and CLEANSE is priced from the measured LOAD (ticket 46). Cap the card's total
+    // removal at the cleanse price so the two stay ordered.
+    //
+    // Capped on the CARD's total, not per action: the dominance argument is about what the card
+    // does, and two half-removals summing past a full cleanse is exactly the case this catches.
+    // Removals inside an either/or threshold branch keep the existing max() path and are not
+    // capped - no such card exists, and folding them in would break that accounting.
+    score += Math.min(removalScore, CLEANSE_POWER / 10.0);
 
     // Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
     // `do` actions once and multiply by the expected proc count. Recursion is bounded by

@@ -346,8 +346,16 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 INSTIGATOR_OS - Dazed stacking. Same fuel, opposite payoff: slander reads the
         //    target's RAW Dazed stacks and so ignores the +-25% cap the OS would otherwise
         //    pay into.
+        // Ticket 47: v1 traded squirrel_away for shrug_off. The two firmwares pay out at the
+        //    SAME rate - one HP or one Dazed per 0-cost play - and one of those is worth far
+        //    more, so v2 took the head-to-head 80/20 while the decks sat five points apart
+        //    against the field. v1 was the only deck in the roster with no answer to a status
+        //    clock at all. A FULL cleanse is a switch here (0.21 -> 0.65+); a partial shed is
+        //    the dial. It replaces the 1e draw rather than the heal because a 1e utility card
+        //    is strictly worse than the same effect at 0e in this deck - it costs the whole
+        //    turn's Energy AND skips both the echo_chamber token and the OS proc.
         decks: {
-            "ratatoskr_v1": ["forage", "forage", "water_slap", "water_slap", "healing_mist", "squirrel_away", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
+            "ratatoskr_v1": ["forage", "forage", "water_slap", "water_slap", "healing_mist", "shrug_off", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
             "ratatoskr_v2": ["pollen_cloud", "pollen_cloud", "water_slap", "water_slap", "nagging_bite", "nagging_bite", "crippling_vine", "slander", "echo_chamber_v2"]
         },
         moves: [
