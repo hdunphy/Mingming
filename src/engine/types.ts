@@ -150,7 +150,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
   readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
-  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number; appliesTo?: ProgramCategory }; // Buffs the next card played (appliesTo restricts it to that category; non-matching cards don't consume it)
+  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number; powerBonus?: number; appliesTo?: ProgramCategory }; // Buffs the next card played (appliesTo restricts it to that category; non-matching cards don't consume it). `powerBonus` (ticket 52) hits only the FIRST ATTACK action, where `flatBonus` hits every power/stacks/heal field.
   readonly playsThisTurn?: number; // Cards played by THIS unit this turn (enforces per-unit OS limits like GLACIAL_PACE_OS)
   readonly moves?: ReadonlyArray<IMove>; // Custom moveset for this instance
 }
@@ -352,6 +352,8 @@ export interface BuffNextProgramActionData extends ProgramAction {
   readonly multiplier?: number;
   readonly flatBonus?: number;
   readonly costReduction?: number;
+  /** Ticket 52: raw power added to the primed card's FIRST ATTACK action only. */
+  readonly powerBonus?: number;
   readonly appliesTo?: ProgramCategory; // If set, only a card of this category consumes (and benefits from) the buff
 }
 

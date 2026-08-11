@@ -151,24 +151,35 @@ describe('data-driven condition translations', () => {
         expect(chilledDamage).toBe(16);
     });
 
-    it('fafnir_v2_corrupted fires only for debuffs (statusAppliedIn)', () => {
-        // Build straight from hooks.json data: the registered id is shadowed by the
-        // hand-written CustomFirmware hook of the same id, and we specifically want
-        // to exercise the data-driven statusAppliedIn condition here.
+    it('fafnir_v2_corrupted pays 2 Strengthened per DISTINCT debuff at turn start (ticket 52)', () => {
+        // Ticket 52 rewrote this OS. It used to grant +1 Energy per debuff APPLICATION, which
+        // mostly did nothing: debuffs arrive on the enemy's turn and `processPreTurn` SETS
+        // currentEnergy rather than adding, so the point was deleted before Fafnir could spend
+        // it (third occurrence of that trap - BLOOD_SCENT ticket 39, PERMAFROST_WAKE ticket 48).
+        // It now reads distinct TYPES at turn start, so a self-debuff card pays once per turn
+        // rather than once per cast.
         const hook = HookFactory.createHook((HOOKS_DATA as any).fafnir_v2.hooks[0]);
-        const fafnir = makeEntity('fafnir');
-        fafnir.currentEnergy = 0;
-        const state = makeState([makeEntity('p')], [fafnir]);
+        expect(hook!.onTurnStart).toBeDefined();
+        expect(hook!.onStatusApplied).toBeUndefined();
 
-        // Buff applied to Fafnir: no energy gained
-        const buffResult = hook!.onStatusApplied!({ state, target: fafnir, statusApplied: 'Strengthened' as any, triggerDepth: 0 }, fafnir);
-        const fafnirAfterBuff = buffResult.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(fafnirAfterBuff.currentEnergy).toBe(0);
+        const clean = makeEntity('fafnir');
+        const cleanState = makeState([makeEntity('p')], [clean]);
+        const noDebuffs = hook!.onTurnStart!({ state: cleanState, source: clean, target: clean, triggerDepth: 0 } as any, clean);
+        const afterClean = noDebuffs.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
+        expect(afterClean.statusEffects.some((s: any) => s.type === 'Strengthened')).toBe(false);
 
-        // Debuff applied to Fafnir: +1 energy
-        const debuffResult = hook!.onStatusApplied!({ state, target: fafnir, statusApplied: 'Burn' as any, triggerDepth: 0 }, fafnir);
-        const fafnirAfterDebuff = debuffResult.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(fafnirAfterDebuff.currentEnergy).toBe(1);
+        // Two DISTINCT types, six stacks between them: the grant reads types, not stacks.
+        const rotted = makeEntity('fafnir', [
+            { id: 's1', type: 'Poison', stacks: 4 },
+            { id: 's2', type: 'Dazed', stacks: 2 },
+        ]);
+        const rottedState = makeState([makeEntity('p')], [rotted]);
+        const result = hook!.onTurnStart!({ state: rottedState, source: rotted, target: rotted, triggerDepth: 0 } as any, rotted);
+        const after = result.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
+        expect(after.statusEffects.find((s: any) => s.type === 'Strengthened')?.stacks).toBe(4);
+        // ...and each of those debuffs sheds a stack, which is what stops it compounding forever.
+        expect(after.statusEffects.find((s: any) => s.type === 'Poison')?.stacks).toBe(3);
+        expect(after.statusEffects.find((s: any) => s.type === 'Dazed')?.stacks).toBe(1);
     });
 
     it('hel_v2_underworld_toll taxes EVERY card with a printed cost, and only those (baseCost)', () => {

@@ -12,7 +12,7 @@ import { resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ActionType } from '../types';
 import { StatusType } from '../types';
 import { PRNG } from './PRNG';
-import { ConditionValidator } from './ConditionValidator';
+import { ConditionValidator, NEGATIVE_STATUSES } from './ConditionValidator';
 import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExecutors';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
@@ -106,9 +106,22 @@ export const HookFactory = {
         }
 
         switch (scaling) {
+            case 'SOURCE_DEBUFF_COUNT':
+                // Ticket 52: DISTINCT debuff types on the owner, not stacks. Reads the same
+                // NEGATIVE_STATUSES list `sourceDebuffCount` gates on, so CORRUPTED_GOLD_OS's
+                // condition and its payout cannot disagree about what a debuff is - each type
+                // is one StatusEffectInstance, so a count of instances IS a count of types.
+                return owner.statusEffects.filter(s => NEGATIVE_STATUSES.includes(s.type)).length;
             case 'CURRENT_ENERGY':
                 return owner.currentEnergy;
             case 'SHARP_STACKS':
+                // Ticket 52: deliberately UNCAPPED, unlike STRENGTH_STACKS below. Henry's call
+                // for KINETIC_RAM was "change the rate, not the ceiling" - the hook's `bonus`
+                // went 1 -> 0.5 instead. Worth knowing what that rate is buying: this is
+                // `onDamageCalculated`, and `calculateDamage` runs once PER HIT, so the bonus
+                // lands on every hit of a multi-hit card; and Sharp's own EFFECT caps at 12.5
+                // stacks while this raw count does not, so gullinbursti_v2 reaches 14-18.
+                // `Math.min(stacks, STRENGTH_STACK_CAP)` is knob 1b if the rate cannot hold it.
                 return owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
             case 'STRENGTH_STACKS':
                 // Ticket 26: same cap as the card-side scaler in ActionExecutors. Uncapped,
@@ -240,6 +253,13 @@ export const HookFactory = {
             if (scaledAction.amount !== undefined) scaledAction.amount *= scaleFactor;
             if (scaledAction.power !== undefined) scaledAction.power *= scaleFactor;
             if (scaledAction.stacks !== undefined) scaledAction.stacks *= scaleFactor;
+            // Ticket 52: BUFF_NEXT_PROGRAM's power bonus scales too, which is what lets
+            // UNSTOPPABLE_MASS read gullinbursti's own Sharp. Before this, v1 generated Sharp
+            // from five of its ten cards and had NO payoff for it - the scaler that cashes Sharp
+            // lives in v2's firmware - so the two decks were sharing one resource and only one
+            // of them could spend it. Floored, because a fractional power bonus would land
+            // downstream of `calculateDamage`'s own rounding.
+            if (scaledAction.powerBonus !== undefined) scaledAction.powerBonus = Math.floor(scaledAction.powerBonus * scaleFactor);
 
             // MAX_ENERGY has no ActionExecutor — handle it BEFORE the registry
             // lookup (it used to sit behind the "no executor" early-continue and

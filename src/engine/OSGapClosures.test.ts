@@ -289,8 +289,17 @@ describe('Item 7 - enemy intent Side buffs stay on the enemy side', () => {
 });
 
 describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', () => {
-    it('Status card primes; the NEXT card spends the charge (Attack: discounted)', () => {
-        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+    // Ticket 52: the charge pays POWER now, not a cost reduction, and it SCALES ON SHARP. The
+    // discount was worth a full Energy point every turn (~40 power) and stacked with any other
+    // cost reduction - the arbitrage seam ticket 36 documented. The Sharp scaling is the part
+    // that matters: v1 generates Sharp from five of its ten cards and had no way to spend it,
+    // because the scaler that cashes Sharp lives in v2's firmware. The trigger conditions are
+    // unchanged; only the payout moved.
+    it('Status card primes; the NEXT card spends the charge (Attack: +3 power per Sharp, full price)', () => {
+        const gullin = makeUnit('gul1', 'Gullinbursti', {
+            activeOS: 'gullinbursti_v1',
+            statusEffects: [{ id: 'sh1', type: 'Sharp', stacks: 4 } as never],
+        });
         let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_status_test', 1),
             card('c3', 'card_strike', 1)
@@ -303,9 +312,20 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
         expect(state.playerParty[0].nextProgramModifier!.appliesTo).toBe('Attack');
         expect(state.logs.some(l => l.includes('UNSTOPPABLE_MASS'))).toBe(true);
 
-        // Next card is an Attack: discounted to 0, charge consumed.
+        // 4 Sharp x 3 power. With no Sharp the prime is worth nothing, which is the whole point.
+        expect(state.playerParty[0].nextProgramModifier!.powerBonus).toBe(12);
+        expect(state.playerParty[0].nextProgramModifier!.costReduction).toBe(0);
+
+        // Next card is an Attack: it pays FULL price now, and the charge is consumed.
+        //
+        // Deliberately NOT asserting on the enemy's HP: these synthetic units are attack 10
+        // against defense 10, where `calculateDamage` floors to 0 for a 10-power card with or
+        // without the bonus, so an HP assertion here would measure the fixture rather than the
+        // hook. The `powerBonus` value above is the end-to-end proof that the Sharp scaling
+        // resolved; the balance suite is where the damage shows up (os:gullinbursti 0.000 ->
+        // 0.490 on this change alone).
         state = play(state, 'gul1', 'e1', 'c3');
-        expect(state.playerParty[0].currentEnergy).toBe(4); // cost 1 - 1 = 0
+        expect(state.playerParty[0].currentEnergy).toBe(3); // cost 1, no discount
         expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
     });
 

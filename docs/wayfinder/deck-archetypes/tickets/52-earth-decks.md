@@ -1,7 +1,7 @@
 # Earth decks (ticket 52) — the roster's last element but one
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee:
 - Blocked by: none
 
@@ -482,3 +482,150 @@ round-trip byte-exact under `json.dumps(d, indent=4, ensure_ascii=False)` with n
 One commit, author `Henry Dunphy <hdunphy15@gmail.com>` via
 `git -c user.name=... -c user.email=... commit --author=...`. Never stage `package-lock.json` or
 `node_modules`. Git locks that cannot be unlinked go to `_to_delete/git-locks/`.
+
+---
+
+## Resolution
+
+**Shipped.** Commit `<HASH>`, registryHash `1:baf7456d`, redlines **42 → 41**.
+**EARTH COMPLETE — 28/32 decks live, 14 of 16 species tuned. Only Light remains.**
+
+### Gates (§8)
+
+| gate | baseline | shipped | verdict |
+|---|---|---|---|
+| **`mirror:gullinbursti` turns** | **61.0** | **10.09** | ✓ **TURN_COUNT redline closed** |
+| **`mirror:gullinbursti` decided** | **0/400** | **400/400** | ✓ 400 draws → **0** |
+| **`os:gullinbursti` §2.3** | **0.000** | **0.490** | ✓ **OS_GAP redline closed** |
+| `os:fafnir` §2.3 | 0.480 | **0.596** | ✓ improved, not regressed |
+| `mirror:fafnir` turns / decided | 18.34, 400/400 | **6.70**, 400/400 | ✓ |
+| control vs fafnir_v1 / v2 | 0.000 / 0.010 | 0.000 / 0.060 | ✓ held |
+| control vs gullinbursti_v1 / v2 | 0.000 / 0.000 | 0.000 / 0.000 | ✓ held |
+| dead cards, per side | 0.009–0.055 | 0.062–0.236 | ✓ under 0.35 |
+| FTK | 0 | **0** on all four | ✓ §3.1's risk did not materialise |
+| `stone_bark` | 5.4 / 3.0 | **2.9 / 3.0** | ✓ redline closed |
+
+**Pace collapsed across the whole element**: the control matchups went 20.3 / 20.3 / 16.6 / 18.8 turns
+to **7.2 / 6.3 / 9.0 / 8.3**. Like ymir, Earth was never weak — it could not finish.
+
+### The field, which is what actually decided the knobs
+
+| deck | before | after |
+|---|---|---|
+| fafnir_v1 | 0.398 | 0.398 |
+| fafnir_v2 | **0.629** | **0.483** |
+| gullinbursti_v1 | 0.417 | **0.563** |
+| gullinbursti_v2 | **0.802** | **0.406** |
+
+All four now sit in **0.40–0.56**, the tightest cluster of any element. gullinbursti_v2 was the
+strongest deck measured in this whole roster pass before the nerf.
+
+### Card scores — 13 of 14 matched the ticket exactly; one did not, and the reason matters
+
+`slag_shed` scores **1.70 against the ticket's 2.90** — the only card off by more than 0.3.
+
+**Ticket 47's removal cap is the entire delta**, and it is not a mistake in either place. Measured
+directly: the two removal actions price at **1.00 capped** (2.20 uncapped), the shield at 0.70, total
+1.70. The cap says a card's total self-facing removal cannot exceed `CLEANSE_POWER`, on the argument
+that a full cleanse dominates a partial one — so **any** shed card is bounded at 1.0 and a 1-energy
+shed can never reach its 2.4 band. That is exactly the consequence written up in
+[ticket 51 §5](51-cleanse-rework.md), now demonstrated on a real card rather than argued.
+
+Shipped at 1.70 because the ticket's own instruction says so — *"this is matchup tech and reads ~0
+against a non-DoT deck — hand-price it, do not 'fix' it upward."*
+
+Everything else landed on the nose: `iron_will` 0.90, `grit` 1.10, `motherlode` 6.50, `hoardbreaker`
+10.40, `deep_vein` 3.50 (a floor, not a price), `rust_blood` 2.90, `veinburst` 6.40, `stone_flurry`
+3.00, `crag_barrage` 6.40, `stone_bark` 2.90, `keen_edge` 2.90, `shield_shards` 3.10,
+`spiked_carapace` 6.10.
+
+### Knob rounds — the ticket's two, then Henry's call for a third
+
+**Round 1 (both species, one change each, independent firmware/cards so each gate saw exactly one
+change):** knob 1 `KINETIC_RAM` 1 → 0.5 → **0.25**, and knob 7 `veinburst` 100 → **85**.
+
+- **fafnir: §2.3 0.210 → 0.596.** Fixed, and better than the 0.480 baseline. Done.
+- **gullinbursti: §2.3 0.000, unmoved.** Not a single game.
+
+**Round 2:** knob 2, `UNSTOPPABLE_MASS` 20 → 30 power. **Still 0.000.** Halving the winner's firmware
+and raising the loser's payoff by 50% moved the gate by **zero games** between them.
+
+That is the STOP condition, and the field said why. **This was a real power gap, not a counter** —
+v1 0.417 against v2 0.802 — so the direction was never in doubt; the knobs were simply pointed at
+the wrong thing.
+
+**The structural cause: gullinbursti_v1 was built from gullinbursti_v2's parts.** Five of its ten
+cards (`keen_edge` ×2, `shield_shards` ×2, `stone_bark`) generate Sharp, and **the scaler that cashes
+Sharp lives in v2's firmware**. v1 carried a mean of 9.2 Sharp with no payoff for it beyond Sharp's
+own ±25%-capped effect, and dealt ~27 damage a game against v2's ~81. The two decks were sharing one
+resource and only one of them could spend it — which is the ticket-08 identity overlap in its purest
+form: the split gave fafnir and gullinbursti different *decks* but left them sharing a *currency*.
+
+**Henry's call, and it is two changes not one:**
+
+1. **`UNSTOPPABLE_MASS` scales on Sharp.** `powerBonus` gained a `scaling` path so the prime reads
+   Gullinbursti's own Sharp: **+3 power per stack**. Alone, this took §2.3 **0.000 → 0.780** at 5/stack
+   — the single largest one-change move in any of these tickets — and it is the fix, not a knob:
+   v1's Sharp finally does something for v1.
+2. **`KINETIC_RAM` pays a cost.** Henry: *"it gets bonus power every turn... maybe add a debuff."* It
+   now takes **1 Dazed at the start of each of its turns**, and the shape is the elegant part —
+   **Dazed and Sharp are duality partners, so the ram blunts its own edge**: the drawback is spent
+   cancelling the very resource the OS scales on. At 2 stacks it was far too strong (§2.3 0.950); at
+   1 it is a real cost that grows with game length.
+
+Landing sequence, all measured: 5/stack → 0.780; 3/stack → 0.190; 4/stack → 0.590; +1 self-Dazed at
+4/stack → 0.800; **3/stack + 1 self-Dazed → 0.490.**
+
+### Deliverables (§12)
+
+- **`deep_vein`: 2.32 plays/game, 14.6 damage/play, X at cast median 2 / mean 2.06 / max 4.** The
+  design assumed 3. Not the §11 STOP (that is X = 1) but under target: fafnir_v1 starts its turn on
+  **2.22 energy**, so it is banking about a quarter of a point a turn. The card is doing its job; the
+  hoard is shallower than designed.
+- **`hoardbreaker` is played 0.15 times a game.** The 3-cost effectively never lands. Knob 5 exists
+  for exactly this and was not spent — flagged instead.
+- **Fafnir's hand size is 3.30**, nowhere near the 9-card cap. §11's draw-flood concern did not
+  materialise.
+- **`crag_barrage`: Dazed and KINETIC_RAM COMPOUND, they do not merely add.** `onDamageCalculated`
+  hooks run at step 3 of `applyDamageModifiers` and the status percentages at step 4, so the flat
+  Sharp bonus is added first and Dazed's percentage then multiplies the already-boosted total:
+  `(base + 0.25 × Sharp) × (1 + Dazed%)`. That is why the card's own Dazed rider is worth more than it
+  looks — it multiplies the *next* multi-hit's firmware bonus too. Measured 12.0 damage/play.
+- **Peak raw Sharp: gullinbursti_v1 mean 16.9 / peak 48; v2 mean 13.4 / peak 43.** The design assumed
+  14–18 by turn 3, so the count is right — but note **v1 now carries more Sharp than v2**, which is
+  the split working: v1 hoards it for the prime, v2 spends it into the ram and sheds it to the
+  drawback.
+- **fafnir_v2 reported separately as §3.3 requires:** §2.3 **0.596** (v1's side), gauntlet **0.060**,
+  field **0.483**. Strengthened saturates at a mean of **10.9 against the 12.5 cap** — the OS runs at
+  ceiling in a 5.7-turn game. Henry's call was to keep it and record the saturation.
+
+### Blast radius (§9)
+
+Only Earth rows and the gauntlet aggregates moved; every other species is byte-identical. The
+aggregates' win rates barely shifted (slot 1 unchanged, pooled 0.2541 → 0.2557) while their turn
+counts fell 9.71 → 8.29 — entirely Earth's pace.
+
+`powerBonus` is additive and `gullinbursti_v1` is its only consumer. `SOURCE_DEBUFF_COUNT` is new and
+`fafnir_v2` is its only consumer. **No committed card score outside §4/§5 moved.**
+
+### Redline ledger, 42 → 41
+
+**Closed (3):** `TURN_COUNT mirror:gullinbursti` (61.0 turns / 400 draws), `OS_GAP os:gullinbursti`
+(0.50 gap), `CARD_OVER_BUDGET stone_bark` (5.4).
+**Added (2), both the deliberate +0.1s:** `grit` 1.1 (§4), `shield_shards` 3.1 (§5).
+
+772/772 tests, `tsc --noEmit` and `vite build` clean.
+
+### Left open
+
+- **`deep_vein` casts at X ≈ 2, not 3**, and `hoardbreaker` at 0.15 plays/game. The hoard is shallower
+  than the design assumed; knob 5 and knob 9 are both unspent.
+- **fafnir_v2's Strengthened saturates** at 10.9 of 12.5 in a 5.7-turn game.
+- **`slag_shed` reads 1.70 against a 2.4 floor** — a consequence of ticket 47's removal cap, and the
+  clearest real-card evidence for ticket 51 §5's pricing question.
+- **All four decks still beat the control outright.** Earth sits at the strong end of the roster, as
+  Ice does.
+- **Two tests moved to the new contracts** (`OSGapClosures`, `hookWiring`) because this ticket
+  deliberately changed what UNSTOPPABLE_MASS and CORRUPTED_GOLD pay. The prime test asserts the
+  resolved `powerBonus` rather than damage, because the synthetic 10-attack-vs-10-defense fixture
+  floors a 10-power card to 0 damage either way.

@@ -110,10 +110,27 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["fafnir_v1", "fafnir_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 52 (Henry's design): EARTH COMPLETES, and the split finally resolves the HIGH
+        // fafnir/gullinbursti overlap flag open since ticket 08 - both ran the same Sharp package.
+        // Fafnir keeps NO Sharp at all; gullinbursti keeps all of it.
+        //
+        // The frame is what the whole element turns on: fafnir's attack/defense is 0.74, so the
+        // same card deals 47% LESS damage here than on nidhoggr and his effective pool is 498
+        // power - the largest in the roster by 44%. On-curve Earth cards are worth about half
+        // what the curve thinks in a mirror, which is why gullinbursti stalled at 61 turns on a
+        // deck whose every card scored in band.
+        // v1 HOARD_PROTOCOL - bank energy 1:1 against an HP tax, then dump it into `deep_vein`.
+        //    The ratio is unchanged: 2:1 compounds (2 -> 4 -> 8 -> 16 by turn four against a
+        //    linearly growing tax) and 1:1 is the only stable one. What was missing was never
+        //    the rate, it was something to cash into. FOUR 0-costs, deliberately: a draw card
+        //    costs the exact resource a hoard deck is banking, so the AI would have to choose
+        //    between acting and banking. It does not have to now.
+        // v2 CORRUPTED_GOLD_OS - self-inflicted Poison feeds the OS. Poison, not Weakened, is
+        //    the point: Poison has no duality partner, so the Strengthened accrues on top of it
+        //    instead of annihilating against it.
         decks: {
-            "fafnir_v1": ["boulder_smash", "boulder_smash", "spike_launch", "spike_launch", "stone_fist", "shield_shards", "shield_shards", "stone_bark", "spiked_carapace", "keen_edge"],
-            "fafnir_v2": ["boulder_smash", "boulder_smash", "spike_launch", "spike_launch", "stone_fist", "shield_shards", "shield_shards", "stone_bark", "spiked_carapace", "keen_edge"]
+            "fafnir_v1": ["iron_will", "iron_will", "water_slap", "grit", "boulder_smash", "boulder_smash", "slag_shed", "motherlode", "hoardbreaker", "deep_vein", "deep_vein"],
+            "fafnir_v2": ["iron_will", "iron_will", "water_slap", "rust_blood", "rust_blood", "boulder_smash", "boulder_smash", "squirrel_away", "veinburst", "veinburst"]
         },
         moves: [
             {
@@ -221,10 +238,19 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["gullinbursti_v1", "gullinbursti_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 52: gullinbursti keeps the whole Sharp package (see fafnir's note - the two
+        // species ran the same deck until now, the map's one HIGH overlap risk since ticket 08).
+        // v1 UNSTOPPABLE_MASS - prime with a status card, spike with one big Attack. The charge
+        //    pays +20 POWER now rather than a cost reduction: the discount was worth a full
+        //    Energy point every turn (~40 power, ~240 a game) and stacked with any other cost
+        //    reduction, which is the arbitrage seam ticket 36 documented.
+        // v2 KINETIC_RAM - Sharp x hits. The bonus is 0.5 per raw stack, not 1: it is
+        //    `onDamageCalculated`, so it lands on EVERY hit of a multi-hit card, and the raw
+        //    Sharp count is uncapped where Sharp's own effect caps at 12.5. Henry's call was to
+        //    change the rate, not add a ceiling.
         decks: {
-            "gullinbursti_v1": ["rock_throw", "rock_throw", "stone_fist", "stone_fist", "tremor", "shield_shards", "keen_edge", "keen_edge", "stone_bark", "stone_bark"],
-            "gullinbursti_v2": ["rock_throw", "rock_throw", "stone_fist", "stone_fist", "tremor", "shield_shards", "keen_edge", "keen_edge", "stone_bark", "stone_bark"]
+            "gullinbursti_v1": ["water_slap", "keen_edge", "keen_edge", "shield_shards", "shield_shards", "stone_bark", "stone_fist", "stone_fist", "motherlode", "spiked_carapace"],
+            "gullinbursti_v2": ["water_slap", "water_slap", "keen_edge", "keen_edge", "shield_shards", "shield_shards", "stone_flurry", "stone_flurry", "crag_barrage", "crag_barrage"]
         },
         moves: [
             {

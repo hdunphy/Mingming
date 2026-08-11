@@ -250,6 +250,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // category (e.g. UNSTOPPABLE_MASS discounts an Attack). The charge is
     // spent by the NEXT card either way (see the clearing block below).
     const modifierApplies = doesModifierApply(sourceEntity, programData);
+    // Ticket 52: `powerBonus` primes ONE hit, so it is spent on the first ATTACK action that
+    // actually resolves - not the first in the list (a conditional one may not fire) and not
+    // every hit of a multi-hit card.
+    let powerBonusSpent = false;
     const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
     const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
 
@@ -400,6 +404,11 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     // Execution
                     let modifiedAction = { ...action };
                     if (modifier && modifierApplies) {
+                        if (!powerBonusSpent && modifier.powerBonus && modifiedAction.type === 'ATTACK'
+                            && (modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = (modifiedAction as any).power + modifier.powerBonus;
+                            powerBonusSpent = true;
+                        }
                         if ((modifiedAction as any).power !== undefined) {
                             (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }

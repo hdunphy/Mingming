@@ -87,6 +87,14 @@ export type HookAction = {
     escalatePerPlay?: number;
     costReduction?: number;
     flatBonus?: number;
+    /**
+     * Ticket 52: raw power added to the primed card's FIRST ATTACK action only.
+     *
+     * Distinct from `flatBonus`, which the reducer adds to every `power` field on the card
+     * AND to STATUS stacks AND to HEAL power. That is the right shape for "make the next card
+     * bigger" and the wrong one for UNSTOPPABLE_MASS, which is meant to prime one hit.
+     */
+    powerBonus?: number;
     multiplier?: number;
     text?: string;
     count?: number;

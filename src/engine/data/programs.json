@@ -309,7 +309,7 @@
     "shield_shards": {
         "id": "shield_shards",
         "name": "Shield Shards",
-        "description": "Gain 2 Sharp and 5 BarkShield.",
+        "description": "Gain 4 Sharp and 5 Bark Shield.",
         "element": "Earth",
         "target": "Self",
         "category": "Skill",
@@ -324,7 +324,7 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 2,
+                "stacks": 4,
                 "target": "SELF"
             },
             {
@@ -996,7 +996,7 @@
     "keen_edge": {
         "id": "keen_edge",
         "name": "Keen Edge",
-        "description": "Gain 1 Sharp and draw a card.",
+        "description": "Gain 5 Sharp. Draw a card.",
         "element": "Earth",
         "target": "Self",
         "category": "Skill",
@@ -1011,7 +1011,7 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 1,
+                "stacks": 5,
                 "target": "SELF"
             },
             {
@@ -3082,7 +3082,7 @@
     "stone_bark": {
         "id": "stone_bark",
         "name": "Stone Bark",
-        "description": "Gain 15 BarkShield.",
+        "description": "Gain 8 Bark Shield.",
         "element": "Earth",
         "target": "Self",
         "category": "Skill",
@@ -3097,7 +3097,7 @@
             {
                 "type": "STATUS",
                 "status": "BarkShield",
-                "stacks": 15,
+                "stacks": 8,
                 "target": "SELF"
             }
         ]
@@ -3127,10 +3127,10 @@
     "spiked_carapace": {
         "id": "spiked_carapace",
         "name": "Spiked Carapace",
-        "description": "Gain 2 Sharp and 10 BarkShield.",
+        "description": "20 power. Gain 4 Sharp and 8 Bark Shield.",
         "element": "Earth",
-        "target": "Self",
-        "category": "Skill",
+        "target": "Single",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -3140,15 +3140,20 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 2,
+                "stacks": 4,
                 "target": "SELF"
             },
             {
                 "type": "STATUS",
                 "status": "BarkShield",
-                "stacks": 10,
+                "stacks": 8,
                 "target": "SELF"
             }
         ]
@@ -5070,6 +5075,280 @@
             {
                 "type": "ATTACK",
                 "power": 65,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "iron_will": {
+        "id": "iron_will",
+        "name": "Iron Will",
+        "description": "Gain 4 Strengthened. Gain 2 Dazed.",
+        "element": "Earth",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 4,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "SELF"
+            }
+        ]
+    },
+    "grit": {
+        "id": "grit",
+        "name": "Grit",
+        "description": "Apply 3 Weakened.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 3,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "slag_shed": {
+        "id": "slag_shed",
+        "name": "Slag Shed",
+        "description": "Remove 2 Poison and 2 Burn from yourself. Gain 2 Bark Shield.",
+        "element": "Earth",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": -2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": -2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "BarkShield",
+                "stacks": 2,
+                "target": "SELF"
+            }
+        ]
+    },
+    "motherlode": {
+        "id": "motherlode",
+        "name": "Motherlode",
+        "description": "65 power.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 65,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "hoardbreaker": {
+        "id": "hoardbreaker",
+        "name": "Hoardbreaker",
+        "description": "90 power. Gain 3 Strengthened.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 3,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 90,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "deep_vein": {
+        "id": "deep_vein",
+        "name": "Deep Vein",
+        "description": "Spend all Energy: 35 power for each Energy spent.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": "X",
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 35,
+                "target": "TARGET",
+                "scaling": "ENERGY_SPENT"
+            }
+        ]
+    },
+    "rust_blood": {
+        "id": "rust_blood",
+        "name": "Rust Blood",
+        "description": "45 power. Apply 3 Poison to yourself.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 45,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "veinburst": {
+        "id": "veinburst",
+        "name": "Veinburst",
+        "description": "85 power. Apply 4 Poison and 2 Dazed to yourself.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 85,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 4,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "SELF"
+            }
+        ]
+    },
+    "stone_flurry": {
+        "id": "stone_flurry",
+        "name": "Stone Flurry",
+        "description": "10 power, three times.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET",
+                "count": 3
+            }
+        ]
+    },
+    "crag_barrage": {
+        "id": "crag_barrage",
+        "name": "Crag Barrage",
+        "description": "18 power, three times. Apply 2 Dazed.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 18,
+                "target": "TARGET",
+                "count": 3
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]

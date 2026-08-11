@@ -597,6 +597,7 @@ export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActio
                 multiplier: actionData.multiplier ?? 1,
                 flatBonus: actionData.flatBonus ?? 0,
                 costReduction: actionData.costReduction ?? 0,
+                powerBonus: actionData.powerBonus ?? 0,
                 appliesTo: actionData.appliesTo
             };
 

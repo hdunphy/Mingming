@@ -8,25 +8,51 @@
     "fafnir_v2": {
         "id": "fafnir_v2",
         "name": "CORRUPTED_GOLD_OS",
-        "description": "Whenever Fafnir receives a debuff, it gains +1 Energy.",
+        "description": "At the start of Fafnir's turn, he gains 2 Strengthened for each different debuff on him, then each of those debuffs loses 1 stack.",
         "hooks": [
             {
                 "id": "fafnir_v2_corrupted",
-                "trigger": "onStatusApplied",
+                "trigger": "onTurnStart",
                 "priority": 40,
                 "when": {
-                    "target": "SELF",
-                    "statusAppliedIn": ["Burn", "Poison", "Asleep", "Weakened", "Dazed", "Stunned"]
+                    "source": "SELF",
+                    "sourceDebuffCount": { "operator": "GTE", "value": 1 }
                 },
                 "do": [
                     {
-                        "type": "ENERGY",
+                        "type": "STATUS",
                         "target": "SELF",
-                        "amount": 1
+                        "status": "Strengthened",
+                        "stacks": 2,
+                        "scaling": "SOURCE_DEBUFF_COUNT"
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Burn",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Poison",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Weakened",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Dazed",
+                        "stacks": -1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s CORRUPTED_GOLD_OS gains 1 Energy from the debuff!"
+                        "text": "{owner}'s CORRUPTED_GOLD_OS turns the rot to gold!"
                     }
                 ]
             }
@@ -594,7 +620,7 @@
     "gullinbursti_v1": {
         "id": "gullinbursti_v1",
         "name": "UNSTOPPABLE_MASS",
-        "description": "Playing a non-Attack card that applies a status primes Gullinbursti: if his NEXT card is an Attack, it costs 1 less Energy. Any other card spends the charge.",
+        "description": "Playing a non-Attack card that applies a status primes Gullinbursti: his next Attack deals 3 additional power for each stack of Sharp he holds. Any other card spends the charge.",
         "hooks": [
             {
                 "id": "gullin_v1_prepare",
@@ -609,7 +635,8 @@
                     {
                         "type": "BUFF_NEXT_PROGRAM",
                         "target": "SELF",
-                        "costReduction": 1,
+                        "powerBonus": 3,
+                        "scaling": "SHARP_STACKS",
                         "appliesTo": "Attack"
                     },
                     {
@@ -623,7 +650,7 @@
     "gullinbursti_v2": {
         "id": "gullinbursti_v2",
         "name": "KINETIC_RAM_OS",
-        "description": "Earth Attack cards deal additional damage equal to Gullinbursti's current stacks of Sharp.",
+        "description": "Earth Attack cards deal additional damage for each stack of Sharp Gullinbursti holds, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
         "hooks": [
             {
                 "id": "gullin_v2_ram",
@@ -634,8 +661,28 @@
                     "programElement": "Earth",
                     "actionType": "ATTACK"
                 },
-                "bonus": 1,
+                "bonus": 0.25,
                 "scaling": "SHARP_STACKS"
+            },
+            {
+                "id": "gullin_v2_blunt",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Dazed",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s KINETIC_RAM blunts its own edge."
+                    }
+                ]
             }
         ]
     },
