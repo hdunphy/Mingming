@@ -14,6 +14,14 @@ produced them.** Re-measure before acting: draugr moves in ticket 48 and ymir in
 
 ---
 
+> **STALE AS OF TICKET 51 — RE-RUN BEFORE USING.** Retiring the control's cleanse moved
+> **jormungandr_v2 from 0.99 to 0.04** and **ratatoskr_v2 from 0.50 to 0.02**, while 26 of 32 decks
+> moved by ±0.01. The §2 table below and its priority order were measured with the confound §4
+> describes still in place; §4's question is now ANSWERED, and the answer is that the cleanse was
+> carrying almost the whole reading for the status decks. Slot-2 aggregate fell 0.326 → 0.219 while
+> slot-1 barely moved (0.185 → 0.174). **Do not tune any deck against a number in this file until it
+> has been regenerated.**
+
 ## 1. Why this ticket exists
 
 Ticket 47 extended the archetype gauntlet to every firmware slot and found that **half the roster had

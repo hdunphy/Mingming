@@ -1,7 +1,7 @@
 # Cleanse becomes a shed — and Poison and Burn get an answer
 
 - Type: wayfinder:task
-- Status: **open** — specified, not implemented. Henry's sequencing: **after the ymir pass.**
+- Status: **closed**
 - Assignee:
 - Blocked by: the ymir deck pass (not yet ticketed)
 - Blocks: [49-roster-floor-pass](49-roster-floor-pass.md) — this changes the control deck, so every
@@ -157,3 +157,119 @@ against a 0e band of 1.0**, and three currently-legal cards become redlines the 
 - `hel_v1` leaves its band. She is tuned; `purify` is her only removal effect.
 - A shed card measures a 0% play rate — the AI values held debuffs through the same status tables the
   scorer uses, so a shed the search never plays means the eval, not the card.
+
+---
+
+## Resolution
+
+**Shipped.** Commit `<HASH>`, registryHash `1:0af76c60`, redlines **41 → 43** (all three additions
+explained below).
+
+### Henry overturned §5, and his argument is better than the one in the ticket
+
+The ticket offered three ways to price a shed and I recommended option 2 — a measured *discount*,
+on the reasoning that a removal is dead on the turns you are not carrying the debuff.
+
+**Henry's rule: removal should cost MORE than application, not less.** *"Otherwise it's
+neutralization."* That is an argument about the game rather than about the sampler, and it is the
+right one: a shed cancels a card the opponent spent energy and a slot on, so if the answer is cheaper
+than the threat, the entire status archetype is structurally dead.
+
+So `REMOVAL_PREMIUM = 1.25`, replacing ticket 47's flat cap.
+
+**And the measurement that made the cap indefensible regardless of direction: it was FLAT.** Shedding
+2/2, 3/3, 4/4 and 5/5 all scored **exactly 1.00**. The scorer could not tell a small shed from a
+large one — on the card type this entire ticket is about. 1.25 is where the roster lands honestly;
+at 1.5 `purify` reaches 3.30 and breaches its band.
+
+Applied to **every** self-facing removal (Henry's call) — negative stacks and self-`consume` alike,
+because two mechanics that do the same thing should not price differently.
+
+### The headline: the control's cleanse was carrying almost the whole floor reading
+
+This is what ticket 49 §4 asked and could not answer. Swapping `baseline_purge`'s CLEANSE for a
+Poison/Burn shed, with nothing else about the control touched:
+
+| deck | control's win rate before | after | delta |
+|---|---|---|---|
+| **jormungandr_v2** | **0.99** | **0.04** | **−0.95** |
+| **ratatoskr_v2** | **0.50** | **0.02** | **−0.48** |
+| huldra_v2 | 0.17 | 0.00 | −0.17 |
+| huldra_v1 | 0.09 | 0.00 | −0.09 |
+| nidhoggr_v1 | 0.08 | 0.00 | −0.08 |
+| draugr_v2 | 0.07 | 0.00 | −0.07 |
+| **every other deck (26 of 32)** | — | — | **±0.01** |
+
+**Ticket 49 listed jormungandr_v2 at 0.99 as the single worst deck in the roster and the number-one
+priority for the floor pass. Ninety-five points of that was the instrument.** Ticket 47 built a
+finding on "the control BEATS ratatoskr_v2" — that reading was ~96% cleanse.
+
+The aggregates say the same thing in one line: **slot 1 barely moved (0.185 → 0.174) while slot 2
+collapsed (0.326 → 0.219)**. The status decks skew slot-2, which is exactly the confound shape §4
+hypothesised. Henry's worry was right, and larger than either of us guessed.
+
+**Ticket 49's table is now substantially wrong and must be re-read before any deck is tuned against
+it.** That was the sequencing reason this ticket came first, and it earned its place.
+
+### Card changes
+
+| card | before | after | score | band |
+|---|---|---|---|---|
+| `purify` 1e | Cleanse all debuffs | **Remove 2 Poison, 2 Burn** | **2.70** | 2.4–3.0 ✓ |
+| `baseline_purge` 2e | 30 power + cleanse | **30 power + remove 2 Poison, 2 Burn** | **5.70** | 5.2–6.5 ✓ |
+| `shrug_off` 0e | −2 Dazed, −2 Weakened | **−1 Dazed, −1 Weakened** | **1.00** | 0.8–1.0 ✓ |
+| `slag_shed` 1e | −2/−2 DoT + 2 BarkShield | **−2 Poison, −2 Burn** (rider dropped) | **2.70** | 2.4–3.0 ✓ |
+| `deathless_slumber` 1e | −2 of four + sleep + heal 45 | **−2 Weakened, −2 Dazed + sleep + heal 28** | **2.80** | 2.4–3.0 ✓ |
+| `soothe` 0e | unchanged | unchanged | 0.80 → **1.00** | ✓ |
+| `umbral_feast` 1e | unchanged | unchanged | 2.00 → **3.00** | ✓ |
+
+`CLEANSE` survives as an engine primitive that no card uses, per Henry's call — available for a
+relic or a boss mechanic. **Do not print a new CLEANSE card.**
+
+Three of those were only legal because the flat cap hid how much they shed, which is precisely what
+the premium is meant to expose. `deathless_slumber` was re-pointed at **Weakened/Dazed** rather than
+DoT after a first attempt regressed draugr — see below; it is also the more group-consistent card,
+since those are the two debuffs draugr_v2 actually applies.
+
+### Costs, stated plainly
+
+| gate | before | after | |
+|---|---|---|---|
+| `os:ratatoskr` | 0.510 | **0.310** | in the working band, on its floor |
+| `os:draugr` | 0.530 | **0.340** | in the working band, on its floor |
+| `os:fafnir` | 0.596 | 0.606 | unchanged |
+| `os:hel` | 0.609 | 0.598 | unchanged |
+| `mirror:` draugr / fafnir / hel | — | 6.32 / 6.46 / 5.36 turns | all fine |
+
+**ratatoskr and draugr both paid for this.** Their defensive answers were halved, so both slid to the
+bottom of the 0.30–0.70 band and both now trip the strict ±15% `osMaxGap` gate — which HANDOFF is
+explicit is *not* the working bar. They pass the first-pass band; they have no headroom left.
+
+**A first attempt regressed draugr out of band entirely.** Pointing `deathless_slumber` at the DoT
+group took `os:draugr` to **0.220**, because draugr_v2's plan is Weakened and Dazed, not damage over
+time — the card was shedding the wrong group. Re-pointing it at Weakened/Dazed restored 0.340.
+**A shed is only worth what its opponent actually applies**, which is a sharper version of ticket 51
+§3's grouping argument than the ticket made.
+
+### Redline ledger, 41 → 43
+
+**Added (3), none of them new behaviour:**
+- `ash_communion` **7.1 → 10.6**. The card is untouched; it consumes its own Burn as fuel, and the
+  premium now charges for that. Henry chose "every self-facing removal, one rule" knowing this would
+  move. Still fenrir_v2's, still waiting on the fenrir polish pass.
+- `OS_GAP os:ratatoskr` and `OS_GAP os:draugr` — the **strict ±15% gate**, on decks that pass the
+  working 0.30–0.70 band at 0.310 and 0.340.
+
+**Removed (1):** `ash_communion` at its old 7.1 value.
+
+772/772 tests, `tsc --noEmit` and `vite build` clean.
+
+### Left open
+
+- **Ticket 49's entire control table is stale** and its §2 priority order is wrong — jormungandr_v2
+  is not a 0.99 deck. Re-run and re-read it before tuning anything against a control number.
+- **ratatoskr and draugr sit on the band floor** with no headroom. If either needs to move again, the
+  shed is the thing to grow, and it now costs 1.25× to do so.
+- **`ash_communion` at 10.6** is the loudest card redline in the registry.
+- **The premium is a single number applied to two different groups.** Weakened/Dazed is carried on
+  45.2% of turns and Poison/Burn on 40.4%, so a per-group premium is defensible if it ever matters.

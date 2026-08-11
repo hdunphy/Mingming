@@ -3227,7 +3227,7 @@
     "purify": {
         "id": "purify",
         "name": "Purify",
-        "description": "Cleanse all debuffs.",
+        "description": "Remove 2 Poison and 2 Burn from yourself.",
         "element": "Light",
         "target": "Self",
         "category": "Skill",
@@ -3240,7 +3240,15 @@
         ],
         "actions": [
             {
-                "type": "CLEANSE",
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": -2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": -2,
                 "target": "SELF"
             }
         ]
@@ -4504,7 +4512,7 @@
     "baseline_purge": {
         "id": "baseline_purge",
         "name": "Baseline Purge",
-        "description": "30 power. Cleanse all debuffs.",
+        "description": "30 power. Remove 2 Poison and 2 Burn from yourself.",
         "element": "None",
         "target": "Single",
         "category": "Attack",
@@ -4522,7 +4530,15 @@
                 "target": "TARGET"
             },
             {
-                "type": "CLEANSE",
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": -2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": -2,
                 "target": "SELF"
             }
         ]
@@ -4530,7 +4546,7 @@
     "shrug_off": {
         "id": "shrug_off",
         "name": "Shrug Off",
-        "description": "Remove 2 Dazed and 2 Weakened.",
+        "description": "Remove 1 Dazed and 1 Weakened.",
         "element": "Nature",
         "target": "Self",
         "category": "Skill",
@@ -4545,13 +4561,13 @@
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": -2,
+                "stacks": -1,
                 "target": "SELF"
             },
             {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": -2,
+                "stacks": -1,
                 "target": "SELF"
             }
         ]
@@ -4621,7 +4637,7 @@
     "deathless_slumber": {
         "id": "deathless_slumber",
         "name": "Deathless Slumber",
-        "description": "Remove 2 each of Weakened, Dazed, Poison and Burn from yourself. Sleep yourself. Heal with 45 power.",
+        "description": "Remove 2 Weakened and 2 Dazed from yourself. Sleep yourself. Heal with 28 power.",
         "element": "Ice",
         "target": "Self",
         "category": "Skill",
@@ -4647,25 +4663,13 @@
             },
             {
                 "type": "STATUS",
-                "status": "Poison",
-                "stacks": -2,
-                "target": "SELF"
-            },
-            {
-                "type": "STATUS",
-                "status": "Burn",
-                "stacks": -2,
-                "target": "SELF"
-            },
-            {
-                "type": "STATUS",
                 "status": "Asleep",
                 "stacks": 1,
                 "target": "SELF"
             },
             {
                 "type": "HEAL",
-                "power": 45,
+                "power": 28,
                 "target": "SELF"
             }
         ]
@@ -5134,7 +5138,7 @@
     "slag_shed": {
         "id": "slag_shed",
         "name": "Slag Shed",
-        "description": "Remove 2 Poison and 2 Burn from yourself. Gain 2 Bark Shield.",
+        "description": "Remove 2 Poison and 2 Burn from yourself.",
         "element": "Earth",
         "target": "Self",
         "category": "Skill",
@@ -5156,12 +5160,6 @@
                 "type": "STATUS",
                 "status": "Burn",
                 "stacks": -2,
-                "target": "SELF"
-            },
-            {
-                "type": "STATUS",
-                "status": "BarkShield",
-                "stacks": 2,
                 "target": "SELF"
             }
         ]

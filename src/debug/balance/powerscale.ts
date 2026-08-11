@@ -248,6 +248,29 @@ const SHIELD_POWER_PER_PERCENT = 4;
  */
 const CLEANSE_POWER = 10;
 
+/**
+ * Ticket 51: removing a status from yourself costs MORE than applying one, not less.
+ *
+ * Henry's rule, and it is an argument about the game rather than about the sampler: **if an
+ * answer is cheaper than the threat it answers, the status archetype is structurally dead.**
+ * A shed cancels a card the opponent spent energy and a slot on, so it has to cost at least
+ * that much or it is free neutralisation.
+ *
+ * This REPLACES ticket 47's flat `min(removal, CLEANSE_POWER)` cap, which had two problems
+ * once CLEANSE stopped being printable on cards. Its dominance argument ("a full cleanse
+ * removes everything for 10, so a partial one cannot cost more") lost its anchor - no card can
+ * print one any more. And, worse, it was FLAT: shedding 2/2, 3/3, 4/4 and 5/5 all scored
+ * exactly 1.00, so the scorer could not tell a small shed from a large one at all.
+ *
+ * 1.25 is where the roster lands honestly: `purify` shedding 2 Poison + 2 Burn prices at 2.75
+ * against a 1e band of 2.4-3.0, and `soothe` at 1.00 against a 0e band. At 1.5 `purify` reaches
+ * 3.30 and breaches.
+ *
+ * Applies to EVERY self-facing removal - negative stacks and self-`consume` alike - because two
+ * mechanics that do the same thing should not price differently.
+ */
+const REMOVAL_PREMIUM = 1.25;
+
 function poisonPower(stacks: number): number {
     // 1.5 * S * (S+1): decaying-DoT total lifetime damage at 1%maxHP/stack/turn, priced at
     // damage's 3-power-per-1% rate.
@@ -603,21 +626,16 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         else if (branch.type === 'STATUS') statusPortion += branch.score;
     }
 
-    // Ticket 47: a partial removal cannot be worth more than removing EVERYTHING.
+    // Ticket 51: removal is priced at a PREMIUM over application, not capped. See
+    // `REMOVAL_PREMIUM` for why the ticket-47 cap had to go.
     //
-    // CLEANSE wipes every debuff for `CLEANSE_POWER`, so a card that sheds two named statuses
-    // is strictly dominated by one that sheds all of them - yet the status tables priced
-    // "remove 2 Dazed + 2 Weakened" at 1.70 against a full cleanse's 1.00, because they price
-    // the stacks and CLEANSE is priced from the measured LOAD (ticket 46). Cap the card's total
-    // removal at the cleanse price so the two stay ordered.
-    //
-    // Capped on the CARD's total, not per action: the dominance argument is about what the card
-    // does, and two half-removals summing past a full cleanse is exactly the case this catches.
-    // Removals inside an either/or threshold branch keep the existing max() path and are not
-    // capped - no such card exists, and folding them in would break that accounting.
-    const cappedRemoval = Math.min(removalScore, CLEANSE_POWER / 10.0);
-    score += cappedRemoval;
-    statusPortion += cappedRemoval;
+    // Applied to the CARD's total rather than per action, which is the one thing worth keeping
+    // from the old shape: what matters is how much the card sheds in total. Removals inside an
+    // either/or threshold branch keep the existing max() path and are not premium-charged - no
+    // such card exists, and folding them in would break that accounting.
+    const chargedRemoval = removalScore * REMOVAL_PREMIUM;
+    score += chargedRemoval;
+    statusPortion += chargedRemoval;
 
     // Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
     // `do` actions once and multiply by the expected proc count. Recursion is bounded by
