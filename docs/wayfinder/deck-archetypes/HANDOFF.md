@@ -141,6 +141,8 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 17. `corrosive_leak` +1.8 budget redline, open since ticket 20.
 18. **Deferred by decision:** type-matrix tuning + AI-determinism (blowouts are legacy deck quality, not the matrix); valkyrie v1 team measurement (needs ticket 05 team scenarios); fafnir/gullinbursti split (settles in the Earth pass).
 
+- **Ticket 53 (Light: valkyrie + audhumbla) is SPECIFIED and Henry-approved, not implemented** — all four OS reworks, 12 new cards, audhumbla frame 3e→2e, Rampage growth mechanic. The spec is the ticket file; Henry holds the implementation prompt. It is the LAST element — when it lands, all 32 decks are live and the deep-tuning phase begins (51 → 49 first).
+
 ## Process
 
 - **Sequencing (Henry):** every remaining deck gets a FIRST PASS before any deep tuning. Process + lightweight gate: [research/first-pass-process.md](research/first-pass-process.md). 10-80-10 division: design/analysis on the primary model, mechanical work delegated via prompts with exact anchors + tolerances + STOP conditions.
