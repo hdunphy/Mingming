@@ -5,6 +5,22 @@
 - Assignee: —
 - Blocked by: —
 
+> ## Re-scoped by [deck-archetypes ticket 06](../../deck-archetypes/tickets/06-rescope-power-curve-tickets.md), 2026-08-12
+>
+> **STATUS: all but dissolved. Do NOT do formula work here.** Ticket 06 suspected these stalls were
+> deck artifacts rather than curve problems, and the deck passes have now settled it. Of the seven
+> species breaching the 30-turn redline in the 2026-08-05 run, **exactly one still stalls:
+> `mirror:audhumbla` at 61 turns and 0/400 decided** — and audhumbla is the last untuned placeholder,
+> waiting on the Light deck pass.
+>
+> Every other stall was closed by giving the species a real deck, not by touching the curve:
+> gullinbursti 61.0 → 10.1 turns (ticket 52), ymir 60.0 → 14.1 (ticket 50), draugr 42.1 → 6.3
+> (tickets 48/51), nidhoggr 60.7 → 4.5 (ticket 39), kraken and huldra likewise in their own passes.
+>
+> **What survives:** re-read this once Light lands. If audhumbla still stalls on a real deck, that is
+> the first genuine curve-level stall and this ticket becomes live again. Until then there is nothing
+> here to fix.
+
 ## Question
 
 `npm run balance` (run 2026-08-05, registry `1:1cba1e2c`, after the
