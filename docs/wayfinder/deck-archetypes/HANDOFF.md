@@ -2,6 +2,22 @@
 
 *Last updated: 2026-08-12, after ticket 53 (Light) landed. **32/32 DECKS LIVE — every species on the roster now has two tuned OS decks. The first-pass phase is over; deep tuning begins.** **Three species are out of the first-pass §2.3 band and all three need Henry: jormungandr 0.240, valkyrie 0.170, audhumbla 0.000.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
+## DEEP-PHASE POLICY (Henry, 2026-08-12 — supersedes the band rules below where they conflict)
+
+1. **§2.3 IS DEMOTED TO A DIAGNOSTIC.** Two OSes of one species MAY hard-counter each other — that is
+   allowed design, not a defect (the ratatoskr lesson, 8-COUNTER, is now policy). The PRIMARY
+   instruments are: **field win rate** (round robin vs the tuned roster; healthy window ~0.35–0.80)
+   and the **control floor** (deck should beat the frozen control ≥0.75; the control NEVER moves —
+   its aggregate drift is telemetry, not decalibration). Dead cards ≤0.35/side, FTK 0, and
+   mirror-decides still gate. A §2.3 extreme prompts a field check FIRST, never a direct fix.
+2. **HENRY IS IN EVERY DESIGN DECISION.** Implementation agents may adjust ONLY numeric knobs from a
+   Henry-approved list in their prompt, max two rounds. Any card/effect/deck/OS change beyond that —
+   including "trying" a swap to see what happens — STOPS the ticket and returns findings for a design
+   session with Henry. Do not just try stuff.
+3. NOURISH_ROUTINE unit fix (Henry-approved): convert from PRINTED POWER at the damage exchange rate,
+   dial at **50%** (a 90-power heal also strikes for 45 power-equivalent ≈ 13 HP), floor 1 per heal.
+   The HP-denominated version rounded a third of the deck to zero.
+
 ## Read this first: which band applies
 
 There are TWO bands and they are not the same bar.
