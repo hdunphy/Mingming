@@ -140,6 +140,9 @@ export const HookFactory = {
             case 'MISSING_HP':
                 if (targetEntity) return targetEntity.maxHp - targetEntity.currentHp;
                 return 0;
+            case 'HEAL_INTENDED':
+                // Ticket 53: the whole heal before the max-HP clamp - see `last_heal_intended`.
+                return context.state.counters['last_heal_intended'] || 0;
             case 'OVERHEAL':
                 // Written (globally, per heal event) by effectHandlers.handleHealEffect.
                 return context.state.counters['last_overheal'] || 0;
@@ -222,9 +225,14 @@ export const HookFactory = {
                 // inside the percentage and every scaleFactor was an integer, so it never showed;
                 // `escalatePerPlay` introduced fractional factors and 22.5 HP of damage started
                 // reaching entities. A no-op for every integer scaling.
-                const rawAmount = Math.floor(action.percentMaxHP
+                const rawProduct = action.percentMaxHP
                     ? Math.max(1, Math.floor(owner.maxHp * (Math.abs(action.percentMaxHP) / 100))) * scaleFactor
-                    : (action.amount ?? 0) * scaleFactor);
+                    : (action.amount ?? 0) * scaleFactor;
+                // Ticket 53: floor the MAGNITUDE, not the signed value. `Math.floor` alone
+                // rounds a negative product AWAY from zero, so NOURISH_ROUTINE's `amount: -0.25`
+                // x a 45-power heal read as 12 damage where 25% is 11.25 -> 11. Every pre-53
+                // hook action has an integer product, where the two agree exactly.
+                const rawAmount = Math.sign(rawProduct) * Math.floor(Math.abs(rawProduct));
 
                 const finalIsHeal = (action.percentMaxHP ? action.percentMaxHP : (action.amount ?? 0)) > 0;
 

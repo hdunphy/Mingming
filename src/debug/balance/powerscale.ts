@@ -352,6 +352,23 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     const ASSUMED_HP_PERCENT = 0.5;
     const ASSUMED_DISCARD_SIZE = 8;
     const ASSUMED_STATUS_COUNT = 3;
+    /**
+     * Ticket 53: CARDS_DRAWN multiplies damage by `cardsDrawnThisTurn`, which is never zero on
+     * the turn a card is castable - every species draws at turn start. 3 is the roster's modal
+     * `cardDraw`, so this is the floor case: a deck that adds draw effects (valkyrie_v2 runs
+     * `glimmer` and `morning_light`) pushes `starfall` above what this prices.
+     */
+    const ASSUMED_CARDS_DRAWN = 3;
+    /**
+     * Ticket 53: how many times a RAMPAGE card (`growPerPlay`) is assumed to resolve in one
+     * battle. The static scorer sees printed power, i.e. the FIRST cast; a growth card's real
+     * value is its average over the casts it gets. At H casts the average bonus is
+     * `growPerPlay x (H-1)/2`, so H=3 charges one full growth step. Chosen, not derived:
+     * three casts is roughly what a 10-card deck gives one instance over a 20-turn game.
+     * Like every other ASSUMED_* here this is a FLOOR - a recursion deck that replays the same
+     * instance (valkyrie_v1's VALHALLA_UPLINK does exactly that) gets more than it pays for.
+     */
+    const GROWTH_HORIZON_PLAYS = 3;
 
     // Actions
     // --- Mutually exclusive branches (ticket 28) ---
@@ -427,6 +444,13 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // cannot see either. Same FLOOR caveat - avalanche's realistic cast is 7-10 stacks
             // (GLACIER_HEART's 5 plus survivors), not the 3 this assumes.
             else if (action.scaling === 'BARKSHIELD_STACKS') power *= ASSUMED_STATUS_COUNT;
+            // Ticket 53: CARDS_DRAWN multiplies the resolved damage, not the power, but the
+            // scorer has one knob and they are the same knob at this resolution.
+            else if (action.scaling === 'CARDS_DRAWN') power *= ASSUMED_CARDS_DRAWN;
+
+            // Ticket 53: RAMPAGE growth. Charge the AVERAGE over the assumed horizon, so the
+            // printed power is what the card opens at and the score is what it is worth.
+            if (card.growPerPlay) power += card.growPerPlay * (GROWTH_HORIZON_PLAYS - 1) / 2;
 
             actionScore = (power / 10.0) * ACTION_WEIGHTS['ATTACK'];
         } else if (action.type === 'HEAL') {

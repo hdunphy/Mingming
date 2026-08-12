@@ -401,7 +401,13 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
         enemyParty: updateParty(state.enemyParty),
         counters: {
             ...(state.counters || {}),
-            last_overheal: overheal
+            last_overheal: overheal,
+            // Ticket 53: NOURISH_ROUTINE reads ALL healing, not just the overflow. Overheal-only
+            // was structurally a switch - it fires never while she is behind, or constantly once
+            // she is already unkillable - which is what made audhumbla's mirror a 61-turn 0/400.
+            // This is the heal AFTER onHealCalculated and BEFORE the max-HP clamp, so a heal at
+            // full HP still converts and a buffed heal converts at its buffed size.
+            last_heal_intended: healAmount
         }
     } as IBattleState;
 

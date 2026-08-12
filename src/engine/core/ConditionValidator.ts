@@ -127,8 +127,17 @@ export const ConditionValidator = {
 
         // 9. Counter Check (hook counters are OWNER-scoped by default so units
         // sharing an OS count independently; scope: 'GLOBAL' reads the raw key)
-        if (condition.counter) {
-            const { key, operator, value, scope } = condition.counter;
+        //
+        // Ticket 53: `counters` is the AND-list form of `counter`. GENESIS_FIRMWARE needs two
+        // at once - a GLOBAL read of `last_overheal` and an OWNER-scoped once-per-turn guard -
+        // and one object cannot express that. Both fields are honoured; `counter` stays because
+        // eleven existing hooks use it and the single case reads better without a wrapper array.
+        const counterChecks = [
+            ...(condition.counter ? [condition.counter] : []),
+            ...(condition.counters ?? [])
+        ];
+        for (const check of counterChecks) {
+            const { key, operator, value, scope } = check;
             const currentCounters = context.state.counters || {};
             const currentVal = currentCounters[resolveCounterKey(key, scope, owner)] || 0;
             if (operator === 'LT' && !(currentVal < value)) return false;

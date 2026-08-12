@@ -565,10 +565,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["valkyrie_v1", "valkyrie_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 53 (Light pass). v1 is EINHERJAR RECURSION: VALHALLA_UPLINK replays a random
+        // discarded card every turn end, so the deck wants cheap cards worth replaying and two
+        // RAMPAGE `zealots_edge` that grow on the free cast as well as the paid one.
+        // v2 is RADIANT CYCLE: REBIRTH_CYCLE_OS pays out on every reshuffle, so the deck is
+        // deliberately EIGHT cards and three of them exhaust - it thins 8 -> 5 and reshuffles
+        // roughly every other turn. `starfall` cashes the draw the thin deck produces.
         decks: {
-            "valkyrie_v1": ["radiant_spark", "radiant_spark", "smite", "smite", "smite", "lumen_surge", "lumen_surge", "scry", "healing_light", "aegis"],
-            "valkyrie_v2": ["radiant_spark", "radiant_spark", "smite", "smite", "smite", "lumen_surge", "lumen_surge", "scry", "healing_light", "aegis"]
+            "valkyrie_v1": ["pale_mercy", "benediction", "benediction", "zealots_edge", "zealots_edge", "echo_of_valhalla", "ascension", "radiant_spark", "smite", "healing_light"],
+            "valkyrie_v2": ["glimmer", "falling_star", "falling_star", "morning_light", "starfall", "starfall", "ascension", "radiant_spark"]
         },
         moves: [
             {
@@ -609,16 +614,25 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             hp: 100,
             attack: 60,
             defense: 90,
-            energy: 3
+            // Ticket 53: 3 -> 2. GENESIS_FIRMWARE now hands out permanent max Energy from turn
+            // one or two, so starting at 3 meant the ramp's first two ticks bought nothing she
+            // could not already do. At 2 the 3-cost card is the ramp's literal unlock.
+            energy: 2
         },
         primaryElement: "Light",
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["audhumbla_v1", "audhumbla_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 53 (Light pass). v1 is GENESIS RAMP: GENESIS_FIRMWARE converts an OVERHEAL into
+        // a permanent +1 max Energy (once per turn), so the deck deliberately overheals early -
+        // `pale_mercy` x2 at full HP is the ramp's on-switch - and `genesis_surge` (X-cost,
+        // 15 x X^2) is what the ramp is FOR. Her base Energy dropped 3 -> 2 in the same pass so
+        // the 3-cost `dawn_of_creation` is a card the ramp unlocks rather than an opener.
+        // v2 is NOURISH CANNON: 25% of ALL healing is mirrored as Light damage, so every heal
+        // is an attack and the deck is nothing but heals and cheap Light.
         decks: {
-            "audhumbla_v1": ["radiant_spark", "radiant_spark", "smite", "smite", "healing_light", "healing_light", "purify", "uplift", "uplift", "lumen_surge"],
-            "audhumbla_v2": ["radiant_spark", "radiant_spark", "smite", "smite", "healing_light", "healing_light", "purify", "uplift", "uplift", "lumen_surge"]
+            "audhumbla_v1": ["pale_mercy", "pale_mercy", "dawnstrike", "healing_light", "sacred_spring", "supernova_v2", "genesis_surge", "dawn_of_creation", "radiant_spark"],
+            "audhumbla_v2": ["pale_mercy", "pale_mercy", "dawnstrike", "dawnstrike", "hallow", "healing_light", "sacred_spring", "uplift", "purify"]
         },
         moves: [
             {

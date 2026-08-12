@@ -61,6 +61,8 @@ export type HookCondition = {
     targetStatus?: { status: StatusType; minStacks?: number };
     sourceStatus?: { status: StatusType; minStacks?: number };
     counter?: { key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number; scope?: CounterScope };
+    /** Ticket 53: AND-list of counter checks, for hooks that need more than one (GENESIS_FIRMWARE). Composes with `counter`. */
+    counters?: Array<{ key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number; scope?: CounterScope }>;
     currentEnergy?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
 };
 
@@ -103,7 +105,7 @@ export type HookAction = {
     operator?: 'ADD' | 'SET' | 'RESET'; // For COUNTER operation
     scope?: CounterScope; // For COUNTER: 'OWNER' (default, per-entity) or 'GLOBAL'
     appliesTo?: ProgramCategory; // For BUFF_NEXT_PROGRAM: restrict the buff to the next card of this category
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER' | 'SOURCE_DEBUFF_COUNT' | 'HEAL_INTENDED';
     scalingKey?: string; // e.g., the key if scaling is 'COUNTER'
 };
 
@@ -124,7 +126,7 @@ export type ModifierDataHookDefinition = {
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     multiplier?: number;
     bonus?: number;
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER';
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER' | 'SOURCE_DEBUFF_COUNT' | 'HEAL_INTENDED';
     scalingKey?: string;
 };
 

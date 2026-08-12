@@ -254,6 +254,13 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // actually resolves - not the first in the list (a conditional one may not fire) and not
     // every hit of a multi-hit card.
     let powerBonusSpent = false;
+    // Ticket 53 - RAMPAGE growth (`growPerPlay`). Read BEFORE this play so the first cast
+    // resolves at printed power; the accumulator is bumped once, after the whole card has
+    // resolved (below), which also stops a multi-hit growth card growing between its own hits.
+    // Keyed by the ProgramEntity id, so two copies grow independently and the count follows
+    // the instance through every pile.
+    const growthKey = `card_growth:${card.id}`;
+    const growth = programData.growPerPlay ? (state.counters?.[growthKey] || 0) : 0;
     const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
     const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
 
@@ -403,6 +410,10 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
                     // Execution
                     let modifiedAction = { ...action };
+                    if (growth > 0 && modifiedAction.type === 'ATTACK'
+                        && (modifiedAction as any).power !== undefined) {
+                        (modifiedAction as any).power = (modifiedAction as any).power + growth;
+                    }
                     if (modifier && modifierApplies) {
                         if (!powerBonusSpent && modifier.powerBonus && modifiedAction.type === 'ATTACK'
                             && (modifiedAction as any).power !== undefined) {
@@ -434,6 +445,16 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                 }
             }
         }
+    }
+
+    // Ticket 53: bank this cast's growth. After the action loop so the card just played
+    // used the PREVIOUS total, and outside it so a multi-hit card grows once per cast.
+    if (programData.growPerPlay) {
+        finalState = applyMutations(finalState, [{
+            type: 'COUNTER',
+            targetId: '',
+            payload: { key: growthKey, operator: 'ADD', amount: programData.growPerPlay }
+        }]);
     }
 
     // 8. System Layer: onActionEnd (ticket 36). Fires ONCE PER PROGRAM, after every action has

@@ -535,6 +535,25 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
             ...newState,
             counters: { ...newState.counters, ['deck_shuffles']: (newState.counters['deck_shuffles'] || 0) + 1 }
         };
+
+        // Ticket 53: `onDeckShuffled` existed as a hook TYPE since ticket 07 and nothing ever
+        // dispatched it, which is why ticket 07 could pin "no onDeckShuffled in hooks.json" as an
+        // invariant. valkyrie_v2's REBIRTH_CYCLE_OS is its first consumer, so it is wired here -
+        // the one place that knows both that a reshuffle happened AND the battle state.
+        //
+        // The loop question was reviewed before wiring it: a reshuffle can only happen inside a
+        // draw, the hook does not draw, and nothing in the registry generates cards into a
+        // drawpile, so this cannot re-enter itself.
+        const shuffler = (side === 'PLAYER' ? newState.playerParty : newState.enemyParty)[0];
+        if (shuffler) {
+            const { state: afterShuffleHooks } = executeResolutionStack('onDeckShuffled', {
+                source: shuffler,
+                target: shuffler,
+                state: newState,
+                triggerDepth: 0,
+            } as never);
+            newState = afterShuffleHooks;
+        }
     }
 
     if (cardsDrawnCount > 0) {

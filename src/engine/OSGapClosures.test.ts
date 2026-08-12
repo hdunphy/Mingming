@@ -77,42 +77,45 @@ Object.values(FIRMWARE_REGISTRY).forEach(os => {
     os.hooks.forEach(h => registerHook(h));
 });
 
-describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (real overheal)', () => {
-    it('converts healOverride overflow into exact Light damage on a random enemy', () => {
+describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (30% of ALL healing)', () => {
+    // Ticket 53 reshaped this from a switch into a dial. It used to read `last_overheal`, so it
+    // fired NEVER while she was behind and CONSTANTLY once she was already unkillable - which is
+    // how audhumbla's mirror became a 61-turn 0/400. It now reads `last_heal_intended` (the heal
+    // after onHealCalculated, before the max-HP clamp) at 30% - 25% in the spec, knobbed up one
+    // round in ticket 53 §6 - floored.
+    it('converts a share of an overhealing heal, counting the part the clamp ate', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
         const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_flat: a power-80 heal on SELF = 20 on the 100-maxHp frame (ticket 43 moved
-        // it off healOverride). 95/100 -> applied 5, overheal 15.
+        // card_heal_flat: a power-80 heal on SELF = 20 on the 100-maxHp frame. 95/100 -> only 5
+        // lands, but the whole 20 converts: floor(0.30 * 20) = 6.
         let state = makeState([aud], [enemy], [card('c1', 'card_heal_flat', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 
         expect(state.playerParty[0].currentHp).toBe(100);
-        expect(state.enemyParty[0].currentHp).toBe(85); // 100 - 15 overflow
+        expect(state.enemyParty[0].currentHp).toBe(94);
         expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
     });
 
-    it('converts power-based (calculateHeal) overflow — the clamp no longer eats it', () => {
-        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
-        const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_power: power 25, target maxHp 100. docs/power_curve_spec.md rev 3:
-        // calculateHeal = maxHp * power / 400 = 100 * 25 / 400 = 6.25 -> intended heal 6.
-        // 95/100 -> applied 5 (clamped to missing HP), overheal 1.
-        let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
-        state = play(state, 'aud1', 'aud1', 'c1');
-
-        expect(state.playerParty[0].currentHp).toBe(100);
-        expect(state.enemyParty[0].currentHp).toBe(99); // 100 - 1 overflow
-    });
-
-    it('a heal fully absorbed by missing HP procs nothing', () => {
+    it('fires on a heal that is fully absorbed by missing HP - this is the switch-to-dial fix', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 50 });
         const enemy = makeUnit('e1', 'Enemy');
+        // card_heal_power: power 25, maxHp 100 -> calculateHeal = 100 * 25 / 400 = 6. All 6 land
+        // (she is 50 HP down), and 30% of 6 = 1.8 -> 1. Pre-53 this was the "procs nothing" case.
         let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 
-        expect(state.playerParty[0].currentHp).toBe(56); // 50 + 6, no overflow
-        expect(state.enemyParty[0].currentHp).toBe(100);
-        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(false);
+        expect(state.playerParty[0].currentHp).toBe(56);
+        expect(state.enemyParty[0].currentHp).toBe(99);
+        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
+    });
+
+    it('floors the MAGNITUDE - a 6 HP heal converts to 1, never 2', () => {
+        // The general claim: `Math.floor` on a negative product rounds AWAY from zero, so before
+        // ticket 53 fixed the HP branch in HookFactory this same heal would have dealt 2.
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 10 });
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_power', 1)]);
+        state = play(state, 'aud1', 'aud1', 'c1');
+        expect(state.enemyParty[0].currentHp).toBe(99);
     });
 });
 
@@ -143,112 +146,127 @@ describe('Item 2 - FAFNIR v1 HOARD_PROTOCOL (recoil at turn start)', () => {
     });
 });
 
-describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (real buff statuses)', () => {
-    it('applying Energized to an ally heals them 5% max HP', () => {
-        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
-        const ally = makeUnit('ally1', 'Ally', { currentHp: 50 });
-        let state = makeState([valk, ally], [makeUnit('e1', 'Enemy')]);
+describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (einherjar recursion)', () => {
+    // Ticket 53 replaced this OS outright. The old one healed an ALLY 5% max HP on every buff
+    // she applied, behind a `target.id !== owner.id` guard - in 1v1 there is no other ally, so
+    // it could not fire at all, and the balance harness only ever measures 1v1.
+    it('replays a random card from the discard pile at the end of her own turn', () => {
+        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1', attack: 40 });
+        // defense 1: the shared fixture is attack 10 vs defense 10, where a 10-power card floors
+        // to 0 damage and the assertion below could not tell a free cast from no cast at all.
+        const enemy = makeUnit('e1', 'Enemy', { defense: 1 });
+        let state = makeState([valk], [enemy], [card('c1', 'card_strike', 1)]);
 
-        state = battleReducer(state, {
-            type: 'APPLY_STATUS',
-            payload: { targetId: 'ally1', sourceId: 'valk1', status: 'Energized', stacks: 1 }
-        });
+        // Play the strike so it lands in the discard, then end her turn.
+        state = play(state, 'valk1', 'e1', 'c1');
+        const hpAfterPaidCast = state.enemyParty[0].currentHp;
+        expect(hpAfterPaidCast).toBeLessThan(100);
 
-        expect(state.playerParty[1].currentHp).toBe(55);
+        state = battleReducer(state, { type: 'END_TURN' });
+
+        expect(state.logs.some(l => l.includes('VALHALLA_UPLINK'))).toBe(true);
+        // The free cast hits again, and the card is still in the discard afterwards.
+        expect(state.enemyParty[0].currentHp).toBeLessThan(hpAfterPaidCast);
+        expect(state.playerDeck.discard.some(c => c.id === 'c1')).toBe(true);
     });
 
-    it('applying BarkShield to an ally heals them too', () => {
+    it('does nothing with an empty discard pile, and never costs Energy', () => {
         const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
-        const ally = makeUnit('ally1', 'Ally', { currentHp: 50 });
-        let state = makeState([valk, ally], [makeUnit('e1', 'Enemy')]);
-
-        state = battleReducer(state, {
-            type: 'APPLY_STATUS',
-            payload: { targetId: 'ally1', sourceId: 'valk1', status: 'BarkShield', stacks: 5 }
-        });
-
-        expect(state.playerParty[1].currentHp).toBe(55);
-    });
-
-    it('self-buffs still do not proc the heal', () => {
-        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1', currentHp: 50 });
         let state = makeState([valk], [makeUnit('e1', 'Enemy')]);
+        const energyBefore = state.playerParty[0].currentEnergy;
 
-        state = battleReducer(state, {
-            type: 'APPLY_STATUS',
-            payload: { targetId: 'valk1', sourceId: 'valk1', status: 'Energized', stacks: 1 }
-        });
+        state = battleReducer(state, { type: 'END_TURN' });
 
-        expect(state.playerParty[0].currentHp).toBe(50);
+        expect(state.logs.some(l => l.includes('VALHALLA_UPLINK'))).toBe(false);
+        expect(state.enemyParty[0].currentHp).toBe(100);
+        expect(state.playerParty[0].currentEnergy).toBe(energyBefore);
+    });
+
+    it('procs at most once per turn', () => {
+        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
+        let state = makeState([valk], [makeUnit('e1', 'Enemy', { defense: 1 })], [card('c1', 'card_strike', 1)]);
+        state = play(state, 'valk1', 'e1', 'c1');
+
+        state = battleReducer(state, { type: 'END_TURN' });
+        const procs = state.logs.filter(l => l.includes('VALHALLA_UPLINK')).length;
+        expect(procs).toBe(1);
+        expect(state.counters['valkyrie_uplink_turn:valk1']).toBe(1);
     });
 });
 
-describe('Item 4 - AUDHUMBLA v1 GENESIS_FIRMWARE (3rd Heal/Skill exactly)', () => {
-    it('grants +1 max energy on exactly the 3rd Heal/Skill card', () => {
-        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 10 });
-        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [
-            card('c1', 'card_heal_power', 1),
-            card('c2', 'card_draw_test', 1),
-            card('c3', 'card_heal_power', 1)
-        ]);
+describe('Item 4 - AUDHUMBLA v1 GENESIS_FIRMWARE (overheal -> max Energy, once per turn)', () => {
+    // Ticket 53 re-triggered this. It used to count every 3rd Heal/Skill card played, which had
+    // nothing to do with her identity and ramped on a timer she could not influence. It now pays
+    // out on DELIBERATE OVERHEAL - healing at or near full HP - which brings the ramp online on
+    // turns 1-2 and makes `pale_mercy` at full HP a real decision. It pays in maxEnergy, not raw
+    // energy, because `processPreTurn` SETS currentEnergy each turn (HANDOFF 8-ENERGY-TRAP).
+    it('grants +1 max Energy when a heal overflows', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 98 });
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_power', 1)]);
 
-        state = play(state, 'aud1', 'aud1', 'c1'); // Heal #1
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        state = play(state, 'aud1', 'aud1', 'c2'); // Skill #2
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        state = play(state, 'aud1', 'aud1', 'c3'); // Heal #3 -> reward
+        state = play(state, 'aud1', 'aud1', 'c1'); // heals 6 into 2 missing HP -> 4 overheal
         expect(state.playerParty[0].maxEnergy).toBe(6);
-        expect(state.counters['audhumbla_genesis:aud1']).toBe(0);
+        expect(state.logs.some(l => l.includes('GENESIS_FIRMWARE'))).toBe(true);
     });
 
-    it('an Attack card as "card 3" does not trigger the payout', () => {
+    it('a heal fully absorbed by missing HP grants nothing', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 10 });
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_power', 1)]);
+
+        state = play(state, 'aud1', 'aud1', 'c1');
+        expect(state.playerParty[0].maxEnergy).toBe(5);
+    });
+
+    it('pays out at most once per turn no matter how many heals overflow', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 99 });
         let state = makeState([aud], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_heal_power', 1),
-            card('c2', 'card_draw_test', 1),
-            card('c3', 'card_strike', 1),
-            card('c4', 'card_heal_power', 1)
+            card('c2', 'card_heal_power', 1)
         ]);
 
-        state = play(state, 'aud1', 'aud1', 'c1'); // Heal #1
-        state = play(state, 'aud1', 'aud1', 'c2'); // Skill #2
-        state = play(state, 'aud1', 'e1', 'c3'); // Attack — must not count nor pay out
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        expect(state.counters['audhumbla_genesis:aud1']).toBe(2);
-        state = play(state, 'aud1', 'aud1', 'c4'); // Heal #3 -> reward
+        state = play(state, 'aud1', 'aud1', 'c1');
+        state = play(state, 'aud1', 'aud1', 'c2');
         expect(state.playerParty[0].maxEnergy).toBe(6);
+        expect(state.counters['audhumbla_genesis_used:aud1']).toBe(1);
     });
 });
 
 describe('Item 5 - per-unit OS counters', () => {
-    it('two audhumbla_v1 units count Heal/Skill plays independently', () => {
-        const aud1 = makeUnit('aud1', 'Audhumbla A', { activeOS: 'audhumbla_v1', currentHp: 10 });
-        const aud2 = makeUnit('aud2', 'Audhumbla B', { activeOS: 'audhumbla_v1', currentHp: 10 });
+    it('two audhumbla_v1 units hold independent once-per-turn guards', () => {
+        const aud1 = makeUnit('aud1', 'Audhumbla A', { activeOS: 'audhumbla_v1', currentHp: 99 });
+        const aud2 = makeUnit('aud2', 'Audhumbla B', { activeOS: 'audhumbla_v1', currentHp: 99 });
         let state = makeState([aud1, aud2], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_heal_power', 1),
             card('c2', 'card_heal_power', 1),
-            card('c3', 'card_heal_power', 1),
-            card('c4', 'card_heal_power', 1)
+            card('c3', 'card_heal_power', 1)
         ]);
 
-        state = play(state, 'aud1', 'aud1', 'c1'); // A: 1
-        state = play(state, 'aud1', 'aud1', 'c2'); // A: 2
-        state = play(state, 'aud2', 'aud2', 'c3'); // B: 1 (global would be 3 -> false payout)
-
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        expect(state.playerParty[1].maxEnergy).toBe(5);
-        expect(state.counters['audhumbla_genesis:aud1']).toBe(2);
-        expect(state.counters['audhumbla_genesis:aud2']).toBe(1);
-
-        state = play(state, 'aud1', 'aud1', 'c4'); // A: 3 -> only A rewarded
+        state = play(state, 'aud1', 'aud1', 'c1'); // A pays out
+        state = play(state, 'aud1', 'aud1', 'c2'); // A is spent for the turn
         expect(state.playerParty[0].maxEnergy).toBe(6);
         expect(state.playerParty[1].maxEnergy).toBe(5);
+
+        // A global guard would have blocked B here. An owner-scoped one does not.
+        state = play(state, 'aud2', 'aud2', 'c3');
+        expect(state.playerParty[1].maxEnergy).toBe(6);
+        expect(state.counters['audhumbla_genesis_used:aud1']).toBe(1);
+        expect(state.counters['audhumbla_genesis_used:aud2']).toBe(1);
     });
 });
 
 describe('Item 6 - HRAESVELGR v2 dead data removed', () => {
-    it('hooks.json contains no onDeckShuffled trigger anywhere', () => {
-        expect(JSON.stringify(HOOKS_DATA)).not.toContain('onDeckShuffled');
+    // Ticket 53 CONSCIOUSLY RETIRES the old pin here ("hooks.json contains no onDeckShuffled
+    // trigger anywhere"). That assertion was correct when it was written - the trigger was a
+    // type with no dispatcher, so any hook using it was dead data - but ticket 53 wired the
+    // dispatch in `executeDraw` and valkyrie_v2's REBIRTH_CYCLE_OS is its first live consumer.
+    // What replaces it is the claim that actually mattered: a hook on this trigger FIRES.
+    it('onDeckShuffled is dispatched, and REBIRTH_CYCLE_OS is its consumer', () => {
+        const entry = (HOOKS_DATA as any).valkyrie_v2;
+        expect(entry.name).toBe('REBIRTH_CYCLE_OS');
+        // hooks[0] is the once-per-turn reset (see ticket 53 §7a); the payout is the one that
+        // has to sit on the newly-live trigger.
+        expect(entry.hooks.some((h: any) => h.trigger === 'onDeckShuffled')).toBe(true);
+        expect(getHook('valk_v2_rebirth')?.onDeckShuffled).toBeTypeOf('function');
     });
 
     it('hraesvelgr_v2 keeps its description (UI copy) but has no data hooks', () => {

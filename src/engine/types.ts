@@ -406,6 +406,21 @@ export interface ProgramData {
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks for Daemons
   readonly isToken?: boolean; // If true, this is a generated token card
   readonly exhaust?: boolean; // If true, card is removed from battle after use
+  /**
+   * Ticket 53 - RAMPAGE growth. This card INSTANCE permanently gains +N power on every
+   * ATTACK action each time it resolves, for the rest of the battle. Per instance, not per
+   * card id: two copies of `zealots_edge` grow independently, and the accumulator is a
+   * counter keyed by the ProgramEntity id (`card_growth:<instanceId>`) so it survives every
+   * pile move without widening `ProgramEntity`.
+   *
+   * Deliberately UNCAPPED (Henry's law, ticket 53): a scaling attack underperforms early and
+   * overperforms late, and capping it pre-emptively removes the only reason to build around
+   * it. The brake is the deck, not the card.
+   *
+   * NOTE for powerscale: the static scorer sees the PRINTED power only, so a growth card is
+   * scored at its first cast. See `GROWTH_HORIZON_PLAYS` in powerscale.ts.
+   */
+  readonly growPerPlay?: number;
   readonly artReference?: string;
 }
 

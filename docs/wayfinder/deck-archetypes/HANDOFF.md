@@ -1,6 +1,6 @@
 # HANDOFF — deck-archetypes map (keep this current every session)
 
-*Last updated: 2026-08-09, after tickets 26-38 landed. **18/32 decks live — Hel is done and Dark is half done. Hel is the roster's first DUAL-TYPE Mingming (Dark/Light).** **All six tuned species are inside the first-pass band on BOTH §2.3 and dead cards - there is no open first-pass breach.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
+*Last updated: 2026-08-12, after ticket 53 (Light) landed. **32/32 DECKS LIVE — every species on the roster now has two tuned OS decks. The first-pass phase is over; deep tuning begins.** **Three species are out of the first-pass §2.3 band and all three need Henry: jormungandr 0.240, valkyrie 0.170, audhumbla 0.000.** If you are a fresh session (any model): read this, then map.md, then the ticket you're assigned.*
 
 ## Read this first: which band applies
 
@@ -13,7 +13,7 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Where things stand
 
-- Branch **card-dev**. Tickets 01–52 closed. **DARK, ICE AND EARTH COMPLETE — 28/32 decks live, 14 of 16 species tuned. Only LIGHT is left (valkyrie, audhumbla).** **10 of 16 species tuned** (kraken, jormungandr, sleipnir, hraesvelgr, fenrir, sköll, ratatoskr, huldra, hel, nidhoggr, draugr, ymir, fafnir, gullinbursti). **Water, Air, Fire, Nature, Dark, Ice and Earth are complete. Remaining: Light (valkyrie, audhumbla).** The other 6 are placeholders — **do not read their numbers as balance signal.**
+- Branch **card-dev**. Tickets 01–53 closed. **EVERY ELEMENT IS COMPLETE — 32/32 decks live, 16 of 16 species tuned.** There are no placeholder decks left; every number in `balance_report.json` is now balance signal.
 - **Ticket 47 changed what "passes" means.** Every first-pass band is same-species or v1-only, and the gauntlet now shows **eight of sixteen slot-2 decks at or below the control floor** — hel_v2 among them at 0.94. **A species is not tuned until BOTH its decks have met the floor.** See 8-GAUNTLET-b for the list.
 - **Hel (ticket 36) passes every first-pass band** after a second pass that added `escalatePerPlay`. Read her §2.3 as **±8, not ±4**: 61% of her games are mutual kills, so 0.590 is computed over ~40 decided games. **Her FTK is reduced, not eliminated** — ~1.6% over 800 games, 0 in the committed 100-game sample.
 - **Latest full gate (after ticket 34), tuned species only — every one passes, FTK 0, mirror mean 6.0 turns (inside the 5-6 target for the first time):**
@@ -33,6 +33,8 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
   | ymir | 0.620 | 14.1 | 11.0% / 27.7% | *(ticket 50)* |
   | fafnir | 0.596 | 6.7 | 23.6% / 18.0% | *(ticket 52)* |
   | gullinbursti | 0.490 | 10.1 | 10.1% / 6.3% | *(ticket 52)* |
+  | valkyrie | **0.170** | 13.6 | 2.2% / 11.0% | *(ticket 53)* OUT OF BAND |
+  | audhumbla | **0.000** | 13.1 | 8.3% / 2.1% | *(ticket 53)* OUT OF BAND |
 
   Hel (tickets 36+38, at `1:d7238b5d`): §2.3 **0.508**, mirror **5.4** turns at 400/400, dead 26.7% / 10.2%. ratatoskr moved 0.590 → **0.610** in the same run (inside noise).
 
@@ -141,7 +143,12 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 17. `corrosive_leak` +1.8 budget redline, open since ticket 20.
 18. **Deferred by decision:** type-matrix tuning + AI-determinism (blowouts are legacy deck quality, not the matrix); valkyrie v1 team measurement (needs ticket 05 team scenarios); fafnir/gullinbursti split (settles in the Earth pass).
 
-- **Ticket 53 (Light: valkyrie + audhumbla) is SPECIFIED and Henry-approved, not implemented** — all four OS reworks, 12 new cards, audhumbla frame 3e→2e, Rampage growth mechanic. The spec is the ticket file; Henry holds the implementation prompt. It is the LAST element — when it lands, all 32 decks are live and the deep-tuning phase begins (51 → 49 first).
+- **Ticket 53 (Light) LANDED 2026-08-12 — 32/32 decks live.** Three things in it need Henry and nothing downstream should assume they are settled:
+  1. **REBIRTH_CYCLE_OS was capped at once per turn, which is beyond the ticket's authorised knobs.** As specified ("every reshuffle") it killed the control on turn 1 with six procs, because valkyrie_v2's 8-card deck reshuffles on nearly every draw and `glimmer` is a 0-cost draw. The guard is a design decision awaiting review, not a knob.
+  2. **§2.3 is out of band on both Light species with both knob budgets spent** — valkyrie 0.170 (v2 is the roster's strongest deck at 95.0% field, next is 85.0%), audhumbla 0.000 (v1 100/100; both knobs were a measured no-op, the same structural-not-numeric pattern ticket 52 hit on gullinbursti).
+  3. **NOURISH_ROUTINE's dial is priced in the wrong unit.** It converts a percentage of heal POWER, but the engine converts power to HP at `maxHp × power / 400` — so `sacred_spring`'s 90 power is 22 HP, and 30% of that is 6 damage for 2 Energy. Raising the percentage cannot fix it. **This is the single most useful open finding in the ticket.**
+- **A `COUNTER` action in `hooks.json` with no `"target"` field is silently dropped.** `HookFactory.executeActions` early-`continue`s any non-LOG action whose target resolves to null, and a bare `COUNTER` resolves to null. Every pre-53 hook happens to carry `"target": "SELF"`, so nothing had hit it. Same failure mode as 8c2 (zod stripping), different layer — **check the counter actually moves before concluding a guard does not work.**
+- **`runBatch.test.ts`'s stalemate fixture has run out of species.** Every mirror on the roster now decides (ticket 48 retired `draugr`, ticket 53 retired `audhumbla`, the last one). It is now synthetic by construction — `ymir`'s ~14-turn mirror truncated at a cap of 6 — rather than a species that stalls forever. Do not re-point it at a species.
 
 ## Process
 

@@ -22,13 +22,22 @@ import type { ComposedSetup } from '../scenarios/scenarioSchema';
 const scenario: ComposedSetup = mirrorScenario('fenrir');
 
 /**
- * A species whose mirror genuinely never finishes, used as the stalemate fixture below.
- * `audhumbla` is an untuned placeholder sitting on a 61-turn mirror redline. When its deck
- * pass lands this will start deciding games and three tests will go red - repoint it at
- * whatever still stalls, or build a synthetic never-ending setup. (Ticket 48 retired `draugr`
- * from this role by giving it decks that actually kill.)
+ * The stalemate fixture: a mirror that has NOT decided by `STALEMATE_TURN_CAP`.
+ *
+ * This used to name a species whose mirror genuinely never finished, and it has now run out
+ * of candidates - ticket 48 retired `draugr` by giving it decks that kill, and ticket 53 (the
+ * Light pass) retired `audhumbla`, whose 61-turn 0/400 mirror was the last one left and now
+ * decides 12/12 in ~10 turns. Every mirror on the roster decides.
+ *
+ * So the fixture is now synthetic-by-construction rather than synthetic-by-species: the
+ * slowest mirror on the roster (`ymir`, ~14 turns) truncated at a cap far below that. What
+ * these three tests actually assert has not changed - that an undecided batch reads as draws
+ * and not as a 0% win rate - and this form cannot rot the same way, because a deck pass that
+ * SPEEDS UP ymir's mirror by 3x is a redline of its own long before it reaches this file.
  */
-const STALEMATE_SPECIES = 'audhumbla';
+const STALEMATE_SPECIES = 'ymir';
+/** Measured headroom: ymir's mirror never decides before turn 8 across 40 seeds. */
+const STALEMATE_TURN_CAP = 6;
 
 /** Keep the engine's per-kill logging out of the test reporter. */
 function quiet<T>(fn: () => T): T {
@@ -60,19 +69,15 @@ describe('runOne', () => {
     });
 
     it('always terminates, and reports a turn count within the cap', () => {
-        // Two decks that cannot finish each other off - the case that hangs a runner with no
-        // turn cap. `STALEMATE_SPECIES` is a real stalling mirror from the balance suite rather
-        // than a contrived one, which is the point and also the fragility: when that species
-        // gets a deck pass the fixture stops stalling and these three tests go red. That is the
-        // deck improving, not the runner breaking. Repoint it at whatever still stalls.
-        //
-        // It was `draugr` until ticket 48 gave it real decks and closed its 42-turn mirror.
+        // A battle that has not resolved by the cap - the case that hangs a runner with no turn
+        // cap at all. See STALEMATE_SPECIES above for why this is now a cap rather than a
+        // species that stalls forever.
         const stalemate = mirrorScenario(STALEMATE_SPECIES);
-        const result = quiet(() => runOne(stalemate, 'stall', 8));
+        const result = quiet(() => runOne(stalemate, 'stall', STALEMATE_TURN_CAP));
 
         expect(result.truncated).toBe(true);
         expect(result.winner).toBe('DRAW');
-        expect(result.turns).toBeLessThanOrEqual(9);
+        expect(result.turns).toBeLessThanOrEqual(STALEMATE_TURN_CAP + 1);
     });
 
     it('plays both sides: the enemy spends cards out of its own hand', () => {
@@ -149,7 +154,7 @@ describe('runBatch', () => {
 
     it('scores a stalemate as draws, not as a loss for either side', () => {
         const batch = quiet(() =>
-            runBatch(mirrorScenario(STALEMATE_SPECIES), { iterations: 4, maxTurns: 6 }),
+            runBatch(mirrorScenario(STALEMATE_SPECIES), { iterations: 4, maxTurns: STALEMATE_TURN_CAP }),
         );
 
         expect(batch.draws).toBe(batch.iterations);
@@ -183,7 +188,7 @@ describe('runPairedBatch', () => {
 
     it('reports no edge and no bias when nothing was decided', () => {
         const paired = quiet(() =>
-            runPairedBatch(mirrorScenario(STALEMATE_SPECIES), { iterations: 3, maxTurns: 6 }),
+            runPairedBatch(mirrorScenario(STALEMATE_SPECIES), { iterations: 3, maxTurns: STALEMATE_TURN_CAP }),
         );
 
         expect(paired.pooled.decisive).toBe(0);

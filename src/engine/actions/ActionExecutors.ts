@@ -563,6 +563,74 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
     }
 }
 
+/**
+ * Ticket 53 - resolve a program's actions for FREE, with no Energy paid, no hand/pile move and
+ * no constraint check. This is the same shape as `PlayLastCardExecutor` above (that is what the
+ * ticket means by "PLAY_LAST_CARD machinery"), pulled out as a function because VALHALLA_UPLINK
+ * needs it from firmware and needs two things the executor cannot give it:
+ *
+ *  - a per-action target: the free cast has no declared target, so SELF actions land on the
+ *    caster and everything else on a seeded random living enemy;
+ *  - RAMPAGE growth: the resurrected card is a real INSTANCE, so it reads and banks
+ *    `card_growth:<instanceId>` exactly as a paid cast does (ticket 53: "the VALHALLA free
+ *    resurrection also grows it").
+ *
+ * The caller owns the pile: nothing here moves the card, so a card replayed from the discard
+ * simply stays in the discard.
+ */
+export function resolveProgramFree(
+    state: IBattleState,
+    sourceId: string,
+    instanceId: string,
+    programData: ProgramData,
+    context: HookContext
+): IBattleState {
+    let finalState = state;
+    const isPlayerSource = finalState.playerParty.some(e => e.id === sourceId);
+
+    // One seeded enemy pick for the whole cast, threaded back into the state so the next
+    // random consumer does not replay it (same contract as HookFactory.resolveTarget).
+    const enemies = (isPlayerSource ? finalState.enemyParty : finalState.playerParty).filter(e => e.currentHp > 0);
+    let defaultTargetId = sourceId;
+    if (enemies.length > 0) {
+        const { value: index, nextSeed } = new PRNG(finalState.seed).nextInt(0, enemies.length - 1);
+        defaultTargetId = enemies[index].id;
+        finalState = { ...finalState, seed: nextSeed };
+    }
+
+    const growth = programData.growPerPlay ? (finalState.counters?.[`card_growth:${instanceId}`] || 0) : 0;
+
+    for (const action of programData.actions ?? []) {
+        // No recursion: a free cast may not itself echo, or VALHALLA + Reprogram loops.
+        if (action.type === 'PLAY_LAST_CARD') continue;
+
+        const isSelf = action.target === 'SELF' || (action.target as string) === 'Self' || action.type === 'DISCARD';
+        const tId = isSelf ? sourceId : defaultTargetId;
+        const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
+        if (!target || target.currentHp <= 0) continue;
+
+        let resolved: ProgramAction = { ...action };
+        if (growth > 0 && resolved.type === 'ATTACK' && (resolved as any).power !== undefined) {
+            (resolved as any).power = (resolved as any).power + growth;
+        }
+
+        const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[resolved.type];
+        if (executor) {
+            finalState = executor.execute(finalState, sourceId, tId, resolved as any, programData, { ...context, state: finalState });
+        }
+    }
+
+    if (programData.growPerPlay) {
+        finalState = applyMutations(finalState, [{
+            type: 'COUNTER',
+            targetId: '',
+            payload: { key: `card_growth:${instanceId}`, operator: 'ADD', amount: programData.growPerPlay }
+        }]);
+    }
+
+    return finalState;
+}
+
 export class TauntExecutor extends ActionExecutor<TauntActionData> {
     execute(state: IBattleState, sourceId: string, _targetId: string, _actionData: TauntActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const isPlayerSource = state.playerParty.some(e => e.id === sourceId);

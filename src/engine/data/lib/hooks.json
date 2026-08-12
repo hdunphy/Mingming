@@ -894,49 +894,109 @@
     "valkyrie_v1": {
         "id": "valkyrie_v1",
         "name": "VALHALLA_UPLINK",
-        "description": "Whenever a Valkyrie applies a positive status (Strengthened, Sharp, Regen, StableOS, Energized or Bark Shield) to an ally, that ally also heals for 5% of their max HP.",
+        "description": "At the end of Valkyrie's turn, play a random card from her discard pile for free.",
         "hooks": []
     },
     "valkyrie_v2": {
         "id": "valkyrie_v2",
-        "name": "CRUSADER_KERNEL",
-        "description": "Valkyrie's Light attacks deal +10% damage for every different positive status she currently has.",
-        "hooks": []
-    },
-    "audhumbla_v1": {
-        "id": "audhumbla_v1",
-        "name": "GENESIS_FIRMWARE",
-        "description": "Every 3rd Heal or Skill card played permanently increases Audhumbla's maximum Energy pool by 1 for the remainder of the battle.",
+        "name": "REBIRTH_CYCLE_OS",
+        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, deal 10 Light damage to a random enemy and heal Valkyrie with 10 power. Once per turn.",
         "hooks": [
             {
-                "id": "aud_v1_count",
-                "trigger": "onActionStart",
+                "id": "valk_v2_rebirth_reset",
+                "trigger": "onTurnEnd",
                 "priority": 50,
                 "when": {
-                    "source": "SELF",
-                    "programCategoryIn": ["Heal", "Skill"]
+                    "source": "SELF"
                 },
                 "do": [
                     {
                         "type": "COUNTER",
                         "target": "SELF",
-                        "key": "audhumbla_genesis",
-                        "amount": 1
+                        "key": "valkyrie_rebirth_used",
+                        "operator": "RESET"
                     }
                 ]
             },
             {
-                "id": "aud_v1_reward",
-                "trigger": "onActionStart",
+                "id": "valk_v2_rebirth",
+                "trigger": "onDeckShuffled",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "programCategoryIn": ["Heal", "Skill"],
                     "counter": {
-                        "key": "audhumbla_genesis",
-                        "operator": "GTE",
-                        "value": 3
+                        "key": "valkyrie_rebirth_used",
+                        "operator": "LT",
+                        "value": 1
                     }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "valkyrie_rebirth_used",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "HP",
+                        "target": "RANDOM_ENEMY",
+                        "element": "Light",
+                        "amount": -10
+                    },
+                    {
+                        "type": "HEAL",
+                        "target": "SELF",
+                        "power": 10
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s REBIRTH_CYCLE_OS ignites the reshuffle!"
+                    }
+                ]
+            }
+        ]
+    },
+    "audhumbla_v1": {
+        "id": "audhumbla_v1",
+        "name": "GENESIS_FIRMWARE",
+        "description": "Whenever healing applied to Audhumbla exceeds her maximum HP, permanently increase her maximum Energy pool by 1. Once per turn.",
+        "hooks": [
+            {
+                "id": "aud_v1_genesis_reset",
+                "trigger": "onTurnStart",
+                "priority": 50,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "audhumbla_genesis_used",
+                        "operator": "RESET"
+                    }
+                ]
+            },
+            {
+                "id": "aud_v1_genesis",
+                "trigger": "onHeal",
+                "priority": 40,
+                "when": {
+                    "target": "SELF",
+                    "counters": [
+                        {
+                            "key": "last_overheal",
+                            "operator": "GT",
+                            "value": 0,
+                            "scope": "GLOBAL"
+                        },
+                        {
+                            "key": "audhumbla_genesis_used",
+                            "operator": "LT",
+                            "value": 1
+                        }
+                    ]
                 },
                 "do": [
                     {
@@ -947,8 +1007,9 @@
                     {
                         "type": "COUNTER",
                         "target": "SELF",
-                        "key": "audhumbla_genesis",
-                        "amount": -3
+                        "key": "audhumbla_genesis_used",
+                        "operator": "SET",
+                        "amount": 1
                     },
                     {
                         "type": "LOG",
@@ -961,7 +1022,7 @@
     "audhumbla_v2": {
         "id": "audhumbla_v2",
         "name": "NOURISH_ROUTINE",
-        "description": "Any healing applied to Audhumbla that exceeds her maximum HP is automatically converted into an offensive Light attack against a random enemy.",
+        "description": "30% of ALL healing applied to Audhumbla is also dealt as Light damage to a random enemy.",
         "hooks": [
             {
                 "id": "aud_v2_nourish",
@@ -970,7 +1031,7 @@
                 "when": {
                     "target": "SELF",
                     "counter": {
-                        "key": "last_overheal",
+                        "key": "last_heal_intended",
                         "operator": "GT",
                         "value": 0,
                         "scope": "GLOBAL"
@@ -981,12 +1042,12 @@
                         "type": "HP",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "amount": -1,
-                        "scaling": "OVERHEAL"
+                        "amount": -0.3,
+                        "scaling": "HEAL_INTENDED"
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s NOURISH_ROUTINE converts the Overheal into Light damage against {target}!"
+                        "text": "{owner}'s NOURISH_ROUTINE turns the healing into Light damage against {target}!"
                     }
                 ]
             }

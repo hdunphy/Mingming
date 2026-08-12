@@ -2,6 +2,9 @@ import { type HookDefinition, type HookContext, type HookResult, type MutationRe
 import type { IBattleState, IBattleEntity } from '../types';
 import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
+import { resolveProgramFree } from '../actions/ActionExecutors';
+import { GetProgramData } from '../data/programRegistry';
+import { PRNG } from './PRNG';
 
 /** Decided in the OS design review (deck-archetypes ticket 09): 50% of maxHP. */
 const HULDRA_V2_SHIELD_PERCENT = 50;
@@ -100,37 +103,48 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             }
         }
     ],
+    /**
+     * Ticket 53 - VALHALLA_UPLINK, replaced. The old firmware healed an ALLY 5% of max HP
+     * whenever Valkyrie buffed them, behind a `context.target.id !== owner.id` guard: in a 1v1
+     * battle there is no other ally, so it PROVABLY never fired, which is most of why valkyrie
+     * lost 94-95% to the control. The einherjar rise each evening instead:
+     *
+     *   "At the end of Valkyrie's turn, play a random card from her discard pile for free."
+     *
+     * Free means free - no Energy, no constraint check, no hand move. The card stays in the
+     * discard (so it can come back again, and so the deck does not thin), the exhaust pile is
+     * excluded by construction (exhausted cards never enter the discard), and the pick is
+     * seeded off `state.seed` with the advanced seed threaded back.
+     *
+     * One proc per turn, guarded on the turn number rather than a reset counter, so a second
+     * onTurnEnd dispatch in the same turn cannot double-fire it.
+     */
     "valkyrie_v1": [
         {
             id: "valkyrie_v1_uplink",
             priority: 40,
-            onStatusApplied: (context: HookContext, owner: IBattleEntity): HookResult => {
+            onTurnEnd: (context: HookContext, owner: IBattleEntity): HookResult => {
                 let state = context.state;
-                if (context.source?.id === owner.id && context.target && context.target.id !== owner.id) {
-                    const isAlly = state.playerParty.some((e: IBattleEntity) => e.id === owner.id)
-                        ? state.playerParty.some((e: IBattleEntity) => e.id === context.target!.id)
-                        : state.enemyParty.some((e: IBattleEntity) => e.id === context.target!.id);
+                if (context.source?.id !== owner.id) return { state };
 
-                    if (isAlly) {
-                        // The real buff StatusTypes (sourced from types.ts, not
-                        // free-form strings — 'Protect'/'Nimble' never existed).
-                        const positiveStatuses: string[] = [
-                            StatusType.Strengthened,
-                            StatusType.Sharp,
-                            StatusType.Regen,
-                            StatusType.StableOS,
-                            StatusType.Energized,
-                            StatusType.BarkShield
-                        ];
-                        if (positiveStatuses.includes(context.statusApplied || '')) {
-                            const healAmount = Math.max(1, Math.floor(context.target.maxHp * 0.05));
-                            state = applyMutations(state, [
-                                { type: 'HP', targetId: context.target.id, payload: { amount: healAmount, isHeal: true, override: true } },
-                                { type: 'LOG', targetId: '', payload: `${owner.name}'s VALHALLA_UPLINK heals ${context.target.name} for ${healAmount} HP!` }
-                            ]);
-                        }
-                    }
-                }
+                const guardKey = resolveCounterKey('valkyrie_uplink_turn', 'OWNER', owner);
+                if ((state.counters[guardKey] || 0) === state.turn) return { state };
+
+                const isPlayer = state.playerParty.some((e: IBattleEntity) => e.id === owner.id);
+                const deck = isPlayer ? state.playerDeck : state.enemyDeck;
+                if (deck.discard.length === 0) return { state };
+
+                const { value: index, nextSeed } = new PRNG(state.seed).nextInt(0, deck.discard.length - 1);
+                const chosen = deck.discard[index];
+                state = { ...state, seed: nextSeed };
+
+                const programData = GetProgramData(chosen.dataId);
+                state = applyMutations(state, [
+                    { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: state.turn } },
+                    { type: 'LOG', targetId: '', payload: `${owner.name}'s VALHALLA_UPLINK calls ${programData.name} back from the fallen!` }
+                ]);
+                state = resolveProgramFree(state, owner.id, chosen.id, programData, { ...context, state, program: programData });
+
                 return { state };
             }
         }
@@ -161,40 +175,10 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 grantHuldraShieldOnce(context, owner)
         }
     ],
-    // Ticket 12: valkyrie_v2 CRUSADER_KERNEL — her SOLO identity (v1 stays the
-    // team OS). +10% Light attack damage per DISTINCT positive status type on
-    // her — counts types, not stacks (variety snowball; contrast gullinbursti_v2
-    // which scales off raw Sharp stacks). EINHERJAR_RALLY lives on as the
-    // einherjar_standard team daemon card.
-    "valkyrie_v2": [
-        {
-            id: "valkyrie_v2_crusader",
-            priority: 40,
-            onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
-                if (context.source?.id === owner.id
-                    && context.program?.element === 'Light'
-                    && context.program?.actions?.some(a => a.type === 'ATTACK')) {
-                    const positiveStatuses: string[] = [
-                        StatusType.Strengthened,
-                        StatusType.Sharp,
-                        StatusType.Regen,
-                        StatusType.StableOS,
-                        StatusType.Energized,
-                        StatusType.BarkShield
-                    ];
-                    const distinctBuffTypes = new Set(
-                        owner.statusEffects
-                            .filter(s => positiveStatuses.includes(s.type))
-                            .map(s => s.type)
-                    ).size;
-                    if (distinctBuffTypes > 0) {
-                        return Math.floor(currentDamage * (1 + 0.1 * distinctBuffTypes));
-                    }
-                }
-                return currentDamage;
-            }
-        }
-    ],
+    // Ticket 53: valkyrie_v2's CRUSADER_KERNEL firmware (+10% Light damage per distinct
+    // positive status) was DELETED here and the slot became REBIRTH_CYCLE_OS, a data hook in
+    // hooks.json on the newly-dispatched `onDeckShuffled` trigger. EINHERJAR_RALLY lives on as
+    // the `einherjar_standard` team daemon card (still unused - needs ticket 05).
     "ymir_v2": [
         {
             id: "ymir_v2_glacial",
