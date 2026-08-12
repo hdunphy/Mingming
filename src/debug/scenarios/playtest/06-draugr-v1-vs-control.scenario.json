@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "draugr v1 vs the control",
+  "description": "Not a balance question, a FEEL question. Control wins 0.01. Does acting while Asleep read correctly? Is nightmare at 100 power satisfying or oppressive? Does the forced awake turn after each wake land as a cost?",
+  "tags": [
+    "playtest",
+    "vs-control",
+    "draugr"
+  ],
+  "registryHash": "1:00000000",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "setup": {
+    "seed": "06-draugr-v1-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "draugr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "draugr_v1"
+        }
+      ],
+      "deck": [
+        "grave_rest",
+        "grave_rest",
+        "barrow_rot",
+        "deathless_slumber",
+        "dread_tidings",
+        "dread_tidings",
+        "glacier_wall",
+        "ice_spear",
+        "nightmare",
+        "nightmare",
+        "barrow_king"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}

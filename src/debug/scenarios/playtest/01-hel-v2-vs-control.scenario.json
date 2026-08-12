@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "hel v2 vs the control",
+  "description": "QUEUE #3. The only deck the control still beats outright (0.81) and it dies in 4.7 turns. She pays HP for every card - find out whether the toll kills her or whether the AI just plays her badly.",
+  "tags": [
+    "playtest",
+    "vs-control",
+    "hel"
+  ],
+  "registryHash": "1:00000000",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "setup": {
+    "seed": "01-hel-v2-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "hel",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "hel_v2"
+        }
+      ],
+      "deck": [
+        "pale_mercy",
+        "pale_mercy",
+        "forage",
+        "forage",
+        "dawnstrike",
+        "dawnstrike",
+        "venom_shade",
+        "soul_tithe",
+        "squirrel_away",
+        "last_rites"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}
