@@ -9,25 +9,6 @@ import { PRNG } from './PRNG';
 /** Decided in the OS design review (deck-archetypes ticket 09): 50% of maxHP. */
 const HULDRA_V2_SHIELD_PERCENT = 50;
 
-/**
- * BARK_SHIELD_OS: grant the once-per-battle shield at the owner's first turn
- * boundary. Shared by the onTurnStart and onTurnEnd hooks; the per-owner
- * counter guard makes whichever fires first the only one that acts.
- */
-function grantHuldraShieldOnce(context: HookContext, owner: IBattleEntity): HookResult {
-    let state = context.state;
-    const guardKey = resolveCounterKey('huldra_shield_init', 'OWNER', owner);
-    if (!state.counters[guardKey]) {
-        state = applyMutations(state, [
-            // BarkShield stacks are a percent of maxHp (see StatusBehaviors).
-            { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'BarkShield', stacks: HULDRA_V2_SHIELD_PERCENT } },
-            { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
-            { type: 'LOG', targetId: '', payload: `${owner.name}'s BARK_SHIELD_OS activates a massive temporary shield!` }
-        ]);
-    }
-    return { state };
-}
-
 export const CustomFirmware: Record<string, HookDefinition[]> = {
     "fafnir_v1": [
         {
@@ -150,29 +131,42 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
         }
     ],
     "huldra_v2": [
-        // Ticket 07 (2026-08-05): two fixes.
-        // (1) The old `state.turn === 1` guard never matched for the player side — battles
-        //     start mid-turn-1 in the ACTION phase, so the player's first onTurnStart is
-        //     turn 2. The shield now lands on the owner's FIRST turn boundary (turn start
-        //     or turn end, whichever comes first), once per battle: enemy-side Huldra at
-        //     her turn-1 pre-turn, player-side Huldra at the end of turn 1 — in both cases
-        //     before the opposing side's first attack resolves against her.
-        // (2) BarkShield stacks ARE a percent of maxHp (StatusBehaviors), so the old
-        //     `floor(maxHp * 0.5)` stacks made the shield quadratic in maxHp. Now a flat
-        //     percent. HULDRA_V2_SHIELD_PERCENT = 50 matches the old
-        //     effective value at ~100 maxHp and was confirmed as the decided value by
-        //     the OS design review (deck-archetypes ticket 09).
-        {
-            id: "huldra_v2_bark_start",
-            priority: 40,
-            onTurnStart: (context: HookContext, owner: IBattleEntity): HookResult =>
-                grantHuldraShieldOnce(context, owner)
-        },
+        // Ticket 07 fixed two real defects here (the `state.turn === 1` guard never matched
+        // player-side, and BarkShield stacks ARE a percent of maxHp so `floor(maxHp * 0.5)` made
+        // the shield quadratic). Its fix granted the shield at the owner's FIRST turn boundary
+        // via TWO hooks - `bark_start` (onTurnStart) and `bark_end` (onTurnEnd) - sharing a
+        // once-per-battle counter, on the reasoning that enemy-side Huldra would take it at her
+        // turn-1 pre-turn and player-side Huldra at the end of turn 1.
+        //
+        // TICKET 55 AMENDMENT 1 MEASURED THAT AND IT IS FALSE. The liveness sweep
+        // (`src/debug/balance/liveness.ts`) recorded `bark_start` at **0 effects across 10,649
+        // calls**, with `bark_end` taking 100% of the grants - because a battle opens mid-turn-1
+        // in the ACTION phase, so EVERY unit's first boundary is a turn END, on both sides.
+        // `bark_start` was dead code and is deleted; the shield's behaviour is unchanged.
+        //
+        // KNOWN BUFF LEVER (Henry, ticket-55 review): making the grant land at turn START is not
+        // a neutral restoration of intent - per HANDOFF 8-SHIELD-TIMING a start-of-turn shield
+        // protects the owner's own actions and an end-of-turn one does not, so it is a real buff.
+        // huldra_v2 sits at a healthy ~71% field and does not need it. If it ever does, this is
+        // the cheapest lever on the deck: move this hook to `onTurnStart`.
         {
             id: "huldra_v2_bark_end",
             priority: 40,
-            onTurnEnd: (context: HookContext, owner: IBattleEntity): HookResult =>
-                grantHuldraShieldOnce(context, owner)
+            onTurnEnd: (context: HookContext, owner: IBattleEntity): HookResult => {
+                let state = context.state;
+                const guardKey = resolveCounterKey('huldra_shield_init', 'OWNER', owner);
+                if (!state.counters[guardKey]) {
+                    // BarkShield stacks are a percent of maxHp (see StatusBehaviors), so this is a
+                    // flat percent and not a scaled one. HULDRA_V2_SHIELD_PERCENT = 50 was the
+                    // value confirmed by the OS design review (deck-archetypes ticket 09).
+                    state = applyMutations(state, [
+                        { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'BarkShield', stacks: HULDRA_V2_SHIELD_PERCENT } },
+                        { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
+                        { type: 'LOG', targetId: '', payload: `${owner.name}'s BARK_SHIELD_OS activates a massive temporary shield!` }
+                    ]);
+                }
+                return { state };
+            }
         }
     ],
     // Ticket 53: valkyrie_v2's CRUSADER_KERNEL firmware (+10% Light damage per distinct

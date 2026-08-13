@@ -473,7 +473,7 @@ Read `±0.05` as noise: this run uses 50 iterations and a different seed base th
 **hel_v2 moving 0.81 → 0.901 is at the edge of that, but it is the wrong direction and it is now the
 only deck the control beats decisively.**
 
-**The field window is the more alarming table.** Only **13 of 32 decks** sit inside 0.35–0.80. Six are
+**The field window is the table that matters for the middle of the roster.** At this run's 10 iterations only **13 of 32 decks** sit inside 0.35–0.80 — *but the 30-iteration census (research/roster-census.md) revises that to **17 of 32**; the rest was sampling noise.* Six are
 above (valkyrie_v2 89.3, ymir_v2 84.3, jormungandr_v2 83.3, jormungandr_v1 83.0, hraesvelgr_v2 81.3,
 nidhoggr_v1 80.3) and **thirteen are below**, floored by audhumbla_v2 at 17.7. The roster is bimodal,
 and the control can no longer discriminate the bottom group at all — eleven of those thirteen beat it
@@ -497,3 +497,48 @@ Redlines **48 → 47**; card redlines unchanged (0 closed, 0 added); cards audit
 3. **`contagion` 0.646 dead** (unchanged; both v2 knob rounds still unspent).
 4. **13 of 32 decks inside the field window.** The floor list shrank because decks rose past it, not
    because the spread tightened.
+
+---
+
+## Amendment 1 — review decisions implemented (2026-08-13)
+
+Design review of the amendment-1 report returned three calls and four authorisations. All are
+carried out below; **nothing was picked that the review reserved.**
+
+**Design call 1 — jormungandr_v1 at 83.0 field: ACCEPT-AND-WATCH, spend nothing.** No lever
+applied. Re-read after ticket 56 moves valkyrie_v2 and audhumbla_v2, since every field number
+re-reads then. *The 30-iteration census below puts him at **84.0**, four points over rather than
+three — still inside the cited noise band, but it moved away from the ceiling.*
+
+**Design call 2 — `huldra_v2_bark_start`: DELETED as dead code.** The alternative ("fix" the guard
+so the turn-START grant fires) is not a neutral restoration of intent: per 8-SHIELD-TIMING a
+start-of-turn shield protects the owner's own actions and an end-of-turn one does not, so it would
+be a **real buff to a healthy ~71%-field deck**. Recorded in the firmware comment and in HANDOFF as
+a **ready-made buff lever** instead. Behaviour is unchanged — `bark_end` already took 100% of the
+grants. Post-delete liveness confirms it: huldra_v2 still LIVE, effects unchanged at 209, calls
+halved 8,743 → 4,348 (the deleted path was pure overhead), and **no silent hooks remain anywhere**.
+
+**Design call 3 — `serpents_coil` stays at 10.** Endorsed, already shipped, no action.
+
+**Four authorised measurements — all report-only, all delivered** in
+[research/roster-census.md](../research/roster-census.md):
+
+1. **Roster-wide first-mover census.** Range −33.0% (`hraesvelgr`) to +24.5% (`skoll`).
+   **jormungandr at −13.0% is fifth in magnitude, not the outlier** — `hraesvelgr` is 2.5x worse and
+   has never been measured. The extremes cluster on the three shortest mirrors.
+2. **30-iteration field census.** **The bimodality claim was partly a sampling artifact:
+   17 of 32 decks sit inside 0.35–0.80, not 13.** Mean |delta| vs the 10-iteration read is 1.92
+   points, max 5.4 — the review's ±4–5 estimate is right at the tail and conservative on average.
+3. **TOXIN_FANG A/B (`bonus` 1 / 2 / 3).** Monotonic on every column, **and the mechanism is the
+   inverse of the one hypothesised**: `bonus` sets game LENGTH, and length sets whether a
+   hold-and-double card is castable. **`bonus: 1` puts v2's field at 61.3% — inside the window —
+   and nearly halves `contagion`'s dead rate (0.619 → 0.439, 63% more casts)**, at the cost of 24%
+   of the deck's damage per turn. **Not applied; it is pre-authorised and one line away.**
+4. **`liveness.ts` after every `hooks.json` edit** — now standing policy. Run after the `bark_start`
+   delete: zero static findings, all 32 OSes live, no silent hooks.
+
+**Framing correction accepted.** The earlier Resolution called the field spread "alarming". That was
+wrong twice over: the spread should not have tightened one item into a six-item queue, and eleven of
+thirteen bottom decks beating the control says the control **discriminates the floor, not the
+middle — which is what it was built to do.** The field census is the instrument for the middle; the
+queue is the fix. Corrected in §E of the amendment-1 Resolution and in `map.md`.

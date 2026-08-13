@@ -1,7 +1,8 @@
 /**
  * Firmware-liveness sweep — ticket 55 amendment 1 §C.
  *
- * Run: `npx tsx src/debug/balance/liveness.ts` (from the repo root).
+ * Run: `npx tsx src/debug/balance/liveness.ts` (from the repo root - it reads hooks.json by
+ * repo-relative path, so the cwd must be the repo root).
  *
  * Exists because a DEAD HOOK IS INDISTINGUISHABLE FROM A WEAK DECK on every other instrument in
  * the suite. jormungandr_v1 spent eight tickets on ticket 49's floor list as a "genuinely real"
@@ -33,12 +34,12 @@
  *             observable effects.
  */
 import fs from 'fs';
-import { MingmingRegistry } from './src/engine/data/mingmingRegistry';
-import { getOSBehavior } from './src/engine/data/firmwareRegistry';
-import { HookLibrarySchema } from './src/engine/data/HookSchema';
-import { matchupScenario, mirrorScenario, BALANCE_SPECIES, CONTROL_SPECIES } from './src/debug/balance/balanceScenarios';
-import { runBatch, deriveSeeds } from './src/debug/balance/runBatch';
-import { quietly } from './src/debug/balance/balanceReporting';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { HookLibrarySchema } from '../../engine/data/HookSchema';
+import { matchupScenario, mirrorScenario, BALANCE_SPECIES, CONTROL_SPECIES } from './balanceScenarios';
+import { runBatch, deriveSeeds } from './runBatch';
+import { quietly } from './balanceReporting';
 
 const RAW = JSON.parse(fs.readFileSync('src/engine/data/lib/hooks.json', 'utf8'));
 const PARSED: any = HookLibrarySchema.parse(RAW);
