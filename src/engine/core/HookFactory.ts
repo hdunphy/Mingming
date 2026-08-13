@@ -137,6 +137,18 @@ export const HookFactory = {
                 const party = isPlayer ? context.state.playerParty : context.state.enemyParty;
                 return party.filter((e: IBattleEntity) => e.currentHp > 0 && e.id !== owner.id).length;
             }
+            case 'TARGET_POISON_STACKS':
+                // Ticket 55: TOXIN_FANG_OS. Reads the DEFENDER's Poison pile, so it is the first
+                // scaling in this switch that looks at `context.target` rather than the owner -
+                // `targetEntity` above already resolves to the defender on an `onDamageCalculated`
+                // hook, which is the only trigger this is meant for.
+                //
+                // Deliberately UNCAPPED, like SHARP_STACKS: the knob is the `bonus` rate, not a
+                // ceiling (Henry's call on KINETIC_RAM, and the same law that keeps `growPerPlay`
+                // uncapped). Note HANDOFF 8-COMPOUND - this lands at step 3 of
+                // `applyDamageModifiers` and status percentages multiply it afterwards. Known and
+                // accepted per the ticket.
+                return targetEntity?.statusEffects.find(st => st.type === 'Poison')?.stacks || 0;
             case 'MISSING_HP':
                 if (targetEntity) return targetEntity.maxHp - targetEntity.currentHp;
                 return 0;

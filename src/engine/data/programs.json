@@ -671,7 +671,7 @@
     "serpents_coil": {
         "id": "serpents_coil",
         "name": "Serpent's Coil",
-        "description": "The world-serpent tightens: deal 15 Water damage for every card you played this turn.",
+        "description": "The world-serpent tightens: deal 10 Water damage for every card you played this turn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -685,7 +685,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 10,
                 "scaling": "CARDS_PLAYED",
                 "target": "TARGET"
             }
@@ -789,11 +789,11 @@
     "corrosive_leak": {
         "id": "corrosive_leak",
         "name": "Corrosive Leak",
-        "description": "Poison self 2 stacks. Gain 1 Energy.",
+        "description": "Poison self 2 stacks. Gain 1 Energized.",
         "element": "Water",
         "target": "Self",
         "category": "Skill",
-        "rarity": "Uncommon",
+        "rarity": "Rare",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -808,8 +808,9 @@
                 "target": "SELF"
             },
             {
-                "type": "ENERGY",
-                "amount": 1,
+                "type": "STATUS",
+                "status": "Energized",
+                "stacks": 1,
                 "target": "SELF"
             }
         ]
@@ -1051,12 +1052,12 @@
     "surge_protection": {
         "id": "surge_protection",
         "name": "Surge Protection",
-        "description": "Deal 15 power + gain extra 1 Energy if you drew a card this turn.",
+        "description": "40 power. If you drew a card this turn, refund 1 Energy.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
-        "baseCost": 1,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -1065,7 +1066,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 40,
                 "target": "TARGET"
             },
             {
@@ -1216,7 +1217,7 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Rare",
-        "baseCost": 3,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -5657,6 +5658,72 @@
                 "type": "HEAL",
                 "power": 15,
                 "target": "SELF"
+            }
+        ]
+    },
+    "undertow": {
+        "id": "undertow",
+        "name": "Undertow",
+        "description": "The current pulls: draw a card.",
+        "element": "Water",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "tide_reading": {
+        "id": "tide_reading",
+        "name": "Tide Reading",
+        "description": "Read the tides: draw 2 cards.",
+        "element": "Water",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "DRAW",
+                "amount": 2,
+                "target": "SELF"
+            }
+        ]
+    },
+    "venom_fang": {
+        "id": "venom_fang",
+        "name": "Venom Fang",
+        "description": "Strike with envenomed fangs: 25 power.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 25,
+                "target": "TARGET"
             }
         ]
     }

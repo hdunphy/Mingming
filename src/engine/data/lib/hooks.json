@@ -541,6 +541,7 @@
                 "do": [
                     {
                         "type": "COUNTER",
+                        "target": "SELF",
                         "key": "jorm_water",
                         "operator": "ADD",
                         "amount": 1
@@ -568,10 +569,12 @@
                     },
                     {
                         "type": "DRAW",
+                        "target": "SELF",
                         "amount": 1
                     },
                     {
                         "type": "COUNTER",
+                        "target": "SELF",
                         "key": "jorm_water",
                         "operator": "RESET"
                     },
@@ -585,9 +588,13 @@
                 "id": "jorm_v1_reset",
                 "trigger": "onTurnEnd",
                 "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
                 "do": [
                     {
                         "type": "COUNTER",
+                        "target": "SELF",
                         "key": "jorm_water",
                         "operator": "RESET"
                     }
@@ -597,23 +604,18 @@
     },
     "jormungandr_v2": {
         "id": "jormungandr_v2",
-        "name": "VENOM_TRENCH_OS",
-        "description": "At the end of the turn, Jörmungandr heals 2 HP.",
+        "name": "TOXIN_FANG_OS",
+        "description": "Jörmungandr's venom coats his fangs: his attacks deal +2 damage per Poison stack on the target.",
         "hooks": [
             {
-                "id": "jorm_v2_heal",
-                "trigger": "onTurnEnd",
-                "priority": 50,
+                "id": "jorm_v2_toxin_fang",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
                 "when": {
                     "source": "SELF"
                 },
-                "do": [
-                    {
-                        "type": "HP",
-                        "target": "SELF",
-                        "percentMaxHP": 2.5
-                    }
-                ]
+                "bonus": 2,
+                "scaling": "TARGET_POISON_STACKS"
             }
         ]
     },

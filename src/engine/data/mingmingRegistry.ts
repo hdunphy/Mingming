@@ -199,13 +199,20 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
-        // Ticket 16 (Henry-approved 2026-08-05): real per-OS decks.
-        // v1 OUROBOROS - all-Water zero-cost storm (the loop counts WATER cards, so
-        // nothing here may be None-tier); serpents_coil is the cards-played payoff.
-        // v2 VENOM_TRENCH - tanky poison attrition into a contagion double-up.
+        // Ticket 55 (deep pass #1). v1 OUROBOROS is now a DRAW-ZOO: OUROBOROS_LOOP itself is
+        // untouched, but the deck feeds it cantrips (`undertow` x2, `tide_reading`) so the
+        // 3rd-Water-card proc actually fires, and it carries TWO payoffs that read different
+        // counters - `serpents_coil` on cards PLAYED, `ink_stream` on cards DRAWN. Still
+        // all-Water by necessity: the loop counts Water cards only, so a None-tier card here
+        // would be a hole in the engine.
+        // v2 is TOXIN_FANG_OS, a poison-BRUISER rather than the old VENOM_TRENCH attrition
+        // plan: attacks deal +2 per Poison stack on the target, so the pile is an amplifier
+        // that gets cashed the same turn. `capacitor` left (its economy argument died with the
+        // 2-Energy world; the card stays in the registry as a ramp draft pick) and `contagion`
+        // stayed, because doubling the pile now doubles the amplifier immediately.
         decks: {
-            "jormungandr_v1": ["blind_spot", "poison_injection", "poison_injection", "corrosive_leak", "surge_protection", "surge_protection", "serpents_coil", "serpents_coil"],
-            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "acid_splash", "acid_splash", "toxic_surge", "toxic_surge", "capacitor", "contagion"]
+            "jormungandr_v1": ["undertow", "blind_spot", "corrosive_leak", "tide_reading", "surge_protection", "serpents_coil", "serpents_coil", "ink_stream", "ink_stream"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "water_slap", "water_slap", "toxic_surge", "contagion"]
         },
         moves: [
             {

@@ -105,7 +105,7 @@ export type HookAction = {
     operator?: 'ADD' | 'SET' | 'RESET'; // For COUNTER operation
     scope?: CounterScope; // For COUNTER: 'OWNER' (default, per-entity) or 'GLOBAL'
     appliesTo?: ProgramCategory; // For BUFF_NEXT_PROGRAM: restrict the buff to the next card of this category
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER' | 'SOURCE_DEBUFF_COUNT' | 'HEAL_INTENDED';
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER' | 'SOURCE_DEBUFF_COUNT' | 'HEAL_INTENDED' | 'TARGET_POISON_STACKS';
     scalingKey?: string; // e.g., the key if scaling is 'COUNTER'
 };
 
@@ -126,7 +126,7 @@ export type ModifierDataHookDefinition = {
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     multiplier?: number;
     bonus?: number;
-    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER' | 'SOURCE_DEBUFF_COUNT' | 'HEAL_INTENDED';
+    scaling?: 'CURRENT_ENERGY' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'ALIVE_ALLIES' | 'MISSING_HP' | 'OVERHEAL' | 'BASE_COST' | 'COUNTER' | 'SOURCE_DEBUFF_COUNT' | 'HEAL_INTENDED' | 'TARGET_POISON_STACKS';
     scalingKey?: string;
 };
 
