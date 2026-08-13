@@ -542,3 +542,46 @@ wrong twice over: the spread should not have tightened one item into a six-item 
 thirteen bottom decks beating the control says the control **discriminates the floor, not the
 middle — which is what it was built to do.** The field census is the instrument for the middle; the
 queue is the fix. Corrected in §E of the amendment-1 Resolution and in `map.md`.
+
+---
+
+## Knob round 1 (2026-08-13) — TOXIN_FANG `bonus` 2 → 1
+
+**Henry-approved off the roster census A/B** ([research/roster-census.md](../research/roster-census.md) §3).
+Knob round 1 of 2 from this ticket's pre-authorised list. **ONE change**; nothing else moved.
+
+The A/B row that justified it, against the shipped value:
+
+| `bonus` | field | `contagion` dead | contagion casts | v2 game length |
+|---|---|---|---|---|
+| **1 — applied** | **61.3%** | **0.439** | 157 | **4.18** |
+| 2 — was shipped | 83.3% | 0.619 | 96 | 3.71 |
+
+**Change:** `jorm_v2_toxin_fang.bonus` 2 → 1, and the OS description's *"+2 damage per Poison
+stack"* → *"+1"*. A repo-wide `grep` for `+2 damage per Poison` found **no other occurrence** — no
+card text or test pin needed updating.
+
+### Gates — every one landed on the A/B's prediction
+
+| gate | measured | window |
+|---|---|---|
+| **v2 field** | **61.3%** (300 decided) | ~61% expected; 0.35–0.80 passes ✓ |
+| v2 vs control | **100%** | ≥0.60 ✓ |
+| mirror | **400/400 decided, 3.2 turns** | ≥60% decided, ≤30 turns ✓ |
+| FTK | **0/200** | 0 ✓ |
+| dead cards, v2 side | **11.1%** (control side 12.7%) | ≤0.35 ✓ |
+| **`contagion` dead rate** | **0.439** | ~0.44 expected ✓ |
+| **liveness (standing policy)** | **zero static findings, 32/32 LIVE** | all LIVE ✓ |
+| unit tests / `tsc -b` | 773/773, clean | ✓ |
+| §2.3 (v1's share) | **0.940** *(was 0.630)* | **DIAGNOSTIC ONLY — reported, not tuned** |
+
+`contagion` at **0.439 still exceeds the 0.35 dead bar. Known and accepted** — the remaining gap
+belongs to the dead-card cleanup queue item, not to a knob. **Round 2 is BANKED and unspent.**
+
+Side readings, unchanged and expected: **v1's field stays 83.0%** (no v1 change), and games
+lengthened across the board — the control matchup went 4.5 → **5.5 turns**, which is the same
+length-not-power mechanism the census A/B identified.
+
+**No full `npm run balance` run.** Per the task's sequencing rule this commit lands before ticket
+56's re-baseline so a single full run covers both; `docs/balance/balance_report.json` is therefore
+untouched here and still reads `1:53ea4a83`. Registry after this change: **`1:e14e16df`**.

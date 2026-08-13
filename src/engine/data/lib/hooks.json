@@ -625,7 +625,7 @@
     "jormungandr_v2": {
         "id": "jormungandr_v2",
         "name": "TOXIN_FANG_OS",
-        "description": "Jörmungandr's venom coats his fangs: his attacks deal +2 damage per Poison stack on the target.",
+        "description": "Jörmungandr's venom coats his fangs: his attacks deal +1 damage per Poison stack on the target.",
         "hooks": [
             {
                 "id": "jorm_v2_toxin_fang",
@@ -634,7 +634,7 @@
                 "when": {
                     "source": "SELF"
                 },
-                "bonus": 2,
+                "bonus": 1,
                 "scaling": "TARGET_POISON_STACKS"
             }
         ]
