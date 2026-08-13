@@ -26,6 +26,7 @@
 - **STANDING POLICY: run `liveness.ts` after every hooks.json edit** - the only instrument that sees a dead hook. Three dropped-action occurrences (GENESIS, OUROBOROS, jorm_v1_reset) are the confirmed complete set as of `1:53ea4a83`.
 - Authorized measurements (report-only): roster-wide first-mover census; TOXIN_FANG 2->1/2->3 A/B with contagion dead-rate; 30-iteration field census.
 - Queue drift per the floor re-read: kraken_v2 and fenrir_v1 are OFF the floor list (surge_protection side effect); hel_v2 (0.901 control-wins) is the clear head; ticket 56 then 57 are specified and next.
+- **Tickets 58 + 59 specified and open (2026-08-13), runnable in PARALLEL with 56/57** (one is read-only, the other docs-only): **58 = Fire investigation** (wayfinder:research, REPORT-ONLY; quality bar = research/jormungandr-v1-attribution.md; Henry designs Fire only after its report comes back); **59 = registry triage** (annotation-only pass over research/registry-inventory.md, sized for a lower-tier model; deletions are a later ticket after Henry reviews). Pricing question from Henry answered in-session, no repo change needed: ticket 51 already shipped his removal-costs-more rule as REMOVAL_PREMIUM 1.25; no Str/Sharp reprice (duality premium ~2 power/stack, inside rounding); shrug_off IS the legal 0e pure shed at 1.00; purify sits at 2.70 in 2.4-3.0, so a heal rider does not fit without shedding less - his call, parked.
 
 ## Read this first: which band applies
 
