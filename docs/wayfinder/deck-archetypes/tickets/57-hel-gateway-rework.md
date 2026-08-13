@@ -1,8 +1,8 @@
 # hel_v2 Gateway rework (deep pass #3): throttled blood, %-denominated
 
 - Type: wayfinder:task
-- Status: **open** — Henry-approved design (2026-08-12); this ticket IS the implementation
-  brief. Implementing session flips to closed and appends its Resolution.
+- Status: **closed** — implemented 2026-08-13. All gates pass, knob round 1 spent, round 2
+  banked. Three findings for design in the Resolution (§6).
 - Assignee: —
 - Blocked by: ticket 56 (baseline ordering). DEEP-PHASE POLICY binds. Branch card-dev;
   author Henry Dunphy <hdunphy15@gmail.com>; line-ending law; locks → _to_delete/git-locks/.
@@ -46,3 +46,132 @@ direction). Both OS halves' SHAPE is design-frozen. tsc / vitest / build; scoped
 BALANCE_ONLY=hel; full npm run balance when in band; ticket Resolution + map line + HANDOFF
 refresh (queue item 3 done). ONE commit. Deliverable: hash, gate numbers, %-spent
 distribution, rounds, deviations — or findings.
+
+---
+
+## Resolution
+
+*Implemented 2026-08-13 on `00b4747`. Registry `1:66efb2d7` → **`1:be695e83`**. 777/777 tests,
+`npx tsc -b`, `npx vite build`, full `npm run balance` clean. Redlines **47 → 48** (see §5).*
+
+### 0. A red test on the branch, inherited from ticket 56 — fixed here
+
+`baseDecks.test.ts` pins every deck at 8–12 cards. **Ticket 56's Part 2 round 2 explicitly
+authorised valkyrie_v2 down to SEVEN**, so an approved deck violates an approved template.
+**My process error: ticket 56 ran the full suite BEFORE its deck change and never re-ran it after**,
+so `04fe60f` landed red. Scoped and full balance both passed, which is why nothing else caught it.
+
+Fixed as a **named exception** (`osId === 'valkyrie_v2' ? 7 : 8`) rather than widening the band for
+the whole roster — that records a decision already taken in writing and leaves the next sub-8 deck
+having to argue for itself. **Reverse the line, not the rule, if `glimmer` goes back.**
+
+### 1. Part 1 — the throttled Gateway
+
+**"Hel's Dark spells cost 5% of her max HP per Energy of their printed cost instead of Energy. She
+can spend at most 15% of her max HP this way each turn."** (20% as specified; **15% after knob
+round 1** — §3.)
+
+On her 80-HP frame: **4 HP per Energy point**, budget **12 HP/turn = 3 Energy-points of Dark**.
+
+**It moved out of `hooks.json` into `CustomFirmware.ts`, and that is forced, not preference.** The
+cap has to answer *"would THIS cast, at ITS printed cost, take me past the budget"* — a per-card
+quantity compared against a running counter. `when.counter` can only compare a counter to a
+constant, so in data it would take one blocking hook per cost tier.
+
+**The block is a PRICE, not a veto.** `onCostCalculated` returns a cost the frame cannot pay when
+`spent + thisCast > cap`. That is what makes the reducer and `TacticalAI` agree without a third
+code path — both price cards through `executeCostCalculated` (**HANDOFF 8d**) — and the UI cost pip
+greys out for free. Retired in the process: the blanket `multiplier: 0` cost hook and the ticket-36
+`escalatePerPlay: 1.25` toll (**8c3**). Floor of 1 HP per cast is implemented; on this frame it
+never binds.
+
+**SCOPE NARROWED, reported not improvised.** The approved text says *"Hel's **Dark** spells"*; the
+old implementation zeroed and taxed **every** card she played. Her 1-Energy Light/None cards
+(`dawnstrike` ×2, `squirrel_away`) therefore pay **Energy** again. That is what stops the cap being
+a hard stop on her turn — and it incidentally revives a stat this OS had made dead (the standing
+complaint in HANDOFF and ticket 37).
+
+**`hel_v2_lifeblood` (+50% healing) was left in place** — the ticket does not list it for removal
+and removing it would be a shape change. Its sentence is retained in the OS description.
+
+### 2. Gates — the headline passes, and so does everything else
+
+| gate | before | **after** | bar |
+|---|---|---|---|
+| **FTK** | the roster's only FTKs (3 per hel deck / 480 games) | **0/360 at deck-report scale, 0/200 scoped, 0 across all 67 matchups** | **0 — headline ✓** |
+| **field (30-iteration)** | 26.7% | **78.2%** | 0.35–0.80 ✓ |
+| **vs control** | **the only deck the control beat outright** (0.810 control-wins) | **1.000** (control-wins 0.000) | ≥0.60 ✓ |
+| dead cards, hel_v2 | ~30% | **15.1%** | ≤0.35 ✓ |
+| dead cards, control side | — | 15.6% | ≤0.35 ✓ |
+| mirror | — | **400/400 decided, 5.4 turns** | ≥60%, ≤30t ✓ |
+| §2.3 `os:hel` | 0.520 | **0.030** | diagnostic-only — see §5 |
+| liveness (hooks.json edited) | — | zero static findings, **32/32 LIVE** | ✓ |
+
+`hel_v1` is untouched and measured unchanged at **26.7% field** (identical to the 30-iteration
+census), confirming no side effects.
+
+### 3. The binds-check the ticket asked for — **the cap is not decoration**
+
+Mean %maxHp spent per PLAYER turn, and how often the budget was actually reached:
+
+| cap | mean spent | **turns at cap** | distribution |
+|---|---|---|---|
+| **20%** (as specified) | 15.9% | **47.7%** (71/149) | 0%:4 · 5%:9 · 10%:13 · 15%:52 · 20%:71 |
+| **15%** (shipped, knob 1) | 13.5% | **83.0%** (137/165) | 0%:5 · 5%:11 · 10%:12 · 15%:137 |
+
+**Not 8-INERT-CAP in either case** — it bound on half the turns at 20% and four in five at 15%.
+**But see §6.1: binding 83% of the time is arguably the opposite failure**, and it is a finding, not
+a pass.
+
+### 4. Knob round 1 — and why the 10-iteration read would have missed it
+
+**The field gate looked like a pass at 10 iterations and was not.**
+
+| read | field |
+|---|---|
+| 10-iteration | **79.6%** — inside the window |
+| **30-iteration (~900 games)** | **81.6%** — **1.6 points OVER** |
+
+Knob round 1 applied on the decision-grade number: **cap 20% → 15%** (the ticket's stated first
+lever and the nerf direction). Result **81.6% → 78.2%**, inside the window at 30 iterations.
+**Round 2 is BANKED and unspent.**
+
+### 5. Blast radius (8-DIFF over the whole table)
+
+Redlines **47 → 48**; card redlines unchanged (0 closed, 0 added); cards 213.
+
+| row moved beyond noise | before → after |
+|---|---|
+| **`gauntlet:control-vs-hel:hel_v2`** | **0.810 → 0.000** |
+| `gauntlet:control-overall:slot2` | 0.132 → 0.081 |
+| `os:hel` | 0.520 → **0.030** — **NEW redline at 0.47** |
+
+Three rows, all hel. **The slot-2 aggregate moved because hel_v2 alone was carrying it.**
+
+**`os:hel` flipped rather than closed:** hel_v2 was the weak deck at 0.520 and now beats v1 **97/100**.
+Diagnostic-only per deep-phase policy and **not tuned** — but the magnitude is worth recording: the
+rework did not lift v2 to parity, it made v2 the species' strong deck.
+
+### 6. Findings for design
+
+1. **At a 15% cap, `soul_tithe` (3 Energy = 15%) fills the entire turn's budget by itself.** That is
+   visible in the per-card dead rates: **`venom_shade` 53.3% dead and `last_rites` 45.0% dead**,
+   while `soul_tithe` is **0.0% dead at 25 damage per play**. She casts the big one and the other
+   two Dark cards become unaffordable that turn. Combined with **83% of turns at cap**, the 15%
+   version reads less like a budget she manages and more like *"one big Dark spell per turn"* — the
+   risk fantasy is intact but the decision texture is thinner than at 20%, where `soul_tithe` +
+   `venom_shade` both fit. **If the design prefers the trade-off over the ceiling, the 20% cap with
+   a different lever (cost 5% → 10 is the ticket's other authorised direction) is worth a round.**
+2. **Part 2's escape hatch was not needed.** The drain suite (`leech_strike`, `drain_life`) was
+   pre-identified in case the throttled deck could not sustain. It sustains: dead cards halved and
+   the control matchup went to 1.000. **No list change is requested.**
+3. **hel_v2 is now the species' strong deck and near the top of the roster at 78.2% field**, from
+   28.2%. Every gate passes, but that is a 50-point swing in one pass — worth a look alongside
+   valkyrie_v2 (84.7%) and jormungandr_v1 (84.0%) when the field census is next re-read.
+
+### 7. Left open
+
+- **`os:hel` 0.47**, a new §2.3 redline, diagnostic-only.
+- **Knob round 2 banked** (cap → 25/15 spent on 15; cost 5% → 10 untouched).
+- The **cap texture** question in §6.1.
+- The **valkyrie_v2 7-card exception** in §0 wants ratifying or reversing.

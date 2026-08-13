@@ -182,11 +182,14 @@ describe('data-driven condition translations', () => {
         expect(after.statusEffects.find((s: any) => s.type === 'Dazed')?.stacks).toBe(1);
     });
 
-    it('hel_v2_underworld_toll taxes EVERY card with a printed cost, and only those (baseCost)', () => {
-        // Ticket 36 amendment: the old hook was gated to Dark non-Attacks. It now charges
-        // every card - element and category are gone from the `when` - because the OS zeroes
-        // her Energy cost outright rather than paying-then-refunding. Only the baseCost > 0
-        // guard survives, so 0-cost cards stay genuinely free.
+    it('hel_v2_underworld_toll taxes DARK cards with a printed cost, and only those (ticket 57)', () => {
+        // History, because this `when` has now moved twice. Ticket 36 WIDENED it from
+        // "Dark non-Attacks" to every card with a printed cost, on the reasoning that the OS
+        // zeroed her Energy outright. Ticket 57 NARROWED it back to Dark, because the approved
+        // OS text is "Hel's DARK spells cost 5% of her max HP ... instead of Energy" - so her
+        // Light and None cards pay Energy again, which is what keeps the new 20% blood cap from
+        // being a hard stop on her turn. The hook also left hooks.json for CustomFirmware, since
+        // the cap needs per-card arithmetic a data `when` cannot express.
         const hook = getHook('hel_v2_underworld_toll');
         const hel = makeEntity('hel');
         const state = makeState([hel], [makeEntity('e')]);
@@ -197,7 +200,7 @@ describe('data-driven condition translations', () => {
 
         const lightSkill: any = { id: 'spell', category: 'Skill', element: 'Light', baseCost: 2, actions: [] };
         const spellResult = hook!.onActionStart!({ state, source: hel, program: lightSkill, triggerDepth: 0 }, hel);
-        expect(spellResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(true);
+        expect(spellResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
 
         const freebie: any = { id: 'free', category: 'Attack', element: 'Dark', baseCost: 0, actions: [] };
         const freeResult = hook!.onActionStart!({ state, source: hel, program: freebie, triggerDepth: 0 }, hel);

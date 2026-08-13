@@ -2,12 +2,58 @@ import { type HookDefinition, type HookContext, type HookResult, type MutationRe
 import type { IBattleState, IBattleEntity } from '../types';
 import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
+import { numericBaseCost } from '../types';
 import { resolveProgramFree } from '../actions/ActionExecutors';
 import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from './PRNG';
 
 /** Decided in the OS design review (deck-archetypes ticket 09): 50% of maxHP. */
 const HULDRA_V2_SHIELD_PERCENT = 50;
+
+/**
+ * UNDERWORLD_GATEWAY (hel_v2), ticket 57 — throttled blood, %-denominated.
+ *
+ * "Hel's Dark spells cost 5% of her max HP per Energy of their printed cost instead of Energy.
+ *  She can spend at most 20% of her max HP this way each turn."
+ *
+ * WHY IT MOVED OUT OF hooks.json. The old version was two data hooks: a blanket
+ * `onCostCalculated` multiplier of 0 (every card free) plus an `onActionStart` HP toll with
+ * `escalatePerPlay: 1.25`. The cap this ticket adds needs arithmetic a data hook cannot express -
+ * "would THIS cast, at ITS printed cost, take me past the turn's budget" compares a per-card
+ * quantity against a running counter, and `when.counter` can only compare a counter to a
+ * constant. Expressing it in data would take one blocking hook per cost tier.
+ *
+ * WHY THE COST HOOK RATHER THAN A CONSTRAINT. A blocked cast has to be UNAFFORDABLE, not
+ * cancelled, and it has to look unaffordable to BOTH cost consumers (HANDOFF 8d): the reducer's
+ * `handlePlayProgram` and `TacticalAI`, which both price a card through `executeCostCalculated`.
+ * Returning a sentinel cost there means the AI never proposes the card and the reducer would
+ * reject it anyway - no third code path, and the UI cost pip greys out for free.
+ *
+ * DENOMINATED IN %maxHp, deliberately: a flat HP price drifts with level (the rev-3 statuses
+ * precedent). The counter is kept in PERCENT units - 5 per Energy point - so the cap reads as the
+ * same 20 the OS text says, at every level.
+ *
+ * SCOPE NOTE, reported in the ticket: the approved text says "Hel's DARK spells", where the old
+ * implementation zeroed the cost of every card she played. Her 1-Energy Light/None cards
+ * (`dawnstrike` x2, `squirrel_away`) therefore pay ENERGY again - which is what stops the 20% cap
+ * being a hard stop on her turn, and incidentally revives a stat this OS had made dead.
+ */
+const HEL_BLOOD_PCT_PER_ENERGY = 5;
+const HEL_BLOOD_CAP_PCT = 15;
+/** Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive". */
+const HEL_BLOOD_BLOCKED_COST = 999;
+
+/** Percent of max HP this cast would spend, or 0 if it is not a blood cast at all. */
+function helBloodPct(context: HookContext, owner: IBattleEntity): number {
+    const program = context.program;
+    if (!program || context.source?.id !== owner.id) return 0;
+    if (program.element !== 'Dark') return 0;
+    // An X-cost card has no printed Energy cost to convert; it keeps the normal Energy price.
+    if (program.baseCost === 'X') return 0;
+    const printed = numericBaseCost(program.baseCost);
+    if (printed <= 0) return 0;
+    return printed * HEL_BLOOD_PCT_PER_ENERGY;
+}
 
 export const CustomFirmware: Record<string, HookDefinition[]> = {
     "fafnir_v1": [
@@ -173,6 +219,52 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
     // positive status) was DELETED here and the slot became REBIRTH_CYCLE_OS, a data hook in
     // hooks.json on the newly-dispatched `onDeckShuffled` trigger. EINHERJAR_RALLY lives on as
     // the `einherjar_standard` team daemon card (still unused - needs ticket 05).
+    "hel_v2": [
+        {
+            id: "hel_v2_underworld_cost",
+            priority: 40,
+            onCostCalculated: (cost: number, context: HookContext, owner: IBattleEntity): number => {
+                const pct = helBloodPct(context, owner);
+                if (pct === 0) return cost;
+                const spent = (context.state.counters || {})[resolveCounterKey('hel_blood_spent', 'OWNER', owner)] || 0;
+                // The cap is checked against what this cast WOULD take the total to, so a 3-Energy
+                // spell is refused at 10% spent even though 10 is under 20.
+                if (spent + pct > HEL_BLOOD_CAP_PCT) return HEL_BLOOD_BLOCKED_COST;
+                return 0;
+            }
+        },
+        {
+            id: "hel_v2_underworld_toll",
+            priority: 40,
+            onActionStart: (context: HookContext, owner: IBattleEntity): HookResult => {
+                let state = context.state;
+                const pct = helBloodPct({ ...context, state }, owner);
+                if (pct === 0) return { state };
+
+                // Floor of 1: a cast always costs blood, however small the frame.
+                const hpCost = Math.max(1, Math.ceil(owner.maxHp * (HEL_BLOOD_PCT_PER_ENERGY / 100)) * (pct / HEL_BLOOD_PCT_PER_ENERGY));
+                const spentKey = resolveCounterKey('hel_blood_spent', 'OWNER', owner);
+                state = applyMutations(state, [
+                    { type: 'HP', targetId: owner.id, sourceId: owner.id, payload: { amount: hpCost } },
+                    { type: 'COUNTER', targetId: '', payload: { key: spentKey, operator: 'ADD', amount: pct } },
+                    { type: 'LOG', targetId: '', payload: `${owner.name}'s UNDERWORLD_GATEWAY pays ${hpCost} HP in blood!` }
+                ]);
+                return { state };
+            }
+        },
+        {
+            id: "hel_v2_underworld_reset",
+            priority: 50,
+            onTurnEnd: (context: HookContext, owner: IBattleEntity): HookResult => {
+                if (context.source?.id !== owner.id) return { state: context.state };
+                return {
+                    state: applyMutations(context.state, [
+                        { type: 'COUNTER', targetId: '', payload: { key: resolveCounterKey('hel_blood_spent', 'OWNER', owner), operator: 'RESET' } }
+                    ])
+                };
+            }
+        }
+    ],
     "ymir_v2": [
         {
             id: "ymir_v2_glacial",

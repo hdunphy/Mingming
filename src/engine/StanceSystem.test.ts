@@ -287,24 +287,28 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
     });
 });
 
-describe('hel_v2 UNDERWORLD_GATEWAY', () => {
-    it('boosts her healing by 50% through the new onHealCalculated path', () => {
-        // dawns_respite: 1e, a power-25 heal (ticket 43). The FIRST cast of a turn pays the base
-        // rate - 5% of 200 maxHp x 1 printed Energy = 10 HP - charged at action start; the heal
-        // is 200*25/400 = 12, boosted to 18 by the OS.
+describe('hel_v2 UNDERWORLD_GATEWAY (ticket 57: throttled blood, %-denominated)', () => {
+    // Ticket 57 replaced the two data hooks with the firmware in CustomFirmware.ts. Three things
+    // changed and all three are pinned below: the toll is scoped to DARK spells (it used to zero
+    // and tax every card she played), the ticket-36 `escalatePerPlay: 1.25` escalation is GONE,
+    // and a per-turn budget of 20% of max HP now makes further blood casts UNAFFORDABLE rather
+    // than merely expensive.
+
+    it('boosts her healing by 50% through the onHealCalculated path, and charges the flat blood rate', () => {
+        // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 5% of 200 maxHp x 1 printed
+        // Energy = 10 HP at action start; the heal is 200*25/400 = 12, boosted to 18 by the OS.
         let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'dawns_respite')]);
         state = play(state, 'c1', PLAYER_ID);
 
         expect(state.playerParty[0].currentHp).toBe(108); // 100 - 10 toll + 18 boosted heal
-        expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays in blood'))).toBe(true);
+        expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays'))).toBe(true);
     });
 
-    it('escalates: every further card that turn costs 125% more than the last step', () => {
-        // Ticket 36 second pass. A FLAT toll cannot brake her - she has no Energy limit, so
-        // nothing stopped her emptying and refilling her hand on turn one (6.5 casts on the
-        // turn she scored a first-turn kill, and doubling the flat rate moved the FTK count
-        // by zero). The multiplier is `1 + 1.25 x plays already made this turn`, so on a 200
-        // maxHp frame a 1e card costs 10, then 22, then 35.
+    it('NO LONGER escalates - the toll is a flat 5% of max HP per printed Energy', () => {
+        // Ticket 36 made every further card that turn cost 125% more, because a flat toll could
+        // not brake a deck with no Energy limit. Ticket 57 removes the escalation and brakes it
+        // with a budget instead: on a 200-maxHp frame every `nights_bite` (1e Dark) costs 10,
+        // where the escalating version charged 10, then 22, then 35.
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, cardDraw: 4 },
             [card('c1', 'nights_bite'), card('c2', 'nights_bite'), card('c3', 'nights_bite')]
@@ -317,7 +321,52 @@ describe('hel_v2 UNDERWORLD_GATEWAY', () => {
             tolls.push(before - state.playerParty[0].currentHp);
         }
 
-        expect(tolls).toEqual([10, 22, 35]);
+        expect(tolls).toEqual([10, 10, 10]);
+    });
+
+    it('caps the turn at 15% of max HP - the 4th Energy-point of blood is UNAFFORDABLE, not just costly', () => {
+        // 15% / 5% = three Energy-points of Dark per turn (ticket 57 knob round 1 took the cap
+        // from the specified 20% to 15%). Three 1e casts fit exactly; the fourth is refused. It is
+        // refused by PRICE - the cost hook returns a cost she cannot pay - which is what makes the
+        // reducer and the AI agree without a third code path (HANDOFF 8d).
+        let state = makeState(
+            { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
+            ['c1', 'c2', 'c3', 'c4'].map(id => card(id, 'nights_bite'))
+        );
+
+        for (const id of ['c1', 'c2', 'c3']) state = play(state, id);
+        expect(state.playerParty[0].currentHp).toBe(170);        // 3 x 10 HP spent
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(15);
+
+        const before = state.playerParty[0].currentHp;
+        const after = play(state, 'c4');
+        expect(after.playerParty[0].currentHp).toBe(before);      // no blood paid
+        expect(after.playerDeck.hand.some(c => c.id === 'c4')).toBe(true); // and never left hand
+    });
+
+    it('refuses a cast that would OVERSHOOT the cap, not merely one that starts past it', () => {
+        // soul_tithe is 3 Energy = 15%, which is the WHOLE budget. After a single 1e cast (5%)
+        // it is refused even though 5 < 15, because 5 + 15 > 15. A "block only once you are over"
+        // rule would have let it through.
+        let state = makeState(
+            { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
+            [card('c1', 'nights_bite'), card('c3', 'soul_tithe', 3)]
+        );
+        state = play(state, 'c1');
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(5);
+
+        const after = play(state, 'c3');
+        expect(after.playerDeck.hand.some(c => c.id === 'c3')).toBe(true);
+        expect(after.playerParty[0].currentHp).toBe(state.playerParty[0].currentHp);
+    });
+
+    it('the budget resets at the end of her turn', () => {
+        let state = makeState({ activeOS: 'hel_v2', currentHp: 200 }, [card('c1', 'nights_bite')]);
+        state = play(state, 'c1');
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(5);
+
+        state = battleReducer(state, { type: 'END_TURN' });
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(0);
     });
 
     it('charges no toll for a 0-cost card', () => {
@@ -328,7 +377,20 @@ describe('hel_v2 UNDERWORLD_GATEWAY', () => {
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
     });
 
-    it('lets her cast a 3e card on a 2-Energy frame, and charges 15% of her pool for it', () => {
+    it('a NON-Dark card pays Energy, not blood - the scope narrowed in ticket 57', () => {
+        // The approved OS text is "Hel's DARK spells". The old implementation zeroed the cost of
+        // every card she played, which is what made Energy a dead stat on this frame.
+        let state = makeState(
+            { activeOS: 'hel_v2', currentHp: 200, currentEnergy: 2, maxEnergy: 2 },
+            [card('c1', 'dawnstrike')]
+        );
+        state = play(state, 'c1');
+
+        expect(state.playerParty[0].currentEnergy).toBe(1);   // Energy WAS spent
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID] ?? 0).toBe(0); // no blood
+    });
+
+    it('lets her cast a 3e Dark card on a 2-Energy frame, and charges 15% of her pool for it', () => {
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, currentEnergy: 2, maxEnergy: 2 },
             [card('c1', 'soul_tithe', 3)]
