@@ -7,7 +7,7 @@
 1. **§2.3 IS DEMOTED TO A DIAGNOSTIC.** Two OSes of one species MAY hard-counter each other — that is
    allowed design, not a defect (the ratatoskr lesson, 8-COUNTER, is now policy). The PRIMARY
    instruments are: **field win rate** (round robin vs the tuned roster; healthy window ~0.35–0.80)
-   and the **control floor** (deck should beat the frozen control ≥0.75; the control NEVER moves —
+   and the **control floor** (deck should beat the frozen control ≥0.60; the control NEVER moves —
    its aggregate drift is telemetry, not decalibration). Dead cards ≤0.35/side, FTK 0, and
    mirror-decides still gate. A §2.3 extreme prompts a field check FIRST, never a direct fix.
 2. **HENRY IS IN EVERY DESIGN DECISION.** Implementation agents may adjust ONLY numeric knobs from a
@@ -17,6 +17,15 @@
 3. NOURISH_ROUTINE unit fix (Henry-approved): convert from PRINTED POWER at the damage exchange rate,
    dial at **50%** (a 90-power heal also strikes for 45 power-equivalent ≈ 13 HP), floor 1 per heal.
    The HP-denominated version rounded a third of the deck to zero.
+
+### Ticket-55 review decisions (Henry, 2026-08-12)
+
+- **Gates finalized: field 0.35-0.80, control >=0.60** (supersedes any 0.75 reference).
+- **jorm_v1 at 83.0 field: ACCEPT-AND-WATCH** - within +-4-5 noise of the ceiling, and the field re-reads after ticket 56 moves valkyrie_v2/audhumbla_v2. No new lever authorized; re-read then.
+- **huldra_v2 : DELETE as dead code.** Flipping the grant to turn-START would be a real BUFF per 8-SHIELD-TIMING on a healthy 71%-field deck - recorded instead as a ready-made buff lever if huldra_v2 ever needs one.
+- **STANDING POLICY: run  after every hooks.json edit** - the only instrument that sees a dead hook. Three dropped-action occurrences (GENESIS, OUROBOROS, jorm_v1_reset) are the confirmed complete set as of .
+- Authorized measurements (report-only): roster-wide first-mover census; TOXIN_FANG 2->1/2->3 A/B with contagion dead-rate; 30-iteration field census.
+- Queue drift per the floor re-read: kraken_v2 and fenrir_v1 are OFF the floor list (surge_protection side effect); hel_v2 (0.901 control-wins) is the clear head; ticket 56 then 57 are specified and next.
 
 ## Read this first: which band applies
 
