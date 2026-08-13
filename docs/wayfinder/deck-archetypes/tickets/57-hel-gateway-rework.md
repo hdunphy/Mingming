@@ -175,3 +175,30 @@ rework did not lift v2 to parity, it made v2 the species' strong deck.
 - **Knob round 2 banked** (cap → 25/15 spent on 15; cost 5% → 10 untouched).
 - The **cap texture** question in §6.1.
 - The **valkyrie_v2 7-card exception** in §0 wants ratifying or reversing.
+
+## Amendment 1 (Henry, 2026-08-13): cap reverts to 20% - texture over the number
+
+Henry's call at the design review, overriding the designing agent's keep-15 recommendation:
+the decision texture at 20% (soul_tithe + venom_shade fit together; ~48% of turns at cap vs
+83%; venom_shade/last_rites come off their 53%/45% dead rates) is worth shipping 81.6 field -
+**the field ceiling is consciously WAIVED for hel_v2 at this read** under the ceiling-freeze
+policy (the 81.6 is a provisional number that should deflate as Fire/kraken/hel_v1 rise; if
+the POST-QUEUE census still reads hel_v2 above 0.80, it joins the top-cluster conversation
+with valkyrie_v2/jorm_v1 and any further change is a design session, not a knob).
+
+Also decided: the agent's SS5.1 combo (20% cap + cost 5->10) is REJECTED on arithmetic -
+at 10%/energy soul_tithe costs 30% vs a 20% cap (permanently uncastable) and last_rites
+fills the cap alone, so it delivers neither of its stated goals. Do not implement it.
+
+### Implementation (small; run BEFORE ticket 60)
+
+1. CustomFirmware.ts: the per-turn budget constant 15 -> 20 (% of maxHp). Update the OS
+   description text to say 20%. No other value moves.
+2. Both knob rounds are now SPENT (round 1: 20->15; round 2: this revert). No levers remain;
+   anything further returns to Henry.
+3. Gates: tsc / vitest (unit suite AFTER the last edit, per 0-DECK-SIZE-EXCEPTION's lesson) /
+   build; scoped BALANCE_ONLY=hel; expected from the already-measured 20% arm: field ~81.6
+   (WAIVED, do not knob it), binds ~48% turns at cap, FTK 0 (hard gate), control >=0.60,
+   mirror >=60% <=30 turns; report venom_shade/last_rites dead rates at 20% (not previously
+   tabled - they inform the dead-card cleanup item). Full npm run balance; ONE commit; append
+   results here; HANDOFF refresh. Anything outside these windows -> STOP.
