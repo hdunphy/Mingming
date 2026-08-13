@@ -26,7 +26,13 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                         sourceId: mutation.sourceId || 'SYSTEM',
                         targetId: mutation.targetId,
                         power: 0,
-                        flatHeal: mutation.payload.amount
+                        flatHeal: mutation.payload.amount,
+                        // Ticket 56: a CARD heal arrives here already resolved to HP, so its
+                        // printed power would otherwise be lost. `HealExecutor` attaches it; an
+                        // engine heal (firmware percentMaxHP, Regen) has none and leaves it
+                        // undefined, which is what keeps NOURISH_ROUTINE reading "every heal she
+                        // CASTS" rather than every heal she receives.
+                        healPower: mutation.payload.healPower
                     });
                 } else {
                     const target = newState.playerParty.find(e => e.id === mutation.targetId) || newState.enemyParty.find(e => e.id === mutation.targetId);

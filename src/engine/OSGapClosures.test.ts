@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
+import { applyMutations } from './resolutionEngine';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { StatusType } from './types';
 import { registerHook } from './core/Hooks';
@@ -77,45 +78,50 @@ Object.values(FIRMWARE_REGISTRY).forEach(os => {
     os.hooks.forEach(h => registerHook(h));
 });
 
-describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (30% of ALL healing)', () => {
-    // Ticket 53 reshaped this from a switch into a dial. It used to read `last_overheal`, so it
-    // fired NEVER while she was behind and CONSTANTLY once she was already unkillable - which is
-    // how audhumbla's mirror became a 61-turn 0/400. It now reads `last_heal_intended` (the heal
-    // after onHealCalculated, before the max-HP clamp) at 30% - 25% in the spec, knobbed up one
-    // round in ticket 53 §6 - floored.
-    it('converts a share of an overhealing heal, counting the part the clamp ate', () => {
+describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (50% of PRINTED heal power)', () => {
+    // Ticket 56 changed the DENOMINATION, which is the third shape this OS has had.
+    // Ticket 53 made it a dial on HP healed; that dial was measured in ticket 55 to convert
+    // ~4.5x smaller than the card text implies, because `calculateHeal` turns power into HP at
+    // `maxHp * power / 400` - so `pale_mercy` (14 power -> 3 HP) rounded to ZERO damage and a
+    // third of her deck did nothing through the OS. It now reads the PRINTED power.
+    //
+    // The pins below assert the DENOMINATION rather than the damage, deliberately: this file's
+    // fixture is attack 10 vs defense 10 at level 1, where even 45 power resolves to 2 damage
+    // (ticket 52 hit the same floor). `last_heal_power` is exact and frame-independent.
+    it('records the PRINTED power of a card heal, not the HP it restored', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
-        const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_flat: a power-80 heal on SELF = 20 on the 100-maxHp frame. 95/100 -> only 5
-        // lands, but the whole 20 converts: floor(0.30 * 20) = 6.
-        let state = makeState([aud], [enemy], [card('c1', 'card_heal_flat', 1)]);
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_flat', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 
+        // card_heal_flat prints 80 power. On the 100-maxHp frame that is 20 HP, of which only 5
+        // land - and 80 is what the OS must see. The gap between 80 and 5 IS the ticket-56 bug.
+        expect(state.counters['last_heal_power']).toBe(80);
         expect(state.playerParty[0].currentHp).toBe(100);
-        expect(state.enemyParty[0].currentHp).toBe(94);
         expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
     });
 
-    it('fires on a heal that is fully absorbed by missing HP - this is the switch-to-dial fix', () => {
+    it('fires at FULL HP, where zero HP is restored and the printed power is all there is', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2' }); // 100/100
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_flat', 1)]);
+        state = play(state, 'aud1', 'aud1', 'c1');
+
+        expect(state.playerParty[0].currentHp).toBe(100); // nothing healed
+        expect(state.counters['last_heal_power']).toBe(80);
+        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
+        expect(state.enemyParty[0].currentHp).toBeLessThan(100); // and it still struck
+    });
+
+    it('does NOT convert an ENGINE heal - the OS reads "every heal she CASTS"', () => {
+        // A firmware/percentMaxHP heal arrives at the choke point as `flatHeal` with no printed
+        // power. Before ticket 56 the OS read HP and could not tell the two apart.
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 50 });
-        const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_power: power 25, maxHp 100 -> calculateHeal = 100 * 25 / 400 = 6. All 6 land
-        // (she is 50 HP down), and 30% of 6 = 1.8 -> 1. Pre-53 this was the "procs nothing" case.
-        let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
-        state = play(state, 'aud1', 'aud1', 'c1');
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')]);
+        state = applyMutations(state, [
+            { type: 'HP', targetId: 'aud1', sourceId: 'aud1', payload: { amount: 10, isHeal: true } }
+        ]);
 
-        expect(state.playerParty[0].currentHp).toBe(56);
-        expect(state.enemyParty[0].currentHp).toBe(99);
-        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
-    });
-
-    it('floors the MAGNITUDE - a 6 HP heal converts to 1, never 2', () => {
-        // The general claim: `Math.floor` on a negative product rounds AWAY from zero, so before
-        // ticket 53 fixed the HP branch in HookFactory this same heal would have dealt 2.
-        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 10 });
-        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_power', 1)]);
-        state = play(state, 'aud1', 'aud1', 'c1');
-        expect(state.enemyParty[0].currentHp).toBe(99);
+        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(false);
+        expect(state.enemyParty[0].currentHp).toBe(100);
     });
 });
 

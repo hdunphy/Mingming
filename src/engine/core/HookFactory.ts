@@ -152,6 +152,12 @@ export const HookFactory = {
             case 'MISSING_HP':
                 if (targetEntity) return targetEntity.maxHp - targetEntity.currentHp;
                 return 0;
+            case 'HEAL_POWER':
+                // Ticket 56: the PRINTED power of the heal being cast, before calculateHeal turns
+                // it into HP. This is the denomination NOURISH_ROUTINE needs - `HEAL_INTENDED`
+                // below reads HP, which is a ~4.5x smaller number on these frames and floored a
+                // third of audhumbla_v2's deck to zero.
+                return context.state.counters['last_heal_power'] || 0;
             case 'HEAL_INTENDED':
                 // Ticket 53: the whole heal before the max-HP clamp - see `last_heal_intended`.
                 return context.state.counters['last_heal_intended'] || 0;

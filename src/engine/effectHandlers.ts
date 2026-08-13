@@ -355,8 +355,8 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
  * reachable from card data any more - `healOverride` was removed from `HealActionData` because a
  * flat heal does not scale with level, so it was overpowered early and negligible late.
  */
-function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; flatHeal?: number }): IBattleState {
-    const { sourceId, targetId, power, flatHeal } = payload;
+function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; flatHeal?: number; healPower?: number }): IBattleState {
+    const { sourceId, targetId, power, flatHeal, healPower } = payload;
     // ... find entities ...
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
     let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
@@ -407,7 +407,14 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
             // she is already unkillable - which is what made audhumbla's mirror a 61-turn 0/400.
             // This is the heal AFTER onHealCalculated and BEFORE the max-HP clamp, so a heal at
             // full HP still converts and a buffed heal converts at its buffed size.
-            last_heal_intended: healAmount
+            last_heal_intended: healAmount,
+            // Ticket 56: NOURISH_ROUTINE is denominated in PRINTED POWER, not in HP healed.
+            // `power` is the number on the card; `calculateHeal` turns it into HP at
+            // `maxHp * power / 400`, which is ~4.5x smaller on an 86-HP frame - that conversion
+            // is exactly what made the HP-denominated dial round a third of audhumbla_v2's deck
+            // to zero damage. An ENGINE flat heal (`flatHeal`) has no printed power and records
+            // 0, so it does not convert: the OS reads "every heal she CASTS".
+            last_heal_power: healPower ?? (flatHeal !== undefined ? 0 : power)
         }
     } as IBattleState;
 

@@ -1044,7 +1044,7 @@
     "audhumbla_v2": {
         "id": "audhumbla_v2",
         "name": "NOURISH_ROUTINE",
-        "description": "30% of ALL healing applied to Audhumbla is also dealt as Light damage to a random enemy.",
+        "description": "50% of the printed heal power of every heal Audhumbla casts is also dealt as Light damage to a random enemy.",
         "hooks": [
             {
                 "id": "aud_v2_nourish",
@@ -1053,7 +1053,7 @@
                 "when": {
                     "target": "SELF",
                     "counter": {
-                        "key": "last_heal_intended",
+                        "key": "last_heal_power",
                         "operator": "GT",
                         "value": 0,
                         "scope": "GLOBAL"
@@ -1061,11 +1061,11 @@
                 },
                 "do": [
                     {
-                        "type": "HP",
+                        "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "amount": -0.3,
-                        "scaling": "HEAL_INTENDED"
+                        "power": 0.5,
+                        "scaling": "HEAL_POWER"
                     },
                     {
                         "type": "LOG",

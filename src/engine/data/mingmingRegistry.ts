@@ -584,7 +584,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // roughly every other turn. `starfall` cashes the draw the thin deck produces.
         decks: {
             "valkyrie_v1": ["pale_mercy", "benediction", "benediction", "zealots_edge", "zealots_edge", "echo_of_valhalla", "ascension", "radiant_spark", "smite", "healing_light"],
-            "valkyrie_v2": ["glimmer", "falling_star", "falling_star", "morning_light", "starfall", "starfall", "ascension", "radiant_spark"]
+            "valkyrie_v2": ["falling_star", "falling_star", "morning_light", "starfall", "starfall", "ascension", "radiant_spark"]
         },
         moves: [
             {

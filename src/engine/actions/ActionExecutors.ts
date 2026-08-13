@@ -301,7 +301,15 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
             targetId: targetId,
             payload: {
                 amount: healAmount,
-                isHeal: true
+                isHeal: true,
+                // Ticket 56: carry the PRINTED power through the mutation. Every card heal reaches
+                // `handleHealEffect` as a `flatHeal` (this executor resolves calculateHeal itself),
+                // so the number on the card was being discarded before the choke point ever saw
+                // it - which is why NOURISH_ROUTINE could only be denominated in HP. `healPower`
+                // is read there into `last_heal_power` and nowhere else.
+                healPower: actionData.scaling === 'STATUS_CONSUMED'
+                    ? power * (state.lastStatusConsumed ?? 0)
+                    : power
             }
         }]);
     }
