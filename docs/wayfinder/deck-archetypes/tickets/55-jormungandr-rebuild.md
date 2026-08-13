@@ -358,3 +358,142 @@ the capped OS and report.
 at the post-rebuild registry hash and report it next to ticket 49's table — kraken_v2's
 0.530 → 0.150 control move (a `surge_protection` side effect) suggests the deep-phase
 queue's inputs have shifted. Report only; queue changes are Henry's call.
+
+---
+
+## Amendment 1 — Resolution
+
+*Implemented 2026-08-12 on `39fbf3f`. Registry `1:b97b59ce` → **`1:53ea4a83`**. 773/773 tests,
+`npx tsc -b`, `npx vite build`, full `npm run balance` clean. Redlines **48 → 47**.*
+
+### A + B. The cap works, and it moved every degeneracy axis
+
+`OUROBOROS_LOOP` is now once per turn, guarded in **firmware**: the `jorm_v1_trigger` hook gained a
+`counters` AND-list (`jorm_water EQ 3` **and** `jorm_ouroboros_used LT 1`), sets the guard as its
+first action, and `jorm_v1_reset` clears both keys at the owner's turn end. Both counters are
+OWNER-scoped, so two Jörmungandrs never share a chain. Description updated to
+*"Each turn, the 3rd Water card you play grants 1 Energy and draws 1 card."*
+
+**Cap verified binding**, not inferred: across 35 sampled player side-turns, **max 1 proc per turn,
+zero turns with more than one.**
+
+| axis | before amendment | **after** | bar |
+|---|---|---|---|
+| **mirror average turns** | 2.30 | **3.19** | "well past 2.3" |
+| **first-mover edge** | −28.5% | **−16.75%** | should shrink |
+| **max cards played in a side-turn** | 10 | **7** | STOP at >10 |
+| §2.3 | 0.910 | **0.630** | *redline CLOSED, back inside 0.30–0.70* |
+| vs control | 100% | **100%** | ≥75% ✓ |
+| FTK | 0 | **0** | ✓ |
+| dead cards (subject) | 9.2% | **2.9%** | ≤35% ✓ |
+| **field** | 92.7% | **83.0%** | 35–80 — **still 3 points over** |
+
+**The cap is doing structural work, not cosmetic work.** `os:jormungandr` has left the redline set
+for the first time since the species was measured, and the mirror lengthened 39%.
+
+**The `tide_reading` lever was triggered and spent.** §B authorises it only if the capped deck still
+exceeds the field window — it did. Measured first, as instructed:
+
+| deck under the cap | field | mirror turns | first-mover | max plays |
+|---|---|---|---|---|
+| spec 10-card, both cantrips | 87.3% | 2.71 | −24.0% | 9 |
+| **shipped: `tide_reading` removed (9 cards)** | **83.0%** | **3.25** | **−23.5%** | **7** |
+| *probe only:* 10-card with `serpents_coil` back at 15 | 92.3% | 2.47 | −19.5% | 9 |
+
+`undertow` stays at **2 copies** as the amendment directs. **Field remains 3 points over the ceiling
+with no authorised lever left** — reported, not improvised.
+
+The third row is a **report-only probe**, not a change: the `serpents_coil` 15→10 knob was spent
+under the now-superseded loop-guard approach, so it was worth checking whether the cap made it
+unnecessary. It did not — restoring 15 is worse on every axis. **The knob should stay at 10.**
+
+### C. Firmware-liveness sweep — all 32 OSes
+
+Two independent passes (`liveness.ts`, run at `1:53ea4a83`):
+
+**STATIC** — replicates `HookFactory`'s own guards over every hook in `hooks.json`: actions that can
+never apply (non-`LOG` with no `target`), zod-stripped keys (raw JSON vs post-`HookLibrarySchema`,
+recursive), empty `do` arrays, and modifier hooks carrying neither `bonus` nor `multiplier`.
+
+> **Result: ZERO findings across all 32 OSes.** The three known occurrences (GENESIS ticket 53,
+> OUROBOROS and `jorm_v1_reset`'s missing `when` here) are the complete set. **No mechanical repairs
+> were needed, so none were made.**
+
+**DYNAMIC** — every registered hook function wrapped, then ~450 probe battles per OS (mirror,
+vs-control, and five field matchups), recording invocations and *observable effects* (a returned
+state that differs from the input, or a modifier that changed the damage).
+
+> **Result: all 32 OSes LIVE.** Every one produces observable effects. Full table in the report.
+
+**One sub-hook is silent, and it needs interpretation rather than a repair:**
+
+`huldra_v2_bark_start` (`onTurnStart`) — **0 effects across 10,649 calls**, while its twin
+`huldra_v2_bark_end` accounts for **100% of the grants**. The pair share a once-per-battle guard, so
+whichever boundary comes first wins; battles open mid-turn-1 in the ACTION phase, so **every unit's
+first boundary is a turn END, on both sides.** Ticket 07's comment on that firmware states enemy-side
+Huldra takes the shield at her turn-1 pre-turn — measured, that never happens.
+
+Not a defect with a wrong outcome (the shield does land), but it is the **same "two paths, one never
+fires" shape that hid OUROBOROS for eight tickets**, and HANDOFF 8-SHIELD-TIMING notes a shield
+granted at turn END is worth nothing to a shield-payoff deck. **Reported, not touched** — deciding
+whether the dual path is still wanted is design.
+
+### D. `ink_stream` — untouched, re-measured under the cap
+
+Per §D it stays at 12 × `CARDS_DRAWN`. Under the capped OS:
+
+| | before cap | after cap |
+|---|---|---|
+| damage share of v1 | 0.60 | **0.50** |
+| damage per play | 14.1 | 11.0 |
+| dead rate | 0.020 | **0.014** |
+
+Still v1's largest single damage source at half its output. The velocity finding holds — the cap took
+10 points of share out of it without anyone touching a number on the card.
+
+### E. Ticket-49 floor re-read at `1:53ea4a83` — report only
+
+Control win rate against every deck, 50 seeds × 2 turn orders, alongside the field round robin.
+**The floor list is down from seven decks to four.**
+
+| deck | ticket 49 §2b | **now** | field then → now |
+|---|---|---|---|
+| **hel_v2** | 0.81 | **0.901** | 28.2 → 25.1 |
+| **skoll_v2** | 0.61 | **0.580** | 25.8 → 25.8 |
+| **fenrir_v2** | 0.45 | **0.340** | 27.7 → 27.0 |
+| **hraesvelgr_v1** | 0.30 | **0.310** | 48.0 → 44.0 |
+| ~~jormungandr_v1~~ | 0.71 | **0.000** | 25.0 → **83.0** |
+| ~~kraken_v2~~ | 0.53 | **0.190** | 26.7 → 27.0 |
+| ~~fenrir_v1~~ | 0.29 | **0.194** | 28.1 → 27.4 |
+| jormungandr_v2 | 0.04 | 0.000 | 9.0 → **83.3** |
+| sleipnir_v1 | 0.08 | 0.180 | 48.3 → 44.3 |
+| kraken_v1 | 0.20 | 0.140 | 33.0 → 26.0 |
+
+Read `±0.05` as noise: this run uses 50 iterations and a different seed base than ticket 49's 100.
+**hel_v2 moving 0.81 → 0.901 is at the edge of that, but it is the wrong direction and it is now the
+only deck the control beats decisively.**
+
+**The field window is the more alarming table.** Only **13 of 32 decks** sit inside 0.35–0.80. Six are
+above (valkyrie_v2 89.3, ymir_v2 84.3, jormungandr_v2 83.3, jormungandr_v1 83.0, hraesvelgr_v2 81.3,
+nidhoggr_v1 80.3) and **thirteen are below**, floored by audhumbla_v2 at 17.7. The roster is bimodal,
+and the control can no longer discriminate the bottom group at all — eleven of those thirteen beat it
+outright.
+
+### Blast radius
+
+Redlines **48 → 47**; card redlines unchanged (0 closed, 0 added); cards audited 213.
+**Exactly one matchup row moved beyond noise across the whole table:**
+
+| row | before → after |
+|---|---|
+| `os:jormungandr` | 0.910 → **0.630** (3.0 → 3.6 turns) — **redline closed** |
+
+`mirror:jormungandr` reads 400/400 decided, 3.19 turns, first-mover −16.75%.
+
+### Left open after amendment 1
+
+1. **Field 83.0% / 83.3%, 3 points over the ceiling, no authorised lever left.**
+2. **`huldra_v2_bark_start` is inert** — dual-path firmware where one path never fires.
+3. **`contagion` 0.646 dead** (unchanged; both v2 knob rounds still unspent).
+4. **13 of 32 decks inside the field window.** The floor list shrank because decks rose past it, not
+   because the spread tightened.

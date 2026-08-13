@@ -528,7 +528,7 @@
     "jormungandr_v1": {
         "id": "jormungandr_v1",
         "name": "OUROBOROS_LOOP",
-        "description": "Every 3rd Water card you play in a single turn grants 1 Energy and draws 1 card.",
+        "description": "Each turn, the 3rd Water card you play grants 1 Energy and draws 1 card.",
         "hooks": [
             {
                 "id": "jorm_v1_count",
@@ -555,13 +555,27 @@
                 "when": {
                     "source": "SELF",
                     "programElement": "Water",
-                    "counter": {
-                        "key": "jorm_water",
-                        "operator": "EQ",
-                        "value": 3
-                    }
+                    "counters": [
+                        {
+                            "key": "jorm_water",
+                            "operator": "EQ",
+                            "value": 3
+                        },
+                        {
+                            "key": "jorm_ouroboros_used",
+                            "operator": "LT",
+                            "value": 1
+                        }
+                    ]
                 },
                 "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "jorm_ouroboros_used",
+                        "operator": "SET",
+                        "amount": 1
+                    },
                     {
                         "type": "ENERGY",
                         "target": "SELF",
@@ -596,6 +610,12 @@
                         "type": "COUNTER",
                         "target": "SELF",
                         "key": "jorm_water",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "jorm_ouroboros_used",
                         "operator": "RESET"
                     }
                 ]

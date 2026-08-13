@@ -199,9 +199,13 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
-        // Ticket 55 (deep pass #1). v1 OUROBOROS is now a DRAW-ZOO: OUROBOROS_LOOP itself is
-        // untouched, but the deck feeds it cantrips (`undertow` x2, `tide_reading`) so the
-        // 3rd-Water-card proc actually fires, and it carries TWO payoffs that read different
+        // Ticket 55 + amendment 1 (deep pass #1). v1 OUROBOROS is a DRAW-ZOO, and the chain is
+        // bounded in FIRMWARE, not here: OUROBOROS_LOOP procs at most ONCE PER TURN. That is
+        // deliberate and it is the whole reason the cantrips can sit at 2 copies - players build
+        // from the shared pool, so a curated deck list can never contain the chain, and only a
+        // firmware cap is pool-proof. The deck feeds it cantrips (`undertow` x2, `tide_reading`)
+        // so the 3rd-Water-card proc reliably fires once, and it carries TWO payoffs that read
+        // different
         // counters - `serpents_coil` on cards PLAYED, `ink_stream` on cards DRAWN. Still
         // all-Water by necessity: the loop counts Water cards only, so a None-tier card here
         // would be a hole in the engine.
@@ -211,7 +215,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // 2-Energy world; the card stays in the registry as a ramp draft pick) and `contagion`
         // stayed, because doubling the pile now doubles the amplifier immediately.
         decks: {
-            "jormungandr_v1": ["undertow", "blind_spot", "corrosive_leak", "tide_reading", "surge_protection", "serpents_coil", "serpents_coil", "ink_stream", "ink_stream"],
+            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "corrosive_leak", "surge_protection", "serpents_coil", "serpents_coil", "ink_stream", "ink_stream"],
             "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "water_slap", "water_slap", "toxic_surge", "contagion"]
         },
         moves: [
