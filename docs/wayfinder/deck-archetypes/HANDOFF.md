@@ -22,8 +22,8 @@
 
 - **Gates finalized: field 0.35-0.80, control >=0.60** (supersedes any 0.75 reference).
 - **jorm_v1 at 83.0 field: ACCEPT-AND-WATCH** - within +-4-5 noise of the ceiling, and the field re-reads after ticket 56 moves valkyrie_v2/audhumbla_v2. No new lever authorized; re-read then.
-- **huldra_v2 : DELETE as dead code.** Flipping the grant to turn-START would be a real BUFF per 8-SHIELD-TIMING on a healthy 71%-field deck - recorded instead as a ready-made buff lever if huldra_v2 ever needs one.
-- **STANDING POLICY: run  after every hooks.json edit** - the only instrument that sees a dead hook. Three dropped-action occurrences (GENESIS, OUROBOROS, jorm_v1_reset) are the confirmed complete set as of .
+- **huldra_v2 `bark_start`: DELETE as dead code.** Flipping the grant to turn-START would be a real BUFF per 8-SHIELD-TIMING on a healthy 71%-field deck - recorded instead as a ready-made buff lever if huldra_v2 ever needs one.
+- **STANDING POLICY: run `liveness.ts` after every hooks.json edit** - the only instrument that sees a dead hook. Three dropped-action occurrences (GENESIS, OUROBOROS, jorm_v1_reset) are the confirmed complete set as of `1:53ea4a83`.
 - Authorized measurements (report-only): roster-wide first-mover census; TOXIN_FANG 2->1/2->3 A/B with contagion dead-rate; 30-iteration field census.
 - Queue drift per the floor re-read: kraken_v2 and fenrir_v1 are OFF the floor list (surge_protection side effect); hel_v2 (0.901 control-wins) is the clear head; ticket 56 then 57 are specified and next.
 
