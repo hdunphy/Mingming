@@ -324,3 +324,37 @@ No test needed updating: nothing pinned the old jormungandr lists or OS text.
   opposite things to two species is the shared-currency shape HANDOFF 8-SHARED-CURRENCY warns about,
   in a milder form.
 - **53 orphaned cards** await Henry's deletion review.
+
+## Amendment 1 (2026-08-12 — Henry-approved; supersedes Part 1's loop-guard approach)
+
+**A. OUROBOROS_LOOP is capped ONCE PER TURN (OS text change, approved):**
+"Each turn, the 3rd Water card you play grants 1 Energy and draws 1 card." Update the hook
+(the counter/reset machinery you just fixed gains a per-turn once-guard — the hraesvelgr
+guard-key pattern) and the description text. Rationale on record: the cap must live in the
+FIRMWARE, not the deck list — players build from the pool, so list curation cannot contain
+the chain; once-per-turn kills infinite turns by construction for every future player deck.
+
+**B. Deck list under the capped OS:** revert to the spec list WITH both cantrips
+(`undertow` ×2 + `tide_reading`, 10 cards). The cantrips stop being chain fuel under the
+cap. THEN re-gate — and gate on the degeneracy axes, not field alone: mirror average turns
+(should lengthen well past 2.3), first-mover edge (the −28.5% second-mover artifact should
+shrink), max cards played per side-turn (STOP line stays >10), FTK 0, vs-control ≥0.75,
+field window 0.35–0.80. The tide_reading-removal lever from the attribution study is
+authorized ONLY if the capped deck still exceeds the field window — one round, report first.
+
+**C. Firmware-liveness sweep (Q1 — AUTHORIZED, measurement not design):** probe all 32 OS
+hooks for dead actions (the dropped-`target` / schema-stripped-field family — now THREE
+occurrences: GENESIS ticket 53, OUROBOROS here, plus `jorm_v1_reset`'s missing `when`).
+Fire each hook's trigger in a seeded probe battle and assert an observable effect. Deliver
+the liveness table in the Resolution and add the trap to HANDOFF's do-not-re-derive list.
+Mechanical repairs (missing target/when fields, same shape as the two known cases) are
+pre-authorized; anything needing design interpretation → report, do not improvise.
+
+**D. ink_stream (Q2 — recorded as design guidance):** velocity, not damage, is v1's lever.
+Do not tune ink_stream's numbers; it stays at 12 × CARDS_DRAWN. Re-measure its share under
+the capped OS and report.
+
+**E. Ticket-49 floor re-read (Q3 — AUTHORIZED, measurement):** re-read the full floor list
+at the post-rebuild registry hash and report it next to ticket 49's table — kraken_v2's
+0.530 → 0.150 control move (a `surge_protection` side effect) suggests the deep-phase
+queue's inputs have shifted. Report only; queue changes are Henry's call.
