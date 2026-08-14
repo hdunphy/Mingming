@@ -228,3 +228,59 @@ nothing else beyond noise, control rows frozen). ONE commit; Resolution appended
 line; HANDOFF refresh (Burn DONE -> next queue items: skoll revamp design session, kraken,
 hel_v1, hraesvelgr pass). Deliverable: sweep table, shipped D + confirms, FTK accounting,
 all gates, deviations.
+
+
+### Amendment 2 sweep delivered (2026-08-15) — widened by Henry in session, REPORT-ONLY, nothing shipped
+
+Henry ordered a superset in session: **DETONATE, cap 3-8 x D 6-16%** (36 arms + baseline at 10
+iterations = 33,300 games; eight arms re-read at 30; three of those on a second seed base;
+~46,000 games total). Full write-up:
+[research/burn-detonate-deep-sweep.md](../research/burn-detonate-deep-sweep.md).
+
+**FTK is 0 across every arm, every deck, both mirrors.** Amendment 2's headline watch item —
+that a 12-16% maxHp burst is the first credible Burn FTK vector — is measured clean. Largest
+single detonation seen anywhere: **14 HP**.
+
+**Nearest 0.50 is `DET-C4-D14` at 48.5%** (49.4 / 47.5 on two seed bases). Inside amendment 2's
+cap-3 constraint the answer is **`DET-C3-D12` at 47.6%**. They hit the same fenrir_v2 number and
+differ entirely in what else they do:
+
+| | fenrir_v2 | skoll_v2 | hraesvelgr_v2 | detonations/g | self-burn |
+|---|---|---|---|---|---|
+| live baseline | 24.9% | 25.4% | 78.4% | 0.00 | 0.00 |
+| `DET-C3-D12` | 47.6% | **19.0%** (−6.4) | **83.0%** (over ceiling) | 3.10 | 1.37 HP/g |
+| `DET-C4-D14` | **48.5%** | **27.2%** (+1.8) | **77.7%** (under) | 2.00 | 0.89 HP/g |
+
+**The scope concession may not need spending.** Amendment 2 scoped skoll_v2 and hraesvelgr_v2
+out as constraints and accepted "she reads a few points lower under DETONATE" as a known cost.
+That cost is a CAP-3 cost, not a DETONATE cost: at cap 4 skoll_v2 is left where she started and
+hraesvelgr_v2 comes DOWN off the ceiling. The cap-4 tier table is amendment 1's verbatim, so
+choosing it opens no new design surface.
+
+**Cap is a brake on the whole status, not just on the overflow.** C3 -> C8 at D16 takes
+detonations 3.27 -> 0.77 AND total Burn output 55.2 -> 24.7 HP/game, because the spread tiers
+lengthen the climb as well as raising the ceiling — tick alone falls 23.3 -> 15.2 before any
+detonation is counted. By cap 7-8 the mechanic has largely stopped existing. **"Harder to reach
+without making Burn worse" is not available from the spread-tier construction** — that needs a
+cap raise with the climb held fixed, which is a different table and a design call.
+
+**Cap and D multiply rather than adding.** `C3-D10` (46.2), `C4-D14` (49.7) and `C5-D16` (48.3)
+are three routes to the same field number differing only in texture — 2.96 / 2.00 / 1.57
+detonations a game at ~7.7 / ~10.9 / ~12.4 HP each. Many small pops vs few large ones is the
+actual choice.
+
+Also on record: **symmetric self-burn stays cheap and cap prices it** (1.2-1.4 HP/g at cap 3,
+0.9 at cap 4, ~0 at cap 5+ — it only registers at all at cap 3); **draugr_v2's sentinel held
+exactly** (0 detonation events, 0 clamped stacks, every arm); the **seed-base spread was 1.9
+points**, much tighter than ticket 61's 5.5, so a Burn arm is a quieter measurement than a
+firmware payoff arm; and **the live baseline itself reads 24.2-29.0 across bases and grades on
+an unchanged deck**, so deltas here should be read against ~25 rather than a precise number.
+
+**Two assumptions stated rather than resolved** (report §8): D steps of 2pp, and **tick tables
+for caps 6-8, which did not exist and were GENERATED** from the curve amendment 1's C4/C5 tables
+describe. No candidate depends on the generated tables — caps 6-8 all read below target — but
+they are the agent's construction, not Henry's, and are printed in the report for review.
+
+**HELD, not shipped.** Amendment 2's ship-and-gate section is keyed to a cap-3 arm; if the
+answer is cap 4 that section needs an amendment first. Five questions returned in report §9, the
+load-bearing one being **cap 3 or cap 4**.
