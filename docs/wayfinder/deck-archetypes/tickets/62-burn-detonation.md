@@ -187,3 +187,44 @@ numbers **exactly, not within noise**. Suite 792/60 green, `tsc -b` and `vite bu
 
 Five questions returned for Henry in the report's §10 — the load-bearing one being **which
 constraint gives**, since the grid contains no arm that satisfies all three.
+
+## Amendment 2 (Henry, 2026-08-15): DETONATE at the price it actually needs
+
+Henry's direction off the grid report: **DETONATE is the preferred shape** (the self-limiter
+is wanted design), the grid just priced it 3x too low - its approved D range topped out with
+fenrir_v2 at 34.6% (C3-D8). Extrapolation from the three measured C3 points (~2 overflow
+HP/game per D point, ~0.75 field points per overflow HP, event rate stable ~2.5-2.8/game):
+D=12 -> field ~40, D=14 -> ~44, D=16 -> ~48.
+
+**Scope rulings that unlock the decision (both Henry's):**
+- **skoll_v2 LEAVES the Burn decision** - grid SS5: Burn is not her lever (above baseline in
+  only 6 of 21 arms, all of which send fenrir_v2 to 66-82%). She gets her OWN deck-revamp
+  pass, queued. Known cost, accepted: she reads a few points lower under DETONATE until then.
+- **hraesvelgr_v2 LEAVES it too** - Air, 79.7 live before any Burn change, plus the -33%
+  first-mover flag; her own pass covers both. Her ceiling is NOT a constraint on this sweep.
+
+### The mini-sweep
+
+**DETONATE, cap 3, current tiers, symmetric self-burn, D in {10, 12, 14, 16}%** (all four
+pre-approved; anything else -> STOP). In-memory arms on the committed BURN_CONFIG refactor;
+same instrument as the grid (fenrir_v2 primary; report skoll_v2 and hraesvelgr_v2 as
+telemetry, NOT constraints; draugr_v2 one sentinel arm at D16).
+
+**Ship rule:** the D putting fenrir_v2 nearest 0.50 (mid-window with headroom, not the floor
+edge - the seed-base law says a floor-adjacent read needs two bases). Confirm shipped arm at
+30 iterations; if the confirm sits within 6 points of either band edge, run a second seed
+base before calling it. **FTK is the watch item: a 12-16% maxHp burst is the first credible
+Burn FTK vector - hard 0, and any FTK in any arm gets a re-read before that arm is judged.**
+If no arm lands fenrir_v2 in 0.35-0.80 -> STOP; fallback VENT-C4-D8 (measured 79.2/38.7/80.1)
+returns to Henry, not to a knob.
+
+### Ship + gates (when an arm wins)
+
+Write the winning config into BURN_CONFIG (shape DETONATE, cap 3, D, tiers unchanged) +
+update the BurnBehavior comment + power_curve_spec.md rev note + status text anywhere Burn
+overflow is described. Scoped BALANCE_ONLY=fenrir, =skoll, =hraesvelgr, =draugr (all bands;
+FTK 0 hard; SS2.3 diagnostic). Full npm run balance + 8-DIFF (four Burn species move,
+nothing else beyond noise, control rows frozen). ONE commit; Resolution appended here; map
+line; HANDOFF refresh (Burn DONE -> next queue items: skoll revamp design session, kraken,
+hel_v1, hraesvelgr pass). Deliverable: sweep table, shipped D + confirms, FTK accounting,
+all gates, deviations.
