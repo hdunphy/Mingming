@@ -31,13 +31,11 @@ describe('per-OS starting decks', () => {
 
         it.each(def.availableOS)('%s deck: 8-12 cards, <=3 copies (legacy cap)', osId => {
             const deck = getDeckForOS(id, osId);
-            // Ticket 56 authorised valkyrie_v2 down to SEVEN cards explicitly ("remove `glimmer`
-            // from valkyrie_v2's list (deck to 7)"), which puts a Henry-approved deck outside a
-            // Henry-approved template. Recorded as a NAMED exception rather than widening the
-            // band for the whole roster, so the next deck to drop below 8 still has to argue for
-            // it. Reverse this line, not the rule, if `glimmer` goes back.
-            const minSize = osId === 'valkyrie_v2' ? 7 : 8;
-            expect(deck.length).toBeGreaterThanOrEqual(minSize);
+            // Ticket 61 REVERSED ticket 56's named seven-card exception for valkyrie_v2:
+            // `glimmer` is back and the 8-12 band is whole again for every deck on the roster.
+            // The exception was always written as "reverse this line, not the rule" - this is
+            // that reversal, and the rule never moved.
+            expect(deck.length).toBeGreaterThanOrEqual(8);
             expect(deck.length).toBeLessThanOrEqual(12);
             const counts: Record<string, number> = {};
             for (const c of deck) counts[c] = (counts[c] ?? 0) + 1;

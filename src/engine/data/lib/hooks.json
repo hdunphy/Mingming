@@ -922,7 +922,7 @@
     "valkyrie_v2": {
         "id": "valkyrie_v2",
         "name": "REBIRTH_CYCLE_OS",
-        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, deal 10 Light damage to a random enemy and heal Valkyrie with 10 power. Once per turn.",
+        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 15 power of Light damage and heals herself with 15 power. Once per turn.",
         "hooks": [
             {
                 "id": "valk_v2_rebirth_reset",
@@ -961,15 +961,15 @@
                         "amount": 1
                     },
                     {
-                        "type": "HP",
+                        "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "amount": -10
+                        "power": 15
                     },
                     {
                         "type": "HEAL",
                         "target": "SELF",
-                        "power": 10
+                        "power": 15
                     },
                     {
                         "type": "LOG",

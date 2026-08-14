@@ -1,34 +1,50 @@
 section,kind,subject,metric,value,threshold,comparison,detail
-1.3,CARD_OVER_BUDGET,blind_spot,score,1.5,1,above,"Blind Spot (blind_spot) costs 0 energy and scores 1.5, 0.5 over the 1 budget for that cost."
-1.3,CARD_OVER_BUDGET,brute_force,score,9.1,9,above,"Brute Force (brute_force) costs 2 energy and scores 9.1, 0.1 over the 9 budget for that cost."
-1.3,CARD_OVER_BUDGET,cinder_slash,score,4.4,4,above,"Cinder Slash (cinder_slash) costs 1 energy and scores 4.4, 0.4 over the 4 budget for that cost."
-1.3,CARD_OVER_BUDGET,corrosive_leak,score,2.8,1,above,"Corrosive Leak (corrosive_leak) costs 0 energy and scores 2.8, 1.8 over the 1 budget for that cost."
-1.3,CARD_OVER_BUDGET,disorienting_gust,score,1.5,1,above,"Disorienting Gust (disorienting_gust) costs 0 energy and scores 1.5, 0.5 over the 1 budget for that cost."
-1.3,CARD_OVER_BUDGET,equilibrium,score,4.7,4,above,"Equilibrium (equilibrium) costs 1 energy and scores 4.7, 0.7 over the 4 budget for that cost."
-1.3,CARD_OVER_BUDGET,flash_freeze,score,5.5,4,above,"Flash Freeze (flash_freeze) costs 1 energy and scores 5.5, 1.5 over the 4 budget for that cost."
-1.3,CARD_OVER_BUDGET,glacial_slam,score,9.5,9,above,"Glacial Slam (glacial_slam) costs 2 energy and scores 9.5, 0.5 over the 9 budget for that cost."
-1.3,CARD_OVER_BUDGET,glacier_wall,score,5.4,4,above,"Glacier Wall (glacier_wall) costs 1 energy and scores 5.4, 1.4 over the 4 budget for that cost."
-1.3,CARD_OVER_BUDGET,glass_cannon,score,4.2,4,above,"Glass Cannon (glass_cannon) costs 1 energy and scores 4.2, 0.2 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,ash_communion,score,10.6,6.5,above,"Ash Communion (ash_communion) costs 2 energy and scores 10.6, 4.1 over the 6.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,battle_rhythm,score,3.1,3,above,"Battle Rhythm (battle_rhythm) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,benediction,score,3.1,3,above,"Benediction (benediction) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,blind_spot,score,1.1,1,above,"Blind Spot (blind_spot) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,blood_rite,score,3.4,3,above,"Blood Rite (blood_rite) costs 1 energy and scores 3.4, 0.4 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,bloodlust,score,3.1,3,above,"Bloodlust (bloodlust) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,brute_force,score,3.1,3,above,"Brute Force (brute_force) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,corrosive_leak,score,2.3,1,above,"Corrosive Leak (corrosive_leak) costs 0 energy and scores 2.3, 1.3 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,crimson_draw,score,4.1,3,above,"Crimson Draw (crimson_draw) costs 1 energy and scores 4.1, 1.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,dawn_of_creation,score,10.9,10.5,above,"Dawn of Creation (dawn_of_creation) costs 3 energy and scores 10.9, 0.4 over the 10.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,dread_tidings,score,3.2,3,above,"Dread Tidings (dread_tidings) costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,entangle,score,12.1,10.5,above,"Entangle (entangle) costs 3 energy and scores 12.1, 1.6 over the 10.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,falling_star,score,3.6,3,above,"Falling Star (falling_star) costs 1 energy and scores 3.6, 0.6 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,fertile_ground_daemon,score,7.6,6.5,above,"FERTILE_GROUND (fertile_ground_daemon) costs 2 energy and scores 7.6, 1.1 over the 6.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,frost_ward,score,1.1,1,above,"Frost Ward (frost_ward) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,glacial_slam,score,7,6.5,above,"Glacial Slam (glacial_slam) costs 2 energy and scores 7, 0.5 over the 6.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,glimmer,score,1.4,1,above,"Glimmer (glimmer) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,grit,score,1.1,1,above,"Grit (grit) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,hoof_strike,score,1.1,1,above,"Hoof Strike (hoof_strike) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
-1.3,CARD_OVER_BUDGET,lumen_surge,score,4.5,4,above,"Lumen Surge (lumen_surge) costs 1 energy and scores 4.5, 0.5 over the 4 budget for that cost."
-1.3,CARD_OVER_BUDGET,scorch,score,16.8,9,above,"Scorch (scorch) costs 2 energy and scores 16.8, 7.8 over the 9 budget for that cost."
-1.3,CARD_OVER_BUDGET,sleep_powder,score,4.5,4,above,"Sleep Powder (sleep_powder) costs 1 energy and scores 4.5, 0.5 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,ink_stream,score,3.6,3,above,"Ink Stream (ink_stream) costs 1 energy and scores 3.6, 0.6 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,iron_bark,score,3.1,3,above,"Iron Bark (iron_bark) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,lance,score,3.8,3,above,"Lance (lance) costs 1 energy and scores 3.8, 0.8 over the 3 budget for that cost. (score excludes unscored DISCARD action(s) - actual value is at least this.)"
+1.3,CARD_OVER_BUDGET,lumen_surge,score,4.5,3,above,"Lumen Surge (lumen_surge) costs 1 energy and scores 4.5, 1.5 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,overgrowth,score,3.6,3,above,"Overgrowth (overgrowth) costs 1 energy and scores 3.6, 0.6 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,photosynthesis_v2,score,3.2,3,above,"Photosynthesis (photosynthesis_v2) costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,pollen_cloud,score,1.1,1,above,"Pollen Cloud (pollen_cloud) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
+1.3,CARD_OVER_BUDGET,pressure_point,score,3.1,3,above,"Pressure Point (pressure_point) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,rimebreaker,score,7.5,6.5,above,"Rimebreaker (rimebreaker) costs 2 energy and scores 7.5, 1 over the 6.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,shield_shards,score,3.1,3,above,"Shield Shards (shield_shards) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,sky_burial_ascended,score,4.1,3,above,"Sky Burial, Ascended (sky_burial_ascended) costs 1 energy and scores 4.1, 1.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,sleep_powder,score,4.5,3,above,"Sleep Powder (sleep_powder) costs 1 energy and scores 4.5, 1.5 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,slipstream,score,1.4,1,above,"Slipstream (slipstream) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
-1.3,CARD_OVER_BUDGET,stone_bark,score,5.4,4,above,"Stone Bark (stone_bark) costs 1 energy and scores 5.4, 1.4 over the 4 budget for that cost."
-1.3,CARD_OVER_BUDGET,stunning_strike,score,9.5,9,above,"Stunning Strike (stunning_strike) costs 2 energy and scores 9.5, 0.5 over the 9 budget for that cost."
-1.3,CARD_OVER_BUDGET,surge_protection,score,4.5,4,above,"Surge Protection (surge_protection) costs 1 energy and scores 4.5, 0.5 over the 4 budget for that cost."
+1.3,CARD_OVER_BUDGET,stunning_strike,score,8.4,6.5,above,"Stunning Strike (stunning_strike) costs 2 energy and scores 8.4, 1.9 over the 6.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,sun_eaters_plunge,score,10.8,10.5,above,"Sun-Eater's Plunge (sun_eaters_plunge) costs 3 energy and scores 10.8, 0.3 over the 10.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,thaw,score,3.1,3,above,"Thaw (thaw) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,thistle_barrage,score,3.2,3,above,"Thistle Barrage (thistle_barrage) costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,thorn_tithe,score,3.1,3,above,"Thorn Tithe (thorn_tithe) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,thornguard,score,3.3,3,above,"Thornguard (thornguard) costs 1 energy and scores 3.3, 0.3 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,undertow,score,1.4,1,above,"Undertow (undertow) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,water_slap,score,1.2,1,above,"Tackle (water_slap) costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
-2.2,TURN_COUNT,mirror:audhumbla,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:draugr,averageTurns,42.99,30,above,Averages 43.0 turns with 260/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:gullinbursti,averageTurns,60.62,30,above,Averages 60.6 turns with 368/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:hel,averageTurns,61,30,above,Averages 61.0 turns with 400/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:nidhoggr,averageTurns,54.08,30,above,Averages 54.1 turns with 323/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.2,TURN_COUNT,mirror:ymir,averageTurns,57.71,30,above,Averages 57.7 turns with 372/400 draws. Section 2.2 calls anything over 30 turns too slow to be fun; these do not finish at all.
-2.3,OS_GAP,os:fenrir,osGap,0.1667,0.15,above,fenrir_v2 wins 66.7% of the 99 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:gullinbursti,osGap,0.5,0.15,above,gullinbursti_v2 wins 100.0% of the 100 decided games between gullinbursti_v1 and gullinbursti_v2 on an otherwise identical gullinbursti. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:hraesvelgr,osGap,0.4,0.15,above,hraesvelgr_v2 wins 90.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:jormungandr,osGap,0.16,0.15,above,jormungandr_v1 wins 66.0% of the 100 decided games between jormungandr_v1 and jormungandr_v2 on an otherwise identical jormungandr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:nidhoggr,osGap,0.4459,0.15,above,nidhoggr_v2 wins 94.6% of the 37 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:sleipnir,osGap,0.49,0.15,above,sleipnir_v2 wins 99.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:valkyrie,osGap,0.19,0.15,above,valkyrie_v2 wins 69.0% of the 100 decided games between valkyrie_v1 and valkyrie_v2 on an otherwise identical valkyrie. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:ymir,osGap,0.35,0.15,above,ymir_v2 wins 85.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:audhumbla,osGap,0.5,0.15,above,audhumbla_v1 wins 100.0% of the 100 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:draugr,osGap,0.16,0.15,above,draugr_v2 wins 66.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:hel,osGap,0.48,0.15,above,hel_v2 wins 98.0% of the 100 decided games between hel_v1 and hel_v2 on an otherwise identical hel. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:hraesvelgr,osGap,0.19,0.15,above,hraesvelgr_v2 wins 69.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:jormungandr,osGap,0.44,0.15,above,jormungandr_v1 wins 94.0% of the 100 decided games between jormungandr_v1 and jormungandr_v2 on an otherwise identical jormungandr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:nidhoggr,osGap,0.18,0.15,above,nidhoggr_v2 wins 68.0% of the 100 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:ratatoskr,osGap,0.19,0.15,above,ratatoskr_v2 wins 69.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:sleipnir,osGap,0.17,0.15,above,sleipnir_v2 wins 67.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:valkyrie,osGap,0.39,0.15,above,valkyrie_v1 wins 89.0% of the 100 decided games between valkyrie_v1 and valkyrie_v2 on an otherwise identical valkyrie. The weaker variant needs a buff or a lower cost.
