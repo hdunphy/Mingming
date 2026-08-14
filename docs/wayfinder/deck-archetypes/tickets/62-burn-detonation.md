@@ -3,8 +3,8 @@
 - Type: wayfinder:task — Henry-approved design (2026-08-14, off ticket 58's Fire
   investigation). This ticket IS the implementation brief; implementing session flips it
   closed and appends its Resolution.
-- Status: **open**
-- Assignee: —
+- Status: **open — grid delivered 2026-08-14, awaiting Henry's direction pick**
+- Assignee: implementation agent (grid)
 - Blocked by: run AFTER ticket 61 (one worker per tree; 61 re-baselines first).
 - DEEP-PHASE POLICY binds. Branch card-dev; author `Henry Dunphy <hdunphy15@gmail.com>`;
   line-ending law; locks → `_to_delete/git-locks/`.
@@ -133,3 +133,57 @@ alongside; a per-dimension reading (what shape does, what cap does, what D does,
 sensitivity); Henry's questions section. ONE commit: refactor (behavior-identical) + report
 + ticket status note. The direction pick and the ship are Henry's session; a second
 amendment will carry them.
+
+
+---
+
+## Grid delivered (2026-08-14) — STOPPED as specified, nothing shipped
+
+Full write-up: [research/burn-grid.md](../research/burn-grid.md). All 21 arms measured at 10
+iterations (300 decided games per deck per arm); seven leaders re-read at 30 (900). Registry
+`1:8b7b0ae9`.
+
+**The STOP condition is met: no configuration satisfies the constraint set.** At 30 iterations
+the closest is `VENT-C4-D8` — fenrir_v2 **79.2%**, skoll_v2 **38.7%**, hraesvelgr_v2 **80.1%** —
+which clears both Fire decks and misses hraesvelgr's ceiling by 0.1. Direction is Henry's.
+
+What the grid settled:
+
+- **The waste is fixable.** `unpaid stacks` goes **40.4% → 0.0%** at every D in every arm — the
+  moment the overflow value rounds above zero, ticket 58's thrown-away Burn becomes damage. That
+  question is closed regardless of which direction is picked.
+- **Shape is the dominant dimension and it is worth ~44 field points** (VENT 78.3% vs DETONATE
+  34.6% at the same C3/D8). **DETONATE has a second effect that was not in the design rationale:
+  it SPENDS the pile, so the pile lives at the bottom of the tier table** — fenrir_v2's tick falls
+  24.3 → 19.8 HP/game. It is not "Burn plus a burst"; it is a trade of DoT for burst.
+- **Every cap-3 DETONATE arm puts skoll_v2 BELOW its live baseline** (15.7-18.7 vs 27.0), because
+  skoll's Burn is mostly tick and detonation eats the ticks.
+- **Burn is not skoll_v2's lever.** Across 21 arms she spans 15.1-39.0% and beats her 27.0%
+  baseline in only six, all of them arms that simultaneously send fenrir_v2 to 66-82%. Confirms
+  ticket 58's 18%-of-damage reading with a 21-point spread behind it.
+- **fenrir_v2 is entirely steerable**: 27.6% → 79.2% on one dimension. ~6 field points per
+  percentage point of D on the VENT-C4 line.
+- **Cap is the only dimension that lowers hraesvelgr_v2** (cap 4: 74.0-78.7; cap 3: 79.3-82.0).
+  She is at 79.7% live — at the ceiling before this ticket touches anything.
+- **Tick sensitivity, isolated:** ±2pp on the max tier is worth −7.1 / +1.4 to fenrir_v2 and
+  −1.6 / +5.6 to skoll_v2. Asymmetric, and it points the same way as the shape reading:
+  **skoll wants tick, fenrir wants burst.**
+- **Symmetric self-burn is free**: the most expensive arm charges fenrir_v2 **0.95 HP/game**; at
+  cap 4 it is 0.4-0.6, at cap 5 effectively zero. Not a balance cost anywhere in the grid.
+- **draugr_v2 sentinel held**: **0 overflow events in all four sentinel arms**, field 31.7-34.7
+  against a 33.0 baseline. Prediction exact.
+- **FTK: one, in `DET-C3-D4`** (skoll_v2, 1 of 300) — the lowest-payout arm in the set, so read
+  as a fast-kill seed rather than a mechanic. Recorded, not dismissed; that arm needs a re-read
+  before it could be trusted, and it is not a candidate.
+- **`0-DECISION-GRADE` again: the ranking inverted between grades.** At 10 iterations
+  `VENT-C4-D6` was the ONLY arm satisfying all three constraints (70.6 / 36.0 / 75.3); at 30 its
+  skoll reads 33.4 and it fails, while `VENT-C4-D8` — out of bounds at 10 — becomes the leader.
+
+**Committed: the refactor only, behaviour-identical.** `BURN_CONFIG` (shape / cap / overflow
+percent / tiers) with the live values; both shapes implemented; `TacticalAI` reads the live tier
+table so an arm cannot be judged against a stale one; `burnMechanic.test.ts` (15 tests) pins the
+identity first and the shapes second. Scoped `BALANCE_ONLY=fenrir` reproduces the committed
+numbers **exactly, not within noise**. Suite 792/60 green, `tsc -b` and `vite build` clean.
+
+Five questions returned for Henry in the report's §10 — the load-bearing one being **which
+constraint gives**, since the grid contains no arm that satisfies all three.

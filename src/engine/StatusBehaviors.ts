@@ -122,30 +122,75 @@ class PermanentStatusBehavior extends StatusBehavior {
     }
 }
 
-// --- Burn (Permanent + DoT with overflow) ---
-
-const BURN_MAX_STACKS = 3;
+// --- Burn (DoT with a capped pile and an overflow payout) ---
 
 /**
- * Immediate damage per Burn stack applied past the cap, as a fraction of the target's max HP.
+ * Ticket 62: Burn's whole mechanic behind ONE config object.
  *
- * Was the MAX TIER rate (0.08), which meant a single excess stack instantly dealt a full
- * 3-stack turn of Burn AND bypassed defense - strictly better than the DoT it replaced.
- * That made molten_core a 1-energy card worth up to 18 damage (24% of a 75 HP pool) while
- * powerscale scored it 2.60 against a 3.00 cap, because static analysis cannot know the
- * target already holds stacks. Measured: the burst was ~half of fenrir_v2's whole output
- * and ended the matchup on turn 3, before fenrir_v1's below-50% archetype could function.
+ * Why a config rather than four constants: ticket 62's grid measures 21 configurations
+ * (2 shapes x 3 caps x 3 overflow values, plus tick arms and the live baseline) by mutating
+ * this object in memory the way ticket 60 mutated firmware hook data. Nothing about the grid
+ * is committed - `BURN_CONFIG` below reproduces the LIVE pre-62 behavior exactly, and
+ * `StatusBehaviors.burn.test.ts` pins that identity so the refactor cannot silently ship a
+ * balance change under cover of a refactor.
  *
- * NOTE the floor: at the current ~75-79 HP pools 0.01 rounds to 0, so overflow is a no-op
- * today and only starts biting at 100+ max HP. That is intentional headroom, not an
- * oversight - if overflow should always cost something, the change is Math.max(1, ...).
+ * `shape` is the thing the grid is really asking about:
+ *
+ *   VENT      Stacks hold AT the cap and every excess stack pays `overflowPercent` of the
+ *             burned entity's max HP immediately. This is what ships today (and what shipped
+ *             historically at 0.08). Its failure mode is that the payout is unbounded in the
+ *             application rate - a hot target can be farmed forever without the pile ever
+ *             being rebuilt.
+ *
+ *   DETONATE  Every cap-crossing pays once and SUBTRACTS the cap from the pile (modulo carry),
+ *             so the payout rate is bounded by application rate / cap. 3 + 1 = 4 detonates
+ *             once and leaves 1; 3 + 4 = 7 detonates twice and leaves 1; 3 + 3 = 6 detonates
+ *             once and leaves 3 (exactly divisible stays at cap). The rebuild is the limiter
+ *             the historical design lacked.
+ *
+ * Both shapes are SYMMETRIC by construction rather than by branch: `immediateDamage` is
+ * applied to the burned entity by `effectHandlers.handleStatusEffect`, so self-applied Burn
+ * detonates on its own holder and nothing here needs to know who the source was.
  */
-const BURN_OVERFLOW_PERCENT = 0.01;
+export type BurnShape = 'VENT' | 'DETONATE';
+
+export interface BurnMechanicConfig {
+    shape: BurnShape;
+    /** Stack ceiling. Crossing it is what triggers the shape above. */
+    maxStacks: number;
+    /**
+     * Immediate damage per overflow EVENT, as a fraction of the burned entity's max HP.
+     * VENT charges one event per excess stack; DETONATE one per cap-crossing.
+     *
+     * The live value is 0.01, and it is a measured no-op: `Math.floor(maxHp x 0.01)` is 0 on
+     * every frame under 100 max HP, so ticket 58 counted 0 overflow damage across 54,767
+     * requested stacks roster-wide while 32.1% of all Burn applied was thrown away at the cap.
+     * It was floored to this from the MAX TIER rate (0.08), which had made a single excess
+     * stack instantly deal a full 3-stack turn of Burn AND bypass defense - ~half of
+     * fenrir_v2's whole output, matchups over on turn 3. Ticket 62 is measuring whether the
+     * burst can come back with a limiter instead of a floor.
+     */
+    overflowPercent: number;
+    /** Per-stack tick tiers; index = stacks - 1. Length is expected to match `maxStacks`. */
+    tiers: ReadonlyArray<{ damagePercent: number; defShredPercent: number }>;
+}
+
+/**
+ * THE LIVE CONFIGURATION. These values are the pre-ticket-62 behavior, unchanged.
+ * Grid arms mutate this object in memory; nothing writes it on disk.
+ */
+export const BURN_CONFIG: BurnMechanicConfig = {
+    shape: 'VENT',
+    maxStacks: 3,
+    overflowPercent: 0.01,
+    tiers: DEFAULT_GAME_CONFIG.status.burnStacks,
+};
 
 class BurnBehavior extends StatusBehavior {
     readonly type = 'Burn' as const;
 
     onApply(currentEffects: StatusEffectInstance[], incomingStacks: number, target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const cfg = BURN_CONFIG;
         const effects = [...currentEffects];
         const existingIdx = effects.findIndex(s => s.type === 'Burn');
         const currentStacks = existingIdx !== -1 ? effects[existingIdx].stacks : 0;
@@ -153,32 +198,50 @@ class BurnBehavior extends StatusBehavior {
         let immediateDamage = 0;
         const logs: string[] = [];
 
-        if (totalStacks > BURN_MAX_STACKS) {
-            // Overflow: stacks beyond max deal immediate max-burn-tier damage per overflow stack
-            const overflowStacks = totalStacks - BURN_MAX_STACKS;
-            immediateDamage = Math.floor(target.maxHp * BURN_OVERFLOW_PERCENT) * overflowStacks;
-            logs.push(`  🔥 ${target.name} — Burn overflow! ${overflowStacks} excess stack${overflowStacks !== 1 ? 's' : ''} deal ${immediateDamage} immediate damage`);
+        // Per-event payout. Floored, so it is 0 on any frame under `1 / overflowPercent` max HP -
+        // see BurnMechanicConfig.overflowPercent for why that matters today.
+        const perEvent = Math.floor(target.maxHp * cfg.overflowPercent);
+        let finalStacks = totalStacks;
 
-            // Set to max stacks
-            if (existingIdx !== -1) {
-                effects[existingIdx] = { ...effects[existingIdx], stacks: BURN_MAX_STACKS };
+        if (totalStacks > cfg.maxStacks) {
+            if (cfg.shape === 'DETONATE') {
+                // Modulo carry: pay once per cap-crossing and subtract the cap each time, so the
+                // pile has to be REBUILT before it can pay again. Exactly divisible stays at cap
+                // (6 with a cap of 3 -> one detonation, 3 remain) because 3 is not > 3.
+                let remaining = totalStacks;
+                let detonations = 0;
+                while (remaining > cfg.maxStacks) {
+                    remaining -= cfg.maxStacks;
+                    detonations++;
+                }
+                immediateDamage = perEvent * detonations;
+                finalStacks = remaining;
+                for (let i = 0; i < detonations; i++) {
+                    logs.push(`  🔥 ${target.name} — Burn overload! Detonation deals ${perEvent} damage`);
+                }
             } else {
-                effects.push(this.createInstance(BURN_MAX_STACKS));
+                // VENT: the pile holds at the cap and every excess stack pays.
+                const overflowStacks = totalStacks - cfg.maxStacks;
+                immediateDamage = perEvent * overflowStacks;
+                finalStacks = cfg.maxStacks;
+                logs.push(`  🔥 ${target.name} — Burn overflow! ${overflowStacks} excess stack${overflowStacks !== 1 ? 's' : ''} deal ${immediateDamage} immediate damage`);
             }
+        }
+
+        if (existingIdx !== -1) {
+            effects[existingIdx] = { ...effects[existingIdx], stacks: finalStacks };
         } else {
-            // Normal stack addition
-            if (existingIdx !== -1) {
-                effects[existingIdx] = { ...effects[existingIdx], stacks: totalStacks };
-            } else {
-                effects.push(this.createInstance(totalStacks));
-            }
+            effects.push(this.createInstance(finalStacks));
         }
 
         return { updatedEffects: effects, immediateDamage, logs };
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
+        // Ticket 62: the tier table now comes from BURN_CONFIG so a grid arm that changes the
+        // cap can change the climb with it. Identical to DEFAULT_GAME_CONFIG.status.burnStacks
+        // as committed - BURN_CONFIG.tiers IS that array.
+        const burnConfig = BURN_CONFIG.tiers;
         const tier = burnConfig[instance.stacks - 1] ?? burnConfig[burnConfig.length - 1];
 
         const damage = Math.floor(entity.maxHp * tier.damagePercent);

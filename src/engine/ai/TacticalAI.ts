@@ -5,7 +5,7 @@ import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
-import { DEFAULT_GAME_CONFIG } from '../data/gameConfig';
+import { BURN_CONFIG } from '../StatusBehaviors';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
 /**
@@ -85,7 +85,11 @@ const cappedPct = (stacks: number): number => Math.min(STATUS_PCT_CAP, stacks * 
 
 /** Total future Burn damage as a fraction of maxHp: tier table walked S -> 1 (Burn decays 1/turn). */
 function burnTotalPercent(stacks: number): number {
-    const tiers = DEFAULT_GAME_CONFIG.status.burnStacks;
+    // Ticket 62: read the LIVE Burn tier table, not the static gameConfig one. Identical as
+    // committed (BURN_CONFIG.tiers is that array), but a grid arm that changes the cap changes
+    // the climb - and an eval that valued Burn off a stale table would judge every arm against
+    // the wrong shape, which is the failure family ticket 40's Poison cap already cost us.
+    const tiers = BURN_CONFIG.tiers;
     let total = 0;
     for (let s = stacks; s >= 1; s--) {
         const tier = tiers[s - 1] ?? tiers[tiers.length - 1];
