@@ -331,10 +331,30 @@ function regenPower(stacks: number): number {
 export function burnPower(stacks: number): number {
     if (stacks <= 0) return 0;
     const cap = BURN_CONFIG.maxStacks;
-    const tier = (n: number) => BURN_TIER_POWER[Math.min(n, BURN_TIER_POWER.length) - 1];
-    if (stacks <= cap) return tier(stacks);
-    const detonations = Math.ceil(stacks / cap) - 1;
+    const detonations = stacks <= cap ? 0 : Math.ceil(stacks / cap) - 1;
     return detonations * BURN_DETONATION_POWER + tier(stacks - detonations * cap);
+}
+
+/**
+ * Cumulative Burn price at a possibly FRACTIONAL stack count, interpolated between rungs.
+ *
+ * Fractions are not hypothetical: `ASSUMED_STATUS_COUNT` is 1.5, and a `consume: true` Burn
+ * action prices at exactly that. The previous form indexed `BURN_TIER_POWER[n - 1]` directly,
+ * so 1.5 read index 0.5, returned `undefined`, and propagated a silent NaN into the card score
+ * - the kind of failure that shows up as a blank cell rather than a wrong number.
+ *
+ * Linear interpolation is the honest reading of "on average this consumes 1.5 stacks": half the
+ * time it takes 1 (4.5 power), half the time 2 (13.5), so the expected price is 9.0. Clamped at
+ * both ends - below 1 it scales the first rung, at or above the last rung it returns it.
+ */
+function tier(n: number): number {
+    if (n <= 0) return 0;
+    const last = BURN_TIER_POWER.length;
+    if (n >= last) return BURN_TIER_POWER[last - 1];
+    if (n <= 1) return BURN_TIER_POWER[0] * n;
+    const lower = Math.floor(n);
+    const frac = n - lower;
+    return BURN_TIER_POWER[lower - 1] + frac * (BURN_TIER_POWER[lower] - BURN_TIER_POWER[lower - 1]);
 }
 
 /** Action types whose value depends on board state a static pass can't see - flag, don't guess. */
@@ -393,7 +413,23 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     const ASSUMED_CARDS_PLAYED = 2.5;
     const ASSUMED_HP_PERCENT = 0.5;
     const ASSUMED_DISCARD_SIZE = 8;
-    const ASSUMED_STATUS_COUNT = 3;
+    // Henry, 2026-08-15: 3 -> 1.5. Ticket 58 measured `ash_communion` actually consuming about
+    // 1.5 stacks of Burn against the 3 it was being charged for, which was the whole of its
+    // 10.6-vs-6.5 redline.
+    //
+    // READ THE BLAST RADIUS BEFORE TRUSTING A SCORE THAT USES THIS. The constant is doing duty
+    // as SEVEN different assumptions and 1.5 was derived from exactly one of them:
+    //
+    //   consume actions / STATUS_CONSUMED   ~1.5 measured (the case this is derived from)
+    //   DAZED_STACKS                        ratatoskr_v2's realistic count at cast is ~10
+    //   DISTINCT_STATUS                     draugr_v2's realistic count at cast is 3
+    //   STATUS_COUNT, WEAKENED_STACKS, MULTIPLY_STATUS   unmeasured
+    //
+    // So this now under-prices the scalings that read a BOARD pile as hard as 3 over-priced the
+    // ones that read a CONSUMED pile. Those are floors either way (a static pass cannot see the
+    // board), but the direction of the error moved. Splitting the constant per scaling is the
+    // real fix and is a design call, not a knob - see research/assumed-stacks.md.
+    const ASSUMED_STATUS_COUNT = 1.5;
     /**
      * Ticket 53: CARDS_DRAWN multiplies damage by `cardsDrawnThisTurn`, which is never zero on
      * the turn a card is castable - every species draws at turn start. 3 is the roster's modal

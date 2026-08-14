@@ -98,3 +98,40 @@ describe('a Burn card is scored at the new rate', () => {
         expect(calculatePowerscale(card(5)).score).toBeLessThan(calculatePowerscale(card(4)).score);
     });
 });
+
+describe('fractional stack counts (ASSUMED_STATUS_COUNT is 1.5)', () => {
+    it('interpolates between rungs instead of returning NaN', () => {
+        // The previous form indexed BURN_TIER_POWER[n - 1], so 1.5 read index 0.5 and returned
+        // undefined - a silent NaN into the card score. This is the regression guard.
+        for (const stacks of [0.5, 1.5, 2.5, 3.5, 4.5]) {
+            expect(Number.isNaN(burnPower(stacks))).toBe(false);
+            expect(burnPower(stacks)).toBeGreaterThan(0);
+        }
+    });
+
+    it('1.5 stacks price at the midpoint of 1 and 2', () => {
+        expect(burnPower(1.5)).toBeCloseTo((burnPower(1) + burnPower(2)) / 2, 6);
+        expect(burnPower(1.5)).toBe(9);
+    });
+
+    it('stays monotonic BELOW the cap, where interpolation applies', () => {
+        let previous = 0;
+        for (let s = 0.5; s <= BURN_CONFIG.maxStacks; s += 0.5) {
+            expect(burnPower(s)).toBeGreaterThan(previous);
+            previous = burnPower(s);
+        }
+    });
+
+    it('a consume-Burn card no longer scores against 3 phantom stacks', () => {
+        // ash_communion: charged for consuming 3 stacks, measured consuming ~1.5 (ticket 58).
+        const card: ProgramData = {
+            id: 'test_consume', name: 'Test Consume', description: '', element: 'Fire',
+            category: 'Heal', rarity: 'Common', baseCost: 2, actions: [
+                { type: 'STATUS', status: 'Burn', consume: true, target: 'SELF' },
+                { type: 'HEAL', power: 30, scaling: 'STATUS_CONSUMED', target: 'SELF' },
+            ], constraints: [],
+        } as unknown as ProgramData;
+        expect(Number.isNaN(calculatePowerscale(card).score)).toBe(false);
+        expect(calculatePowerscale(card).score).toBeLessThan(6.5);
+    });
+});

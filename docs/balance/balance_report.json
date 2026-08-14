@@ -4,8 +4,8 @@
   "command": "npm run balance",
   "registryHash": "1:8b7b0ae9",
   "summary": {
-    "redlines": 50,
-    "cardRedlines": 40,
+    "redlines": 47,
+    "cardRedlines": 37,
     "matchupRedlines": 10,
     "cardsAudited": 213,
     "matchupsAudited": 67,
@@ -36,16 +36,6 @@
       }
     ],
     "redlines": [
-      {
-        "id": "ash_communion",
-        "name": "Ash Communion",
-        "cost": 2,
-        "score": 9.3,
-        "perEnergy": 3.9,
-        "budget": 6.5,
-        "overBudgetBy": 2.8,
-        "manualReview": []
-      },
       {
         "id": "stunning_strike",
         "name": "Stunning Strike",
@@ -124,16 +114,6 @@
         "perEnergy": 4.1,
         "budget": 3,
         "overBudgetBy": 1.1,
-        "manualReview": []
-      },
-      {
-        "id": "rimebreaker",
-        "name": "Rimebreaker",
-        "cost": 2,
-        "score": 7.5,
-        "perEnergy": 3.2,
-        "budget": 6.5,
-        "overBudgetBy": 1,
         "manualReview": []
       },
       {
@@ -246,16 +226,6 @@
         "perEnergy": 3.3,
         "budget": 3,
         "overBudgetBy": 0.3,
-        "manualReview": []
-      },
-      {
-        "id": "ash_reclamation",
-        "name": "Ash Reclamation",
-        "cost": 1,
-        "score": 3.2,
-        "perEnergy": 3.2,
-        "budget": 3,
-        "overBudgetBy": 0.2,
         "manualReview": []
       },
       {
@@ -2298,26 +2268,6 @@
     {
       "kind": "CARD_OVER_BUDGET",
       "section": "1.3",
-      "subject": "ash_communion",
-      "metric": "score",
-      "value": 9.3,
-      "threshold": 6.5,
-      "comparison": "above",
-      "detail": "Ash Communion (ash_communion) costs 2 energy and scores 9.3, 2.8 over the 6.5 budget for that cost."
-    },
-    {
-      "kind": "CARD_OVER_BUDGET",
-      "section": "1.3",
-      "subject": "ash_reclamation",
-      "metric": "score",
-      "value": 3.2,
-      "threshold": 3,
-      "comparison": "above",
-      "detail": "Ash Reclamation (ash_reclamation) costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
-    },
-    {
-      "kind": "CARD_OVER_BUDGET",
-      "section": "1.3",
       "subject": "battle_rhythm",
       "metric": "score",
       "value": 3.1,
@@ -2574,16 +2524,6 @@
       "threshold": 3,
       "comparison": "above",
       "detail": "Pressure Point (pressure_point) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
-    },
-    {
-      "kind": "CARD_OVER_BUDGET",
-      "section": "1.3",
-      "subject": "rimebreaker",
-      "metric": "score",
-      "value": 7.5,
-      "threshold": 6.5,
-      "comparison": "above",
-      "detail": "Rimebreaker (rimebreaker) costs 2 energy and scores 7.5, 1 over the 6.5 budget for that cost."
     },
     {
       "kind": "CARD_OVER_BUDGET",
