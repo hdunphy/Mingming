@@ -40,9 +40,10 @@ section,kind,subject,metric,value,threshold,comparison,detail
 1.3,CARD_OVER_BUDGET,undertow,score,1.4,1,above,"Undertow (undertow) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,water_slap,score,1.2,1,above,"Tackle (water_slap) costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
 2.3,OS_GAP,os:audhumbla,osGap,0.5,0.15,above,audhumbla_v1 wins 100.0% of the 100 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:draugr,osGap,0.16,0.15,above,draugr_v2 wins 66.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:draugr,osGap,0.15,0.15,above,draugr_v2 wins 65.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:fenrir,osGap,0.4192,0.15,above,fenrir_v2 wins 91.9% of the 99 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:hel,osGap,0.48,0.15,above,hel_v2 wins 98.0% of the 100 decided games between hel_v1 and hel_v2 on an otherwise identical hel. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:hraesvelgr,osGap,0.19,0.15,above,hraesvelgr_v2 wins 69.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:hraesvelgr,osGap,0.16,0.15,above,hraesvelgr_v2 wins 66.0% of the 100 decided games between hraesvelgr_v1 and hraesvelgr_v2 on an otherwise identical hraesvelgr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:jormungandr,osGap,0.44,0.15,above,jormungandr_v1 wins 94.0% of the 100 decided games between jormungandr_v1 and jormungandr_v2 on an otherwise identical jormungandr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:nidhoggr,osGap,0.18,0.15,above,nidhoggr_v2 wins 68.0% of the 100 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ratatoskr,osGap,0.19,0.15,above,ratatoskr_v2 wins 69.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.

@@ -401,7 +401,8 @@ registry in two compounding ways:
 | 15 | **360%** | 45% |
 
 **2. Unbounded, because the decay is a flat 1/turn.** Regen was the ONLY uncapped heal in the game:
-Burn caps at 3 stacks, the 2%/stack statuses cap at a 25% effect, BarkShield decays
+Burn caps at 4 stacks (3 when this was written — see the ticket-62 rev note at the end of this
+file), the 2%/stack statuses cap at a 25% effect, BarkShield decays
 multiplicatively. Regen had no cap and a flat −1/turn, so a card granting **2 per play accumulated
 forever** while **1 per play was a treadmill** that exactly cancelled the decay.
 
@@ -572,3 +573,54 @@ Two mechanism notes from the same pass:
   and hel_v2 pays her costs in HP, so the "clock" made her burst *bigger* — she hit 25% harder on
   the turn she killed. Check that a resource cost does not appear on the scaling side of any card in
   the same deck.
+
+
+---
+
+## Rev note — Burn detonation (ticket 62, shipped 2026-08-15)
+
+Burn's cap, its tier table and its overflow all changed together. The rev-3 lines above
+("keeps tiers 2/5/12% maxHP + overflow burst", and the `Burn 1 / 2 / 3 | 6 / 21 / 60` price
+row) are superseded for the mechanic; they are left in place as the record of that pass.
+
+**What Burn does now:**
+
+| stacks | tick damage (% maxHP) | defense shred (% defense) |
+|---|---|---|
+| 1 | 1.5 | — |
+| 2 | 3 | 1 |
+| 3 | 5 | 2.5 |
+| **4 (cap)** | **8** | **5** |
+
+Decay is unchanged at 1 stack/turn. **Applying past the 4-stack cap DETONATES**: each
+cap-crossing deals **14% of the burned entity's max HP** immediately, bypassing defense, and
+**subtracts the cap from the pile**, carrying the remainder. 4 + 1 detonates once and leaves 1;
+4 + 5 detonates twice and leaves 1; 4 + 4 detonates once and stays at 4. Detonation is
+**symmetric** — self-applied Burn detonates on its holder, with no source-dependent branch.
+
+**Three things this rev establishes that are not obvious from the numbers:**
+
+1. **The rate was never the defect; the absence of a limiter was.** 14% ships safely where the
+   original 8% did not, because the modulo carry bounds the payout by *application rate ÷ cap*
+   rather than by every excess cast. A hot target can no longer be farmed.
+2. **Raising a status cap with spread tiers makes the status WEAKER, not merely harder to
+   overflow.** Lengthening the climb costs tick output before any overflow is counted — measured
+   at 23.3 → 15.2 HP/game going from cap 3 to cap 8. A cap raise that is meant to be neutral
+   needs the climb held fixed, which is a different table.
+3. **Cap and overflow rate multiply, they do not add.** Several (cap, rate) pairs produce the
+   same field number and differ only in texture — many small pops versus few large ones.
+
+**PRICING IS NOT YET UPDATED, and this is the open item.** `powerscale.ts` still prices Burn off
+the old three-tier table (`BURN_TIER_POWER = [4.5, 15, 40]`, cumulative at 3 power per 1% maxHP)
+and still prices overflow at `BURN_OVERFLOW_POWER_PER_STACK = 3` — a number derived when an
+excess stack was worth 1% of a pool and floored to zero damage. Neither describes the shipped
+engine. Carried forward at the same 3-power-per-1%-maxHP rate the table was built on, the
+arithmetic would be:
+
+- `BURN_TIER_POWER` → **[4.5, 13.5, 28.5, 52.5]** (cumulative 1.5 / 4.5 / 9.5 / 17.5% maxHP)
+- overflow → **42 power per DETONATION** (14% maxHP), which is a per-event price rather than a
+  per-excess-stack one and therefore also a change of shape, since a card applying S stacks to a
+  fresh target now causes `floor(S / cap)` detonations rather than `S - cap` of them.
+
+That is a repricing with knock-on effects on the section-1.3 card budget redlines, so it was
+NOT taken as part of the ship. It is Henry's call.

@@ -3,7 +3,7 @@
 - Type: wayfinder:task — Henry-approved design (2026-08-14, off ticket 58's Fire
   investigation). This ticket IS the implementation brief; implementing session flips it
   closed and appends its Resolution.
-- Status: **open — grid delivered 2026-08-14, awaiting Henry's direction pick**
+- Status: **CLOSED** (2026-08-15) — shipped `DET-C4-D14` on Henry's pick
 - Assignee: implementation agent (grid)
 - Blocked by: run AFTER ticket 61 (one worker per tree; 61 re-baselines first).
 - DEEP-PHASE POLICY binds. Branch card-dev; author `Henry Dunphy <hdunphy15@gmail.com>`;
@@ -284,3 +284,93 @@ they are the agent's construction, not Henry's, and are printed in the report fo
 **HELD, not shipped.** Amendment 2's ship-and-gate section is keyed to a cap-3 arm; if the
 answer is cap 4 that section needs an amendment first. Five questions returned in report §9, the
 load-bearing one being **cap 3 or cap 4**.
+
+
+---
+
+## Resolution (2026-08-15) — SHIPPED `DET-C4-D14`
+
+Henry picked cap 4 / D 14% off the deep sweep. **Burn detonates: crossing a 4-stack cap pays
+14% of the burned entity's max HP and carries the remainder.** Amendment 2's ship-and-gate
+procedure was applied to cap 4 rather than cap 3 on that instruction.
+
+### What changed
+
+| file | change |
+|---|---|
+| `StatusBehaviors.ts` | `BURN_CONFIG` → `DETONATE` / cap **4** / **0.14**; the overflow-rate comment rewritten with the full 0.08 → 0.01 → 0.14 history |
+| `gameConfig.ts` | `burnStacks` → the FOUR-tier spread table `1.5/0 · 3/1 · 5/2.5 · 8/5` (amendment 1's C4 table verbatim) |
+| `statusGlossary.ts` | player-facing Burn text — it described the *historical* 0.08 vent and was already wrong before this ticket |
+| `power_curve_spec.md` | rev note appended; the stale "Burn caps at 3 stacks" line in the Regen section corrected |
+| `burnMechanic.test.ts` | the identity block now pins the SHIPPED config (20 tests) |
+| `AdvancedCombat.test.ts` | Burn tier test extended to 4 tiers, title corrected, values pinned absolutely |
+
+**No card, deck, hook or firmware changed.** Registry hash is unchanged at `1:8b7b0ae9` — this
+is an engine-constant ship, which is why the section-1.3 card budget redlines are untouched.
+
+### Gates
+
+| gate | threshold | measured | verdict |
+|---|---|---|---|
+| fenrir_v2 field | 0.35–0.80 | **49.4% / 47.5%** (two seed bases, 900 decided games each) | **PASS** |
+| fenrir_v2 control floor | ≥0.60 | **93.0%** (was 55.0%) | **PASS** |
+| hraesvelgr_v2 control floor | ≥0.60 | 100% | PASS |
+| draugr_v2 control floor | ≥0.60 | 100% | PASS |
+| skoll_v2 control floor | ≥0.60 | **52.0%** (was **39.0%**) | **still under — improved, see below** |
+| FTK | hard 0 | **0** across all 67 matchups, 0 in 5,400 verification games, 0 across the sweep's ~46,000 | **PASS** |
+| dead cards | ≤0.35 both sides | max 34.4% (`os:skoll`) | PASS |
+| mirrors decided ≤30 turns | ≥60% | 100% — fenrir 5.1t · skoll 3.7t · hraesvelgr 3.2t · draugr 6.3t, **0 stalled** | PASS |
+| §2.3 | diagnostic only | `os:fenrir` opens at 0.419; `os:draugr` 0.16→0.15; `os:hraesvelgr` 0.19→0.16 | noted, not gated |
+
+`tsc -b` clean · `vitest` **797 passed / 60 files** (re-run AFTER the last content edit,
+`0-DECK-SIZE-EXCEPTION`'s lesson) · `vite build` clean. Redlines **49 → 50**.
+
+**The on-disk build was verified against the measured arm rather than assumed equal to it.**
+The sweep set `BURN_CONFIG.tiers` in memory while `gameConfig` still held three tiers; the ship
+moves both. A no-mutation re-read of the committed build reproduces the sweep exactly —
+fenrir_v2 **49.4 / 47.5**, skoll_v2 **27.2 / 28.4**, hraesvelgr_v2 **77.7 / 77.0**, identical to
+`DET-C4-D14`'s rows.
+
+### 8-DIFF — 10 rows of 67 moved, 57 bit-identical
+
+| row | before | after | Δ |
+|---|---|---|---|
+| `gauntlet:control-vs-fenrir:fenrir_v2` | 45.0% | **7.0%** | **−38.0** |
+| `os:fenrir` | 40.0% | 8.1% | −31.9 |
+| `gauntlet:control-vs-skoll:skoll_v2` | 61.0% | 48.0% | −13.0 |
+| `os:skoll` | 64.0% | 54.0% | −10.0 |
+| `gauntlet:control-overall:slot2` | 8.2% | 5.1% | −3.2 |
+| `os:hraesvelgr` | 31.0% | 34.0% | +3.0 |
+| `gauntlet:control-overall` | 7.8% | 6.2% | −1.6 |
+| `os:draugr` | 34.0% | 35.0% | +1.0 |
+| `control-vs-draugr:draugr_v2` · `control-vs-hraesvelgr:hraesvelgr_v2` | 0.0% | 0.0% | turns only |
+
+**Exactly the four Burn species and nothing else.** The two `gauntlet:control-overall` rows are
+aggregates over those matchups, not the control moving — **no control-vs-non-Burn row changed by
+any amount**, and the control itself applies no Burn.
+
+### Returned for Henry — three items, one of them load-bearing
+
+1. **PRICING IS NOT UPDATED. `powerscale.ts` still prices Burn off the old three-tier table**
+   (`BURN_TIER_POWER = [4.5, 15, 40]`) and prices overflow at
+   `BURN_OVERFLOW_POWER_PER_STACK = 3` — a value derived when an excess stack was worth 1% of a
+   pool and floored to zero damage. **Neither describes the shipped engine**, so every Burn card
+   is now priced against a mechanic that no longer exists, and the 40 card-budget redlines are
+   measuring the wrong thing. Carried forward at the table's own 3-power-per-1%-maxHP rate the
+   arithmetic is **`[4.5, 13.5, 28.5, 52.5]`** and **42 power per DETONATION** — but that second
+   number is also a change of SHAPE (per-event, not per-excess-stack: a card applying S stacks
+   now causes `floor(S / cap)` detonations, not `S − cap`). Repricing moves section 1.3 and can
+   indict cards, so it was **not** taken as part of the ship. Full working in the
+   `power_curve_spec.md` rev note.
+2. **skoll_v2's control floor is still under 0.60** at 52.0% — but it came UP from 39.0%, so
+   detonation improved a deck the grid said Burn could not fix. Pre-existing, not caused here.
+   Her revamp pass is already queued and now starts from a better place than expected.
+3. **`os:fenrir` opened as a §2.3 redline at 0.419** — fenrir_v2 now beats fenrir_v1 **91.9%**.
+   Diagnostic only under deep-phase policy, and the field says the same thing the valkyrie case
+   did (v2 is simply strong now). Worth flagging because **fenrir_v1 is a floor-queue deck**, so
+   the gap will be read again when that pass runs.
+
+**Process note.** `AdvancedCombat.test.ts`'s Burn test read its expected values out of
+`burnConfig`, so the tier-table change left it **green with a stale title** — it asserted
+"2 stacks = 3.5%, 3 stacks = 8%" while measuring 3% and 5%. A green test asserting the wrong
+sentence is worse than a red one. It now pins the tier values absolutely as well as relatively.

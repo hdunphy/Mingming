@@ -162,13 +162,25 @@ export interface BurnMechanicConfig {
      * Immediate damage per overflow EVENT, as a fraction of the burned entity's max HP.
      * VENT charges one event per excess stack; DETONATE one per cap-crossing.
      *
-     * The live value is 0.01, and it is a measured no-op: `Math.floor(maxHp x 0.01)` is 0 on
-     * every frame under 100 max HP, so ticket 58 counted 0 overflow damage across 54,767
-     * requested stacks roster-wide while 32.1% of all Burn applied was thrown away at the cap.
-     * It was floored to this from the MAX TIER rate (0.08), which had made a single excess
-     * stack instantly deal a full 3-stack turn of Burn AND bypass defense - ~half of
-     * fenrir_v2's whole output, matchups over on turn 3. Ticket 62 is measuring whether the
-     * burst can come back with a limiter instead of a floor.
+     * The live value is 0.14 (ticket 62). The history is worth keeping, because this number
+     * has now been wrong in both directions:
+     *
+     *   0.08, VENT   The original. A single excess stack instantly dealt a full top-tier turn
+     *                of Burn AND bypassed defense, with the pile parked at the cap - so a hot
+     *                target could be farmed forever without ever rebuilding it. Measured at
+     *                ~half of fenrir_v2's whole output, matchups over on turn 3.
+     *   0.01, VENT   The over-correction. `Math.floor(maxHp x 0.01)` is 0 on every frame under
+     *                100 max HP, so ticket 58 counted 0 overflow damage across 54,767 requested
+     *                stacks roster-wide while 32.1% of all Burn applied was thrown away at the
+     *                cap. The mechanic was not tuned down; it was switched off.
+     *   0.14, DETONATE  What ships. Nearly twice the ORIGINAL rate, and safe at that rate only
+     *                because DETONATE's modulo carry bounds the payout by application rate over
+     *                cap rather than by every excess cast. The rate was never the defect; the
+     *                absence of a limiter was.
+     *
+     * Ticket 62's grid measured 20 configurations before this one: at ANY dial that rounds
+     * above zero the wasted-stack number collapses 40.4% -> 0.0%, so "the waste" was always a
+     * flooring artifact rather than a design constraint.
      */
     overflowPercent: number;
     /** Per-stack tick tiers; index = stacks - 1. Length is expected to match `maxStacks`. */
@@ -176,13 +188,35 @@ export interface BurnMechanicConfig {
 }
 
 /**
- * THE LIVE CONFIGURATION. These values are the pre-ticket-62 behavior, unchanged.
- * Grid arms mutate this object in memory; nothing writes it on disk.
+ * THE LIVE CONFIGURATION — ticket 62, shipped 2026-08-15 on Henry's pick of `DET-C4-D14`.
+ *
+ * Burn detonates. Crossing the 4-stack cap pays 14% of the burned entity's max HP and
+ * subtracts the cap from the pile, so the pile has to be REBUILT before it can pay again.
+ *
+ * Why these three numbers and not others - all measured, none reasoned:
+ *
+ *   shape DETONATE   Worth ~44 field points against VENT at the same cap and dial, because
+ *                    VENT charges on every excess stack and nothing makes a hot target
+ *                    expensive to keep burning. Henry's pick for the self-limiter.
+ *   cap 4            NOT a balance tweak on the primary - cap 3 and cap 4 both put fenrir_v2
+ *                    at ~48%. It is the COLLATERAL that differs: at cap 3 detonation costs
+ *                    skoll_v2 ~6 field points and pushes hraesvelgr_v2 to 83% (over the
+ *                    ceiling); at cap 4 skoll_v2 is left where she started and hraesvelgr_v2
+ *                    comes down to 77.7%. Same primary, no bill.
+ *   D 14%            The value putting fenrir_v2 nearest 0.50 - 48.5% across two independent
+ *                    seed bases (49.4 / 47.5, 900 decided games each).
+ *
+ * FTK is the reason this took a 36-arm sweep rather than a knob round: a double-digit
+ * percent-of-max-HP burst is the first credible first-turn-kill vector Burn has ever had.
+ * Measured 0 across ~46,000 games at every cap and every dial up to 16%, largest single
+ * detonation observed 14 HP. Any future rate increase re-opens that question.
+ *
+ * Grid arms mutate this object in memory; nothing but this line writes it on disk.
  */
 export const BURN_CONFIG: BurnMechanicConfig = {
-    shape: 'VENT',
-    maxStacks: 3,
-    overflowPercent: 0.01,
+    shape: 'DETONATE',
+    maxStacks: 4,
+    overflowPercent: 0.14,
     tiers: DEFAULT_GAME_CONFIG.status.burnStacks,
 };
 

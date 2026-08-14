@@ -4,12 +4,15 @@ import { DEFAULT_GAME_CONFIG } from './data/gameConfig';
 import type { IBattleEntity, StatusEffectInstance } from './types';
 
 /**
- * Ticket 62 — BurnBehavior's config refactor.
+ * Ticket 62 — Burn's shipped mechanic.
  *
- * The point of this file is the FIRST describe block: the committed `BURN_CONFIG` must
- * reproduce the pre-62 behaviour exactly, so the grid's refactor cannot ship a balance change
- * under cover of a refactor. The rest pins the DETONATE shape the grid measures, which is
- * NOT live and is reached only by mutating the config in memory.
+ * The FIRST describe block pins what is LIVE: DETONATE, cap 4, 14% of max HP per cap-crossing,
+ * the four-tier spread table. It was written against the pre-62 config (VENT / cap 3 / 1%) to
+ * prove the config refactor changed nothing, and was rewritten here when Henry shipped
+ * `DET-C4-D14` — so its job is unchanged, only its subject moved.
+ *
+ * The later blocks exercise configurations that are NOT live (VENT, other caps), reached only
+ * by mutating the config in memory the way ticket 62's grid arms did.
  */
 
 const target = (maxHp: number): IBattleEntity =>
@@ -31,49 +34,90 @@ function withConfig<T>(patch: Partial<BurnMechanicConfig>, fn: () => T): T {
 
 afterEach(() => Object.assign(BURN_CONFIG, LIVE));
 
-describe('BURN_CONFIG reproduces the live pre-ticket-62 behaviour', () => {
-    it('the committed config IS the historical constant set', () => {
-        expect(BURN_CONFIG.shape).toBe('VENT');
-        expect(BURN_CONFIG.maxStacks).toBe(3);
-        expect(BURN_CONFIG.overflowPercent).toBe(0.01);
+describe('BURN_CONFIG is the shipped ticket-62 mechanic (DET-C4-D14)', () => {
+    it('the committed config is DETONATE / cap 4 / 14%', () => {
+        expect(BURN_CONFIG.shape).toBe('DETONATE');
+        expect(BURN_CONFIG.maxStacks).toBe(4);
+        expect(BURN_CONFIG.overflowPercent).toBe(0.14);
         expect(BURN_CONFIG.tiers).toBe(DEFAULT_GAME_CONFIG.status.burnStacks);
+        expect(BURN_CONFIG.tiers).toHaveLength(4);
     });
 
-    it('stacks below the cap add normally', () => {
+    it('the four-tier spread table keeps the 8% + 5%-shred top tier and lengthens the climb', () => {
+        expect(DEFAULT_GAME_CONFIG.status.burnStacks.map(t => t.damagePercent))
+            .toEqual([0.015, 0.03, 0.05, 0.08]);
+        expect(DEFAULT_GAME_CONFIG.status.burnStacks.map(t => t.defShredPercent))
+            .toEqual([0, 0.01, 0.025, 0.05]);
+    });
+
+    it('stacks below the cap add normally and pay nothing', () => {
         const b = getStatusBehavior('Burn');
-        const r = b.onApply([burn(1)], 1, target(80));
-        expect(r.updatedEffects.find(s => s.type === 'Burn')?.stacks).toBe(2);
+        const r = b.onApply([burn(2)], 2, target(80));
+        expect(r.updatedEffects.find(s => s.type === 'Burn')?.stacks).toBe(4);
         expect(r.immediateDamage).toBe(0);
     });
 
-    it('overflow HOLDS the pile at the cap — it does not reset it', () => {
+    it('crossing the cap detonates for 14% of max HP and carries the remainder', () => {
         const b = getStatusBehavior('Burn');
-        const r = b.onApply([burn(3)], 2, target(80));
-        expect(r.updatedEffects.find(s => s.type === 'Burn')?.stacks).toBe(3);
+        const r = b.onApply([burn(4)], 1, target(80));
+        expect(r.immediateDamage).toBe(11);           // floor(80 * 0.14)
+        expect(r.updatedEffects.find(s => s.type === 'Burn')?.stacks).toBe(1);
+        expect(r.logs.filter(l => l.includes('Detonation'))).toHaveLength(1);
     });
 
-    it('overflow pays ZERO on every frame under 100 max HP (ticket 58: 0 damage across 54,767 stacks)', () => {
+    it('exactly divisible stays AT the cap: 4 + 4 detonates once and leaves 4', () => {
+        const r = getStatusBehavior('Burn').onApply([burn(4)], 4, target(80));
+        expect(r.immediateDamage).toBe(11);
+        expect(r.updatedEffects.find(s => s.type === 'Burn')?.stacks).toBe(4);
+    });
+
+    it('4 + 5 detonates TWICE and leaves 1', () => {
+        const r = getStatusBehavior('Burn').onApply([burn(4)], 5, target(80));
+        expect(r.immediateDamage).toBe(22);
+        expect(r.updatedEffects.find(s => s.type === 'Burn')?.stacks).toBe(1);
+    });
+
+    it('a single-stack applier detonates at most every 4th cast into a hot target', () => {
         const b = getStatusBehavior('Burn');
-        for (const hp of [58, 66, 75, 80, 95, 99]) {
-            expect(b.onApply([burn(3)], 3, target(hp)).immediateDamage).toBe(0);
+        let effects: StatusEffectInstance[] = [burn(4)];
+        const paid: number[] = [];
+        for (let i = 0; i < 8; i++) {
+            const r = b.onApply(effects, 1, target(80));
+            effects = r.updatedEffects;
+            paid.push(r.immediateDamage);
         }
-        // ...and starts biting only at 100+, one per excess stack.
-        expect(b.onApply([burn(3)], 2, target(120)).immediateDamage).toBe(2);
+        // cast 1 detonates (5 -> 1), casts 2-4 rebuild to 4, cast 5 detonates again.
+        expect(paid).toEqual([11, 0, 0, 0, 11, 0, 0, 0]);
+    });
+
+    it('detonation is SYMMETRIC — it is priced off the burned entity, whoever applied it', () => {
+        const b = getStatusBehavior('Burn');
+        expect(b.onApply([burn(4)], 1, target(58)).immediateDamage).toBe(8);    // kraken frame
+        expect(b.onApply([burn(4)], 1, target(120)).immediateDamage).toBe(16);  // ymir frame
+    });
+
+    it('unlike the old 1% overflow, detonation pays on EVERY frame in the roster', () => {
+        const b = getStatusBehavior('Burn');
+        for (const hp of [58, 66, 75, 80, 95, 99, 120]) {
+            expect(b.onApply([burn(4)], 1, target(hp)).immediateDamage).toBeGreaterThan(0);
+        }
     });
 
     it('ticks at the live tiers and decays one stack a turn', () => {
         const b = getStatusBehavior('Burn');
         const e = target(1000);
-        const tiers = DEFAULT_GAME_CONFIG.status.burnStacks;
-        expect(b.endTurn(burn(3), e).damage).toBe(Math.floor(1000 * tiers[2].damagePercent));
-        expect(b.endTurn(burn(3), e).defenseShred).toBe(Math.floor(100 * tiers[2].defShredPercent));
-        expect(b.endTurn(burn(3), e).updatedInstance?.stacks).toBe(2);
+        expect(b.endTurn(burn(4), e).damage).toBe(80);
+        expect(b.endTurn(burn(4), e).defenseShred).toBe(5);
+        expect(b.endTurn(burn(4), e).updatedInstance?.stacks).toBe(3);
+        expect(b.endTurn(burn(3), e).damage).toBe(50);
+        expect(b.endTurn(burn(2), e).damage).toBe(30);
+        expect(b.endTurn(burn(1), e).damage).toBe(15);
         expect(b.endTurn(burn(1), e).updatedInstance).toBeNull();
     });
 });
 
-describe('DETONATE shape (ticket 62 grid — not live)', () => {
-    const D = { shape: 'DETONATE' as const, overflowPercent: 0.06 };
+describe('DETONATE at cap 3 (ticket 62 grid — measured, not shipped)', () => {
+    const D = { shape: 'DETONATE' as const, maxStacks: 3, overflowPercent: 0.06 };
 
     it('3 + 1 = 4 → ONE detonation, 1 stack remains', () => {
         withConfig(D, () => {
@@ -134,9 +178,9 @@ describe('DETONATE shape (ticket 62 grid — not live)', () => {
     });
 });
 
-describe('VENT shape at a live dial (ticket 62 grid — the historical design)', () => {
+describe('VENT shape (ticket 62 grid — the historical design, not shipped)', () => {
     it('every excess stack pays and the pile holds at the cap', () => {
-        withConfig({ shape: 'VENT', overflowPercent: 0.06 }, () => {
+        withConfig({ shape: 'VENT', maxStacks: 3, overflowPercent: 0.06 }, () => {
             const r = getStatusBehavior('Burn').onApply([burn(3)], 4, target(100));
             expect(r.updatedEffects.find(s => s.type === 'Burn')?.stacks).toBe(3);
             expect(r.immediateDamage).toBe(24);
@@ -144,9 +188,9 @@ describe('VENT shape at a live dial (ticket 62 grid — the historical design)',
     });
 
     it('pays 4x what DETONATE pays on the same 3 + 4 application — the rate difference the grid measures', () => {
-        const vent = withConfig({ shape: 'VENT', overflowPercent: 0.06 }, () =>
+        const vent = withConfig({ shape: 'VENT', maxStacks: 3, overflowPercent: 0.06 }, () =>
             getStatusBehavior('Burn').onApply([burn(3)], 4, target(100)).immediateDamage);
-        const det = withConfig({ shape: 'DETONATE', overflowPercent: 0.06 }, () =>
+        const det = withConfig({ shape: 'DETONATE', maxStacks: 3, overflowPercent: 0.06 }, () =>
             getStatusBehavior('Burn').onApply([burn(3)], 4, target(100)).immediateDamage);
         expect(vent).toBe(24);
         expect(det).toBe(12);
@@ -175,6 +219,7 @@ describe('spread tick tiers (cap 4 and cap 5 arms)', () => {
 
     it('config is restored between arms — the live tiers are back', () => {
         expect(BURN_CONFIG.tiers).toBe(DEFAULT_GAME_CONFIG.status.burnStacks);
-        expect(BURN_CONFIG.maxStacks).toBe(3);
+        expect(BURN_CONFIG.maxStacks).toBe(4);
+        expect(BURN_CONFIG.shape).toBe('DETONATE');
     });
 });
