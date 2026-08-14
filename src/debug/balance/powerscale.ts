@@ -51,6 +51,8 @@ import type { ProgramData, ProgramAction } from '../../engine/types';
 import HOOK_LIBRARY from '../../engine/data/lib/hooks.json';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { numericBaseCost } from '../../engine/types';
+import { DEFAULT_GAME_CONFIG } from '../../engine/data/gameConfig';
+import { BURN_CONFIG } from '../../engine/StatusBehaviors';
 
 export interface PowerscaleResult {
     /** Section 1.1's `Score`, rounded to one decimal. */
@@ -195,20 +197,45 @@ const OFFENSE_STREAM_POWER_PER_STACK = 5;
  * Ticket 28: 10 -> 3.5, holding the 1.5:1 offense:defense ratio the old pair encoded.
  */
 const DEFENSE_STREAM_POWER_PER_STACK = 3.5;
-/** Burn's cumulative price to reach N stacks (tiers are 1.5/3.5/8% maxHP); tiered, not linear.
- *  Ticket 26: rescaled WITH the tiers at the unchanged 3-power-per-1%-maxHP rate. This is not
- *  the re-pricing ticket 24 declined - that would have moved the price while the tiers stayed
- *  put (double-counting); this moves the tiers and lets the derived price follow. */
-const BURN_TIER_POWER = [4.5, 15, 40];
 /**
- * Ticket 29: 24 -> 3, following the engine. Ticket 28 repriced the overflow burst from the
- * max Burn tier (8% maxHP) to 0.01 of maxHP per excess stack, so an overflow stack is now
- * worth 1% of a pool = 3 power at the spec rate - and on today's 75-79 HP pools it floors
- * to 0 damage outright. Leaving the price at 24 kept charging cards a third of a 2-energy
- * budget for an effect that no longer happens: `scorch` scored 6.40 against a 6.50 cap
- * while its 4th Burn stack did literally nothing.
+ * Burn's cumulative price to reach N stacks - tiered, not linear, because Burn decays 1/turn
+ * and a pile of N therefore ticks N, N-1, ... 1 before it wears off.
+ *
+ * DERIVED FROM THE ENGINE, not transcribed from it. Ticket 62 shipped a four-tier table and a
+ * detonating overflow while this file still held `[4.5, 15, 40]` and a per-excess-stack price
+ * from the era when overflow floored to ZERO damage - so every Burn card was scored against a
+ * mechanic that no longer existed (HANDOFF 0-BURN-PRICE-LAG). Transcribing the new numbers
+ * would have fixed today and left the same trap armed for the next tier edit. Reading
+ * `DEFAULT_GAME_CONFIG.status.burnStacks` disarms it: the scorer cannot lag the engine now,
+ * because there is only one table.
+ *
+ * At the shipped four-tier table (1.5 / 3 / 5 / 8% maxHP) this evaluates to
+ * `[4.5, 13.5, 28.5, 52.5]` - cumulative 1.5 / 4.5 / 9.5 / 17.5% of a pool at the spec's
+ * 3-power-per-1%-maxHP rate. It was `[4.5, 15, 40]` on the old three-tier table.
  */
-const BURN_OVERFLOW_POWER_PER_STACK = 3;
+export const BURN_TIER_POWER: number[] = DEFAULT_GAME_CONFIG.status.burnStacks.reduce<number[]>(
+    (acc, tier) => {
+        const priorPercent = acc.length === 0 ? 0 : acc[acc.length - 1] / POWER_PER_PERCENT_MAXHP;
+        acc.push((priorPercent + tier.damagePercent * 100) * POWER_PER_PERCENT_MAXHP);
+        return acc;
+    },
+    [],
+);
+
+/**
+ * Price of ONE detonation - ticket 62's overflow, at the same rate as everything else here.
+ * 14% of a pool x 3 power per 1% = 42 power.
+ *
+ * NOTE THE SHAPE CHANGE, because it is not merely a bigger number. The old model charged
+ * `stacks - cap` excess stacks at a per-STACK rate. The engine now pays once per CAP-CROSSING
+ * and subtracts the cap from the pile, so the count is `ceil(stacks / cap) - 1` and what
+ * survives is the remainder - which means a detonation SPENDS the DoT it was built from.
+ * `burnPower` below models both halves; charging per excess stack would over-price every
+ * multi-stack Burn card by counting damage the pile no longer lives to deal.
+ */
+// Rounded to 6dp: `0.14 * 100` is 14.000000000000002 in binary floating point, and a card
+// sitting exactly on its budget should not redline because of the last bit of a double.
+export const BURN_DETONATION_POWER = Math.round(BURN_CONFIG.overflowPercent * 100 * POWER_PER_PERCENT_MAXHP * 1e6) / 1e6;
 const ENERGIZED_POWER_PER_STACK = 35;
 const STUNNED_POWER = 55;
 const ASLEEP_POWER = 45;
@@ -288,11 +315,26 @@ function regenPower(stacks: number): number {
     return 12 * stacks;
 }
 
-function burnPower(stacks: number): number {
+/**
+ * What N stacks of Burn applied to a FRESH target are worth, ticket 62 shape.
+ *
+ * Mirrors `BurnBehavior.onApply` exactly: while the pile exceeds the cap it pays a detonation
+ * and subtracts the cap, so N stacks cause `ceil(N / cap) - 1` detonations and leave
+ * `N - detonations x cap` behind to tick down.
+ *
+ * A consequence worth knowing before reading any score off this function: **it is NOT monotonic
+ * in stacks.** At the shipped cap of 4, five stacks (one detonation + a 1-stack pile = 46.5)
+ * price BELOW four stacks (a full pile = 52.5), because the detonation consumes the pile that
+ * would otherwise have ticked four more times. That is the engine's behaviour, not an artifact
+ * of the model - on an 80 HP frame 4 stacks deal 13 HP and 5 stacks deal 12.
+ */
+export function burnPower(stacks: number): number {
     if (stacks <= 0) return 0;
-    if (stacks <= BURN_TIER_POWER.length) return BURN_TIER_POWER[stacks - 1];
-    const overflow = stacks - BURN_TIER_POWER.length;
-    return BURN_TIER_POWER[BURN_TIER_POWER.length - 1] + overflow * BURN_OVERFLOW_POWER_PER_STACK;
+    const cap = BURN_CONFIG.maxStacks;
+    const tier = (n: number) => BURN_TIER_POWER[Math.min(n, BURN_TIER_POWER.length) - 1];
+    if (stacks <= cap) return tier(stacks);
+    const detonations = Math.ceil(stacks / cap) - 1;
+    return detonations * BURN_DETONATION_POWER + tier(stacks - detonations * cap);
 }
 
 /** Action types whose value depends on board state a static pass can't see - flag, don't guess. */

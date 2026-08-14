@@ -1,5 +1,6 @@
 section,kind,subject,metric,value,threshold,comparison,detail
-1.3,CARD_OVER_BUDGET,ash_communion,score,10.6,6.5,above,"Ash Communion (ash_communion) costs 2 energy and scores 10.6, 4.1 over the 6.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,ash_communion,score,9.3,6.5,above,"Ash Communion (ash_communion) costs 2 energy and scores 9.3, 2.8 over the 6.5 budget for that cost."
+1.3,CARD_OVER_BUDGET,ash_reclamation,score,3.2,3,above,"Ash Reclamation (ash_reclamation) costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,battle_rhythm,score,3.1,3,above,"Battle Rhythm (battle_rhythm) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,benediction,score,3.1,3,above,"Benediction (benediction) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,blind_spot,score,1.1,1,above,"Blind Spot (blind_spot) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
@@ -32,7 +33,6 @@ section,kind,subject,metric,value,threshold,comparison,detail
 1.3,CARD_OVER_BUDGET,sleep_powder,score,4.5,3,above,"Sleep Powder (sleep_powder) costs 1 energy and scores 4.5, 1.5 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,slipstream,score,1.4,1,above,"Slipstream (slipstream) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,stunning_strike,score,8.4,6.5,above,"Stunning Strike (stunning_strike) costs 2 energy and scores 8.4, 1.9 over the 6.5 budget for that cost."
-1.3,CARD_OVER_BUDGET,sun_eaters_plunge,score,10.8,10.5,above,"Sun-Eater's Plunge (sun_eaters_plunge) costs 3 energy and scores 10.8, 0.3 over the 10.5 budget for that cost."
 1.3,CARD_OVER_BUDGET,thaw,score,3.1,3,above,"Thaw (thaw) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,thistle_barrage,score,3.2,3,above,"Thistle Barrage (thistle_barrage) costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,thorn_tithe,score,3.1,3,above,"Thorn Tithe (thorn_tithe) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."

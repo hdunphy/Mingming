@@ -374,3 +374,52 @@ any amount**, and the control itself applies no Burn.
 `burnConfig`, so the tier-table change left it **green with a stale title** — it asserted
 "2 stacks = 3.5%, 3 stacks = 8%" while measuring 3% and 5%. A green test asserting the wrong
 sentence is worse than a red one. It now pins the tier values absolutely as well as relatively.
+
+
+### Repricing follow-up (2026-08-15, Henry in session) — scorer fixed, cards re-scored, nothing else touched
+
+The ship deliberately left `powerscale.ts` pricing the OLD mechanic (`0-BURN-PRICE-LAG`). Henry
+ordered the fix. Full write-up: [research/burn-repricing.md](../research/burn-repricing.md).
+
+**Section 1.3 stays at 40 redlines; membership changed. §2-3 redlines are byte-identical** — the
+scorer is a static audit and cannot move a simulation.
+
+| card | before | after | |
+|---|---|---|---|
+| `ash_communion` | 10.6 (over by 4.1) | **9.3** (over by 2.8) | still over |
+| `sun_eaters_plunge` | 10.8 (over by 0.3) | **9.7** | **off the list** |
+| `ash_reclamation` | 3.0 | **3.2** | **new redline** (registry orphan, in no deck) |
+
+**Every Burn-carrying card in every deck got CHEAPER or stayed flat — not one got more
+expensive**, which is the opposite of what "the scorer under-prices Burn" implied. The reason is
+that the spread table lowered the middle rungs (2 stacks 3.5% -> 3%, 3 stacks 8% -> 5%) while
+raising only the new 4th, and **no card in any deck applies four Burn in a single action.** Every
+live card sits on the part of the curve that went down, and **the detonation is priced correctly
+but reached by nothing a static per-action pass can see** - it happens through accumulation across
+casts, which the dynamic instruments already measure (~22 HP/game for fenrir_v2).
+
+**One card is materially mis-modelled, and it is pre-existing rather than new.** `molten_core`
+applies Burn TWICE on one card (2+2); the scorer prices each action independently at 13.5 + 13.5 =
+27 while the engine sees one pile of 4 worth 52.5. **Under-priced by 2.55 score points on a 3.0
+budget** - modelled honestly it scores ~4.9 and is 1.9 over. The per-action independence is old;
+what changed is that the new table is NON-LINEAR across the cap, so it now matters. Same card
+ticket 58 measured throwing away 64% of the Burn it applies - the static and dynamic ends of one
+fact. (`pyre_sacrifice` 3+3 lands within 0.15 by coincidence.)
+
+**A property of the shipped mechanic that is now on record: Burn is NOT monotonic in stacks.**
+Applying 5 delivers 15.50% of max HP against 4's 17.50%, because the detonation consumes the pile
+that would otherwise tick down the whole table. Every multiple of the cap is a local maximum. On
+an 80 HP frame, 4 stacks deal 13 and 5 deal 12.
+
+**The scorer now DERIVES its Burn numbers from the engine rather than transcribing them** -
+`BURN_TIER_POWER` reads `DEFAULT_GAME_CONFIG.status.burnStacks`, `BURN_DETONATION_POWER` reads
+`BURN_CONFIG.overflowPercent`, and `burnPower` mirrors `onApply`'s carry arithmetic. Transcribing
+the new values would have fixed today and left the same trap armed for the next tier edit.
+`BURN_OVERFLOW_POWER_PER_STACK` is gone - it was the wrong SHAPE, not just a stale number.
+`burnPricing.test.ts` (17 tests) pins scorer against engine by RUNNING `BurnBehavior` on a
+10,000 HP frame and requiring the price to equal the damage actually delivered, so a future
+one-sided edit fails there. Gates: `tsc -b`, **814 passed / 61 files**, `vite build`, full balance.
+
+Four questions returned (report §7); the practical ones are **`ash_communion` is an
+`ASSUMED_STATUS_COUNT` problem, not a Burn-table one** (still 2.8 over), and **what to do about
+`molten_core`**.
