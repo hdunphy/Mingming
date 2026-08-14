@@ -3,7 +3,9 @@
 - Type: wayfinder:research — **REPORT-ONLY.** Every arm's edit is TEMPORARY and reverted
   before commit; the only committed artifacts are the research file and this ticket's
   status flip. `git status` must show NO engine/data changes at commit time.
-- Status: **open** — authorized by Henry 2026-08-13 off the tickets-55/56 review.
+- Status: **closed** — study run 2026-08-14, `research/valkyrie-knockout.md`. **Both
+  hypotheses on record are wrong; the OS is the engine (50 of her 88 points) and no card is
+  measurably load-bearing.** No lever applied; four questions returned for Henry's session.
 - Assignee: —
 - Blocked by: none technically; if sharing the tree with the ticket-57 agent, run AFTER 57
   (one worker per tree — today's HEAD.lock collisions were real contention).
@@ -58,3 +60,41 @@ support (levers are candidates for Henry — no lever is applied), a "questions 
 list, and the card appendix (in-game text of every card mentioned). ONE commit: research
 file + this ticket flipped closed. Author `Henry Dunphy <hdunphy15@gmail.com>`; CRLF for
 docs/wayfinder; locks → `_to_delete/git-locks/`.
+
+---
+
+## Result — [research/valkyrie-knockout.md](../research/valkyrie-knockout.md)
+
+Eight arms at baseline registry `1:66efb2d7`. **Every arm mutated the registry in memory**, so no
+engine or data file was written; the commit is the research file and this status flip only.
+
+| arm | deck | field | **delta** |
+|---|---|---|---|
+| **os_off** (REBIRTH payoff to 0) | 7 | **37.7%** | **-50.0** |
+| baseline | 7 | 87.7% | - |
+| ko_ascension | 6 | 87.0% | -0.7 |
+| ko_radiant_spark | 6 | 88.7% | +1.0 |
+| ko_falling_star | 6 | 90.0% | +2.3 |
+| ko_morning_light | 6 | 90.0% | +2.3 |
+| glimmer restored | **8** | 90.3% | +2.6 |
+| ko_starfall | 6 | 91.0% | +3.3 |
+
+**FTK 0 in every arm.** The once-per-turn guard held in all eight (the proc distribution never
+exceeds 1 anywhere).
+
+**Neither hypothesis survives.** The exhaust package is not the thinning engine - shuffles/turn go
+UP when cards leave, because deck SIZE drives cycling and every knockout shrinks it. And `starfall`
+measures **7.1 damage per cast at 3.11 casts/game**; removing a copy is the study's **largest gain**.
+
+**The cap is load-bearing, not decoration:** she reshuffles more than once on **34.7% of her turns**
+and the guard eats every one. Without it she would proc 66% more often.
+
+**The finding that shapes the fix: restoring the 8th card is free.** The `glimmer` arm - the only
+8-card-or-more configuration - reads **90.3%, +2.6**, with procs/game essentially unchanged. **The
+rulebook fix and the balance fix are independent; an 8-card restoration must be paired with an OS
+change or she ships at ~90%.**
+
+Levers with measured support, none applied: **REBIRTH payoff** (the only lever with a measured
+endpoint - 37.7% at zero) and a **trigger throttle** (UPDRAFT precedent). **Deck size and any single
+card are NOT levers** - measured across seven arms, all inside +-3.3 on a +-5 instrument. Four
+questions returned for Henry in section 6 of the research file.
