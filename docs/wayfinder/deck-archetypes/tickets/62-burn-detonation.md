@@ -83,3 +83,53 @@ membership is now decided at 150 iterations — the fenrir_v1 seed-spread findin
 Commit hash, the three-arm sweep table (all four Burn decks × all metrics), shipped D
 with 30-iteration confirm, fenrir_v2's self-detonation cost, all gate numbers,
 deviations — or findings if STOPPED.
+
+## Amendment 1 (Henry, 2026-08-14): the FULL GRID before any direction ships
+
+Henry's call, superseding Part 2's shipping rule: **measure every candidate configuration,
+then he picks.** Nothing ships from this ticket. Part 1's mechanic description stands as the
+DETONATE shape's spec; this amendment adds the competing shape and two new dimensions.
+Symmetric self-burn (Henry's Part-1 ruling) applies in EVERY arm.
+
+### The grid — 21 arms
+
+Dimensions:
+- **Shape S:** DETONATE (modulo carry per Part 1) vs VENT (stacks hold at cap; each excess
+  stack pays D% maxHp immediately - the historical 0.08 design, now measured on equal terms
+  rather than pre-judged).
+- **Cap C:** 3 (current) / 4 / 5. Henry's concern: cap 3 may make overflow too easy to
+  trigger. Higher caps use SPREAD tick tiers that keep the 8% + 5%-shred top tier identical
+  and lengthen the climb (damagePercent / defShredPercent):
+  - C=4: 1.5/0 · 3/1 · 5/2.5 · 8/5
+  - C=5: 1.5/0 · 2.5/0.5 · 4/1.5 · 6/3 · 8/5
+- **Overflow value D:** {4, 6, 8}% maxHp.
+
+Arms: S x C x D = 18, plus TWO tick arms at the reference point (DETONATE, C=3, D=6) with
+max-tier moved: tick-low 1.5/3/6 and tick-high 2/4.5/10 (Henry's per-turn-% knob, isolated),
+plus the live baseline re-measured on the same instrument = **21**.
+
+### Implementation for the grid
+
+Refactor BurnBehavior to read shape/cap/D/tiers from named constants (one config object).
+**Committed defaults reproduce today's live behavior EXACTLY** (cap 3, vent at 0.01 flooring
+to zero, current tiers) - vitest must prove identity, and one scoped BALANCE_ONLY=fenrir run
+must match current numbers within noise before any arm runs. Arms mutate the config in
+memory, ticket-60 style.
+
+### Instrument per arm
+
+Field rows (10-iter) for fenrir_v2, skoll_v2, hraesvelgr_v2; detonation-or-vent events/game
+and HP delivered by them; wasted-stack % (should collapse to ~0 in DETONATE arms); fenrir_v2
+self-detonation HP taken; mirror turns fenrir + skoll; **FTK (0 hard, every arm)**.
+draugr_v2 (2-stack applications, 0% waste today) runs in three sentinel arms only
+(DETONATE C=3 D=8, VENT C=3 D=8, DETONATE C=5 D=4) to confirm it never moves - if it does,
+that is a finding. ~25k games total: note the wall-clock, run overnight if needed.
+
+### Deliverable (replaces Part 2/3 shipping + gates)
+
+REPORT-ONLY then **STOP**: `research/burn-grid.md` (CRLF) - the 21-arm table ranked by how
+far skoll_v2+fenrir_v2 move toward the window with hraesvelgr_v2's ceiling distance and FTK
+alongside; a per-dimension reading (what shape does, what cap does, what D does, tick
+sensitivity); Henry's questions section. ONE commit: refactor (behavior-identical) + report
++ ticket status note. The direction pick and the ship are Henry's session; a second
+amendment will carry them.
