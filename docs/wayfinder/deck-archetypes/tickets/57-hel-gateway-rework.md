@@ -202,3 +202,42 @@ fills the cap alone, so it delivers neither of its stated goals. Do not implemen
    mirror >=60% <=30 turns; report venom_shade/last_rites dead rates at 20% (not previously
    tabled - they inform the dead-card cleanup item). Full npm run balance; ONE commit; append
    results here; HANDOFF refresh. Anything outside these windows -> STOP.
+
+### Amendment 1 — implemented 2026-08-13
+
+Cap **15% → 20%**, description synced, both cap pins in `StanceSystem.test.ts` moved back.
+`HEL_BLOOD_CAP_PCT` is the only value that changed. **Both knob rounds are now SPENT**
+(round 1: 20→15; round 2: this revert). **No levers remain.** The 5% → 10 cost combo was
+rejected on arithmetic and was not implemented. Registry **`1:be695e83` → `1:3466b533`**;
+777/777 tests (run after the last edit, per `0-DECK-SIZE-EXCEPTION`), `tsc -b` / `vite build`
+clean, liveness zero static findings / 32-of-32 LIVE, full `npm run balance` clean.
+
+| gate | measured at 20% | expected | |
+|---|---|---|---|
+| **FTK** | **0/360** deck-report · **0/200** scoped · **0** across all 67 matchups | 0 | **hard gate ✓** |
+| field (30-iteration) | **81.6%** | ~81.6 | **ceiling consciously WAIVED** |
+| vs control | **0.980** (control-wins 0.020) | ≥0.60 | ✓ |
+| dead cards, deck level | **12.2%** (was 15.1% at the 15% cap) | ≤0.35 | ✓ |
+| mirror | 400/400 decided, 5.4 turns | ≥60%, ≤30t | ✓ |
+| **binds — turns at cap** | **47.7%** (mean 15.9%) | ~48% | ✓ not decoration |
+
+Blood spent per turn: `0%:4 · 5%:9 · 10%:13 · 15%:52 · 20%:71`.
+**Nothing in the roster moved beyond noise** — redlines 48 → 48, zero matchup rows changed.
+
+#### The requested dead-rate table — and it is a split decision
+
+| card | cost | **at 15% cap** | **at 20% cap** | plays 15% → 20% |
+|---|---|---|---|---|
+| `venom_shade` | 1e = 5% | **53.3% dead** | **0.0% dead** | 150 → **441** |
+| `last_rites` | 2e = 10% | 45.0% dead | **51.7% dead** | 184 → **142** |
+| `soul_tithe` | 3e = 15% | 0.0% dead | 0.0% dead | 520 → 507 |
+
+**The texture argument delivered on `venom_shade` and cost `last_rites`.** At 20% the budget fits
+`soul_tithe` (15%) **plus** `venom_shade` (5%) exactly, so the AI takes that pairing almost every
+turn — `venom_shade` goes from half-dead to never-dead at three times the plays. But that same
+perfect fit is what crowds `last_rites` (10%) out: it no longer pairs with `soul_tithe` at all, and
+its dead rate rose 45.0% → 51.7%. At 15% neither fit alongside `soul_tithe`, so `last_rites` was
+picked more often as the second-best option.
+
+**Deck-level dead cards still improved, 15.1% → 12.2%**, so the trade is net positive — but
+`last_rites` is now the odd card out and belongs in the dead-card cleanup item, not in a knob.

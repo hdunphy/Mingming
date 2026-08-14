@@ -324,36 +324,40 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 57: throttled blood, %-denominated)'
         expect(tolls).toEqual([10, 10, 10]);
     });
 
-    it('caps the turn at 15% of max HP - the 4th Energy-point of blood is UNAFFORDABLE, not just costly', () => {
-        // 15% / 5% = three Energy-points of Dark per turn (ticket 57 knob round 1 took the cap
-        // from the specified 20% to 15%). Three 1e casts fit exactly; the fourth is refused. It is
-        // refused by PRICE - the cost hook returns a cost she cannot pay - which is what makes the
-        // reducer and the AI agree without a third code path (HANDOFF 8d).
+    it('caps the turn at 20% of max HP - the 5th Energy-point of blood is UNAFFORDABLE, not just costly', () => {
+        // 20% / 5% = four Energy-points of Dark per turn. Knob round 1 took the cap to 15% and
+        // amendment 1 put it back at 20 - Henry's call, texture over the field number: at 20 the
+        // 3-Energy `soul_tithe` and the 1-Energy `venom_shade` fit in the same turn, which is the
+        // decision the OS is supposed to be about. Four 1e casts fit exactly; the fifth is
+        // refused, and refused by PRICE - the cost hook returns a cost she cannot pay - which is
+        // what makes the reducer and the AI agree without a third code path (HANDOFF 8d).
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
-            ['c1', 'c2', 'c3', 'c4'].map(id => card(id, 'nights_bite'))
+            ['c1', 'c2', 'c3', 'c4', 'c5'].map(id => card(id, 'nights_bite'))
         );
 
-        for (const id of ['c1', 'c2', 'c3']) state = play(state, id);
-        expect(state.playerParty[0].currentHp).toBe(170);        // 3 x 10 HP spent
-        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(15);
+        for (const id of ['c1', 'c2', 'c3', 'c4']) state = play(state, id);
+        expect(state.playerParty[0].currentHp).toBe(160);        // 4 x 10 HP spent
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(20);
 
         const before = state.playerParty[0].currentHp;
-        const after = play(state, 'c4');
+        const after = play(state, 'c5');
         expect(after.playerParty[0].currentHp).toBe(before);      // no blood paid
-        expect(after.playerDeck.hand.some(c => c.id === 'c4')).toBe(true); // and never left hand
+        expect(after.playerDeck.hand.some(c => c.id === 'c5')).toBe(true); // and never left hand
     });
 
     it('refuses a cast that would OVERSHOOT the cap, not merely one that starts past it', () => {
-        // soul_tithe is 3 Energy = 15%, which is the WHOLE budget. After a single 1e cast (5%)
-        // it is refused even though 5 < 15, because 5 + 15 > 15. A "block only once you are over"
-        // rule would have let it through.
+        // soul_tithe is 3 Energy = 15%. At 10% already spent it is refused even though 10 < 20,
+        // because 10 + 15 > 20. A "block only once you are over" rule would have let it through.
+        // (At the 20% cap it DOES fit alongside one `venom_shade` - that pairing is the whole
+        // reason amendment 1 reverted the knob.)
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
-            [card('c1', 'nights_bite'), card('c3', 'soul_tithe', 3)]
+            [card('c1', 'nights_bite'), card('c2', 'nights_bite'), card('c3', 'soul_tithe', 3)]
         );
         state = play(state, 'c1');
-        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(5);
+        state = play(state, 'c2');
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(10);
 
         const after = play(state, 'c3');
         expect(after.playerDeck.hand.some(c => c.id === 'c3')).toBe(true);

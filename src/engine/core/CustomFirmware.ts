@@ -39,7 +39,7 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  * being a hard stop on her turn, and incidentally revives a stat this OS had made dead.
  */
 const HEL_BLOOD_PCT_PER_ENERGY = 5;
-const HEL_BLOOD_CAP_PCT = 15;
+const HEL_BLOOD_CAP_PCT = 20;
 /** Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive". */
 const HEL_BLOOD_BLOCKED_COST = 999;
 
