@@ -499,6 +499,15 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
      */
     const ASSUMED_CARDS_DRAWN = 3;
     /**
+     * Ticket 71: `CARDS_DRAWN_TRIGGERED` counts only draws an effect caused, so unlike the
+     * constant above it IS frequently zero. Measured over 1,365 real casts across the three
+     * carrier decks (`scratch/drawcount.ts`): `ink_stream` sees 0.92 triggered draws a cast and
+     * `starfall` 1.85. Cast-weighted: (886 x 0.92 + 479 x 1.85) / 1365 = 1.25. Unlike the other
+     * ASSUMED_* constants this is a MEAN, not a floor - the distribution has a 24-42% zero mass,
+     * so a deck with no draw engine is charged more than it gets and one with a real engine less.
+     */
+    const ASSUMED_TRIGGERED_CARDS_DRAWN = 1.25;
+    /**
      * Ticket 53: how many times a RAMPAGE card (`growPerPlay`) is assumed to resolve in one
      * battle. The static scorer sees printed power, i.e. the FIRST cast; a growth card's real
      * value is its average over the casts it gets. At H casts the average bonus is
@@ -608,6 +617,7 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // Ticket 53: CARDS_DRAWN multiplies the resolved damage, not the power, but the
             // scorer has one knob and they are the same knob at this resolution.
             else if (action.scaling === 'CARDS_DRAWN') power *= ASSUMED_CARDS_DRAWN;
+            else if (action.scaling === 'CARDS_DRAWN_TRIGGERED') power *= ASSUMED_TRIGGERED_CARDS_DRAWN;
 
             // Ticket 53: RAMPAGE growth. Charge the AVERAGE over the assumed horizon, so the
             // printed power is what the card opens at and the score is what it is worth.

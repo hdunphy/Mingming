@@ -847,7 +847,7 @@
     "ink_stream": {
         "id": "ink_stream",
         "name": "Ink Stream",
-        "description": "Deal 12 power per card drawn.",
+        "description": "Deal 33 power for each card a card, OS or daemon drew you this turn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -861,8 +861,8 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 12,
-                "scaling": "CARDS_DRAWN",
+                "power": 33,
+                "scaling": "CARDS_DRAWN_TRIGGERED",
                 "target": "TARGET"
             }
         ]
@@ -5561,7 +5561,7 @@
     "starfall": {
         "id": "starfall",
         "name": "Starfall",
-        "description": "10 power for each card drawn this turn.",
+        "description": "18 power for each card a card, OS or daemon drew you this turn.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
@@ -5575,8 +5575,8 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 10,
-                "scaling": "CARDS_DRAWN",
+                "power": 18,
+                "scaling": "CARDS_DRAWN_TRIGGERED",
                 "target": "TARGET"
             }
         ]

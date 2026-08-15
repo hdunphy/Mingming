@@ -60,9 +60,14 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         availableOS: ["kraken_v1", "kraken_v2"],
         // Ticket 14 (pilot, Henry-approved 2026-08-05): real per-OS decks.
         // v1 ABYSSAL_INK - draw engine (4 draw cards feed the ink) with ink_stream as the clock.
+        // Ticket 71: `water_slap` -> `undertow`. Once `ink_stream` counted only TRIGGERED draws,
+        // v1's "engine" was four CONDITIONAL one-card draws and measured 0.92 triggered draws a
+        // cast against jormungandr_v1's 1.75 - so the same card paid v1 8.1 damage and jormungandr
+        // 17.1. `undertow` is the 0e unconditional Water draw jormungandr_v1 already runs; it costs
+        // the same as the `water_slap` filler it replaces and is what makes the OS payoff real.
         // v2 TIDAL_CRUSH - ramp into 3e Water payoffs (maelstrom is new; capacitor fixed to 2e).
         decks: {
-            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "surge_protection", "water_slap"],
+            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "surge_protection", "undertow"],
             "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection", "water_slap", "water_slap"]
         },
         moves: [

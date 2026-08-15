@@ -153,6 +153,12 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             } else if (scaling === 'CARDS_DRAWN') {
                 const multiplier = state.cardsDrawnThisTurn;
                 damage = Math.floor(damage * multiplier);
+            } else if (scaling === 'CARDS_DRAWN_TRIGGERED') {
+                // Ticket 71: only draws an effect CAUSED - a card, an OS or a daemon. The
+                // draw-phase refill is excluded, so this is zero on a turn you did nothing to
+                // earn it, exactly like BURN_TIMES_ENERGY and STATUS_CONSUMED. `CARDS_DRAWN`
+                // above keeps the natural-inclusive count for anything that still wants it.
+                damage = Math.floor(damage * (state.nonNaturalCardsDrawnThisTurn ?? 0));
             } else if (scaling === 'ELEMENT_PLAYED') {
                 const elementPlayed = element || programToUse.element;
                 const multiplier = state.elementPlays?.[elementPlayed] || 1;
