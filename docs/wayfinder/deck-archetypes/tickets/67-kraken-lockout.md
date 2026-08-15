@@ -47,3 +47,36 @@ research/kraken-lockout.md (CRLF): the per-matchup verdict table (STRUCTURAL / P
 WINNABLE-MISPLAYED) with the margin numbers, probe results, the surge_protection answer,
 questions for Henry, card appendix. ONE commit (research file + ticket closed). No
 recommendations executed - the design session follows this report.
+
+## Amendment 1 (Henry, 2026-08-16): the type-advantage confound - decompose BEFORE the verdicts
+
+Henry's challenge to ticket 65's headline: kraken's 13.0 damage/turn - the number that
+"proved" rate is not the problem - is an AGGREGATE that includes her type-advantaged Fire
+matchups (fenrir 100%, skoll 98% - both Fire). If Water>Fire multiplies her damage there,
+her NEUTRAL-matchup rate is lower than 13.0, her wins may be type artifacts, and the whole
+deck is simply underpowered. The report compared confounded aggregates; decompose them.
+
+### Question 0 (runs FIRST; the other questions' verdicts are read against it)
+
+a. **Pull the actual type chart** for all 15 of kraken's matchups from the engine data and
+   print it - the session reads facts, not folklore. Bucket every opponent: ADVANTAGED /
+   NEUTRAL / DISADVANTAGED (both directions - note anyone advantaged INTO kraken).
+b. **Damage/turn split by bucket** for kraken_v1 and kraken_v2 - AND for reference decks
+   valkyrie_v2, skoll_v1, hel_v2 measured the same way, so the comparison is
+   apples-to-apples (every deck's aggregate carries some type mix).
+c. **Type-normalized rate**: kraken's damage/turn with the element multiplier's
+   contribution removed (tag damage events with their applied multiplier in the logs).
+   Where does NORMALIZED kraken rank against the roster's normalized rates?
+d. **Win rate by bucket.** Note the clean cell: jormungandr is WATER - a same-element 0%
+   with no type excuse in either direction (though jorm's 84% field means everyone loses
+   to him; read it against his other matchups, not in isolation).
+
+### Decision rule for the design session (write the verdict explicitly)
+
+- Normalized/neutral rate BOTTOM-TIER -> **Henry's story: underpowered.** The fix starts
+  with power (surge_protection, ink_stream, TIDAL_CRUSH knobs), and the zeros get re-read
+  after rate lands mid-pack - tools only if zeros survive the power fix.
+- Normalized/neutral rate MID-PACK with only the sustain-heavy matchups failing ->
+  **ticket 65's story: missing tools.** Design session proceeds on the lockout verdicts.
+- Both partially true is the likely outcome - report the split so the session can sequence
+  power-then-tools with numbers.
