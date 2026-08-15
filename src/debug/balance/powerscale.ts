@@ -338,7 +338,7 @@ export function burnPower(stacks: number): number {
 /**
  * Cumulative Burn price at a possibly FRACTIONAL stack count, interpolated between rungs.
  *
- * Fractions are not hypothetical: `ASSUMED_STATUS_COUNT` is 1.5, and a `consume: true` Burn
+ * Fractions are not hypothetical: `ASSUMED_CONSUMED_STACKS.Burn` is 1.5, and a `consume: true` Burn
  * action prices at exactly that. The previous form indexed `BURN_TIER_POWER[n - 1]` directly,
  * so 1.5 read index 0.5, returned `undefined`, and propagated a silent NaN into the card score
  * - the kind of failure that shows up as a blank cell rather than a wrong number.
@@ -413,23 +413,32 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     const ASSUMED_CARDS_PLAYED = 2.5;
     const ASSUMED_HP_PERCENT = 0.5;
     const ASSUMED_DISCARD_SIZE = 8;
-    // Henry, 2026-08-15: 3 -> 1.5. Ticket 58 measured `ash_communion` actually consuming about
-    // 1.5 stacks of Burn against the 3 it was being charged for, which was the whole of its
-    // 10.6-vs-6.5 redline.
+    // The BOARD-pile assumption: how many stacks of a status a card can expect to find when it
+    // reads one. Stays at 3 - Henry, 2026-08-15, after the roster-wide census. This is a FLOOR,
+    // not a price: a static pass cannot see the board, and several paths that use it meet
+    // larger piles in play (see research/status-pile-census.md).
+    const ASSUMED_STATUS_COUNT = 3;
+
+    // The CONSUMED-pile assumption, which is a different question and gets a different number:
+    // how many stacks are actually on your own pile at the moment you cash it in. Ticket 58
+    // measured `ash_communion` consuming ~1.5 Burn against the 3 it was charged for, and that
+    // gap was its entire redline.
     //
-    // READ THE BLAST RADIUS BEFORE TRUSTING A SCORE THAT USES THIS. The constant is doing duty
-    // as SEVEN different assumptions and 1.5 was derived from exactly one of them:
-    //
-    //   consume actions / STATUS_CONSUMED   ~1.5 measured (the case this is derived from)
-    //   DAZED_STACKS                        ratatoskr_v2's realistic count at cast is ~10
-    //   DISTINCT_STATUS                     draugr_v2's realistic count at cast is 3
-    //   STATUS_COUNT, WEAKENED_STACKS, MULTIPLY_STATUS   unmeasured
-    //
-    // So this now under-prices the scalings that read a BOARD pile as hard as 3 over-priced the
-    // ones that read a CONSUMED pile. Those are floors either way (a static pass cannot see the
-    // board), but the direction of the error moved. Splitting the constant per scaling is the
-    // real fix and is a design call, not a knob - see research/assumed-stacks.md.
-    const ASSUMED_STATUS_COUNT = 1.5;
+    // Burn ONLY, deliberately (Henry, 2026-08-15). Burn is the one status with a hard cap that
+    // the decks routinely overflow and that decays 1/turn, so its pile is small and short-lived
+    // in a way Poison's and the stream statuses' are not. Anything absent from this table falls
+    // back to ASSUMED_STATUS_COUNT above.
+    const ASSUMED_CONSUMED_STACKS: Record<string, number> = { Burn: 1.5 };
+    const consumedCount = (status?: string): number =>
+        (status && ASSUMED_CONSUMED_STACKS[status] !== undefined)
+            ? ASSUMED_CONSUMED_STACKS[status]
+            : ASSUMED_STATUS_COUNT;
+
+    // A `STATUS_CONSUMED` heal names no status of its own - the status is whatever the card's
+    // consume action took. `ash_communion` consumes Burn and heals per stack; `umbral_feast`
+    // consumes Poison and heals per stack. They must not price off the same number.
+    const consumedStatusOnThisCard: string | undefined =
+        (card.actions ?? []).find(a => (a as unknown as { consume?: boolean }).consume === true)?.status;
     /**
      * Ticket 53: CARDS_DRAWN multiplies damage by `cardsDrawnThisTurn`, which is never zero on
      * the turn a card is castable - every species draws at turn start. 3 is the roster's modal
@@ -537,7 +546,9 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // multiplier to the STATUS branch and left this one reading a literal, so a card
             // healing "per stack consumed" was priced as if it consumed exactly one.
             const raw = action.power || 0;
-            const power = action.scaling === 'STATUS_CONSUMED' ? raw * ASSUMED_STATUS_COUNT : raw;
+            const power = action.scaling === 'STATUS_CONSUMED'
+                ? raw * consumedCount(consumedStatusOnThisCard)
+                : raw;
             actionScore = (power / 10.0) * ACTION_WEIGHTS['HEAL'];
         } else if (action.type === 'STATUS') {
             // Ticket 33: STATUS_CONSUMED reads a count produced at runtime by a preceding
@@ -552,9 +563,11 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // the score is negated below.
             const isConsume = (action as unknown as { consume?: boolean }).consume === true;
             const stacks = isConsume
-                ? ASSUMED_STATUS_COUNT
+                ? consumedCount(action.status)
                 : (action.scaling === 'STATUS_CONSUMED' || action.scaling === 'WEAKENED_STACKS')
-                    ? (action.stacks || 1) * ASSUMED_STATUS_COUNT
+                    ? (action.stacks || 1) * (action.scaling === 'STATUS_CONSUMED'
+                        ? consumedCount(action.status ?? consumedStatusOnThisCard)
+                        : ASSUMED_STATUS_COUNT)
                     : (action.stacks || 1);
             const absStacks = Math.abs(stacks);
             const status = action.status;

@@ -3,6 +3,7 @@ import { burnPower, BURN_TIER_POWER, BURN_DETONATION_POWER, calculatePowerscale 
 import { getStatusBehavior, BURN_CONFIG } from '../../engine/StatusBehaviors';
 import { DEFAULT_GAME_CONFIG } from '../../engine/data/gameConfig';
 import type { IBattleEntity, StatusEffectInstance, ProgramData } from '../../engine/types';
+import { GetProgramData } from '../../engine/data/programRegistry';
 
 /**
  * Ticket 62 repricing — the scorer must agree with the ENGINE about what Burn does.
@@ -133,5 +134,31 @@ describe('fractional stack counts (ASSUMED_STATUS_COUNT is 1.5)', () => {
         } as unknown as ProgramData;
         expect(Number.isNaN(calculatePowerscale(card).score)).toBe(false);
         expect(calculatePowerscale(card).score).toBeLessThan(6.5);
+    });
+});
+
+describe('the 1.5 consumed-stack assumption is BURN-ONLY', () => {
+    const consumeCard = (status: string, cost: number): ProgramData => ({
+        id: `t_${status}`, name: `T ${status}`, description: '', element: 'Fire',
+        category: 'Heal', rarity: 'Common', baseCost: cost, actions: [
+            { type: 'STATUS', status, consume: true, target: 'SELF' },
+            { type: 'HEAL', power: 30, scaling: 'STATUS_CONSUMED', target: 'SELF' },
+        ], constraints: [],
+    } as unknown as ProgramData);
+
+    it('a Poison-consume card still prices against 3 stacks, not 1.5', () => {
+        // Same card shape, different status: the heal half must follow the status its consume
+        // action names. ash_communion (Burn) and umbral_feast (Poison) must not share a number.
+        const burn = calculatePowerscale(consumeCard('Burn', 2)).score;
+        const poison = calculatePowerscale(consumeCard('Poison', 2)).score;
+        expect(poison).toBeGreaterThan(burn);
+    });
+
+    it('the roster cards land where the census says they should', () => {
+        // Regression pins for the two real cards, so a future edit to either assumption shows up.
+        const ash = GetProgramData('ash_communion');
+        const umbral = GetProgramData('umbral_feast');
+        if (ash) expect(calculatePowerscale(ash).score).toBe(4.1);
+        if (umbral) expect(calculatePowerscale(umbral).score).toBe(3);
     });
 });

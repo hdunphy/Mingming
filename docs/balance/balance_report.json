@@ -4,8 +4,8 @@
   "command": "npm run balance",
   "registryHash": "1:8b7b0ae9",
   "summary": {
-    "redlines": 47,
-    "cardRedlines": 37,
+    "redlines": 48,
+    "cardRedlines": 38,
     "matchupRedlines": 10,
     "cardsAudited": 213,
     "matchupsAudited": 67,
@@ -114,6 +114,16 @@
         "perEnergy": 4.1,
         "budget": 3,
         "overBudgetBy": 1.1,
+        "manualReview": []
+      },
+      {
+        "id": "rimebreaker",
+        "name": "Rimebreaker",
+        "cost": 2,
+        "score": 7.5,
+        "perEnergy": 3.2,
+        "budget": 6.5,
+        "overBudgetBy": 1,
         "manualReview": []
       },
       {
@@ -2524,6 +2534,16 @@
       "threshold": 3,
       "comparison": "above",
       "detail": "Pressure Point (pressure_point) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
+      "subject": "rimebreaker",
+      "metric": "score",
+      "value": 7.5,
+      "threshold": 6.5,
+      "comparison": "above",
+      "detail": "Rimebreaker (rimebreaker) costs 2 energy and scores 7.5, 1 over the 6.5 budget for that cost."
     },
     {
       "kind": "CARD_OVER_BUDGET",

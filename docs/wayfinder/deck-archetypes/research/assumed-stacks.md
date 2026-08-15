@@ -5,6 +5,8 @@
   scorer constant changed.
 - Read at registry `1:8b7b0ae9`. Branch `card-dev`.
 
+> **SUPERSEDED IN PART, 2026-08-15.** Henry scoped this change to **Burn only** — `ASSUMED_STATUS_COUNT` is back to **3** and a separate `ASSUMED_CONSUMED_STACKS` table carries Burn's 1.5. Everything in §3 about the blast radius was the reason. The roster-wide measurement that section called for now exists: **[status-pile-census.md](status-pile-census.md)** — and it says 3 is wrong for four of the paths, in both directions. Section 1.3 finished at **38**, not the 37 below. §4's NaN bug and its fix stand unchanged.
+
 ---
 
 ## 1. The answer, in one row
