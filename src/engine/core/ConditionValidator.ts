@@ -200,6 +200,16 @@ export const ConditionValidator = {
                 if (state.cardsDrawnThisTurn < (constraint.value as number)) return false;
                 break;
 
+            case 'CARDS_DRAWN_TRIGGERED':
+                // Ticket 68: only draws an EFFECT caused count - a card, an OS or a daemon.
+                // The draw-phase refill is excluded, which is the whole point: `CARDS_DRAWN`
+                // above is satisfied on ~91% of turns for every species purely by the refill
+                // (it fails only when a full hand clamps the draw to zero), so a card priced
+                // for a conditional refund was getting an unconditional one.
+                if (!state) return true; // Fail safe, same as CARDS_DRAWN
+                if ((state.nonNaturalCardsDrawnThisTurn ?? 0) < (constraint.value as number)) return false;
+                break;
+
             case 'NOT_STATUS':
                 if (subject.statusEffects.some(s => s.type === constraint.value)) {
                     return false;

@@ -529,11 +529,16 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const { state: newDeck, nextSeed, shuffled } = drawCards(state[deckKey], count, state.seed);
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
-    let newState = {
+    let newState: IBattleState = {
         ...state,
         [deckKey]: newDeck,
         seed: nextSeed,
-        cardsDrawnThisTurn: state.cardsDrawnThisTurn + cardsDrawnCount
+        cardsDrawnThisTurn: state.cardsDrawnThisTurn + cardsDrawnCount,
+        // Ticket 68: the TRIGGERED counter - draws an effect caused, not the draw-phase refill.
+        // `isNatural` was already threaded through here for hook dispatch and was simply never
+        // consulted for a counter; this is that flag finally doing the second job it implies.
+        nonNaturalCardsDrawnThisTurn: (state.nonNaturalCardsDrawnThisTurn ?? 0)
+            + (isNatural ? 0 : cardsDrawnCount)
     };
 
     if (shuffled) {

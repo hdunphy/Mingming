@@ -1081,7 +1081,7 @@
     "surge_protection": {
         "id": "surge_protection",
         "name": "Surge Protection",
-        "description": "40 power. If you drew a card this turn, refund 1 Energy.",
+        "description": "40 power. If a card, OS or daemon drew you a card this turn, refund 1 Energy.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1104,10 +1104,7 @@
                 "target": "SELF",
                 "conditionals": [
                     {
-                        "id": "card_drawn_check",
-                        "type": "BASE",
-                        "target": "SELF",
-                        "value": ""
+                        "id": "card_drawn_check"
                     }
                 ]
             }

@@ -334,6 +334,7 @@ export function createBattleState(
         enemyDeck: eDeckState,
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
+        nonNaturalCardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,

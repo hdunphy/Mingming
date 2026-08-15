@@ -81,6 +81,7 @@ export function simulate1v1(
         levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
+        nonNaturalCardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
         osLogs: [],

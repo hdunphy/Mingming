@@ -40,7 +40,7 @@
         "value": "Poison"
     },
     "card_drawn_check": {
-        "type": "CARDS_DRAWN",
+        "type": "CARDS_DRAWN_TRIGGERED",
         "target": "SELF",
         "value": 1
     },

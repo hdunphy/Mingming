@@ -46,7 +46,16 @@ export const ProgramConstraintType = {
   NotStatus: 'NOT_STATUS',
   HealthThreshold: 'HEALTH_THRESHOLD',
   Base: 'BASE',
-  CardsDrawn: 'CARDS_DRAWN'
+  CardsDrawn: 'CARDS_DRAWN',
+  /**
+   * Ticket 68: draws CAUSED BY AN EFFECT this turn - a card, an OS or a daemon - excluding
+   * the draw-phase refill.
+   *
+   * `CARDS_DRAWN` above counts every draw including the natural one, which makes any
+   * condition built on it true on ~91% of turns for every species (HANDOFF 0-DRAW-COUNTER).
+   * That is not what "if you drew a card this turn" was ever meant to reward.
+   */
+  CardsDrawnTriggered: 'CARDS_DRAWN_TRIGGERED'
 } as const;
 
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
@@ -470,6 +479,12 @@ export interface IBattleState {
   readonly procs: ReadonlyArray<{ id: number; entityId: string; text: string }>;
   readonly cardsPlayedThisTurn: number;
   readonly cardsDrawnThisTurn: number;
+  /**
+   * Ticket 68: cards drawn this turn by an EFFECT rather than the draw phase.
+   * Reset alongside `cardsDrawnThisTurn`; incremented only when `executeDraw` is called
+   * with `isNatural: false`.
+   */
+  readonly nonNaturalCardsDrawnThisTurn?: number;
   /**
    * Mirrors cardsPlayedThisTurn for the CARDS_DISCARDED scaling (Carrion Swoop).
    * Optional so existing state fixtures keep compiling; production state builders

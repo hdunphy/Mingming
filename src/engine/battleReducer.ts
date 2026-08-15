@@ -389,11 +389,17 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     if (!currentTarget || currentTarget.currentHp <= 0) continue;
 
                     // Action-level Conditionals
+                    // Ticket 68: `finalState` is threaded through. It was omitted, so every
+                    // state-dependent action conditional hit ConditionValidator's
+                    // `if (!state) return true` fail-safe and passed unconditionally - which is
+                    // the REAL reason surge_protection's refund fired on 3,371 of 3,371 casts.
+                    // Same family as 0-TARGETLESS: a guard silently always-true because an
+                    // argument was not passed.
                     if (action.conditionals) {
                         let allMet = true;
                         for (const constraint of action.conditionals) {
                             const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
-                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0, finalState)) {
                                 allMet = false;
                                 break;
                             }
@@ -602,12 +608,12 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
                 if (!currentTarget || currentTarget.currentHp <= 0) continue;
 
-                // Action-level Conditionals
+                // Action-level Conditionals (see the ticket-68 note on the sibling path above)
                 if (action.conditionals) {
                     let allMet = true;
                     for (const constraint of action.conditionals) {
                         const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
-                        if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                        if (!validateSingleConstraint(constraint, sourceEntity, subject, 0, finalState)) {
                             allMet = false;
                             break;
                         }
@@ -818,6 +824,7 @@ function processPostTurn(state: IBattleState): IBattleState {
         logs: [...state.logs, ...statusLogs],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
+        nonNaturalCardsDrawnThisTurn: 0,
         cardsDiscardedThisTurn: 0
     };
 

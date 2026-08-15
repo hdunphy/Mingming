@@ -270,6 +270,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         procs: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
+        nonNaturalCardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
         levelUpQueue: [],

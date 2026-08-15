@@ -8,6 +8,8 @@
   for the pool probes, 1,440 for the type decomposition across five decks.
 - Sampling outside `getBestAction` per `0-AI-SIM-COUNTS`.
 
+> **CORRECTION (ticket 68, 2026-08-16).** Section 5's causal chain is WRONG, though its outcome and recommendation stand. The refund did not fire because `cardsDrawnThisTurn` counts the draw-phase refill - that chain is real but **never reached**. The card carried an inline `"type": "BASE"` beside its constraint id, and `inflateConstraint` spreads the inline object LAST, so the draw check was overwritten by an energy check against cost 0. Separately, the reducer never passed `state` to the validator, so it hit the `if (!state) return true` fail-safe. Either alone made the refund unconditional. The 8.8-9.6% "zero-draw turns" measured below describe a counter nothing was reading. See [triggered-draw-fix.md](triggered-draw-fix.md).
+
 ---
 
 ## 0. Question 0 first — the type decomposition, and it changes the question
