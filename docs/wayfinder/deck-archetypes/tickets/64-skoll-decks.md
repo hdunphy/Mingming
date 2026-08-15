@@ -154,3 +154,38 @@ gate being closed): dead <=0.35 BOTH bases, field 0.35-0.80, control >=0.60, FTK
 mirror bands. NO knobs - if the swap does not close the gate, STOP and report; the next
 move (second swap vs formal waiver) is Henry's. vitest AFTER the edit; full npm run
 balance; ONE commit; results appended here; HANDOFF refresh.
+
+
+### Amendment 1 results (2026-08-15) — THE GATE IS CLOSED, all bands green
+
+Registry `1:998a835e` → **`1:b76809c9`**. The one approved swap was applied and nothing else;
+no knobs, per the amendment.
+
+**skoll_v2 dead cards: 36.9 / 38.2% → 32.5 / 32.8%.** Under 0.35 on BOTH seed bases, which is
+the gate the amendment existed to close.
+
+| metric | before A1 (A / B) | **after A1 (A / B)** | band |
+|---|---|---|---|
+| **dead cards** | 36.9 / 38.2% ❌ | **32.5 / 32.8%** | ≤0.35 ✅ |
+| field | 51.0 / 50.1% | **44.9 / 41.5%** | 0.35-0.80 ✅ |
+| control | 85.0 / 83.3% | **71.7 / 74.6%** | ≥0.60 ✅ |
+| FTK | 0 | **0** | 0 ✅ |
+| mirror | 2.5-2.7t, 93-97% dec | **2.6-2.7t, 92-93% dec** | ≥60% ≤30t ✅ |
+| first-mover | −7.1 / −12.1% | **+1.8 / −10.0%** | \|edge\|<20 ✅ |
+
+**skoll_v1 is untouched and confirms it** (nothing in the swap reaches her): field 47.7 / 48.1%,
+control 100 / 100%, dead 29.7 / 29.6%, mirror 3.6-3.7t at 100% decided, FTK 0.
+
+**The amendment's prediction was accurate.** It called dead ~33-34% and field mid-40s; measured
+**32.5 / 32.8%** and **44.9 / 41.5%**. The cost of closing the gate was **~6-8 field points and
+~10-13 control points** on v2, both of which it had to spare.
+
+**8-DIFF: 4 rows of 67 moved, 63 bit-identical.** `control-vs-skoll_v2` 18.2 → 35.4 (the control
+does better against a v2 that traded a nuke for fuel — expected), `os:skoll` 0.30 → **0.2778**,
+plus the two `control-overall` aggregates at +1.0 and +0.5. **No other species moved by any
+amount.** §1.3 unchanged at 38; redlines hold at 49.
+
+Gates: scoped `BALANCE_ONLY=skoll` clean, `tsc -b` clean, **820 passed / 61 files** (suite AFTER
+the edit), `vite build` clean, full `npm run balance` re-run.
+
+**Ticket 64 now closes with every gate GREEN on both decks.**

@@ -179,7 +179,12 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             // The 2-copy list read 40.5% dead against a 0.35 gate - four 2-cost cards on a
             // 2-Energy frame in a 3.5-turn game is a curve problem, not a power one, and the
             // second copy is the one that rots. `fury_strike` at 1e feeds the same pile.
-            "skoll_v2": ["strength_burst", "fury_strike", "all_in", "desperate_strike", "reckless_charge", "overdrive", "overdrive", "glass_cannon", "water_slap"]
+            // Amendment 1 (ticket 64, Henry): `overdrive` x2 -> x1, `fury_strike` x1 -> x2 -
+            // the curve swap that closes the dead-card gate the ship left RED (36.9/38.2 vs
+            // 0.35). Three 2-cost cards on a 2-Energy frame was the diagnosis; this removes the
+            // third. `fury_strike` is the only 1e attack that FEEDS the OS (+1 Str = +15% on
+            // every subsequent hit), so the lost nuke copy partially returns as fuel.
+            "skoll_v2": ["strength_burst", "fury_strike", "fury_strike", "all_in", "desperate_strike", "reckless_charge", "overdrive", "glass_cannon", "water_slap"]
         },
         moves: [
             {

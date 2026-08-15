@@ -45,6 +45,6 @@ section,kind,subject,metric,value,threshold,comparison,detail
 2.3,OS_GAP,os:jormungandr,osGap,0.44,0.15,above,jormungandr_v1 wins 94.0% of the 100 decided games between jormungandr_v1 and jormungandr_v2 on an otherwise identical jormungandr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:nidhoggr,osGap,0.18,0.15,above,nidhoggr_v2 wins 68.0% of the 100 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ratatoskr,osGap,0.19,0.15,above,ratatoskr_v2 wins 69.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:skoll,osGap,0.3,0.15,above,skoll_v2 wins 80.0% of the 100 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:skoll,osGap,0.2778,0.15,above,skoll_v2 wins 77.8% of the 99 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:sleipnir,osGap,0.17,0.15,above,sleipnir_v2 wins 67.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:valkyrie,osGap,0.39,0.15,above,valkyrie_v1 wins 89.0% of the 100 decided games between valkyrie_v1 and valkyrie_v2 on an otherwise identical valkyrie. The weaker variant needs a buff or a lower cost.

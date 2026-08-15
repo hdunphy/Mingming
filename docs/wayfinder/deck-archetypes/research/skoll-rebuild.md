@@ -184,3 +184,37 @@ no row.
    window and both beat the control, so the ratatoskr precedent applies.
 4. **The OS/daemon compound** (§2) is now live in the pool. Do firmware and daemons stack by
    design?
+
+
+---
+
+## 9. Amendment 1 — the gate closed, and the diagnosis held
+
+Henry approved the single swap §5 recommended: **`overdrive` ×2 → ×1, `fury_strike` ×1 → ×2.**
+No knobs. Registry `1:998a835e` → `1:b76809c9`.
+
+| skoll_v2 | before A1 (A / B) | **after A1 (A / B)** |
+|---|---|---|
+| **dead cards** | 36.9 / 38.2% ❌ | **32.5 / 32.8%** ✅ |
+| field | 51.0 / 50.1% | 44.9 / 41.5% ✅ |
+| control | 85.0 / 83.3% | 71.7 / 74.6% ✅ |
+| mirror | 2.5–2.7t | 2.6–2.7t, 92–93% decided ✅ |
+| first-mover | −7.1 / −12.1% | +1.8 / −10.0% ✅ |
+
+**Every gate on both decks is now green.** skoll_v1 is untouched and confirms it — 47.7 / 48.1%
+field, 100% control, 29.7 / 29.6% dead.
+
+**The §5 diagnosis was right on both counts.** Removing the third 2-cost card is what moved the
+number, and the amendment's own prediction (dead ~33–34%, field mid-40s) landed almost exactly
+on the measurement. `fury_strike` being the only 1e attack that *feeds* the OS is why the cost
+was as small as it was: the lost nuke copy partially returns as fuel.
+
+**What it cost:** ~6–8 field points and ~10–13 control points on v2. Both were spare.
+
+**8-DIFF: 4 rows of 67 moved, 63 bit-identical** — `control-vs-skoll_v2` 18.2 → 35.4, `os:skoll`
+0.30 → 0.2778, and the two `control-overall` aggregates. No other species moved by any amount.
+§1.3 unchanged at 38.
+
+The general lesson, now in HANDOFF as `0-SKOLL-CURVE`: **a dead-card gate is a curve reading,
+and power dials do not move it.** Knob round 2 spent 12.7 field points proving that; one card
+swap fixed it.
