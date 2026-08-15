@@ -2,7 +2,7 @@
 
 - Type: wayfinder:research - REPORT-ONLY. No card, deck, OS, or engine changes; probe arms
   mutate in memory only (ticket-60 style).
-- Status: **open** - authorized by Henry 2026-08-16. Runs BEFORE the kraken design session;
+- Status: **closed** (2026-08-16) - report delivered, nothing changed. Ran BEFORE the kraken design session;
   its verdict table is that session's opening exhibit.
 - Assignee: -
 - Blocked by: none (tree-free etiquette applies).
@@ -48,35 +48,68 @@ WINNABLE-MISPLAYED) with the margin numbers, probe results, the surge_protection
 questions for Henry, card appendix. ONE commit (research file + ticket closed). No
 recommendations executed - the design session follows this report.
 
-## Amendment 1 (Henry, 2026-08-16): the type-advantage confound - decompose BEFORE the verdicts
 
-Henry's challenge to ticket 65's headline: kraken's 13.0 damage/turn - the number that
-"proved" rate is not the problem - is an AGGREGATE that includes her type-advantaged Fire
-matchups (fenrir 100%, skoll 98% - both Fire). If Water>Fire multiplies her damage there,
-her NEUTRAL-matchup rate is lower than 13.0, her wins may be type artifacts, and the whole
-deck is simply underpowered. The report compared confounded aggregates; decompose them.
+---
 
-### Question 0 (runs FIRST; the other questions' verdicts are read against it)
+## Resolution (2026-08-16) — delivered, report-only, Amendment 1 answered first
 
-a. **Pull the actual type chart** for all 15 of kraken's matchups from the engine data and
-   print it - the session reads facts, not folklore. Bucket every opponent: ADVANTAGED /
-   NEUTRAL / DISADVANTAGED (both directions - note anyone advantaged INTO kraken).
-b. **Damage/turn split by bucket** for kraken_v1 and kraken_v2 - AND for reference decks
-   valkyrie_v2, skoll_v1, hel_v2 measured the same way, so the comparison is
-   apples-to-apples (every deck's aggregate carries some type mix).
-c. **Type-normalized rate**: kraken's damage/turn with the element multiplier's
-   contribution removed (tag damage events with their applied multiplier in the logs).
-   Where does NORMALIZED kraken rank against the roster's normalized rates?
-d. **Win rate by bucket.** Note the clean cell: jormungandr is WATER - a same-element 0%
-   with no type excuse in either direction (though jorm's 84% field means everyone loses
-   to him; read it against his other matchups, not in isolation).
+[research/kraken-lockout.md](../research/kraken-lockout.md). **~3,700 real battles**: 960
+autopsy, 1,280 pool probes, 1,440 type decomposition across five decks. **No changes of any
+kind.**
 
-### Decision rule for the design session (write the verdict explicitly)
+**Q0 (Amendment 1) — Henry's confound is CONFIRMED and larger than suspected.** Kraken is Water;
+`ElementalMatrix` is asymmetric (x1.5 advantage, no resistance). **Her four wins are exactly her
+four type-advantaged matchups** (fenrir/skoll Fire, fafnir/gullinbursti Earth) and **every
+disadvantaged matchup is a zero** (ratatoskr/huldra Nature, ymir/draugr Ice). Damage/turn splits
+**16.32 advantaged / 12.70 neutral / 9.88 disadvantaged** against ticket 65's confounded 13.0
+aggregate, with a ~48% type lift in the advantaged cell. **Her win rate was confounded far more
+than her damage: the neutral-bucket rate is 7.1% (v1) / 12.5% (v2) against the reported 26.6%.**
 
-- Normalized/neutral rate BOTTOM-TIER -> **Henry's story: underpowered.** The fix starts
-  with power (surge_protection, ink_stream, TIDAL_CRUSH knobs), and the zeros get re-read
-  after rate lands mid-pack - tools only if zeros survive the power fix.
-- Normalized/neutral rate MID-PACK with only the sustain-heavy matchups failing ->
-  **ticket 65's story: missing tools.** Design session proceeds on the lockout verdicts.
-- Both partially true is the likely outcome - report the split so the session can sequence
-  power-then-tools with numbers.
+**THE VERDICT, written explicitly per the decision rule: both stories are partially true, and
+neither named the actual deficit.**
+
+| NEUTRAL bucket | frame HP | dmg/turn | taken/turn | **net/turn** | win% |
+|---|---|---|---|---|---|
+| kraken_v1 | 72 | 12.72 | 14.21 | **-1.49** | 10.7% |
+| valkyrie_v2 | 82 | 12.51 | 12.53 | **-0.01** | 64.4% |
+| skoll_v1 | 76 | 16.84 | 16.39 | +0.45 | 46.4% |
+| hel_v2 | 80 | 21.99 | 26.41 | -4.43 | 75.5% |
+
+**Kraken deals the SAME damage per turn as valkyrie_v2 in neutral matchups and wins 10.7% where
+valkyrie wins 64.4%.** Her offense is not bottom-tier - it is level with a 64%-winning deck. She
+takes 14.21 where valkyrie takes 12.53, on a frame 12% smaller. **The deficit is NET, -1.49 a
+turn, of which offense contributes ~0.2 and defence ~1.3.** hel_v2 is the control that proves
+the game pays for rate: worst damage taken in the roster, three turns of life, 75.5% win.
+
+- Henry's confound: **CONFIRMED**, and bigger than suspected.
+- Henry's "underpowered": **directionally right, wrongly located** - not output, net.
+- Ticket 65's "missing tools": **survives only for the sustain subset**, and the pool cannot reach it.
+
+**Actionable number for the session: closing -1.49/turn, roughly +12% damage rate or the
+equivalent in damage taken.**
+
+**Q1-3 - NO STRUCTURAL LOCKOUT EXISTS.** Seven of eight zeros have been dragged below 26% of max
+HP and **five of eight have been taken to 0.0%** - kraken has killed them; v2 won at least one
+game against five of the eight in-sample. **ymir is the closest and still is not one** (mean
+minimum 72.8%, best case 30.4%): 5.80 damage/turn into 7.75 sustain is the only cell where the
+arithmetic genuinely does not close. **Sustain is NOT the common cause** - jormungandr and
+nidhoggr sustain **0.00**, huldra 1.93, draugr 3.39. She is **out-damaged in every zero
+matchup** and **out-raced rather than out-scaled**: the two longest matchups are where she comes
+closest. Energy on non-damage cards: v1 **0.0%**, v2 **36.8%**.
+
+**Q4 - THE POOL DOES NOT CONTAIN HER ANSWER.** Three arms per deck: **not one moves a single
+zero off zero for v1**; for v2 poison nudges 2.5% -> 3.1% and **both energy arms make it WORSE,
+to 0.0%**. Removing `capacitor` pushes her mean-minimum-opponent-HP UP (53.4 -> 64.5 vs
+audhumbla) because the ramp was buying her 3-energy payoff turns. The cheap fix is measurably
+unavailable.
+
+**Q5 - `surge_protection` is NEARLY conditionless, and the "nearly" is real.** Chain cited:
+`card_drawn_check` -> `constraints.json:42` `{CARDS_DRAWN, value 1}` -> `ConditionValidator.ts:199`
+-> `resolutionEngine.ts:531` (`executeDraw` increments the counter; **`isNatural` is passed but
+never consulted for it**) -> `battleReducer.ts:943` (the draw phase calls the same function). So
+the draw-phase draw satisfies it for every species. **BUT** `cardsToDraw` is clamped by
+`HAND_SIZE_LIMIT - hand.length`, so a full hand draws nothing: measured, **8.8% / 9.6% of plays
+happen on a zero-draw turn**. It is a net-1e 40-power attack on ~91% of turns for anyone, and a
+true 2e one on the rest - dropped-condition family in effect, not by construction.
+
+Five questions returned; the load-bearing one is **offensive or defensive fix for the -1.49**.
