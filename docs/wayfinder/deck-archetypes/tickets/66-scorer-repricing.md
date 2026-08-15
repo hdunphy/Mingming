@@ -20,10 +20,16 @@
    Burn 2.27, Poison 6.57, Sharp 7.61, Strengthened 5.90, Weakened 5.04, Dazed 3.62,
    BarkShield 7.70; others per the census table) - heat_wave and contagion stop sharing a
    constant.
-5. **Burn pricing modernized** (ticket-62 loose end): price applications against the CAP-4
-   spread tier table (1.5/3/5/8) not the old 3-tier, plus detonation expected value - derive
-   P(cap-crossing per applied stack) from the census Burn board distribution (mean 2.27,
-   max 4), EV = P x 0.14 x representative maxHp; document the derivation in the comment.
+5. ~~Burn pricing modernized~~ **ALREADY SHIPPED** (0-BURN-PRICE-LAG closed 2026-08-15 -
+   the scorer derives Burn prices from the engine; do NOT touch that path). Instead:
+   **fix the molten_core pile mis-model** the repricing surfaced - the scorer prices its
+   2+2 application as two independent 2-stack rungs (27) where the engine builds a pile of
+   4 (52.5 on the non-linear table). Model sequential applications within one action
+   against the ACCUMULATED pile. Expect molten_core to read ~1.9 OVER afterward - that is
+   the honest number and per the policy below the CARD does not change.
+6. Note: ASSUMED_CONSUMED_STACKS already exists ({ Burn: 1.5 }, fallback 3) - items 1-4
+   EXTEND the shipped structure, they do not rebuild it. Fractional-stack law applies
+   (interpolate, never index - see the burnPower NaN lesson).
 
 ## Policy (Henry, 2026-08-15 - record verbatim in the Resolution)
 
