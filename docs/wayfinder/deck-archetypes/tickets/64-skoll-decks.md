@@ -137,3 +137,20 @@ Gates: `tsc -b` clean, **820 passed / 61 files** (suite AFTER the last content e
 `vite build` clean.
 
 **Four questions returned** (report §8); the load-bearing one is the dead-card card swap.
+
+## Amendment 1 (Henry, 2026-08-15): close the dead-card gate with the curve swap
+
+The ship left ONE gate failing: skoll_v2 dead cards 36.9/38.2 vs <=0.35 (both seed bases).
+Diagnosis accepted: curve shape, not power - three 2-cost cards on a 2e frame in 3.5-turn
+games; round 2 proved power dials do not reach this number.
+
+**Approved change (one swap, nothing else):** `skoll_v2` deck: `overdrive` x2 -> x1,
+`fury_strike` x1 -> x2. Rationale: fury_strike is the only 1e attack that FEEDS the OS
+(+1 Str = +15% on subsequent hits), so the lost nuke copy partially returns as fuel.
+Predicted: dead ~33-34%, field mid-40s.
+
+**Gates:** scoped BALANCE_ONLY=skoll, two seed bases on the dead-card number (it is the
+gate being closed): dead <=0.35 BOTH bases, field 0.35-0.80, control >=0.60, FTK 0,
+mirror bands. NO knobs - if the swap does not close the gate, STOP and report; the next
+move (second swap vs formal waiver) is Henry's. vitest AFTER the edit; full npm run
+balance; ONE commit; results appended here; HANDOFF refresh.

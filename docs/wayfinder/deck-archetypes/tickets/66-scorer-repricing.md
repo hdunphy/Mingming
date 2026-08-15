@@ -11,7 +11,7 @@
 
 1. ASSUMED_CONSUMED_STACKS: Burn 1.5 (stays, confirmed), **Poison 8** (measured 11.47 mean /
    umbral median 3 - priced at the conservative end of the 8-12 band, tail documented),
-   **Strengthened 5** (TREACHERY measured 4.8 - pre-seeded for sun_devourer, ticket 64).
+   **Strengthened 8** (Henry 2026-08-15, superseding the pre-seeded 5: ticket 64's ship measured 7.91 mean / 8 median consumed in the real deck - the whole list feeds the pile, not just TREACHERY's 4.8. sun_devourer's static rises toward honest; expect it on the ledger, card unchanged per policy).
    Fallback for absent statuses stays 3.
 2. **DISTINCT_STATUS: 3 -> 1** (measured 0.70 unconditional - the only zeros-counted number).
 3. **WEAKENED_STACKS 3 -> 5** (5.04) - **BARKSHIELD_STACKS 3 -> 7** (7.70) - DAZED stays 3
