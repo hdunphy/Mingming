@@ -3,8 +3,8 @@
 - Type: wayfinder:task - Henry-approved design (2026-08-15, skoll design session). This
   ticket IS the implementation brief; implementing session flips it closed + appends its
   Resolution.
-- Status: **open**
-- Assignee: -
+- Status: **closed** (2026-08-15) — shipped, **one gate RED**: skoll_v2 dead cards
+- Assignee: implementation agent
 - Blocked by: ticket 62 SHIPPED (7a39275, DET-C4-D14) - run against that baseline.
   DEEP-PHASE POLICY binds; branch card-dev; author Henry Dunphy <hdunphy15@gmail.com>;
   line-ending law; locks -> _to_delete/git-locks/.
@@ -69,3 +69,71 @@ next: kraken -> hel_v1 -> hraesvelgr pass; ticket 63 census in any gap).
 
 Commit hash, both decks' gate numbers vs bands, knob rounds, first-mover re-read, the
 sun_devourer static-vs-measured note, deviations - or findings if STOPPED.
+
+
+---
+
+## Resolution (2026-08-15) — SHIPPED, with skoll_v2's dead-card gate RED
+
+Registry `1:8b7b0ae9` → **`1:998a835e`**. Full write-up:
+[research/skoll-rebuild.md](../research/skoll-rebuild.md).
+
+**Both decks came off the floor.** Field, 30 iterations on two independent seed bases:
+
+| deck | before | after | control | FTK | dead | mirror |
+|---|---|---|---|---|---|---|
+| skoll_v1 | 36.9% | **45.6 / 46.1%** | 100 / 100% | 0 | 30.2 / 30.6% | 3.6-3.7t, 100% dec |
+| skoll_v2 | 27.2% | **51.0 / 50.1%** | 85.0 / 83.3% | 0 | **36.9 / 38.2%** ❌ | 2.5-2.7t, 93-97% dec |
+
+**Part 1.** SOLAR_FLARE_OS retired; **SOLAR_OVERDRIVE_OS** ships in `CustomFirmware.ts` rather
+than `hooks.json`, and the reason is the CAP: `HookFactory.resolveScaling` hard-caps
+STRENGTH_STACKS at 8 and this OS is specified at 5, so a data hook would read **+120% at eight
+stacks where the design says +75% at five**. A `scalingCap` schema field would mean zod plus the
+TS unions twice over (8c2) for one consumer; hand-written firmware is the hel_v2/ymir_v2
+precedent. **Pool watch-item recorded as directed: the OS and `core_overclock_daemon` COMPOUND
+(8-COMPOUND)** — `1.15^n x 1.2^n` in a player build holding both. Not fixed. `liveness.ts`: zero
+static findings, skoll_v2 LIVE (2,267 effects).
+
+**Part 2.** `sun_devourer` shipped. **One engine addition was required: `STATUS_CONSUMED` did
+not exist on ATTACK** (HEAL and STATUS only). Added POWER-side per the ticket-26 lesson, so it
+rides the divisor/STAB/resistances and zero consumed means zero damage.
+
+**The static-vs-measured note.** Scorer reads **3.2** against a 6.5 budget; measured over 239
+casts it consumes **7.91 Strength per cast** (median 8, max 19) and deals **32.67 damage per
+cast** (median 33, max 62) at 0.80 casts/game, with only **2 of 239** casts finding an empty
+pile. The ticket predicted an under-read against TREACHERY's 4.8; the real figure is 7.91 — a
+**2.6x** under-read, because v1's whole list feeds the pile. Against `fire_punch_v2`'s 10.5-13.5
+vanilla benchmark that is ~2.5-3x a vanilla 1e card at 2e — honest in delivered terms. Its §1.3
+row was not chased in either direction, per the ticket.
+
+**Part 3.** Both lists shipped as authored (plus knob 1 below). Stale ticket-13 comment replaced.
+
+**Knob rounds — one worked, one backfired.**
+- **Round 1 (v2), `strength_burst` x2 -> x1 + `fury_strike`:** dead **40.5% -> 36.9%**, field
+  43.9 -> **51.0**, control 81.7 -> **85.0**. Kept.
+- **Round 2 (v2), OS 15% -> 10%: FAILED IN BOTH DIRECTIONS and was reverted.** The dead gate it
+  targeted got WORSE (36.9 -> **37.6%**) because games barely lengthened (3.50 -> 3.63 turns),
+  and it cost **12.7 field points and 20 control points**. The reason is recorded in the
+  constant's comment so nobody re-runs it.
+
+**THE RED GATE — returned as a finding.** skoll_v2's dead-card ratio is **36.9 / 38.2% against
+0.35 on two seed bases** — not noise. The mechanism is the CURVE, not the power: she holds
+**three 2-cost cards on a 2-Energy frame in a 3.5-turn game**. Round 2 proved power dials do not
+move this number; both remaining authorized knobs are power dials. **The fix is one card swap —
+drop an `overdrive` copy for a 1e/0e Fire attack — and it is outside the authorized list, so it
+STOPPED here.** Predicted by analogy with round 1: dead ~33-34%, field down ~3-5 to the mid-40s,
+still in band.
+
+**First-mover re-read:** v1 **+18.3 / +3.3%**, v2 **-7.1 / -12.1%** — the +24.5% flag CLEARS on
+every reading. Note the 15-point spread between v1's two bases: the self-mirror first-mover
+figure is a noisy instrument at 30 iterations.
+
+**8-DIFF: 7 rows of 67 moved, 60 bit-identical.** `os:skoll` 54.0 -> 20.0, control-vs-v2
+48.0 -> 18.2, control-vs-v1 20.0 -> **0.0**, mirror 50.7 -> 49.0, plus the three
+`control-overall` aggregates. **fenrir, hraesvelgr and draugr did not move by any amount.** New
+§2.3 redline `os:skoll` 0.30 (diagnostic-only). Redlines 48 -> 49; §1.3 unchanged at 38.
+
+Gates: `tsc -b` clean, **820 passed / 61 files** (suite AFTER the last content edit),
+`vite build` clean.
+
+**Four questions returned** (report §8); the load-bearing one is the dead-card card swap.

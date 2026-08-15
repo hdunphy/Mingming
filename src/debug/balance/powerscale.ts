@@ -512,7 +512,13 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             let power = typeof action.damageOverride === 'number'
                 ? (action.damageOverride / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP
                 : (action.power || 0);
-            if (action.scaling === 'CARDS_PLAYED') power *= ASSUMED_CARDS_PLAYED;
+            // Ticket 64: STATUS_CONSUMED on an ATTACK (`sun_devourer` eats its own Strength and
+            // pays damage per stack). The path was priced for HEAL and STATUS and would otherwise
+            // score the card at its raw printed power, which reads 0.1 against a 6.5 band.
+            // Known under-read and sanctioned by the ticket: the fallback assumption is 3 stacks
+            // and TREACHERY's measured feed is 4.8, so the sim gate decides this card, not §1.3.
+            if (action.scaling === 'STATUS_CONSUMED') power *= consumedCount(consumedStatusOnThisCard);
+            else if (action.scaling === 'CARDS_PLAYED') power *= ASSUMED_CARDS_PLAYED;
             // Ticket 26: MISSING_HP is power-side now, priced at the cap - ASSUMED_HP_PERCENT
             // 0.5 means "assume half HP", which IS the MISSING_HP_PCT_CAP of 50.
             else if (action.scaling === 'MISSING_HP') power += (action.scalingPower || 0) * 50;

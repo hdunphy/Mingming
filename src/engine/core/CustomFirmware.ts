@@ -55,6 +55,39 @@ function helBloodPct(context: HookContext, owner: IBattleEntity): number {
     return printed * HEL_BLOOD_PCT_PER_ENERGY;
 }
 
+/**
+ * SOLAR_OVERDRIVE_OS (skoll_v2), ticket 64 — the hoarding half of the wolf.
+ *
+ * "Skoll's attacks deal +15% damage per stack of Strength she holds (max 5 stacks)."
+ *
+ * WHY IT IS HERE AND NOT IN hooks.json. The mechanism is `core_overclock_daemon`'s exactly —
+ * an `onDamageCalculated` multiplier scaled by STRENGTH_STACKS — and that hook IS expressible
+ * as data. What is not expressible is the CAP: `HookFactory.resolveScaling` hard-caps
+ * STRENGTH_STACKS at `STRENGTH_STACK_CAP` (8), and this OS is specified at 5. A data hook
+ * would read +120% at eight stacks where the design says +75% at five, and the difference is
+ * not cosmetic on a deck built to hoard — `strength_burst` alone grants 5.
+ *
+ * Expressing it as data would have meant a new `scalingCap` field on the hook schema, which
+ * per HANDOFF 8c2 means touching zod AND the TS unions in two places each, for one consumer.
+ * Hand-written firmware is the precedent for exactly this (hel_v2's UNDERWORLD_GATEWAY, ymir_v2's
+ * GLACIAL_HEART) and costs no schema surface.
+ *
+ * POOL WATCH-ITEM, recorded per the ticket rather than fixed: this OS and
+ * `core_overclock_daemon` COMPOUND (HANDOFF 8-COMPOUND). The daemon leaves skoll's deck here
+ * but stays in the registry, so a player build holding both gets 1.15^n x 1.2^n. Not fixed,
+ * documented — the fix is a design call about whether firmware and daemons may stack at all.
+ *
+ * NOTE for anyone reading a skoll_v2 card score: powerscale cannot see firmware, so every
+ * attack in this deck is worth up to 75% more than its printed score says.
+ */
+// Knob round 2 (ticket 64) tried 0.10 here and it FAILED in both directions: the dead-card
+// gate it was aimed at got WORSE (36.9% -> 37.6%) because games barely lengthened (3.50 ->
+// 3.63 turns), and it cost 12.7 field points and 20 control points. Reverted. The dead-card
+// overage is a CURVE problem - three 2-cost cards on a 2-Energy frame - and no authorized
+// knob reaches it. See the ticket-64 Resolution.
+const SKOLL_V2_DAMAGE_PER_STRENGTH = 0.15;
+const SKOLL_V2_STRENGTH_CAP = 5;
+
 export const CustomFirmware: Record<string, HookDefinition[]> = {
     "fafnir_v1": [
         {
@@ -284,6 +317,23 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                     return currentDamage + Math.floor(currentDamage * 0.25);
                 }
                 return currentDamage;
+            }
+        }
+    ],
+    "skoll_v2": [
+        {
+            id: "skoll_v2_solar_overdrive",
+            priority: 40,
+            onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
+                if (context.source?.id !== owner.id) return currentDamage;
+                const strength = owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks ?? 0;
+                if (strength <= 0) return currentDamage;
+                const stacks = Math.min(strength, SKOLL_V2_STRENGTH_CAP);
+                // Floored, like every other firmware damage bonus, so the OS can never add a
+                // fractional point the UI cannot show. Compounds with Strengthened's OWN
+                // 2%/stack modifier rather than replacing it (8-COMPOUND) - that is the
+                // intended reading of "hoards her Strength": the pile pays twice.
+                return currentDamage + Math.floor(currentDamage * (SKOLL_V2_DAMAGE_PER_STRENGTH * stacks));
             }
         }
     ]

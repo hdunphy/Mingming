@@ -496,34 +496,9 @@
     },
     "skoll_v2": {
         "id": "skoll_v2",
-        "name": "SOLAR_FLARE_OS",
-        "description": "Whenever you play a Fire card against a target with 3 or more stacks of Burn, refund 1 Energy.",
-        "hooks": [
-            {
-                "id": "skoll_v2_hook",
-                "trigger": "onActionStart",
-                "priority": 40,
-                "when": {
-                    "source": "SELF",
-                    "programElement": "Fire",
-                    "targetStatus": {
-                        "status": "Burn",
-                        "minStacks": 3
-                    }
-                },
-                "do": [
-                    {
-                        "type": "ENERGY",
-                        "target": "SELF",
-                        "amount": 1
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s SOLAR_FLARE_OS refunds 1 Energy!"
-                    }
-                ]
-            }
-        ]
+        "name": "SOLAR_OVERDRIVE_OS",
+        "description": "Skoll's attacks deal +15% damage per stack of Strength she holds (max 5 stacks).",
+        "hooks": []
     },
     "jormungandr_v1": {
         "id": "jormungandr_v1",

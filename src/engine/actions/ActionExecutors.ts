@@ -130,7 +130,17 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
 
             // SHARP_STACKS scaling handled by the shared helper (also used by
             // the UI damage preview, so preview and reality cannot drift).
-            const effectivePower = getEffectiveAttackPower(source, actionData, target);
+            let effectivePower = getEffectiveAttackPower(source, actionData, target);
+
+            // Ticket 64: STATUS_CONSUMED on an ATTACK - `sun_devourer` consumes all of the
+            // caster's Strengthened and pays damage per stack eaten. The path existed for HEAL
+            // (ash_communion) and STATUS (hexbloom) but never for ATTACK.
+            //
+            // POWER-side, not post-damage, which is the ticket-26 lesson: a post-damage multiply
+            // would bypass the divisor, STAB and resistances and disagree with what powerscale
+            // charges. Zero consumed means zero power means zero damage, so the card is a payoff
+            // and never an opener - the same shape `BURN_TIMES_ENERGY` has.
+            if (scaling === 'STATUS_CONSUMED') effectivePower *= (state.lastStatusConsumed ?? 0);
 
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 

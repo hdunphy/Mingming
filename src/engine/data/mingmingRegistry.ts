@@ -163,10 +163,23 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         secondaryElement: "None",
         cardDraw: 3,
         availableOS: ["skoll_v1", "skoll_v2"],
-        // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
+        // Ticket 64: ONE resource, TWO appetites. v1 EATS her Strength, v2 HOARDS it - the
+        // species identity that replaces the ticket-13 legacy shared lists both slots ran until
+        // now. `adrenaline` (57.8% dead) and `core_overclock_daemon` (42.5% dead, its 8-cap
+        // overfed in 57.5% of games) both leave; both stay in the registry.
         decks: {
-            "skoll_v1": ["fury_strike", "fury_strike", "adrenaline", "adrenaline", "fire_punch_v2", "brute_force", "fire_punch_v2", "core_overclock_daemon", "water_slap"],
-            "skoll_v2": ["ignite", "scorch", "fire_poke", "fire_poke", "cinder_slash", "cinder_slash", "fire_punch_v2", "fire_punch_v2", "water_slap"]
+            // TREACHERY consume-cycle: get hit, grow the pile, DEVOUR it. `crimson_draw`
+            // extends the feeding window by keeping her alive inside her own drawback.
+            "skoll_v1": ["sun_devourer", "sun_devourer", "fury_strike", "fury_strike", "brute_force", "battle_rhythm", "crimson_draw", "crimson_draw", "water_slap"],
+            // Solar ignition: `strength_burst` lights the core, `overdrive`/`glass_cannon` nuke
+            // under +75%. `all_in`'s 3 self-Burn is the first card in the game that expresses
+            // symmetric detonation risk - at cap 4 it sits one stray stack from blowing up on
+            // her. No sustain by design; the clock is built in.
+            // Knob round 1 (ticket 64, pre-authorized): `strength_burst` x2 -> x1 + `fury_strike`.
+            // The 2-copy list read 40.5% dead against a 0.35 gate - four 2-cost cards on a
+            // 2-Energy frame in a 3.5-turn game is a curve problem, not a power one, and the
+            // second copy is the one that rots. `fury_strike` at 1e feeds the same pile.
+            "skoll_v2": ["strength_burst", "fury_strike", "all_in", "desperate_strike", "reckless_charge", "overdrive", "overdrive", "glass_cannon", "water_slap"]
         },
         moves: [
             {
