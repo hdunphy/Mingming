@@ -48,9 +48,17 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
     "kraken": {
         id: "kraken",
         name: "Kraken",
+        // Ticket 70: attack 80 -> 100. Henry picked the lane ("Kraken needs to pick a lane and
+        // with low HP and Def it's not working"); the sweep picked ATTACK over HP and DEF. HP is
+        // nearly inert here - +24 HP bought 6.5 points of field and removed no zero matchups -
+        // and DEF buys field but WIDENS the band problem (13 violations at def111 vs 10 here).
+        // Attack is the only lane that kills the outright losses: 14 zero-win-rate matchups
+        // across v1 and v2 fall to 6, and v1's NEUTRAL zeros go to none. Confirmed on two seed
+        // bases. Deliberately NOT 104/105, which buy 1-2 more points of field by converting low
+        // violations into HIGH ones - the ticket-69 standard counts both ends.
         baseStats: {
             hp: 58,
-            attack: 80,
+            attack: 100,
             defense: 87,
             energy: 2
         },
