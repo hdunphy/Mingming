@@ -3,7 +3,7 @@
 - Type: wayfinder:task - Henry-approved 2026-08-15 off research/status-pile-census.md.
   SCORER-ONLY: zero card, deck, OS, or engine-behavior changes. Sections 2-3 of the balance
   report must stay byte-identical; section 1.3 churn is EXPECTED and gets a ledger.
-- Status: **open**
+- Status: **closed** (2026-08-15)
 - Assignee: -
 - Blocked by: run when the tree is free.
 
@@ -51,3 +51,62 @@ report + ticket Resolution + HANDOFF refresh. No knobs - this ticket has no tuni
 
 Commit hash, the 1.3 ledger, confirmation of 2-3 byte-identity, deviations - or findings
 if STOPPED.
+
+
+---
+
+## Resolution (2026-08-15) — shipped, ledger truthful, no card touched
+
+Registry **unchanged at `1:b76809c9`** (scorer-only). Full write-up:
+[research/scorer-repricing.md](../research/scorer-repricing.md).
+
+**THE GATE: sections 2-3 are BYTE-IDENTICAL.** `balance_matchups.csv` matches HEAD's byte for
+byte across all 67 rows, and all 11 §2-3 redlines are unchanged. Nothing about behaviour moved.
+
+**Section 1.3: 38 -> 42.** Five cards on, one off, three moved and stayed under.
+
+| card | cost | old | new | budget | status | why |
+|---|---|---|---|---|---|---|
+| Contagion | 2 | 1.4 | **20.4** | 6.5 | **ON** | doubles Poison (pile 6.57, quadratic curve) |
+| Umbral Feast | 1 | 3.0 | **14.9** | 3.0 | **ON** | consumes Poison 3 -> 8 |
+| Hexbloom | 2 | 6.3 | **16.5** | 6.5 | **ON** | WEAKENED_STACKS 3 -> 5 |
+| Sun Devourer | 2 | 3.2 | **8.4** | 6.5 | **ON** | consumes Strengthened 3 -> 8 |
+| Molten Core | 1 | 2.3 | **4.1** | 3.0 | **ON** | accumulated pile: 2+2 Burn is one pile of 4 |
+| Avalanche | 2 | 2.7 | 6.3 | 6.5 | under | BARKSHIELD_STACKS 3 -> 7 |
+| Heat Wave | 2 | 3.0 | 5.9 | 6.5 | under | doubles Burn (pile 2.27) |
+| Rimebreaker | 2 | 7.5 | **2.5** | 6.5 | **OFF** | DISTINCT_STATUS 3 -> 1 |
+| Wither Feast | 2 | -1.8 | -10.8 | 6.5 | under | consumes the TARGET's Poison - a cost |
+
+**Two of the ticket's four predictions were wrong, and both are informative.** `wither_feast`
+did NOT enter - it consumes the ENEMY's Poison, which the scorer books as a downside, so the
+bigger constant pushed it further UNDER; the prediction had the sign backwards. `heat_wave` did
+NOT enter either (5.9): it doubles Burn, the smallest board pile at 2.27. **`contagion` and
+`heat_wave` were the pair this ticket split apart and the split is 20.4 against 5.9** - they
+were never the same card. Unpredicted: **`hexbloom` at 16.5**, which is the census's clearest
+vindication - the file's own comment hand-priced it at ~6.3, exactly what it scored while
+WEAKENED_STACKS sat at 3.
+
+**Changes:** consumed table Burn 1.5 / **Poison 8** / **Strengthened 8**, fallback 3;
+**DISTINCT_STATUS 3 -> 1**; **WEAKENED_STACKS 3 -> 5**; **BARKSHIELD_STACKS 3 -> 7**; DAZED
+stays 3 and the "~10" comment is DELETED; **MULTIPLY_STATUS reads the pile of the status it
+multiplies** and prices doubling as `value(pile x factor) - value(pile)`; **repeated
+applications within one card accumulate** (keyed by status AND target, so `priorPile` is 0 for
+every single-application card - which is why only `molten_core` moved). Burn's own pricing was
+NOT touched (0-BURN-PRICE-LAG stays closed).
+
+**Test updated (one, listed as required):** `burnPricing.test.ts` -> "the roster cards land where
+the census says they should" pinned `umbral_feast` at 3.0, the OLD Poison-consumed constant.
+Updated to 14.9 with the reason inline. Its sibling assertion - `ash_communion` at 4.1, consuming
+BURN at 1.5 - is unchanged, which proves the Burn-only scoping survived. No other test pinned a
+repriced constant.
+
+**Policy recorded verbatim per the ticket:** *Repricing does NOT trigger card changes in either
+direction. Cards reading UNDER after honest constants stay untouched; cards entering the redline
+ledger are documented as deliberate - the ledger got truthful, the cards did not change. If a
+DECK underperforms later, the sanctioned buff lever is raising printed status counts,
+enabler-first, AFTER this repricing settles.*
+
+Gates: `tsc -b` clean, **820 passed / 61 files**, `vite build` clean, full `npm run balance`
+with §2-3 byte-identical. No knobs - this ticket had no tuning surface.
+
+Four questions returned (report §5); the load-bearing one is **`contagion` at 3x its budget**.

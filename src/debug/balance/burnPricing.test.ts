@@ -156,9 +156,14 @@ describe('the 1.5 consumed-stack assumption is BURN-ONLY', () => {
 
     it('the roster cards land where the census says they should', () => {
         // Regression pins for the two real cards, so a future edit to either assumption shows up.
+        //
+        // Ticket 66 moved `umbral_feast` 3.0 -> 14.9: it consumes POISON, and the census set that
+        // assumption from 3 to 8 (measured 11.47, priced conservatively). This pin asserted the
+        // OLD constant and is updated, not deleted - it is doing its job by failing here.
+        // `ash_communion` consumes BURN at 1.5 and is unmoved, which is the point of the block.
         const ash = GetProgramData('ash_communion');
         const umbral = GetProgramData('umbral_feast');
         if (ash) expect(calculatePowerscale(ash).score).toBe(4.1);
-        if (umbral) expect(calculatePowerscale(umbral).score).toBe(3);
+        if (umbral) expect(calculatePowerscale(umbral).score).toBe(14.9);
     });
 });

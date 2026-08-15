@@ -328,6 +328,42 @@ function regenPower(stacks: number): number {
  * would otherwise have ticked four more times. That is the engine's behaviour, not an artifact
  * of the model - on an 80 HP frame 4 stacks deal 13 HP and 5 stacks deal 12.
  */
+/**
+ * Measured mean size of each status pile, GIVEN one exists, at the moment a card is played.
+ * research/status-pile-census.md, 3,840 real battles. Ticket 66.
+ *
+ * Used by MULTIPLY_STATUS, which doubles whatever is already there: `heat_wave` doubles Burn
+ * and `contagion` doubles Poison, and those are not the same card. Before this they shared one
+ * constant and therefore scored as if they were.
+ */
+const MEASURED_BOARD_PILE: Record<string, number> = {
+    BarkShield: 7.7, Sharp: 7.61, Poison: 6.57, Strengthened: 5.9, Weakened: 5.04,
+    Dazed: 3.62, Burn: 2.27, Regen: 2.25, Asleep: 2.01, Energized: 1.22, Stunned: 1,
+};
+
+/**
+ * What N stacks of `status` are worth, in power. The dispatch mirrors the STATUS branch in
+ * `calculatePowerscale` - extracted so MULTIPLY_STATUS can price a pile going from P to P x
+ * factor as the DIFFERENCE between two piles, which is what doubling actually delivers.
+ *
+ * Takes fractional stacks: the measured piles are means (2.27 Burn, 6.57 Poison), and the
+ * fractional-stack law applies - every function reached here interpolates or is a formula, and
+ * none of them index an array (the burnPower NaN lesson).
+ */
+function statusPileValue(status: string | undefined, stacks: number): number {
+    if (!status || stacks <= 0) return 0;
+    if (status === 'Strengthened' || status === 'Dazed') return streamStacks(stacks) * OFFENSE_STREAM_POWER_PER_STACK;
+    if (status === 'Weakened' || status === 'Sharp') return streamStacks(stacks) * DEFENSE_STREAM_POWER_PER_STACK;
+    if (status === 'Burn') return burnPower(stacks);
+    if (status === 'Poison') return poisonPower(stacks);
+    if (status === 'Regen') return regenPower(stacks);
+    if (status === 'Energized') return stacks * ENERGIZED_POWER_PER_STACK;
+    if (status === 'BarkShield') return stacks * SHIELD_POWER_PER_PERCENT;
+    if (status === 'Stunned') return STUNNED_POWER;
+    if (status === 'Asleep') return ASLEEP_POWER;
+    return stacks * 20;   // the historical flat fallback, in power units
+}
+
 export function burnPower(stacks: number): number {
     if (stacks <= 0) return 0;
     const cap = BURN_CONFIG.maxStacks;
@@ -428,7 +464,23 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     // the decks routinely overflow and that decays 1/turn, so its pile is small and short-lived
     // in a way Poison's and the stream statuses' are not. Anything absent from this table falls
     // back to ASSUMED_STATUS_COUNT above.
-    const ASSUMED_CONSUMED_STACKS: Record<string, number> = { Burn: 1.5 };
+    // Every number here is measured — research/status-pile-census.md, 3,840 real battles.
+    //   Burn 1.5          measured 1.50 (and 22.7% of casts consume NOTHING — the 4-stack cap
+    //                     plus 1/turn decay keep the pile small in a way no other status's is)
+    //   Poison 8          measured 11.47 mean / median 12, priced at the CONSERVATIVE end of the
+    //                     8-12 band because umbral_feast's median is 3 against a mean of 7.58 —
+    //                     a long right tail rather than a typical big pile (max observed 79)
+    //   Strengthened 8    measured 7.91 mean / 8 median in ticket 64's shipped skoll_v1, where
+    //                     the whole list feeds the pile, not just TREACHERY's 4.8
+    // Anything absent falls back to ASSUMED_STATUS_COUNT.
+    // Ticket 66: the board assumptions the census re-set. Each is a mean over 3,840 battles,
+    // conditional on the pile existing — except ASSUMED_DISTINCT_STATUS, which counts zeros and
+    // is therefore the only one needing no floor caveat.
+    const ASSUMED_DISTINCT_STATUS = 1;      // measured 0.70, unconditional
+    const ASSUMED_WEAKENED_STACKS = 5;      // measured 5.04
+    const ASSUMED_BARKSHIELD_STACKS = 7;    // measured 7.70
+
+    const ASSUMED_CONSUMED_STACKS: Record<string, number> = { Burn: 1.5, Poison: 8, Strengthened: 8 };
     const consumedCount = (status?: string): number =>
         (status && ASSUMED_CONSUMED_STACKS[status] !== undefined)
             ? ASSUMED_CONSUMED_STACKS[status]
@@ -499,6 +551,21 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
      */
     let removalScore = 0;
 
+    /**
+     * Ticket 66: stacks of each status this card has ALREADY applied to a given target, so a
+     * second application is priced against the pile the first one built.
+     *
+     * `molten_core` is the case that forced it: it applies Burn twice (2 + 2), and the scorer
+     * priced two independent 2-stack rungs at 13.5 each = 27, where the engine builds ONE pile
+     * of 4 worth 52.5 on the non-linear table. Under by 2.55 on a 3.0 budget. The independence
+     * was always there; ticket 62's spread table is what made it matter, because the value
+     * curve stopped being close to linear across the cap.
+     *
+     * Keyed by status AND target, because applying 2 Burn to each of two different entities
+     * really is two independent 2-stack piles.
+     */
+    const appliedSoFar = new Map<string, number>();
+
     card.actions.forEach((action: ProgramAction) => {
         let actionScore = 0;
 
@@ -525,18 +592,19 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             else if (action.scaling === 'HP_PERCENT') power *= ASSUMED_HP_PERCENT;
             else if (action.scaling === 'DISCARD_SIZE') power *= ASSUMED_DISCARD_SIZE;
             else if (action.scaling === 'STATUS_COUNT') power *= ASSUMED_STATUS_COUNT;
-            // Ticket 32: DAZED_STACKS reads the TARGET's stacks, which static analysis cannot
-            // see, so this is a FLOOR not a price - the same no-deck-context limit ticket 29
-            // documented for brute_force. ratatoskr_v2's realistic count at cast is ~10, not 3.
+            // Ticket 66: DAZED_STACKS stays at 3 - it is the ONE board assumption the census
+            // vindicated (measured 3.62). Ticket 32's note here claimed ratatoskr_v2's realistic
+            // count is ~10; that was hand-derived and is measurably wrong, so it is deleted
+            // rather than carried forward.
             else if (action.scaling === 'DAZED_STACKS') power *= ASSUMED_STATUS_COUNT;
-            // Ticket 48: DISTINCT_STATUS counts distinct debuff TYPES on the target, so the same
-            // FLOOR caveat applies - draugr_v2's realistic count at cast is 3, which is what
-            // ASSUMED_STATUS_COUNT happens to be. Coincidence, not derivation.
-            else if (action.scaling === 'DISTINCT_STATUS') power *= ASSUMED_STATUS_COUNT;
-            // Ticket 50: BARKSHIELD_STACKS reads the SOURCE's own shield, which static analysis
-            // cannot see either. Same FLOOR caveat - avalanche's realistic cast is 7-10 stacks
-            // (GLACIER_HEART's 5 plus survivors), not the 3 this assumes.
-            else if (action.scaling === 'BARKSHIELD_STACKS') power *= ASSUMED_STATUS_COUNT;
+            // Ticket 66: DISTINCT_STATUS 3 -> 1. Measured 0.70 distinct debuff types on the
+            // card's target, and this is the ONE census number counted UNCONDITIONALLY - zeros
+            // included - so it needs no floor caveat. It was over-priced by 4.3x, which is most
+            // of why `rimebreaker` carried a redline row.
+            else if (action.scaling === 'DISTINCT_STATUS') power *= ASSUMED_DISTINCT_STATUS;
+            // Ticket 66: BARKSHIELD_STACKS 3 -> 7 (measured 7.70, the largest board pile in the
+            // game). Ticket 50's hand-derived "7-10" guess was close; the measurement replaces it.
+            else if (action.scaling === 'BARKSHIELD_STACKS') power *= ASSUMED_BARKSHIELD_STACKS;
             // Ticket 53: CARDS_DRAWN multiplies the resolved damage, not the power, but the
             // scorer has one knob and they are the same knob at this resolution.
             else if (action.scaling === 'CARDS_DRAWN') power *= ASSUMED_CARDS_DRAWN;
@@ -573,21 +641,31 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
                 : (action.scaling === 'STATUS_CONSUMED' || action.scaling === 'WEAKENED_STACKS')
                     ? (action.stacks || 1) * (action.scaling === 'STATUS_CONSUMED'
                         ? consumedCount(action.status ?? consumedStatusOnThisCard)
-                        : ASSUMED_STATUS_COUNT)
+                        : ASSUMED_WEAKENED_STACKS)
                     : (action.stacks || 1);
             const absStacks = Math.abs(stacks);
             const status = action.status;
 
+            // Ticket 66: price this application against the pile the card has already built on
+            // this target, not from zero. `priorPile` is 0 for the first application of a
+            // status, which makes this a no-op for every single-application card in the roster.
+            // A consume is excluded: it REMOVES a pile rather than adding to one.
+            const pileKey = `${status}|${(action.target || 'TARGET').toUpperCase()}`;
+            const priorPile = isConsume ? 0 : (appliedSoFar.get(pileKey) ?? 0);
+            if (!isConsume && status) appliedSoFar.set(pileKey, priorPile + absStacks);
+            const marginal = (valueAt: (n: number) => number) =>
+                valueAt(priorPile + absStacks) - valueAt(priorPile);
+
             if (status === 'Strengthened' || status === 'Dazed') {
-                actionScore = (streamStacks(absStacks) * OFFENSE_STREAM_POWER_PER_STACK) / 10.0;
+                actionScore = marginal(n => streamStacks(n) * OFFENSE_STREAM_POWER_PER_STACK) / 10.0;
             } else if (status === 'Weakened' || status === 'Sharp') {
-                actionScore = (streamStacks(absStacks) * DEFENSE_STREAM_POWER_PER_STACK) / 10.0;
+                actionScore = marginal(n => streamStacks(n) * DEFENSE_STREAM_POWER_PER_STACK) / 10.0;
             } else if (status === 'Burn') {
-                actionScore = burnPower(absStacks) / 10.0;
+                actionScore = marginal(burnPower) / 10.0;
             } else if (status === 'Poison') {
-                actionScore = poisonPower(absStacks) / 10.0;
+                actionScore = marginal(poisonPower) / 10.0;
             } else if (status === 'Regen') {
-                actionScore = regenPower(absStacks) / 10.0;
+                actionScore = marginal(regenPower) / 10.0;
             } else if (status === 'Energized') {
                 actionScore = (absStacks * ENERGIZED_POWER_PER_STACK) / 10.0;
             } else if (status === 'Stunned') {
@@ -622,16 +700,16 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // "SHIFT_STANCE ≈ 15 enabler" (docs/power_curve_spec.md "Exotics — verdicts").
             actionScore = 1.5;
         } else if (action.type === 'MULTIPLY_STATUS') {
-            // No static board state to multiply against - approximate against the same
-            // ASSUMED_STATUS_COUNT baseline the scaling actions use, priced as if it were
-            // that many fresh stacks of the doubled status (factor 2 => +ASSUMED_STATUS_COUNT
-            // stacks' worth of value; other factors scale linearly off that same baseline).
+            // Ticket 66: price the pile of the status this card actually multiplies, and price
+            // it as a DIFFERENCE. The old model used one shared constant and one shared
+            // per-stack rate, so `heat_wave` (doubles Burn) and `contagion` (doubles Poison)
+            // scored identically despite their piles measuring 2.27 and 6.57 and their value
+            // curves being non-linear in opposite ways - Burn's flattens at its cap, Poison's is
+            // quadratic. Doubling a pile is worth `value(P x factor) - value(P)`, nothing else.
             const factor = action.factor ?? 2;
-            const impliedExtraStacks = ASSUMED_STATUS_COUNT * (factor - 1);
-            const perStackPower = DEBUFFS.includes(action.status) || action.status === 'Burn'
-                ? BURN_TIER_POWER[0]
-                : OFFENSE_STREAM_POWER_PER_STACK;
-            actionScore = (impliedExtraStacks * perStackPower) / 10.0;
+            const pile = MEASURED_BOARD_PILE[action.status ?? ''] ?? ASSUMED_STATUS_COUNT;
+            actionScore = (statusPileValue(action.status, pile * factor)
+                - statusPileValue(action.status, pile)) / 10.0;
             manualReview.push(action.type);
         } else if (action.type === 'GENERATE_CARD') {
             // Ticket 32: a generated card is worth the card it generates. Recursion is bounded

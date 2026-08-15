@@ -4,8 +4,8 @@
   "command": "npm run balance",
   "registryHash": "1:b76809c9",
   "summary": {
-    "redlines": 49,
-    "cardRedlines": 38,
+    "redlines": 53,
+    "cardRedlines": 42,
     "matchupRedlines": 11,
     "cardsAudited": 214,
     "matchupsAudited": 67,
@@ -37,8 +37,50 @@
     ],
     "redlines": [
       {
+        "id": "contagion",
+        "name": "Contagion",
+        "cost": 2,
+        "score": 20.4,
+        "perEnergy": 8.6,
+        "budget": 6.5,
+        "overBudgetBy": 13.9,
+        "manualReview": [
+          "MULTIPLY_STATUS"
+        ]
+      },
+      {
+        "id": "umbral_feast",
+        "name": "Umbral Feast",
+        "cost": 1,
+        "score": 14.9,
+        "perEnergy": 14.9,
+        "budget": 3,
+        "overBudgetBy": 11.9,
+        "manualReview": []
+      },
+      {
+        "id": "hexbloom",
+        "name": "Hexbloom",
+        "cost": 2,
+        "score": 16.5,
+        "perEnergy": 6.9,
+        "budget": 6.5,
+        "overBudgetBy": 10,
+        "manualReview": []
+      },
+      {
         "id": "stunning_strike",
         "name": "Stunning Strike",
+        "cost": 2,
+        "score": 8.4,
+        "perEnergy": 3.5,
+        "budget": 6.5,
+        "overBudgetBy": 1.9,
+        "manualReview": []
+      },
+      {
+        "id": "sun_devourer",
+        "name": "Sun Devourer",
         "cost": 2,
         "score": 8.4,
         "perEnergy": 3.5,
@@ -107,8 +149,8 @@
         "manualReview": []
       },
       {
-        "id": "sky_burial_ascended",
-        "name": "Sky Burial, Ascended",
+        "id": "molten_core",
+        "name": "Molten Core",
         "cost": 1,
         "score": 4.1,
         "perEnergy": 4.1,
@@ -117,13 +159,13 @@
         "manualReview": []
       },
       {
-        "id": "rimebreaker",
-        "name": "Rimebreaker",
-        "cost": 2,
-        "score": 7.5,
-        "perEnergy": 3.2,
-        "budget": 6.5,
-        "overBudgetBy": 1,
+        "id": "sky_burial_ascended",
+        "name": "Sky Burial, Ascended",
+        "cost": 1,
+        "score": 4.1,
+        "perEnergy": 4.1,
+        "budget": 3,
+        "overBudgetBy": 1.1,
         "manualReview": []
       },
       {
@@ -2349,6 +2391,16 @@
     {
       "kind": "CARD_OVER_BUDGET",
       "section": "1.3",
+      "subject": "contagion",
+      "metric": "score",
+      "value": 20.4,
+      "threshold": 6.5,
+      "comparison": "above",
+      "detail": "Contagion (contagion) costs 2 energy and scores 20.4, 13.9 over the 6.5 budget for that cost. (score excludes unscored MULTIPLY_STATUS action(s) - actual value is at least this.)"
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
       "subject": "corrosive_leak",
       "metric": "score",
       "value": 2.3,
@@ -2459,6 +2511,16 @@
     {
       "kind": "CARD_OVER_BUDGET",
       "section": "1.3",
+      "subject": "hexbloom",
+      "metric": "score",
+      "value": 16.5,
+      "threshold": 6.5,
+      "comparison": "above",
+      "detail": "Hexbloom (hexbloom) costs 2 energy and scores 16.5, 10 over the 6.5 budget for that cost."
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
       "subject": "hoof_strike",
       "metric": "score",
       "value": 1.1,
@@ -2509,6 +2571,16 @@
     {
       "kind": "CARD_OVER_BUDGET",
       "section": "1.3",
+      "subject": "molten_core",
+      "metric": "score",
+      "value": 4.1,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Molten Core (molten_core) costs 1 energy and scores 4.1, 1.1 over the 3 budget for that cost."
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
       "subject": "overgrowth",
       "metric": "score",
       "value": 3.6,
@@ -2545,16 +2617,6 @@
       "threshold": 3,
       "comparison": "above",
       "detail": "Pressure Point (pressure_point) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
-    },
-    {
-      "kind": "CARD_OVER_BUDGET",
-      "section": "1.3",
-      "subject": "rimebreaker",
-      "metric": "score",
-      "value": 7.5,
-      "threshold": 6.5,
-      "comparison": "above",
-      "detail": "Rimebreaker (rimebreaker) costs 2 energy and scores 7.5, 1 over the 6.5 budget for that cost."
     },
     {
       "kind": "CARD_OVER_BUDGET",
@@ -2609,6 +2671,16 @@
     {
       "kind": "CARD_OVER_BUDGET",
       "section": "1.3",
+      "subject": "sun_devourer",
+      "metric": "score",
+      "value": 8.4,
+      "threshold": 6.5,
+      "comparison": "above",
+      "detail": "Sun Devourer (sun_devourer) costs 2 energy and scores 8.4, 1.9 over the 6.5 budget for that cost."
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
       "subject": "thaw",
       "metric": "score",
       "value": 3.1,
@@ -2645,6 +2717,16 @@
       "threshold": 3,
       "comparison": "above",
       "detail": "Thornguard (thornguard) costs 1 energy and scores 3.3, 0.3 over the 3 budget for that cost."
+    },
+    {
+      "kind": "CARD_OVER_BUDGET",
+      "section": "1.3",
+      "subject": "umbral_feast",
+      "metric": "score",
+      "value": 14.9,
+      "threshold": 3,
+      "comparison": "above",
+      "detail": "Umbral Feast (umbral_feast) costs 1 energy and scores 14.9, 11.9 over the 3 budget for that cost."
     },
     {
       "kind": "CARD_OVER_BUDGET",
