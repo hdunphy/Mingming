@@ -77,3 +77,38 @@ Full npm run balance; 8-DIFF (kraken rows move; control frozen; nothing else bey
 noise). ONE commit: card + hooks + registry lists + tests + report + this ticket's
 Resolution + map line + HANDOFF refresh. Deliverable: arm table, shipped lists, knob
 rounds, per-cell before/after vs the census, deviations - or findings if STOPPED.
+
+## Amendment 1 (Henry, 2026-08-16): web-aligned v2 arms - ramp preys on CONTROL
+
+Henry's re-aim off the archetype web: kraken_v2's jormungandr zero is BY DESIGN (zoo preys
+on ramp - the wheel). Her real web violations are her PREY cells: **huldra 0%, draugr 2%,
+ratatoskr 7% - a ramp deck losing to every control deck.** The fix is ramp OVERDELIVERY,
+not zoo-hedging.
+
+**NEW STANDING LAW (0-RAMP-PREMIUM, add to HANDOFF): a ramp deck's payoff is priced
+against the turns it SKIPS, not the curve alone - the ramped turn must exceed 2x a normal
+turn's output. Zoo punishing the skip is the web working; control being unable to punish
+it is what the premium crushes.** Today capacitor is net-zero energy time-shifted (2e now,
+2e later, minus a card, minus a turn of chip on 58 HP) - the skip has no premium.
+
+### v2 arm set (replaces b/c/d; a and e stand as written)
+
+| arm | change (ONE per arm) | targets |
+|---|---|---|
+| b | water_slap x1 -> riptide_daemon | the neutral 0% FLOOR vs zoo (jorm cell 0 -> ~20-35 = the soft-counter band; no-0%-cells is a hard gate even for predator matchups) |
+| c | water_slap x2 -> venom_fang + corrosive_bolt | peer/sustain cells (valkyrie, audhumbla) |
+| f | TIDAL_CRUSH 15% -> 25% | PREY conversion (huldra/draugr/ratatoskr) - the lawful enabler-side push |
+| g | capacitor: "Gain 2 Energy next turn" -> "Gain 3" | ramp overdelivery - 5e turn = hydro_blast + surge_protection, ~46+ vs ~26 over two normal turns. CHECK: double-capacitor chain (6e turn) for degeneracy + engine energy cap; FTK watch |
+| h | best-of-round-2: combine the two strongest of {b,c,f,g} after reading round 1 | the ship candidate |
+
+Fallback design (do NOT build unless g degenerates): capacitor draw-rider ("...and draw a
+card") - repays card-tempo instead of upsizing energy.
+
+### Reading framework + ship rule (replaces the original ship rule for v2)
+
+Per-cell targets under the web: PREY (huldra/draugr/ratatoskr) -> 65-80%; PREDATOR (jorm)
+-> 20-35% (hard floor: off 0%); PEERS (valkyrie/audhumbla) -> 40-60%. Ship the arm (or h
+combo) that lands field 0.35-0.80 with the most cells in their role bands, subject to: no
+NEUTRAL cell at 0% or >90%, FTK 0, dead <=0.35, control >=0.60. Two seed bases near any
+line. Knobs unchanged (riptide 25 -> 20/30, threshold 3 -> 4) plus TIDAL_CRUSH -> 20 as a
+half-step if 25 overshoots. Anything else -> STOP.
