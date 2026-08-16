@@ -10,6 +10,14 @@
 4. **`surge_protection` fires only on a TRIGGERED draw** - a card, OS or daemon. "This effect is broken if it triggers when you get a new hand." Shipped as ticket 68, and it found two stacked defects.
 5. **NEW STANDARD: 10-90% single-deck matchup bands.** "No single matchup should win >90% of matches." High sustain beating kraken is acceptable; 100% is not. **This is a per-MATCHUP band, not an aggregate** - every existing gate is an aggregate and none of them can see a 100% cell. Census in ticket 69.
 
+## META-LAYER DECIDED (Henry, 2026-08-16): the shipped game is 3v3 WITH SWITCHING
+
+- **The type chart stays x1.5, unreshaped.** The 95 typed band violations RECLASSIFY as the strategic layer (a countered lead switches out - Pokemon-shape). The elemental pivot question is CLOSED: no typeless pivot, no multiplier reshape.
+- **BUCKET-BAND STANDARD adopted:** neutral-type cells are the ONLY balance bugs. Near-term hard gate: NO absolute 0%/100% in any NEUTRAL cell. Direction: neutral cells inside 10-90. Typed cells exempt by design. The band census (ticket 69's instrument) joins the standing gate suite (ticket 73 task 3). Within neutral, the ARCHETYPE WEB (research/archetype-web.md) licenses designed soft counters at 65-80% - lopsided-by-role is texture, lopsided-by-accident is a bug.
+- **Resurrections:** ally-heal firmware space, ink_cloud, einherjar_standard, ticket 05 team scenarios - all live again. **Team-battle simulator is the roadmap horizon after the neutral-spread cleanup** (the entire suite is 1v1 today; 1v1 deck quality remains the foundation, but switching re-values setup decks and opens on-switch-punish design space).
+- Queue (2026-08-16): **73 FTK correctness (FIRST - hard-gate integrity) -> 72 kraken web package -> jormungandr_v1 cut (design session with Henry: 90.0% mean, 11 cells >90, strengthened by ticket 71 - power problem at ANY type philosophy) -> hel_v1 -> hraesvelgr pass (multi-base first-mover re-read) -> dead-card cleanup -> post-queue re-census** (judges jorm accept-and-watch + hel_v2 waiver + the neutral-band count).
+- Ticket-70 resolution reviewed and ratified (ATK 80->100): v1 in band at 43.2 with neutral zeros -> 0; v2 stopped at 27.9 -> ticket 72 is her tools pass. Anti-zoo shape decision: Henry's PUNISH DAEMON (riptide - per-turn threshold 3, cumulative-5 measured as fallback arm e) over the ink-veil (poison hole + new-status cost; veil PARKED as fallback design).
+
 ## DEEP-PHASE POLICY (Henry, 2026-08-12 — supersedes the band rules below where they conflict)
 
 1. **§2.3 IS DEMOTED TO A DIAGNOSTIC.** Two OSes of one species MAY hard-counter each other — that is
