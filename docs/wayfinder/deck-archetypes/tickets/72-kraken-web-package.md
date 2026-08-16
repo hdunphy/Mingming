@@ -45,13 +45,20 @@ procs/game + HP delivered by matchup, FTK, dead cards.
 | arm | deck change (pre-approved by Henry) |
 |---|---|
 | a | kraken_v1 + riptide_daemon (9 -> 10 cards, no cut) |
-| b | kraken_v2: capacitor x2 -> capacitor x1 + riptide_daemon |
-| c | kraken_v2: capacitor x2 -> venom_fang + corrosive_bolt (the Poison clock; sharing
+| b | kraken_v2: water_slap x2 -> water_slap x1 + riptide_daemon |
+| c | kraken_v2: water_slap x2 -> venom_fang + corrosive_bolt (the Poison clock; sharing
 |   | jorm's appliers WITHOUT his payoff is rulebook-legal) |
-| d | kraken_v2: both - capacitor x2 -> riptide_daemon + venom_fang |
+| d | kraken_v2: both - water_slap x2 -> riptide_daemon + venom_fang |
 | e | riptide variant: trigger = every 5 cards CUMULATIVE (Henry's original sketch) on
 |   | arm-b's list - demonstrates the game-length confound vs the per-turn shape with
 |   | numbers rather than assertion |
+
+**CAPACITOR IS UNTOUCHABLE in every arm (Henry, 2026-08-16):** it is the RAMP ENABLER -
+the only route from her 2-Energy frame to the 3e payoffs (hydro_blast + maelstrom, 58.6%
+of her damage, the cards TIDAL_CRUSH exists for). Its 0.0 damage/play is its JOB, not a
+dead slot (the ticket's original arms b-d cut it - that was a designer error, corrected).
+The spendable slots are the water_slaps: 0e filler at 1.4 damage/play with no energy or
+OS role.
 
 ## Ship rule
 
