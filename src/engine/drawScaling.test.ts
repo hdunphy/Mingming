@@ -75,17 +75,18 @@ describe('CARDS_DRAWN_TRIGGERED scaling', () => {
 });
 
 describe('the two carrier cards are wired to the triggered scaler at the compensated power', () => {
-    it('ink_stream: 12 -> 33 — the fixed point, NOT the 4.04x naive ratio', () => {
+    it('ink_stream: 33 -> 28, re-solved under ticket 73 cap 2', () => {
         const a = (GetProgramData('ink_stream') as ProgramData).actions[0] as never as { scaling: string; power: number };
         expect(a.scaling).toBe('CARDS_DRAWN_TRIGGERED');
-        expect(a.power).toBe(33);
+        expect(a.power).toBe(28);
         expect(GetProgramData('ink_stream')!.description).toContain('card, OS or daemon');
+        expect(GetProgramData('ink_stream')!.description).toContain('up to 2');
     });
 
-    it('starfall: 10 -> 18 — likewise below its 2.57x naive ratio', () => {
+    it('starfall: 18 -> 24, RAISED because the cap bites it on 35% of casts', () => {
         const a = (GetProgramData('starfall') as ProgramData).actions[0] as never as { scaling: string; power: number };
         expect(a.scaling).toBe('CARDS_DRAWN_TRIGGERED');
-        expect(a.power).toBe(18);
+        expect(a.power).toBe(24);
         expect(GetProgramData('starfall')!.description).toContain('card, OS or daemon');
     });
 

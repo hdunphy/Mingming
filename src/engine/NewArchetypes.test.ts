@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
-import { ActionExecutorRegistry } from './actions/ActionExecutors';
+import { ActionExecutorRegistry, DRAW_SCALING_CAP } from './actions/ActionExecutors';
 import { createMockEntity } from './data/battleFactories';
 import { SeedStream } from './core/SeedStream';
 import { GetProgramData } from './data/programRegistry';
@@ -107,7 +107,7 @@ describe('Advanced Archetypes Logic', () => {
         expect(nextState.logs.some(l => l.includes('🔁 Reprogramming: Test Strike'))).toBe(true);
     });
 
-    it('CARDS_DRAWN scaling should increase damage', () => {
+    it('CARDS_DRAWN scaling should increase damage, up to DRAW_SCALING_CAP', () => {
         // Compare a x10 multiplier against a x1 baseline rather than a hardcoded magic
         // number: docs/power_curve_spec.md rev 3 dropped calculateDamage's flat +2 floor,
         // so a low, off-curve power value (this test used power=5) can now floor to exactly
@@ -117,7 +117,13 @@ describe('Advanced Archetypes Logic', () => {
         // 60 maxHp - overkill would clamp `damageDealt` at the enemy's remaining HP and break
         // the clean x10 relationship this test checks. The comparison itself doesn't need
         // re-deriving every time the curve is retuned again, only this margin does.
+        //
+        // Ticket 73 CAPPED this scaler at `DRAW_SCALING_CAP` (2). A x10 draw count no longer
+        // buys x10 damage - that unbounded multiplier is what made a first-turn kill reachable
+        // (`ink_stream` at 99 power from a 1-energy card). The test checks BOTH halves now:
+        // it still scales below the cap, and it stops at it.
         const baselineState: IBattleState = { ...initialState, cardsDrawnThisTurn: 1 };
+        const atCapState: IBattleState = { ...initialState, cardsDrawnThisTurn: DRAW_SCALING_CAP.value };
         const scaledState: IBattleState = { ...initialState, cardsDrawnThisTurn: 10 };
         const action: any = { type: 'ATTACK', power: 30, scaling: 'CARDS_DRAWN' };
         const executor = ActionExecutorRegistry['ATTACK'];
@@ -125,10 +131,14 @@ describe('Advanced Archetypes Logic', () => {
         const baselineNext = executor.execute(baselineState, baselineState.playerParty[0].id, baselineState.enemyParty[0].id, action, undefined, {} as any);
         const scaledNext = executor.execute(scaledState, scaledState.playerParty[0].id, scaledState.enemyParty[0].id, action, undefined, {} as any);
 
+        const atCapNext = executor.execute(atCapState, atCapState.playerParty[0].id, atCapState.enemyParty[0].id, action, undefined, {} as any);
+
         const baselineDamage = initialState.enemyParty[0].currentHp - baselineNext.enemyParty[0].currentHp;
+        const atCapDamage = initialState.enemyParty[0].currentHp - atCapNext.enemyParty[0].currentHp;
         const scaledDamage = initialState.enemyParty[0].currentHp - scaledNext.enemyParty[0].currentHp;
 
         expect(baselineDamage).toBeGreaterThan(0);
-        expect(scaledDamage).toBe(baselineDamage * 10);
+        expect(atCapDamage).toBe(baselineDamage * DRAW_SCALING_CAP.value);   // scales below the cap
+        expect(scaledDamage).toBe(atCapDamage);                              // and stops at it
     });
 });
