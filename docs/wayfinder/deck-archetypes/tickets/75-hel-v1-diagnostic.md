@@ -1,7 +1,7 @@
 # hel_v1 diagnostic (ticket 75): measure first - where does she lose?
 
 - Type: wayfinder:research - REPORT-ONLY, no changes executed. Same shape as ticket 65 (kraken).
-- Status: **open**
+- Status: **closed** (2026-08-17)
 - Requested by: Henry 2026-08-17, from the design agent's floor queue ("she's next after kraken").
 - Blocked by: nothing. Runs on any free agent. Baseline is `1a084c7` (post ticket 74).
 
@@ -99,3 +99,34 @@ Questions for Henry at the end. **ONE commit. No changes executed.**
 Note for whoever runs it: `hel_v2` at 80.3% field with four 100% cells is the other half of this
 species and is a worse gate failure in the opposite direction. Out of scope here, but do not let
 the two get conflated in the report the way the brief conflated their card lists.
+
+## Resolution (2026-08-17)
+
+Report: [research/hel-v1-diagnostic.md](../research/hel-v1-diagnostic.md). Instrument
+`scratch/helstance.ts` - the stance tracker the ticket predicted would be the main build. 12
+iterations x both turn orders x 15 opponents, **6,618 of her actions sampled**; `hel_v2` run
+identically as a control.
+
+**Her OS works and is pointed the wrong way round.** She deals **54.2%** of her damage from LIGHT
+stance (no offensive effect) and only 43.3% from DARK (+30%), and takes **66.3%** of her damage in
+DARK (no defensive effect) against 25.1% in LIGHT (-30%). Both halves are up at the wrong moment,
+structurally: stance is set at END of action, so casting a Dark attack leaves her in Dark for the
+opponent's swing, and casting `pale_mercy` leaves her in Light for her own. **She cannot hold the
+right stance for both phases of a round.**
+
+**Two of the ticket's hypotheses were wrong and are corrected in the report.** The stance genuinely
+toggles (Dark 58.6% / Light 35.3% / neither 6.1%, changing between consecutive actions 42.5% of
+the time), and **`eclipse`'s +30 lands on 82.9% of casts** - the AI sequences it correctly. Eclipse
+is still a bad card at **19.0 average damage for 2 Energy**, but that is pricing, not the OS.
+
+**The real second-order problem is throughput.** `hel_v1` deals a median ~13 damage/turn against
+`hel_v2`'s ~25 from the same 80 HP body. The `hel_v2` control also shows **net damage/turn is the
+wrong lens across different clock speeds** - she is net-NEGATIVE against 9 of 15 opponents,
+including -4.57 against a kraken she beats 92%, and she is the roster's joint-strongest deck.
+
+`purify` is the one dead card at a **6.3%** play rate, and it is dead in a specific way: played 93
+times into decks that apply Poison or Burn and 102 times into decks that apply neither. It is not
+being held as an answer.
+
+Five questions for Henry, the first being whether stance should set on CAST rather than at end of
+action so each card pays for its own stance.
