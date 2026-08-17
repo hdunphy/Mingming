@@ -503,7 +503,7 @@
     "jormungandr_v1": {
         "id": "jormungandr_v1",
         "name": "OUROBOROS_LOOP",
-        "description": "Each turn, the 3rd Water card you play grants 1 Energy and draws 1 card.",
+        "description": "Each turn, the 5th Water card you play draws 1 card.",
         "hooks": [
             {
                 "id": "jorm_v1_count",
@@ -534,7 +534,7 @@
                         {
                             "key": "jorm_water",
                             "operator": "EQ",
-                            "value": 3
+                            "value": 5
                         },
                         {
                             "key": "jorm_ouroboros_used",
@@ -549,11 +549,6 @@
                         "target": "SELF",
                         "key": "jorm_ouroboros_used",
                         "operator": "SET",
-                        "amount": 1
-                    },
-                    {
-                        "type": "ENERGY",
-                        "target": "SELF",
                         "amount": 1
                     },
                     {

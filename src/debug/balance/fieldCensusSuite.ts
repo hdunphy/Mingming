@@ -117,6 +117,30 @@ function publish(rows: FieldCell[]): void {
     writeFileSync(ARTIFACT, `${JSON.stringify(payload, null, 1)}\n`);
 }
 
+/**
+ * Cells where a first-turn kill is ACCEPTED, with the rate it is accepted up to.
+ *
+ * The gate is zero everywhere else. This list exists so an accepted case stays VISIBLE and
+ * bounded rather than being waved through by loosening the assertion: a new cell fails, and an
+ * accepted cell that gets worse fails too.
+ *
+ * Adding an entry is a Henry decision, not a convenience. Each one needs the rate, the type
+ * relationship, and what has to line up.
+ */
+const ACCEPTED_FTK: ReadonlyArray<{ deck: string; opponent: string; maxRate: number; why: string }> = [
+    {
+        deck: 'skoll_v1', opponent: 'jormungandr', maxRate: 0.08,
+        // Ticket 74, accepted by Henry 2026-08-17. Measured 2/60 (3.3%) at 30 iterations, and it
+        // is the ONLY cell of 480 with a kill left. Jormungandr must move first holding both
+        // `undertow`s AND both payoffs, into Skoll - 76 HP on 27 defence, the softest relevant
+        // frame - with Water's 1.5x over Fire. Henry: "if it's something super rare that needs
+        // the right conditions and type advantage it might be fine." The allowance is 8%, ~2.5x
+        // the measured rate, so sampling noise at the default 10 iterations cannot flip the gate
+        // while a real regression still trips it.
+        why: 'ticket 74: 3.3%, type-advantaged, softest frame, needs a perfect opening hand',
+    },
+];
+
 /** Sharded like the mirror and OS suites so the two workers split the field. */
 export function defineFieldCensusSuite(shardIndex: number, shardCount: number): void {
     const all = fieldCells();
@@ -126,7 +150,7 @@ export function defineFieldCensusSuite(shardIndex: number, shardCount: number): 
 
     afterAll(() => publish(rows));
 
-    describe(`Field census shard ${shardIndex + 1}/${shardCount} (ticket 73 - FTK everywhere)`, () => {
+    describe(`Field census shard ${shardIndex + 1}/${shardCount} (FTK everywhere - tickets 73, 74)`, () => {
         it(`scans ${mine.length} cells and finds no first-turn kill`, () => {
             for (const { species, deck, opponent } of mine) {
                 const setup = matchupScenario({
@@ -149,12 +173,17 @@ export function defineFieldCensusSuite(shardIndex: number, shardCount: number): 
                 });
             }
 
-            const offenders = rows.filter(c => c.ftk);
+            const offenders = rows.filter(c => c.ftk).filter(c => {
+                const allowed = ACCEPTED_FTK.find(a => a.deck === c.deck && a.opponent === c.opponent);
+                return !allowed || c.ftk / c.games > allowed.maxRate;
+            });
             const band = rows.filter(c => c.winRate > 0.9 || c.winRate < 0.1);
             const neutralAbsolutes = rows.filter(c => c.bucket === 'NEU' && (c.winRate >= 1 || c.winRate <= 0));
+            const totalFtk = rows.reduce((a, c) => a + c.ftk, 0);
+            const acceptedFtk = totalFtk - offenders.reduce((a, c) => a + c.ftk, 0);
             console.log(
                 `  field census shard ${shardIndex + 1}: ${rows.length} cells at ${CENSUS_ITERATIONS}x2 games` +
-                `\n    FTK ${rows.reduce((a, c) => a + c.ftk, 0)} in ${offenders.length} cells` +
+                `\n    FTK ${totalFtk} total - ${acceptedFtk} in ACCEPTED cells, ${offenders.reduce((a, c) => a + c.ftk, 0)} unaccepted in ${offenders.length} cells` +
                 `\n    band violations ${band.length}/${rows.length} (diagnostic)` +
                 `\n    NEUTRAL absolutes ${neutralAbsolutes.length} (diagnostic - Henry's bucket-band gate, not yet asserted)`,
             );
@@ -163,8 +192,10 @@ export function defineFieldCensusSuite(shardIndex: number, shardCount: number): 
             expect(
                 offenders.map(c => `${c.deck} vs ${c.opponent}: ${c.ftk}/${c.games}`),
                 'A first-turn kill means one side won on turn 1 before the other played a card. ' +
-                'Ticket 73 fixed the mechanism that made it reachable (unbounded per-event-count ' +
-                'scalers); a new one here means a new uncapped multiplier or a new turn-1 chain.',
+                'Ticket 74 fixed the engine that made it reachable (OUROBOROS_LOOP handing ' +
+                'jormungandr_v1 a free Energy AND a free draw on turn one); a new one here means a ' +
+                'new turn-1 chain. See ACCEPTED_FTK above for the one cell that is allowed, and ' +
+                'what it took to accept it.',
             ).toEqual([]);
         });
     });

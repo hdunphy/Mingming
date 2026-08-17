@@ -49,40 +49,22 @@ export const STRENGTH_STACK_CAP = 8;
 export const MISSING_HP_PCT_CAP = 50;
 
 /**
- * Ticket 73: ceilings for the PER-EVENT-COUNT scalers, which were the only scalers in the
- * engine with none. Every other one has had a ceiling for tickets - `STRENGTH_STACK_CAP` 8,
- * `MISSING_HP_PCT_CAP` 50, the status-percentage cap at 25%.
+ * Ticket 74: the per-event-count scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DRAWN_TRIGGERED`,
+ * `CARDS_DISCARDED`) are deliberately UNCAPPED, and that is a design decision, not an oversight.
  *
- * The omission is what made a FIRST-TURN KILL reachable, and it is not hypothetical: all 43
- * FTKs in ticket 69's 480-cell census were `jormungandr_v1` on turn one, and the chain was
- * always the same - two 0-cost `undertow` cantrips, OUROBOROS_LOOP's once-per-turn +1 Energy
- * and +1 draw, `surge_protection`'s refund, then `ink_stream` at 33 power x 3 triggered draws
- * = 99 power from a ONE-ENERGY card, 63% of the target's frame before it had acted. The energy
- * accounting was correct throughout; the multiplier was the defect.
+ * Ticket 73 capped them to stop `jormungandr_v1`'s first-turn kill. Henry rejected the shape:
+ * *"I don't like caps, that makes playing smart feel bad and you'll end turn with energy. You
+ * should be rewarded for playing smart."* Measurement agreed the cap was the worst option on
+ * offer - it cost `kraken_v1` 6 points of field win rate (45.3% -> 38.9%) to brake a deck that
+ * barely felt it (`jormungandr_v1` stayed at 77.3%), because Kraken draws ~1 card a turn and
+ * Jormungandr draws 3. Any change to the SCALER lands hardest on the deck least able to use it.
  *
- * **DRAW_SCALING_CAP = 2.** Draw scalers are SELF-ACCELERATING: the cards that feed them
- * (`undertow`, `glimmer`, `slipstream`) cost 0 and draw more cards, so the count has no natural
- * brake. 2 is what the measurement supports - the tightest arm that reaches FTK 0 while holding
- * delivered damage (`research/ftk-correctness.md`); cap 3 needed `ink_stream` cut to 18 power to
- * reach zero, which cost `kraken_v1` 76% of the card.
+ * The turn-1 kill was fixed at its source instead - OUROBOROS_LOOP, which was handing
+ * `jormungandr_v1` a free +1 Energy AND +1 draw on the 3rd Water card, on a turn where four of
+ * her nine cards cost nothing. See `research/ouroboros-nerf.md`.
  *
- * **PLAY_COUNT_SCALING_CAP = 3**, for `CARDS_PLAYED` and `CARDS_DISCARDED`. These are braked by
- * the Energy pool, so they are not self-accelerating - but they are NOT innocent here either:
- * with the draw cap alone, five FTKs survive, because `serpents_coil` (`CARDS_PLAYED`, same
- * deck) finishes on the same runaway turn what `ink_stream` starts.
- *
- * A LOOSER cap was tried first and does not work: at 5 the full-field scan still finds 3 FTKs,
- * and it does not even buy back the collateral - `os:ratatoskr` reads 3% at cap 5 against 0% at
- * cap 3, from 31% uncapped. That collateral is not an accident of the number, it is
- * `ratatoskr_v1`'s design: `seed_bomb_v2` x2 ("15 power per card played") behind four 0-cost
- * cards and `echo_chamber_v2`, which mints more 0-cost tokens - the same 0-cost-engine-into-
- * unbounded-multiplier shape as `jormungandr_v1`, one energy tier slower. The cap did not break
- * that deck; it revealed where its power was coming from. Flagged for the queued design session.
- *
- * Objects, not bare numbers, so a sweep arm can vary them in memory the way `BURN_CONFIG` does.
+ * If a new scaler in this family ever needs braking, brake the ENGINE feeding it.
  */
-export const DRAW_SCALING_CAP = { value: 2 };
-export const PLAY_COUNT_SCALING_CAP = { value: 3 };
 
 export function getEffectiveAttackPower(
     source: IBattleEntity,
@@ -181,27 +163,27 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
             if (scaling === 'CARDS_PLAYED') {
-                const multiplier = Math.min(state.cardsPlayedThisTurn, PLAY_COUNT_SCALING_CAP.value);
+                const multiplier = state.cardsPlayedThisTurn;
                 damage = Math.floor(damage * multiplier);
             } else if (scaling === 'STATUS_COUNT') {
                 const targetStatusCount = target.statusEffects.reduce((acc, s) => acc + s.stacks, 0);
                 damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
             } else if (scaling === 'CARDS_DRAWN') {
-                const multiplier = Math.min(state.cardsDrawnThisTurn, DRAW_SCALING_CAP.value);
+                const multiplier = state.cardsDrawnThisTurn;
                 damage = Math.floor(damage * multiplier);
             } else if (scaling === 'CARDS_DRAWN_TRIGGERED') {
                 // Ticket 71: only draws an effect CAUSED - a card, an OS or a daemon. The
                 // draw-phase refill is excluded, so this is zero on a turn you did nothing to
                 // earn it, exactly like BURN_TIMES_ENERGY and STATUS_CONSUMED. `CARDS_DRAWN`
                 // above keeps the natural-inclusive count for anything that still wants it.
-                damage = Math.floor(damage * Math.min(state.nonNaturalCardsDrawnThisTurn ?? 0, DRAW_SCALING_CAP.value));
+                damage = Math.floor(damage * (state.nonNaturalCardsDrawnThisTurn ?? 0));
             } else if (scaling === 'ELEMENT_PLAYED') {
                 const elementPlayed = element || programToUse.element;
                 const multiplier = state.elementPlays?.[elementPlayed] || 1;
                 damage = Math.floor(damage * multiplier);
             } else if (scaling === 'CARDS_DISCARDED') {
                 // Carrion Swoop: the windmill's payoff. Mirrors CARDS_PLAYED.
-                damage = Math.floor(damage * Math.min(state.cardsDiscardedThisTurn ?? 0, PLAY_COUNT_SCALING_CAP.value));
+                damage = Math.floor(damage * (state.cardsDiscardedThisTurn ?? 0));
             } else if (scaling === 'ENERGY_SPENT') {
                 damage = Math.floor(damage * (state.lastEnergySpent ?? 0));
             } else if (scaling === 'ENERGY_SPENT_SQUARED') {
