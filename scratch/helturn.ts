@@ -51,10 +51,11 @@ interface Arm {
 
 function run(a: Arm) {
     // --- knobs ---
-    if (a.deck === 'nopurify')
-        (MingmingRegistry as never as Record<string, { decks: Record<string, string[]> }>).hel.decks.hel_v1 =
-            BASE_DECK.map(c => (c === 'purify' ? 'nights_bite' : c));
-    else (MingmingRegistry as never as Record<string, { decks: Record<string, string[]> }>).hel.decks.hel_v1 = [...BASE_DECK];
+    // `deck` = the card that replaces `purify`, or blank to leave the deck alone. The deck
+    // rulebook caps copies at 2, so `nights_bite` (already x2) is NOT a legal replacement even
+    // though it measured best in ticket 77 - that arm was illegal and its number is not shippable.
+    (MingmingRegistry as never as Record<string, { decks: Record<string, string[]> }>).hel.decks.hel_v1 =
+        a.deck ? BASE_DECK.map(c => (c === 'purify' ? a.deck! : c)) : [...BASE_DECK];
     const ecl = (ProgramRegistry as never as Record<string, { baseCost: number; actions: Array<{ power: number }> }>).eclipse;
     ecl.baseCost = a.eclipseCost ?? 2;
     ecl.actions[0].power = a.eclipsePower ?? 40;

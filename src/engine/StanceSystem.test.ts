@@ -3,11 +3,15 @@ import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { StatusType } from './types';
 import { calculateHeal } from './combatUtils';
+import { STANCE_BONUS } from './core/Hooks';
 
 /**
  * Stance system (Hel / TWILIGHT_CADENCE):
  * - DarkStance / LightStance are mutually exclusive, cap at 1 stack, never decay.
- * - DarkStance: +30% outgoing damage. LightStance: -30% damage TAKEN (ticket 36 - it
+ * - DarkStance: +STANCE_BONUS.dark outgoing damage. LightStance: -STANCE_BONUS.light damage
+ *   TAKEN. Ticket 78 raised both from 30% to 50% and made them a knob; these tests read the
+ *   knob for the arithmetic AND pin the shipped value separately, so a config change cannot
+ *   leave a green test asserting a number nobody ships (the ticket-62 burn lesson). (Ticket 36 - it
  *   used to grant +50% healing, which was dead weight on a defense-60 striker; the
  *   +50% moved onto hel_v2's UNDERWORLD_GATEWAY via the new onHealCalculated path).
  * - SHIFT_STANCE card actions shift the SOURCE's stance (Watcher model).
@@ -121,8 +125,15 @@ describe('Stance exclusivity and stacking', () => {
     });
 });
 
-describe('Dark Stance: +30% outgoing damage', () => {
-    it('an identical attack deals exactly +30% (floored) while in Dark Stance, through the real reducer', () => {
+describe('the shipped stance percentages', () => {
+    it("are 35% both ways", () => {
+        expect(STANCE_BONUS.dark).toBe(0.35);
+        expect(STANCE_BONUS.light).toBe(0.35);
+    });
+});
+
+describe('Dark Stance: outgoing damage bonus', () => {
+    it('an identical attack deals exactly the bonus (floored) while in Dark Stance, through the real reducer', () => {
         // shadow_claw: 0-cost Dark poke, 5 power + 1 Weakened (ticket 36 redesign). The
         // Weakened lands on the TARGET after the hit, so it cannot skew this measurement.
         const baseState = makeState({}, [card('c1', 'shadow_claw', 0)]);
@@ -137,7 +148,7 @@ describe('Dark Stance: +30% outgoing damage', () => {
         const afterStanced = play(stancedState, 'c1');
         const stancedDamage = 200 - afterStanced.enemyParty[0].currentHp;
 
-        expect(stancedDamage).toBe(Math.floor(baseDamage * 1.3));
+        expect(stancedDamage).toBe(Math.floor(baseDamage * (1 + STANCE_BONUS.dark)));
         expect(stancedDamage).toBeGreaterThan(baseDamage);
     });
 
@@ -155,8 +166,8 @@ describe('Dark Stance: +30% outgoing damage', () => {
     });
 });
 
-describe('Light Stance: -30% damage taken', () => {
-    it('an identical attack lands for exactly -30% (floored) into Light Stance, through the real reducer', () => {
+describe('Light Stance: damage-taken reduction', () => {
+    it('an identical attack lands for exactly the reduction (floored) into Light Stance, through the real reducer', () => {
         const baseState = makeState({}, [card('c1', 'nights_bite')]);
         const baseDamage = 200 - play(baseState, 'c1').enemyParty[0].currentHp;
         expect(baseDamage).toBeGreaterThan(0);
@@ -170,7 +181,7 @@ describe('Light Stance: -30% damage taken', () => {
         };
         const guardedDamage = 200 - play(guardedState, 'c1').enemyParty[0].currentHp;
 
-        expect(guardedDamage).toBe(Math.floor(baseDamage * 0.7));
+        expect(guardedDamage).toBe(Math.floor(baseDamage * (1 - STANCE_BONUS.light)));
         expect(guardedDamage).toBeLessThan(baseDamage);
     });
 
@@ -270,7 +281,7 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
         const followUpDamage = 200 - play(braced, 'c1').enemyParty[0].currentHp;
 
         expect(openingDamage).toBeGreaterThan(0);
-        expect(followUpDamage).toBe(Math.floor(openingDamage * 1.3));
+        expect(followUpDamage).toBe(Math.floor(openingDamage * (1 + STANCE_BONUS.dark)));
     });
 
     it('fires once per PROGRAM, not once per action - a multi-action card cannot flip her mid-card', () => {

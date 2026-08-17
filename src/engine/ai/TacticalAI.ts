@@ -6,6 +6,7 @@ import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
 import { BURN_CONFIG } from '../StatusBehaviors';
+import { STANCE_BONUS } from '../core/Hooks';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
 /**
@@ -169,8 +170,31 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
         case 'BarkShield':
             // Absorb pool of stacks% maxHp, decaying 20%/turn: worth ~80% of face value.
             return HP_POINTS * entity.maxHp * (s / 100) * 0.8;
+        case 'LightStance':
+            // Ticket 78: the stances used to fall through to the `default: return 0` below,
+            // which meant the AI could not see any reason to END ITS TURN holding one. That is
+            // the whole of hel_v1's design - group your damage, close on a Light card so the
+            // shield is up while the opponent swings - and the search was blind to it. Measured
+            // in ticket 77: forcing the correct line by policy was worth +5.3 points of field
+            // and took the damage she absorbs in Light stance from 25% to 48%.
+            //
+            // Valued as ONE opponent turn of throughput times the reduction. One turn, not
+            // STATUS_HORIZON_TURNS, because a stance is not durational - it survives exactly
+            // until its holder casts a card of the other element, which is typically their very
+            // next action. This is the honest floor for a status that reliably covers the swing
+            // you are about to take and rarely more.
+            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STANCE_BONUS.light;
+        case 'DarkStance':
+            // Worth strictly LESS than LightStance at the moment a turn ends, and the asymmetry
+            // is real rather than a thumb on the scale for hel: Light pays on the opponent's
+            // NEXT turn, which is certain and immediate, while Dark pays only on your own next
+            // turn, only if the first thing you do is attack, and only if you are still alive.
+            // Same-turn Dark damage needs no term here at all - the search simulates the attack
+            // and sees the bigger number directly, so pricing it at full value would count it
+            // twice. Halved for the contingency.
+            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STANCE_BONUS.dark * 0.5;
         default:
-            // StableOS, stances, Awoken, marker statuses: situational, valued 0.
+            // StableOS, Awoken, marker statuses: situational, valued 0.
             return 0;
     }
 }

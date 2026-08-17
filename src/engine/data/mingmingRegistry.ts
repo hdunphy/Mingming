@@ -802,6 +802,14 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         cardDraw: 4,
         availableOS: ["hel_v1", "hel_v2"],
         // Ticket 36 (Henry's design): Hel is the roster's first dual-type Mingming (Dark/Light).
+        // Ticket 78: v1's `purify` -> a second `eclipse`. Purify was PROVEN unnecessary, not
+        // guessed at: it played at a 6.3% rate and essentially at random (93 casts into decks
+        // that apply Poison or Burn against 102 into decks that apply neither), and she scores
+        // BETTER against DoT decks without it. Of the legal replacements - the rulebook caps
+        // copies at 2, so a third `nights_bite` was never shippable - a second `eclipse` measured
+        // best at 46.7% field against dawnstrike 42.5%, lumen_surge 36.4%, hamstring 34.7% and
+        // keeping purify 31.4%. Eclipse is her best card by damage per Energy (9.4, 1.5x her
+        // next), so the deck now runs two of them.
         // v1 TWILIGHT_CADENCE - the element she casts sets her stance at end of action, so the
         //    card that sets a stance never benefits from it, only the next one. Dark = +30%
         //    dealt, Light = -30% taken. None-element cards set NO stance, which makes Tackle
@@ -811,7 +819,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    (soul_tithe) and her own hand is her clock (~24 HP on a full hand). Healing is
         //    boosted 1.5x at the OS so the heal cards stay on-curve.
         decks: {
-            "hel_v1": ["shadow_claw", "shadow_claw", "pale_mercy", "pale_mercy", "water_slap", "nights_bite", "nights_bite", "purify", "lumen_surge", "hamstring", "eclipse"],
+            "hel_v1": ["shadow_claw", "shadow_claw", "pale_mercy", "pale_mercy", "water_slap", "nights_bite", "nights_bite", "eclipse", "lumen_surge", "hamstring", "eclipse"],
             "hel_v2": ["pale_mercy", "pale_mercy", "forage", "forage", "dawnstrike", "dawnstrike", "venom_shade", "soul_tithe", "squirrel_away", "last_rites"]
         },
         moves: [

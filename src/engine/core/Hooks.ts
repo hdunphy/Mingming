@@ -17,11 +17,19 @@ import { GetProgramData } from '../data/programRegistry';
  * Ticket 77: the stance percentages, as a knob rather than two literals.
  *
  * `dark` is the ATTACKER's bonus while in DarkStance, `light` the DEFENDER's reduction
- * while in LightStance. Both shipped at 0.30. Henry: "maybe she needs a higher bonus, but
+ * while in LightStance. Shipped at 0.35/0.35 (ticket 78; they were 0.30). Henry: "maybe she needs a higher bonus, but
  * I still like the mechanics" - so the sweep needed a dial, and leaving it here means the
  * next person does not have to re-find these two multiplications.
+ *
+ * **0.35, not the 0.50 that ticket 77's table pointed at.** That table measured the bonus on
+ * top of the BROKEN AI and a deck that still ran `purify`; ticket 78 fixed both, and all
+ * three changes stack. Re-swept against the full 31-deck grid with the other two in place:
+ * 0.50 -> 74.0% field with EIGHT cells above 90%, 0.40 -> 64.9%, **0.35 -> 59.8% and the only
+ * arm with no 0% and no 100% cell in either direction**, 0.30 -> 53.1% with a 0% cell left.
+ * Henry picked 0.35 off that sweep. Re-sweep before moving it again - the right number
+ * depends on what else has changed.
  */
-export const STANCE_BONUS = { dark: 0.30, light: 0.30 };
+export const STANCE_BONUS = { dark: 0.35, light: 0.35 };
 
 /**
  * Ticket 36: healing had no modifier path at all. `onHeal` fires AFTER the heal has
