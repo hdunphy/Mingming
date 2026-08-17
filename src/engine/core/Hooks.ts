@@ -14,6 +14,16 @@ export { getHook, registerHook } from './HookRegistry';
 import { GetProgramData } from '../data/programRegistry';
 
 /**
+ * Ticket 77: the stance percentages, as a knob rather than two literals.
+ *
+ * `dark` is the ATTACKER's bonus while in DarkStance, `light` the DEFENDER's reduction
+ * while in LightStance. Both shipped at 0.30. Henry: "maybe she needs a higher bonus, but
+ * I still like the mechanics" - so the sweep needed a dial, and leaving it here means the
+ * next person does not have to re-find these two multiplications.
+ */
+export const STANCE_BONUS = { dark: 0.30, light: 0.30 };
+
+/**
  * Ticket 36: healing had no modifier path at all. `onHeal` fires AFTER the heal has
  * resolved (a reaction hook - audhumbla_v2 converts overheal into damage with it), so
  * there was nowhere to scale a heal before it landed. This is the heal-side twin of
@@ -148,8 +158,10 @@ export const applyDamageModifiers = (
             } else if (effect.type === 'Weakened') {
                 damage *= (1 - cappedPct(effect.stacks));
             } else if (effect.type === 'DarkStance') {
-                // Stance system: while in Dark Stance the attacker deals +30% damage.
-                damage *= 1.3;
+                // Stance system: while in Dark Stance the attacker deals more damage.
+                // Ticket 77: a knob, not a literal - Henry wanted the bonus swept before
+                // concluding anything about hel_v1's OS.
+                damage *= 1 + STANCE_BONUS.dark;
             }
         }
     }
@@ -168,7 +180,7 @@ export const applyDamageModifiers = (
                 // flat rather than stack-scaled because StanceBehavior.onApply caps stacks
                 // at 1. LightStance used to grant +50% healing; that moved to hel_v2's
                 // firmware, where the frame actually wants it.
-                damage *= 0.7;
+                damage *= 1 - STANCE_BONUS.light;
             }
         }
     }
