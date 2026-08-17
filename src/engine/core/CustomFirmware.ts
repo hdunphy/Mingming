@@ -38,8 +38,15 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  * (`dawnstrike` x2, `squirrel_away`) therefore pay ENERGY again - which is what stops the 20% cap
  * being a hard stop on her turn, and incidentally revives a stat this OS had made dead.
  */
-const HEL_BLOOD_PCT_PER_ENERGY = 5;
-const HEL_BLOOD_CAP_PCT = 20;
+/**
+ * Ticket 79: the OS dials for the four decks at the top of the field, exported as knobs so a
+ * sweep can move them without a rebuild. Shipped values are the ones written here.
+ *
+ * `hel.pctPerEnergy` / `hel.capPct` - UNDERWORLD_GATEWAY's blood price and its per-turn cap.
+ * `ymir.iceBonus`               - GLACIAL_PACE_OS's Ice damage bonus.
+ */
+export const OS_KNOBS = { hel: { pctPerEnergy: 5, capPct: 20 }, ymir: { iceBonus: 0.25 } };
+
 /** Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive". */
 const HEL_BLOOD_BLOCKED_COST = 999;
 
@@ -52,7 +59,7 @@ function helBloodPct(context: HookContext, owner: IBattleEntity): number {
     if (program.baseCost === 'X') return 0;
     const printed = numericBaseCost(program.baseCost);
     if (printed <= 0) return 0;
-    return printed * HEL_BLOOD_PCT_PER_ENERGY;
+    return printed * OS_KNOBS.hel.pctPerEnergy;
 }
 
 /**
@@ -262,7 +269,7 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 const spent = (context.state.counters || {})[resolveCounterKey('hel_blood_spent', 'OWNER', owner)] || 0;
                 // The cap is checked against what this cast WOULD take the total to, so a 3-Energy
                 // spell is refused at 10% spent even though 10 is under 20.
-                if (spent + pct > HEL_BLOOD_CAP_PCT) return HEL_BLOOD_BLOCKED_COST;
+                if (spent + pct > OS_KNOBS.hel.capPct) return HEL_BLOOD_BLOCKED_COST;
                 return 0;
             }
         },
@@ -275,7 +282,7 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 if (pct === 0) return { state };
 
                 // Floor of 1: a cast always costs blood, however small the frame.
-                const hpCost = Math.max(1, Math.ceil(owner.maxHp * (HEL_BLOOD_PCT_PER_ENERGY / 100)) * (pct / HEL_BLOOD_PCT_PER_ENERGY));
+                const hpCost = Math.max(1, Math.ceil(owner.maxHp * (OS_KNOBS.hel.pctPerEnergy / 100)) * (pct / OS_KNOBS.hel.pctPerEnergy));
                 const spentKey = resolveCounterKey('hel_blood_spent', 'OWNER', owner);
                 state = applyMutations(state, [
                     { type: 'HP', targetId: owner.id, sourceId: owner.id, payload: { amount: hpCost } },
@@ -314,7 +321,7 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                     //
                     // NOTE: powerscale cannot see this - it is firmware, not card data - so every
                     // Ice card in ymir_v2 is worth 25% more than its printed score says.
-                    return currentDamage + Math.floor(currentDamage * 0.25);
+                    return currentDamage + Math.floor(currentDamage * OS_KNOBS.ymir.iceBonus);
                 }
                 return currentDamage;
             }
