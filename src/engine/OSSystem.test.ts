@@ -100,7 +100,7 @@ Object.values(FIRMWARE_REGISTRY).forEach(os => {
 });
 
 describe('OS System - Fenrir', () => {
-    it('v1 (UNBOUND_KERNEL): applies 3 Strengthened and deals 2% recoil damage on Attack', () => {
+    it('v1 (UNBOUND_KERNEL): applies 3 Strengthened on Attack, no recoil', () => {
         let state = createInitialState('fenrir_v1');
         const attackCard: ProgramEntity = { id: 'card1', dataId: 'card_strike', currentCost: 1, isPlayable: true };
         state = { ...state, playerDeck: { ...state.playerDeck, hand: [attackCard] } };
@@ -109,8 +109,9 @@ describe('OS System - Fenrir', () => {
         const newState = battleReducer(state, action);
         const p1 = newState.playerParty[0];
 
-        expect(p1.currentHp).toBe(98);
-        expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 1)).toBe(true);
+        // Ticket 82: UNBOUND_KERNEL no longer charges recoil - full HP after an attack.
+        expect(p1.currentHp).toBe(100);
+        expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 3)).toBe(true);
     });
 
     it('v2 (CINDER_WALL_OS): gains 1 Sharp whenever applying Burn', () => {

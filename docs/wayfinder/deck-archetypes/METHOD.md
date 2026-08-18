@@ -59,6 +59,12 @@ Across seven decks: `hraesvelgr_v2` **+64.4** (74.6% -> 10.2% with the OS off), 
 **A deck whose OS is worth +7 cannot be fixed by an OS knob; one worth +64 cannot be fixed by
 anything else.** The number tells you which lever exists before you sweep any of them.
 
+**The bottom of the roster reads the opposite way (ticket 82).** The four decks under 35% had OSes
+worth **+0.9, +6.1, +8.7 and +12.1** - not one above +12, where the nerf group ran +34 to +64.
+**The top of the roster is decided by firmware; the bottom is decided by frames and cards.** So on
+a weak deck the OS-off number is not asking "how strong is this OS" but "is there an OS lever here
+at all" - and usually there is not.
+
 A useful sub-signal: if the payoff card's damage **barely moves** with the OS off
 (`valkyrie_v2`, 14% -> 13%), the OS is not enabling the payoff - it is adding value directly,
 and the knob is the OS's own numbers rather than anything about the card.
@@ -142,6 +148,37 @@ scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DISCARDED`) were the only ones wi
 is what made a first-turn kill reachable - 99 power from a 1-Energy card. **Caps as a design shape
 are now rejected** (2.1); the lesson survives as *know which of your scalers is unbounded and what
 feeds it*.
+
+### 2.7 Buff shape - the two ways a weak OS fails, and the one honest stat change
+
+Buffing is not nerfing run backwards. A weak deck's OS fails in one of two ways, and they take
+opposite fixes (both from ticket 82):
+
+1. **A price with no product.** The OS charges a real cost every turn and returns less than the
+   cost. `fenrir_v1`'s UNBOUND_KERNEL took 2% max HP per attack and gave 1 Strengthened; with the
+   OS off she cast her payoff MORE often. **The tell is an OS-off reading near zero on a deck that
+   clearly does something** - +0.9 is not "neutral", it is a tax with a rebate. Fix: drop the price,
+   keep and enlarge the half that works.
+2. **A product with no price the frame can pay.** The OS offers a real bonus behind a gate the deck
+   cannot clear. `kraken_v2`'s TIDAL_CRUSH paid on 3e+ cards on a 2-Energy frame, so the payoff
+   cast **0.5 times a game**. **The tell is casts-per-game under 1 on the card the OS is written
+   for.** Fix: move the gate to where the frame lives - the mirror of 2.5's "trigger less".
+
+Neither half alone is usually enough. On kraken, dropping the gate returned +2.1 and doubling the
+bonus +5.5; **shipped together they returned +11.9.** A gate the deck cannot clear and a bonus too
+small to notice are one problem, not two.
+
+**And sometimes the OS is fine and the frame is not.** Both fafnir OSes measured +8.7 / +12.1 and
+every OS knob moved nothing (+/-1). His attack was **62, the lowest of the 32 decks**, on the
+element with the largest effective card pool - the registry comment had said so since ticket 52.
+That is the one case where the stat block is the honest lever rather than the lazy one. Price it
+for the STRONGER of the two decks that share it: 72 put `fafnir_v2` at 45.3%, so 68 shipped.
+
+**A dead card is a buff you already own.** `slag_shed` sat 72% dead, dealt 0 damage and measured
+0.0 power; replacing it with a 2nd `motherlode` - the card that cashes in what the OS banks - was
+worth +4.0 on its own. But **check the swap does not slow the deck down**: fenrir's `ember_mend`
+swap measured +0.9 and cost her 0.2 cards a turn and half a turn of payoff delay. A card that is
+nearly blank is better rewritten as a rider than swapped out.
 
 ---
 

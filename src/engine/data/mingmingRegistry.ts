@@ -115,7 +115,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         name: "Fafnir",
         baseStats: {
             hp: 92,
-            attack: 62,
+            attack: 68,
             defense: 95,
             energy: 2
         },
@@ -142,7 +142,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    the point: Poison has no duality partner, so the Strengthened accrues on top of it
         //    instead of annihilating against it.
         decks: {
-            "fafnir_v1": ["iron_will", "iron_will", "water_slap", "grit", "boulder_smash", "boulder_smash", "slag_shed", "motherlode", "hoardbreaker", "deep_vein", "deep_vein"],
+            "fafnir_v1": ["iron_will", "iron_will", "water_slap", "grit", "boulder_smash", "boulder_smash", "motherlode", "motherlode", "hoardbreaker", "deep_vein", "deep_vein"],
             "fafnir_v2": ["iron_will", "iron_will", "water_slap", "rust_blood", "rust_blood", "boulder_smash", "boulder_smash", "squirrel_away", "veinburst", "veinburst"]
         },
         moves: [

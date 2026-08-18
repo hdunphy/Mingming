@@ -13,8 +13,8 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 3.2,
+   "winRate": 0.0167,
+   "turns": 3.3,
    "ftk": 0,
    "dead": 0.3946
   },
@@ -28,10 +28,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0333,
-   "turns": 3.72,
+   "winRate": 0.0167,
+   "turns": 3.35,
    "ftk": 0,
-   "dead": 0.363
+   "dead": 0.3936
   },
   {
    "deck": "fenrir_v1",
@@ -44,9 +44,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 3.73,
+   "turns": 3.57,
    "ftk": 0,
-   "dead": 0.3759
+   "dead": 0.387
   },
   {
    "deck": "fenrir_v1",
@@ -59,9 +59,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 3.27,
+   "turns": 3.07,
    "ftk": 0,
-   "dead": 0.4045
+   "dead": 0.4186
   },
   {
    "deck": "fenrir_v1",
@@ -73,10 +73,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1667,
-   "turns": 4.03,
+   "winRate": 0.3833,
+   "turns": 4.27,
    "ftk": 0,
-   "dead": 0.3685
+   "dead": 0.3556
   },
   {
    "deck": "fenrir_v1",
@@ -87,11 +87,11 @@
    "role": "BURST",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 60,
-   "winRate": 0.2333,
-   "turns": 3.33,
+   "decisive": 59,
+   "winRate": 0.5085,
+   "turns": 3.45,
    "ftk": 0,
-   "dead": 0.4097
+   "dead": 0.4074
   },
   {
    "deck": "fenrir_v1",
@@ -104,7 +104,7 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 2.7,
+   "turns": 2.68,
    "ftk": 0,
    "dead": 0.4167
   },
@@ -118,10 +118,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 4.47,
+   "winRate": 0.0667,
+   "turns": 4.55,
    "ftk": 0,
-   "dead": 0.2944
+   "dead": 0.2759
   },
   {
    "deck": "fenrir_v1",
@@ -134,9 +134,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 5.08,
+   "turns": 5.28,
    "ftk": 0,
-   "dead": 0.2685
+   "dead": 0.2593
   },
   {
    "deck": "fenrir_v1",
@@ -148,10 +148,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 4.9,
+   "winRate": 0.0333,
+   "turns": 5,
    "ftk": 0,
-   "dead": 0.2537
+   "dead": 0.2481
   },
   {
    "deck": "fenrir_v1",
@@ -163,10 +163,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2,
-   "turns": 3.72,
+   "winRate": 0.4833,
+   "turns": 3.87,
    "ftk": 0,
-   "dead": 0.3515
+   "dead": 0.3233
   },
   {
    "deck": "fenrir_v1",
@@ -178,10 +178,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 3.62,
+   "winRate": 0.15,
+   "turns": 3.75,
    "ftk": 0,
-   "dead": 0.3815
+   "dead": 0.3648
   },
   {
    "deck": "fenrir_v1",
@@ -192,11 +192,11 @@
    "role": "BURST",
    "opponentRole": "ZOO",
    "games": 60,
-   "decisive": 59,
-   "winRate": 0.1695,
-   "turns": 4.48,
+   "decisive": 60,
+   "winRate": 0.3333,
+   "turns": 4.65,
    "ftk": 0,
-   "dead": 0.2907
+   "dead": 0.2852
   },
   {
    "deck": "fenrir_v1",
@@ -208,10 +208,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.05,
-   "turns": 4.22,
+   "winRate": 0.45,
+   "turns": 4.35,
    "ftk": 0,
-   "dead": 0.3352
+   "dead": 0.3407
   },
   {
    "deck": "fenrir_v1",
@@ -223,10 +223,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9,
-   "turns": 4.07,
+   "winRate": 0.9833,
+   "turns": 3.88,
    "ftk": 0,
-   "dead": 0.3463
+   "dead": 0.3704
   },
   {
    "deck": "fenrir_v1",
@@ -238,10 +238,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 3.87,
+   "winRate": 1,
+   "turns": 3.65,
    "ftk": 0,
-   "dead": 0.3685
+   "dead": 0.3889
   },
   {
    "deck": "fenrir_v1",
@@ -254,9 +254,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 6.63,
+   "turns": 5.85,
    "ftk": 0,
-   "dead": 0.1481
+   "dead": 0.1889
   },
   {
    "deck": "fenrir_v1",
@@ -268,10 +268,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.95,
-   "turns": 5.67,
+   "winRate": 1,
+   "turns": 5.55,
    "ftk": 0,
-   "dead": 0.1889
+   "dead": 0.213
   },
   {
    "deck": "fenrir_v1",
@@ -282,11 +282,11 @@
    "role": "BURST",
    "opponentRole": "RAMP",
    "games": 60,
-   "decisive": 59,
-   "winRate": 0.6271,
-   "turns": 6.6,
+   "decisive": 60,
+   "winRate": 0.7833,
+   "turns": 6.47,
    "ftk": 0,
-   "dead": 0.2259
+   "dead": 0.2389
   },
   {
    "deck": "fenrir_v1",
@@ -298,10 +298,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3167,
-   "turns": 4.57,
+   "winRate": 0.5333,
+   "turns": 4.6,
    "ftk": 0,
-   "dead": 0.3556
+   "dead": 0.3444
   },
   {
    "deck": "fenrir_v1",
@@ -312,11 +312,11 @@
    "role": "BURST",
    "opponentRole": "CONTROL",
    "games": 60,
-   "decisive": 58,
-   "winRate": 0.7759,
-   "turns": 4.6,
+   "decisive": 60,
+   "winRate": 0.9667,
+   "turns": 4.5,
    "ftk": 0,
-   "dead": 0.2981
+   "dead": 0.3241
   },
   {
    "deck": "fenrir_v1",
@@ -328,10 +328,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.95,
-   "turns": 5.97,
+   "winRate": 1,
+   "turns": 5.67,
    "ftk": 0,
-   "dead": 0.2704
+   "dead": 0.2796
   },
   {
    "deck": "fenrir_v1",
@@ -343,10 +343,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 6.78,
+   "winRate": 0.05,
+   "turns": 7.12,
    "ftk": 0,
-   "dead": 0.1833
+   "dead": 0.1593
   },
   {
    "deck": "fenrir_v1",
@@ -358,10 +358,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 4.47,
+   "winRate": 0.1,
+   "turns": 4.62,
    "ftk": 0,
-   "dead": 0.3204
+   "dead": 0.3315
   },
   {
    "deck": "fenrir_v1",
@@ -373,10 +373,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 6.25,
+   "winRate": 0.1,
+   "turns": 6.72,
    "ftk": 0,
-   "dead": 0.1852
+   "dead": 0.1685
   },
   {
    "deck": "fenrir_v1",
@@ -388,10 +388,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 12.15,
+   "winRate": 0.1,
+   "turns": 15.33,
    "ftk": 0,
-   "dead": 0.0296
+   "dead": 0.0204
   },
   {
    "deck": "fenrir_v1",
@@ -403,10 +403,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 4.7,
+   "winRate": 0.2167,
+   "turns": 4.75,
    "ftk": 0,
-   "dead": 0.2852
+   "dead": 0.2981
   },
   {
    "deck": "fenrir_v1",
@@ -418,10 +418,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0667,
-   "turns": 2.5,
+   "winRate": 0.1833,
+   "turns": 2.6,
    "ftk": 0,
-   "dead": 0.4685
+   "dead": 0.4561
   },
   {
    "deck": "fenrir_v1",
@@ -433,10 +433,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 4.23,
+   "winRate": 0.25,
+   "turns": 4.47,
    "ftk": 0,
-   "dead": 0.3148
+   "dead": 0.3019
   },
   {
    "deck": "fenrir_v1",
@@ -448,10 +448,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 4.37,
+   "winRate": 0.1,
+   "turns": 4.57,
    "ftk": 0,
-   "dead": 0.3204
+   "dead": 0.2815
   },
   {
    "deck": "fenrir_v2",
@@ -478,10 +478,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3,
-   "turns": 3.83,
+   "winRate": 0.1167,
+   "turns": 3.5,
    "ftk": 0,
-   "dead": 0.2778
+   "dead": 0.3074
   },
   {
    "deck": "fenrir_v2",
@@ -493,10 +493,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.05,
-   "turns": 3.88,
+   "winRate": 0.0333,
+   "turns": 3.4,
    "ftk": 0,
-   "dead": 0.2944
+   "dead": 0.3259
   },
   {
    "deck": "fenrir_v2",
@@ -509,9 +509,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 3.2,
+   "turns": 2.97,
    "ftk": 0,
-   "dead": 0.3202
+   "dead": 0.3275
   },
   {
    "deck": "fenrir_v2",
@@ -914,9 +914,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 3.73,
+   "turns": 3.8,
    "ftk": 0,
-   "dead": 0.2875
+   "dead": 0.2792
   },
   {
    "deck": "kraken_v1",
@@ -943,10 +943,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9667,
-   "turns": 4.58,
+   "winRate": 0.9333,
+   "turns": 4.57,
    "ftk": 0,
-   "dead": 0.2229
+   "dead": 0.225
   },
   {
    "deck": "kraken_v1",
@@ -958,10 +958,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.95,
-   "turns": 4.17,
+   "winRate": 0.9,
+   "turns": 4.1,
    "ftk": 0,
-   "dead": 0.275
+   "dead": 0.2708
   },
   {
    "deck": "kraken_v1",
@@ -1363,10 +1363,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8833,
-   "turns": 4.5,
+   "winRate": 0.9333,
+   "turns": 4.17,
    "ftk": 0,
-   "dead": 0.3479
+   "dead": 0.3667
   },
   {
    "deck": "kraken_v2",
@@ -1378,10 +1378,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7167,
-   "turns": 4.02,
+   "winRate": 0.9333,
+   "turns": 3.9,
    "ftk": 0,
-   "dead": 0.3667
+   "dead": 0.3854
   },
   {
    "deck": "kraken_v2",
@@ -1393,10 +1393,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8,
-   "turns": 4.92,
+   "winRate": 0.8833,
+   "turns": 4.6,
    "ftk": 0,
-   "dead": 0.275
+   "dead": 0.3125
   },
   {
    "deck": "kraken_v2",
@@ -1408,10 +1408,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7667,
-   "turns": 4.47,
+   "winRate": 0.8167,
+   "turns": 3.93,
    "ftk": 0,
-   "dead": 0.3333
+   "dead": 0.3854
   },
   {
    "deck": "kraken_v2",
@@ -1423,10 +1423,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8333,
-   "turns": 3.85,
+   "winRate": 0.9167,
+   "turns": 3.67,
    "ftk": 0,
-   "dead": 0.3703
+   "dead": 0.3936
   },
   {
    "deck": "kraken_v2",
@@ -1438,10 +1438,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.75,
-   "turns": 3.2,
+   "winRate": 0.8667,
+   "turns": 3.1,
    "ftk": 0,
-   "dead": 0.4061
+   "dead": 0.4298
   },
   {
    "deck": "kraken_v2",
@@ -1453,10 +1453,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2167,
-   "turns": 4.5,
+   "winRate": 0.25,
+   "turns": 4.4,
    "ftk": 0,
-   "dead": 0.3228
+   "dead": 0.3312
   },
   {
    "deck": "kraken_v2",
@@ -1468,10 +1468,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1667,
-   "turns": 4.78,
+   "winRate": 0.2167,
+   "turns": 4.77,
    "ftk": 0,
-   "dead": 0.2917
+   "dead": 0.2896
   },
   {
    "deck": "kraken_v2",
@@ -1483,10 +1483,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.4833,
-   "turns": 6.35,
+   "winRate": 0.8333,
+   "turns": 5.92,
    "ftk": 0,
-   "dead": 0.2021
+   "dead": 0.2333
   },
   {
    "deck": "kraken_v2",
@@ -1498,10 +1498,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.5333,
-   "turns": 5.6,
+   "winRate": 0.7833,
+   "turns": 5.32,
    "ftk": 0,
-   "dead": 0.2417
+   "dead": 0.2542
   },
   {
    "deck": "kraken_v2",
@@ -1513,10 +1513,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2833,
-   "turns": 3.82,
+   "winRate": 0.3667,
+   "turns": 3.78,
    "ftk": 0,
-   "dead": 0.3582
+   "dead": 0.3604
   },
   {
    "deck": "kraken_v2",
@@ -1528,10 +1528,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
+   "winRate": 0.1,
    "turns": 3.7,
    "ftk": 0,
-   "dead": 0.3708
+   "dead": 0.3688
   },
   {
    "deck": "kraken_v2",
@@ -1543,10 +1543,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.25,
-   "turns": 4.47,
+   "winRate": 0.3833,
+   "turns": 4.42,
    "ftk": 0,
-   "dead": 0.3146
+   "dead": 0.2958
   },
   {
    "deck": "kraken_v2",
@@ -1558,10 +1558,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1167,
-   "turns": 4.32,
+   "winRate": 0.3333,
+   "turns": 4.28,
    "ftk": 0,
-   "dead": 0.3375
+   "dead": 0.3354
   },
   {
    "deck": "kraken_v2",
@@ -1573,10 +1573,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0667,
+   "winRate": 0.15,
    "turns": 3.67,
    "ftk": 0,
-   "dead": 0.3708
+   "dead": 0.3771
   },
   {
    "deck": "kraken_v2",
@@ -1588,10 +1588,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1,
+   "winRate": 0.3333,
    "turns": 4.08,
    "ftk": 0,
-   "dead": 0.3271
+   "dead": 0.325
   },
   {
    "deck": "kraken_v2",
@@ -1603,10 +1603,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 6.35,
+   "winRate": 0.0667,
+   "turns": 6.37,
    "ftk": 0,
-   "dead": 0.1812
+   "dead": 0.175
   },
   {
    "deck": "kraken_v2",
@@ -1618,10 +1618,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 5.5,
+   "winRate": 0.0667,
+   "turns": 5.48,
    "ftk": 0,
-   "dead": 0.2271
+   "dead": 0.2292
   },
   {
    "deck": "kraken_v2",
@@ -1634,9 +1634,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 4.22,
+   "turns": 4.1,
    "ftk": 0,
-   "dead": 0.3655
+   "dead": 0.3739
   },
   {
    "deck": "kraken_v2",
@@ -1651,7 +1651,7 @@
    "winRate": 0,
    "turns": 3.32,
    "ftk": 0,
-   "dead": 0.4667
+   "dead": 0.4771
   },
   {
    "deck": "kraken_v2",
@@ -1663,8 +1663,8 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 3.82,
+   "winRate": 0.0833,
+   "turns": 3.73,
    "ftk": 0,
    "dead": 0.3745
   },
@@ -1681,7 +1681,7 @@
    "winRate": 0,
    "turns": 4.85,
    "ftk": 0,
-   "dead": 0.3875
+   "dead": 0.3833
   },
   {
    "deck": "kraken_v2",
@@ -1693,10 +1693,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 6.95,
+   "winRate": 0.1667,
+   "turns": 6.9,
    "ftk": 0,
-   "dead": 0.2042
+   "dead": 0.1938
   },
   {
    "deck": "kraken_v2",
@@ -1708,8 +1708,8 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0333,
-   "turns": 4.73,
+   "winRate": 0.15,
+   "turns": 4.72,
    "ftk": 0,
    "dead": 0.2771
   },
@@ -1723,10 +1723,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 5.88,
+   "winRate": 0.0333,
+   "turns": 6.02,
    "ftk": 0,
-   "dead": 0.2437
+   "dead": 0.2313
   },
   {
    "deck": "kraken_v2",
@@ -1738,10 +1738,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0333,
-   "turns": 9.98,
+   "winRate": 0.1333,
+   "turns": 9.83,
    "ftk": 0,
-   "dead": 0.0979
+   "dead": 0.1042
   },
   {
    "deck": "kraken_v2",
@@ -1753,10 +1753,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1167,
-   "turns": 4.87,
+   "winRate": 0.3167,
+   "turns": 4.83,
    "ftk": 0,
-   "dead": 0.2833
+   "dead": 0.2813
   },
   {
    "deck": "kraken_v2",
@@ -1767,11 +1767,11 @@
    "role": "RAMP",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 59,
-   "winRate": 0.3559,
-   "turns": 2.95,
+   "decisive": 60,
+   "winRate": 0.3833,
+   "turns": 2.93,
    "ftk": 0,
-   "dead": 0.4372
+   "dead": 0.4478
   },
   {
    "deck": "kraken_v2",
@@ -1783,10 +1783,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0833,
+   "winRate": 0.2,
    "turns": 4.45,
    "ftk": 0,
-   "dead": 0.3167
+   "dead": 0.325
   },
   {
    "deck": "kraken_v2",
@@ -1798,10 +1798,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0833,
-   "turns": 4.58,
+   "winRate": 0.2667,
+   "turns": 4.52,
    "ftk": 0,
-   "dead": 0.3083
+   "dead": 0.2979
   },
   {
    "deck": "fafnir_v1",
@@ -1814,9 +1814,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 4.17,
+   "turns": 3.92,
    "ftk": 0,
-   "dead": 0.3084
+   "dead": 0.3259
   },
   {
    "deck": "fafnir_v1",
@@ -1828,10 +1828,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9333,
-   "turns": 4.35,
+   "winRate": 0.9833,
+   "turns": 3.73,
    "ftk": 0,
-   "dead": 0.2764
+   "dead": 0.3306
   },
   {
    "deck": "fafnir_v1",
@@ -1843,10 +1843,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0333,
+   "winRate": 0.0167,
    "turns": 4.13,
    "ftk": 0,
-   "dead": 0.3313
+   "dead": 0.3206
   },
   {
    "deck": "fafnir_v1",
@@ -1858,10 +1858,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2,
-   "turns": 4.63,
+   "winRate": 0.25,
+   "turns": 4.38,
    "ftk": 0,
-   "dead": 0.2788
+   "dead": 0.2914
   },
   {
    "deck": "fafnir_v1",
@@ -1874,9 +1874,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 3.85,
+   "turns": 3.7,
    "ftk": 0,
-   "dead": 0.3418
+   "dead": 0.3581
   },
   {
    "deck": "fafnir_v1",
@@ -1888,10 +1888,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 3.55,
+   "winRate": 1,
+   "turns": 3.45,
    "ftk": 0,
-   "dead": 0.3549
+   "dead": 0.3687
   },
   {
    "deck": "fafnir_v1",
@@ -1903,10 +1903,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 3.68,
+   "winRate": 0.0333,
+   "turns": 3.67,
    "ftk": 0,
-   "dead": 0.3024
+   "dead": 0.2887
   },
   {
    "deck": "fafnir_v1",
@@ -1919,9 +1919,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0.05,
-   "turns": 4.93,
+   "turns": 4.67,
    "ftk": 0,
-   "dead": 0.253
+   "dead": 0.2818
   },
   {
    "deck": "fafnir_v1",
@@ -1933,10 +1933,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 7.6,
+   "winRate": 0.05,
+   "turns": 7.63,
    "ftk": 0,
-   "dead": 0.2121
+   "dead": 0.203
   },
   {
    "deck": "fafnir_v1",
@@ -1948,10 +1948,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0333,
-   "turns": 6.88,
+   "winRate": 0.1333,
+   "turns": 6.93,
    "ftk": 0,
-   "dead": 0.2152
+   "dead": 0.2061
   },
   {
    "deck": "fafnir_v1",
@@ -1963,8 +1963,8 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.6833,
-   "turns": 4.6,
+   "winRate": 0.7833,
+   "turns": 4.4,
    "ftk": 0,
    "dead": 0.2719
   },
@@ -1978,10 +1978,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3167,
-   "turns": 4.58,
+   "winRate": 0.6833,
+   "turns": 4.53,
    "ftk": 0,
-   "dead": 0.2712
+   "dead": 0.2803
   },
   {
    "deck": "fafnir_v1",
@@ -1993,10 +1993,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.6167,
-   "turns": 5.38,
+   "winRate": 0.8167,
+   "turns": 5.12,
    "ftk": 0,
-   "dead": 0.25
+   "dead": 0.2606
   },
   {
    "deck": "fafnir_v1",
@@ -2008,10 +2008,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7167,
-   "turns": 5.37,
+   "winRate": 0.85,
+   "turns": 5.02,
    "ftk": 0,
-   "dead": 0.2409
+   "dead": 0.2576
   },
   {
    "deck": "fafnir_v1",
@@ -2023,7 +2023,7 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1,
+   "winRate": 0.2,
    "turns": 4.37,
    "ftk": 0,
    "dead": 0.2932
@@ -2038,10 +2038,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1167,
-   "turns": 4.27,
+   "winRate": 0.25,
+   "turns": 4.22,
    "ftk": 0,
-   "dead": 0.2982
+   "dead": 0.315
   },
   {
    "deck": "fafnir_v1",
@@ -2053,10 +2053,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3167,
-   "turns": 9.93,
+   "winRate": 0.6667,
+   "turns": 9.28,
    "ftk": 0,
-   "dead": 0.1258
+   "dead": 0.1333
   },
   {
    "deck": "fafnir_v1",
@@ -2068,10 +2068,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 6.18,
+   "winRate": 0.05,
+   "turns": 6.03,
    "ftk": 0,
-   "dead": 0.2
+   "dead": 0.2303
   },
   {
    "deck": "fafnir_v1",
@@ -2083,10 +2083,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 5.8,
+   "winRate": 0.0167,
+   "turns": 6.03,
    "ftk": 0,
-   "dead": 0.282
+   "dead": 0.2888
   },
   {
    "deck": "fafnir_v1",
@@ -2101,7 +2101,7 @@
    "winRate": 0,
    "turns": 4.43,
    "ftk": 0,
-   "dead": 0.3865
+   "dead": 0.3896
   },
   {
    "deck": "fafnir_v1",
@@ -2113,10 +2113,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 4.48,
+   "winRate": 0.05,
+   "turns": 4.43,
    "ftk": 0,
-   "dead": 0.2778
+   "dead": 0.2959
   },
   {
    "deck": "fafnir_v1",
@@ -2128,10 +2128,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.6167,
-   "turns": 7.13,
+   "winRate": 0.7833,
+   "turns": 6.67,
    "ftk": 0,
-   "dead": 0.2379
+   "dead": 0.2652
   },
   {
    "deck": "fafnir_v1",
@@ -2143,10 +2143,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 8.38,
+   "winRate": 0.1,
+   "turns": 8.48,
    "ftk": 0,
-   "dead": 0.1955
+   "dead": 0.1682
   },
   {
    "deck": "fafnir_v1",
@@ -2158,10 +2158,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.15,
-   "turns": 5.73,
+   "winRate": 0.3167,
+   "turns": 5.68,
    "ftk": 0,
-   "dead": 0.2455
+   "dead": 0.2561
   },
   {
    "deck": "fafnir_v1",
@@ -2173,10 +2173,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.05,
-   "turns": 8.08,
+   "winRate": 0.1167,
+   "turns": 8.32,
    "ftk": 0,
-   "dead": 0.1955
+   "dead": 0.1682
   },
   {
    "deck": "fafnir_v1",
@@ -2188,10 +2188,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 13.68,
+   "winRate": 0.0167,
+   "turns": 13.88,
    "ftk": 0,
-   "dead": 0.1136
+   "dead": 0.0864
   },
   {
    "deck": "fafnir_v1",
@@ -2203,10 +2203,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2833,
+   "winRate": 0.3667,
    "turns": 5.77,
    "ftk": 0,
-   "dead": 0.2273
+   "dead": 0.2167
   },
   {
    "deck": "fafnir_v1",
@@ -2217,11 +2217,11 @@
    "role": "RAMP",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 56,
-   "winRate": 0.5357,
-   "turns": 3.42,
+   "decisive": 57,
+   "winRate": 0.7193,
+   "turns": 3.32,
    "ftk": 0,
-   "dead": 0.3305
+   "dead": 0.3611
   },
   {
    "deck": "fafnir_v1",
@@ -2233,10 +2233,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0667,
-   "turns": 4.83,
+   "winRate": 0.3167,
+   "turns": 4.68,
    "ftk": 0,
-   "dead": 0.2653
+   "dead": 0.2853
   },
   {
    "deck": "fafnir_v1",
@@ -2248,10 +2248,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2833,
-   "turns": 5.85,
+   "winRate": 0.5833,
+   "turns": 5.73,
    "ftk": 0,
-   "dead": 0.2379
+   "dead": 0.2424
   },
   {
    "deck": "fafnir_v2",
@@ -2264,9 +2264,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 3.67,
+   "turns": 3.52,
    "ftk": 0,
-   "dead": 0.2904
+   "dead": 0.2979
   },
   {
    "deck": "fafnir_v2",
@@ -2278,10 +2278,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9667,
-   "turns": 3.62,
+   "winRate": 1,
+   "turns": 3.45,
    "ftk": 0,
-   "dead": 0.3425
+   "dead": 0.3606
   },
   {
    "deck": "fafnir_v2",
@@ -2293,10 +2293,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 3.55,
+   "winRate": 0.0333,
+   "turns": 3.5,
    "ftk": 0,
-   "dead": 0.2904
+   "dead": 0.2966
   },
   {
    "deck": "fafnir_v2",
@@ -2308,10 +2308,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.15,
-   "turns": 4.23,
+   "winRate": 0.1333,
+   "turns": 3.82,
    "ftk": 0,
-   "dead": 0.2492
+   "dead": 0.275
   },
   {
    "deck": "fafnir_v2",
@@ -2324,9 +2324,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 3.38,
+   "turns": 3.23,
    "ftk": 0,
-   "dead": 0.3322
+   "dead": 0.347
   },
   {
    "deck": "fafnir_v2",
@@ -2339,9 +2339,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 2.9,
+   "turns": 2.88,
    "ftk": 0,
-   "dead": 0.3692
+   "dead": 0.3904
   },
   {
    "deck": "fafnir_v2",
@@ -2353,10 +2353,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
+   "winRate": 0.0167,
    "turns": 3.05,
    "ftk": 0,
-   "dead": 0.313
+   "dead": 0.3118
   },
   {
    "deck": "fafnir_v2",
@@ -2368,10 +2368,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0167,
-   "turns": 4.07,
+   "winRate": 0.0667,
+   "turns": 3.97,
    "ftk": 0,
-   "dead": 0.2594
+   "dead": 0.2667
   },
   {
    "deck": "fafnir_v2",
@@ -2384,9 +2384,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 6.95,
+   "turns": 6.8,
    "ftk": 0,
-   "dead": 0.2267
+   "dead": 0.21
   },
   {
    "deck": "fafnir_v2",
@@ -2399,9 +2399,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0.0333,
-   "turns": 6.32,
+   "turns": 6.2,
    "ftk": 0,
-   "dead": 0.2
+   "dead": 0.1983
   },
   {
    "deck": "fafnir_v2",
@@ -2413,10 +2413,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.6833,
-   "turns": 4.2,
+   "winRate": 0.7333,
+   "turns": 4.1,
    "ftk": 0,
-   "dead": 0.2374
+   "dead": 0.258
   },
   {
    "deck": "fafnir_v2",
@@ -2428,10 +2428,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7167,
-   "turns": 4.37,
+   "winRate": 0.7833,
+   "turns": 4.22,
    "ftk": 0,
-   "dead": 0.2538
+   "dead": 0.2668
   },
   {
    "deck": "fafnir_v2",
@@ -2443,10 +2443,10 @@
    "opponentRole": "ZOO",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7333,
-   "turns": 4.85,
+   "winRate": 0.9,
+   "turns": 4.62,
    "ftk": 0,
-   "dead": 0.2254
+   "dead": 0.2345
   },
   {
    "deck": "fafnir_v2",
@@ -2458,10 +2458,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7,
-   "turns": 4.48,
+   "winRate": 0.8,
+   "turns": 4.4,
    "ftk": 0,
-   "dead": 0.2437
+   "dead": 0.2546
   },
   {
    "deck": "fafnir_v2",
@@ -2473,10 +2473,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2,
-   "turns": 3.77,
+   "winRate": 0.2667,
+   "turns": 3.72,
    "ftk": 0,
-   "dead": 0.2752
+   "dead": 0.2713
   },
   {
    "deck": "fafnir_v2",
@@ -2488,10 +2488,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.35,
-   "turns": 3.77,
+   "winRate": 0.4833,
+   "turns": 3.7,
    "ftk": 0,
-   "dead": 0.264
+   "dead": 0.2709
   },
   {
    "deck": "fafnir_v2",
@@ -2503,10 +2503,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.4833,
-   "turns": 7.87,
+   "winRate": 0.7,
+   "turns": 7.07,
    "ftk": 0,
-   "dead": 0.1217
+   "dead": 0.14
   },
   {
    "deck": "fafnir_v2",
@@ -2518,10 +2518,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0,
-   "turns": 5.43,
+   "winRate": 0.0167,
+   "turns": 5.42,
    "ftk": 0,
-   "dead": 0.1933
+   "dead": 0.2
   },
   {
    "deck": "fafnir_v2",
@@ -2534,9 +2534,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 4.98,
+   "turns": 5.08,
    "ftk": 0,
-   "dead": 0.2793
+   "dead": 0.2609
   },
   {
    "deck": "fafnir_v2",
@@ -2549,9 +2549,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 3.73,
+   "turns": 3.68,
    "ftk": 0,
-   "dead": 0.335
+   "dead": 0.3231
   },
   {
    "deck": "fafnir_v2",
@@ -2563,10 +2563,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.05,
-   "turns": 3.92,
+   "winRate": 0.1,
+   "turns": 3.88,
    "ftk": 0,
-   "dead": 0.2427
+   "dead": 0.2448
   },
   {
    "deck": "fafnir_v2",
@@ -2578,10 +2578,10 @@
    "opponentRole": "CONTROL",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2,
-   "turns": 6.02,
+   "winRate": 0.35,
+   "turns": 5.9,
    "ftk": 0,
-   "dead": 0.2583
+   "dead": 0.2483
   },
   {
    "deck": "fafnir_v2",
@@ -2593,10 +2593,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.05,
-   "turns": 6.58,
+   "winRate": 0.0667,
+   "turns": 6.25,
    "ftk": 0,
-   "dead": 0.165
+   "dead": 0.1733
   },
   {
    "deck": "fafnir_v2",
@@ -2608,10 +2608,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0833,
-   "turns": 4.83,
+   "winRate": 0.2333,
+   "turns": 4.73,
    "ftk": 0,
-   "dead": 0.2417
+   "dead": 0.2433
   },
   {
    "deck": "fafnir_v2",
@@ -2624,9 +2624,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0.0333,
-   "turns": 6.42,
+   "turns": 6.43,
    "ftk": 0,
-   "dead": 0.1783
+   "dead": 0.1767
   },
   {
    "deck": "fafnir_v2",
@@ -2639,9 +2639,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 9.72,
+   "turns": 9.48,
    "ftk": 0,
-   "dead": 0.085
+   "dead": 0.08
   },
   {
    "deck": "fafnir_v2",
@@ -2653,10 +2653,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3167,
-   "turns": 4.88,
+   "winRate": 0.4333,
+   "turns": 4.77,
    "ftk": 0,
-   "dead": 0.2317
+   "dead": 0.222
   },
   {
    "deck": "fafnir_v2",
@@ -2668,10 +2668,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8,
-   "turns": 3.33,
+   "winRate": 0.8667,
+   "turns": 3.2,
    "ftk": 0,
-   "dead": 0.3149
+   "dead": 0.3504
   },
   {
    "deck": "fafnir_v2",
@@ -2683,10 +2683,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2333,
-   "turns": 4.1,
+   "winRate": 0.3,
+   "turns": 4.03,
    "ftk": 0,
-   "dead": 0.2658
+   "dead": 0.2667
   },
   {
    "deck": "fafnir_v2",
@@ -2698,10 +2698,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3,
-   "turns": 5,
+   "winRate": 0.4,
+   "turns": 4.92,
    "ftk": 0,
-   "dead": 0.21
+   "dead": 0.2037
   },
   {
    "deck": "skoll_v1",
@@ -2712,11 +2712,11 @@
    "role": "BURST",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 58,
-   "winRate": 0.8103,
-   "turns": 4.5,
+   "decisive": 60,
+   "winRate": 0.6,
+   "turns": 4.33,
    "ftk": 0,
-   "dead": 0.2759
+   "dead": 0.2833
   },
   {
    "deck": "skoll_v1",
@@ -2758,10 +2758,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.1167,
-   "turns": 3.38,
+   "winRate": 0.05,
+   "turns": 3.02,
    "ftk": 0,
-   "dead": 0.3523
+   "dead": 0.375
   },
   {
    "deck": "skoll_v1",
@@ -2774,9 +2774,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 3.37,
+   "turns": 3.15,
    "ftk": 0,
-   "dead": 0.3611
+   "dead": 0.3778
   },
   {
    "deck": "skoll_v1",
@@ -2789,9 +2789,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 2.88,
+   "turns": 2.62,
    "ftk": 0,
-   "dead": 0.3899
+   "dead": 0.3978
   },
   {
    "deck": "skoll_v1",
@@ -3163,10 +3163,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 59,
-   "winRate": 0.661,
-   "turns": 3.55,
+   "winRate": 0.4746,
+   "turns": 3.4,
    "ftk": 0,
-   "dead": 0.337
+   "dead": 0.3519
   },
   {
    "deck": "skoll_v2",
@@ -3207,11 +3207,11 @@
    "role": "BURST",
    "opponentRole": "RAMP",
    "games": 60,
-   "decisive": 60,
-   "winRate": 0.4,
-   "turns": 3.13,
+   "decisive": 58,
+   "winRate": 0.1379,
+   "turns": 2.73,
    "ftk": 0,
-   "dead": 0.334
+   "dead": 0.3523
   },
   {
    "deck": "skoll_v2",
@@ -3224,9 +3224,9 @@
    "games": 60,
    "decisive": 59,
    "winRate": 0,
-   "turns": 3.07,
+   "turns": 2.83,
    "ftk": 0,
-   "dead": 0.3788
+   "dead": 0.3949
   },
   {
    "deck": "skoll_v2",
@@ -3238,10 +3238,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 59,
-   "winRate": 0.0169,
-   "turns": 2.45,
+   "winRate": 0,
+   "turns": 2.35,
    "ftk": 0,
-   "dead": 0.3761
+   "dead": 0.379
   },
   {
    "deck": "skoll_v2",
@@ -3614,9 +3614,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 3.07,
+   "turns": 3.13,
    "ftk": 0,
-   "dead": 0.1519
+   "dead": 0.15
   },
   {
    "deck": "jormungandr_v1",
@@ -3658,10 +3658,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8667,
-   "turns": 5.07,
+   "winRate": 0.6667,
+   "turns": 4.83,
    "ftk": 0,
-   "dead": 0.0296
+   "dead": 0.0352
   },
   {
    "deck": "jormungandr_v1",
@@ -3673,8 +3673,8 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 4.27,
+   "winRate": 0.95,
+   "turns": 4.25,
    "ftk": 0,
    "dead": 0.0463
   },
@@ -3688,10 +3688,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 3.78,
+   "winRate": 0.95,
+   "turns": 3.75,
    "ftk": 0,
-   "dead": 0.0889
+   "dead": 0.0926
   },
   {
    "deck": "jormungandr_v1",
@@ -4063,10 +4063,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 4.92,
+   "winRate": 0.95,
+   "turns": 4.97,
    "ftk": 0,
-   "dead": 0.1271
+   "dead": 0.125
   },
   {
    "deck": "jormungandr_v2",
@@ -4108,10 +4108,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9667,
-   "turns": 5.07,
+   "winRate": 0.85,
+   "turns": 4.93,
    "ftk": 0,
-   "dead": 0.1146
+   "dead": 0.1208
   },
   {
    "deck": "jormungandr_v2",
@@ -4123,8 +4123,8 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9167,
-   "turns": 5.37,
+   "winRate": 0.8167,
+   "turns": 5,
    "ftk": 0,
    "dead": 0.1187
   },
@@ -4138,10 +4138,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 4.42,
+   "winRate": 0.95,
+   "turns": 4.22,
    "ftk": 0,
-   "dead": 0.1625
+   "dead": 0.1688
   },
   {
    "deck": "jormungandr_v2",
@@ -4514,9 +4514,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 5.67,
+   "turns": 5.83,
    "ftk": 0,
-   "dead": 0.2867
+   "dead": 0.2717
   },
   {
    "deck": "gullinbursti_v1",
@@ -4558,10 +4558,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.45,
-   "turns": 6.38,
+   "winRate": 0.1833,
+   "turns": 5.72,
    "ftk": 0,
-   "dead": 0.2083
+   "dead": 0.2583
   },
   {
    "deck": "gullinbursti_v1",
@@ -4573,10 +4573,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 8.03,
+   "winRate": 0.95,
+   "turns": 8.02,
    "ftk": 0,
-   "dead": 0.1317
+   "dead": 0.1333
   },
   {
    "deck": "gullinbursti_v1",
@@ -4589,9 +4589,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 7.4,
+   "turns": 7.35,
    "ftk": 0,
-   "dead": 0.1717
+   "dead": 0.1683
   },
   {
    "deck": "gullinbursti_v1",
@@ -4963,10 +4963,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 5.38,
+   "winRate": 0.9333,
+   "turns": 5.5,
    "ftk": 0,
-   "dead": 0.2667
+   "dead": 0.2517
   },
   {
    "deck": "gullinbursti_v2",
@@ -5008,10 +5008,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.45,
-   "turns": 5.67,
+   "winRate": 0.2333,
+   "turns": 4.98,
    "ftk": 0,
-   "dead": 0.18
+   "dead": 0.22
   },
   {
    "deck": "gullinbursti_v2",
@@ -5023,10 +5023,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9,
-   "turns": 7.32,
+   "winRate": 0.7833,
+   "turns": 7.12,
    "ftk": 0,
-   "dead": 0.1
+   "dead": 0.11
   },
   {
    "deck": "gullinbursti_v2",
@@ -5039,9 +5039,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0.9667,
-   "turns": 6.6,
+   "turns": 6.55,
    "ftk": 0,
-   "dead": 0.135
+   "dead": 0.1317
   },
   {
    "deck": "gullinbursti_v2",
@@ -5413,10 +5413,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.75,
-   "turns": 4.17,
+   "winRate": 0.5167,
+   "turns": 3.95,
    "ftk": 0,
-   "dead": 0.0144
+   "dead": 0.0168
   },
   {
    "deck": "hraesvelgr_v1",
@@ -5458,10 +5458,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.75,
-   "turns": 4.22,
+   "winRate": 0.65,
+   "turns": 4.08,
    "ftk": 0,
-   "dead": 0.0175
+   "dead": 0.0197
   },
   {
    "deck": "hraesvelgr_v1",
@@ -5473,10 +5473,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3333,
-   "turns": 4.72,
+   "winRate": 0.1833,
+   "turns": 4.27,
    "ftk": 0,
-   "dead": 0.0094
+   "dead": 0.0085
   },
   {
    "deck": "hraesvelgr_v1",
@@ -5488,10 +5488,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.25,
-   "turns": 4.03,
+   "winRate": 0.2,
+   "turns": 3.8,
    "ftk": 0,
-   "dead": 0.019
+   "dead": 0.0214
   },
   {
    "deck": "hraesvelgr_v1",
@@ -5863,10 +5863,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 4.1,
+   "winRate": 0.8667,
+   "turns": 4.08,
    "ftk": 0,
-   "dead": 0.4417
+   "dead": 0.4542
   },
   {
    "deck": "hraesvelgr_v2",
@@ -5908,10 +5908,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9333,
-   "turns": 4.15,
+   "winRate": 0.8333,
+   "turns": 4.05,
    "ftk": 0,
-   "dead": 0.4542
+   "dead": 0.4604
   },
   {
    "deck": "hraesvelgr_v2",
@@ -5923,10 +5923,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.5833,
-   "turns": 4.65,
+   "winRate": 0.3167,
+   "turns": 4.32,
    "ftk": 0,
-   "dead": 0.425
+   "dead": 0.45
   },
   {
    "deck": "hraesvelgr_v2",
@@ -5938,10 +5938,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3833,
-   "turns": 4.28,
+   "winRate": 0.1,
+   "turns": 3.88,
    "ftk": 0,
-   "dead": 0.5188
+   "dead": 0.5375
   },
   {
    "deck": "hraesvelgr_v2",
@@ -6313,10 +6313,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8167,
-   "turns": 4.92,
+   "winRate": 0.6,
+   "turns": 4.82,
    "ftk": 0,
-   "dead": 0.1528
+   "dead": 0.1514
   },
   {
    "deck": "sleipnir_v1",
@@ -6358,10 +6358,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8167,
-   "turns": 4.83,
+   "winRate": 0.6833,
+   "turns": 4.63,
    "ftk": 0,
-   "dead": 0.1361
+   "dead": 0.1556
   },
   {
    "deck": "sleipnir_v1",
@@ -6373,10 +6373,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.4833,
-   "turns": 5.35,
+   "winRate": 0.2167,
+   "turns": 4.82,
    "ftk": 0,
-   "dead": 0.1
+   "dead": 0.1236
   },
   {
    "deck": "sleipnir_v1",
@@ -6388,10 +6388,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.2333,
-   "turns": 4.67,
+   "winRate": 0.15,
+   "turns": 4.38,
    "ftk": 0,
-   "dead": 0.1458
+   "dead": 0.1583
   },
   {
    "deck": "sleipnir_v1",
@@ -6763,10 +6763,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9667,
-   "turns": 4.67,
+   "winRate": 0.5833,
+   "turns": 4.52,
    "ftk": 0,
-   "dead": 0.1451
+   "dead": 0.1494
   },
   {
    "deck": "sleipnir_v2",
@@ -6808,10 +6808,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9,
-   "turns": 4.63,
+   "winRate": 0.65,
+   "turns": 4.37,
    "ftk": 0,
-   "dead": 0.1372
+   "dead": 0.1452
   },
   {
    "deck": "sleipnir_v2",
@@ -6823,10 +6823,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3667,
-   "turns": 5.12,
+   "winRate": 0.1667,
+   "turns": 4.7,
    "ftk": 0,
-   "dead": 0.097
+   "dead": 0.1097
   },
   {
    "deck": "sleipnir_v2",
@@ -6838,10 +6838,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.3667,
-   "turns": 4.33,
+   "winRate": 0.2,
+   "turns": 4.07,
    "ftk": 0,
-   "dead": 0.1378
+   "dead": 0.1471
   },
   {
    "deck": "sleipnir_v2",
@@ -7212,11 +7212,11 @@
    "role": "CONTROL",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 58,
-   "winRate": 0.1034,
-   "turns": 3.55,
+   "decisive": 60,
+   "winRate": 0.05,
+   "turns": 3.32,
    "ftk": 0,
-   "dead": 0.0414
+   "dead": 0.0494
   },
   {
    "deck": "ratatoskr_v1",
@@ -7258,10 +7258,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9167,
-   "turns": 4.05,
+   "winRate": 0.7667,
+   "turns": 3.9,
    "ftk": 0,
-   "dead": 0.0876
+   "dead": 0.0832
   },
   {
    "deck": "ratatoskr_v1",
@@ -7273,10 +7273,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.95,
-   "turns": 4.65,
+   "winRate": 0.9,
+   "turns": 4.57,
    "ftk": 0,
-   "dead": 0.0705
+   "dead": 0.073
   },
   {
    "deck": "ratatoskr_v1",
@@ -7288,10 +7288,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7667,
-   "turns": 3.97,
+   "winRate": 0.6667,
+   "turns": 3.82,
    "ftk": 0,
-   "dead": 0.0919
+   "dead": 0.093
   },
   {
    "deck": "ratatoskr_v1",
@@ -7664,9 +7664,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 3.47,
+   "turns": 3.25,
    "ftk": 0,
-   "dead": 0.1226
+   "dead": 0.1431
   },
   {
    "deck": "ratatoskr_v2",
@@ -7708,10 +7708,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 4.52,
+   "winRate": 0.7833,
+   "turns": 4.3,
    "ftk": 0,
-   "dead": 0.1063
+   "dead": 0.1087
   },
   {
    "deck": "ratatoskr_v2",
@@ -7723,10 +7723,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9167,
-   "turns": 4.63,
+   "winRate": 0.7667,
+   "turns": 4.42,
    "ftk": 0,
-   "dead": 0.0859
+   "dead": 0.0837
   },
   {
    "deck": "ratatoskr_v2",
@@ -7738,10 +7738,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.55,
-   "turns": 3.87,
+   "winRate": 0.4167,
+   "turns": 3.67,
    "ftk": 0,
-   "dead": 0.117
+   "dead": 0.1216
   },
   {
    "deck": "ratatoskr_v2",
@@ -8114,9 +8114,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 0,
-   "turns": 6.1,
+   "turns": 5.37,
    "ftk": 0,
-   "dead": 0.0537
+   "dead": 0.113
   },
   {
    "deck": "huldra_v1",
@@ -8158,8 +8158,8 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 7.05,
+   "winRate": 0.95,
+   "turns": 6.98,
    "ftk": 0,
    "dead": 0.0204
   },
@@ -8173,10 +8173,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7167,
-   "turns": 10,
+   "winRate": 0.2833,
+   "turns": 8.98,
    "ftk": 0,
-   "dead": 0.0333
+   "dead": 0.0296
   },
   {
    "deck": "huldra_v1",
@@ -8188,10 +8188,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.5333,
-   "turns": 7.98,
+   "winRate": 0.2167,
+   "turns": 7.05,
    "ftk": 0,
-   "dead": 0.087
+   "dead": 0.0796
   },
   {
    "deck": "huldra_v1",
@@ -8563,10 +8563,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.0667,
-   "turns": 5.32,
+   "winRate": 0,
+   "turns": 5.15,
    "ftk": 0,
-   "dead": 0.0833
+   "dead": 0.1
   },
   {
    "deck": "huldra_v2",
@@ -8608,10 +8608,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 5.82,
+   "winRate": 0.9833,
+   "turns": 5.8,
    "ftk": 0,
-   "dead": 0.0796
+   "dead": 0.0815
   },
   {
    "deck": "huldra_v2",
@@ -8623,10 +8623,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 6.65,
+   "winRate": 0.9667,
+   "turns": 6.38,
    "ftk": 0,
-   "dead": 0.0611
+   "dead": 0.0778
   },
   {
    "deck": "huldra_v2",
@@ -8638,10 +8638,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 5.73,
+   "winRate": 0.9667,
+   "turns": 5.7,
    "ftk": 0,
-   "dead": 0.1
+   "dead": 0.0981
   },
   {
    "deck": "huldra_v2",
@@ -9013,10 +9013,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.4333,
-   "turns": 6.65,
+   "winRate": 0.15,
+   "turns": 6.3,
    "ftk": 0,
-   "dead": 0.1917
+   "dead": 0.2117
   },
   {
    "deck": "ymir_v1",
@@ -9059,9 +9059,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 4.78,
+   "turns": 4.65,
    "ftk": 0,
-   "dead": 0.2764
+   "dead": 0.2852
   },
   {
    "deck": "ymir_v1",
@@ -9074,9 +9074,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 6.08,
+   "turns": 6.33,
    "ftk": 0,
-   "dead": 0.2333
+   "dead": 0.2117
   },
   {
    "deck": "ymir_v1",
@@ -9091,7 +9091,7 @@
    "winRate": 1,
    "turns": 5.72,
    "ftk": 0,
-   "dead": 0.255
+   "dead": 0.265
   },
   {
    "deck": "ymir_v1",
@@ -9462,11 +9462,11 @@
    "role": "RAMP",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 59,
-   "winRate": 0.7458,
-   "turns": 4.83,
+   "decisive": 60,
+   "winRate": 0.4667,
+   "turns": 4.67,
    "ftk": 0,
-   "dead": 0.6633
+   "dead": 0.67
   },
   {
    "deck": "ymir_v2",
@@ -9526,7 +9526,7 @@
    "winRate": 1,
    "turns": 4.83,
    "ftk": 0,
-   "dead": 0.63
+   "dead": 0.6317
   },
   {
    "deck": "ymir_v2",
@@ -9539,9 +9539,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 4.22,
+   "turns": 4.15,
    "ftk": 0,
-   "dead": 0.6605
+   "dead": 0.665
   },
   {
    "deck": "ymir_v2",
@@ -9912,11 +9912,11 @@
    "role": "CONTROL",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 59,
-   "winRate": 0.2542,
-   "turns": 4.12,
+   "decisive": 60,
+   "winRate": 0.1333,
+   "turns": 3.93,
    "ftk": 0,
-   "dead": 0.3691
+   "dead": 0.385
   },
   {
    "deck": "draugr_v1",
@@ -9958,10 +9958,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9667,
-   "turns": 4.55,
+   "winRate": 0.9,
+   "turns": 4.47,
    "ftk": 0,
-   "dead": 0.3417
+   "dead": 0.3433
   },
   {
    "deck": "draugr_v1",
@@ -9973,10 +9973,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
+   "winRate": 0.95,
    "turns": 4.9,
    "ftk": 0,
-   "dead": 0.2983
+   "dead": 0.2989
   },
   {
    "deck": "draugr_v1",
@@ -9988,10 +9988,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9167,
-   "turns": 4.33,
+   "winRate": 0.9,
+   "turns": 4.25,
    "ftk": 0,
-   "dead": 0.3533
+   "dead": 0.3564
   },
   {
    "deck": "draugr_v1",
@@ -10363,10 +10363,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.05,
-   "turns": 5.48,
+   "winRate": 0,
+   "turns": 5.17,
    "ftk": 0,
-   "dead": 0.2067
+   "dead": 0.2183
   },
   {
    "deck": "draugr_v2",
@@ -10423,10 +10423,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.45,
-   "turns": 7.03,
+   "winRate": 0.4,
+   "turns": 6.5,
    "ftk": 0,
-   "dead": 0.1483
+   "dead": 0.155
   },
   {
    "deck": "draugr_v2",
@@ -10438,10 +10438,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8333,
-   "turns": 6.23,
+   "winRate": 0.7167,
+   "turns": 5.93,
    "ftk": 0,
-   "dead": 0.1633
+   "dead": 0.185
   },
   {
    "deck": "draugr_v2",
@@ -10813,10 +10813,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 7.02,
+   "winRate": 0.9667,
+   "turns": 7.52,
    "ftk": 0,
-   "dead": 0.0733
+   "dead": 0.0517
   },
   {
    "deck": "valkyrie_v1",
@@ -10858,10 +10858,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 7.4,
+   "winRate": 0.8333,
+   "turns": 7.23,
    "ftk": 0,
-   "dead": 0.07
+   "dead": 0.06
   },
   {
    "deck": "valkyrie_v1",
@@ -10873,10 +10873,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
+   "winRate": 0.85,
    "turns": 8.77,
    "ftk": 0,
-   "dead": 0.035
+   "dead": 0.0417
   },
   {
    "deck": "valkyrie_v1",
@@ -10888,8 +10888,8 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 6.87,
+   "winRate": 0.8167,
+   "turns": 6.43,
    "ftk": 0,
    "dead": 0.1017
   },
@@ -11263,8 +11263,8 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 5.17,
+   "winRate": 0.8833,
+   "turns": 5.27,
    "ftk": 0,
    "dead": 0.0771
   },
@@ -11308,10 +11308,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 5.22,
+   "winRate": 0.8833,
+   "turns": 5.12,
    "ftk": 0,
-   "dead": 0.0771
+   "dead": 0.0792
   },
   {
    "deck": "valkyrie_v2",
@@ -11323,10 +11323,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8333,
-   "turns": 6.02,
+   "winRate": 0.65,
+   "turns": 5.85,
    "ftk": 0,
-   "dead": 0.0271
+   "dead": 0.0313
   },
   {
    "deck": "valkyrie_v2",
@@ -11338,10 +11338,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.95,
-   "turns": 5.4,
+   "winRate": 0.7,
+   "turns": 5.05,
    "ftk": 0,
-   "dead": 0.0771
+   "dead": 0.0875
   },
   {
    "deck": "valkyrie_v2",
@@ -11713,10 +11713,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 7.18,
+   "winRate": 0.8833,
+   "turns": 7.58,
    "ftk": 0,
-   "dead": 0.1259
+   "dead": 0.1185
   },
   {
    "deck": "audhumbla_v1",
@@ -11758,8 +11758,8 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 6.35,
+   "winRate": 0.9833,
+   "turns": 6.33,
    "ftk": 0,
    "dead": 0.1241
   },
@@ -11773,10 +11773,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9333,
-   "turns": 8.08,
+   "winRate": 0.9167,
+   "turns": 8.33,
    "ftk": 0,
-   "dead": 0.0981
+   "dead": 0.0907
   },
   {
    "deck": "audhumbla_v1",
@@ -11788,10 +11788,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 6.8,
+   "winRate": 0.9333,
+   "turns": 6.53,
    "ftk": 0,
-   "dead": 0.1667
+   "dead": 0.1704
   },
   {
    "deck": "audhumbla_v1",
@@ -12163,10 +12163,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 13.35,
+   "winRate": 0.9167,
+   "turns": 15.95,
    "ftk": 0,
-   "dead": 0.0648
+   "dead": 0.0519
   },
   {
    "deck": "audhumbla_v2",
@@ -12208,10 +12208,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 10.63,
+   "winRate": 0.9333,
+   "turns": 10.48,
    "ftk": 0,
-   "dead": 0.0889
+   "dead": 0.087
   },
   {
    "deck": "audhumbla_v2",
@@ -12223,8 +12223,8 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 13.93,
+   "winRate": 0.95,
+   "turns": 14.1,
    "ftk": 0,
    "dead": 0.0463
   },
@@ -12239,9 +12239,9 @@
    "games": 60,
    "decisive": 60,
    "winRate": 1,
-   "turns": 10.48,
+   "turns": 10.1,
    "ftk": 0,
-   "dead": 0.1037
+   "dead": 0.1093
   },
   {
    "deck": "audhumbla_v2",
@@ -12613,10 +12613,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 5,
+   "winRate": 0.8667,
+   "turns": 5.12,
    "ftk": 0,
-   "dead": 0.1545
+   "dead": 0.153
   },
   {
    "deck": "hel_v1",
@@ -12658,10 +12658,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9167,
-   "turns": 5.43,
+   "winRate": 0.7,
+   "turns": 5.18,
    "ftk": 0,
-   "dead": 0.1409
+   "dead": 0.1515
   },
   {
    "deck": "hel_v1",
@@ -12673,10 +12673,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7833,
-   "turns": 6.22,
+   "winRate": 0.5333,
+   "turns": 5.78,
    "ftk": 0,
-   "dead": 0.0818
+   "dead": 0.0924
   },
   {
    "deck": "hel_v1",
@@ -12688,10 +12688,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.6833,
-   "turns": 5.15,
+   "winRate": 0.5167,
+   "turns": 4.83,
    "ftk": 0,
-   "dead": 0.1424
+   "dead": 0.1561
   },
   {
    "deck": "hel_v1",
@@ -13062,9 +13062,9 @@
    "role": "BURST",
    "opponentRole": "BURST",
    "games": 60,
-   "decisive": 59,
-   "winRate": 0.9661,
-   "turns": 2.97,
+   "decisive": 60,
+   "winRate": 0.8,
+   "turns": 2.95,
    "ftk": 0,
    "dead": 0.1917
   },
@@ -13107,11 +13107,11 @@
    "role": "BURST",
    "opponentRole": "RAMP",
    "games": 60,
-   "decisive": 60,
-   "winRate": 0.7167,
-   "turns": 3.25,
+   "decisive": 59,
+   "winRate": 0.6271,
+   "turns": 3.18,
    "ftk": 0,
-   "dead": 0.175
+   "dead": 0.1733
   },
   {
    "deck": "hel_v2",
@@ -13122,11 +13122,11 @@
    "role": "BURST",
    "opponentRole": "RAMP",
    "games": 60,
-   "decisive": 58,
-   "winRate": 0.5172,
-   "turns": 3.37,
+   "decisive": 56,
+   "winRate": 0.3036,
+   "turns": 3.25,
    "ftk": 0,
-   "dead": 0.1267
+   "dead": 0.145
   },
   {
    "deck": "hel_v2",
@@ -13138,10 +13138,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 59,
-   "winRate": 0.2881,
-   "turns": 3.03,
+   "winRate": 0.1186,
+   "turns": 2.82,
    "ftk": 0,
-   "dead": 0.1767
+   "dead": 0.1933
   },
   {
    "deck": "hel_v2",
@@ -13513,10 +13513,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9833,
-   "turns": 4.65,
+   "winRate": 0.85,
+   "turns": 4.68,
    "ftk": 0,
-   "dead": 0.2023
+   "dead": 0.1873
   },
   {
    "deck": "nidhoggr_v1",
@@ -13558,10 +13558,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.95,
-   "turns": 4.73,
+   "winRate": 0.85,
+   "turns": 4.63,
    "ftk": 0,
-   "dead": 0.1762
+   "dead": 0.1846
   },
   {
    "deck": "nidhoggr_v1",
@@ -13573,10 +13573,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.9333,
-   "turns": 5.1,
+   "winRate": 0.7667,
+   "turns": 4.92,
    "ftk": 0,
-   "dead": 0.155
+   "dead": 0.165
   },
   {
    "deck": "nidhoggr_v1",
@@ -13588,10 +13588,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8167,
-   "turns": 4.35,
+   "winRate": 0.7167,
+   "turns": 4.22,
    "ftk": 0,
-   "dead": 0.2007
+   "dead": 0.2027
   },
   {
    "deck": "nidhoggr_v1",
@@ -13963,10 +13963,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 1,
-   "turns": 4.42,
+   "winRate": 0.9833,
+   "turns": 4.57,
    "ftk": 0,
-   "dead": 0.18
+   "dead": 0.1683
   },
   {
    "deck": "nidhoggr_v2",
@@ -14008,8 +14008,8 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.8667,
-   "turns": 4.97,
+   "winRate": 0.7667,
+   "turns": 4.8,
    "ftk": 0,
    "dead": 0.155
   },
@@ -14023,10 +14023,10 @@
    "opponentRole": "RAMP",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7833,
-   "turns": 6.02,
+   "winRate": 0.4333,
+   "turns": 5.62,
    "ftk": 0,
-   "dead": 0.1117
+   "dead": 0.1133
   },
   {
    "deck": "nidhoggr_v2",
@@ -14038,10 +14038,10 @@
    "opponentRole": "BURST",
    "games": 60,
    "decisive": 60,
-   "winRate": 0.7667,
-   "turns": 4.98,
+   "winRate": 0.5333,
+   "turns": 4.73,
    "ftk": 0,
-   "dead": 0.1633
+   "dead": 0.1733
   },
   {
    "deck": "nidhoggr_v2",

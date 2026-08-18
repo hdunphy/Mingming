@@ -52,6 +52,39 @@ if (DECK === 'nidhoggr_v1' && knob.rootmin) {
     const r = H.nidhoggr_v1.hooks.find(h => h.id === 'nidhoggr_v1_root');
     if (r) (r.when as { sourceStatus?: { status: string; minStacks: number } }).sourceStatus = { status: 'Poison', minStacks: Number(knob.rootmin) };
 }
+if (DECK === 'fenrir_v1') {
+    // UNBOUND_KERNEL charges 2% max HP RECOIL on every attack she plays, on a 66 HP frame -
+    // a per-attack tax on the deck with the most 0% cells in the game.
+    const f = H.fenrir_v1.hooks.find(h => h.id === 'fenrir_v1_hook');
+    if (f && knob.recoil !== undefined) {
+        if (knob.recoil === '0') f.do = (f.do ?? []).filter(x => x.type !== 'HP');
+        else {
+            const hpAct = f.do?.find(x => x.type === 'HP') as { percentMaxHP?: number } | undefined;
+            if (hpAct) hpAct.percentMaxHP = -Number(knob.recoil);
+        }
+    }
+    if (f && knob.recoilcost) {
+        // Shape-preserving buff: the recoil STAYS, it just stops taxing her cheap attacks.
+        (f.when as { baseCost?: { operator: string; value: number } }).baseCost = { operator: 'GTE', value: Number(knob.recoilcost) };
+    }
+    if (f && knob.str) {
+        const stAct = f.do?.find(x => x.type === 'STATUS') as { stacks?: number } | undefined;
+        if (stAct) stAct.stacks = Number(knob.str);
+    }
+}
+if (DECK === 'kraken_v2') {
+    // TIDAL_CRUSH only pays on Water cards costing 3+ Energy, on a 2-Energy frame.
+    const t = H.kraken_v2.hooks.find(h => h.id === 'kraken_v2_hook') as unknown as
+        { when?: { baseCost?: { operator: string; value: number } }; multiplier?: number };
+    if (t && knob.tidalcost) t.when!.baseCost = { operator: 'GTE', value: Number(knob.tidalcost) };
+    if (t && knob.tidalpct) t.multiplier = 1 + Number(knob.tidalpct);
+}
+if (DECK === 'fafnir_v2' && knob.strper) {
+    const f = H.fafnir_v2.hooks.find(h => h.id === 'fafnir_v2_corrupted');
+    for (const x of f?.do ?? [])
+        if (x.type === 'STATUS' && (x as { status?: string }).status === 'Strengthened')
+            (x as { stacks?: number }).stacks = Number(knob.strper);
+}
 if (DECK === 'ymir_v1' && knob.shield) {
     // GLACIER_HEART hands her 5 Bark Shield at the start of every turn, unconditionally - and
     // `avalanche` is 9 power per stack, uncapped. The OS IS the engine.
@@ -88,6 +121,7 @@ if (knob.pct) OS_KNOBS.hel.pctPerEnergy = Number(knob.pct);
 if (knob.cap) OS_KNOBS.hel.capPct = Number(knob.cap);
 if (knob.ice) OS_KNOBS.ymir.iceBonus = Number(knob.ice);
 if (knob.shuffles) OS_KNOBS.hraes.shufflesNeeded = Number(knob.shuffles);
+if (knob.hoardpct) OS_KNOBS.fafnir.hoardRecoilPct = Number(knob.hoardpct);
 
 const SPECIES = DECK.replace(/_v[12]$/, '');
 const REG = MingmingRegistry as unknown as Record<string, {
@@ -110,6 +144,10 @@ const PAYOFF: Record<string, string[]> = {
     ymir_v1: ['avalanche'],
     hraesvelgr_v2: ['thermal_lance', 'firestorm_talon'],
     valkyrie_v2: ['starfall', 'ascension'],
+    fenrir_v1: ['ragnarok_edge', 'berserk_rush'],
+    kraken_v2: ['maelstrom', 'hydro_blast'],
+    fafnir_v1: ['deep_vein', 'hoardbreaker'],
+    fafnir_v2: ['veinburst', 'boulder_smash'],
 };
 
 /** Card-power knob, so a rate can be swept without editing programs.json. `card=id:power`. */

@@ -61,7 +61,7 @@
     "fenrir_v1": {
         "id": "fenrir_v1",
         "name": "UNBOUND_KERNEL",
-        "description": "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage.",
+        "description": "Attack programs apply 3 Strengthened.",
         "hooks": [
             {
                 "id": "fenrir_v1_hook",
@@ -76,12 +76,7 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 1
-                    },
-                    {
-                        "type": "HP",
-                        "target": "SELF",
-                        "percentMaxHP": -2
+                        "stacks": 3
                     },
                     {
                         "type": "LOG",
@@ -150,7 +145,7 @@
     "kraken_v2": {
         "id": "kraken_v2",
         "name": "TIDAL_CRUSH_OS",
-        "description": "Water cards that cost 3 or more Energy deal 15% more damage.",
+        "description": "Water cards that cost 2 or more Energy deal 30% more damage.",
         "hooks": [
             {
                 "id": "kraken_v2_hook",
@@ -161,10 +156,10 @@
                     "programElement": "Water",
                     "baseCost": {
                         "operator": "GTE",
-                        "value": 3
+                        "value": 2
                     }
                 },
-                "multiplier": 1.15
+                "multiplier": 1.3
             }
         ]
     },
