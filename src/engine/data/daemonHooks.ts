@@ -7,6 +7,7 @@ export const RECURSION_DAEMON_HOOK_ID = 'recursion_daemon_hook';
 export const THERMAL_OVERLOAD_HOOK_ID = 'thermal_overload_hook';
 export const THERMAL_OVERLOAD_LOGIC_ID = 'thermal_overload_logic';
 export const ECHO_CHAMBER_DAEMON_HOOK_ID = 'echo_chamber_daemon_hook';
+export const HOOFBEAT_DAEMON_HOOK_ID = 'hoofbeat_daemon_hook';
 
 let isDaemonsInitialized = false;
 
@@ -21,7 +22,9 @@ export function initDaemonHooks() {
         'core_overclock_daemon',
         'cinder_armor_daemon',
         'feedback_loop_daemon',
-        'fertile_ground_daemon'
+        'fertile_ground_daemon',
+        'einherjar_standard',
+        'hoofbeat_daemon'
     ];
 
     // Validate JSON on boot

@@ -2,30 +2,42 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
-import { updateMingmingOS, spendScrap } from '../store/gameSlice';
+import { swapOS } from '../store/gameSlice';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { GetMingmingData, getDeckForOS } from '../../engine/data/mingmingRegistry';
+import { GetProgramData } from '../../engine/data/programRegistry';
+import { deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
 
 interface FirmwareTerminalProps {
     onClose: () => void;
 }
 
-const OS_SWAP_COST = 25;
+// Ticket 15: swap = 1 species blueprint (SPENT) + scrap; first swap to an OS
+// grants a pick of its starting kit (once ever), chosen in the picker below.
+const OS_SWAP_COST = OS_SWAP_SCRAP_COST;
 
 export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
     const dispatch = useDispatch();
-    const { roster, scrapCount } = useSelector((s: RootState) => s.game);
+    const { roster, scrapCount, blueprints, baseDecksGranted } = useSelector((s: RootState) => s.game);
     const [selectedMmId, setSelectedMmId] = useState<string | null>(null);
     const [isFlashing, setIsFlashing] = useState(false);
     const [flashProgress, setFlashProgress] = useState(0);
     const [targetOS, setTargetOS] = useState<string | null>(null);
+    // Pick-2 session: set when a completed flash needs the first-swap card picks.
+    const [pickSession, setPickSession] = useState<{ mmId: string; osId: string; kit: string[] } | null>(null);
+    const [pickedIndices, setPickedIndices] = useState<number[]>([]);
 
     const selectedMm = useMemo(() =>
         roster.find(m => m.id === selectedMmId),
         [roster, selectedMmId]);
 
+    const hasBlueprint = useMemo(() =>
+        !!selectedMm && blueprints.some(b => b.architectureId === selectedMm.definitionId),
+        [blueprints, selectedMm]);
+
     const handleFlash = () => {
-        if (!selectedMm || !targetOS || scrapCount < OS_SWAP_COST) return;
+        if (!selectedMm || !targetOS || scrapCount < OS_SWAP_COST || !hasBlueprint) return;
 
         setIsFlashing(true);
         setFlashProgress(0);
@@ -49,11 +61,22 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
     useEffect(() => {
         if (flashProgress === 100 && isFlashing) {
             const timeout = setTimeout(() => {
-                // Only apply the OS if the scrap spend can actually succeed
-                // (spendScrap is a silent no-op when funds are insufficient).
-                if (selectedMmId && targetOS && scrapCount >= OS_SWAP_COST) {
-                    dispatch(spendScrap(OS_SWAP_COST));
-                    dispatch(updateMingmingOS({ id: selectedMmId, activeOS: targetOS }));
+                // swapOS validates and spends blueprint + scrap itself (silent no-op
+                // on failure, matching the old spendScrap convention).
+                if (selectedMmId && targetOS && selectedMm && scrapCount >= OS_SWAP_COST && hasBlueprint) {
+                    const key = deckGrantKey(selectedMm.definitionId, targetOS);
+                    if (!baseDecksGranted.includes(key)) {
+                        // First swap to this OS: open the kit picker; the swap is
+                        // dispatched with the picks on confirm.
+                        setPickSession({
+                            mmId: selectedMmId,
+                            osId: targetOS,
+                            kit: getDeckForOS(selectedMm.definitionId, targetOS)
+                        });
+                        setPickedIndices([]);
+                    } else {
+                        dispatch(swapOS({ id: selectedMmId, targetOS }));
+                    }
                 }
                 setIsFlashing(false);
                 setFlashProgress(0);
@@ -61,16 +84,33 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
             }, 500);
             return () => clearTimeout(timeout);
         }
-    }, [flashProgress, isFlashing, selectedMmId, targetOS, scrapCount, dispatch]);
+    }, [flashProgress, isFlashing, selectedMmId, selectedMm, targetOS, scrapCount, hasBlueprint, baseDecksGranted, dispatch]);
 
     const availableOSVersions = useMemo(() => {
         if (!selectedMm) return [];
-        const baseId = selectedMm.definitionId;
-        return [
-            { id: `${baseId}_v1`, version: 'v1.0' },
-            { id: `${baseId}_v2`, version: 'v2.0' }
-        ];
+        // Ticket 15: read the registry instead of hardcoding _v1/_v2.
+        return GetMingmingData(selectedMm.definitionId).availableOS.map((id, i) => ({
+            id,
+            version: `v${i + 1}.0`
+        }));
     }, [selectedMm]);
+
+    const confirmPicks = () => {
+        if (!pickSession) return;
+        dispatch(swapOS({
+            id: pickSession.mmId,
+            targetOS: pickSession.osId,
+            pickedCardIds: pickedIndices.map(i => pickSession.kit[i])
+        }));
+        setPickSession(null);
+        setPickedIndices([]);
+    };
+
+    const togglePick = (index: number) => {
+        setPickedIndices(prev => prev.includes(index)
+            ? prev.filter(i => i !== index)
+            : prev.length < OS_SWAP_PICK_COUNT ? [...prev, index] : prev);
+    };
 
     return (
         <div className="firmware-terminal-overlay">
@@ -150,11 +190,13 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                 <div className="flash-footer">
                                     <div className="flash-cost">
                                         FLASH COST: <span className={scrapCount < OS_SWAP_COST ? 'insufficient' : ''}>{OS_SWAP_COST}⚙️</span>
-                                        <label>(CURRENT: {scrapCount}⚙️)</label>
+                                        {' + '}
+                                        <span className={!hasBlueprint ? 'insufficient' : ''}>1 BLUEPRINT</span>
+                                        <label>(CURRENT: {scrapCount}⚙️{hasBlueprint ? ', BLUEPRINT READY' : ', NO BLUEPRINT'})</label>
                                     </div>
                                     <button
                                         className="flash-button"
-                                        disabled={!targetOS || scrapCount < OS_SWAP_COST || isFlashing}
+                                        disabled={!targetOS || scrapCount < OS_SWAP_COST || !hasBlueprint || isFlashing}
                                         onClick={handleFlash}
                                     >
                                         {isFlashing ? 'TRANSFERRING...' : 'START FLASH SEQUENCE'}
@@ -193,6 +235,40 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Ticket 15: first-swap kit picker */}
+                {pickSession && (
+                    <div className="flash-progress-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="progress-content" style={{ maxWidth: 560 }}>
+                            <h3>KERNEL KIT UNPACKED</h3>
+                            <p>Select up to {OS_SWAP_PICK_COUNT} programs from the {getOSBehavior(pickSession.osId)?.name ?? pickSession.osId} starting kit (one-time offer):</p>
+                            <div style={{ display: 'grid', gap: 6, margin: '12px 0', maxHeight: 260, overflowY: 'auto' }}>
+                                {pickSession.kit.map((dataId, i) => {
+                                    const program = GetProgramData(dataId);
+                                    const picked = pickedIndices.includes(i);
+                                    return (
+                                        <button
+                                            key={`${dataId}-${i}`}
+                                            onClick={() => togglePick(i)}
+                                            style={{
+                                                textAlign: 'left', padding: '6px 10px', cursor: 'pointer',
+                                                border: picked ? '1px solid #00ff00' : '1px solid #555',
+                                                background: picked ? 'rgba(0,255,0,0.12)' : 'transparent', color: 'inherit'
+                                            }}
+                                        >
+                                            <strong>{picked ? '[x] ' : '[ ] '}{program.name}</strong> ({program.baseCost}e) — {program.description}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                <button className="flash-button" onClick={confirmPicks}>
+                                    CONFIRM ({pickedIndices.length}/{OS_SWAP_PICK_COUNT})
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="scanline"></div>
         </div>

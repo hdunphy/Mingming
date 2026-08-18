@@ -1,49 +1,72 @@
 import { describe, it, expect } from 'vitest';
-import { MingmingRegistry } from './mingmingRegistry';
+import { MingmingRegistry, getDeckForOS, PLAYABLE_SPECIES } from './mingmingRegistry';
 import { GetProgramData } from './programRegistry';
 
-describe('Species base decks', () => {
-    const species = Object.values(MingmingRegistry);
+/**
+ * Per-OS starting-deck invariants (ticket 13, deck template from ticket 04):
+ * every species has one deck per availableOS entry, 8-12 cards each, ids
+ * resolve, element-locked to primary/'None', no tokens. Copy cap is <=3 while
+ * the legacy shared decks are being ported (skoll and valkyrie run triples);
+ * the template caps NEW decks at 2 copies - tighten this to 2 as each species'
+ * deck pass lands.
+ */
+describe('per-OS starting decks', () => {
+    const speciesIds = [...PLAYABLE_SPECIES];
 
-    it('registry contains all 16 species', () => {
-        expect(species).toHaveLength(16);
+    it('registry still has exactly 16 PLAYABLE species (the control is not one)', () => {
+        expect(PLAYABLE_SPECIES).toHaveLength(16);
+        expect(PLAYABLE_SPECIES).not.toContain('control');
+        // Ticket 42: the control lives in the registry so the balance harness can resolve it,
+        // but it must never be enumerated as a playable Mingming.
+        expect(Object.keys(MingmingRegistry)).toHaveLength(17);
     });
 
-    it('every species has a baseDeck of exactly 10 entries', () => {
-        for (const def of species) {
-            expect(def.baseDeck, `${def.id} baseDeck`).toBeDefined();
-            expect(def.baseDeck, `${def.id} baseDeck length`).toHaveLength(10);
-        }
+    it.each(speciesIds)('%s: decks keys match availableOS exactly', id => {
+        const def = MingmingRegistry[id];
+        expect(Object.keys(def.decks).sort()).toEqual([...def.availableOS].sort());
     });
 
-    it('every baseDeck id resolves to a real program (no Missing Program stubs)', () => {
-        for (const def of species) {
-            for (const cardId of def.baseDeck) {
-                const data = GetProgramData(cardId);
-                // The registry's missing-data stub is identifiable by id 'missing' / name 'Missing Program'
-                expect(data.id, `${def.id} -> ${cardId}`).not.toBe('missing');
-                expect(data.name, `${def.id} -> ${cardId}`).not.toBe('Missing Program');
+    describe.each(speciesIds)('%s', id => {
+        const def = MingmingRegistry[id];
+
+        it.each(def.availableOS)('%s deck: 8-12 cards, <=3 copies (legacy cap)', osId => {
+            const deck = getDeckForOS(id, osId);
+            // Ticket 61 REVERSED ticket 56's named seven-card exception for valkyrie_v2:
+            // `glimmer` is back and the 8-12 band is whole again for every deck on the roster.
+            // The exception was always written as "reverse this line, not the rule" - this is
+            // that reversal, and the rule never moved.
+            expect(deck.length).toBeGreaterThanOrEqual(8);
+            expect(deck.length).toBeLessThanOrEqual(12);
+            const counts: Record<string, number> = {};
+            for (const c of deck) counts[c] = (counts[c] ?? 0) + 1;
+            for (const [dataId, n] of Object.entries(counts)) {
+                expect(n, `${osId}: ${dataId} has ${n} copies`).toBeLessThanOrEqual(3);
             }
-        }
+        });
+
+        it.each(def.availableOS)('%s deck: every id resolves, element-locked, no tokens', osId => {
+            for (const dataId of getDeckForOS(id, osId)) {
+                const program = GetProgramData(dataId);
+                expect(program, `${osId}: unknown program '${dataId}'`).toBeDefined();
+                expect(program.id).not.toBe('missing');
+                // Ticket 36: dual-type species may run cards of their SECONDARY element too
+                // (Hel is Dark/Light). Every other species has secondaryElement 'None', so the
+                // allowed set collapses back to [primary, 'None'] for them - a no-op.
+                expect(
+                    [def.primaryElement, def.secondaryElement, 'None'],
+                    `${osId}: '${dataId}' is ${program.element}, expected ${def.primaryElement}, ${def.secondaryElement} or None`,
+                ).toContain(program.element);
+                expect(program.isToken ?? false, `${osId}: '${dataId}' is a token`).toBe(false);
+            }
+        });
     });
 
-    it("every baseDeck card's element matches the species' primaryElement (or is None)", () => {
-        for (const def of species) {
-            for (const cardId of def.baseDeck) {
-                const data = GetProgramData(cardId);
-                const ok = data.element === def.primaryElement || data.element === 'None';
-                expect(ok, `${def.id} -> ${cardId} element ${data.element} vs ${def.primaryElement}`).toBe(true);
-            }
-        }
-    });
-
-    it('no baseDeck card is a token', () => {
-        for (const def of species) {
-            for (const cardId of def.baseDeck) {
-                const data = GetProgramData(cardId);
-                expect(data.isToken ?? false, `${def.id} -> ${cardId} isToken`).toBe(false);
-                expect(data.rarity, `${def.id} -> ${cardId} rarity`).not.toBe('Token');
-            }
-        }
+    it('getDeckForOS defaults to the availableOS[0] slot and copies defensively', () => {
+        const direct = MingmingRegistry['fenrir'].decks['fenrir_v1'];
+        const resolved = getDeckForOS('fenrir');
+        expect(resolved).toEqual(direct);
+        expect(resolved).not.toBe(direct); // defensive copy
+        expect(getDeckForOS('fenrir', 'not_a_real_os')).toEqual(direct); // unknown os -> primary
+        expect(getDeckForOS('missing_species')).toEqual([]);
     });
 });

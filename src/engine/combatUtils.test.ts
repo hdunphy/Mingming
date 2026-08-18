@@ -76,31 +76,37 @@ describe('Combat Utils - Elemental Logic', () => {
         expect(calculateModifier(attacker, target, program)).toBe(1.5);
     });
 
-    it('should apply Super Effective (2.0x)', () => {
+    it('should apply Super Effective (1.5x)', () => {
+        // Ticket 35: advantage softened 2.0 -> 1.5.
         const attacker = createMockEntity('att', 'None');
         const target = createMockEntity('def', 'Fire');
         const program = createMockProgram('Water');
 
-        expect(calculateModifier(attacker, target, program)).toBe(2.0);
+        expect(calculateModifier(attacker, target, program)).toBe(1.5);
     });
 
-    it('should apply Ineffective (0.5x)', () => {
+    it('has NO resistance - a bad matchup is neutral, never halved (ticket 35)', () => {
+        // The matrix is asymmetric now: Water resists nothing, it simply does not take the
+        // 1.5x. The old 0.5x is gone, which is what removed the 4x two-sided swing.
         const attacker = createMockEntity('att', 'None');
         const target = createMockEntity('def', 'Water');
         const program = createMockProgram('Fire');
 
-        expect(calculateModifier(attacker, target, program)).toBe(0.5);
+        expect(calculateModifier(attacker, target, program)).toBe(1.0);
     });
 
-    it('should apply Secondary Resistance mitigation (0.375x)', () => {
-        // Fire vs Light = 1.0
-        // Fire vs Water = 0.5
-        // Total = 1.0 * (0.5 * 0.75) = 0.375
+    it('applies secondary mitigation to an ADVANTAGE (1.125x), ticket 35', () => {
+        // Ticket 35: resisted pairs are absent from the matrix, so a resisted secondary is
+        // `undefined` and the mitigation branch is skipped entirely - which is exactly why
+        // they must not be written as 1.0 (that would become 1.0 * 0.75 = a 25% penalty on a
+        // matchup meant to be neutral). Mitigation now only ever scales a real advantage.
+        // Nature vs Light = no entry; Nature vs Water = 1.5
+        // Total = 1.0 * (1.5 * 0.75) = 1.125
         const attacker = createMockEntity('att', 'None');
         const target = createMockEntity('def', 'Light', 'Water');
-        const program = createMockProgram('Fire');
+        const program = createMockProgram('Nature');
 
-        expect(calculateModifier(attacker, target, program)).toBe(0.375);
+        expect(calculateModifier(attacker, target, program)).toBeCloseTo(1.125, 5);
     });
 });
 
@@ -112,8 +118,8 @@ describe('Combat Utils - Modifier Breakdown (UI surfacing)', () => {
 
         const b = getModifierBreakdown(attacker, target, program);
         expect(b.stab).toBe(true);
-        expect(b.effectiveness).toBe(2.0); // Fire vs Nature
-        expect(b.modifier).toBe(3.0); // 1.5 × 2
+        expect(b.effectiveness).toBe(1.5); // Fire vs Nature (ticket 35: 2.0 -> 1.5)
+        expect(b.modifier).toBe(2.25); // 1.5 STAB × 1.5 advantage
         expect(b.modifier).toBe(calculateModifier(attacker, target, program));
     });
 
@@ -128,14 +134,16 @@ describe('Combat Utils - Modifier Breakdown (UI surfacing)', () => {
         expect(b.modifier).toBe(1.0);
     });
 
-    it('folds secondary mitigation into effectiveness (0.375x)', () => {
+    it('folds secondary mitigation into effectiveness (1.125x), ticket 35', () => {
+        // Only an ADVANTAGE can reach the mitigation branch now - resisted pairs are absent
+        // from the matrix, so they read `undefined` and are skipped.
         const attacker = createMockEntity('att', 'None');
         const target = createMockEntity('def', 'Light', 'Water');
-        const program = createMockProgram('Fire');
+        const program = createMockProgram('Nature');
 
         const b = getModifierBreakdown(attacker, target, program);
         expect(b.stab).toBe(false);
-        expect(b.effectiveness).toBe(0.375);
+        expect(b.effectiveness).toBeCloseTo(1.125, 5);
         expect(b.modifier).toBe(calculateModifier(attacker, target, program));
     });
 });
@@ -149,9 +157,9 @@ describe('Combat Utils - Damage Formula', () => {
 
         const damage = calculateDamage(attacker, target, program, 40, state);
         // levelBase = floor(2*50/5)+2 = 22; scaled = floor(22*40*100/100) = 880;
-        // reduced = 880/35 = 25.14 (docs/power_curve_spec.md rev 3: no +2, /35 not /50);
-        // modifier 1.0 (program element 'None' never grants STAB) -> floor(25.14) = 25.
-        expect(damage).toBe(25);
+        // reduced = 880/45 = 19.55 (spec rev 3.1 / ticket 23: no +2, /45 not /35);
+        // modifier 1.0 (program element 'None' never grants STAB) -> floor(19.55) = 19.
+        expect(damage).toBe(19);
     });
 
     it('should match manual calculation for Level 100 (No STAB)', () => {
@@ -162,8 +170,8 @@ describe('Combat Utils - Damage Formula', () => {
 
         const damage = calculateDamage(attacker, target, program, 40, state);
         // levelBase = floor(2*100/5)+2 = 42; scaled = floor(42*40*100/100) = 1680;
-        // reduced = 1680/35 = 48.0; modifier 1.0 -> floor(48.0) = 48.
-        expect(damage).toBe(48);
+        // reduced = 1680/45 = 37.33; modifier 1.0 -> floor(37.33) = 37.
+        expect(damage).toBe(37);
     });
 
     it('should match STAB calculation', () => {
@@ -173,9 +181,9 @@ describe('Combat Utils - Damage Formula', () => {
         const state = { activeSide: 'PLAYER' } as any;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        // Same base as the Level 50 case (25.14 reduced) but modifier is 1.5 for STAB:
-        // floor(25.14 * 1.5) = floor(37.71) = 37.
-        expect(damage).toBe(37);
+        // Same base as the Level 50 case (19.55 reduced) but modifier is 1.5 for STAB:
+        // floor(19.55 * 1.5) = floor(29.33) = 29.
+        expect(damage).toBe(29);
     });
 });
 

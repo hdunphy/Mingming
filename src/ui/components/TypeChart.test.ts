@@ -5,12 +5,14 @@ import { ELEMENTS } from '../../engine/types';
 import type { Element } from '../../engine/types';
 
 describe('TypeChart matchup derivation', () => {
-    it('returns ×2 for Fire → Nature (super effective)', () => {
-        expect(getMatchupMultiplier('Fire', 'Nature')).toBe(2);
+    it('returns ×1.5 for Fire → Nature (super effective), ticket 35', () => {
+        expect(getMatchupMultiplier('Fire', 'Nature')).toBe(1.5);
     });
 
-    it('returns ×0.5 for Fire → Water (not very effective)', () => {
-        expect(getMatchupMultiplier('Fire', 'Water')).toBe(0.5);
+    it('returns ×1 for Fire → Water — resistance was removed (ticket 35)', () => {
+        // Asymmetric matrix: Water simply does not take Fire's 1.5x. It is never punished for
+        // the reverse direction, which is what the type chart UI should now show.
+        expect(getMatchupMultiplier('Fire', 'Water')).toBe(1);
     });
 
     it('returns ×1 for neutral / missing matchups', () => {

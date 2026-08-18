@@ -10,7 +10,7 @@
  * (for the OS audit) the firmware.
  */
 
-import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/scenarioSchema';
 
 /**
@@ -18,6 +18,15 @@ import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/s
  * high enough that the stat curve is out of its early-level noise.
  */
 export const BALANCE_LEVEL = 15;
+
+/**
+ * Ticket 19: IV jitter magnitude for every balance scenario (mirrors, OS variance,
+ * gauntlet - they all compose through `matchupScenario`). 15±5 per Henry's ticket-18
+ * decision: same seed-derived roll for both sides, applied per seed by
+ * `runBatch.applyStatJitter`. Committed numbers are "win rate over a small stat
+ * neighborhood" rather than a single pinned frame.
+ */
+export const BALANCE_STAT_JITTER = 5;
 
 /** Middle of the 0..31 IV band, so no unit is rolled lucky. */
 export const BALANCE_IV = 15;
@@ -27,12 +36,47 @@ export const BALANCE_IV = 15;
  * is not a registry entry, so nothing needs filtering out - but the assertion keeps a
  * future stub from silently joining the gauntlet.
  */
-export const BALANCE_SPECIES: ReadonlyArray<string> = Object.keys(MingmingRegistry).filter(
-    id => MingmingRegistry[id].availableOS.length > 0 && MingmingRegistry[id].baseDeck.length > 0,
+const ALL_BALANCE_SPECIES: ReadonlyArray<string> = Object.keys(MingmingRegistry).filter(
+    // Ticket 42: the control is an instrument, not a species to balance. It is excluded from
+    // the mirror and §2.3 entirely - it carries one firmware, so `osVarianceScenario` would
+    // throw on it, and "the control against itself" measures nothing. It appears only as the
+    // gauntlet benchmark, where BALANCE_ONLY scoping must not filter it out either.
+    id => id !== 'control'
+        && MingmingRegistry[id].availableOS.length > 0
+        && MingmingRegistry[id].availableOS.every(os => getDeckForOS(id, os).length > 0),
 );
 
-/** The §2.2 control archetype: "Kraken Poison". */
-export const CONTROL_SPECIES = 'kraken';
+/**
+ * Ticket 17: `BALANCE_ONLY=kraken,jormungandr npm run balance` scopes every suite to the
+ * named species for the deck-tuning loop (Windows cmd: `set BALANCE_ONLY=kraken&& npm run
+ * balance`; PowerShell: `$env:BALANCE_ONLY='kraken'; npm run balance`). A scoped run
+ * never overwrites docs/balance/ - see reportGlobalSetup.
+ */
+const only = (process.env.BALANCE_ONLY ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+export const BALANCE_SPECIES: ReadonlyArray<string> =
+    only.length === 0 ? ALL_BALANCE_SPECIES : ALL_BALANCE_SPECIES.filter(id => only.includes(id));
+
+/**
+ * Ticket 17: contiguous shard of the (possibly scoped) species list, so a heavy suite can
+ * split across several `*.balance.ts` files and vitest's per-file worker pool can run
+ * them on separate cores. Deterministic: same list, same slices, any worker count.
+ */
+export function shardSpecies(index: number, count: number): ReadonlyArray<string> {
+    const size = Math.ceil(BALANCE_SPECIES.length / count);
+    return BALANCE_SPECIES.slice(index * size, (index + 1) * size);
+}
+
+/**
+ * The §2.2 benchmark. Ticket 42: this was `kraken` - a real, elemental, tuned deck, which made
+ * the yardstick both skewed (kraken sits well below the field) and MOVING (every kraken retune
+ * silently rescaled every other species' reading). It is now a purpose-built None-element deck
+ * with no firmware and every card priced exactly at band, so the measurement is absolute.
+ */
+export const CONTROL_SPECIES = 'control';
 
 function unit(definitionId: string, activeOS?: string): PartyMemberSetup {
     const definition = MingmingRegistry[definitionId];
@@ -48,7 +92,10 @@ function unit(definitionId: string, activeOS?: string): PartyMemberSetup {
 }
 
 function enemyUnit(definitionId: string, activeOS?: string): EnemySetup {
-    return { ...unit(definitionId, activeOS), deck: [...MingmingRegistry[definitionId].baseDeck] };
+    // Ticket 13: each side fights with ITS OS's deck - the fix for the shared-deck
+    // confound this whole map exists to kill.
+    const resolvedOS = activeOS ?? MingmingRegistry[definitionId].availableOS[0];
+    return { ...unit(definitionId, resolvedOS), deck: getDeckForOS(definitionId, resolvedOS) };
 }
 
 export interface MatchupSpec {
@@ -74,10 +121,11 @@ export function matchupScenario(spec: MatchupSpec): ComposedSetup {
         enemyMode: 'CARDS',
         player: {
             party: [unit(player, playerOS)],
-            deck: [...MingmingRegistry[player].baseDeck],
+            deck: getDeckForOS(player, playerOS ?? MingmingRegistry[player].availableOS[0]),
             relics: [],
         },
         enemies: [enemyUnit(enemy, enemyOS)],
+        statJitter: BALANCE_STAT_JITTER,
     };
 }
 

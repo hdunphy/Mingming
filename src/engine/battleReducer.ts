@@ -15,12 +15,13 @@ import { type HookContext } from './core/Hooks';
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
+import { numericBaseCost } from './types';
 import { effectHandlers, checkDefeat } from './effectHandlers';
-import { discardHand } from './deckLogic';
+import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
-import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated } from './resolutionEngine';
+import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 import { getOSBehavior } from './data/firmwareRegistry';
 
 // --- Helpers ---
@@ -30,7 +31,7 @@ function addLog(state: IBattleState, message: string): IBattleState {
 
 // Use the Registry to look up base costs.
 const GetBaseCost = (dataId: string): number => {
-    return GetProgramData(dataId).baseCost;
+    return numericBaseCost(GetProgramData(dataId).baseCost);
 };
 
 // --- Actions ---
@@ -53,7 +54,7 @@ export type BattleAction =
 
 // --- Constants ---
 
-const HAND_SIZE_LIMIT = 9;
+// HAND_SIZE_LIMIT now lives in deckLogic.ts - see the import above.
 const TRANSFER_COST = 2; // Source pays 2
 const TRANSFER_GAIN = 1; // Target gains 1
 
@@ -125,9 +126,24 @@ export function validateProgramConstraints(
     cost: number
 ): boolean {
 
+    // Ticket 48: PERMAFROST_WAKE lets Draugr act in its sleep. The `not_asleep` constraint stays
+    // PRINTED on all 171 cards - Asleep still shuts down everyone else - and the OS waives that one
+    // check for its owner. Deliberately NOT done by stripping `not_asleep` from Draugr's cards:
+    // that would let any species holding one of them act while slept.
+    //
+    // There is no other Asleep gate on this path. The incapacitation check in `handleExecuteIntent`
+    // is the enemy-INTENT path, so a Draugr running MOVES will still not act asleep. Recorded, not
+    // fixed: the balance suite runs CARDS on both sides.
+    const waivesAsleep = source.activeOS
+        ? getOSBehavior(source.activeOS)?.actsWhileAsleep === true
+        : false;
+
     // 2. Custom Constraints
     if (program.constraints) {
         for (const constraint of program.constraints) {
+            if (waivesAsleep && constraint.type === 'NOT_STATUS' && constraint.value === 'Asleep') {
+                continue;
+            }
             const subject = constraint.target === 'SELF' ? source : target;
             if (!subject) {
                 // If it requires a target and no target is selected? 
@@ -167,6 +183,14 @@ export function doesModifierApply(source: IBattleEntity, programData: ProgramDat
  * cost and the paid cost can never drift apart.
  */
 export function getEffectiveCardCost(source: IBattleEntity, programData: ProgramData, currentCost: number): number {
+    // X-cost (ticket 22, Thermal Lance / Firestorm Talon): the card costs ALL the
+    // source's current Energy, minimum 1. Discounts do not apply - there is nothing to
+    // discount when the price IS your whole pool. Returning a live number here is what
+    // lets the AI, the UI cost pip and the reducer's own check all agree without any
+    // of them special-casing X.
+    if (programData.baseCost === 'X') {
+        return Math.max(1, source.currentEnergy);
+    }
     const reduction = doesModifierApply(source, programData)
         ? (source.nextProgramModifier?.costReduction || 0)
         : 0;
@@ -226,6 +250,17 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // category (e.g. UNSTOPPABLE_MASS discounts an Attack). The charge is
     // spent by the NEXT card either way (see the clearing block below).
     const modifierApplies = doesModifierApply(sourceEntity, programData);
+    // Ticket 52: `powerBonus` primes ONE hit, so it is spent on the first ATTACK action that
+    // actually resolves - not the first in the list (a conditional one may not fire) and not
+    // every hit of a multi-hit card.
+    let powerBonusSpent = false;
+    // Ticket 53 - RAMPAGE growth (`growPerPlay`). Read BEFORE this play so the first cast
+    // resolves at printed power; the accumulator is bumped once, after the whole card has
+    // resolved (below), which also stops a multi-hit growth card growing between its own hits.
+    // Keyed by the ProgramEntity id, so two copies grow independently and the count follows
+    // the instance through every pile.
+    const growthKey = `card_growth:${card.id}`;
+    const growth = programData.growPerPlay ? (state.counters?.[growthKey] || 0) : 0;
     const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
     const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
 
@@ -276,6 +311,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             exhaust: newExhaustPile
         },
         cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn + 1,
+        // The X in an X-cost card, read by the ENERGY_SPENT* scalings while this card
+        // resolves. Recorded for every card so the scalings never see a stale value.
+        lastEnergySpent: finalCost,
         lastStatusConsumed: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
@@ -325,12 +363,18 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     if (programData.actions) {
         for (const action of programData.actions) {
             //TODO: we don't need a hit count we can just loop through the actions array.
-            const hitCount = (action as any).count || 1;
+            // DISCARD reads `count` as "how many cards leave the hand" (the ticket-21
+            // self-discard cost), not as a repeat count - resolve it once and let the
+            // executor move all N in a single seeded shuffle.
+            const hitCount = action.type === 'DISCARD' ? 1 : ((action as any).count || 1);
 
             for (let i = 0; i < hitCount; i++) {
                 // Target Resolution (per hit)
                 let targetIds: string[] = [];
-                if (action.target === 'SELF' || action.target === 'Self') {
+                // DISCARD is always a self-cost: it empties the ACTING side's hand
+                // regardless of the card's declared target (Lance and Cavalry Charge
+                // both target an enemy). FORCE_DISCARD is the enemy-facing variant.
+                if (action.target === 'SELF' || action.target === 'Self' || action.type === 'DISCARD') {
                     targetIds = [sourceId];
                 } else if (programData.target === 'Side' || programData.target === 'All') {
                     const isOnPlayerSide = finalState.playerParty.some(e => e.id === targetId);
@@ -345,11 +389,17 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     if (!currentTarget || currentTarget.currentHp <= 0) continue;
 
                     // Action-level Conditionals
+                    // Ticket 68: `finalState` is threaded through. It was omitted, so every
+                    // state-dependent action conditional hit ConditionValidator's
+                    // `if (!state) return true` fail-safe and passed unconditionally - which is
+                    // the REAL reason surge_protection's refund fired on 3,371 of 3,371 casts.
+                    // Same family as 0-TARGETLESS: a guard silently always-true because an
+                    // argument was not passed.
                     if (action.conditionals) {
                         let allMet = true;
                         for (const constraint of action.conditionals) {
                             const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
-                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0, finalState)) {
                                 allMet = false;
                                 break;
                             }
@@ -366,7 +416,16 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
                     // Execution
                     let modifiedAction = { ...action };
+                    if (growth > 0 && modifiedAction.type === 'ATTACK'
+                        && (modifiedAction as any).power !== undefined) {
+                        (modifiedAction as any).power = (modifiedAction as any).power + growth;
+                    }
                     if (modifier && modifierApplies) {
+                        if (!powerBonusSpent && modifier.powerBonus && modifiedAction.type === 'ATTACK'
+                            && (modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = (modifiedAction as any).power + modifier.powerBonus;
+                            powerBonusSpent = true;
+                        }
                         if ((modifiedAction as any).power !== undefined) {
                             (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
@@ -392,6 +451,27 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                 }
             }
         }
+    }
+
+    // Ticket 53: bank this cast's growth. After the action loop so the card just played
+    // used the PREVIOUS total, and outside it so a multi-hit card grows once per cast.
+    if (programData.growPerPlay) {
+        finalState = applyMutations(finalState, [{
+            type: 'COUNTER',
+            targetId: '',
+            payload: { key: growthKey, operator: 'ADD', amount: programData.growPerPlay }
+        }]);
+    }
+
+    // 8. System Layer: onActionEnd (ticket 36). Fires ONCE PER PROGRAM, after every action has
+    // resolved - the symmetric partner to the onActionStart dispatch in step 5. It is outside
+    // the action loop deliberately: a multi-action card must not flip Hel's stance mid-card.
+    // And it is end-of-action rather than start because the card that SETS a stance must not
+    // benefit from it - on onActionStart every Dark card would self-buff and switching would
+    // cost nothing, which erases the design.
+    {
+        const { state: afterEnd } = executeResolutionStack('onActionEnd', { ...context, state: finalState });
+        finalState = afterEnd;
     }
 
     // Clear the modifier after this card resolves, whether or not it applied:
@@ -528,12 +608,12 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
                 if (!currentTarget || currentTarget.currentHp <= 0) continue;
 
-                // Action-level Conditionals
+                // Action-level Conditionals (see the ticket-68 note on the sibling path above)
                 if (action.conditionals) {
                     let allMet = true;
                     for (const constraint of action.conditionals) {
                         const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
-                        if (!validateSingleConstraint(constraint, sourceEntity, subject, 0)) {
+                        if (!validateSingleConstraint(constraint, sourceEntity, subject, 0, finalState)) {
                             allMet = false;
                             break;
                         }
@@ -605,7 +685,7 @@ function handleEndTurn(state: IBattleState): IBattleState {
     newState = processPreTurn(newState);
 
     // Set Phase to ACTION for the next player
-    newState = { ...newState, phase: 'ACTION' as TurnPhase, cardsPlayedThisTurn: 0 };
+    newState = { ...newState, phase: 'ACTION' as TurnPhase, cardsPlayedThisTurn: 0, cardsDiscardedThisTurn: 0 };
 
     return newState;
 }
@@ -631,6 +711,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     const statusLogs: string[] = [];
     const defeatedThisTurn: string[] = [];
     const removedStatusQueue: { targetId: string, status: string }[] = [];
+    const hpCrossingsThisTick: string[] = [];
 
     const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
         let currentHp = entity.currentHp;
@@ -722,6 +803,12 @@ function processPostTurn(state: IBattleState): IBattleState {
             statusLogs.push(...result.logs);
         }
 
+        // Threshold event (ticket 12): DoT ticks bypass handleAttack, so record
+        // the crossing here (fired below, once the processed party is in state).
+        if (crossedDownHalf(entity.currentHp, currentHp, entity.maxHp)) {
+            hpCrossingsThisTick.push(entity.id);
+        }
+
         return { ...entity, currentHp, defense, statusEffects: newEffects, tempHp: 0 };
     });
 
@@ -736,8 +823,15 @@ function processPostTurn(state: IBattleState): IBattleState {
         [activeDeckKey]: newDeckState,
         logs: [...state.logs, ...statusLogs],
         cardsPlayedThisTurn: 0,
-        cardsDrawnThisTurn: 0
+        cardsDrawnThisTurn: 0,
+        nonNaturalCardsDrawnThisTurn: 0,
+        cardsDiscardedThisTurn: 0
     };
+
+    // 2.4 Fire threshold crossings from DoT ticks (ticket 12)
+    for (const crossedId of hpCrossingsThisTick) {
+        nextState = fireHpThresholdCrossed(nextState, crossedId);
+    }
 
     // 2.5 Dispatch onStatusRemoved Hooks
     for (const item of removedStatusQueue) {
@@ -874,6 +968,7 @@ function processPreTurn(state: IBattleState): IBattleState {
         playerParty: finalPlayerParty,
         enemyParty: finalEnemyParty,
         cardsPlayedThisTurn: 0,
+        cardsDiscardedThisTurn: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0

@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultSave, createStarterSave } from '../engine/gameTypes';
 import type { IPlayerSave } from '../engine/gameTypes';
 import { getExpForLevel } from '../engine/types';
-import { MingmingRegistry } from '../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from '../engine/data/mingmingRegistry';
 import gameReducer from '../ui/store/gameSlice';
 import {
     buildAddToRoster,
@@ -113,9 +113,9 @@ describe('v1 verbs each produce a schema-valid save', () => {
         expect(after.roster).toHaveLength(before.roster.length + 1);
         expect(after.roster[after.roster.length - 1].level).toBe(12);
         // addToRoster is preferred over a hand-built write precisely because of this:
-        expect(after.baseDecksGranted).toContain('fenrir');
+        expect(after.baseDecksGranted).toContain('fenrir:fenrir_v1'); // ticket 15: species+OS grant keys
         expect(after.cardInventory.length).toBe(
-            before.cardInventory.length + MingmingRegistry['fenrir'].baseDeck.length,
+            before.cardInventory.length + getDeckForOS('fenrir').length,
         );
     });
 
@@ -275,7 +275,7 @@ describe('parseSaveFileText', () => {
         expect(result.ok).toBe(true);
         if (result.ok) {
             expect(result.migrated).toBe(true);
-            expect(result.save.version).toBe(2);
+            expect(result.save.version).toBe(3);
             expect(result.save.unlockedSectors).toEqual([]);
         }
     });

@@ -46,7 +46,16 @@ export const ProgramConstraintType = {
   NotStatus: 'NOT_STATUS',
   HealthThreshold: 'HEALTH_THRESHOLD',
   Base: 'BASE',
-  CardsDrawn: 'CARDS_DRAWN'
+  CardsDrawn: 'CARDS_DRAWN',
+  /**
+   * Ticket 68: draws CAUSED BY AN EFFECT this turn - a card, an OS or a daemon - excluding
+   * the draw-phase refill.
+   *
+   * `CARDS_DRAWN` above counts every draw including the natural one, which makes any
+   * condition built on it true on ~91% of turns for every species (HANDOFF 0-DRAW-COUNTER).
+   * That is not what "if you drew a card this turn" was ever meant to reward.
+   */
+  CardsDrawnTriggered: 'CARDS_DRAWN_TRIGGERED'
 } as const;
 
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
@@ -56,6 +65,8 @@ export interface ProgramConstraint {
   readonly type: ProgramConstraintType;
   readonly target: 'SELF' | 'TARGET';
   readonly value: string | number;
+  /** Ticket 39: HAS_STATUS only - require at least this many stacks, not merely presence. */
+  readonly minStacks?: number;
   readonly error?: string; // Validation error
 }
 
@@ -77,9 +88,21 @@ export interface IMingmingDefinition {
   readonly secondaryElement?: Element;
   readonly cardDraw: number; // Base contribution
   readonly availableOS: string[]; // IDs of OS variants
-  readonly baseDeck: string[]; // 10-card starter kit of program IDs granted on first synthesis
+  /**
+   * Ticket 13: per-OS starting decks (8-12 cards each per the deck template),
+   * keyed by firmware id — one entry per availableOS. Resolve through
+   * `getDeckForOS(definitionId, osId)` rather than indexing directly.
+   */
+  readonly decks: Record<string, string[]>;
   readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
+  /**
+   * Ticket 42: a measuring instrument rather than a playable Mingming (the balance control).
+   * It lives in the registry because the balance harness resolves units and decks through it,
+   * but it must never reach a player: excluded from wild encounters, from the playable roster
+   * count, and from the mirror/§2.3 suites. Use `PLAYABLE_SPECIES` to enumerate the roster.
+   */
+  readonly isControl?: boolean;
 }
 
 /**
@@ -136,7 +159,7 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
   readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
-  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number; appliesTo?: ProgramCategory }; // Buffs the next card played (appliesTo restricts it to that category; non-matching cards don't consume it)
+  readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number; powerBonus?: number; appliesTo?: ProgramCategory }; // Buffs the next card played (appliesTo restricts it to that category; non-matching cards don't consume it). `powerBonus` (ticket 52) hits only the FIRST ATTACK action, where `flatBonus` hits every power/stacks/heal field.
   readonly playsThisTurn?: number; // Cards played by THIS unit this turn (enforces per-unit OS limits like GLACIAL_PACE_OS)
   readonly moves?: ReadonlyArray<IMove>; // Custom moveset for this instance
 }
@@ -196,6 +219,19 @@ export function getExpForLevel(level: number): number {
   return Math.round(0.8 * Math.pow(level, 3));
 }
 
+/**
+ * The cost an X-cost card is treated as for STATIC purposes - budget audit, sorting,
+ * UI grouping. 3 is the practical ceiling: a species runs 2 base Energy and at most
+ * one +1 ramp (hraesvelgr's UPDRAFT_KERNEL), so an X card can never be paid more than
+ * 3 Energy. The card's REAL cost in battle is always the source's current Energy.
+ */
+export const X_COST_STATIC_BUDGET = 3;
+
+/** Narrows a card's baseCost to a number, mapping 'X' to X_COST_STATIC_BUDGET. */
+export function numericBaseCost(baseCost: number | 'X'): number {
+  return typeof baseCost === 'number' ? baseCost : X_COST_STATIC_BUDGET;
+}
+
 // --- Program (Card) Definitions (Preserving previous work) ---
 export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE';
 
@@ -222,7 +258,8 @@ export interface AttackActionData extends ProgramAction {
   readonly type: 'ATTACK';
   readonly power: number;
   readonly element?: Element;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'ELEMENT_PLAYED';
+  readonly scalingPower?: number; // MISSING_HP: power added per 1% of maxHP missing (ticket 26)
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED';
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -230,12 +267,17 @@ export interface StatusActionData extends ProgramAction {
   readonly status: StatusType;
   readonly stacks: number; // Negative value means remove stacks
   readonly consume?: boolean; // If true, completely removes status and returns stacks
+  /** Ticket 33: multiply `stacks` by the count removed by a preceding consume action in the
+   *  same card (hexbloom: "consume all Weakened, apply that many Poison"). Mirrors the
+   *  STATUS_CONSUMED path that already existed for HEAL only. */
+  /** Ticket 41: WEAKENED_STACKS multiplies `stacks` by the TARGET's current Weakened, without
+   *  consuming it - a standing resource read, not a spend. */
+  readonly scaling?: 'STATUS_CONSUMED' | 'WEAKENED_STACKS';
 }
 
 export interface HealActionData extends ProgramAction {
   readonly type: 'HEAL';
   readonly power: number;
-  readonly healOverride?: number;
 }
 
 export interface DrawActionData extends ProgramAction {
@@ -260,7 +302,15 @@ export interface CleanseActionData extends ProgramAction {
 
 export interface DiscardActionData extends ProgramAction {
   readonly type: 'DISCARD';
-  readonly amount: number;
+  readonly amount?: number; // Explicit pile-move size (FORCE_DISCARD / discardEffect callers)
+  /**
+   * Self-discard COST (ticket 21). `{ "type": "DISCARD", "count": N }` in a card's
+   * action list removes N RANDOM cards from the ACTING side's own hand (the played
+   * card is already out of the hand by resolution time). `count` implies isRandom
+   * and self-targeting; the battleReducer deliberately does NOT read it as the
+   * generic multi-hit repeat for this action type.
+   */
+  readonly count?: number;
   readonly isRandom?: boolean; // If true, discards randomly instead of player choice (or first N cards)
 }
 
@@ -274,6 +324,8 @@ export interface ReturnActionData extends ProgramAction {
   readonly amount: number;
   readonly sourcePile?: 'DISCARD' | 'EXHAUST'; // Default: DISCARD
   readonly destinationPile?: 'HAND' | 'DRAW'; // Default: HAND
+  /** Ticket 32: optional predicate applied before the slice. */
+  readonly filter?: { readonly maxCost?: number };
 }
 
 export interface SearchActionData extends ProgramAction {
@@ -309,6 +361,8 @@ export interface BuffNextProgramActionData extends ProgramAction {
   readonly multiplier?: number;
   readonly flatBonus?: number;
   readonly costReduction?: number;
+  /** Ticket 52: raw power added to the primed card's FIRST ATTACK action only. */
+  readonly powerBonus?: number;
   readonly appliesTo?: ProgramCategory; // If set, only a card of this category consumes (and benefits from) the buff
 }
 
@@ -326,8 +380,11 @@ export interface ForceDiscardActionData extends ProgramAction {
 
 /**
  * Shifts the SOURCE of the card into a stance (Watcher model): 'Dark' grants
- * DarkStance (+30% outgoing damage), 'Light' grants LightStance (+50% healing).
+ * DarkStance (+30% outgoing damage), 'Light' grants LightStance (-30% damage taken).
  * Stances are mutually exclusive and cap at 1 stack; entering one removes the other.
+ *
+ * Ticket 36: LightStance used to grant +50% healing. It is a defensive stance now -
+ * the healing multiplier moved onto hel_v2's firmware via `onHealCalculated`.
  */
 export interface ShiftStanceActionData extends ProgramAction {
   readonly type: 'SHIFT_STANCE';
@@ -345,13 +402,34 @@ export interface ProgramData {
   readonly target: TargetType;
   readonly category: ProgramCategory;
   readonly rarity: Rarity;
-  readonly baseCost: number;
+  /**
+   * Energy cost. The string 'X' marks an X-COST card (ticket 22): it costs ALL of the
+   * source's current Energy, minimum 1, resolved at play time by getEffectiveCardCost.
+   * Anywhere a number is genuinely needed (sorting, static budget audit, UI grouping),
+   * go through numericBaseCost() rather than casting.
+   */
+  readonly baseCost: number | 'X';
   readonly constraints: ReadonlyArray<ProgramConstraint>;
   readonly actions: ReadonlyArray<ProgramAction>;
   readonly discardEffect?: ReadonlyArray<ProgramAction>; // Actions triggered automatically when this card is discarded from hand
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks for Daemons
   readonly isToken?: boolean; // If true, this is a generated token card
   readonly exhaust?: boolean; // If true, card is removed from battle after use
+  /**
+   * Ticket 53 - RAMPAGE growth. This card INSTANCE permanently gains +N power on every
+   * ATTACK action each time it resolves, for the rest of the battle. Per instance, not per
+   * card id: two copies of `zealots_edge` grow independently, and the accumulator is a
+   * counter keyed by the ProgramEntity id (`card_growth:<instanceId>`) so it survives every
+   * pile move without widening `ProgramEntity`.
+   *
+   * Deliberately UNCAPPED (Henry's law, ticket 53): a scaling attack underperforms early and
+   * overperforms late, and capping it pre-emptively removes the only reason to build around
+   * it. The brake is the deck, not the card.
+   *
+   * NOTE for powerscale: the static scorer sees the PRINTED power only, so a growth card is
+   * scored at its first cast. See `GROWTH_HORIZON_PLAYS` in powerscale.ts.
+   */
+  readonly growPerPlay?: number;
   readonly artReference?: string;
 }
 
@@ -401,6 +479,30 @@ export interface IBattleState {
   readonly procs: ReadonlyArray<{ id: number; entityId: string; text: string }>;
   readonly cardsPlayedThisTurn: number;
   readonly cardsDrawnThisTurn: number;
+  /**
+   * Ticket 68: cards drawn this turn by an EFFECT rather than the draw phase.
+   * Reset alongside `cardsDrawnThisTurn`; incremented only when `executeDraw` is called
+   * with `isNatural: false`.
+   */
+  readonly nonNaturalCardsDrawnThisTurn?: number;
+  /**
+   * Mirrors cardsPlayedThisTurn for the CARDS_DISCARDED scaling (Carrion Swoop).
+   * Optional so existing state fixtures keep compiling; production state builders
+   * always set it and every read defaults to 0.
+   */
+  readonly cardsDiscardedThisTurn?: number;
+  /** Energy actually paid for the card currently resolving - the X in an X-cost card. */
+  readonly lastEnergySpent?: number;
+  /**
+   * Cards that left a hand because an EFFECT shed them (a DISCARD cost, Tempest, an enemy
+   * FORCE_DISCARD) rather than because they were played - entries are `SIDE:entityId`.
+   *
+   * Exists so the balance harness can tell "this card rotted in hand" from "this deck threw
+   * this card away on purpose". Without it a discard archetype reads as ~36% dead cards for
+   * doing exactly what it is designed to do: measured on the same hraesvelgr deck, one
+   * Tempest read 17-22% dead and two read 36%.
+   */
+  readonly discardedByEffect?: ReadonlyArray<string>;
   readonly lastProgramPlayed: string | null;
   /**
    * How the enemy side fights, decided once at battle creation:

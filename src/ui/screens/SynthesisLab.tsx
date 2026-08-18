@@ -11,7 +11,8 @@ import {
 } from '../store/gameSlice';
 import { getScrapYield } from '../../engine/RewardSystem';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { GetMingmingData } from '../../engine/data/mingmingRegistry';
+import { GetMingmingData, getDeckForOS } from '../../engine/data/mingmingRegistry';
+import { deckGrantKey } from '../../engine/gameTypes';
 import { createMingmingInstance } from '../../engine/gameTypes';
 import type { IBlueprint } from '../../engine/gameTypes';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
@@ -230,7 +231,7 @@ export default function SynthesisLab() {
     const compileMingming = (architectureId: string, cost: number, activeOS: string) => {
         if (scrapCount < cost) return;
         // First compile of a species also grants its base deck (handled in addToRoster)
-        const firstSynthesis = !baseDecksGranted.includes(architectureId);
+        const firstSynthesis = !baseDecksGranted.includes(deckGrantKey(architectureId, selectedOS ?? GetMingmingData(architectureId).availableOS[0]));
         dispatch(spendScrap(cost));
         const newMm = {
             ...createMingmingInstance(architectureId, 1),
@@ -247,7 +248,7 @@ export default function SynthesisLab() {
             setCelebration({
                 name: def.name,
                 element: def.primaryElement,
-                cardIds: [...def.baseDeck]
+                cardIds: getDeckForOS(def.id, selectedOS ?? undefined)
             });
             schedule(() => setCelebration(null), CELEBRATION_AUTO_DISMISS_MS);
         } else {

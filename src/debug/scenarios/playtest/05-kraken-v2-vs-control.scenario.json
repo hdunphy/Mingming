@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "kraken v2 vs the control",
+  "description": "QUEUE #5. Control wins 0.53. The SURGE ramp deck - two 3-cost cards behind capacitor. Ramp decks are exactly where a human beats a 1-turn-lookahead search.",
+  "tags": [
+    "playtest",
+    "vs-control",
+    "kraken"
+  ],
+  "registryHash": "1:00000000",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "setup": {
+    "seed": "05-kraken-v2-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "kraken",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "kraken_v2"
+        }
+      ],
+      "deck": [
+        "maelstrom",
+        "hydro_blast",
+        "capacitor",
+        "capacitor",
+        "surge_protection",
+        "surge_protection",
+        "water_slap",
+        "water_slap"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}

@@ -5,6 +5,31 @@
 - Assignee: —
 - Blocked by: —
 
+> ## Re-scoped by [deck-archetypes ticket 06](../../deck-archetypes/tickets/06-rescope-power-curve-tickets.md), 2026-08-12
+>
+> **STATUS: the bands quoted below are STALE and the card list is superseded.** This ticket is
+> written against `{0:1.0, 1:4.0, 2:9.0, 3+:14.0}`; the curve has since moved to rev 3.9 and the
+> bands are **`1.0 / 3.0 / 6.5 / 10.5`**. `powerscale.ts` is the executable truth — where any prose
+> disagrees with it, including this file, powerscale wins.
+>
+> **Do not per-card retune from the list below.** Most of those 20 cards have since been rebuilt,
+> re-costed or dropped by the deck passes, and several of the redlines were closed as a side effect
+> (`glacier_wall`, `flash_freeze`, `stone_bark`). The registry has also nearly doubled: **36 of 198
+> cards are over budget now against 20 of 111 then — 18.2% versus 18%, i.e. the RATE is unchanged.**
+> That is the useful reading and it is the one this ticket should have been about.
+>
+> **What survives, and it is the interesting half:** the systematic causes the deck passes found,
+> which are curve-level rather than per-card.
+>
+> - **Stun is priced at 55 power and cannot fit a 30-power band**, so every "stop the game" card in
+>   Ice was over budget by construction (tickets 48/50).
+> - **A per-stack scaler's static score is a FLOOR, not a price** — `avalanche`, `slander`,
+>   `rimebreaker`, `deep_vein` all read far under what they do, and the deck report's
+>   `POWER_DIVERGENCE` redline exists to surface exactly that.
+> - **A shed card cannot reach a 1e band under the removal premium** (ticket 51 §5).
+>
+> Re-derive this ticket from a current report rather than editing the list below.
+
 ## Question
 
 `npm run balance` (run 2026-08-05, registry `1:1cba1e2c`, after

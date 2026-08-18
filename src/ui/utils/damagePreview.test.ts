@@ -151,30 +151,34 @@ describe('computeDamagePreview', () => {
 
             const preview = computeDamagePreview(state, 'strong', 'card_f', 'enemy');
             expect(preview.stab).toBe(true);
-            expect(preview.effectiveness).toBe(2); // Fire vs Nature
+            expect(preview.effectiveness).toBe(1.5); // Fire vs Nature (ticket 35: 2.0 -> 1.5)
             expect(preview.element).toBe('Fire');
             expect(preview.damage).toBeGreaterThan(0);
         });
 
-        it('reports no STAB and not-very-effective vs a resistant target', () => {
+        it('reports no STAB and NEUTRAL into a former resistance (ticket 35)', () => {
+            // Fire into Water used to preview 0.5x. Resistance is gone, so the preview reads
+            // neutral - the player is never shown a halved number any more.
             const airSource = { ...strong, primaryElement: 'Air' as const, secondaryElement: undefined };
             const waterEnemy = { ...enemy, primaryElement: 'Water' as const, secondaryElement: undefined };
             state = { ...state, playerParty: [weak, airSource], enemyParty: [waterEnemy] };
 
             const preview = computeDamagePreview(state, 'strong', 'card_f', 'enemy');
             expect(preview.stab).toBe(false);
-            expect(preview.effectiveness).toBe(0.5); // Fire vs Water
+            expect(preview.effectiveness).toBe(1); // Fire vs Water
             expect(preview.element).toBe('Fire');
         });
 
-        it('applies secondary-type mitigation to the effectiveness product', () => {
+        it('secondary mitigation now only ever scales an ADVANTAGE (ticket 35)', () => {
+            // Resisted pairs are absent from the matrix, so the secondary branch is skipped
+            // for them entirely. Fire vs Light = no entry, Fire vs Nature secondary =
+            // 1.5 × 0.75 → 1.125.
             const source = { ...strong, primaryElement: 'Air' as const, secondaryElement: undefined };
-            // Fire vs Light = 1.0, Fire vs Water secondary = 0.5 × 0.75 → 0.375
-            const dualEnemy = { ...enemy, primaryElement: 'Light' as const, secondaryElement: 'Water' as const };
+            const dualEnemy = { ...enemy, primaryElement: 'Light' as const, secondaryElement: 'Nature' as const };
             state = { ...state, playerParty: [weak, source], enemyParty: [dualEnemy] };
 
             const preview = computeDamagePreview(state, 'strong', 'card_f', 'enemy');
-            expect(preview.effectiveness).toBe(0.375);
+            expect(preview.effectiveness).toBeCloseTo(1.125, 5);
         });
 
         it('is neutral effectiveness for the None-element test card', () => {

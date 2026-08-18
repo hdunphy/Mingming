@@ -5,7 +5,7 @@
 
 import type { IMingmingState } from "./types";
 import { getExpForLevel } from "./types";
-import { MingmingRegistry } from "./data/mingmingRegistry";
+import { MingmingRegistry, getDeckForOS } from "./data/mingmingRegistry";
 import { SeedStream, rollSeed } from "./core/SeedStream";
 
 // --- Card Inventory ---
@@ -24,7 +24,16 @@ export interface IActiveDeck {
 }
 
 export const DECK_SIZE = 40;
-export const MIN_DECK_SIZE = 10;
+export const MIN_DECK_SIZE = 8; // ticket 13: deck template allows 8-12 card starting decks
+
+// Ticket 15 (OS-swap rules): swapping firmware costs 1 blueprint (spent) + scrap,
+// and the FIRST swap to an OS grants a pick of its starting cards - once ever.
+// The pick count is deliberately a tunable constant (playtesting may raise it).
+export const OS_SWAP_SCRAP_COST = 25;
+export const OS_SWAP_PICK_COUNT = 2;
+
+/** baseDecksGranted key: which (species, OS) starting kits have been granted. */
+export const deckGrantKey = (definitionId: string, osId: string): string => `${definitionId}:${osId}`;
 
 // --- Blueprint ---
 
@@ -90,14 +99,14 @@ export interface IPlayerSave {
     readonly relics: ReadonlyArray<string>;
     readonly gauntlet: IGauntletState | null;
     readonly unlockedSectors: ReadonlyArray<string>;
-    readonly baseDecksGranted: ReadonlyArray<string>; // Species IDs whose base deck has already been granted
+    readonly baseDecksGranted: ReadonlyArray<string>; // deckGrantKey(species, os) entries - which starting kits were granted (ticket 15; legacy saves held bare species ids, migrated in SaveSystem v3)
 }
 
 // --- Factory Helpers ---
 
 export function createDefaultSave(): IPlayerSave {
     return {
-        version: 2,
+        version: 3, // keep in sync with SaveSystem.CURRENT_SAVE_VERSION
         roster: [],
         activeParty: [],
         cardInventory: [],
@@ -143,22 +152,22 @@ export function createStarterSave(
         hpIV: 10 + rng.nextInt(0, 5)
     };
 
-    // Starter deck cards come from the species' base deck kit in the registry
-    let starterCardIds: string[] = [];
-    const baseCards = MingmingRegistry[starterId].baseDeck;
-
-    // Pad up to the minimum deck size (base decks are exactly 10, matching MIN_DECK_SIZE)
-    while (starterCardIds.length < MIN_DECK_SIZE) {
-        starterCardIds.push(...baseCards);
+    // Starter deck cards come from the species' per-OS starting deck (ticket 13:
+    // starters carry no activeOS, so this resolves to the availableOS[0] slot).
+    // Grant the FULL deck (8-12 cards per the template) - never truncate; pad
+    // only if a deck somehow comes in under the minimum.
+    const baseCards = getDeckForOS(starterId);
+    let starterCardIds: string[] = [...baseCards];
+    while (starterCardIds.length < MIN_DECK_SIZE && baseCards.length > 0) {
+        starterCardIds.push(baseCards[starterCardIds.length % baseCards.length]);
     }
-    starterCardIds = starterCardIds.slice(0, MIN_DECK_SIZE);
 
     // Same stream, so instance ids are unique within the save and reproducible
     // across two calls with the same seed.
     const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => createOwnedProgram(dataId, rng));
 
     return {
-        version: 2,
+        version: 3, // keep in sync with SaveSystem.CURRENT_SAVE_VERSION
         roster: [starter],
         activeParty: [starter.id],
         cardInventory: starterCards,
@@ -172,7 +181,7 @@ export function createStarterSave(
         relics: [],
         gauntlet: null,
         unlockedSectors: ['Fire', 'Water', 'Nature'],
-        baseDecksGranted: [starterId]
+        baseDecksGranted: [deckGrantKey(starterId, MingmingRegistry[starterId].availableOS[0])]
     };
 }
 

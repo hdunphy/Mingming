@@ -122,14 +122,109 @@ class PermanentStatusBehavior extends StatusBehavior {
     }
 }
 
-// --- Burn (Permanent + DoT with overflow) ---
+// --- Burn (DoT with a capped pile and an overflow payout) ---
 
-const BURN_MAX_STACKS = 3;
+/**
+ * Ticket 62: Burn's whole mechanic behind ONE config object.
+ *
+ * Why a config rather than four constants: ticket 62's grid measures 21 configurations
+ * (2 shapes x 3 caps x 3 overflow values, plus tick arms and the live baseline) by mutating
+ * this object in memory the way ticket 60 mutated firmware hook data. Nothing about the grid
+ * is committed - `BURN_CONFIG` below reproduces the LIVE pre-62 behavior exactly, and
+ * `StatusBehaviors.burn.test.ts` pins that identity so the refactor cannot silently ship a
+ * balance change under cover of a refactor.
+ *
+ * `shape` is the thing the grid is really asking about:
+ *
+ *   VENT      Stacks hold AT the cap and every excess stack pays `overflowPercent` of the
+ *             burned entity's max HP immediately. This is what ships today (and what shipped
+ *             historically at 0.08). Its failure mode is that the payout is unbounded in the
+ *             application rate - a hot target can be farmed forever without the pile ever
+ *             being rebuilt.
+ *
+ *   DETONATE  Every cap-crossing pays once and SUBTRACTS the cap from the pile (modulo carry),
+ *             so the payout rate is bounded by application rate / cap. 3 + 1 = 4 detonates
+ *             once and leaves 1; 3 + 4 = 7 detonates twice and leaves 1; 3 + 3 = 6 detonates
+ *             once and leaves 3 (exactly divisible stays at cap). The rebuild is the limiter
+ *             the historical design lacked.
+ *
+ * Both shapes are SYMMETRIC by construction rather than by branch: `immediateDamage` is
+ * applied to the burned entity by `effectHandlers.handleStatusEffect`, so self-applied Burn
+ * detonates on its own holder and nothing here needs to know who the source was.
+ */
+export type BurnShape = 'VENT' | 'DETONATE';
+
+export interface BurnMechanicConfig {
+    shape: BurnShape;
+    /** Stack ceiling. Crossing it is what triggers the shape above. */
+    maxStacks: number;
+    /**
+     * Immediate damage per overflow EVENT, as a fraction of the burned entity's max HP.
+     * VENT charges one event per excess stack; DETONATE one per cap-crossing.
+     *
+     * The live value is 0.14 (ticket 62). The history is worth keeping, because this number
+     * has now been wrong in both directions:
+     *
+     *   0.08, VENT   The original. A single excess stack instantly dealt a full top-tier turn
+     *                of Burn AND bypassed defense, with the pile parked at the cap - so a hot
+     *                target could be farmed forever without ever rebuilding it. Measured at
+     *                ~half of fenrir_v2's whole output, matchups over on turn 3.
+     *   0.01, VENT   The over-correction. `Math.floor(maxHp x 0.01)` is 0 on every frame under
+     *                100 max HP, so ticket 58 counted 0 overflow damage across 54,767 requested
+     *                stacks roster-wide while 32.1% of all Burn applied was thrown away at the
+     *                cap. The mechanic was not tuned down; it was switched off.
+     *   0.14, DETONATE  What ships. Nearly twice the ORIGINAL rate, and safe at that rate only
+     *                because DETONATE's modulo carry bounds the payout by application rate over
+     *                cap rather than by every excess cast. The rate was never the defect; the
+     *                absence of a limiter was.
+     *
+     * Ticket 62's grid measured 20 configurations before this one: at ANY dial that rounds
+     * above zero the wasted-stack number collapses 40.4% -> 0.0%, so "the waste" was always a
+     * flooring artifact rather than a design constraint.
+     */
+    overflowPercent: number;
+    /** Per-stack tick tiers; index = stacks - 1. Length is expected to match `maxStacks`. */
+    tiers: ReadonlyArray<{ damagePercent: number; defShredPercent: number }>;
+}
+
+/**
+ * THE LIVE CONFIGURATION — ticket 62, shipped 2026-08-15 on Henry's pick of `DET-C4-D14`.
+ *
+ * Burn detonates. Crossing the 4-stack cap pays 14% of the burned entity's max HP and
+ * subtracts the cap from the pile, so the pile has to be REBUILT before it can pay again.
+ *
+ * Why these three numbers and not others - all measured, none reasoned:
+ *
+ *   shape DETONATE   Worth ~44 field points against VENT at the same cap and dial, because
+ *                    VENT charges on every excess stack and nothing makes a hot target
+ *                    expensive to keep burning. Henry's pick for the self-limiter.
+ *   cap 4            NOT a balance tweak on the primary - cap 3 and cap 4 both put fenrir_v2
+ *                    at ~48%. It is the COLLATERAL that differs: at cap 3 detonation costs
+ *                    skoll_v2 ~6 field points and pushes hraesvelgr_v2 to 83% (over the
+ *                    ceiling); at cap 4 skoll_v2 is left where she started and hraesvelgr_v2
+ *                    comes down to 77.7%. Same primary, no bill.
+ *   D 14%            The value putting fenrir_v2 nearest 0.50 - 48.5% across two independent
+ *                    seed bases (49.4 / 47.5, 900 decided games each).
+ *
+ * FTK is the reason this took a 36-arm sweep rather than a knob round: a double-digit
+ * percent-of-max-HP burst is the first credible first-turn-kill vector Burn has ever had.
+ * Measured 0 across ~46,000 games at every cap and every dial up to 16%, largest single
+ * detonation observed 14 HP. Any future rate increase re-opens that question.
+ *
+ * Grid arms mutate this object in memory; nothing but this line writes it on disk.
+ */
+export const BURN_CONFIG: BurnMechanicConfig = {
+    shape: 'DETONATE',
+    maxStacks: 4,
+    overflowPercent: 0.14,
+    tiers: DEFAULT_GAME_CONFIG.status.burnStacks,
+};
 
 class BurnBehavior extends StatusBehavior {
     readonly type = 'Burn' as const;
 
     onApply(currentEffects: StatusEffectInstance[], incomingStacks: number, target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
+        const cfg = BURN_CONFIG;
         const effects = [...currentEffects];
         const existingIdx = effects.findIndex(s => s.type === 'Burn');
         const currentStacks = existingIdx !== -1 ? effects[existingIdx].stacks : 0;
@@ -137,34 +232,50 @@ class BurnBehavior extends StatusBehavior {
         let immediateDamage = 0;
         const logs: string[] = [];
 
-        if (totalStacks > BURN_MAX_STACKS) {
-            // Overflow: stacks beyond max deal immediate max-burn-tier damage per overflow stack
-            const overflowStacks = totalStacks - BURN_MAX_STACKS;
-            const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
-            const maxTier = burnConfig[burnConfig.length - 1];
-            immediateDamage = Math.floor(target.maxHp * maxTier.damagePercent) * overflowStacks;
-            logs.push(`  🔥 ${target.name} — Burn overflow! ${overflowStacks} excess stack${overflowStacks !== 1 ? 's' : ''} deal ${immediateDamage} immediate damage`);
+        // Per-event payout. Floored, so it is 0 on any frame under `1 / overflowPercent` max HP -
+        // see BurnMechanicConfig.overflowPercent for why that matters today.
+        const perEvent = Math.floor(target.maxHp * cfg.overflowPercent);
+        let finalStacks = totalStacks;
 
-            // Set to max stacks
-            if (existingIdx !== -1) {
-                effects[existingIdx] = { ...effects[existingIdx], stacks: BURN_MAX_STACKS };
+        if (totalStacks > cfg.maxStacks) {
+            if (cfg.shape === 'DETONATE') {
+                // Modulo carry: pay once per cap-crossing and subtract the cap each time, so the
+                // pile has to be REBUILT before it can pay again. Exactly divisible stays at cap
+                // (6 with a cap of 3 -> one detonation, 3 remain) because 3 is not > 3.
+                let remaining = totalStacks;
+                let detonations = 0;
+                while (remaining > cfg.maxStacks) {
+                    remaining -= cfg.maxStacks;
+                    detonations++;
+                }
+                immediateDamage = perEvent * detonations;
+                finalStacks = remaining;
+                for (let i = 0; i < detonations; i++) {
+                    logs.push(`  🔥 ${target.name} — Burn overload! Detonation deals ${perEvent} damage`);
+                }
             } else {
-                effects.push(this.createInstance(BURN_MAX_STACKS));
+                // VENT: the pile holds at the cap and every excess stack pays.
+                const overflowStacks = totalStacks - cfg.maxStacks;
+                immediateDamage = perEvent * overflowStacks;
+                finalStacks = cfg.maxStacks;
+                logs.push(`  🔥 ${target.name} — Burn overflow! ${overflowStacks} excess stack${overflowStacks !== 1 ? 's' : ''} deal ${immediateDamage} immediate damage`);
             }
+        }
+
+        if (existingIdx !== -1) {
+            effects[existingIdx] = { ...effects[existingIdx], stacks: finalStacks };
         } else {
-            // Normal stack addition
-            if (existingIdx !== -1) {
-                effects[existingIdx] = { ...effects[existingIdx], stacks: totalStacks };
-            } else {
-                effects.push(this.createInstance(totalStacks));
-            }
+            effects.push(this.createInstance(finalStacks));
         }
 
         return { updatedEffects: effects, immediateDamage, logs };
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
+        // Ticket 62: the tier table now comes from BURN_CONFIG so a grid arm that changes the
+        // cap can change the climb with it. Identical to DEFAULT_GAME_CONFIG.status.burnStacks
+        // as committed - BURN_CONFIG.tiers IS that array.
+        const burnConfig = BURN_CONFIG.tiers;
         const tier = burnConfig[instance.stacks - 1] ?? burnConfig[burnConfig.length - 1];
 
         const damage = Math.floor(entity.maxHp * tier.damagePercent);
@@ -335,9 +446,18 @@ class RegenBehavior extends StatusBehavior {
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        // docs/power_curve_spec.md rev 3: 3% maxHP per stack per turn (was flat 5 HP/stack).
-        const REGEN_PERCENT_PER_STACK = 0.03;
-        const healing = Math.floor(entity.maxHp * REGEN_PERCENT_PER_STACK * instance.stacks);
+        // Ticket 34 (Henry): Regen is a FLAT 3% of maxHP per turn, and `stacks` is how many
+        // TURNS it lasts - not an intensity multiplier. 3 stacks = 3% a turn for three turns,
+        // then it falls off.
+        //
+        // It used to multiply by stacks, which made one application worth 1.5*N*(N+1) percent
+        // of a pool - quadratic - and unbounded, because the decay is a flat 1/turn while a
+        // card can apply 2+/turn. Fifteen stacks was healing 45% of a health pool EVERY TURN.
+        // That single property decided huldra_v1: 2 Regen per play won 79% of its matchup,
+        // 1 Regen per play won 1%, because 1/play exactly cancels the decay and never
+        // accumulates. Linear duration removes the cliff - see ticket 34.
+        const REGEN_PERCENT_PER_TURN = 0.03;
+        const healing = Math.floor(entity.maxHp * REGEN_PERCENT_PER_TURN);
         const newStacks = instance.stacks - 1;
         const logs: string[] = [`  💚 ${entity.name} — Regen heals ${healing} HP (${instance.stacks} → ${newStacks} stacks)`];
 
@@ -411,6 +531,19 @@ class StableOSBehavior extends StatusBehavior {
 // --- BarkShield (Temporary Health as % of maxHp, decays 20%/turn) ---
 
 /**
+ * Fraction of a BarkShield pool retained each turn (0.8 = the historical 20%/turn decay).
+ * Ticket 33: extracted so it can be swept. Henry's question was whether 20%/turn is too fast
+ * when the enemy is also chipping the pool from the other side - huldra_v2's 50% grant is a
+ * third gone by her third turn before anyone attacks it.
+ *
+ * REGISTRY-WIDE, not huldra's. glacier_wall, stone_bark, spiked_carapace and shield_shards all
+ * grant BarkShield, and Earth and Ice are both still placeholder species - a slower decay
+ * silently buffs their future decks. Swept and reported in ticket 33; left at 0.8 pending the
+ * Earth/Ice passes.
+ */
+const BARKSHIELD_DECAY_RETAINED = 0.8;
+
+/**
  * docs/power_curve_spec.md rev 3: `stacks` now represents % of the holder's maxHp
  * (was flat HP points), so a shield is level-proof the same way Burn/Regen/Poison
  * already are. The absorb pool is recomputed from the holder's current maxHp each
@@ -466,7 +599,7 @@ class BarkShieldBehavior extends StatusBehavior {
 
     endTurn(instance: StatusEffectInstance, _entity: IBattleEntity): EndTurnResult {
         const logs: string[] = [];
-        const newStacks = instance.stacks * 0.8;
+        const newStacks = instance.stacks * BARKSHIELD_DECAY_RETAINED;
         const lost = instance.stacks - newStacks;
 
         if (lost > 0.05) {

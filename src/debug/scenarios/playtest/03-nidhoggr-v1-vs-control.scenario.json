@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "nidhoggr v1 vs the control",
+  "description": "The clearest human-vs-AI question in the roster. wither_feast is hold-or-cash and the AI CANNOT hold for lethal - ticket 39 says so in writing. Play it both ways: cash at the first poison, then bank to 10+ stacks. Control currently wins 0.00.",
+  "tags": [
+    "playtest",
+    "vs-control",
+    "nidhoggr"
+  ],
+  "registryHash": "1:00000000",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "setup": {
+    "seed": "03-nidhoggr-v1-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "nidhoggr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "nidhoggr_v1"
+        }
+      ],
+      "deck": [
+        "rot_seed",
+        "rot_seed",
+        "shadow_claw",
+        "water_slap",
+        "venom_shade",
+        "venom_shade",
+        "curse_mark",
+        "blight_bloom",
+        "blight_bloom",
+        "wither_feast"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}

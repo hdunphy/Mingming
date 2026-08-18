@@ -67,7 +67,7 @@ export function computeDamagePreview(
     // Same effective-power helper the AttackExecutor uses, so action scaling
     // (SHARP_STACKS: +5 power per Sharp stack) shows up in the preview too.
     const basePower = (attackAction as AttackActionData).power || 0;
-    const effectivePower = getEffectiveAttackPower(source, attackAction as AttackActionData);
+    const effectivePower = getEffectiveAttackPower(source, attackAction as AttackActionData, target);
     return {
         damage: calculateDamage(source, target, data, effectivePower, state),
         stab,

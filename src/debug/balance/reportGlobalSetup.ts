@@ -21,9 +21,19 @@ export function setup(): void {
 }
 
 export function teardown(): void {
-    const report = writeBalanceReport();
+    // Ticket 17: BALANCE_ONLY=<species,species> scopes the whole suite to named species
+    // for fast deck-tuning loops. A scoped run never touches docs/balance/ - the
+    // committed report only ever reflects a full run.
+    const scoped = (process.env.BALANCE_ONLY ?? '').trim().length > 0;
+    const report = writeBalanceReport({ commitToDocs: !scoped });
     // Deliberately console.log rather than a reporter hook: this is the last line of the
     // run and it has to survive vitest's failure output, which a custom reporter's
     // ordering does not guarantee.
-    console.log(summarizeReport(report));
+    console.log(
+        scoped
+            ? `\n[balance-report] SCOPED RUN (BALANCE_ONLY=${process.env.BALANCE_ONLY}) - ` +
+              `docs/balance/ untouched.\n  ${report.summary.matchupRedlines} matchup redline(s) ` +
+              `across ${report.summary.matchupsAudited} matchup(s) in scope.`
+            : summarizeReport(report),
+    );
 }

@@ -193,8 +193,8 @@ describe('Daemon System', () => {
 
         const stateAfterAttack = battleReducer(state, attackAction);
         const e1 = stateAfterAttack.enemyParty.find(e => e.id === 'e1');
-        // 100 - 7 = 93
-        expect(e1?.currentHp).toBe(93);
+        // rev 3.1 pace (ticket 23, /45): 100 - 6 = 94
+        expect(e1?.currentHp).toBe(94);
 
         // 3. End Turn and check recoil
         const stateAfterTurn = battleReducer(stateAfterAttack, { type: 'END_TURN' });

@@ -19,6 +19,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BALANCE_SPECIES, CONTROL_SPECIES, matchupScenario } from './balanceScenarios';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { quietly, summarizePaired } from './balanceReporting';
 import {
     MATCHUP_THRESHOLDS,
@@ -42,10 +43,27 @@ const OVERTUNED_WIN_RATE = MATCHUP_THRESHOLDS.overtunedWinRate;
 /** §2.2: "If turns > 30, the archetype is too slow/stalling (unfun)." */
 const STALL_TURN_LIMIT = MATCHUP_THRESHOLDS.stallTurnLimit;
 
-const OPPONENTS = BALANCE_SPECIES.filter(species => species !== CONTROL_SPECIES);
+/**
+ * Ticket 47: EVERY firmware, not just `availableOS[0]`.
+ *
+ * The gauntlet used to take the registry's default OS for each opponent, which meant that in
+ * a roster where every species carries two decks, HALF of them had never been measured against
+ * the floor at all. Ratatoskr is the case that exposed it: the control loses 100% to
+ * ratatoskr_v1 and *beats* ratatoskr_v2, because `baseline_purge`'s cleanse wipes the Dazed
+ * pile `slander` scales on. §2.3 could not see that either - it reports the gap between the two
+ * firmwares and is blind to where either sits - so a deck could be below the floor with every
+ * gate green.
+ *
+ * Same class of blind spot as ticket 42's: an instrument that measures a difference and gets
+ * read as if it measured a level.
+ */
+const OPPONENTS: ReadonlyArray<{ species: string; os: string }> = BALANCE_SPECIES
+    .filter(species => species !== CONTROL_SPECIES)
+    .flatMap(species => MingmingRegistry[species].availableOS.map(os => ({ species, os })));
 
 interface Matchup {
     opponent: string;
+    os: string;
     paired: PairedBatchResult;
 }
 
@@ -53,8 +71,8 @@ let matchups: Matchup[];
 let overall: BatchResult;
 
 beforeAll(() => {
-    matchups = OPPONENTS.map(opponent => {
-        const setup = matchupScenario({ player: CONTROL_SPECIES, enemy: opponent });
+    matchups = OPPONENTS.map(({ species: opponent, os }) => {
+        const setup = matchupScenario({ player: CONTROL_SPECIES, enemy: opponent, enemyOS: os });
         const paired = quietly(() =>
             runPairedBatch(setup, { iterations: SEEDS, maxTurns: MAX_TURNS }),
         );
@@ -67,8 +85,8 @@ beforeAll(() => {
                 {
                     suite: 'archetype-gauntlet',
                     role: 'gauntlet-matchup',
-                    id: `gauntlet:${CONTROL_SPECIES}-vs-${opponent}`,
-                    label: `${CONTROL_SPECIES} vs ${opponent}`,
+                    id: `gauntlet:${CONTROL_SPECIES}-vs-${opponent}:${os}`,
+                    label: `${CONTROL_SPECIES} vs ${opponent} (${os})`,
                     player: CONTROL_SPECIES,
                     playerOS: setup.player.party[0].activeOS ?? '',
                     enemy: opponent,
@@ -78,7 +96,7 @@ beforeAll(() => {
             ),
         );
 
-        return { opponent, paired };
+        return { opponent, os, paired };
     });
 
     overall = aggregate(matchups.flatMap(m => m.paired.pooled.runs));
@@ -97,10 +115,31 @@ beforeAll(() => {
         pooled: overall,
     });
 
+    // Ticket 47: the pooled number now mixes both firmwares, so the per-slot aggregates are
+    // recorded too. The FIRST-slot row is the one ticket 45 calibrated the control's ~25%
+    // against, and keeping it addressable is what lets that calibration still be checked.
+    for (const slot of [0, 1]) {
+        const inSlot = matchups.filter(
+            m => MingmingRegistry[m.opponent].availableOS.indexOf(m.os) === slot,
+        );
+        if (inSlot.length === 0) continue;
+        recordMatchup({
+            suite: 'archetype-gauntlet',
+            role: 'gauntlet-overall',
+            id: `gauntlet:${CONTROL_SPECIES}-overall:slot${slot + 1}`,
+            label: `${CONTROL_SPECIES} control deck vs every slot-${slot + 1} firmware`,
+            player: CONTROL_SPECIES,
+            playerOS: '',
+            enemy: '*registry*',
+            enemyOS: '',
+            pooled: aggregate(inSlot.flatMap(m => m.paired.pooled.runs)),
+        });
+    }
+
     console.log(
         `\n${CONTROL_SPECIES} control deck vs the registry ` +
             `(${SEEDS} seeds x 2 turn orders per matchup):\n` +
-            matchups.map(m => '  ' + summarizePaired(`vs ${m.opponent}`, m.paired)).join('\n') +
+            matchups.map(m => '  ' + summarizePaired(`vs ${m.opponent} (${m.os})`, m.paired)).join('\n') +
             `\n  ${'-'.repeat(28)}\n` +
             `  ${CONTROL_SPECIES} overall: decisiveWin=${(overall.decisiveWinRate * 100).toFixed(1)}% ` +
             `avgTurns=${overall.averageTurns.toFixed(1)} ` +
@@ -140,7 +179,7 @@ describe('Archetype Gauntlet (balance_testing.md 2.2)', () => {
             .filter(m => m.paired.pooled.ftkCount > 0)
             .map(
                 m =>
-                    `${CONTROL_SPECIES} vs ${m.opponent}: ${m.paired.pooled.ftkCount}/` +
+                    `${CONTROL_SPECIES} vs ${m.opponent} (${m.os}): ${m.paired.pooled.ftkCount}/` +
                     `${m.paired.pooled.iterations} first-turn kills`,
             );
 

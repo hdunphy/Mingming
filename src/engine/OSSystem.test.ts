@@ -100,7 +100,7 @@ Object.values(FIRMWARE_REGISTRY).forEach(os => {
 });
 
 describe('OS System - Fenrir', () => {
-    it('v1 (UNBOUND_KERNEL): applies 3 Strengthened and deals 2% recoil damage on Attack', () => {
+    it('v1 (UNBOUND_KERNEL): applies 1 Strengthened and 2% recoil on Attack', () => {
         let state = createInitialState('fenrir_v1');
         const attackCard: ProgramEntity = { id: 'card1', dataId: 'card_strike', currentCost: 1, isPlayable: true };
         state = { ...state, playerDeck: { ...state.playerDeck, hand: [attackCard] } };
@@ -109,6 +109,8 @@ describe('OS System - Fenrir', () => {
         const newState = battleReducer(state, action);
         const p1 = newState.playerParty[0];
 
+        // Ticket 84: the recoil is BACK, at its original 2%, now that the OS's Fire bonus
+        // pays for it (see CustomFirmware's UNBOUND_KERNEL block).
         expect(p1.currentHp).toBe(98);
         expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 1)).toBe(true);
     });
@@ -128,7 +130,7 @@ describe('OS System - Fenrir', () => {
 });
 
 describe('OS System - Ratatoskr', () => {
-    it('v1 (GOSSIP_NODE): heals all allies for 1 HP on 0-cost programs', () => {
+    it('v1 (GOSSIP_NODE): heals all allies for 2.5% of max HP on 0-cost programs', () => {
         let state = createInitialState('ratatoskr_v1');
         state = {
             ...state,
@@ -138,7 +140,9 @@ describe('OS System - Ratatoskr', () => {
 
         const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
-        expect(newState.playerParty[0].currentHp).toBe(51);
+        // Ticket 32: the flat healOverride of 1 became a power-based heal so it scales
+        // with level (maxHp * 10 / 400 = 2.5% of max HP). This frame heals 2, not 1.
+        expect(newState.playerParty[0].currentHp).toBe(52);
     });
 
     it('v2 (INSTIGATOR_OS): applies 1 Dazed to target on 0-cost programs', () => {
@@ -214,10 +218,11 @@ describe('OS System - Kraken', () => {
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
 
-        // Base damage for power 100, atk 10 vs def 10:
-        // reduced = (200 / 50) + 2 = 6
-        // With 30% boost: 6 * 1.3 = 7.8 => 7.
+        // Base damage for power 100, atk 10 vs def 10, under the rev-3.1 pace
+        // (ticket 23, /45) and TIDAL_CRUSH's ticket-20 multiplier of 1.2:
+        // unboosted floors to 3, boosted 3 * 1.2 = 3.6 => 4.
+        // The bound still only passes when the OS boost actually landed.
 
-        expect(e1.currentHp).toBeLessThan(95); // 100 - 6 = 94. 100 - 7 = 93.
+        expect(e1.currentHp).toBeLessThan(97); // 100 - 3 = 97 unboosted, 100 - 4 = 96 boosted.
     });
 });

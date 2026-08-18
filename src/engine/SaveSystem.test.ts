@@ -232,17 +232,17 @@ describe('Save migration', () => {
         expect(loaded.data!.relics).toEqual([]);
         expect(loaded.data!.gauntlet).toBeNull();
         expect(loaded.data!.unlockedSectors).toEqual([]);
-        expect(loaded.data!.version).toBe(2);
+        expect(loaded.data!.version).toBe(3); // v3 = ticket 15 grant keying
         expect(loaded.data!.scrapCount).toBe(250);
     });
 
     it('migrateSave upgrades version and leaves modern saves intact', () => {
-        const modern = { ...makeValidSave(), version: 2 };
+        const modern = { ...makeValidSave(), version: 3 };
         expect(migrateSave(modern)).toEqual(modern);
     });
 
     it('loads a save missing baseDecksGranted (defaults to [] via catch)', () => {
-        const legacy: any = { ...makeValidSave(), version: 2 };
+        const legacy: any = { ...makeValidSave(), version: 3 };
         delete legacy.baseDecksGranted;
         localStorage.setItem('mingming_save', JSON.stringify(legacy));
 

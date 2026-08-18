@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
+import { applyMutations } from './resolutionEngine';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { StatusType } from './types';
 import { registerHook } from './core/Hooks';
@@ -77,41 +78,50 @@ Object.values(FIRMWARE_REGISTRY).forEach(os => {
     os.hooks.forEach(h => registerHook(h));
 });
 
-describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (real overheal)', () => {
-    it('converts healOverride overflow into exact Light damage on a random enemy', () => {
+describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (50% of PRINTED heal power)', () => {
+    // Ticket 56 changed the DENOMINATION, which is the third shape this OS has had.
+    // Ticket 53 made it a dial on HP healed; that dial was measured in ticket 55 to convert
+    // ~4.5x smaller than the card text implies, because `calculateHeal` turns power into HP at
+    // `maxHp * power / 400` - so `pale_mercy` (14 power -> 3 HP) rounded to ZERO damage and a
+    // third of her deck did nothing through the OS. It now reads the PRINTED power.
+    //
+    // The pins below assert the DENOMINATION rather than the damage, deliberately: this file's
+    // fixture is attack 10 vs defense 10 at level 1, where even 45 power resolves to 2 damage
+    // (ticket 52 hit the same floor). `last_heal_power` is exact and frame-independent.
+    it('records the PRINTED power of a card heal, not the HP it restored', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
-        const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_flat: healOverride 20 on SELF. 95/100 -> applied 5, overheal 15.
-        let state = makeState([aud], [enemy], [card('c1', 'card_heal_flat', 1)]);
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_flat', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 
+        // card_heal_flat prints 80 power. On the 100-maxHp frame that is 20 HP, of which only 5
+        // land - and 80 is what the OS must see. The gap between 80 and 5 IS the ticket-56 bug.
+        expect(state.counters['last_heal_power']).toBe(80);
         expect(state.playerParty[0].currentHp).toBe(100);
-        expect(state.enemyParty[0].currentHp).toBe(85); // 100 - 15 overflow
         expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
     });
 
-    it('converts power-based (calculateHeal) overflow — the clamp no longer eats it', () => {
-        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
-        const enemy = makeUnit('e1', 'Enemy');
-        // card_heal_power: power 25, target maxHp 100. docs/power_curve_spec.md rev 3:
-        // calculateHeal = maxHp * power / 400 = 100 * 25 / 400 = 6.25 -> intended heal 6.
-        // 95/100 -> applied 5 (clamped to missing HP), overheal 1.
-        let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
+    it('fires at FULL HP, where zero HP is restored and the printed power is all there is', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2' }); // 100/100
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_flat', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
 
-        expect(state.playerParty[0].currentHp).toBe(100);
-        expect(state.enemyParty[0].currentHp).toBe(99); // 100 - 1 overflow
+        expect(state.playerParty[0].currentHp).toBe(100); // nothing healed
+        expect(state.counters['last_heal_power']).toBe(80);
+        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
+        expect(state.enemyParty[0].currentHp).toBeLessThan(100); // and it still struck
     });
 
-    it('a heal fully absorbed by missing HP procs nothing', () => {
+    it('does NOT convert an ENGINE heal - the OS reads "every heal she CASTS"', () => {
+        // A firmware/percentMaxHP heal arrives at the choke point as `flatHeal` with no printed
+        // power. Before ticket 56 the OS read HP and could not tell the two apart.
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 50 });
-        const enemy = makeUnit('e1', 'Enemy');
-        let state = makeState([aud], [enemy], [card('c1', 'card_heal_power', 1)]);
-        state = play(state, 'aud1', 'aud1', 'c1');
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')]);
+        state = applyMutations(state, [
+            { type: 'HP', targetId: 'aud1', sourceId: 'aud1', payload: { amount: 10, isHeal: true } }
+        ]);
 
-        expect(state.playerParty[0].currentHp).toBe(56); // 50 + 6, no overflow
-        expect(state.enemyParty[0].currentHp).toBe(100);
         expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(false);
+        expect(state.enemyParty[0].currentHp).toBe(100);
     });
 });
 
@@ -142,112 +152,127 @@ describe('Item 2 - FAFNIR v1 HOARD_PROTOCOL (recoil at turn start)', () => {
     });
 });
 
-describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (real buff statuses)', () => {
-    it('applying Energized to an ally heals them 5% max HP', () => {
-        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
-        const ally = makeUnit('ally1', 'Ally', { currentHp: 50 });
-        let state = makeState([valk, ally], [makeUnit('e1', 'Enemy')]);
+describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (einherjar recursion)', () => {
+    // Ticket 53 replaced this OS outright. The old one healed an ALLY 5% max HP on every buff
+    // she applied, behind a `target.id !== owner.id` guard - in 1v1 there is no other ally, so
+    // it could not fire at all, and the balance harness only ever measures 1v1.
+    it('replays a random card from the discard pile at the end of her own turn', () => {
+        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1', attack: 40 });
+        // defense 1: the shared fixture is attack 10 vs defense 10, where a 10-power card floors
+        // to 0 damage and the assertion below could not tell a free cast from no cast at all.
+        const enemy = makeUnit('e1', 'Enemy', { defense: 1 });
+        let state = makeState([valk], [enemy], [card('c1', 'card_strike', 1)]);
 
-        state = battleReducer(state, {
-            type: 'APPLY_STATUS',
-            payload: { targetId: 'ally1', sourceId: 'valk1', status: 'Energized', stacks: 1 }
-        });
+        // Play the strike so it lands in the discard, then end her turn.
+        state = play(state, 'valk1', 'e1', 'c1');
+        const hpAfterPaidCast = state.enemyParty[0].currentHp;
+        expect(hpAfterPaidCast).toBeLessThan(100);
 
-        expect(state.playerParty[1].currentHp).toBe(55);
+        state = battleReducer(state, { type: 'END_TURN' });
+
+        expect(state.logs.some(l => l.includes('VALHALLA_UPLINK'))).toBe(true);
+        // The free cast hits again, and the card is still in the discard afterwards.
+        expect(state.enemyParty[0].currentHp).toBeLessThan(hpAfterPaidCast);
+        expect(state.playerDeck.discard.some(c => c.id === 'c1')).toBe(true);
     });
 
-    it('applying BarkShield to an ally heals them too', () => {
+    it('does nothing with an empty discard pile, and never costs Energy', () => {
         const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
-        const ally = makeUnit('ally1', 'Ally', { currentHp: 50 });
-        let state = makeState([valk, ally], [makeUnit('e1', 'Enemy')]);
-
-        state = battleReducer(state, {
-            type: 'APPLY_STATUS',
-            payload: { targetId: 'ally1', sourceId: 'valk1', status: 'BarkShield', stacks: 5 }
-        });
-
-        expect(state.playerParty[1].currentHp).toBe(55);
-    });
-
-    it('self-buffs still do not proc the heal', () => {
-        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1', currentHp: 50 });
         let state = makeState([valk], [makeUnit('e1', 'Enemy')]);
+        const energyBefore = state.playerParty[0].currentEnergy;
 
-        state = battleReducer(state, {
-            type: 'APPLY_STATUS',
-            payload: { targetId: 'valk1', sourceId: 'valk1', status: 'Energized', stacks: 1 }
-        });
+        state = battleReducer(state, { type: 'END_TURN' });
 
-        expect(state.playerParty[0].currentHp).toBe(50);
+        expect(state.logs.some(l => l.includes('VALHALLA_UPLINK'))).toBe(false);
+        expect(state.enemyParty[0].currentHp).toBe(100);
+        expect(state.playerParty[0].currentEnergy).toBe(energyBefore);
+    });
+
+    it('procs at most once per turn', () => {
+        const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1' });
+        let state = makeState([valk], [makeUnit('e1', 'Enemy', { defense: 1 })], [card('c1', 'card_strike', 1)]);
+        state = play(state, 'valk1', 'e1', 'c1');
+
+        state = battleReducer(state, { type: 'END_TURN' });
+        const procs = state.logs.filter(l => l.includes('VALHALLA_UPLINK')).length;
+        expect(procs).toBe(1);
+        expect(state.counters['valkyrie_uplink_turn:valk1']).toBe(1);
     });
 });
 
-describe('Item 4 - AUDHUMBLA v1 GENESIS_FIRMWARE (3rd Heal/Skill exactly)', () => {
-    it('grants +1 max energy on exactly the 3rd Heal/Skill card', () => {
-        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 10 });
-        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [
-            card('c1', 'card_heal_power', 1),
-            card('c2', 'card_draw_test', 1),
-            card('c3', 'card_heal_power', 1)
-        ]);
+describe('Item 4 - AUDHUMBLA v1 GENESIS_FIRMWARE (overheal -> max Energy, once per turn)', () => {
+    // Ticket 53 re-triggered this. It used to count every 3rd Heal/Skill card played, which had
+    // nothing to do with her identity and ramped on a timer she could not influence. It now pays
+    // out on DELIBERATE OVERHEAL - healing at or near full HP - which brings the ramp online on
+    // turns 1-2 and makes `pale_mercy` at full HP a real decision. It pays in maxEnergy, not raw
+    // energy, because `processPreTurn` SETS currentEnergy each turn (HANDOFF 8-ENERGY-TRAP).
+    it('grants +1 max Energy when a heal overflows', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 98 });
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_power', 1)]);
 
-        state = play(state, 'aud1', 'aud1', 'c1'); // Heal #1
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        state = play(state, 'aud1', 'aud1', 'c2'); // Skill #2
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        state = play(state, 'aud1', 'aud1', 'c3'); // Heal #3 -> reward
+        state = play(state, 'aud1', 'aud1', 'c1'); // heals 6 into 2 missing HP -> 4 overheal
         expect(state.playerParty[0].maxEnergy).toBe(6);
-        expect(state.counters['audhumbla_genesis:aud1']).toBe(0);
+        expect(state.logs.some(l => l.includes('GENESIS_FIRMWARE'))).toBe(true);
     });
 
-    it('an Attack card as "card 3" does not trigger the payout', () => {
+    it('a heal fully absorbed by missing HP grants nothing', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 10 });
+        let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_power', 1)]);
+
+        state = play(state, 'aud1', 'aud1', 'c1');
+        expect(state.playerParty[0].maxEnergy).toBe(5);
+    });
+
+    it('pays out at most once per turn no matter how many heals overflow', () => {
+        const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v1', currentHp: 99 });
         let state = makeState([aud], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_heal_power', 1),
-            card('c2', 'card_draw_test', 1),
-            card('c3', 'card_strike', 1),
-            card('c4', 'card_heal_power', 1)
+            card('c2', 'card_heal_power', 1)
         ]);
 
-        state = play(state, 'aud1', 'aud1', 'c1'); // Heal #1
-        state = play(state, 'aud1', 'aud1', 'c2'); // Skill #2
-        state = play(state, 'aud1', 'e1', 'c3'); // Attack — must not count nor pay out
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        expect(state.counters['audhumbla_genesis:aud1']).toBe(2);
-        state = play(state, 'aud1', 'aud1', 'c4'); // Heal #3 -> reward
+        state = play(state, 'aud1', 'aud1', 'c1');
+        state = play(state, 'aud1', 'aud1', 'c2');
         expect(state.playerParty[0].maxEnergy).toBe(6);
+        expect(state.counters['audhumbla_genesis_used:aud1']).toBe(1);
     });
 });
 
 describe('Item 5 - per-unit OS counters', () => {
-    it('two audhumbla_v1 units count Heal/Skill plays independently', () => {
-        const aud1 = makeUnit('aud1', 'Audhumbla A', { activeOS: 'audhumbla_v1', currentHp: 10 });
-        const aud2 = makeUnit('aud2', 'Audhumbla B', { activeOS: 'audhumbla_v1', currentHp: 10 });
+    it('two audhumbla_v1 units hold independent once-per-turn guards', () => {
+        const aud1 = makeUnit('aud1', 'Audhumbla A', { activeOS: 'audhumbla_v1', currentHp: 99 });
+        const aud2 = makeUnit('aud2', 'Audhumbla B', { activeOS: 'audhumbla_v1', currentHp: 99 });
         let state = makeState([aud1, aud2], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_heal_power', 1),
             card('c2', 'card_heal_power', 1),
-            card('c3', 'card_heal_power', 1),
-            card('c4', 'card_heal_power', 1)
+            card('c3', 'card_heal_power', 1)
         ]);
 
-        state = play(state, 'aud1', 'aud1', 'c1'); // A: 1
-        state = play(state, 'aud1', 'aud1', 'c2'); // A: 2
-        state = play(state, 'aud2', 'aud2', 'c3'); // B: 1 (global would be 3 -> false payout)
-
-        expect(state.playerParty[0].maxEnergy).toBe(5);
-        expect(state.playerParty[1].maxEnergy).toBe(5);
-        expect(state.counters['audhumbla_genesis:aud1']).toBe(2);
-        expect(state.counters['audhumbla_genesis:aud2']).toBe(1);
-
-        state = play(state, 'aud1', 'aud1', 'c4'); // A: 3 -> only A rewarded
+        state = play(state, 'aud1', 'aud1', 'c1'); // A pays out
+        state = play(state, 'aud1', 'aud1', 'c2'); // A is spent for the turn
         expect(state.playerParty[0].maxEnergy).toBe(6);
         expect(state.playerParty[1].maxEnergy).toBe(5);
+
+        // A global guard would have blocked B here. An owner-scoped one does not.
+        state = play(state, 'aud2', 'aud2', 'c3');
+        expect(state.playerParty[1].maxEnergy).toBe(6);
+        expect(state.counters['audhumbla_genesis_used:aud1']).toBe(1);
+        expect(state.counters['audhumbla_genesis_used:aud2']).toBe(1);
     });
 });
 
 describe('Item 6 - HRAESVELGR v2 dead data removed', () => {
-    it('hooks.json contains no onDeckShuffled trigger anywhere', () => {
-        expect(JSON.stringify(HOOKS_DATA)).not.toContain('onDeckShuffled');
+    // Ticket 53 CONSCIOUSLY RETIRES the old pin here ("hooks.json contains no onDeckShuffled
+    // trigger anywhere"). That assertion was correct when it was written - the trigger was a
+    // type with no dispatcher, so any hook using it was dead data - but ticket 53 wired the
+    // dispatch in `executeDraw` and valkyrie_v2's REBIRTH_CYCLE_OS is its first live consumer.
+    // What replaces it is the claim that actually mattered: a hook on this trigger FIRES.
+    it('onDeckShuffled is dispatched, and REBIRTH_CYCLE_OS is its consumer', () => {
+        const entry = (HOOKS_DATA as any).valkyrie_v2;
+        expect(entry.name).toBe('REBIRTH_CYCLE_OS');
+        // hooks[0] is the once-per-turn reset (see ticket 53 §7a); the payout is the one that
+        // has to sit on the newly-live trigger.
+        expect(entry.hooks.some((h: any) => h.trigger === 'onDeckShuffled')).toBe(true);
+        expect(getHook('valk_v2_rebirth')?.onDeckShuffled).toBeTypeOf('function');
     });
 
     it('hraesvelgr_v2 keeps its description (UI copy) but has no data hooks', () => {
@@ -288,8 +313,17 @@ describe('Item 7 - enemy intent Side buffs stay on the enemy side', () => {
 });
 
 describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', () => {
-    it('Status card primes; the NEXT card spends the charge (Attack: discounted)', () => {
-        const gullin = makeUnit('gul1', 'Gullinbursti', { activeOS: 'gullinbursti_v1' });
+    // Ticket 52: the charge pays POWER now, not a cost reduction, and it SCALES ON SHARP. The
+    // discount was worth a full Energy point every turn (~40 power) and stacked with any other
+    // cost reduction - the arbitrage seam ticket 36 documented. The Sharp scaling is the part
+    // that matters: v1 generates Sharp from five of its ten cards and had no way to spend it,
+    // because the scaler that cashes Sharp lives in v2's firmware. The trigger conditions are
+    // unchanged; only the payout moved.
+    it('Status card primes; the NEXT card spends the charge (Attack: +3 power per Sharp, full price)', () => {
+        const gullin = makeUnit('gul1', 'Gullinbursti', {
+            activeOS: 'gullinbursti_v1',
+            statusEffects: [{ id: 'sh1', type: 'Sharp', stacks: 4 } as never],
+        });
         let state = makeState([gullin], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_status_test', 1),
             card('c3', 'card_strike', 1)
@@ -302,9 +336,20 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
         expect(state.playerParty[0].nextProgramModifier!.appliesTo).toBe('Attack');
         expect(state.logs.some(l => l.includes('UNSTOPPABLE_MASS'))).toBe(true);
 
-        // Next card is an Attack: discounted to 0, charge consumed.
+        // 4 Sharp x 3 power. With no Sharp the prime is worth nothing, which is the whole point.
+        expect(state.playerParty[0].nextProgramModifier!.powerBonus).toBe(12);
+        expect(state.playerParty[0].nextProgramModifier!.costReduction).toBe(0);
+
+        // Next card is an Attack: it pays FULL price now, and the charge is consumed.
+        //
+        // Deliberately NOT asserting on the enemy's HP: these synthetic units are attack 10
+        // against defense 10, where `calculateDamage` floors to 0 for a 10-power card with or
+        // without the bonus, so an HP assertion here would measure the fixture rather than the
+        // hook. The `powerBonus` value above is the end-to-end proof that the Sharp scaling
+        // resolved; the balance suite is where the damage shows up (os:gullinbursti 0.000 ->
+        // 0.490 on this change alone).
         state = play(state, 'gul1', 'e1', 'c3');
-        expect(state.playerParty[0].currentEnergy).toBe(4); // cost 1 - 1 = 0
+        expect(state.playerParty[0].currentEnergy).toBe(3); // cost 1, no discount
         expect(state.playerParty[0].nextProgramModifier).toBeUndefined();
     });
 
@@ -357,8 +402,14 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
     });
 });
 
-describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
-    it('silently rejects the third card played by a ymir_v2 unit in one turn', () => {
+describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
+    // Ticket 80: the cap is 2 -> 1. It sat at 2 for three tickets and NEVER BOUND - ticket 50
+    // wrote that down and nobody acted on it, and ticket 79 measured her playing 1.06 cards a
+    // turn against it. The drawback that was supposed to pay for a +25% unconditional damage
+    // bonus was inert, so the bonus had been walked 50% -> 35% -> 25% instead, three times,
+    // without fixing her. This makes the drawback real rather than shaving the bonus a fourth
+    // time.
+    it('silently rejects the SECOND card played by a ymir_v2 unit in one turn', () => {
         const ymir = makeUnit('ym1', 'Ymir', { activeOS: 'ymir_v2' });
         let state = makeState([ymir], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_strike', 1),
@@ -367,13 +418,12 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         ]);
 
         state = play(state, 'ym1', 'e1', 'c1');
-        state = play(state, 'ym1', 'e1', 'c2');
-        expect(state.playerParty[0].playsThisTurn).toBe(2);
-        expect(state.playerParty[0].currentEnergy).toBe(3);
+        expect(state.playerParty[0].playsThisTurn).toBe(1);
+        expect(state.playerParty[0].currentEnergy).toBe(4);
 
-        const after = play(state, 'ym1', 'e1', 'c3');
+        const after = play(state, 'ym1', 'e1', 'c2');
         expect(after).toBe(state); // state unchanged, no log spam
-        expect(after.playerDeck.hand).toHaveLength(1);
+        expect(after.playerDeck.hand).toHaveLength(2);
     });
 
     it('the limit resets when the turn cycles back to the player', () => {
@@ -385,7 +435,6 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         ]);
 
         state = play(state, 'ym1', 'e1', 'c1');
-        state = play(state, 'ym1', 'e1', 'c2');
         state = battleReducer(state, { type: 'END_TURN' }); // player -> enemy
         state = battleReducer(state, { type: 'END_TURN' }); // enemy -> player
         expect(state.playerParty[0].playsThisTurn).toBe(0);
@@ -414,15 +463,46 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         expect(state.playerParty[0].playsThisTurn).toBe(3);
     });
 
-    it('registry exposes maxCardsPerTurn: 2 for ymir_v2 only where declared', () => {
-        expect(getOSBehavior('ymir_v2')!.maxCardsPerTurn).toBe(2);
+    it('registry exposes maxCardsPerTurn: 1 for ymir_v2 only where declared', () => {
+        expect(getOSBehavior('ymir_v2')!.maxCardsPerTurn).toBe(1);
         expect(getOSBehavior('fenrir_v1')!.maxCardsPerTurn).toBeUndefined();
+    });
+
+    it('a fenrir_v1 unit hits HARDER the more max HP it is missing (ticket 84)', () => {
+        // UNBOUND_KERNEL's Fire bonus scales on the OWNER's missing HP - the clause that pays for
+        // the recoil. At full health it is worth nothing; at half health, half of OS_KNOBS.fenrir
+        // .berserkPct. Level 20 for the same reason as the Ice test below: at level 1 the pace
+        // divisor floors a small card to 0 and the assertion would be vacuous.
+        const runAttack = (currentHp: number, activeOS?: string): number => {
+            const attacker = makeUnit('a1', 'Attacker', {
+                level: 20, currentHp, maxHp: 100, ...(activeOS ? { activeOS } : {})
+            });
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
+                card('c1', 'card_fireball', 1)
+            ]);
+            state = play(state, 'a1', 'e1', 'c1');
+            return 100 - state.enemyParty[0].currentHp;
+        };
+
+        const plain = runAttack(50);
+        const full = runAttack(100, 'fenrir_v1');
+        const half = runAttack(50, 'fenrir_v1');
+        const sliver = runAttack(10, 'fenrir_v1');
+
+        // card_fireball is two hits and the bonus floors per hit, so the assertion is the ORDER,
+        // not an exact product: at full health the clause pays nothing, and it grows as she drops.
+        expect(plain).toBeGreaterThan(0);
+        expect(full).toBe(plain);
+        expect(half).toBeGreaterThan(full);
+        expect(sliver).toBeGreaterThanOrEqual(half); // per-hit flooring hides the last step at these sizes
     });
 
     it('Ice cards from a ymir_v2 unit deal exactly +50% through the real reducer', () => {
         const runAttack = (activeOS?: string): number => {
-            const attacker = makeUnit('a1', 'Attacker', activeOS ? { activeOS } : {});
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy')], [
+            // Level 20, not the default 1: under the rev-3.1 pace (ticket 23, /45) a 20-power
+            // card at level 1 floors to 0 damage, which makes a +35% assertion meaningless.
+            const attacker = makeUnit('a1', 'Attacker', { level: 20, ...(activeOS ? { activeOS } : {}) });
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
                 card('c1', 'card_ice_strike', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');
@@ -432,7 +512,7 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         const withoutOS = runAttack();
         const withOS = runAttack('ymir_v2');
         expect(withoutOS).toBeGreaterThan(0);
-        expect(withOS).toBe(withoutOS + Math.floor(withoutOS * 0.5)); // ~1.5×
+        expect(withOS).toBe(withoutOS + Math.floor(withoutOS * 0.35)); // ticket 09: softened to ~1.35x
     });
 });
 
@@ -450,5 +530,81 @@ describe('getEffectiveCardCost (shared reducer/UI helper)', () => {
         expect(doesModifierApply(source, skillCard)).toBe(false);
         expect(getEffectiveCardCost(source, skillCard, 2)).toBe(2);
         expect(getEffectiveCardCost({ nextProgramModifier: undefined } as any, attackCard, 2)).toBe(2);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Ticket 07 (deck-archetypes map, 2026-08-05): mechanical firmware defect fixes
+// ---------------------------------------------------------------------------
+
+describe('Ticket 07 - SLEIPNIR v2 WAR_STEED_OS token guard', () => {
+    it('an Air attack generates exactly one hoof_strike, and the token does not self-replicate', () => {
+        const sleipnir = makeUnit('sl1', 'Sleipnir', { activeOS: 'sleipnir_v2' });
+        let state = makeState([sleipnir], [makeUnit('e1', 'Enemy')], [
+            card('c1', 'dust_devil', 1)
+        ]);
+
+        state = play(state, 'sl1', 'e1', 'c1');
+        const tokens = state.playerDeck.hand.filter(c => c.dataId === 'hoof_strike');
+        expect(tokens).toHaveLength(1);
+
+        // Playing the generated token must NOT generate another (isToken: false guard).
+        state = play(state, 'sl1', 'e1', tokens[0].id);
+        expect(state.playerDeck.hand.filter(c => c.dataId === 'hoof_strike')).toHaveLength(0);
+    });
+});
+
+describe('Ticket 07 - HULDRA v2 BARK_SHIELD_OS fires for both sides, linear shield', () => {
+    it('player-side Huldra gets the shield at her first turn boundary (end of turn 1), once', () => {
+        const huldra = makeUnit('h1', 'Huldra', { activeOS: 'huldra_v2', maxHp: 200, currentHp: 200 });
+        let state = makeState([huldra], [makeUnit('e1', 'Enemy')]);
+
+        // Battle starts mid-turn-1 (ACTION phase): no shield yet.
+        expect(state.playerParty[0].statusEffects.find(s => s.type === 'BarkShield')).toBeUndefined();
+
+        state = battleReducer(state, { type: 'END_TURN' }); // player turn 1 ends -> onTurnEnd
+        const shield = state.playerParty[0].statusEffects.find(s => s.type === 'BarkShield');
+        expect(shield).toBeDefined();
+        // Linear: flat percent stacks, independent of maxHp (was floor(maxHp*0.5) = 100 here).
+        expect(shield!.stacks).toBe(50);
+
+        // Once per battle: cycle a full round; the grant must not fire a second time
+        // (BarkShield's own decay schedule is irrelevant here - count the grant logs).
+        state = battleReducer(state, { type: 'END_TURN' }); // enemy -> player onTurnStart
+        state = battleReducer(state, { type: 'END_TURN' }); // player -> enemy again
+        const grants = state.logs.filter(l => l.includes("BARK_SHIELD_OS activates"));
+        expect(grants).toHaveLength(1);
+    });
+
+    it('enemy-side Huldra gets the shield at her turn-1 pre-turn', () => {
+        const huldra = makeUnit('eh1', 'Enemy Huldra', { activeOS: 'huldra_v2' });
+        let state = makeState([makeUnit('p1', 'Player')], [huldra]);
+
+        state = battleReducer(state, { type: 'END_TURN' }); // -> enemy onTurnStart
+        const shield = state.enemyParty[0].statusEffects.find(s => s.type === 'BarkShield');
+        expect(shield).toBeDefined();
+        expect(shield!.stacks).toBe(50);
+    });
+});
+
+describe('Ticket 07 - FAFNIR v2 duplicate hook removed', () => {
+    it('fafnir_v2 registers exactly one corrupted-gold hook (data-driven, no custom twin)', () => {
+        const os = getOSBehavior('fafnir_v2')!;
+        const ids = os.hooks.map(h => h.id);
+        expect(ids.filter(id => id === 'fafnir_v2_corrupted')).toHaveLength(1);
+        expect(os.hooks).toHaveLength(1);
+    });
+});
+
+describe("Ticket 07 - explicit 'ANY' source/target condition", () => {
+    it("target: 'ANY' matches by name, not by validator fall-through", async () => {
+        const { ConditionValidator } = await import('./core/ConditionValidator');
+        const owner = makeUnit('n1', 'Nidhoggr');
+        const other = makeUnit('e1', 'Enemy');
+        const state = makeState([owner], [other]);
+        const context: any = { state, target: other, source: other, triggerDepth: 0 };
+        expect(ConditionValidator.evaluateHookCondition({ target: 'ANY' }, context, owner)).toBe(true);
+        expect(ConditionValidator.evaluateHookCondition({ source: 'ANY' }, context, owner)).toBe(true);
+        expect(ConditionValidator.evaluateHookCondition({ target: 'SELF' }, context, owner)).toBe(false);
     });
 });

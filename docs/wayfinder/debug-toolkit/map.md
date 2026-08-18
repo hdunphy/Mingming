@@ -47,6 +47,51 @@ A dev-build-only debug toolkit, built and working on the repo: a hidden **Debug 
 
 - **DESTINATION REACHED (2026-08-03).** Both halves are done. *Balance question:* `npm run balance` and the committed `balance_report.json` surfaced 21 redlines — 7 base decks that cannot beat a copy of themselves, 7 firmware pairs over the OS-variance cap, 2 FTKs. *Bug:* accepting [Scenario launcher panel](tickets/23-scenario-launcher-panel.md) drove a real defect out of hiding — `App.tsx` ordered `rosterSize === 0 → MainMenuView` ahead of `isInBattle → BattleArena`, so a scenario launched into a fresh save slot was created and then never rendered (`9165b46`). That is the audit's blocker #6, found *by using the toolkit* rather than by reading code, which is exactly what the destination asked for. Two usability failures surfaced in the same pass and were fixed rather than documented (`2eb08c0`, `bd4acb9`).
 
+## Extension (2026-08-10) — deck balance report v2
+
+New scope Henry asked for after the destination above was reached, same map (precedent:
+[Save slots](tickets/24-save-slots.md) was added the same way).
+
+- [Deck balance report v2 — design & mockup](tickets/25-deck-balance-report-v2-design.md) —
+  A richer, interactive drill-down report, separate from the committed gate
+  `balance_report.json`: per-card/per-status telemetry, an empirical "measured" card power
+  alongside the static powerscale score, and matchup drill-down, flexible enough for one
+  deck vs. control or several at once in a single file. Most of the requested metrics
+  (most/least-used card, highest-damage card, avg damage/turn, avg statuses applied,
+  most-used status, measured power) need new instrumentation that does not exist in
+  `runBatch.ts` today — schema and mockup ([prototypes/25-deck-balance-report-mockup.html](prototypes/25-deck-balance-report-mockup.html))
+  are designed and Henry-approved; thresholds for the two new redline kinds
+  (`DEAD_CARD_HIGH`, `POWER_DIVERGENCE`) are approved in shape only, pending real data.
+  Generated via a new `npm run balance:deck`-style script; output is **committed**, not
+  gitignored, same diffable philosophy as v1.
+
+- **BUILT** — [Deck balance report v2 — instrumentation & build](tickets/26-deck-balance-report-v2-build.md)
+  — `npm run balance:deck` writes a real `docs/balance/deck_report.json` **and** a
+  self-contained `deck_report.html` viewer (the run's JSON is embedded, because a `file://`
+  page cannot fetch its neighbour and a viewer that broke on double-click would be broken in
+  exactly the way this tool is used; the mockup's file-loader survives for pointing it at
+  another run). Five of the ten asks were a real instrumentation lift and all five landed:
+  per-card play/damage/status telemetry, per-status totals, and `measuredScore`.
+  **Telemetry is OPT-IN and `npm run balance` never sets it**, so the commit gate's runtime
+  cannot regress no matter what this grows into — asserted by a test rather than remembered.
+  **`measuredScore` moves exactly two terms** (`staticScore − damagePortion − statusPortion +
+  measured`), because a card that draws 2 always draws 2 and re-measuring a deterministic term
+  only re-derives the constant; `powerscale` reports the two portions so the two formulas
+  cannot drift apart. **The first version got the per-card metrics wrong in an instructive
+  way** — one counter served both questions, so `playRate` exceeded 1.0 and every card read 50%
+  dead. There are two denominators now: `deadRate` per card INSTANCE (the deck-level
+  convention, so the two are comparable) and `playRate` per HAND ENTRY (when it was available,
+  was it cast). **Thresholds were calibrated against 12 subjects × 160 games, not inherited**:
+  `deadRate` 0.50 confirmed at the measured p95 (median 0.09, p90 0.39, max 0.87), and
+  `powerDivergence` raised 0.50 → **1.00** because p75 was 0.50 and half of what the proposal
+  flagged was ordinary. **It found a real defect on its first run**: `barrow_king` in draugr_v1
+  reached hand 480 times and was played 5.3% of them — dead rate **0.856** — which is precisely
+  the STOP condition ticket 48 §11 named and which the deck-level ratio (0.09 pooled) cannot
+  express. Rendered and inspected headless rather than assumed: no mock badges, no `undefined`,
+  no `NaN`, no console errors, and `notes.instrumentationPending` empty.
+
+Frontier: none — the extension's two tickets are both closed.
+
 ## Not yet specified
 
 - Build-out of each surface — **every design ticket on this map is now resolved**; the remaining work is all implementation. Graduated: the scenario layer as [Scenario schema & normalizer](tickets/10-scenario-schema-implementation.md) and [Scenario materializer](tickets/11-scenario-materializer.md), the gate as [Debug gating scaffold](tickets/12-debug-gating-scaffold.md) and [Retire the ungated surfaces](tickets/13-retire-ungated-surfaces.md), the god tools as [Engine state actions](tickets/14-engine-state-actions.md) and [Battle debug overlay](tickets/15-battle-debug-overlay.md), export/replay as [Snapshot export & import](tickets/16-snapshot-export-import.md) and [Action tape](tickets/17-action-tape.md), the save editor as [Save reward actions](tickets/18-save-reward-actions.md) and [Save/run editor panel](tickets/19-save-run-editor-panel.md), and the balance pipeline as [Batch sim runner](tickets/20-batch-sim-runner.md) and [Balance auditor & report](tickets/21-balance-auditor-report.md).

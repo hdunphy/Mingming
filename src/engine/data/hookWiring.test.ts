@@ -32,7 +32,7 @@ describe('programs.json hook wiring', () => {
     it('the five previously-inert daemon cards resolve to live hooks', () => {
         const expectations: Record<string, string> = {
             harden_daemon: 'defensive_daemon_hook',
-            fenrir_v1_daemon: 'daemon_double_strength',
+            core_overclock_daemon: 'daemon_double_strength',
             cinder_armor_daemon: 'daemon_burn_sharp_synergy',
             feedback_loop_daemon: 'daemon_draw_damage_proc',
             fertile_ground_daemon: 'daemon_extra_draw'
@@ -132,9 +132,9 @@ describe('data-driven condition translations', () => {
         seed: '42'
     });
 
-    it('draugr_v2_chill (onCostCalculated) charges +1 only when the source has 2+ debuffs', () => {
+    it('draugr_v2_chill (onDamageCalculated, ticket 12 rebuild) reduces damage 20% only when the source has 2+ debuff types', () => {
         const hook = getHook('draugr_v2_chill');
-        expect(hook?.onCostCalculated).toBeTypeOf('function');
+        expect(hook?.onDamageCalculated).toBeTypeOf('function');
 
         const draugr = makeEntity('draugr');
         const cleanAttacker = makeEntity('attacker_clean');
@@ -144,45 +144,76 @@ describe('data-driven condition translations', () => {
         ]);
         const state = makeState([cleanAttacker, debuffedAttacker], [draugr]);
 
-        const cleanCost = hook!.onCostCalculated!(2, { state, source: cleanAttacker, target: draugr, triggerDepth: 0 }, draugr);
-        expect(cleanCost).toBe(2);
+        const cleanDamage = hook!.onDamageCalculated!(20, { state, source: cleanAttacker, target: draugr, triggerDepth: 0 }, draugr);
+        expect(cleanDamage).toBe(20);
 
-        const taxedCost = hook!.onCostCalculated!(2, { state, source: debuffedAttacker, target: draugr, triggerDepth: 0 }, draugr);
-        expect(taxedCost).toBe(3);
+        const chilledDamage = hook!.onDamageCalculated!(20, { state, source: debuffedAttacker, target: draugr, triggerDepth: 0 }, draugr);
+        expect(chilledDamage).toBe(16);
     });
 
-    it('fafnir_v2_corrupted fires only for debuffs (statusAppliedIn)', () => {
-        // Build straight from hooks.json data: the registered id is shadowed by the
-        // hand-written CustomFirmware hook of the same id, and we specifically want
-        // to exercise the data-driven statusAppliedIn condition here.
+    it('fafnir_v2_corrupted pays 2 Strengthened per DISTINCT debuff at turn start (ticket 52)', () => {
+        // Ticket 52 rewrote this OS. It used to grant +1 Energy per debuff APPLICATION, which
+        // mostly did nothing: debuffs arrive on the enemy's turn and `processPreTurn` SETS
+        // currentEnergy rather than adding, so the point was deleted before Fafnir could spend
+        // it (third occurrence of that trap - BLOOD_SCENT ticket 39, PERMAFROST_WAKE ticket 48).
+        // It now reads distinct TYPES at turn start, so a self-debuff card pays once per turn
+        // rather than once per cast.
         const hook = HookFactory.createHook((HOOKS_DATA as any).fafnir_v2.hooks[0]);
-        const fafnir = makeEntity('fafnir');
-        fafnir.currentEnergy = 0;
-        const state = makeState([makeEntity('p')], [fafnir]);
+        expect(hook!.onTurnStart).toBeDefined();
+        expect(hook!.onStatusApplied).toBeUndefined();
 
-        // Buff applied to Fafnir: no energy gained
-        const buffResult = hook!.onStatusApplied!({ state, target: fafnir, statusApplied: 'Strengthened' as any, triggerDepth: 0 }, fafnir);
-        const fafnirAfterBuff = buffResult.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(fafnirAfterBuff.currentEnergy).toBe(0);
+        const clean = makeEntity('fafnir');
+        const cleanState = makeState([makeEntity('p')], [clean]);
+        const noDebuffs = hook!.onTurnStart!({ state: cleanState, source: clean, target: clean, triggerDepth: 0 } as any, clean);
+        const afterClean = noDebuffs.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
+        expect(afterClean.statusEffects.some((s: any) => s.type === 'Strengthened')).toBe(false);
 
-        // Debuff applied to Fafnir: +1 energy
-        const debuffResult = hook!.onStatusApplied!({ state, target: fafnir, statusApplied: 'Burn' as any, triggerDepth: 0 }, fafnir);
-        const fafnirAfterDebuff = debuffResult.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(fafnirAfterDebuff.currentEnergy).toBe(1);
+        // Two DISTINCT types, six stacks between them: the grant reads types, not stacks.
+        const rotted = makeEntity('fafnir', [
+            { id: 's1', type: 'Poison', stacks: 4 },
+            { id: 's2', type: 'Dazed', stacks: 2 },
+        ]);
+        const rottedState = makeState([makeEntity('p')], [rotted]);
+        const result = hook!.onTurnStart!({ state: rottedState, source: rotted, target: rotted, triggerDepth: 0 } as any, rotted);
+        const after = result.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
+        expect(after.statusEffects.find((s: any) => s.type === 'Strengthened')?.stacks).toBe(4);
+        // ...and each of those debuffs sheds a stack, which is what stops it compounding forever.
+        expect(after.statusEffects.find((s: any) => s.type === 'Poison')?.stacks).toBe(3);
+        expect(after.statusEffects.find((s: any) => s.type === 'Dazed')?.stacks).toBe(1);
     });
 
-    it('hel_v2_underworld skips Attack cards and 0-cost cards (programCategoryNot + baseCost)', () => {
-        const hook = getHook('hel_v2_underworld');
+    it('hel_v2_underworld_toll taxes DARK cards with a printed cost, and only those (ticket 57)', () => {
+        // History, because this `when` has now moved twice. Ticket 36 WIDENED it from
+        // "Dark non-Attacks" to every card with a printed cost, on the reasoning that the OS
+        // zeroed her Energy outright. Ticket 57 NARROWED it back to Dark, because the approved
+        // OS text is "Hel's DARK spells cost 5% of her max HP ... instead of Energy" - so her
+        // Light and None cards pay Energy again, which is what keeps the new 20% blood cap from
+        // being a hard stop on her turn. The hook also left hooks.json for CustomFirmware, since
+        // the cap needs per-card arithmetic a data `when` cannot express.
+        const hook = getHook('hel_v2_underworld_toll');
         const hel = makeEntity('hel');
         const state = makeState([hel], [makeEntity('e')]);
 
         const darkAttack: any = { id: 'atk', category: 'Attack', element: 'Dark', baseCost: 2, actions: [] };
         const attackResult = hook!.onActionStart!({ state, source: hel, program: darkAttack, triggerDepth: 0 }, hel);
-        expect(attackResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
+        expect(attackResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(true);
 
-        const darkSpell: any = { id: 'spell', category: 'Skill', element: 'Dark', baseCost: 2, actions: [] };
-        const spellResult = hook!.onActionStart!({ state, source: hel, program: darkSpell, triggerDepth: 0 }, hel);
-        expect(spellResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(true);
+        const lightSkill: any = { id: 'spell', category: 'Skill', element: 'Light', baseCost: 2, actions: [] };
+        const spellResult = hook!.onActionStart!({ state, source: hel, program: lightSkill, triggerDepth: 0 }, hel);
+        expect(spellResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
+
+        const freebie: any = { id: 'free', category: 'Attack', element: 'Dark', baseCost: 0, actions: [] };
+        const freeResult = hook!.onActionStart!({ state, source: hel, program: freebie, triggerDepth: 0 }, hel);
+        expect(freeResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
+    });
+
+    it('hel_v2_underworld_cost zeroes the Energy cost of her cards (onCostCalculated multiplier 0)', () => {
+        const hook = getHook('hel_v2_underworld_cost');
+        const hel = makeEntity('hel');
+        const state = makeState([hel], [makeEntity('e')]);
+
+        const bigSpell: any = { id: 'soul_tithe', category: 'Attack', element: 'Dark', baseCost: 3, actions: [] };
+        expect(hook!.onCostCalculated!(3, { state, source: hel, program: bigSpell, triggerDepth: 0 } as any, hel)).toBe(0);
     });
 
     it('RANDOM_ENEMY targeting advances the state seed (no repeated picks forever)', () => {

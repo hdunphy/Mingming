@@ -76,7 +76,68 @@ export interface BatchOptions {
      * are comparable to within 1.
      */
     startingSide?: Side;
+    /**
+     * Ticket 26: collect per-card and per-status telemetry (see `RunTelemetry`).
+     *
+     * OPT-IN, and deliberately so. `npm run balance` is the commit gate and its duration is a
+     * standing requirement (ticket 20); leaving this off by default means the gate cannot
+     * regress no matter what the deck report grows into. `npm run balance:deck` turns it on.
+     */
+    telemetry?: boolean;
 }
+
+/**
+ * Ticket 26: what a card actually DID, as opposed to what its text says it does.
+ *
+ * Keyed by `dataId` (the registry card id) rather than the per-instance id the dead-card
+ * bookkeeping uses - two copies of `nightmare` are the same card for reporting purposes.
+ */
+export interface SideTelemetry {
+    /**
+     * Card INSTANCES of this id that reached a hand at any point in the run.
+     *
+     * Deliberately the same convention as the deck-level `deadCardRatio`: an instance, not a
+     * hand-entry, so `1 - instancesPlayed/seen` is a per-card dead rate that means the same
+     * thing the deck-level number means and can be compared to it.
+     */
+    seen: Record<string, number>;
+    /** Instances of this id that were played at least once - the dead rate's numerator. */
+    instancesPlayed: Record<string, number>;
+    /**
+     * Times a card of this id ENTERED a hand.
+     *
+     * A different denominator for a different question: `played / handEntries` is "when this
+     * was available, how often did the search actually cast it", which is what a play RATE
+     * should mean. A 2-energy card on a 2-energy frame can be in hand three turns running and
+     * only be castable once a turn - that is a curve fact, not a dead card, and keeping the
+     * two denominators apart is what stops it reading as one.
+     */
+    handEntries: Record<string, number>;
+    /** Times a `PLAY_PROGRAM` for this id was accepted by the reducer. */
+    played: Record<string, number>;
+    /**
+     * HP removed from the opposing side across the single `PLAY_PROGRAM` dispatch.
+     *
+     * DIRECT damage only. Burn and Poison ticks resolve at end of turn and are attributed to
+     * nothing here - that is the documented DoT attribution trap, and the reason `totalDamage`
+     * is tracked separately so the residual can be apportioned. Never read this as "what the
+     * card is worth".
+     */
+    directDamage: Record<string, number>;
+    /** `dataId` -> status type -> stacks that actually LANDED on either side during the play. */
+    statuses: Record<string, Record<string, number>>;
+    /** Every point of HP this side removed from the other, however it got there. */
+    totalDamage: number;
+}
+
+export interface RunTelemetry {
+    PLAYER: SideTelemetry;
+    ENEMY: SideTelemetry;
+}
+
+const emptySideTelemetry = (): SideTelemetry => ({
+    seen: {}, instancesPlayed: {}, handEntries: {}, played: {}, directDamage: {}, statuses: {}, totalDamage: 0,
+});
 
 export interface RunResult {
     seed: string;
@@ -100,6 +161,8 @@ export interface RunResult {
     deadCards: { player: number; enemy: number };
     /** Card instances that reached a hand at all, per side - the ratio's denominator. */
     cardsSeen: { player: number; enemy: number };
+    /** Ticket 26: present only when `BatchOptions.telemetry` was set. */
+    telemetry?: RunTelemetry;
 }
 
 export interface BatchResult {
@@ -160,6 +223,38 @@ function decideOutcome(state: IBattleState): BattleOutcome | null {
     return null;
 }
 
+/**
+ * Ticket 19: per-seed IV jitter. One roll per stat per SEED, applied identically to
+ * every unit on BOTH sides - each game stays fair while the absolute HP/damage
+ * numbers vary across the batch, decorrelating the kill-threshold seed families
+ * that made single power points flip 37-point cliffs (ticket 18's coil sweep).
+ * Deterministic: the roll is derived from the run seed, nothing else.
+ */
+export function applyStatJitter(setup: ComposedSetup, seed: string): ComposedSetup {
+    const magnitude = setup.statJitter ?? 0;
+    if (magnitude <= 0) return setup;
+
+    const roll = (tag: string): number =>
+        new PRNG(`ivjitter|${tag}|${seed}`).nextInt(-magnitude, magnitude).value;
+    const dAtk = roll('atk');
+    const dDef = roll('def');
+    const dHp = roll('hp');
+
+    const clampIV = (iv: number): number => Math.max(0, Math.min(31, iv));
+    const jitterUnit = <T extends { attackIV: number; defenseIV: number; hpIV: number }>(unit: T): T => ({
+        ...unit,
+        attackIV: clampIV(unit.attackIV + dAtk),
+        defenseIV: clampIV(unit.defenseIV + dDef),
+        hpIV: clampIV(unit.hpIV + dHp),
+    });
+
+    return {
+        ...setup,
+        player: { ...setup.player, party: setup.player.party.map(jitterUnit) },
+        enemies: setup.enemies.map(jitterUnit),
+    };
+}
+
 /** Card-instance ids currently held by a side. */
 function handIds(state: IBattleState, side: 'PLAYER' | 'ENEMY'): ReadonlyArray<string> {
     const deck = side === 'PLAYER' ? state.playerDeck : state.enemyDeck;
@@ -177,21 +272,63 @@ export function runOne(
     seed: string,
     maxTurns: number = DEFAULT_MAX_TURNS,
     startingSide: Side = 'PLAYER',
+    collectTelemetry = false,
 ): RunResult {
-    const built = buildScenarioState({ ...setup, seed });
+    const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
     let state: IBattleState = startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
 
     // Dead-card bookkeeping. `seen` accumulates every card instance that has ever been in
-    // hand; `played` the ones a PLAY_PROGRAM actually consumed. A card discarded or
-    // exhausted by an effect stays in `seen` and out of `played` - it sat in hand
-    // unplayed, which is the metric. Ids are stable across reshuffles (they are assigned
-    // once by `instantiateDeck`), so a card drawn twice is counted once.
+    // hand; `played` the ones a PLAY_PROGRAM actually consumed. Ids are stable across
+    // reshuffles (assigned once by `instantiateDeck`), so a card drawn twice is counted once.
+    //
+    // Cards an EFFECT shed from hand (a DISCARD cost, Tempest, an enemy FORCE_DISCARD) are
+    // read off `state.discardedByEffect` and do NOT count as dead. The metric is "this card
+    // rotted in my hand", not "this card left my hand" - a discard archetype throwing cards
+    // away on purpose is the deck working, not failing. Before this fix the same hraesvelgr
+    // deck read 17-22% dead with one Tempest and 36% with two.
     const seen = { PLAYER: new Set<string>(), ENEMY: new Set<string>() };
     const played = { PLAYER: new Set<string>(), ENEMY: new Set<string>() };
+
+    // Ticket 26 telemetry, all of it behind `options.telemetry`. `seenDataIds` mirrors `seen`
+    // but keyed by registry id, and is counted once per INSTANCE so `timesSeen` stays the
+    // right denominator for a per-card dead rate.
+    const telemetry: RunTelemetry | undefined = collectTelemetry
+        ? { PLAYER: emptySideTelemetry(), ENEMY: emptySideTelemetry() }
+        : undefined;
+    // Previous hand contents per side, so a card ENTERING hand can be distinguished from one
+    // that was already sitting there - `handEntries` counts the transition, not the presence.
+    const previousHand = { PLAYER: new Set<string>(), ENEMY: new Set<string>() };
+    const countedInstances = { PLAYER: new Set<string>(), ENEMY: new Set<string>() };
+    const instanceDataId = { PLAYER: new Map<string, string>(), ENEMY: new Map<string, string>() };
+    const playedInstances = { PLAYER: new Set<string>(), ENEMY: new Set<string>() };
+    const bump = (rec: Record<string, number>, key: string, by = 1) => { rec[key] = (rec[key] ?? 0) + by; };
+    const partyHp = (s: IBattleState, side: Side) =>
+        (side === 'PLAYER' ? s.playerParty : s.enemyParty).reduce((a, e) => a + e.currentHp, 0);
+    const stackMap = (s: IBattleState): Record<string, number> => {
+        const out: Record<string, number> = {};
+        for (const e of [...s.playerParty, ...s.enemyParty])
+            for (const st of e.statusEffects ?? []) out[st.type] = (out[st.type] ?? 0) + st.stacks;
+        return out;
+    };
 
     const observeHands = (s: IBattleState) => {
         for (const id of handIds(s, 'PLAYER')) seen.PLAYER.add(id);
         for (const id of handIds(s, 'ENEMY')) seen.ENEMY.add(id);
+        if (!telemetry) return;
+        for (const side of ['PLAYER', 'ENEMY'] as Side[]) {
+            const deck = side === 'PLAYER' ? s.playerDeck : s.enemyDeck;
+            const now = new Set<string>();
+            for (const card of deck.hand) {
+                now.add(card.id);
+                if (!previousHand[side].has(card.id)) bump(telemetry[side].handEntries, card.dataId);
+                if (!countedInstances[side].has(card.id)) {
+                    countedInstances[side].add(card.id);
+                    instanceDataId[side].set(card.id, card.dataId);
+                    bump(telemetry[side].seen, card.dataId);
+                }
+            }
+            previousHand[side] = now;
+        }
     };
 
     observeHands(state);
@@ -225,6 +362,30 @@ export function runOne(
             if (action.type === 'PLAY_PROGRAM') {
                 played[side].add(action.payload.programId);
             }
+            if (telemetry) {
+                const opponent: Side = side === 'PLAYER' ? 'ENEMY' : 'PLAYER';
+                telemetry[side].totalDamage += Math.max(0, partyHp(state, opponent) - partyHp(nextState, opponent));
+                if (action.type === 'PLAY_PROGRAM') {
+                    const deck = side === 'PLAYER' ? state.playerDeck : state.enemyDeck;
+                    const dataId = deck.hand.find(c => c.id === action.payload.programId)?.dataId;
+                    if (dataId) {
+                        bump(telemetry[side].played, dataId);
+                        if (!playedInstances[side].has(action.payload.programId)) {
+                            playedInstances[side].add(action.payload.programId);
+                            bump(telemetry[side].instancesPlayed, dataId);
+                        }
+                        bump(telemetry[side].directDamage, dataId,
+                            Math.max(0, partyHp(state, opponent) - partyHp(nextState, opponent)));
+                        const before = stackMap(state);
+                        const after = stackMap(nextState);
+                        const bucket = telemetry[side].statuses[dataId] ?? (telemetry[side].statuses[dataId] = {});
+                        for (const [type, count] of Object.entries(after)) {
+                            const delta = count - (before[type] ?? 0);
+                            if (delta > 0) bucket[type] = (bucket[type] ?? 0) + delta;
+                        }
+                    }
+                }
+            }
             state = nextState;
         }
 
@@ -245,11 +406,16 @@ export function runOne(
         winner = decideOutcome(state);
     }
 
+    const shed = {
+        PLAYER: new Set((state.discardedByEffect ?? []).filter(e => e.startsWith('PLAYER:')).map(e => e.slice(7))),
+        ENEMY: new Set((state.discardedByEffect ?? []).filter(e => e.startsWith('ENEMY:')).map(e => e.slice(6))),
+    };
+
     const deadRatio = (s: 'PLAYER' | 'ENEMY'): number => {
         const total = seen[s].size;
         if (total === 0) return 0;
         let dead = 0;
-        for (const id of seen[s]) if (!played[s].has(id)) dead++;
+        for (const id of seen[s]) if (!played[s].has(id) && !shed[s].has(id)) dead++;
         return dead / total;
     };
 
@@ -264,6 +430,7 @@ export function runOne(
         truncated,
         deadCards: { player: deadRatio('PLAYER'), enemy: deadRatio('ENEMY') },
         cardsSeen: { player: seen.PLAYER.size, enemy: seen.ENEMY.size },
+        ...(telemetry ? { telemetry } : {}),
     };
 }
 
@@ -348,7 +515,8 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
     const startingSide = options.startingSide ?? 'PLAYER';
 
     return aggregate(
-        resolveSeeds(setup, options).map(seed => runOne(setup, seed, maxTurns, startingSide)),
+        resolveSeeds(setup, options).map(seed =>
+            runOne(setup, seed, maxTurns, startingSide, options.telemetry === true)),
     );
 }
 

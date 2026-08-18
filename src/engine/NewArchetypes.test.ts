@@ -107,7 +107,7 @@ describe('Advanced Archetypes Logic', () => {
         expect(nextState.logs.some(l => l.includes('🔁 Reprogramming: Test Strike'))).toBe(true);
     });
 
-    it('CARDS_DRAWN scaling should increase damage', () => {
+    it('CARDS_DRAWN scaling should increase damage, without a ceiling', () => {
         // Compare a x10 multiplier against a x1 baseline rather than a hardcoded magic
         // number: docs/power_curve_spec.md rev 3 dropped calculateDamage's flat +2 floor,
         // so a low, off-curve power value (this test used power=5) can now floor to exactly
@@ -117,6 +117,12 @@ describe('Advanced Archetypes Logic', () => {
         // 60 maxHp - overkill would clamp `damageDealt` at the enemy's remaining HP and break
         // the clean x10 relationship this test checks. The comparison itself doesn't need
         // re-deriving every time the curve is retuned again, only this margin does.
+        //
+        // Ticket 73 capped this at 2 and ticket 74 REMOVED that cap: Henry's call is that a
+        // ceiling makes playing well feel bad, and the measurement agreed it was the wrong
+        // lever (it cost kraken_v1 6 points of field to barely slow jormungandr_v1). The
+        // first-turn kill was fixed at OUROBOROS_LOOP instead. So x10 buys x10 again, and
+        // this test is back to asserting exactly that.
         const baselineState: IBattleState = { ...initialState, cardsDrawnThisTurn: 1 };
         const scaledState: IBattleState = { ...initialState, cardsDrawnThisTurn: 10 };
         const action: any = { type: 'ATTACK', power: 30, scaling: 'CARDS_DRAWN' };

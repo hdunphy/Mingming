@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 _to_delete/
+_scratch_balance/
+_transfer*/

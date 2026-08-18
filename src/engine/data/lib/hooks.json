@@ -8,25 +8,51 @@
     "fafnir_v2": {
         "id": "fafnir_v2",
         "name": "CORRUPTED_GOLD_OS",
-        "description": "Whenever Fafnir receives a debuff, it gains +1 Energy.",
+        "description": "At the start of Fafnir's turn, he gains 2 Strengthened for each different debuff on him, then each of those debuffs loses 1 stack.",
         "hooks": [
             {
                 "id": "fafnir_v2_corrupted",
-                "trigger": "onStatusApplied",
+                "trigger": "onTurnStart",
                 "priority": 40,
                 "when": {
-                    "target": "SELF",
-                    "statusAppliedIn": ["Burn", "Poison", "Asleep", "Weakened", "Dazed", "Stunned"]
+                    "source": "SELF",
+                    "sourceDebuffCount": { "operator": "GTE", "value": 1 }
                 },
                 "do": [
                     {
-                        "type": "ENERGY",
+                        "type": "STATUS",
                         "target": "SELF",
-                        "amount": 1
+                        "status": "Strengthened",
+                        "stacks": 2,
+                        "scaling": "SOURCE_DEBUFF_COUNT"
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Burn",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Poison",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Weakened",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Dazed",
+                        "stacks": -1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s CORRUPTED_GOLD_OS gains 1 Energy from the debuff!"
+                        "text": "{owner}'s CORRUPTED_GOLD_OS turns the rot to gold!"
                     }
                 ]
             }
@@ -35,7 +61,7 @@
     "fenrir_v1": {
         "id": "fenrir_v1",
         "name": "UNBOUND_KERNEL",
-        "description": "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage.",
+        "description": "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
         "hooks": [
             {
                 "id": "fenrir_v1_hook",
@@ -68,7 +94,7 @@
     "fenrir_v2": {
         "id": "fenrir_v2",
         "name": "CINDER_WALL_OS",
-        "description": "Whenever Fenrir applies the Burn status to an enemy, he gains a stack of Sharp.",
+        "description": "Whenever Fenrir applies the Burn status to any unit - including himself - he gains a stack of Sharp.",
         "hooks": [
             {
                 "id": "fenrir_v2_hook",
@@ -96,13 +122,14 @@
     "kraken_v1": {
         "id": "kraken_v1",
         "name": "ABYSSAL_INK_SYS",
-        "description": "Drawing a card outside the draw phase applies 1 Dazed to a random enemy.",
+        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 1 Dazed to a random enemy.",
         "hooks": [
             {
                 "id": "kraken_v1_hook",
                 "trigger": "onCardDraw",
                 "priority": 40,
                 "when": {
+                    "source": "ALLY",
                     "isNaturalDraw": false
                 },
                 "do": [
@@ -123,7 +150,7 @@
     "kraken_v2": {
         "id": "kraken_v2",
         "name": "TIDAL_CRUSH_OS",
-        "description": "Water cards that cost 3 or more Energy deal 30% more damage.",
+        "description": "Water cards that cost 2 or more Energy deal 30% more damage.",
         "hooks": [
             {
                 "id": "kraken_v2_hook",
@@ -134,7 +161,7 @@
                     "programElement": "Water",
                     "baseCost": {
                         "operator": "GTE",
-                        "value": 3
+                        "value": 2
                     }
                 },
                 "multiplier": 1.3
@@ -144,7 +171,7 @@
     "ratatoskr_v1": {
         "id": "ratatoskr_v1",
         "name": "GOSSIP_NODE",
-        "description": "0-cost programs heal all allies for 1 HP.",
+        "description": "0-cost programs heal all allies for 2.5% of their max HP.",
         "hooks": [
             {
                 "id": "ratatoskr_v1_hook",
@@ -158,7 +185,7 @@
                     {
                         "type": "HEAL",
                         "target": "ALLIES",
-                        "healOverride": 1
+                        "power": 10
                     },
                     {
                         "type": "LOG",
@@ -171,7 +198,7 @@
     "ratatoskr_v2": {
         "id": "ratatoskr_v2",
         "name": "INSTIGATOR_OS",
-        "description": "Whenever Ratatoskr plays a 0-cost card, he applies 1 stack of Dazed to the target.",
+        "description": "Whenever Ratatoskr plays a 0-cost card at an enemy, he applies 1 stack of Dazed to the target.",
         "hooks": [
             {
                 "id": "ratatoskr_v2_hook",
@@ -179,6 +206,7 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
+                    "target": "OPPONENT",
                     "baseCost": 0
                 },
                 "do": [
@@ -207,9 +235,9 @@
                 },
                 "do": [
                     {
-                        "type": "HEAL",
+                        "type": "HP",
                         "target": "SELF",
-                        "healOverride": 5
+                        "percentMaxHP": 5
                     },
                     {
                         "type": "LOG",
@@ -303,12 +331,41 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 7,
+                        "power": 5,
                         "element": "Water"
                     },
                     {
                         "type": "LOG",
                         "text": "{owner}'s FEEDBACK_LOOP discharges into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "hoofbeat_daemon": {
+        "id": "hoofbeat_daemon",
+        "name": "HOOFBEAT_DAEMON",
+        "description": "Daemon: whenever you play a 0-cost card, deal 10 damage to a random enemy.",
+        "hooks": [
+            {
+                "id": "hoofbeat_daemon_hook",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 8,
+                        "element": "Air"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s HOOFBEAT_DAEMON stampedes into {target}!"
                     }
                 ]
             }
@@ -439,39 +496,14 @@
     },
     "skoll_v2": {
         "id": "skoll_v2",
-        "name": "SOLAR_FLARE_OS",
-        "description": "Whenever you play a Fire card against a target with 3 or more stacks of Burn, refund 1 Energy.",
-        "hooks": [
-            {
-                "id": "skoll_v2_hook",
-                "trigger": "onActionStart",
-                "priority": 40,
-                "when": {
-                    "source": "SELF",
-                    "programElement": "Fire",
-                    "targetStatus": {
-                        "status": "Burn",
-                        "minStacks": 3
-                    }
-                },
-                "do": [
-                    {
-                        "type": "ENERGY",
-                        "target": "SELF",
-                        "amount": 1
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s SOLAR_FLARE_OS refunds 1 Energy!"
-                    }
-                ]
-            }
-        ]
+        "name": "SOLAR_OVERDRIVE_OS",
+        "description": "Skoll's attacks deal +15% damage per stack of Strength she holds (max 5 stacks).",
+        "hooks": []
     },
     "jormungandr_v1": {
         "id": "jormungandr_v1",
         "name": "OUROBOROS_LOOP",
-        "description": "Every 3rd Water card you play in a single turn grants 1 Energy and draws 1 card.",
+        "description": "Each turn, the 5th Water card you play draws 1 card.",
         "hooks": [
             {
                 "id": "jorm_v1_count",
@@ -484,6 +516,7 @@
                 "do": [
                     {
                         "type": "COUNTER",
+                        "target": "SELF",
                         "key": "jorm_water",
                         "operator": "ADD",
                         "amount": 1
@@ -497,24 +530,35 @@
                 "when": {
                     "source": "SELF",
                     "programElement": "Water",
-                    "counter": {
-                        "key": "jorm_water",
-                        "operator": "EQ",
-                        "value": 3
-                    }
+                    "counters": [
+                        {
+                            "key": "jorm_water",
+                            "operator": "EQ",
+                            "value": 5
+                        },
+                        {
+                            "key": "jorm_ouroboros_used",
+                            "operator": "LT",
+                            "value": 1
+                        }
+                    ]
                 },
                 "do": [
                     {
-                        "type": "ENERGY",
+                        "type": "COUNTER",
                         "target": "SELF",
+                        "key": "jorm_ouroboros_used",
+                        "operator": "SET",
                         "amount": 1
                     },
                     {
                         "type": "DRAW",
+                        "target": "SELF",
                         "amount": 1
                     },
                     {
                         "type": "COUNTER",
+                        "target": "SELF",
                         "key": "jorm_water",
                         "operator": "RESET"
                     },
@@ -528,10 +572,20 @@
                 "id": "jorm_v1_reset",
                 "trigger": "onTurnEnd",
                 "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
                 "do": [
                     {
                         "type": "COUNTER",
+                        "target": "SELF",
                         "key": "jorm_water",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "jorm_ouroboros_used",
                         "operator": "RESET"
                     }
                 ]
@@ -540,27 +594,25 @@
     },
     "jormungandr_v2": {
         "id": "jormungandr_v2",
-        "name": "VENOM_TRENCH_OS",
-        "description": "At the end of the turn, Jörmungandr heals 2 HP.",
+        "name": "TOXIN_FANG_OS",
+        "description": "Jörmungandr's venom coats his fangs: his attacks deal +1 damage per Poison stack on the target.",
         "hooks": [
             {
-                "id": "jorm_v2_heal",
-                "trigger": "onTurnEnd",
-                "priority": 50,
-                "do": [
-                    {
-                        "type": "HEAL",
-                        "target": "SELF",
-                        "healOverride": 2
-                    }
-                ]
+                "id": "jorm_v2_toxin_fang",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "bonus": 1,
+                "scaling": "TARGET_POISON_STACKS"
             }
         ]
     },
     "gullinbursti_v1": {
         "id": "gullinbursti_v1",
         "name": "UNSTOPPABLE_MASS",
-        "description": "Playing a non-Attack card that applies a status primes Gullinbursti: if his NEXT card is an Attack, it costs 1 less Energy. Any other card spends the charge.",
+        "description": "Playing a non-Attack card that applies a status primes Gullinbursti: his next Attack deals 3 additional power for each stack of Sharp he holds. Any other card spends the charge.",
         "hooks": [
             {
                 "id": "gullin_v1_prepare",
@@ -575,7 +627,8 @@
                     {
                         "type": "BUFF_NEXT_PROGRAM",
                         "target": "SELF",
-                        "costReduction": 1,
+                        "powerBonus": 3,
+                        "scaling": "SHARP_STACKS",
                         "appliesTo": "Attack"
                     },
                     {
@@ -589,7 +642,7 @@
     "gullinbursti_v2": {
         "id": "gullinbursti_v2",
         "name": "KINETIC_RAM_OS",
-        "description": "Earth Attack cards deal additional damage equal to Gullinbursti's current stacks of Sharp.",
+        "description": "Earth Attack cards deal additional damage for each stack of Sharp Gullinbursti holds, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
         "hooks": [
             {
                 "id": "gullin_v2_ram",
@@ -600,8 +653,28 @@
                     "programElement": "Earth",
                     "actionType": "ATTACK"
                 },
-                "bonus": 1,
+                "bonus": 0.25,
                 "scaling": "SHARP_STACKS"
+            },
+            {
+                "id": "gullin_v2_blunt",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Dazed",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s KINETIC_RAM blunts its own edge."
+                    }
+                ]
             }
         ]
     },
@@ -621,7 +694,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 10,
+                        "power": 8,
                         "element": "Air"
                     },
                     {
@@ -641,7 +714,7 @@
     "sleipnir_v1": {
         "id": "sleipnir_v1",
         "name": "MOMENTUM_DRIVE",
-        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened.",
+        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 2 stacks of Strengthened.",
         "hooks": [
             {
                 "id": "sleipnir_v1_hook",
@@ -656,7 +729,7 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 1
+                        "stacks": 2
                     }
                 ]
             }
@@ -674,7 +747,8 @@
                 "when": {
                     "source": "SELF",
                     "programElement": "Air",
-                    "actionType": "ATTACK"
+                    "actionType": "ATTACK",
+                    "isToken": false
                 },
                 "do": [
                     {
@@ -722,23 +796,26 @@
     },
     "ymir_v1": {
         "id": "ymir_v1",
-        "name": "RIME_HEART_SYS",
-        "description": "Enemies that deal damage to the Jötunn automatically receive 1 stack of Weakened.",
+        "name": "GLACIER_HEART_SYS",
+        "description": "At the start of Ymir's turn, it gains 4 Bark Shield.",
         "hooks": [
             {
                 "id": "ymir_v1_hook",
-                "trigger": "onPostDamage",
+                "trigger": "onTurnStart",
                 "priority": 40,
                 "when": {
-                    "target": "SELF",
-                    "source": "OPPONENT"
+                    "source": "SELF"
                 },
                 "do": [
                     {
                         "type": "STATUS",
-                        "target": "SOURCE",
-                        "status": "Weakened",
-                        "stacks": 1
+                        "target": "SELF",
+                        "status": "BarkShield",
+                        "stacks": 4
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s GLACIER_HEART thickens. +4 Bark Shield."
                     }
                 ]
             }
@@ -747,14 +824,15 @@
     "ymir_v2": {
         "id": "ymir_v2",
         "name": "GLACIAL_PACE_OS",
-        "maxCardsPerTurn": 2,
-        "description": "Jötunn cannot play more than 2 cards per turn, but all Ice cards deal 50% more base damage.",
+        "maxCardsPerTurn": 1,
+        "description": "Jötunn cannot play more than 1 card per turn, but all Ice cards deal 25% more base damage.",
         "hooks": []
     },
     "draugr_v1": {
         "id": "draugr_v1",
         "name": "PERMAFROST_WAKE",
-        "description": "Whenever a Draugr recovers from the Asleep status or is revived, it gains 3 strength.",
+        "actsWhileAsleep": true,
+        "description": "Draugr can act while Asleep. Whenever it wakes from Asleep or is revived, it gains 1 Energized and draws a card.",
         "hooks": [
             {
                 "id": "draugr_v1_wake",
@@ -768,12 +846,17 @@
                     {
                         "type": "STATUS",
                         "target": "SELF",
-                        "status": "Strengthened",
-                        "stacks": 3
+                        "status": "Energized",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "DRAW",
+                        "target": "SELF",
+                        "amount": 1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s PERMAFROST_WAKE activates! Gain 3 Strengthened."
+                        "text": "{owner} stirs from the barrow! +1 Energy next turn, draw 1."
                     }
                 ]
             }
@@ -782,11 +865,11 @@
     "draugr_v2": {
         "id": "draugr_v2",
         "name": "GRAVE_CHILL_OS",
-        "description": "Enemies afflicted with 2 or more negative status effects cost 1 additional Energy to execute their attacks against the Draugr.",
+        "description": "Enemies afflicted with 2 or more different negative statuses deal 20% less damage to the Draugr.",
         "hooks": [
             {
                 "id": "draugr_v2_chill",
-                "trigger": "onCostCalculated",
+                "trigger": "onDamageCalculated",
                 "priority": 40,
                 "when": {
                     "target": "SELF",
@@ -796,69 +879,116 @@
                         "value": 2
                     }
                 },
-                "bonus": 1
+                "multiplier": 0.8
             }
         ]
     },
     "valkyrie_v1": {
         "id": "valkyrie_v1",
         "name": "VALHALLA_UPLINK",
-        "description": "Whenever a Valkyrie applies a positive status (Strengthened, Sharp, Regen, StableOS, Energized or Bark Shield) to an ally, that ally also heals for 5% of their max HP.",
+        "description": "At the end of Valkyrie's turn, play a random card from her discard pile for free.",
         "hooks": []
     },
     "valkyrie_v2": {
         "id": "valkyrie_v2",
-        "name": "EINHERJAR_RALLY",
-        "description": "For every other active Mingming currently on your side of the field, Valkyrie's Light attacks deal +10% damage.",
+        "name": "REBIRTH_CYCLE_OS",
+        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 12 power of Light damage and heals herself with 12 power. Once per turn.",
         "hooks": [
             {
-                "id": "valkyrie_v2_rally",
-                "trigger": "onDamageCalculated",
+                "id": "valk_v2_rebirth_reset",
+                "trigger": "onTurnEnd",
+                "priority": 50,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "valkyrie_rebirth_used",
+                        "operator": "RESET"
+                    }
+                ]
+            },
+            {
+                "id": "valk_v2_rebirth",
+                "trigger": "onDeckShuffled",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "actionType": "ATTACK",
-                    "programElement": "Light"
+                    "counter": {
+                        "key": "valkyrie_rebirth_used",
+                        "operator": "LT",
+                        "value": 1
+                    }
                 },
-                "multiplier": 1.1,
-                "scaling": "ALIVE_ALLIES"
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "valkyrie_rebirth_used",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "element": "Light",
+                        "power": 12
+                    },
+                    {
+                        "type": "HEAL",
+                        "target": "SELF",
+                        "power": 12
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s REBIRTH_CYCLE_OS ignites the reshuffle!"
+                    }
+                ]
             }
         ]
     },
     "audhumbla_v1": {
         "id": "audhumbla_v1",
         "name": "GENESIS_FIRMWARE",
-        "description": "Every 3rd Heal or Skill card played permanently increases Audhumbla's maximum Energy pool by 1 for the remainder of the battle.",
+        "description": "Whenever healing applied to Audhumbla exceeds her maximum HP, permanently increase her maximum Energy pool by 1. Once per turn.",
         "hooks": [
             {
-                "id": "aud_v1_count",
-                "trigger": "onActionStart",
+                "id": "aud_v1_genesis_reset",
+                "trigger": "onTurnStart",
                 "priority": 50,
                 "when": {
-                    "source": "SELF",
-                    "programCategoryIn": ["Heal", "Skill"]
+                    "source": "SELF"
                 },
                 "do": [
                     {
                         "type": "COUNTER",
                         "target": "SELF",
-                        "key": "audhumbla_genesis",
-                        "amount": 1
+                        "key": "audhumbla_genesis_used",
+                        "operator": "RESET"
                     }
                 ]
             },
             {
-                "id": "aud_v1_reward",
-                "trigger": "onActionStart",
+                "id": "aud_v1_genesis",
+                "trigger": "onHeal",
                 "priority": 40,
                 "when": {
-                    "source": "SELF",
-                    "programCategoryIn": ["Heal", "Skill"],
-                    "counter": {
-                        "key": "audhumbla_genesis",
-                        "operator": "GTE",
-                        "value": 3
-                    }
+                    "target": "SELF",
+                    "counters": [
+                        {
+                            "key": "last_overheal",
+                            "operator": "GT",
+                            "value": 0,
+                            "scope": "GLOBAL"
+                        },
+                        {
+                            "key": "audhumbla_genesis_used",
+                            "operator": "LT",
+                            "value": 1
+                        }
+                    ]
                 },
                 "do": [
                     {
@@ -869,8 +999,9 @@
                     {
                         "type": "COUNTER",
                         "target": "SELF",
-                        "key": "audhumbla_genesis",
-                        "amount": -3
+                        "key": "audhumbla_genesis_used",
+                        "operator": "SET",
+                        "amount": 1
                     },
                     {
                         "type": "LOG",
@@ -883,7 +1014,7 @@
     "audhumbla_v2": {
         "id": "audhumbla_v2",
         "name": "NOURISH_ROUTINE",
-        "description": "Any healing applied to Audhumbla that exceeds her maximum HP is automatically converted into an offensive Light attack against a random enemy.",
+        "description": "50% of the printed heal power of every heal Audhumbla casts is also dealt as Light damage to a random enemy.",
         "hooks": [
             {
                 "id": "aud_v2_nourish",
@@ -892,7 +1023,7 @@
                 "when": {
                     "target": "SELF",
                     "counter": {
-                        "key": "last_overheal",
+                        "key": "last_heal_power",
                         "operator": "GT",
                         "value": 0,
                         "scope": "GLOBAL"
@@ -900,15 +1031,15 @@
                 },
                 "do": [
                     {
-                        "type": "HP",
+                        "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "amount": -1,
-                        "scaling": "OVERHEAL"
+                        "power": 0.5,
+                        "scaling": "HEAL_POWER"
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s NOURISH_ROUTINE converts the Overheal into Light damage against {target}!"
+                        "text": "{owner}'s NOURISH_ROUTINE turns the healing into Light damage against {target}!"
                     }
                 ]
             }
@@ -916,27 +1047,40 @@
     },
     "hel_v1": {
         "id": "hel_v1",
-        "name": "EQUINOX_TOGGLE",
-        "description": "Stance-shift cards move Hel between Dark Stance (+30% damage) and Light Stance (+50% healing). Each shift synchronizes the OS: draw 1 card.",
+        "name": "TWILIGHT_CADENCE",
+        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +30% damage dealt. Light Stance: -30% damage taken.",
         "hooks": [
             {
-                "id": "hel_v1_equinox_sync",
-                "trigger": "onStatusApplied",
+                "id": "hel_v1_cadence_dark",
+                "trigger": "onActionEnd",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "target": "SELF",
-                    "statusAppliedIn": ["DarkStance", "LightStance"]
+                    "programElement": "Dark"
                 },
                 "do": [
                     {
-                        "type": "DRAW",
+                        "type": "STATUS",
                         "target": "SELF",
-                        "amount": 1
-                    },
+                        "status": "DarkStance",
+                        "stacks": 1
+                    }
+                ]
+            },
+            {
+                "id": "hel_v1_cadence_light",
+                "trigger": "onActionEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "programElement": "Light"
+                },
+                "do": [
                     {
-                        "type": "LOG",
-                        "text": "EQUINOX: stance shift synchronized — drew 1"
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "LightStance",
+                        "stacks": 1
                     }
                 ]
             }
@@ -945,41 +1089,24 @@
     "hel_v2": {
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
-        "description": "Hel's Dark spells cost HP instead of Energy.",
+        "description": "Hel's Dark spells cost 6% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
         "hooks": [
             {
-                "id": "hel_v2_underworld",
-                "trigger": "onActionStart",
+                "id": "hel_v2_lifeblood",
+                "trigger": "onHealCalculated",
                 "priority": 40,
                 "when": {
-                    "source": "SELF",
-                    "programElement": "Dark",
-                    "programCategoryNot": ["Attack"],
-                    "baseCost": {
-                        "operator": "GT",
-                        "value": 0
-                    }
+                    "source": "SELF"
                 },
-                "do": [
-                    {
-                        "type": "ENERGY",
-                        "target": "SELF",
-                        "amount": 1,
-                        "scaling": "BASE_COST"
-                    },
-                    {
-                        "type": "HP",
-                        "target": "SELF",
-                        "amount": -1,
-                        "scaling": "BASE_COST"
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s UNDERWORLD_GATEWAY paid HP instead of Energy!"
-                    }
-                ]
+                "multiplier": 1.0
             }
         ]
+    },
+    "control_v1": {
+        "id": "control_v1",
+        "name": "NULL_FIRMWARE",
+        "description": "No firmware. The control carries none by design - it is the power curve made playable, so anything it beats is under curve and anything that beats it is over.",
+        "hooks": []
     },
     "nidhoggr_v1": {
         "id": "nidhoggr_v1",
@@ -1014,34 +1141,48 @@
     },
     "nidhoggr_v2": {
         "id": "nidhoggr_v2",
-        "name": "FALLEN_FEAST_OS",
-        "description": "Whenever any Mingming is defeated, Níðhöggr gains 3 stacks of Strengthened and 3 stacks of Sharp.",
+        "name": "BLOOD_SCENT_OS",
+        "description": "Whenever any Mingming drops below half of its maximum HP, Nidhoggr smells blood: gain 1 Energy and draw a card. Healing above half re-arms the scent.",
         "hooks": [
             {
-                "id": "nidhoggr_v2_feast",
-                "trigger": "onUnitFainted",
+                "id": "nidhoggr_v2_bloodscent",
+                "trigger": "onHpThresholdCrossed",
                 "priority": 40,
-                "when": {
-                    "target": "ANY"
-                },
                 "do": [
                     {
-                        "type": "STATUS",
+                        "type": "ENERGY",
                         "target": "SELF",
-                        "status": "Strengthened",
-                        "stacks": 3
+                        "amount": 1
                     },
                     {
-                        "type": "STATUS",
+                        "type": "DRAW",
                         "target": "SELF",
-                        "status": "Sharp",
-                        "stacks": 3
+                        "amount": 1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s FALLEN_FEAST_OS feeds on the defeated!"
+                        "text": "{owner}'s BLOOD_SCENT_OS smells blood! +1 Energy, draw 1."
                     }
                 ]
+            }
+        ]
+    },
+    "einherjar_standard": {
+        "id": "einherjar_standard",
+        "name": "EINHERJAR_STANDARD",
+        "description": "Daemon: for every other active Mingming on your side of the field, your Light attacks deal +10% damage.",
+        "hooks": [
+            {
+                "id": "einherjar_standard_hook",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Light"
+                },
+                "multiplier": 1.1,
+                "scaling": "ALIVE_ALLIES"
             }
         ]
     },
@@ -1061,7 +1202,7 @@
                     {
                         "type": "ATTACK",
                         "target": "ENEMIES",
-                        "power": 5,
+                        "power": 3,
                         "element": "Fire",
                         "scaling": "SHARP_STACKS"
                     },

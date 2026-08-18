@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "skoll v2 vs the control",
+  "description": "Control wins 0.61. Burn deck whose damage is invisible to per-card attribution (DoT resolves at end of turn), so the harness has never seen what it really does. A human can just watch the HP bar.",
+  "tags": [
+    "playtest",
+    "vs-control",
+    "skoll"
+  ],
+  "registryHash": "1:00000000",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "setup": {
+    "seed": "04-skoll-v2-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "skoll",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "skoll_v2"
+        }
+      ],
+      "deck": [
+        "ignite",
+        "scorch",
+        "fire_poke",
+        "fire_poke",
+        "cinder_slash",
+        "cinder_slash",
+        "fire_punch_v2",
+        "fire_punch_v2",
+        "water_slap"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}

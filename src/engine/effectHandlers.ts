@@ -5,6 +5,7 @@ import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { GetMingmingData } from './data/mingmingRegistry';
 import { drawCards } from './deckLogic';
+import { applyHealModifiers } from './core/Hooks';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -12,7 +13,7 @@ function addLog(state: IBattleState, message: string): IBattleState {
 
 const HAND_SIZE_LIMIT = 9;
 
-import { executeResolutionStack } from './resolutionEngine';
+import { executeResolutionStack, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 
 export type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
 
@@ -185,13 +186,26 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     // Apply Damage
     const newCurrentHp = Math.max(0, target.currentHp - finalDamage);
 
-    // Wake up if Asleep and actually taken damage (a shield that absorbs the
-    // full hit should not wake the sleeper, so check post-mitigation damage).
+    // Ticket 48: Asleep loses ONE STACK per incoming attack instead of ending on the first point
+    // of damage. It is applied at ASLEEP_INITIAL_STACKS (3), so it takes three attacks to break -
+    // plus the natural 1/turn decay in `StatusBehaviors.ts`, which is unchanged. Both clocks run.
+    //
+    // Three deliberate departures from the old rule:
+    //  - No `finalDamage > 0` requirement. A fully absorbed hit still counts, which is what stops
+    //    `glacier_wall` from keeping Draugr asleep forever - a live anti-synergy before this.
+    //  - `sourceId === 'SYSTEM'` is skipped. That literal is how `resolutionEngine` dispatches
+    //    status and hook HP mutations through this handler, and skipping it is what enforces
+    //    "statuses do not wake him". End-of-turn DoT ticks bypass `handleAttack` entirely, but
+    //    TRIGGER_STATUS and Burn overflow do not - without this guard a poison detonate would
+    //    wake him.
+    //  - `onStatusRemoved` fires only when the last stack goes, not on every chip.
     let wakesUp = false;
-    if (finalDamage > 0) {
-        const sleepIndex = target.statusEffects.findIndex(s => s.type === 'Asleep');
-        if (sleepIndex !== -1) {
-            wakesUp = true;
+    let sleepChipped = false;
+    if (sourceId !== 'SYSTEM') {
+        const sleeping = target.statusEffects.find(s => s.type === 'Asleep');
+        if (sleeping) {
+            sleepChipped = true;
+            wakesUp = sleeping.stacks <= 1;
         }
     }
 
@@ -220,6 +234,18 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
 
             if (wakesUp) {
                 newStatus = newStatus.filter(s => s.type !== 'Asleep');
+                // Ticket 48: the natural expiry path in `battleReducer` has always granted a turn
+                // of StableOS on waking, and `statusGlossary` has always CLAIMED the damage path
+                // does too. It did not. Matching them closes that drift and is load-bearing for
+                // draugr_v1: StableOS is what forces an awake turn after every wake, which is the
+                // whole two-turn rhythm.
+                if (!newStatus.some(s => s.type === 'StableOS')) {
+                    const stableApply = getStatusBehavior('StableOS').onApply(newStatus, 1, e);
+                    newStatus = stableApply.updatedEffects;
+                }
+            } else if (sleepChipped) {
+                newStatus = newStatus.map(s =>
+                    s.type === 'Asleep' ? { ...s, stacks: s.stacks - 1 } : s);
             }
 
             return { ...e, currentHp: newCurrentHp, statusEffects: newStatus };
@@ -253,6 +279,13 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     }
     for (const log of statusLogs) {
         newState = addLog(newState, log);
+    }
+
+    // Threshold event (ticket 12): handleAttack is the shared choke point for
+    // card attacks, intent attacks, hook ATTACK actions and HP mutations, so a
+    // single check here covers them all.
+    if (crossedDownHalf(target.currentHp, newCurrentHp, target.maxHp)) {
+        newState = fireHpThresholdCrossed(newState, targetId);
     }
 
     // Death / XP Handling
@@ -316,21 +349,37 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     return newState;
 }
 
-function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; healOverride?: number }): IBattleState {
-    const { sourceId, targetId, power, healOverride } = payload;
+/**
+ * Ticket 43: `flatHeal` is the ENGINE-INTERNAL flat-HP path, used by hook and mutation heals
+ * (`applyMutations` HP with `isHeal`, e.g. a percentMaxHP firmware heal). It is deliberately not
+ * reachable from card data any more - `healOverride` was removed from `HealActionData` because a
+ * flat heal does not scale with level, so it was overpowered early and negligible late.
+ */
+function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; flatHeal?: number; healPower?: number }): IBattleState {
+    const { sourceId, targetId, power, flatHeal, healPower } = payload;
     // ... find entities ...
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
     let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
     let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
     if (!target) return state;
-    if (!source && healOverride === undefined) return state;
+    if (!source && flatHeal === undefined) return state;
 
     // healAmount is the INTENDED heal (calculateHeal no longer clamps to missing
     // HP). This is the single choke point where intended vs applied diverge:
     // the applied heal is clamped to max HP below and the overflow is recorded
     // as the `last_overheal` counter for onHeal hooks (AUDHUMBLA v2).
-    const healAmount = healOverride !== undefined ? healOverride : calculateHeal(source as any, target, power);
+    // Ticket 36: `onHealCalculated` runs here and ONLY here. Both pipelines converge on
+    // this line - card heals arrive via calculateHeal, engine flat heals as `flatHeal` -
+    // so one call covers every heal in the game and cannot double-apply. This replaced the
+    // old LightStance +50%, which was hardcoded twice and disagreed between the two paths.
+    const intendedHeal = flatHeal !== undefined ? flatHeal : calculateHeal(source as any, target, power);
+    const healAmount = applyHealModifiers(intendedHeal, {
+        source: source,
+        target: target,
+        state: state,
+        triggerDepth: 0
+    } as any);
     const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
     const appliedHeal = newCurrentHp - target.currentHp;
     const overheal = Math.max(0, target.currentHp + healAmount - target.maxHp);
@@ -352,7 +401,20 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
         enemyParty: updateParty(state.enemyParty),
         counters: {
             ...(state.counters || {}),
-            last_overheal: overheal
+            last_overheal: overheal,
+            // Ticket 53: NOURISH_ROUTINE reads ALL healing, not just the overflow. Overheal-only
+            // was structurally a switch - it fires never while she is behind, or constantly once
+            // she is already unkillable - which is what made audhumbla's mirror a 61-turn 0/400.
+            // This is the heal AFTER onHealCalculated and BEFORE the max-HP clamp, so a heal at
+            // full HP still converts and a buffed heal converts at its buffed size.
+            last_heal_intended: healAmount,
+            // Ticket 56: NOURISH_ROUTINE is denominated in PRINTED POWER, not in HP healed.
+            // `power` is the number on the card; `calculateHeal` turns it into HP at
+            // `maxHp * power / 400`, which is ~4.5x smaller on an 86-HP frame - that conversion
+            // is exactly what made the HP-denominated dial round a third of audhumbla_v2's deck
+            // to zero damage. An ENGINE flat heal (`flatHeal`) has no printed power and records
+            // 0, so it does not convert: the OS reads "every heal she CASTS".
+            last_heal_power: healPower ?? (flatHeal !== undefined ? 0 : power)
         }
     } as IBattleState;
 
@@ -462,6 +524,14 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
         playerParty: updateParty(newState.playerParty),
         enemyParty: updateParty(newState.enemyParty)
     };
+
+    // Threshold event (ticket 12): overflow/immediate damage (e.g. Burn overflow
+    // burst) bypasses handleAttack, so it needs its own crossing check.
+    const afterOverflowTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
+    if (immediateDamage > 0 && afterOverflowTarget
+        && crossedDownHalf(initialTarget.currentHp, afterOverflowTarget.currentHp, initialTarget.maxHp)) {
+        newState = fireHpThresholdCrossed(newState, targetId);
+    }
 
     // 4.5 Check Defeat (from immediate damage if any). Only trigger when this
     // application actually killed the target — applying a status to an entity

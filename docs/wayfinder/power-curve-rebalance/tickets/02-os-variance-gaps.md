@@ -5,6 +5,28 @@
 - Assignee: —
 - Blocked by: —
 
+> ## Re-scoped by [deck-archetypes ticket 06](../../deck-archetypes/tickets/06-rescope-power-curve-tickets.md), 2026-08-12
+>
+> **STATUS: superseded in substance; the numbers below were measured with SHARED decks.** Every
+> species now runs a per-OS deck, so a v1/v2 gap measured before that is a measurement of the shared
+> deck, not of the firmware. Do not tune against the table below.
+>
+> **The bar also moved.** The ±15% `osMaxGap` this ticket is written against is *not* the working
+> gate — the deck map runs a first-pass band of **0.30–0.70**, and the deck-archetypes HANDOFF is
+> explicit that the strict cap is not the bar. Read the two separately: as of registry `1:0af76c60`,
+> seven species trip the strict 15% and **only two are outside the working band** — `os:jormungandr`
+> (0.240) and `os:audhumbla` (0.000, an untuned placeholder).
+>
+> **The sleipnir FTK item is CLOSED, not moved.** It was the one finding here flagged as real and
+> independent of deck quality. **FTK is 0 across all 67 matchups** in the current committed report,
+> sleipnir included. Ticket 36's `escalatePerPlay` and ticket 44's terminal eval both bore on it; if
+> a first-turn kill ever reappears, this ticket is its history.
+>
+> **What survives:** jormungandr is the only tuned species genuinely outside the working band, and it
+> is already listed as the top priority in
+> [deck-archetypes ticket 49](../../deck-archetypes/tickets/49-roster-floor-pass.md) — with the
+> caveat that ticket 49's own numbers are stale pending a re-run.
+
 ## Question
 
 `npm run balance` (run 2026-08-05, registry `1:1cba1e2c`, after

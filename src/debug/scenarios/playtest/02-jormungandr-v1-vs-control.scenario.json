@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "jormungandr v1 vs the control",
+  "description": "QUEUE #1, species rebuild pending. Control wins 0.71 in 7.9 turns. The OUROBOROS storm needs Water cards played in sequence - see whether a human can line that up when the search cannot.",
+  "tags": [
+    "playtest",
+    "vs-control",
+    "jormungandr"
+  ],
+  "registryHash": "1:00000000",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "setup": {
+    "seed": "02-jormungandr-v1-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "jormungandr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "jormungandr_v1"
+        }
+      ],
+      "deck": [
+        "blind_spot",
+        "poison_injection",
+        "poison_injection",
+        "corrosive_leak",
+        "surge_protection",
+        "surge_protection",
+        "serpents_coil",
+        "serpents_coil"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}

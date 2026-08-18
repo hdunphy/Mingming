@@ -1,9 +1,10 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
+import { numericBaseCost } from './types';
 import { globalBattleEventBus } from './events';
 import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
-import { drawCards, discardCard, exhaustCard, returnCard, searchCard } from './deckLogic';
+import { drawCards, discardCard, exhaustCard, returnCard, searchCard, HAND_SIZE_LIMIT } from './deckLogic';
 import { PRNG } from './core/PRNG';
 import { GetProgramData } from './data/programRegistry';
 
@@ -25,7 +26,13 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                         sourceId: mutation.sourceId || 'SYSTEM',
                         targetId: mutation.targetId,
                         power: 0,
-                        healOverride: mutation.payload.amount
+                        flatHeal: mutation.payload.amount,
+                        // Ticket 56: a CARD heal arrives here already resolved to HP, so its
+                        // printed power would otherwise be lost. `HealExecutor` attaches it; an
+                        // engine heal (firmware percentMaxHP, Regen) has none and leaves it
+                        // undefined, which is what keeps NOURISH_ROUTINE reading "every heal she
+                        // CASTS" rather than every heal she receives.
+                        healPower: mutation.payload.healPower
                     });
                 } else {
                     const target = newState.playerParty.find(e => e.id === mutation.targetId) || newState.enemyParty.find(e => e.id === mutation.targetId);
@@ -110,15 +117,47 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const amount = mutation.payload.amount;
                 const isRandom = mutation.payload.isRandom;
 
+                const isCostPriority = mutation.payload.isCostPriority;
+
                 let toDiscard = [...deck.hand];
                 if (isRandom) {
                     const prng = new PRNG(newState.seed);
                     const { shuffled, nextSeed } = prng.shuffle(toDiscard);
                     toDiscard = shuffled.slice(0, amount);
                     newState = { ...newState, seed: nextSeed };
+                } else if (isCostPriority) {
+                    // Paying a DISCARD cost is a DECISION, not a coin flip: shed the cards
+                    // whose loss helps most or hurts least. Cards with a discardEffect go
+                    // first (discarding them is upside - Feather Cache draws, War Molt
+                    // buffs), then the cheapest card, then hand order. No RNG at all, so a
+                    // replayed battle sheds exactly the same cards.
+                    const ranked = deck.hand.map((entity, index) => {
+                        const data = GetProgramData(entity.dataId);
+                        const hasDiscardEffect = !!(data.discardEffect && data.discardEffect.length > 0);
+                        const cost = typeof data.baseCost === 'number' ? data.baseCost : 99;
+                        return { entity, hasDiscardEffect, cost, index };
+                    });
+                    ranked.sort((a, b) =>
+                        (Number(b.hasDiscardEffect) - Number(a.hasDiscardEffect))
+                        || (a.cost - b.cost)
+                        || (a.index - b.index));
+                    toDiscard = ranked.slice(0, amount).map(r => r.entity);
                 } else {
                     toDiscard = toDiscard.slice(0, amount); // Top N cards
                 }
+
+                // CARDS_DISCARDED scaling (Carrion Swoop) counts every card that
+                // actually leaves the hand, however it left - cost, Tempest, or an
+                // enemy FORCE_DISCARD.
+                const shedSide = isPlayerTarget ? 'PLAYER' : 'ENEMY';
+                newState = {
+                    ...newState,
+                    cardsDiscardedThisTurn: (newState.cardsDiscardedThisTurn ?? 0) + toDiscard.length,
+                    discardedByEffect: [
+                        ...(newState.discardedByEffect ?? []),
+                        ...toDiscard.map(c => `${shedSide}:${c.id}`)
+                    ]
+                };
 
                 toDiscard.forEach(c => {
                     // Update the state with the discarded card first to avoid stale state during hooks
@@ -178,7 +217,16 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
 
                 let sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
                 let sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
-                let toReturn = sourcePile.slice(0, mutation.payload.amount);
+                // Ticket 32: optional cost predicate, then clamp to the space actually left in
+                // hand - RETURN previously ignored HAND_SIZE_LIMIT and silently dropped the
+                // overflow, which makes a "return everything" card unpredictable.
+                const maxCost = mutation.payload.filter?.maxCost;
+                const eligible = maxCost === undefined
+                    ? sourcePile
+                    : sourcePile.filter(c => numericBaseCost(GetProgramData(c.dataId).baseCost) <= maxCost);
+                const headroom = Math.max(0, HAND_SIZE_LIMIT - deck.hand.length);
+                const requested = mutation.payload.amount ?? eligible.length;
+                let toReturn = eligible.slice(0, Math.min(requested, headroom));
 
                 toReturn.forEach(c => {
                     deck = returnCard(deck, c.id, sourcePileStr as any, mutation.payload.destinationPile || 'HAND');
@@ -274,6 +322,34 @@ export function executeResolutionStack(
     } finally {
         resolutionStackDepth--;
     }
+}
+
+/**
+ * General-purpose HP threshold event (ticket 12). A unit "crosses" when a single
+ * HP-loss application takes it from >=threshold to <threshold of maxHp. Only
+ * downward crossings fire; healing back above the line re-arms the unit by
+ * construction (the next drop is a fresh crossing). Detection lives at the three
+ * HP-loss sites (handleAttack — which also serves intents, hook damage and HP
+ * mutations —, status-apply overflow damage, and end-of-turn DoT ticks).
+ */
+export const HP_CROSSING_THRESHOLD = 0.5;
+
+export function crossedDownHalf(prevHp: number, newHp: number, maxHp: number): boolean {
+    if (maxHp <= 0) return false;
+    return prevHp / maxHp >= HP_CROSSING_THRESHOLD && newHp / maxHp < HP_CROSSING_THRESHOLD;
+}
+
+/** Fire the onHpThresholdCrossed stack for a unit that just crossed downward. */
+export function fireHpThresholdCrossed(state: IBattleState, unitId: string): IBattleState {
+    const unit = state.playerParty.find(e => e.id === unitId) || state.enemyParty.find(e => e.id === unitId);
+    if (!unit) return state;
+    const { state: afterHooks } = executeResolutionStack('onHpThresholdCrossed', {
+        source: unit,
+        target: unit,
+        state,
+        triggerDepth: 0
+    });
+    return afterHooks;
 }
 
 function executeResolutionStackInner(
@@ -453,11 +529,16 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const { state: newDeck, nextSeed, shuffled } = drawCards(state[deckKey], count, state.seed);
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
-    let newState = {
+    let newState: IBattleState = {
         ...state,
         [deckKey]: newDeck,
         seed: nextSeed,
-        cardsDrawnThisTurn: state.cardsDrawnThisTurn + cardsDrawnCount
+        cardsDrawnThisTurn: state.cardsDrawnThisTurn + cardsDrawnCount,
+        // Ticket 68: the TRIGGERED counter - draws an effect caused, not the draw-phase refill.
+        // `isNatural` was already threaded through here for hook dispatch and was simply never
+        // consulted for a counter; this is that flag finally doing the second job it implies.
+        nonNaturalCardsDrawnThisTurn: (state.nonNaturalCardsDrawnThisTurn ?? 0)
+            + (isNatural ? 0 : cardsDrawnCount)
     };
 
     if (shuffled) {
@@ -465,6 +546,25 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
             ...newState,
             counters: { ...newState.counters, ['deck_shuffles']: (newState.counters['deck_shuffles'] || 0) + 1 }
         };
+
+        // Ticket 53: `onDeckShuffled` existed as a hook TYPE since ticket 07 and nothing ever
+        // dispatched it, which is why ticket 07 could pin "no onDeckShuffled in hooks.json" as an
+        // invariant. valkyrie_v2's REBIRTH_CYCLE_OS is its first consumer, so it is wired here -
+        // the one place that knows both that a reshuffle happened AND the battle state.
+        //
+        // The loop question was reviewed before wiring it: a reshuffle can only happen inside a
+        // draw, the hook does not draw, and nothing in the registry generates cards into a
+        // drawpile, so this cannot re-enter itself.
+        const shuffler = (side === 'PLAYER' ? newState.playerParty : newState.enemyParty)[0];
+        if (shuffler) {
+            const { state: afterShuffleHooks } = executeResolutionStack('onDeckShuffled', {
+                source: shuffler,
+                target: shuffler,
+                state: newState,
+                triggerDepth: 0,
+            } as never);
+            newState = afterShuffleHooks;
+        }
     }
 
     if (cardsDrawnCount > 0) {

@@ -45,6 +45,7 @@ import type { ProgramData } from '../../engine/types';
 import { computeRegistryHash } from '../scenarios/registryHash';
 import { budgetBandFor, calculatePowerscale } from './powerscale';
 import type { BatchResult, PairedBatchResult } from './runBatch';
+import { numericBaseCost } from '../../engine/types';
 
 /** Bump when the JSON shape changes, so an old report is never diffed against a new one. */
 export const BALANCE_REPORT_SCHEMA_VERSION = 1;
@@ -287,13 +288,13 @@ export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: n
     const entries: CardBudgetEntry[] = [];
     for (const id of ids) {
         const card = registry[id] as ProgramData;
-        const band = budgetBandFor(card.baseCost);
+        const band = budgetBandFor(numericBaseCost(card.baseCost));
         const { score, perEnergy, manualReview } = calculatePowerscale(card);
         if (score > band.over) {
             entries.push({
                 id,
                 name: card.name,
-                cost: card.baseCost,
+                cost: numericBaseCost(card.baseCost),
                 score,
                 perEnergy,
                 budget: band.over,
@@ -513,6 +514,8 @@ export function recordMatchup(input: MatchupInput): MatchupReport {
  * Call from an `afterAll` so it still runs when the suite went red. A suite that recorded
  * nothing writes nothing, and the merge then lists it under `suitesMissing`.
  */
+let fragmentSeq = 0;
+
 export function publishFragments(): void {
     if (pending.length === 0) return;
 
@@ -527,7 +530,14 @@ export function publishFragments(): void {
     mkdirSync(FRAGMENT_DIR, { recursive: true });
     for (const [suite, reports] of bySuite) {
         reports.sort((a, b) => byString(a.id, b.id));
-        writeFileSync(join(FRAGMENT_DIR, `${suite}.json`), JSON.stringify(reports), 'utf8');
+        // Ticket 17: a suite may now be SHARDED across several worker files, so the
+        // fragment name must be unique per worker (pid) and per publish (seq) - the
+        // merge sorts globally, so naming never reaches the report bytes.
+        writeFileSync(
+            join(FRAGMENT_DIR, `${suite}.${process.pid}-${fragmentSeq++}.json`),
+            JSON.stringify(reports),
+            'utf8',
+        );
     }
 }
 
@@ -637,8 +647,26 @@ export function matchupsCsv(report: BalanceReport): string {
  * a report that silently declines to update is worse than one that says what it covers.
  * `summary.suitesMissing` is how a partial run announces itself in the diff.
  */
-export function writeBalanceReport(): BalanceReport {
+export function writeBalanceReport(options?: { commitToDocs?: boolean }): BalanceReport {
     const report = assembleReport(readFragments());
+
+    // Ticket 17: a scoped run (BALANCE_ONLY=...) is a tuning tool, not a source of
+    // truth - it must never overwrite the committed report with partial coverage.
+    if (options?.commitToDocs === false) return report;
+
+    // Ticket 43: the same protection, for the case ticket 17 did not cover. Running ONE suite
+    // file - `npx vitest run --config vitest.balance.config.ts src/debug/balance/mirror.shard1
+    // .balance.ts` - is not a scoped run, so it fell straight through and overwrote the
+    // committed report with whatever single suite had reported. It cost a corrupted baseline
+    // comparison during ticket 42 (17 matchups instead of 48) before anyone noticed. If a suite
+    // did not report, this run cannot speak for the repo.
+    if (report.summary.suitesMissing.length > 0) {
+        console.log(
+            `\n[balance-report] PARTIAL RUN - no results from ${report.summary.suitesMissing.join(', ')}.` +
+            `\n  docs/balance/ left untouched. Run the full suite before trusting a diff.`,
+        );
+        return report;
+    }
 
     mkdirSync(REPORT_DIR, { recursive: true });
     writeFileSync(REPORT_JSON_PATH, JSON.stringify(report, null, 2) + '\n', 'utf8');

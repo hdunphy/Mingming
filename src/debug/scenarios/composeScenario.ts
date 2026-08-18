@@ -27,7 +27,7 @@
  * Nothing outside `src/debug/` may import this module.
  */
 
-import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { getActiveSlotId, listSlots } from '../../engine/SaveSlots';
@@ -268,9 +268,9 @@ export function savedDeck(save: IPlayerSave): SavedDeck | null {
     return { name: deck.name, cards, missing };
 }
 
-/** Union of the party's species `baseDeck`s — one shared pool, per schema v1. */
+/** Union of the party's per-OS starting decks — one shared pool, per schema v1 (ticket 13). */
 export function baseDeckFor(party: LauncherUnit[]): string[] {
-    return party.flatMap((unit) => MingmingRegistry[unit.definitionId]?.baseDeck ?? []);
+    return party.flatMap((unit) => getDeckForOS(unit.definitionId, unit.activeOS));
 }
 
 export interface ResolvedDeck {

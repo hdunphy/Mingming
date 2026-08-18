@@ -82,7 +82,7 @@ describe('Bug fix: PLAY_LAST_CARD (Reprogram) echoes the PREVIOUS card', () => {
 });
 
 describe('Bug fix: STATUS consume + STATUS_CONSUMED heal scaling (Ash Reclamation)', () => {
-    it('consumes all Burn stacks and heals 10 per stack consumed', () => {
+    it('consumes all Burn stacks and heals per stack consumed', () => {
         let state = makeState({
             playerParty: [makeEntity({ id: 'p1', name: 'Hero', currentHp: 40 })],
             enemyParty: [makeEntity({
@@ -96,8 +96,9 @@ describe('Bug fix: STATUS consume + STATUS_CONSUMED heal scaling (Ash Reclamatio
 
         // Burn fully consumed from the target
         expect(state.enemyParty[0].statusEffects.find(s => s.type === 'Burn')).toBeUndefined();
-        // Healed 10 per stack: 40 + 30 = 70
-        expect(state.playerParty[0].currentHp).toBe(70);
+        // Ticket 43: power-based now, so the heal scales with the frame instead of being a flat
+        // 10. calculateHeal = 100 maxHp * 30 power / 400 = 7 per stack, x3 consumed = 21.
+        expect(state.playerParty[0].currentHp).toBe(61);
     });
 });
 
@@ -194,7 +195,7 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
             enemyDeck: {
                 ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
                 hand: [
-                    { id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true },
+                    { id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true },
                     { id: 'eh2', dataId: 'seed_bomb_v2', currentCost: 2, isPlayable: true }
                 ]
             }
@@ -239,7 +240,7 @@ describe('Enemy combat mode guard (locked at battle creation)', () => {
             enemyParty: [makeEntity({ id: 'e1', name: 'CardUser', primaryElement: 'Nature' })],
             enemyDeck: {
                 ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
-                hand: [{ id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true }]
+                hand: [{ id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true }]
             }
         } as any);
         const action = getBestAction(state);
@@ -253,7 +254,7 @@ describe('Enemy combat mode guard (locked at battle creation)', () => {
             enemyParty: [makeEntity({ id: 'e1', name: 'MoveUser', currentIntent: null } as any)],
             enemyDeck: {
                 ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
-                hand: [{ id: 'eh1', dataId: 'leaf_blade', currentCost: 1, isPlayable: true }]
+                hand: [{ id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true }]
             }
         } as any);
         expect(getBestAction(state).type).toBe('END_TURN');
@@ -329,7 +330,9 @@ describe('XP pacing: decelerating span-based death XP with level-gap scaling', (
                 makeEntity({ id: 'p1', name: 'Hero', level: 10, experience: 800 }),
                 makeEntity({ id: 'p2', name: 'Ally', level: 10, experience: 800 })
             ],
-            enemyParty: [makeEntity({ id: 'e1', name: 'Foe', level: 10, currentHp: 5 })]
+            // 3 HP, not 5: fury_strike deals 4 under the rev-3.1 pace (ticket 23), and this
+            // test is about the XP split on a KO, not about the size of the hit.
+            enemyParty: [makeEntity({ id: 'e1', name: 'Foe', level: 10, currentHp: 3 })]
         });
         state = withHand(state, [{ id: 'h1', dataId: 'fury_strike' }]);
         state = battleReducer(state, { type: 'PLAY_PROGRAM', payload: { sourceId: 'p1', targetId: 'e1', programId: 'h1' } });

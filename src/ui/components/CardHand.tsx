@@ -7,6 +7,7 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
 import type { IBattleState } from '../../engine/types';
 import { validateSingleConstraint, getEffectiveCardCost } from '../../engine/battleReducer';
+import { executeCostCalculated } from '../../engine/resolutionEngine';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import CardKeywordChips from './CardKeywordChips';
@@ -87,7 +88,16 @@ const CardHand: React.FC<{
                         const source = playerParty.find(u => u.id === selectedSourceId);
                         // The cost the selected unit would ACTUALLY pay — includes primed
                         // discounts like Gullinbursti's UNSTOPPABLE_MASS (nextProgramModifier).
-                        const effectiveCost = source ? getEffectiveCardCost(source, data, card.currentCost) : card.currentCost;
+                        // Ticket 36: run onCostCalculated too, exactly as the reducer does.
+                        // getEffectiveCardCost alone stops at the printed/primed cost, so hel_v2's
+                        // UNDERWORLD_GATEWAY (which zeroes her Energy cost outright) would render
+                        // soul_tithe as a 3-pip card AND fail the energy_base check below on her
+                        // 2-Energy frame - i.e. greyed out as unplayable while the reducer happily
+                        // plays it. The returned state is discarded; cost hooks are modifiers.
+                        const printedCost = source ? getEffectiveCardCost(source, data, card.currentCost) : card.currentCost;
+                        const effectiveCost = source && battleState
+                            ? executeCostCalculated(battleState, source, undefined, data, printedCost).cost
+                            : printedCost;
                         const isDiscounted = effectiveCost < card.currentCost;
                         const constraints = (data.constraints || [])
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: effectiveCost }))

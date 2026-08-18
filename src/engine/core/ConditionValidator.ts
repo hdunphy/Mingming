@@ -1,12 +1,13 @@
 import type { IBattleState, IBattleEntity, ProgramData, StatusType, ProgramConstraint } from '../types';
 import type { HookCondition, HookContext } from './HookTypes';
 import { resolveCounterKey } from './HookTypes';
+import { numericBaseCost } from '../types';
 
 /**
  * Statuses considered "negative" (debuffs) for condition checks like sourceDebuffCount.
  * Mirrors the debuff lists previously embedded in hand-written hook conditions.
  */
-const NEGATIVE_STATUSES: ReadonlyArray<string> = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed'];
+export const NEGATIVE_STATUSES: ReadonlyArray<string> = ['Burn', 'Poison', 'Asleep', 'Weakened', 'Dazed', 'Stunned', 'Bleed'];
 
 function compareValues(operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ', currentVal: number, value: number): boolean {
     if (operator === 'LT') return currentVal < value;
@@ -30,7 +31,10 @@ export const ConditionValidator = {
         // 1. Source & Target Checks
         const isOwnerPlayer = context.state.playerParty.some((e: IBattleEntity) => e.id === owner.id);
 
-        if (condition.source) {
+        // 'ANY' is an explicit always-match on the source/target axis (used by e.g.
+        // nidhoggr_v2's on-faint hook). Ticket 07 (2026-08-05): it previously "worked"
+        // only by falling through every branch below; now it is a named, typed value.
+        if (condition.source && condition.source !== 'ANY') {
             if (condition.source === 'SELF' && context.source?.id !== owner.id) {
                 return false;
             }
@@ -39,7 +43,7 @@ export const ConditionValidator = {
             if (condition.source === 'OPPONENT' && isOwnerPlayer === isSourcePlayer) return false;
         }
 
-        if (condition.target) {
+        if (condition.target && condition.target !== 'ANY') {
             if (condition.target === 'SELF' && context.target?.id !== owner.id) {
                 return false;
             }
@@ -58,7 +62,7 @@ export const ConditionValidator = {
 
         // 3. Cost Check
         if (condition.baseCost !== undefined) {
-            const cost = context.program?.baseCost ?? 0;
+            const cost = numericBaseCost(context.program?.baseCost ?? 0);
             if (typeof condition.baseCost === 'number') {
                 if (cost !== condition.baseCost) return false;
             } else {
@@ -123,8 +127,17 @@ export const ConditionValidator = {
 
         // 9. Counter Check (hook counters are OWNER-scoped by default so units
         // sharing an OS count independently; scope: 'GLOBAL' reads the raw key)
-        if (condition.counter) {
-            const { key, operator, value, scope } = condition.counter;
+        //
+        // Ticket 53: `counters` is the AND-list form of `counter`. GENESIS_FIRMWARE needs two
+        // at once - a GLOBAL read of `last_overheal` and an OWNER-scoped once-per-turn guard -
+        // and one object cannot express that. Both fields are honoured; `counter` stays because
+        // eleven existing hooks use it and the single case reads better without a wrapper array.
+        const counterChecks = [
+            ...(condition.counter ? [condition.counter] : []),
+            ...(condition.counters ?? [])
+        ];
+        for (const check of counterChecks) {
+            const { key, operator, value, scope } = check;
             const currentCounters = context.state.counters || {};
             const currentVal = currentCounters[resolveCounterKey(key, scope, owner)] || 0;
             if (operator === 'LT' && !(currentVal < value)) return false;
@@ -153,11 +166,17 @@ export const ConditionValidator = {
      */
     evaluateCardConstraint(constraint: ProgramConstraint, source: IBattleEntity, subject: IBattleEntity, cost: number, state?: IBattleState): boolean {
         switch (constraint.type) {
-            case 'HAS_STATUS':
-                if (!subject.statusEffects.some(s => s.type === constraint.value)) {
-                    return false;
-                }
+            case 'HAS_STATUS': {
+                const held = subject.statusEffects.find(s => s.type === constraint.value);
+                if (!held) return false;
+                // Ticket 39: optional stack floor so a payoff card can refuse to be
+                // played early. The AI validates through this same path
+                // (TacticalAI -> validateProgramConstraints), which is the point:
+                // without it the search cashes wither_feast at the first stack it
+                // sees and the sim measures a card nobody would ever play that way.
+                if (constraint.minStacks !== undefined && held.stacks < constraint.minStacks) return false;
                 break;
+            }
 
             case 'HEALTH_THRESHOLD':
                 // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
@@ -179,6 +198,16 @@ export const ConditionValidator = {
                 // Check if enough cards were drawn this turn
                 if (!state) return true; // Fail safe
                 if (state.cardsDrawnThisTurn < (constraint.value as number)) return false;
+                break;
+
+            case 'CARDS_DRAWN_TRIGGERED':
+                // Ticket 68: only draws an EFFECT caused count - a card, an OS or a daemon.
+                // The draw-phase refill is excluded, which is the whole point: `CARDS_DRAWN`
+                // above is satisfied on ~91% of turns for every species purely by the refill
+                // (it fails only when a full hand clamps the draw to zero), so a card priced
+                // for a conditional refund was getting an unconditional one.
+                if (!state) return true; // Fail safe, same as CARDS_DRAWN
+                if ((state.nonNaturalCardsDrawnThisTurn ?? 0) < (constraint.value as number)) return false;
                 break;
 
             case 'NOT_STATUS':

@@ -35,4 +35,24 @@ Destination: a **dev-build-only debug toolkit**, built and working — hidden De
 
 Frontier as of the last session (verify against ticket files — they are the source of truth): **Scenario schema v1** (02), **Debug gating architecture** (03), **Save/run editor verbs** (07), **Determinism groundwork** (09, a task — good pick if I'm not around to answer questions). Blocked behind them: launcher UI prototype (04), live-manipulation command set (05), battle snapshot export (06), batch sim & auditor design (08).
 
+**2026-08-10 update:** the map's original destination was reached 2026-08-03 (see map.md).
+New scope was added the same way as [ticket 24](tickets/24-save-slots.md) — tickets 25
+(design) and 26 (instrumentation + build) for a richer "deck balance report v2" drill-down
+tool. **Both are now CLOSED and the extension has no frontier.**
+
+What ticket 26 leaves behind, for whoever picks this up next:
+
+- **`npm run balance:deck`** writes `docs/balance/deck_report.json` + a self-contained
+  `deck_report.html`. Flags: `--subjects`, `--suites`, `--control`, `--iterations`, `--out`.
+- **Telemetry is opt-in (`BatchOptions.telemetry`) and `npm run balance` never sets it.** Keep
+  it that way: the commit gate's runtime is a standing requirement and there is a test pinning
+  the default.
+- **Two per-card denominators, deliberately.** `deadRate` is per instance (comparable to the
+  deck-level ratio); `playRate` is per hand entry. Collapsing them is the bug that made the
+  first draft read 50% dead on every card.
+- **`residualDamageShare` is an approximation** for DoT damage, nullable so "no DoT" and
+  "measured zero" stay distinguishable. Never quote it as measured-exact.
+- **`ARCHETYPE_SUMMARIES` in `deckReport.ts` is authored**, covers 12 subjects, and the
+  generator warns rather than shipping a blank appendix for a subject with no entry.
+
 Start by telling me which ticket you're claiming and why, then begin.

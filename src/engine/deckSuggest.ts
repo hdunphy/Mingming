@@ -7,10 +7,11 @@
  */
 
 import { GetProgramData } from './data/programRegistry';
-import { MingmingRegistry } from './data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from './data/mingmingRegistry';
 import { DECK_SIZE, MIN_DECK_SIZE } from './gameTypes';
 import type { IOwnedProgram, IActiveDeck } from './gameTypes';
 import type { IMingmingState, ProgramData } from './types';
+import { numericBaseCost } from './types';
 
 export interface DeckSuggestInput {
     readonly cardInventory: ReadonlyArray<IOwnedProgram>;
@@ -100,10 +101,11 @@ export function suggestDeckFill(input: DeckSuggestInput): string[] {
         const definition = MingmingRegistry[member.definitionId];
         if (!definition) continue;
 
-        // Walk the baseDeck in order; the Nth listing of a dataId wants the
-        // deck to contain at least N copies (existing + already-filled count).
+        // Ticket 13: the member's ACTIVE OS decides which starting deck phase 1
+        // walks. Nth listing of a dataId wants >= N copies (existing + filled).
+        const memberDeck = getDeckForOS(member.definitionId, member.activeOS);
         const seenInBaseDeck: Record<string, number> = {};
-        for (const dataId of definition.baseDeck) {
+        for (const dataId of memberDeck) {
             if (slotsLeft <= 0) break;
             seenInBaseDeck[dataId] = (seenInBaseDeck[dataId] ?? 0) + 1;
             const wanted = seenInBaseDeck[dataId];
@@ -118,7 +120,7 @@ export function suggestDeckFill(input: DeckSuggestInput): string[] {
         ids.sort((a, b) => {
             const da = dataById[a];
             const db = dataById[b];
-            if (da.baseCost !== db.baseCost) return da.baseCost - db.baseCost;
+            if (da.baseCost !== db.baseCost) return numericBaseCost(da.baseCost) - numericBaseCost(db.baseCost);
             const ra = RARITY_ORDER[da.rarity] ?? 99;
             const rb = RARITY_ORDER[db.rarity] ?? 99;
             if (ra !== rb) return ra - rb;

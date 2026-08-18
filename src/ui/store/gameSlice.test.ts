@@ -21,7 +21,7 @@ import gameReducer, {
 import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint, IRewardBundle } from '../../engine/gameTypes';
 import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
-import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 
 function makeMingming(id: string): IMingmingState {
     return { id, definitionId: 'def_fire', level: 5, experience: 0, attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
@@ -77,30 +77,30 @@ describe('gameSlice', () => {
 
         it('first addToRoster of a species grants exactly its baseDeck cards and records it', () => {
             const state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
-            const expected = [...MingmingRegistry['fenrir'].baseDeck].sort();
-            expect(state.cardInventory).toHaveLength(10);
+            const expected = getDeckForOS('fenrir').sort();
+            expect(state.cardInventory).toHaveLength(9);
             expect(state.cardInventory.map(c => c.dataId).sort()).toEqual(expected);
-            expect(state.baseDecksGranted).toEqual(['fenrir']);
+            expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1']);
             // Each granted copy has a unique instance id
             const instanceIds = new Set(state.cardInventory.map(c => c.instanceId));
-            expect(instanceIds.size).toBe(10);
+            expect(instanceIds.size).toBe(9);
         });
 
         it('second addToRoster of the same species grants nothing', () => {
             let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
             state = gameReducer(state, addToRoster(makeSpecies('mm2', 'fenrir')));
             expect(state.roster).toHaveLength(2);
-            expect(state.cardInventory).toHaveLength(10);
-            expect(state.baseDecksGranted).toEqual(['fenrir']);
+            expect(state.cardInventory).toHaveLength(9);
+            expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1']);
         });
 
         it('a different species grants its own kit', () => {
             let state = gameReducer(initial, addToRoster(makeSpecies('mm1', 'fenrir')));
             state = gameReducer(state, addToRoster(makeSpecies('mm2', 'kraken')));
-            expect(state.cardInventory).toHaveLength(20);
-            expect(state.baseDecksGranted).toEqual(['fenrir', 'kraken']);
-            const krakenCards = state.cardInventory.slice(10).map(c => c.dataId).sort();
-            expect(krakenCards).toEqual([...MingmingRegistry['kraken'].baseDeck].sort());
+            expect(state.cardInventory).toHaveLength(17); // fenrir 9 + kraken 8 (ticket 28)
+            expect(state.baseDecksGranted).toEqual(['fenrir:fenrir_v1', 'kraken:kraken_v1']);
+            const krakenCards = state.cardInventory.slice(9).map(c => c.dataId).sort(); // after fenrir's 9
+            expect(krakenCards).toEqual(getDeckForOS('kraken').sort());
         });
 
         it('unknown definitionId grants nothing and does not crash', () => {

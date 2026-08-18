@@ -100,39 +100,41 @@ describe('Damage Calculation with Status Modifiers', () => {
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
         // Level 5 -> levelBase = floor(2*5/5)+2 = 4
         // scaled = floor(4 * 40 * 50 / 50) = 160
-        // reduced = 160 / 35 = 4.571... (docs/power_curve_spec.md rev 3: no +2, /35 not /50)
+        // reduced = 160 / 45 = 3.555... (spec rev 3.1 / ticket 23: no +2, /45 not /35)
         // modifier = 1.0 (program element is 'None', which never grants STAB)
-        // damage = floor(4.571 * 1.0) = 4
-        expect(damage).toBe(4);
+        // damage = floor(3.555 * 1.0) = 3
+        expect(damage).toBe(3);
     });
 
     it('should increase damage with Strengthened status', () => {
         (attacker as any).statusEffects = [{ id: 's1', type: StatusType.Strengthened, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3: 2%/stack (was 20%/stack) - base 4 * 1.02 = 4.08, floor = 4. A single stack is
-        // barely visible at this scale; the cap-vs-cap interaction is covered below.
-        expect(damage).toBe(4);
+        // rev 3: 2%/stack (was 20%/stack). Status multipliers apply to the ALREADY-floored
+        // base (3 under rev 3.1), so 3 * 1.02 = 3.06 -> 3: a single stack is invisible at
+        // this scale, exactly as it was under rev 3's base of 4. The cap-vs-cap interaction
+        // below is what actually exercises the multiplier.
+        expect(damage).toBe(3);
     });
 
     it('should decrease damage with Weakened status', () => {
         (attacker as any).statusEffects = [{ id: 'w1', type: StatusType.Weakened, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3: base 4 * (1 - 0.02) = 3.92, floor = 3.
-        expect(damage).toBe(3);
+        // rev 3.1: base 3 * (1 - 0.02) = 2.94, floor = 2.
+        expect(damage).toBe(2);
     });
 
     it('should reduce damage to a Sharp target', () => {
         (defender as any).statusEffects = [{ id: 'sh1', type: StatusType.Sharp, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3: base 4 * (1 - 0.02) = 3.92, floor = 3.
-        expect(damage).toBe(3);
+        // rev 3.1: base 3 * (1 - 0.02) = 2.94, floor = 2.
+        expect(damage).toBe(2);
     });
 
     it('should deal more damage to a Dazed target', () => {
         (defender as any).statusEffects = [{ id: 'd1', type: StatusType.Dazed, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3: base 4 * 1.02 = 4.08, floor = 4.
-        expect(damage).toBe(4);
+        // rev 3.1: base 3 * 1.02 = 3.06, floor = 3.
+        expect(damage).toBe(3);
     });
 
     it('caps Strengthened/Dazed damage-up at +25%, no matter how many stacks pile up', () => {
@@ -143,8 +145,8 @@ describe('Damage Calculation with Status Modifiers', () => {
         (attacker as any).statusEffects = [{ id: 's2', type: StatusType.Strengthened, stacks: 100 }];
         const alsoCapped = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
 
-        // base 4 * 1.25 = 5, floor = 5 - identical at 13 stacks and 100 stacks.
-        expect(capped).toBe(5);
+        // rev 3.1: base 3 * 1.25 = 3.75, floor = 3 - identical at 13 and 100 stacks.
+        expect(capped).toBe(3);
         expect(alsoCapped).toBe(capped);
     });
 
@@ -159,8 +161,10 @@ describe('Damage Calculation with Status Modifiers', () => {
         (defender as any).statusEffects = [{ id: 'sh1', type: StatusType.Sharp, stacks: 50 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
 
-        // base 4 * 0.75 * 0.75 = 2.25, floor = 2 - not 0.
-        expect(damage).toBe(2);
+        // rev 3.1: base 3 * 0.75 * 0.75 = 1.69, floor = 1 - THINNER than rev 3's 2, but still
+        // not 0, so the cap still does the job it was added for. Re-check this margin if the
+        // pace divisor is ever raised again (ticket 23).
+        expect(damage).toBe(1);
         expect(damage).toBeGreaterThan(0);
     });
 });

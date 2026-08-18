@@ -8,6 +8,7 @@ import { GetProgramData } from '../data/programRegistry';
 import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
+import { NEGATIVE_STATUSES } from '../core/ConditionValidator';
 
 function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
@@ -24,9 +25,12 @@ export abstract class ActionExecutor<T extends ProgramAction> {
 /**
  * Effective ATTACK power after attacker-only scaling.
  *
- * Currently handles SHARP_STACKS (+5 power per Sharp stack on the attacker),
- * which boosts the POWER fed into the damage formula so the bonus scales with
- * level/stats like any other power and survives resistances.
+ * Currently handles SHARP_STACKS (+5 power per Sharp stack on the attacker) and
+ * STRENGTH_STACKS (power MULTIPLIED by the attacker's Strengthened stacks - Momentum
+ * Crash cashing MOMENTUM_DRIVE), which boost the POWER fed into the damage formula so
+ * the bonus scales with level/stats like any other power and survives resistances.
+ * STRENGTH_STACKS reads RAW stacks on purpose: Strengthened's own damage bonus is
+ * capped at +-25%, and the whole point of the payoff card is to bypass that cap.
  *
  * Shared by AttackExecutor AND the UI hover preview (computeDamagePreview) so
  * the previewed number and the real reducer damage cannot drift for Sharp
@@ -35,11 +39,95 @@ export abstract class ActionExecutor<T extends ProgramAction> {
  * multiply the computed DAMAGE afterwards — they intentionally stay inside
  * AttackExecutor.
  */
-export function getEffectiveAttackPower(source: IBattleEntity, action: Pick<AttackActionData, 'power' | 'scaling'>): number {
+/** Max Strengthened stacks a STRENGTH_STACKS scaler may multiply by - see ticket 23 follow-up.
+ *  Shared with HookFactory.resolveScaling (ticket 26): the hook-side path was left uncapped
+ *  by ticket 24, so core_overclock_daemon could reach x5.00 at 20 stacks. */
+export const STRENGTH_STACK_CAP = 8;
+
+/** Max % of maxHP-missing a MISSING_HP scaler may read (ticket 26). The cap is
+ *  budget / scalingPower, so it re-derives whenever the curve moves. */
+export const MISSING_HP_PCT_CAP = 50;
+
+/**
+ * Ticket 74: the per-event-count scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DRAWN_TRIGGERED`,
+ * `CARDS_DISCARDED`) are deliberately UNCAPPED, and that is a design decision, not an oversight.
+ *
+ * Ticket 73 capped them to stop `jormungandr_v1`'s first-turn kill. Henry rejected the shape:
+ * *"I don't like caps, that makes playing smart feel bad and you'll end turn with energy. You
+ * should be rewarded for playing smart."* Measurement agreed the cap was the worst option on
+ * offer - it cost `kraken_v1` 6 points of field win rate (45.3% -> 38.9%) to brake a deck that
+ * barely felt it (`jormungandr_v1` stayed at 77.3%), because Kraken draws ~1 card a turn and
+ * Jormungandr draws 3. Any change to the SCALER lands hardest on the deck least able to use it.
+ *
+ * The turn-1 kill was fixed at its source instead - OUROBOROS_LOOP, which was handing
+ * `jormungandr_v1` a free +1 Energy AND +1 draw on the 3rd Water card, on a turn where four of
+ * her nine cards cost nothing. See `research/ouroboros-nerf.md`.
+ *
+ * If a new scaler in this family ever needs braking, brake the ENGINE feeding it.
+ */
+
+export function getEffectiveAttackPower(
+    source: IBattleEntity,
+    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower'>,
+    target?: IBattleEntity,
+): number {
     const power = action.power || 0;
+    if (action.scaling === 'DAZED_STACKS') {
+        // Ticket 32: reads the TARGET's raw Dazed stacks, deliberately UNCAPPED. The 2%/stack
+        // damage effect is capped at +-25% in Hooks.ts, and bypassing that cap is the entire
+        // point of a payoff card. Henry's law: per-stack scaling attacks should underperform
+        // early and overperform late - that is the shape, not a bug. Cap only if a balance run
+        // shows it running away (the STRENGTH_STACKS cap was added AFTER measurement, not
+        // before). `target` is optional so the UI preview can call this without one; with no
+        // target the card reads as 0 power, which is what an unaimed card is worth.
+        const dazed = target?.statusEffects.find(s => s.type === 'Dazed')?.stacks || 0;
+        return power * dazed;
+    }
+    if (action.scaling === 'DISTINCT_STATUS') {
+        // Ticket 48: counts DISTINCT negative statuses on the target, not stacks. `STATUS_COUNT`
+        // could not be reused - it reads total stacks and adds +25% each, uncapped, so thirteen
+        // stacks is +325%. Uncapped by the same reasoning as DAZED_STACKS, and it reads the same
+        // NEGATIVE_STATUSES list GRAVE_CHILL_OS gates on, so draugr_v2's payoff and its firmware
+        // agree about what a debuff is by construction. `target` optional for the UI preview.
+        const distinct = new Set(
+            (target?.statusEffects ?? [])
+                .filter(s => s.stacks > 0 && NEGATIVE_STATUSES.includes(s.type))
+                .map(s => s.type),
+        ).size;
+        return power * distinct;
+    }
+    if (action.scaling === 'BARKSHIELD_STACKS') {
+        // Ticket 50: reads the SOURCE's own standing BarkShield - avalanche casts the wall at
+        // them. Uncapped, per Henry's law that per-stack scalers should underperform early and
+        // overperform late; the 20%/turn decay and incoming damage already bound the pile.
+        //
+        // FLOOR IS LOAD-BEARING. BarkShield stacks are FRACTIONAL: onPostDamage stores
+        // `shieldPercent - absorbedPercent` and the end-of-turn decay multiplies by 0.8, so a
+        // live shield is routinely 7.36 stacks. Without the floor this reproduces ticket 36's
+        // fractional-product bug, which put 22.5 HP of damage into an entity.
+        const shield = source.statusEffects.find(s => s.type === 'BarkShield')?.stacks || 0;
+        return power * Math.floor(shield);
+    }
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
         return power + 5 * sharpStacks;
+    }
+    if (action.scaling === 'MISSING_HP') {
+        // Power-side (ticket 26): rides the divisor, STAB and resistances like every other
+        // power bonus. Was a flat post-damage add in AttackExecutor, which bypassed all three
+        // and disagreed with what powerscale charged for it.
+        const pctMissing = source.maxHp > 0
+            ? ((source.maxHp - source.currentHp) / source.maxHp) * 100
+            : 0;
+        return power + (action.scalingPower || 0) * Math.min(pctMissing, MISSING_HP_PCT_CAP);
+    }
+    if (action.scaling === 'STRENGTH_STACKS') {
+        // Capped at STRENGTH_STACK_CAP so the card cannot exceed its cost's power budget:
+        // uncapped, Momentum Crash measured 29.3 damage a play (38% of a health pool) off
+        // a nominal 10 power - an effective ~98 power for 1 Energy against a 40 budget.
+        // The cap is budget / power, so it re-derives whenever the curve moves.
+        const strengthStacks = source.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
+        return power * Math.min(strengthStacks, STRENGTH_STACK_CAP);
     }
     return power;
 }
@@ -60,26 +148,54 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
 
             // SHARP_STACKS scaling handled by the shared helper (also used by
             // the UI damage preview, so preview and reality cannot drift).
-            const effectivePower = getEffectiveAttackPower(source, actionData);
+            let effectivePower = getEffectiveAttackPower(source, actionData, target);
+
+            // Ticket 64: STATUS_CONSUMED on an ATTACK - `sun_devourer` consumes all of the
+            // caster's Strengthened and pays damage per stack eaten. The path existed for HEAL
+            // (ash_communion) and STATUS (hexbloom) but never for ATTACK.
+            //
+            // POWER-side, not post-damage, which is the ticket-26 lesson: a post-damage multiply
+            // would bypass the divisor, STAB and resistances and disagree with what powerscale
+            // charges. Zero consumed means zero power means zero damage, so the card is a payoff
+            // and never an opener - the same shape `BURN_TIMES_ENERGY` has.
+            if (scaling === 'STATUS_CONSUMED') effectivePower *= (state.lastStatusConsumed ?? 0);
 
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
             if (scaling === 'CARDS_PLAYED') {
                 const multiplier = state.cardsPlayedThisTurn;
                 damage = Math.floor(damage * multiplier);
-            } else if (scaling === 'MISSING_HP') {
-                const missingHp = source.maxHp - source.currentHp;
-                damage += Math.floor(missingHp * 0.5); // Example: 50% of missing HP
             } else if (scaling === 'STATUS_COUNT') {
                 const targetStatusCount = target.statusEffects.reduce((acc, s) => acc + s.stacks, 0);
                 damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
             } else if (scaling === 'CARDS_DRAWN') {
                 const multiplier = state.cardsDrawnThisTurn;
                 damage = Math.floor(damage * multiplier);
+            } else if (scaling === 'CARDS_DRAWN_TRIGGERED') {
+                // Ticket 71: only draws an effect CAUSED - a card, an OS or a daemon. The
+                // draw-phase refill is excluded, so this is zero on a turn you did nothing to
+                // earn it, exactly like BURN_TIMES_ENERGY and STATUS_CONSUMED. `CARDS_DRAWN`
+                // above keeps the natural-inclusive count for anything that still wants it.
+                damage = Math.floor(damage * (state.nonNaturalCardsDrawnThisTurn ?? 0));
             } else if (scaling === 'ELEMENT_PLAYED') {
                 const elementPlayed = element || programToUse.element;
                 const multiplier = state.elementPlays?.[elementPlayed] || 1;
                 damage = Math.floor(damage * multiplier);
+            } else if (scaling === 'CARDS_DISCARDED') {
+                // Carrion Swoop: the windmill's payoff. Mirrors CARDS_PLAYED.
+                damage = Math.floor(damage * (state.cardsDiscardedThisTurn ?? 0));
+            } else if (scaling === 'ENERGY_SPENT') {
+                damage = Math.floor(damage * (state.lastEnergySpent ?? 0));
+            } else if (scaling === 'ENERGY_SPENT_SQUARED') {
+                // Thermal Lance: power x X^2, so ramping Energy is worth more than
+                // linearly more damage - the reason UPDRAFT_KERNEL's +1 matters.
+                const energySpent = state.lastEnergySpent ?? 0;
+                damage = Math.floor(damage * energySpent * energySpent);
+            } else if (scaling === 'BURN_TIMES_ENERGY') {
+                // Firestorm Talon: power x target's Burn stacks x X. Zero Burn = zero
+                // damage, so it is a payoff card, never an opener.
+                const burnStacks = target.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
+                damage = Math.floor(damage * burnStacks * (state.lastEnergySpent ?? 0));
             }
         }
 
@@ -99,6 +215,27 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
 export class StatusExecutor extends ActionExecutor<StatusActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: StatusActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { status, stacks, consume } = actionData;
+
+        // Ticket 33: STATUS_CONSUMED scaling, previously implemented for HEAL only. Multiply
+        // by the count a preceding consume action in the SAME card recorded (hexbloom:
+        // "consume all Weakened on the target, apply that many Poison"). The `consume` branch
+        // below returns early, so a consume action can never read its own multiplier - which
+        // is what guarantees the two actions resolve in the authored order.
+        // Ticket 41: WEAKENED_STACKS reads the TARGET's Weakened WITHOUT consuming it, so the
+        // pile survives and the card can be cast again off the same standing resource. That is
+        // the whole difference from STATUS_CONSUMED, which spends its input - and it is what
+        // makes hexbloom price honestly. Consuming turns the card into a hoard dump whose value
+        // scales with however long you saved up (x3 measured 13.90 against a 6.5 band); not
+        // consuming turns it into a RATE, so x2 is enough and x2 scores 6.30.
+        const weakenedOnTarget = actionData.scaling === 'WEAKENED_STACKS'
+            ? ((state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId))
+                ?.statusEffects.find(s => s.type === 'Weakened')?.stacks ?? 0)
+            : 0;
+        const effectiveStacks = actionData.scaling === 'STATUS_CONSUMED'
+            ? (stacks || 0) * (state.lastStatusConsumed ?? 0)
+            : actionData.scaling === 'WEAKENED_STACKS'
+            ? (stacks || 0) * weakenedOnTarget
+            : stacks;
 
         if (consume) {
             // Remove ALL stacks of the status and record how many were consumed
@@ -134,10 +271,13 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             return newState;
         }
 
-        if (stacks < 0) {
+        // A scaled apply that resolves to nothing must not create a 0-stack status instance.
+        if ((actionData.scaling === 'STATUS_CONSUMED' || actionData.scaling === 'WEAKENED_STACKS') && effectiveStacks === 0) return state;
+
+        if (effectiveStacks < 0) {
             // Contract (types.ts): negative stacks removes that many stacks,
             // deleting the status only when it reaches 0.
-            const removeCount = -stacks;
+            const removeCount = -effectiveStacks;
             const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                 party.map(e => {
                     if (e.id !== targetId) return e;
@@ -162,29 +302,27 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             type: 'STATUS',
             targetId: targetId,
             sourceId: sourceId,
-            payload: { status, stacks }
+            payload: { status, stacks: effectiveStacks }
         }]);
     }
 }
 
 export class HealExecutor extends ActionExecutor<HealActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: HealActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
-        const { power, healOverride } = actionData;
+        const { power } = actionData;
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
         let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
         let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
         if (!target) return state;
-        if (!source && healOverride === undefined) return state;
+        if (!source) return state;
 
-        // Stance system: Light Stance boosts the healer's heals by +50%.
-        // Power-based heals get the boost inside calculateHeal; healOverride-based
-        // heals (e.g. Leech Strike, Ash Reclamation) are boosted here so BOTH
-        // pipelines respect the stance without double-applying.
-        const lightStanceBoost = source?.statusEffects.some(s => s.type === 'LightStance') ? 1.5 : 1;
-        const baseHeal = healOverride !== undefined
-            ? Math.floor(healOverride * lightStanceBoost)
-            : calculateHeal(source as any, target, power);
+        // Ticket 36: the LightStance +50% branch is gone from both heal pipelines. Heal
+        // multipliers are `onHealCalculated` hooks now, applied once at the heal choke point
+        // (effectHandlers.handleHealEffect) that every heal funnels through.
+        // Ticket 43: `healOverride` is gone - every card heal is power-based, so it scales with
+        // level. A flat heal was overpowered on a level-5 frame and negligible on a level-50 one.
+        const baseHeal = calculateHeal(source as any, target, power);
         // STATUS_CONSUMED scaling: heal per stack removed by a preceding
         // consume action in the same card (e.g. Ash Reclamation).
         const healAmount = actionData.scaling === 'STATUS_CONSUMED'
@@ -197,7 +335,15 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
             targetId: targetId,
             payload: {
                 amount: healAmount,
-                isHeal: true
+                isHeal: true,
+                // Ticket 56: carry the PRINTED power through the mutation. Every card heal reaches
+                // `handleHealEffect` as a `flatHeal` (this executor resolves calculateHeal itself),
+                // so the number on the card was being discarded before the choke point ever saw
+                // it - which is why NOURISH_ROUTINE could only be denominated in HP. `healPower`
+                // is read there into `last_heal_power` and nowhere else.
+                healPower: actionData.scaling === 'STATUS_CONSUMED'
+                    ? power * (state.lastStatusConsumed ?? 0)
+                    : power
             }
         }]);
     }
@@ -251,9 +397,22 @@ export class CleanseExecutor extends ActionExecutor<CleanseActionData> {
 
 export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: DiscardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
-        const { amount, isRandom } = actionData;
+        // `count` is the ticket-21 self-discard cost: N RANDOM cards off the acting
+        // side's own hand (the reducer has already routed targetId to the source and
+        // suppressed its generic multi-hit loop for DISCARD). `amount` stays the
+        // explicit form used by FORCE_DISCARD and discardEffect callers, which keep
+        // their existing top-N / opt-in-random behaviour. A hand shorter than N just
+        // discards what is there - the rest of the card still resolves.
+        const usesCost = typeof actionData.count === 'number';
+        const amount = usesCost ? (actionData.count as number) : (actionData.amount ?? 0);
+        // The COST form is deterministic, not random - it sheds the least useful cards
+        // first (see the DISCARD mutation in resolutionEngine). An explicit isRandom on
+        // the action still wins, so FORCE_DISCARD and legacy callers are untouched.
+        const isCostPriority = usesCost && actionData.isRandom === undefined;
+        const isRandom = actionData.isRandom ?? false;
         const isPlayerTarget = state.playerParty.some(e => e.id === targetId);
         const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
+        const handOwner = (isPlayerTarget ? state.playerParty : state.enemyParty).find(e => e.id === targetId);
 
         const oldDiscardLength = state[deckKey].discard.length;
 
@@ -261,7 +420,7 @@ export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
             type: 'DISCARD',
             sourceId,
             targetId,
-            payload: { amount, isRandom }
+            payload: { amount, isRandom, isCostPriority }
         }]);
 
         const newDiscardLength = newState[deckKey].discard.length;
@@ -272,6 +431,7 @@ export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
 
             for (const c of discardedCards) {
                 const discardedData = GetProgramData(c.dataId);
+                newState = addLog(newState, `${handOwner?.name ?? 'Unknown'} discards ${discardedData.name}!`);
                 if (discardedData.discardEffect && discardedData.discardEffect.length > 0) {
                     newState = addLog(newState, `  ✨ ${discardedData.name} discard effect triggered!`);
 
@@ -312,12 +472,12 @@ export class ExhaustExecutor extends ActionExecutor<ExhaustActionData> {
 
 export class ReturnExecutor extends ActionExecutor<ReturnActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: ReturnActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
-        const { amount, sourcePile, destinationPile } = actionData;
+        const { amount, sourcePile, destinationPile, filter } = actionData;
         return applyMutations(state, [{
             type: 'RETURN',
             sourceId,
             targetId,
-            payload: { amount, sourcePile, destinationPile }
+            payload: { amount, sourcePile, destinationPile, filter }
         }]);
     }
 }
@@ -445,6 +605,74 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
     }
 }
 
+/**
+ * Ticket 53 - resolve a program's actions for FREE, with no Energy paid, no hand/pile move and
+ * no constraint check. This is the same shape as `PlayLastCardExecutor` above (that is what the
+ * ticket means by "PLAY_LAST_CARD machinery"), pulled out as a function because VALHALLA_UPLINK
+ * needs it from firmware and needs two things the executor cannot give it:
+ *
+ *  - a per-action target: the free cast has no declared target, so SELF actions land on the
+ *    caster and everything else on a seeded random living enemy;
+ *  - RAMPAGE growth: the resurrected card is a real INSTANCE, so it reads and banks
+ *    `card_growth:<instanceId>` exactly as a paid cast does (ticket 53: "the VALHALLA free
+ *    resurrection also grows it").
+ *
+ * The caller owns the pile: nothing here moves the card, so a card replayed from the discard
+ * simply stays in the discard.
+ */
+export function resolveProgramFree(
+    state: IBattleState,
+    sourceId: string,
+    instanceId: string,
+    programData: ProgramData,
+    context: HookContext
+): IBattleState {
+    let finalState = state;
+    const isPlayerSource = finalState.playerParty.some(e => e.id === sourceId);
+
+    // One seeded enemy pick for the whole cast, threaded back into the state so the next
+    // random consumer does not replay it (same contract as HookFactory.resolveTarget).
+    const enemies = (isPlayerSource ? finalState.enemyParty : finalState.playerParty).filter(e => e.currentHp > 0);
+    let defaultTargetId = sourceId;
+    if (enemies.length > 0) {
+        const { value: index, nextSeed } = new PRNG(finalState.seed).nextInt(0, enemies.length - 1);
+        defaultTargetId = enemies[index].id;
+        finalState = { ...finalState, seed: nextSeed };
+    }
+
+    const growth = programData.growPerPlay ? (finalState.counters?.[`card_growth:${instanceId}`] || 0) : 0;
+
+    for (const action of programData.actions ?? []) {
+        // No recursion: a free cast may not itself echo, or VALHALLA + Reprogram loops.
+        if (action.type === 'PLAY_LAST_CARD') continue;
+
+        const isSelf = action.target === 'SELF' || (action.target as string) === 'Self' || action.type === 'DISCARD';
+        const tId = isSelf ? sourceId : defaultTargetId;
+        const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
+        if (!target || target.currentHp <= 0) continue;
+
+        let resolved: ProgramAction = { ...action };
+        if (growth > 0 && resolved.type === 'ATTACK' && (resolved as any).power !== undefined) {
+            (resolved as any).power = (resolved as any).power + growth;
+        }
+
+        const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[resolved.type];
+        if (executor) {
+            finalState = executor.execute(finalState, sourceId, tId, resolved as any, programData, { ...context, state: finalState });
+        }
+    }
+
+    if (programData.growPerPlay) {
+        finalState = applyMutations(finalState, [{
+            type: 'COUNTER',
+            targetId: '',
+            payload: { key: `card_growth:${instanceId}`, operator: 'ADD', amount: programData.growPerPlay }
+        }]);
+    }
+
+    return finalState;
+}
+
 export class TauntExecutor extends ActionExecutor<TauntActionData> {
     execute(state: IBattleState, sourceId: string, _targetId: string, _actionData: TauntActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
@@ -479,6 +707,7 @@ export class BuffNextProgramExecutor extends ActionExecutor<BuffNextProgramActio
                 multiplier: actionData.multiplier ?? 1,
                 flatBonus: actionData.flatBonus ?? 0,
                 costReduction: actionData.costReduction ?? 0,
+                powerBonus: actionData.powerBonus ?? 0,
                 appliesTo: actionData.appliesTo
             };
 

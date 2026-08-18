@@ -12,9 +12,10 @@ import { resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ActionType } from '../types';
 import { StatusType } from '../types';
 import { PRNG } from './PRNG';
-import { ConditionValidator } from './ConditionValidator';
-import { ActionExecutorRegistry } from '../actions/ActionExecutors';
+import { ConditionValidator, NEGATIVE_STATUSES } from './ConditionValidator';
+import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExecutors';
 import { applyMutations } from '../resolutionEngine';
+import { numericBaseCost } from '../types';
 
 // Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
 const warnedBadConditions = new Set<string>();
@@ -49,7 +50,7 @@ export const HookFactory = {
         const priority = data.priority;
         const id = data.id;
 
-        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated') {
+        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated' || data.trigger === 'onHealCalculated') {
             const modifierData = data as ModifierDataHookDefinition;
             return {
                 id,
@@ -63,7 +64,11 @@ export const HookFactory = {
                             ? this.resolveScaling(modifierData.scaling, modifierData.scalingKey, context, owner)
                             : 1;
 
-                        if (modifierData.multiplier) newDamage *= (1 + ((modifierData.multiplier - 1) * scaleFactor));
+                        // `!== undefined`, not truthiness: ticket 36's UNDERWORLD_GATEWAY zeroes
+                        // Hel's card costs with `"multiplier": 0`, and 0 is falsy - the old guard
+                        // silently dropped the whole hook. Every other multiplier in the registry
+                        // is non-zero, so this is a no-op for them.
+                        if (modifierData.multiplier !== undefined) newDamage *= (1 + ((modifierData.multiplier - 1) * scaleFactor));
                         if (modifierData.bonus) newDamage += (modifierData.bonus * scaleFactor);
                         return Math.floor(newDamage);
                     }
@@ -101,25 +106,66 @@ export const HookFactory = {
         }
 
         switch (scaling) {
+            case 'SOURCE_DEBUFF_COUNT':
+                // Ticket 52: DISTINCT debuff types on the owner, not stacks. Reads the same
+                // NEGATIVE_STATUSES list `sourceDebuffCount` gates on, so CORRUPTED_GOLD_OS's
+                // condition and its payout cannot disagree about what a debuff is - each type
+                // is one StatusEffectInstance, so a count of instances IS a count of types.
+                return owner.statusEffects.filter(s => NEGATIVE_STATUSES.includes(s.type)).length;
             case 'CURRENT_ENERGY':
                 return owner.currentEnergy;
             case 'SHARP_STACKS':
+                // Ticket 52: deliberately UNCAPPED, unlike STRENGTH_STACKS below. Henry's call
+                // for KINETIC_RAM was "change the rate, not the ceiling" - the hook's `bonus`
+                // went 1 -> 0.5 instead. Worth knowing what that rate is buying: this is
+                // `onDamageCalculated`, and `calculateDamage` runs once PER HIT, so the bonus
+                // lands on every hit of a multi-hit card; and Sharp's own EFFECT caps at 12.5
+                // stacks while this raw count does not, so gullinbursti_v2 reaches 14-18.
+                // `Math.min(stacks, STRENGTH_STACK_CAP)` is knob 1b if the rate cannot hold it.
                 return owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
             case 'STRENGTH_STACKS':
-                return owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
+                // Ticket 26: same cap as the card-side scaler in ActionExecutors. Uncapped,
+                // core_overclock_daemon's x(1 + 0.20 * raw stacks) reaches x5.00 at 20 stacks
+                // on top of Strengthened's own capped +-25%, and the static scorer cannot see
+                // daemons at all (they carry empty `actions`), so nothing else would catch it.
+                return Math.min(
+                    owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0,
+                    STRENGTH_STACK_CAP
+                );
             case 'ALIVE_ALLIES': {
                 const isPlayer = context.state.playerParty.some((e: IBattleEntity) => e.id === owner.id);
                 const party = isPlayer ? context.state.playerParty : context.state.enemyParty;
                 return party.filter((e: IBattleEntity) => e.currentHp > 0 && e.id !== owner.id).length;
             }
+            case 'TARGET_POISON_STACKS':
+                // Ticket 55: TOXIN_FANG_OS. Reads the DEFENDER's Poison pile, so it is the first
+                // scaling in this switch that looks at `context.target` rather than the owner -
+                // `targetEntity` above already resolves to the defender on an `onDamageCalculated`
+                // hook, which is the only trigger this is meant for.
+                //
+                // Deliberately UNCAPPED, like SHARP_STACKS: the knob is the `bonus` rate, not a
+                // ceiling (Henry's call on KINETIC_RAM, and the same law that keeps `growPerPlay`
+                // uncapped). Note HANDOFF 8-COMPOUND - this lands at step 3 of
+                // `applyDamageModifiers` and status percentages multiply it afterwards. Known and
+                // accepted per the ticket.
+                return targetEntity?.statusEffects.find(st => st.type === 'Poison')?.stacks || 0;
             case 'MISSING_HP':
                 if (targetEntity) return targetEntity.maxHp - targetEntity.currentHp;
                 return 0;
+            case 'HEAL_POWER':
+                // Ticket 56: the PRINTED power of the heal being cast, before calculateHeal turns
+                // it into HP. This is the denomination NOURISH_ROUTINE needs - `HEAL_INTENDED`
+                // below reads HP, which is a ~4.5x smaller number on these frames and floored a
+                // third of audhumbla_v2's deck to zero.
+                return context.state.counters['last_heal_power'] || 0;
+            case 'HEAL_INTENDED':
+                // Ticket 53: the whole heal before the max-HP clamp - see `last_heal_intended`.
+                return context.state.counters['last_heal_intended'] || 0;
             case 'OVERHEAL':
                 // Written (globally, per heal event) by effectHandlers.handleHealEffect.
                 return context.state.counters['last_overheal'] || 0;
             case 'BASE_COST':
-                return context.program?.baseCost || 0;
+                return numericBaseCost(context.program?.baseCost ?? 0);
             case 'COUNTER':
                 // scalingKey reads are raw/global — pass an already-scoped key if needed.
                 if (scalingKey) return context.state.counters[scalingKey] || 0;
@@ -156,6 +202,16 @@ export const HookFactory = {
                 scaleFactor = this.resolveScaling(action.scaling, action.scalingKey, context, owner, Array.isArray(targetId) ? targetId[0] : (targetId ?? undefined));
             }
 
+            // Ticket 36: per-turn escalation, composed on top of whatever `scaling` resolved.
+            // `playsThisTurn` has ALREADY been incremented for the card being resolved (the
+            // reducer bumps it before it dispatches onActionStart), so the plays that came
+            // BEFORE this one is `playsThisTurn - 1` - which makes the first cast of a turn
+            // cost exactly its base rate.
+            if (action.escalatePerPlay) {
+                const priorPlays = Math.max(0, (owner.playsThisTurn ?? 1) - 1);
+                scaleFactor *= (1 + action.escalatePerPlay * priorPlays);
+            }
+
             if (action.type === 'COUNTER') {
                 // OS counters are OWNER-scoped by default (key becomes
                 // `key:ownerId`) so two units with the same OS never share a
@@ -183,9 +239,18 @@ export const HookFactory = {
 
             // To ensure scaling/percent max HP is respected (legacy Hook logic):
             if (action.type === 'HP' as any) {
-                const rawAmount = action.percentMaxHP
+                // Ticket 36: floor the PRODUCT, not just the percentage. The floor used to sit
+                // inside the percentage and every scaleFactor was an integer, so it never showed;
+                // `escalatePerPlay` introduced fractional factors and 22.5 HP of damage started
+                // reaching entities. A no-op for every integer scaling.
+                const rawProduct = action.percentMaxHP
                     ? Math.max(1, Math.floor(owner.maxHp * (Math.abs(action.percentMaxHP) / 100))) * scaleFactor
                     : (action.amount ?? 0) * scaleFactor;
+                // Ticket 53: floor the MAGNITUDE, not the signed value. `Math.floor` alone
+                // rounds a negative product AWAY from zero, so NOURISH_ROUTINE's `amount: -0.25`
+                // x a 45-power heal read as 12 damage where 25% is 11.25 -> 11. Every pre-53
+                // hook action has an integer product, where the two agree exactly.
+                const rawAmount = Math.sign(rawProduct) * Math.floor(Math.abs(rawProduct));
 
                 const finalIsHeal = (action.percentMaxHP ? action.percentMaxHP : (action.amount ?? 0)) > 0;
 
@@ -214,6 +279,13 @@ export const HookFactory = {
             if (scaledAction.amount !== undefined) scaledAction.amount *= scaleFactor;
             if (scaledAction.power !== undefined) scaledAction.power *= scaleFactor;
             if (scaledAction.stacks !== undefined) scaledAction.stacks *= scaleFactor;
+            // Ticket 52: BUFF_NEXT_PROGRAM's power bonus scales too, which is what lets
+            // UNSTOPPABLE_MASS read gullinbursti's own Sharp. Before this, v1 generated Sharp
+            // from five of its ten cards and had NO payoff for it - the scaler that cashes Sharp
+            // lives in v2's firmware - so the two decks were sharing one resource and only one
+            // of them could spend it. Floored, because a fractional power bonus would land
+            // downstream of `calculateDamage`'s own rounding.
+            if (scaledAction.powerBonus !== undefined) scaledAction.powerBonus = Math.floor(scaledAction.powerBonus * scaleFactor);
 
             // MAX_ENERGY has no ActionExecutor — handle it BEFORE the registry
             // lookup (it used to sit behind the "no executor" early-continue and

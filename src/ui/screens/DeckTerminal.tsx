@@ -11,6 +11,7 @@ import type { ProgramData } from '../../engine/types';
 import ProgramCard, { getElementColor, getElementIcon } from '../components/ProgramCard';
 import { getElementAccent, getElementBadgeBg, getElementTextColor, badgeTextShadow } from '../utils/contrastText';
 import './DeckTerminal.css';
+import { numericBaseCost } from '../../engine/types';
 
 type SortMode = 'name' | 'cost' | 'element';
 
@@ -127,7 +128,7 @@ export default function DeckTerminal() {
 
         return [...list].sort((a, b) => {
             if (sortBy === 'cost') {
-                if (a.data.baseCost !== b.data.baseCost) return a.data.baseCost - b.data.baseCost;
+                if (a.data.baseCost !== b.data.baseCost) return numericBaseCost(a.data.baseCost) - numericBaseCost(b.data.baseCost);
             } else if (sortBy === 'element') {
                 const el = a.data.element.localeCompare(b.data.element);
                 if (el !== 0) return el;
@@ -149,7 +150,7 @@ export default function DeckTerminal() {
             groups[owned.dataId].instances.push(instanceId);
         });
         return Object.values(groups).sort((a, b) => {
-            if (a.data.baseCost !== b.data.baseCost) return a.data.baseCost - b.data.baseCost;
+            if (a.data.baseCost !== b.data.baseCost) return numericBaseCost(a.data.baseCost) - numericBaseCost(b.data.baseCost);
             return a.data.name.localeCompare(b.data.name);
         });
     }, [activeDeck, cardInventory]);
@@ -158,7 +159,7 @@ export default function DeckTerminal() {
     const curve = useMemo(() => {
         const buckets = [0, 0, 0, 0];
         deckGroups.forEach(g => {
-            const idx = Math.min(Math.max(g.data.baseCost, 0), 3);
+            const idx = Math.min(Math.max(numericBaseCost(g.data.baseCost), 0), 3);
             buckets[idx] += g.instances.length;
         });
         return buckets;
