@@ -52,7 +52,18 @@ different per deck:
 `hooks.json`'s `hooks` array with `CustomFirmware[key]`. Clearing only the JSON side measured
 hel_v2's healing bonus alone (+11.3) and measured **nothing at all** for ymir_v2. Clear both.
 
-### 1.3 Read the code comments first
+### 1.3 OS contribution runs from +7 to +64 - measure it, do not assume it
+
+Across seven decks: `hraesvelgr_v2` **+64.4** (74.6% -> 10.2% with the OS off), `hel_v2` +79.6,
+`ymir_v1` +55.7, `valkyrie_v2` +34.5, `ymir_v2` +21.2, `nidhoggr_v2` +8.8, `nidhoggr_v1` +7.3.
+**A deck whose OS is worth +7 cannot be fixed by an OS knob; one worth +64 cannot be fixed by
+anything else.** The number tells you which lever exists before you sweep any of them.
+
+A useful sub-signal: if the payoff card's damage **barely moves** with the OS off
+(`valkyrie_v2`, 14% -> 13%), the OS is not enabling the payoff - it is adding value directly,
+and the knob is the OS's own numbers rather than anything about the card.
+
+### 1.4 Read the code comments first
 
 Twice now the diagnosis was already written down by a previous ticket. `ymir_v2`'s
 `maxCardsPerTurn: 2` drawback is documented in `CustomFirmware.ts` as **inert** - "at 2 Energy
@@ -91,7 +102,19 @@ Found three times, in three species, by three different tickets:
 **When a deck is over-performing, check whether its payoff scales off something 0-cost cards
 generate.** It is the most common broken shape in this game.
 
-### 2.3 A cap on a REGENERATING resource is not arbitrary - it is the bound
+### 2.3 A self-damage cost only works if the healing cannot out-earn it
+
+Henry, 2026-08-18, on `hel_v2`: *"if she has a bonus to healing it should definitely be nerfed.
+Otherwise the HP as costs doesn't work."* An OS that charges HP and boosts healing is charging
+nothing - the cost becomes a loan. That is why removing her turn cap made her STRONGER (2.4).
+
+**The design note that follows, for the next pass:** heals in such a deck **should all be
+RIDERS** on attacks, never standalone cards, so a heal is never a blank when the incoming damage
+exceeds it - and *"that change might allow us to lift the cap"*. `pale_mercy` is the one pure
+heal left in `hel_v2`; `dawnstrike` and `leech_strike` are already riders. The cap machinery is
+kept in `CustomFirmware.ts` for exactly this experiment.
+
+### 2.4 A cap on a REGENERATING resource is not arbitrary - it is the bound
 
 Henry dislikes arbitrary caps and is right about card scalers, where a cap punishes the turn
 you built toward. **A resource cap is a different animal.** Removing `hel_v2`'s 20% blood
@@ -102,7 +125,7 @@ bound at all. **Before removing a cap, ask what regenerates the thing it caps.**
 Related: such a cap moves in RESOURCE-UNIT steps, not percent steps. At a 6% price, caps of
 18% and 20% are identical - both allow exactly three Energy-points.
 
-### 2.3 Henry's preferred nerf shape, in order of preference
+### 2.5 Henry's preferred nerf shape, in order of preference
 
 1. **Add a condition to the OS so it triggers LESS** (OUROBOROS: 3rd Water card -> 5th).
 2. **Make the OS hit less hard when it does trigger** (OUROBOROS: drop the Energy, keep the draw).
@@ -112,7 +135,7 @@ Related: such a cap moves in RESOURCE-UNIT steps, not percent steps. At a 6% pri
 **Preserve the shape.** The OS and deck were designed together and deliberately. A change that
 makes a deck stop doing the thing it was built to do is a failure even if the win rate lands.
 
-### 2.4 Every scaler needs a ceiling, EXCEPT where Henry has ruled otherwise
+### 2.6 Every scaler needs a ceiling, EXCEPT where Henry has ruled otherwise
 
 `STRENGTH_STACK_CAP` 8, `MISSING_HP_PCT_CAP` 50, status percentages 25%. The per-event-count
 scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DISCARDED`) were the only ones with none, and that

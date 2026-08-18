@@ -299,7 +299,7 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
     });
 });
 
-describe('hel_v2 UNDERWORLD_GATEWAY (ticket 80: 6% blood, 25% per-turn cap)', () => {
+describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bonus)', () => {
     // Ticket 57 replaced the two data hooks with the firmware in CustomFirmware.ts. Three things
     // changed and all three are pinned below: the toll is scoped to DARK spells (it used to zero
     // and tax every card she played), the ticket-36 `escalatePerPlay: 1.25` escalation is GONE,
@@ -312,13 +312,16 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 80: 6% blood, 25% per-turn cap)', ()
     // The cap MACHINERY stays and is pinned below, because Henry's fallback if she is still
     // too strong is a 25% cap, then 20%.
 
-    it('boosts her healing by 50% through the onHealCalculated path, and charges the flat blood rate', () => {
+    it('NO LONGER boosts her healing - it charges blood and leaves the heal alone', () => {
         // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 6% of 200 maxHp x 1 printed
-        // Energy = 12 HP at action start; the heal is 200*25/400 = 12, boosted to 18 by the OS.
+        // Energy = 12 HP at action start; the heal is 200*25/400 = 12, and ticket 81 removed the
+        // +50% that used to make it 18. Henry: the healing bonus is what stopped HP-as-a-cost
+        // working - a heal that OUT-EARNS the blood price turns the cost into a loan. Heals are
+        // meant to alleviate the self-damage, not erase it. Net here is exactly zero.
         let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'dawns_respite')]);
         state = play(state, 'c1', PLAYER_ID);
 
-        expect(state.playerParty[0].currentHp).toBe(106); // 100 - 12 toll + 18 boosted heal
+        expect(state.playerParty[0].currentHp).toBe(100); // 100 - 12 toll + 12 unboosted heal
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays'))).toBe(true);
     });
 

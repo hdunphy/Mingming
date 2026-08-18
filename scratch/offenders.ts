@@ -52,6 +52,19 @@ if (DECK === 'nidhoggr_v1' && knob.rootmin) {
     const r = H.nidhoggr_v1.hooks.find(h => h.id === 'nidhoggr_v1_root');
     if (r) (r.when as { sourceStatus?: { status: string; minStacks: number } }).sourceStatus = { status: 'Poison', minStacks: Number(knob.rootmin) };
 }
+if (DECK === 'ymir_v1' && knob.shield) {
+    // GLACIER_HEART hands her 5 Bark Shield at the start of every turn, unconditionally - and
+    // `avalanche` is 9 power per stack, uncapped. The OS IS the engine.
+    const g = H.ymir_v1.hooks.find(h => h.id === 'ymir_v1_hook');
+    const stx = g?.do?.find(x => x.type === 'STATUS') as { stacks?: number } | undefined;
+    if (stx) stx.stacks = Number(knob.shield);
+}
+if (DECK === 'valkyrie_v2') {
+    const r = H.valkyrie_v2.hooks.find(h => h.id === 'valk_v2_rebirth');
+    if (r && knob.rebirth) for (const x of r.do ?? [])
+        if (x.type === 'ATTACK' || x.type === 'HEAL') (x as { power?: number }).power = Number(knob.rebirth);
+    if (r && knob.noheal) r.do = (r.do ?? []).filter(x => x.type !== 'HEAL');
+}
 if (DECK === 'nidhoggr_v2') {
     const b = H.nidhoggr_v2.hooks.find(h => h.id === 'nidhoggr_v2_bloodscent');
     // The live hook has NO `when` at all, so it fires when SHE crosses too - and her deck
@@ -74,6 +87,7 @@ type BattleAction = import('../src/engine/battleReducer').BattleAction;
 if (knob.pct) OS_KNOBS.hel.pctPerEnergy = Number(knob.pct);
 if (knob.cap) OS_KNOBS.hel.capPct = Number(knob.cap);
 if (knob.ice) OS_KNOBS.ymir.iceBonus = Number(knob.ice);
+if (knob.shuffles) OS_KNOBS.hraes.shufflesNeeded = Number(knob.shuffles);
 
 const SPECIES = DECK.replace(/_v[12]$/, '');
 const REG = MingmingRegistry as unknown as Record<string, {
@@ -93,7 +107,17 @@ const PAYOFF: Record<string, string[]> = {
     ymir_v2: ['glacial_maul'],
     nidhoggr_v1: ['wither_feast', 'blight_bloom'],
     nidhoggr_v2: ['rend_marrow', 'leech_strike'],
+    ymir_v1: ['avalanche'],
+    hraesvelgr_v2: ['thermal_lance', 'firestorm_talon'],
+    valkyrie_v2: ['starfall', 'ascension'],
 };
+
+/** Card-power knob, so a rate can be swept without editing programs.json. `card=id:power`. */
+if (knob.card) {
+    const [cid, pw] = knob.card.split(':');
+    ((await import('../src/engine/data/programRegistry')).ProgramRegistry as unknown as
+        Record<string, { actions: Array<{ power?: number }> }>)[cid].actions[0].power = Number(pw);
+}
 
 // ---- 1. field win rate against all 31 other decks ----
 const opponents: Array<{ sp: string; deck: string }> = [];
@@ -112,6 +136,7 @@ const field = sum / opponents.length;
 // ---- 2. payoff accessibility and magnitude ----
 const pay: Record<string, { casts: number; firstTurns: number[]; shares: number[] }> = {};
 let games = 0, turnsTotal = 0, cardsPlayed = 0, crossings = 0, myTurns = 0;
+const shieldAtCast: number[] = [];
 for (const o of opponents) {
     const setup = matchupScenario({ player: SPECIES, enemy: o.sp, playerOS: DECK, enemyOS: o.deck, seed: `pay:${DECK}:${o.deck}` });
     for (const seed of deriveSeeds(setup.seed, 4)) for (const side of ['PLAYER', 'ENEMY'] as const) {
@@ -138,6 +163,8 @@ for (const o of opponents) {
             const before = hp(st.enemyParty), foeMax = foe.maxHp;
             let next = battleReducer(st, act);
             if (next === st) { next = battleReducer(st, { type: 'END_TURN' }); if (next === st) break; }
+            if (cast === 'avalanche')
+                shieldAtCast.push(me.statusEffects?.find(x => x.type === 'BarkShield')?.stacks ?? 0);
             if (cast && PAYOFF[DECK].includes(cast)) {
                 const rec = (pay[cast] ??= { casts: 0, firstTurns: [], shares: [] });
                 rec.casts++;
@@ -150,10 +177,12 @@ for (const o of opponents) {
     }
 }
 
+const meanShield = shieldAtCast.length ? shieldAtCast.reduce((x, y) => x + y, 0) / shieldAtCast.length : 0;
 const q = (a: number[], p: number) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : 0; };
 const mean = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
 console.error(`\nRESULT ${DECK} [${ARM}]`);
 console.error(`  field ${(field * 100).toFixed(1)}%   <10%: ${lo}  >90%: ${hi}   avg game ${(turnsTotal / games).toFixed(1)} turns   cards/turn ${(cardsPlayed / Math.max(1, myTurns)).toFixed(2)}`);
+if (DECK === 'ymir_v1') console.error(`  Bark Shield when she casts avalanche: mean ${meanShield.toFixed(1)} stacks   <- the OS hands her 5 a turn, free`);
 if (DECK === 'nidhoggr_v2') console.error(`  she crosses below half HP ${(crossings / games).toFixed(2)}x a game  <- BLOOD_SCENT fires on her own crossings too`);
 for (const c of PAYOFF[DECK]) {
     const r = pay[c]; if (!r) continue;

@@ -797,7 +797,7 @@
     "ymir_v1": {
         "id": "ymir_v1",
         "name": "GLACIER_HEART_SYS",
-        "description": "At the start of Ymir's turn, it gains 5 Bark Shield.",
+        "description": "At the start of Ymir's turn, it gains 4 Bark Shield.",
         "hooks": [
             {
                 "id": "ymir_v1_hook",
@@ -811,11 +811,11 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "BarkShield",
-                        "stacks": 5
+                        "stacks": 4
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s GLACIER_HEART thickens. +5 Bark Shield."
+                        "text": "{owner}'s GLACIER_HEART thickens. +4 Bark Shield."
                     }
                 ]
             }
@@ -892,7 +892,7 @@
     "valkyrie_v2": {
         "id": "valkyrie_v2",
         "name": "REBIRTH_CYCLE_OS",
-        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 15 power of Light damage and heals herself with 15 power. Once per turn.",
+        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 12 power of Light damage and heals herself with 12 power. Once per turn.",
         "hooks": [
             {
                 "id": "valk_v2_rebirth_reset",
@@ -934,12 +934,12 @@
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "power": 15
+                        "power": 12
                     },
                     {
                         "type": "HEAL",
                         "target": "SELF",
-                        "power": 15
+                        "power": 12
                     },
                     {
                         "type": "LOG",
@@ -1089,7 +1089,7 @@
     "hel_v2": {
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
-        "description": "Hel's Dark spells cost 5% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 20% of her max HP this way each turn. Her healing is increased by 50%.",
+        "description": "Hel's Dark spells cost 6% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
         "hooks": [
             {
                 "id": "hel_v2_lifeblood",
@@ -1098,7 +1098,7 @@
                 "when": {
                     "source": "SELF"
                 },
-                "multiplier": 1.5
+                "multiplier": 1.0
             }
         ]
     },

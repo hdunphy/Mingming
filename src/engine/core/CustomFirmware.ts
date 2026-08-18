@@ -59,8 +59,12 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  * the looser texture. **A cap of 18 is identical to 20** at this price, which is worth knowing
  * before anyone tunes it again: the knob moves in Energy-point steps, not percent steps.
  * `ymir.iceBonus`               - GLACIAL_PACE_OS's Ice damage bonus.
+ * `hraes.shufflesNeeded`        - how many deck cycles UPDRAFT_KERNEL waits for before it
+ *                                 pays out its permanent +1 max Energy. Ticket 81 took it
+ *                                 from 1 to 2: the OS was worth +64 points and paid out on
+ *                                 turn ~2 on an 8-card deck carrying four draw cards.
  */
-export const OS_KNOBS = { hel: { pctPerEnergy: 6, capPct: 25 }, ymir: { iceBonus: 0.25 } };
+export const OS_KNOBS = { hel: { pctPerEnergy: 6, capPct: 25 }, ymir: { iceBonus: 0.25 }, hraes: { shufflesNeeded: 2 } };
 
 /** Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive". */
 const HEL_BLOOD_BLOCKED_COST = 999;
@@ -174,7 +178,7 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 // the once-only guard is namespaced per owner so two Hraesvelgrs
                 // each get their own +1 Max Energy.
                 const guardKey = resolveCounterKey('hraesvelgr_max_energy', 'OWNER', owner);
-                if ((state.counters['deck_shuffles'] || 0) > 0 && !(state.counters[guardKey] || 0)) {
+                if ((state.counters['deck_shuffles'] || 0) >= OS_KNOBS.hraes.shufflesNeeded && !(state.counters[guardKey] || 0)) {
                     state = applyMutations(state, [
                         { type: 'MAX_ENERGY', targetId: owner.id, payload: { amount: 1 } },
                         { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
