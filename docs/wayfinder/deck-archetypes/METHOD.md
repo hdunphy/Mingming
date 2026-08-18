@@ -180,6 +180,43 @@ worth +4.0 on its own. But **check the swap does not slow the deck down**: fenri
 swap measured +0.9 and cost her 0.2 cards a turn and half a turn of payoff delay. A card that is
 nearly blank is better rewritten as a rider than swapped out.
 
+### 2.8 A cost the deck does not pay for is a deck problem, not an OS problem
+
+Two decks in a row failed the same way from opposite ends, and neither was diagnosable from the OS
+alone (ticket 83):
+
+- **`fenrir_v1`** charges recoil to reach a berserk threshold, and four of his nine cards heal or
+  reward being healthy - including two copies of a card that *loses half its damage* below the
+  threshold and heals you back over it.
+- **`sleipnir_v2`** pays for her payoffs by discarding at random, and **not one card in her list
+  rewards being discarded**, while her own element's pool holds four that do.
+
+**Ask what the OS's cost is supposed to buy, then check the deck list actually sells it.** If the
+answer is "nothing", the OS number is not the lever - and note that in both cases the deck-list fix
+was worth far more than any OS knob (`sky_burial` alone: +38 points).
+
+### 2.9 A bonus scaled by the state you want beats the same bonus flat
+
+fenrir's OS with a flat *"Fire attacks deal 20% more"* measured **34.8%**; the same ceiling scaled
+by how much max HP is missing measured **40.1%** and halved his zero cells. A flat bonus is a power
+increase - it prices in against every opponent equally and mostly makes good matchups better. A
+bonus keyed to the state the deck is trying to reach pays exactly where the deck is losing, which
+is what turns 0% cells into contests. **When an OS needs a product, scale it on the deck's own
+condition rather than handing out damage.**
+
+### 2.10 On a small frame, a self-damage price cannot grow
+
+fenrir's recoil at 2% of 66 HP is **1 HP** - and at 1% it is *also* 1 HP, because
+`max(1, floor(...))` clamps it. Raising it to 8% so it could actually reach the berserk threshold
+collapsed him from 36.2% to **20.2%** with 19 zero cells. **The only version of the price that
+reaches the payoff is the one that kills him**, so on the smallest frames the missing HP has to
+come from the enemy and the OS's own cost has to stay near zero.
+
+**Corollary, measured:** a card that spends HP voluntarily does not work under the current pilot.
+`getEntityScore` prices HP **concave** (85% sqrt, ticket 27) so a hurt unit heals; a new 0e
+"lose 8% max HP, gain 2 Strengthened" measured +0.3. **That is an AI decision, not a card
+decision** - and the ticket-27 comment names `fenrir_v1` as the deck the concavity was added for.
+
 ---
 
 ## 3. Measuring

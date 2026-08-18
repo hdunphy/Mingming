@@ -60,8 +60,18 @@ if (DECK === 'fenrir_v1') {
         if (knob.recoil === '0') f.do = (f.do ?? []).filter(x => x.type !== 'HP');
         else {
             const hpAct = f.do?.find(x => x.type === 'HP') as { percentMaxHP?: number } | undefined;
+            // Ticket 82 REMOVED the HP action, so a recoil arm has to put one back.
             if (hpAct) hpAct.percentMaxHP = -Number(knob.recoil);
+            else (f.do ?? []).unshift({ type: 'HP', target: 'SELF', percentMaxHP: -Number(knob.recoil) } as unknown as { type: string });
         }
+    }
+    // Ticket 83, Henry's suggestion: give the recoil a PRODUCT - "Fire attacks deal X% more".
+    if (knob.firepct) {
+        H.fenrir_v1.hooks.push({
+            id: 'fenrir_v1_fire_bonus', trigger: 'onDamageCalculated', priority: 40,
+            when: { source: 'SELF', programElement: 'Fire' },
+            multiplier: 1 + Number(knob.firepct) / 100,
+        } as unknown as { id: string });
     }
     if (f && knob.recoilcost) {
         // Shape-preserving buff: the recoil STAYS, it just stops taxing her cheap attacks.
@@ -70,6 +80,17 @@ if (DECK === 'fenrir_v1') {
     if (f && knob.str) {
         const stAct = f.do?.find(x => x.type === 'STATUS') as { stacks?: number } | undefined;
         if (stAct) stAct.stacks = Number(knob.str);
+    }
+}
+if (DECK === 'sleipnir_v2') {
+    // WAR_STEED_OS generates one 0-cost Hoof Strike per Air ATTACK played.
+    const w = H.sleipnir_v2.hooks.find(h => h.id === 'sleipnir_v2_hook');
+    // `anyair` - the OS pays on any Air card, not only attacks (it currently ignores tailwind/tempest).
+    if (w && knob.anyair) delete (w.when as Record<string, unknown>).actionType;
+    // `token2` - two tokens a trigger instead of one.
+    if (w && knob.token2) {
+        const gen = w.do?.find(x => x.type === 'GENERATE_CARD');
+        if (gen) w.do?.unshift(JSON.parse(JSON.stringify(gen)));
     }
 }
 if (DECK === 'kraken_v2') {
@@ -123,6 +144,27 @@ if (knob.ice) OS_KNOBS.ymir.iceBonus = Number(knob.ice);
 if (knob.shuffles) OS_KNOBS.hraes.shufflesNeeded = Number(knob.shuffles);
 if (knob.hoardpct) OS_KNOBS.fafnir.hoardRecoilPct = Number(knob.hoardpct);
 
+// `berserk=N` - Fire attacks deal up to N% more damage, scaled by how much max HP is MISSING.
+// At N=50 that is +25% at half health and +50% at death's door. This is the shape the recoil was
+// always supposed to be buying: the price and the product are the same quantity.
+if (DECK === 'fenrir_v1' && knob.berserk) {
+    const rate = Number(knob.berserk) / 100;
+    (CF as Record<string, unknown[]>).fenrir_v1 = [
+        ...((CF as Record<string, unknown[]>).fenrir_v1 ?? []),
+        {
+            id: 'fenrir_v1_berserk',
+            priority: 40,
+            onDamageCalculated: (currentDamage: number, context: { source?: { id: string }; program?: { element?: string } }, owner: { id: string; currentHp: number; maxHp: number }): number => {
+                if (context.source?.id === owner.id && context.program?.element === 'Fire') {
+                    const missing = 1 - owner.currentHp / Math.max(1, owner.maxHp);
+                    return currentDamage + Math.floor(currentDamage * rate * missing);
+                }
+                return currentDamage;
+            },
+        },
+    ];
+}
+
 const SPECIES = DECK.replace(/_v[12]$/, '');
 const REG = MingmingRegistry as unknown as Record<string, {
     baseStats: { hp: number; attack: number; defense: number; energy: number };
@@ -148,6 +190,8 @@ const PAYOFF: Record<string, string[]> = {
     kraken_v2: ['maelstrom', 'hydro_blast'],
     fafnir_v1: ['deep_vein', 'hoardbreaker'],
     fafnir_v2: ['veinburst', 'boulder_smash'],
+    sleipnir_v2: ['lance', 'cavalry_charge'],
+    sleipnir_v1: ['stampede', 'momentum_crash'],
 };
 
 /** Card-power knob, so a rate can be swept without editing programs.json. `card=id:power`. */
@@ -155,6 +199,33 @@ if (knob.card) {
     const [cid, pw] = knob.card.split(':');
     ((await import('../src/engine/data/programRegistry')).ProgramRegistry as unknown as
         Record<string, { actions: Array<{ power?: number }> }>)[cid].actions[0].power = Number(pw);
+}
+
+// `bloodflip` - blood_rite currently LOSES half its damage below 50% and heals you back over the
+// threshold, which is the berserk payoff running in reverse on two of nine cards. This flips it:
+// the heal is the HEALTHY mode, the extra 15 power is the HURT mode.
+// `feralbite` - injects a new 0e card, the accelerator the kit has never had: nothing in the pool
+// lets a Mingming spend HP on purpose except hel, and she does it through her OS.
+{
+    const PR = (await import('../src/engine/data/programRegistry')).ProgramRegistry as unknown as
+        Record<string, { actions: Array<{ conditionals?: Array<{ value: string }> }> }>;
+    if (knob.bloodflip) {
+        for (const act of PR.blood_rite.actions)
+            for (const c of act.conditionals ?? [])
+                c.value = c.value === 'GT:50' ? 'LT:51' : 'GT:50';
+    }
+    if (knob.feralbite) {
+        (PR as unknown as Record<string, unknown>).feral_bite = {
+            id: 'feral_bite', name: 'Feral Bite',
+            description: 'Lose 8% of your max HP. Gain 2 Strengthened.',
+            element: 'Fire', target: 'Self', category: 'Skill', rarity: 'Common', baseCost: 0,
+            constraints: ['not_stunned', 'not_asleep', 'energy_base'],
+            actions: [
+                { type: 'HP', target: 'SELF', percentMaxHP: -8 },
+                { type: 'STATUS', status: 'Strengthened', stacks: 2, target: 'SELF' },
+            ],
+        };
+    }
 }
 
 // ---- 1. field win rate against all 31 other decks ----

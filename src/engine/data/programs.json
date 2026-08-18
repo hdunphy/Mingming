@@ -3364,7 +3364,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 12,
+                "power": 15,
                 "target": "TARGET"
             }
         ]

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "spec": "docs/balance_testing.md",
   "command": "npm run balance",
-  "registryHash": "1:58b62896",
+  "registryHash": "1:16e1ba6b",
   "summary": {
     "redlines": 52,
     "cardRedlines": 42,
@@ -251,6 +251,16 @@
         "manualReview": []
       },
       {
+        "id": "hoof_strike",
+        "name": "Hoof Strike",
+        "cost": 0,
+        "score": 1.4,
+        "perEnergy": 3.2,
+        "budget": 1,
+        "overBudgetBy": 0.4,
+        "manualReview": []
+      },
+      {
         "id": "slipstream",
         "name": "Slipstream",
         "cost": 0,
@@ -391,16 +401,6 @@
         "manualReview": []
       },
       {
-        "id": "hoof_strike",
-        "name": "Hoof Strike",
-        "cost": 0,
-        "score": 1.1,
-        "perEnergy": 2.6,
-        "budget": 1,
-        "overBudgetBy": 0.1,
-        "manualReview": []
-      },
-      {
         "id": "iron_bark",
         "name": "Iron Bark",
         "cost": 1,
@@ -481,7 +481,7 @@
       "winRate": 0.0363,
       "averageTurns": 6.59,
       "deadCardRatio": 0.1215,
-      "enemyDeadCardRatio": 0.1167,
+      "enemyDeadCardRatio": 0.1168,
       "ftkCount": 0,
       "truncatedCount": 0,
       "firstMoverEdge": null,
@@ -533,7 +533,7 @@
       "winRate": 0.0438,
       "averageTurns": 6.6,
       "deadCardRatio": 0.1262,
-      "enemyDeadCardRatio": 0.1402,
+      "enemyDeadCardRatio": 0.1403,
       "ftkCount": 0,
       "truncatedCount": 0,
       "firstMoverEdge": null,
@@ -1259,9 +1259,9 @@
       "decisive": 100,
       "decisiveWinRate": 0.01,
       "winRate": 0.01,
-      "averageTurns": 5.55,
+      "averageTurns": 5.52,
       "deadCardRatio": 0.15,
-      "enemyDeadCardRatio": 0.0909,
+      "enemyDeadCardRatio": 0.0919,
       "ftkCount": 0,
       "truncatedCount": 0,
       "firstMoverEdge": 0.01,
@@ -2214,19 +2214,19 @@
       "enemy": "sleipnir",
       "enemyOS": "sleipnir_v2",
       "iterations": 100,
-      "playerWins": 33,
-      "enemyWins": 67,
+      "playerWins": 26,
+      "enemyWins": 74,
       "draws": 0,
       "decisive": 100,
-      "decisiveWinRate": 0.33,
-      "winRate": 0.33,
-      "averageTurns": 4.21,
-      "deadCardRatio": 0.1683,
-      "enemyDeadCardRatio": 0.1478,
+      "decisiveWinRate": 0.26,
+      "winRate": 0.26,
+      "averageTurns": 4.12,
+      "deadCardRatio": 0.1775,
+      "enemyDeadCardRatio": 0.1579,
       "ftkCount": 0,
       "truncatedCount": 0,
-      "firstMoverEdge": -0.05,
-      "sideBias": 0.34,
+      "firstMoverEdge": -0.04,
+      "sideBias": 0.48,
       "inconclusive": false,
       "redlines": [
         {
@@ -2234,10 +2234,10 @@
           "section": "2.3",
           "subject": "os:sleipnir",
           "metric": "osGap",
-          "value": 0.17,
+          "value": 0.24,
           "threshold": 0.15,
           "comparison": "above",
-          "detail": "sleipnir_v2 wins 67.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
+          "detail": "sleipnir_v2 wins 74.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
         }
       ]
     },
@@ -2512,10 +2512,10 @@
       "section": "1.3",
       "subject": "hoof_strike",
       "metric": "score",
-      "value": 1.1,
+      "value": 1.4,
       "threshold": 1,
       "comparison": "above",
-      "detail": "Hoof Strike (hoof_strike) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
+      "detail": "Hoof Strike (hoof_strike) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
     },
     {
       "kind": "CARD_OVER_BUDGET",
@@ -2812,10 +2812,10 @@
       "section": "2.3",
       "subject": "os:sleipnir",
       "metric": "osGap",
-      "value": 0.17,
+      "value": 0.24,
       "threshold": 0.15,
       "comparison": "above",
-      "detail": "sleipnir_v2 wins 67.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
+      "detail": "sleipnir_v2 wins 74.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost."
     },
     {
       "kind": "OS_GAP",
