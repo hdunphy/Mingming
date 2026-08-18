@@ -181,7 +181,10 @@ const REG = MingmingRegistry as unknown as Record<string, {
     baseStats: { hp: number; attack: number; defense: number; energy: number };
     availableOS: string[]; decks: Record<string, string[]>;
 }>;
-for (const st of ['hp', 'attack', 'defense'] as const) if (knob[st]) REG[SPECIES].baseStats[st] = Number(knob[st]);
+for (const st of ['hp', 'attack', 'defense', 'energy'] as const) if (knob[st]) REG[SPECIES].baseStats[st] = Number(knob[st]);
+// Ticket 88: the two constants that are secretly the whole archetype axis. `energy` is 2 on 14 of
+// 15 species and `cardDraw` is 3 on 12 of 15 - ratatoskr's 3/4 is the only variation in the game.
+if (knob.draw) (REG[SPECIES] as unknown as { cardDraw: number }).cardDraw = Number(knob.draw);
 if (knob.cut) REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].filter((c, i, a) => !(c === knob.cut && a.indexOf(c) === i));
 if (knob.swap) { const [from, to] = knob.swap.split(':'); REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c)); }
 
