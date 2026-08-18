@@ -217,6 +217,18 @@ come from the enemy and the OS's own cost has to stay near zero.
 "lose 8% max HP, gain 2 Strengthened" measured +0.3. **That is an AI decision, not a card
 decision** - and the ticket-27 comment names `fenrir_v1` as the deck the concavity was added for.
 
+### 2.11 An interim fix and the real fix are the same repair twice
+
+Ticket 83 buffed `sleipnir_v2`'s OS token because the deck-list change it had really diagnosed was
+Henry's to approve. When he approved it a ticket later, the deck fix was measured **45.9%** - but
+that arm had been taken against the build *before* the token buff. Shipped together they landed
+**57.0%**, +11 over the number that was approved.
+
+**Whenever a stand-in ships first, re-measure the pair before shipping the real fix**, and say so
+before it lands rather than after. This is the buff-side twin of 3.5's simultaneous-nerf undershoot,
+and it bites harder: two fixes aimed at the SAME failure compound, where two unrelated nerfs merely
+cancel.
+
 ---
 
 ## 3. Measuring

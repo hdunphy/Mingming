@@ -64,7 +64,7 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  *                                 from 1 to 2: the OS was worth +64 points and paid out on
  *                                 turn ~2 on an 8-card deck carrying four draw cards.
  */
-export const OS_KNOBS = { hel: { pctPerEnergy: 6, capPct: 25 }, ymir: { iceBonus: 0.25 }, hraes: { shufflesNeeded: 2 } };
+export const OS_KNOBS = { hel: { pctPerEnergy: 6, capPct: 25 }, ymir: { iceBonus: 0.25 }, hraes: { shufflesNeeded: 2 }, fenrir: { berserkPct: 0.5 } };
 
 /** Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive". */
 const HEL_BLOOD_BLOCKED_COST = 999;
@@ -114,7 +114,51 @@ function helBloodPct(context: HookContext, owner: IBattleEntity): number {
 const SKOLL_V2_DAMAGE_PER_STRENGTH = 0.15;
 const SKOLL_V2_STRENGTH_CAP = 5;
 
+/**
+ * UNBOUND_KERNEL (fenrir_v1), ticket 84 - the half of the OS that was missing.
+ *
+ * "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to
+ *  50% more damage, scaled by how much of your max HP is missing."
+ *
+ * WHY THE CLAUSE EXISTS. Ticket 83 measured the original OS as a price with no product. On a 66 HP
+ * frame the recoil is `max(1, floor(66 * 0.02))` = ONE HP - and 1% floors to the same 1, so the
+ * price has no second setting - which across a game supplies ~8% missing HP, worth +5.6 power on
+ * `ragnarok_edge`. The OS sold ~5.5 HP of her health for ~1.9 HP of damage, and `berserk_rush`
+ * needs 50% missing, so it never switched that card on at all. Ticket 82 had removed the recoil
+ * because it could not find anything the recoil bought; this pays for it instead.
+ *
+ * WHY IT IS SCALED AND NOT FLAT. Both were measured at the same +20% ceiling: FLAT read 34.8%
+ * field, BELOW the recoil-less build, because a flat bonus is a power increase that prices in
+ * against every opponent equally. Scaled by missing HP read 40.1% and halved her 0% cells (11 ->
+ * 6): it pays exactly where a 66 HP deck spends its games, so it turns hopeless cells into
+ * contests instead of making good matchups better.
+ *
+ * WHY IT IS HERE AND NOT IN hooks.json. `HookFactory.resolveScaling`'s `MISSING_HP` key resolves
+ * the TARGET's missing HP - the defender's - and this bonus keys off the OWNER's. Expressing it as
+ * data would mean a new scaling key for one consumer; hand-written firmware is the precedent
+ * (hel_v2, ymir_v2, skoll_v2).
+ *
+ * DO NOT RAISE THE RECOIL to make the berserk state reachable. It was measured: 8% (5 HP an attack)
+ * collapses her to 20.2% with 19 zero cells, games a turn and a half shorter. On the smallest frame
+ * in the roster the missing HP has to come from the enemy.
+ *
+ * NOTE: `powerscale` cannot see this - it is firmware, not card data - so every Fire card in
+ * fenrir_v1 is worth more than its printed score says, the same blind spot ymir_v2's Ice bonus has.
+ */
 export const CustomFirmware: Record<string, HookDefinition[]> = {
+    "fenrir_v1": [
+        {
+            id: "fenrir_v1_berserk",
+            priority: 40,
+            onDamageCalculated: (currentDamage: number, context: HookContext, owner: IBattleEntity): number => {
+                if (context.source?.id === owner.id && context.program?.element === 'Fire') {
+                    const missing = 1 - owner.currentHp / Math.max(1, owner.maxHp);
+                    return currentDamage + Math.floor(currentDamage * OS_KNOBS.fenrir.berserkPct * missing);
+                }
+                return currentDamage;
+            }
+        }
+    ],
     "fafnir_v1": [
         {
             id: "fafnir_v1_hoard",

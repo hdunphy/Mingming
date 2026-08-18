@@ -369,7 +369,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // cavalry - the OS's free Hoof Strike tokens become the fodder Lance/Cavalry Charge spend.
         decks: {
             "sleipnir_v1": ["water_slap", "water_slap", "slipstream", "slipstream", "disorienting_gust", "adrenaline", "tailwind", "zephyr_strike", "stampede", "stampede", "momentum_crash", "hoofbeat_daemon"],
-            "sleipnir_v2": ["lance", "lance", "cavalry_charge", "zephyr_strike", "zephyr_strike", "dust_devil", "tailwind", "water_slap"]
+            "sleipnir_v2": ["lance", "lance", "cavalry_charge", "zephyr_strike", "zephyr_strike", "dust_devil", "war_molt", "water_slap"]
         },
         moves: [
             {

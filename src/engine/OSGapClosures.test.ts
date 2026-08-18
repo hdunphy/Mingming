@@ -468,6 +468,35 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
         expect(getOSBehavior('fenrir_v1')!.maxCardsPerTurn).toBeUndefined();
     });
 
+    it('a fenrir_v1 unit hits HARDER the more max HP it is missing (ticket 84)', () => {
+        // UNBOUND_KERNEL's Fire bonus scales on the OWNER's missing HP - the clause that pays for
+        // the recoil. At full health it is worth nothing; at half health, half of OS_KNOBS.fenrir
+        // .berserkPct. Level 20 for the same reason as the Ice test below: at level 1 the pace
+        // divisor floors a small card to 0 and the assertion would be vacuous.
+        const runAttack = (currentHp: number, activeOS?: string): number => {
+            const attacker = makeUnit('a1', 'Attacker', {
+                level: 20, currentHp, maxHp: 100, ...(activeOS ? { activeOS } : {})
+            });
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
+                card('c1', 'card_fireball', 1)
+            ]);
+            state = play(state, 'a1', 'e1', 'c1');
+            return 100 - state.enemyParty[0].currentHp;
+        };
+
+        const plain = runAttack(50);
+        const full = runAttack(100, 'fenrir_v1');
+        const half = runAttack(50, 'fenrir_v1');
+        const sliver = runAttack(10, 'fenrir_v1');
+
+        // card_fireball is two hits and the bonus floors per hit, so the assertion is the ORDER,
+        // not an exact product: at full health the clause pays nothing, and it grows as she drops.
+        expect(plain).toBeGreaterThan(0);
+        expect(full).toBe(plain);
+        expect(half).toBeGreaterThan(full);
+        expect(sliver).toBeGreaterThanOrEqual(half); // per-hit flooring hides the last step at these sizes
+    });
+
     it('Ice cards from a ymir_v2 unit deal exactly +50% through the real reducer', () => {
         const runAttack = (activeOS?: string): number => {
             // Level 20, not the default 1: under the rev-3.1 pace (ticket 23, /45) a 20-power
