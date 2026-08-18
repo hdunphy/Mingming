@@ -402,8 +402,14 @@ describe('Item 8 - GULLINBURSTI v1 UNSTOPPABLE_MASS (Status -> next Attack)', ()
     });
 });
 
-describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
-    it('silently rejects the third card played by a ymir_v2 unit in one turn', () => {
+describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
+    // Ticket 80: the cap is 2 -> 1. It sat at 2 for three tickets and NEVER BOUND - ticket 50
+    // wrote that down and nobody acted on it, and ticket 79 measured her playing 1.06 cards a
+    // turn against it. The drawback that was supposed to pay for a +25% unconditional damage
+    // bonus was inert, so the bonus had been walked 50% -> 35% -> 25% instead, three times,
+    // without fixing her. This makes the drawback real rather than shaving the bonus a fourth
+    // time.
+    it('silently rejects the SECOND card played by a ymir_v2 unit in one turn', () => {
         const ymir = makeUnit('ym1', 'Ymir', { activeOS: 'ymir_v2' });
         let state = makeState([ymir], [makeUnit('e1', 'Enemy')], [
             card('c1', 'card_strike', 1),
@@ -412,13 +418,12 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         ]);
 
         state = play(state, 'ym1', 'e1', 'c1');
-        state = play(state, 'ym1', 'e1', 'c2');
-        expect(state.playerParty[0].playsThisTurn).toBe(2);
-        expect(state.playerParty[0].currentEnergy).toBe(3);
+        expect(state.playerParty[0].playsThisTurn).toBe(1);
+        expect(state.playerParty[0].currentEnergy).toBe(4);
 
-        const after = play(state, 'ym1', 'e1', 'c3');
+        const after = play(state, 'ym1', 'e1', 'c2');
         expect(after).toBe(state); // state unchanged, no log spam
-        expect(after.playerDeck.hand).toHaveLength(1);
+        expect(after.playerDeck.hand).toHaveLength(2);
     });
 
     it('the limit resets when the turn cycles back to the player', () => {
@@ -430,7 +435,6 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         ]);
 
         state = play(state, 'ym1', 'e1', 'c1');
-        state = play(state, 'ym1', 'e1', 'c2');
         state = battleReducer(state, { type: 'END_TURN' }); // player -> enemy
         state = battleReducer(state, { type: 'END_TURN' }); // enemy -> player
         expect(state.playerParty[0].playsThisTurn).toBe(0);
@@ -459,8 +463,8 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (2-card limit + Ice bonus)', () => {
         expect(state.playerParty[0].playsThisTurn).toBe(3);
     });
 
-    it('registry exposes maxCardsPerTurn: 2 for ymir_v2 only where declared', () => {
-        expect(getOSBehavior('ymir_v2')!.maxCardsPerTurn).toBe(2);
+    it('registry exposes maxCardsPerTurn: 1 for ymir_v2 only where declared', () => {
+        expect(getOSBehavior('ymir_v2')!.maxCardsPerTurn).toBe(1);
         expect(getOSBehavior('fenrir_v1')!.maxCardsPerTurn).toBeUndefined();
     });
 

@@ -853,7 +853,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         baseStats: {
             hp: 105,
             attack: 100,
-            defense: 80,
+            defense: 68,
             energy: 2
         },
         primaryElement: "Dark",

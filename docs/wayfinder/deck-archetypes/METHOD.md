@@ -91,6 +91,17 @@ Found three times, in three species, by three different tickets:
 **When a deck is over-performing, check whether its payoff scales off something 0-cost cards
 generate.** It is the most common broken shape in this game.
 
+### 2.3 A cap on a REGENERATING resource is not arbitrary - it is the bound
+
+Henry dislikes arbitrary caps and is right about card scalers, where a cap punishes the turn
+you built toward. **A resource cap is a different animal.** Removing `hel_v2`'s 20% blood
+budget - while RAISING the price 5% -> 6% - made her **stronger, 81.4% -> 87.0%**, because her
+OS's +50% healing refunds blood faster than the price takes it. Uncapped, the loop has no
+bound at all. **Before removing a cap, ask what regenerates the thing it caps.**
+
+Related: such a cap moves in RESOURCE-UNIT steps, not percent steps. At a 6% price, caps of
+18% and 20% are identical - both allow exactly three Energy-points.
+
 ### 2.3 Henry's preferred nerf shape, in order of preference
 
 1. **Add a condition to the OS so it triggers LESS** (OUROBOROS: 3rd Water card -> 5th).
@@ -145,14 +156,22 @@ on the board as an opponent. Anything about archetypes needs the full deck-vs-de
   the exact quantity you are switching to. Ticket 71 predicted 41.5% zero-damage casts; the real
   answer after the change was 12.9%, because the AI re-sequenced.
 
-### 3.5 Net damage per turn is not comparable across clock speeds
+### 3.5 Test simultaneous changes SIMULTANEOUSLY
+
+Single-deck arms systematically **over-state** a nerf that ships alongside others. Ticket 80's
+four knobs measured individually predicted 67.6 / 65.9 / 67.0 / 67.3; shipped together they
+landed 71.0 / 69.0 / 68.2 / 69.1 - every one 2-3 points higher, because each deck's nerf makes
+its former rivals slightly easier for the others. Use single-deck arms to RANK knobs, then
+measure the chosen set together before believing a number.
+
+### 3.6 Net damage per turn is not comparable across clock speeds
 
 `hel_v2` is net-NEGATIVE against 9 of 15 opponents - including -4.57 against a kraken she beats
 92% - and is the strongest deck in the game. Ticket 67 used net/turn correctly on kraken because
 it compared decks of similar pace. **Across paces, compare THROUGHPUT (damage dealt per turn), not
 the difference.**
 
-### 3.6 The AI is not a fixed sampler
+### 3.7 The AI is not a fixed sampler
 
 `getBestAction` pushes candidates through the reducer and prices a card as it will actually
 resolve. Change a card's payoff and the AI re-sequences around it. Compensation is therefore a

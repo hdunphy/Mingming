@@ -43,9 +43,24 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  * sweep can move them without a rebuild. Shipped values are the ones written here.
  *
  * `hel.pctPerEnergy` / `hel.capPct` - UNDERWORLD_GATEWAY's blood price and its per-turn cap.
+ *
+ * Ticket 80: price 5 -> 6, cap 20 -> **25**.
+ * Henry: *"I really don't like adding arbitrary caps... move to 6% energy cost but remove the
+ * 20% cap."* Measured, the cap was inert anyway - `soul_tithe` costs exactly 15% so a cap of
+ * 20 or 15 blocked nothing it was meant to, and only ever stopped a rare second Dark cast.
+ * The price is the honest lever: it charges for every cast instead of forbidding one of them.
+ *
+ * REMOVING THE CAP ENTIRELY WAS TRIED FIRST AND MADE HER STRONGER, not weaker: 81.4% ->
+ * **87.0%** field. Uncapped she chains Dark casts all turn and the OS's +50% healing refunds
+ * the blood faster than the price takes it, so the extra volume beat the extra cost. Henry
+ * anticipated exactly this ("if she is too OP try 25% and back to 20%"). At 6% a cap of 25
+ * allows four Energy-points of Dark a turn (24%) and lands her at 71.0%; a cap of 20 allows
+ * three (18%) and lands at 70.0% - one point apart, inside noise at this sample, so 25 keeps
+ * the looser texture. **A cap of 18 is identical to 20** at this price, which is worth knowing
+ * before anyone tunes it again: the knob moves in Energy-point steps, not percent steps.
  * `ymir.iceBonus`               - GLACIAL_PACE_OS's Ice damage bonus.
  */
-export const OS_KNOBS = { hel: { pctPerEnergy: 5, capPct: 20 }, ymir: { iceBonus: 0.25 } };
+export const OS_KNOBS = { hel: { pctPerEnergy: 6, capPct: 25 }, ymir: { iceBonus: 0.25 } };
 
 /** Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive". */
 const HEL_BLOOD_BLOCKED_COST = 999;

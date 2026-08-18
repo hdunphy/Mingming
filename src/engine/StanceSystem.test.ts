@@ -4,6 +4,7 @@ import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { StatusType } from './types';
 import { calculateHeal } from './combatUtils';
 import { STANCE_BONUS } from './core/Hooks';
+import { OS_KNOBS } from './core/CustomFirmware';
 
 /**
  * Stance system (Hel / TWILIGHT_CADENCE):
@@ -298,27 +299,33 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
     });
 });
 
-describe('hel_v2 UNDERWORLD_GATEWAY (ticket 57: throttled blood, %-denominated)', () => {
+describe('hel_v2 UNDERWORLD_GATEWAY (ticket 80: 6% blood, 25% per-turn cap)', () => {
     // Ticket 57 replaced the two data hooks with the firmware in CustomFirmware.ts. Three things
     // changed and all three are pinned below: the toll is scoped to DARK spells (it used to zero
     // and tax every card she played), the ticket-36 `escalatePerPlay: 1.25` escalation is GONE,
-    // and a per-turn budget of 20% of max HP now makes further blood casts UNAFFORDABLE rather
-    // than merely expensive.
+    // and a per-turn budget made further blood casts UNAFFORDABLE rather than merely expensive.
+    //
+    // TICKET 80 REMOVED THAT BUDGET. Henry: "I really don't like adding arbitrary caps." It
+    // was inert anyway - `soul_tithe` costs exactly 15%, so a 20% or even 15% cap never
+    // blocked the cast it was aimed at and only ever stopped a rare second Dark card. The
+    // price went 5% -> 6% instead, which charges for every cast rather than forbidding one.
+    // The cap MACHINERY stays and is pinned below, because Henry's fallback if she is still
+    // too strong is a 25% cap, then 20%.
 
     it('boosts her healing by 50% through the onHealCalculated path, and charges the flat blood rate', () => {
-        // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 5% of 200 maxHp x 1 printed
-        // Energy = 10 HP at action start; the heal is 200*25/400 = 12, boosted to 18 by the OS.
+        // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 6% of 200 maxHp x 1 printed
+        // Energy = 12 HP at action start; the heal is 200*25/400 = 12, boosted to 18 by the OS.
         let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'dawns_respite')]);
         state = play(state, 'c1', PLAYER_ID);
 
-        expect(state.playerParty[0].currentHp).toBe(108); // 100 - 10 toll + 18 boosted heal
+        expect(state.playerParty[0].currentHp).toBe(106); // 100 - 12 toll + 18 boosted heal
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays'))).toBe(true);
     });
 
-    it('NO LONGER escalates - the toll is a flat 5% of max HP per printed Energy', () => {
+    it('NO LONGER escalates - the toll is a flat 6% of max HP per printed Energy', () => {
         // Ticket 36 made every further card that turn cost 125% more, because a flat toll could
         // not brake a deck with no Energy limit. Ticket 57 removes the escalation and brakes it
-        // with a budget instead: on a 200-maxHp frame every `nights_bite` (1e Dark) costs 10,
+        // with a price instead: on a 200-maxHp frame every `nights_bite` (1e Dark) costs 12,
         // where the escalating version charged 10, then 22, then 35.
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, cardDraw: 4 },
@@ -332,53 +339,59 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 57: throttled blood, %-denominated)'
             tolls.push(before - state.playerParty[0].currentHp);
         }
 
-        expect(tolls).toEqual([10, 10, 10]);
+        expect(tolls).toEqual([12, 12, 12]);
     });
 
-    it('caps the turn at 20% of max HP - the 5th Energy-point of blood is UNAFFORDABLE, not just costly', () => {
-        // 20% / 5% = four Energy-points of Dark per turn. Knob round 1 took the cap to 15% and
-        // amendment 1 put it back at 20 - Henry's call, texture over the field number: at 20 the
-        // 3-Energy `soul_tithe` and the 1-Energy `venom_shade` fit in the same turn, which is the
-        // decision the OS is supposed to be about. Four 1e casts fit exactly; the fifth is
-        // refused, and refused by PRICE - the cost hook returns a cost she cannot pay - which is
-        // what makes the reducer and the AI agree without a third code path (HANDOFF 8d).
+    it('allows FOUR Energy-points of Dark a turn at the shipped 6% price and 25% cap', () => {
+        // Removing the cap outright was tried and made her STRONGER - 81.4% -> 87.0% field -
+        // because uncapped she chains Dark casts and the +50% healing refunds the blood faster
+        // than the price takes it. 25% at a 6% price allows four Energy-points (24%); the fifth
+        // overshoots to 30% and is refused. Note the knob moves in Energy-POINT steps: a cap of
+        // 18 behaves identically to 20, because both allow exactly three.
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
             ['c1', 'c2', 'c3', 'c4', 'c5'].map(id => card(id, 'nights_bite'))
         );
-
         for (const id of ['c1', 'c2', 'c3', 'c4']) state = play(state, id);
-        expect(state.playerParty[0].currentHp).toBe(160);        // 4 x 10 HP spent
-        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(20);
-
+        expect(state.playerParty[0].currentHp).toBe(152);        // 4 x 12 HP paid, 24% of the pool
         const before = state.playerParty[0].currentHp;
         const after = play(state, 'c5');
-        expect(after.playerParty[0].currentHp).toBe(before);      // no blood paid
-        expect(after.playerDeck.hand.some(c => c.id === 'c5')).toBe(true); // and never left hand
+        expect(after.playerParty[0].currentHp).toBe(before);              // the fifth is refused
+        expect(after.playerDeck.hand.some(c => c.id === 'c5')).toBe(true);
     });
 
-    it('refuses a cast that would OVERSHOOT the cap, not merely one that starts past it', () => {
-        // soul_tithe is 3 Energy = 15%. At 10% already spent it is refused even though 10 < 20,
-        // because 10 + 15 > 20. A "block only once you are over" rule would have let it through.
-        // (At the 20% cap it DOES fit alongside one `venom_shade` - that pairing is the whole
-        // reason amendment 1 reverted the knob.)
-        let state = makeState(
-            { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
-            [card('c1', 'nights_bite'), card('c2', 'nights_bite'), card('c3', 'soul_tithe', 3)]
-        );
-        state = play(state, 'c1');
-        state = play(state, 'c2');
-        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(10);
+    it('the cap MACHINERY still works when a cap is set - Henry\'s 25%/20% fallback', () => {
+        // Restoring a cap is a one-value change, not a rebuild, and this is what proves it. At a
+        // 20% cap on a 6% price, three 1e casts (18%) fit and the fourth would overshoot to 24%,
+        // so it is refused - by PRICE, via the cost hook, which is what makes the reducer and the
+        // AI agree without a third code path (HANDOFF 8d).
+        const live = OS_KNOBS.hel.capPct;
+        OS_KNOBS.hel.capPct = 20;
+        try {
+            let state = makeState(
+                { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
+                ['c1', 'c2', 'c3', 'c4'].map(id => card(id, 'nights_bite'))
+            );
+            for (const id of ['c1', 'c2', 'c3']) state = play(state, id);
+            expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(18);
+            const before = state.playerParty[0].currentHp;
+            const after = play(state, 'c4');
+            expect(after.playerParty[0].currentHp).toBe(before);             // no blood paid
+            expect(after.playerDeck.hand.some(c => c.id === 'c4')).toBe(true); // never left hand
+        } finally {
+            OS_KNOBS.hel.capPct = live;
+        }
+    });
 
-        const after = play(state, 'c3');
-        expect(after.playerDeck.hand.some(c => c.id === 'c3')).toBe(true);
-        expect(after.playerParty[0].currentHp).toBe(state.playerParty[0].currentHp);
+    it('the shipped price is 6% and the shipped cap is 25%', () => {
+        expect(OS_KNOBS.hel.capPct).toBe(25);
+        expect(OS_KNOBS.hel.pctPerEnergy).toBe(6);
     });
 
     it('the budget resets at the end of her turn', () => {
         let state = makeState({ activeOS: 'hel_v2', currentHp: 200 }, [card('c1', 'nights_bite')]);
         state = play(state, 'c1');
-        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(5);
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(6);
 
         state = battleReducer(state, { type: 'END_TURN' });
         expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(0);
@@ -405,7 +418,7 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 57: throttled blood, %-denominated)'
         expect(state.counters['hel_blood_spent:' + PLAYER_ID] ?? 0).toBe(0); // no blood
     });
 
-    it('lets her cast a 3e Dark card on a 2-Energy frame, and charges 15% of her pool for it', () => {
+    it('lets her cast a 3e Dark card on a 2-Energy frame, and charges 18% of her pool for it', () => {
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 200, currentEnergy: 2, maxEnergy: 2 },
             [card('c1', 'soul_tithe', 3)]
@@ -414,7 +427,7 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 57: throttled blood, %-denominated)'
         state = play(state, 'c1');
 
         expect(state.enemyParty[0].currentHp).toBeLessThan(before); // it actually resolved
-        expect(state.playerParty[0].currentHp).toBe(170);           // 3 x 5% of 200 = 30 HP
+        expect(state.playerParty[0].currentHp).toBe(164);           // 3 x 6% of 200 = 36 HP
         expect(state.playerParty[0].currentEnergy).toBe(2);         // and cost her no Energy
     });
 });
