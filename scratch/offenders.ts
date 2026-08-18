@@ -82,6 +82,17 @@ if (DECK === 'fenrir_v1') {
         if (stAct) stAct.stacks = Number(knob.str);
     }
 }
+if (DECK === 'sleipnir_v1') {
+    // MOMENTUM_DRIVE grants 2 Strengthened per 0-cost card. `momentum` sets that rate; the
+    // waste test is whether HALVING it costs her anything, because she applies ~20 stacks a
+    // game into a payoff that reads at most STRENGTH_STACK_CAP (8) and a damage bonus that
+    // caps at +25% (12.5 stacks).
+    const w = H.sleipnir_v1.hooks.find(h => h.id === 'sleipnir_v1_hook');
+    if (w && knob.momentum) {
+        const st = w.do?.find(x => x.type === 'STATUS') as { stacks?: number } | undefined;
+        if (st) st.stacks = Number(knob.momentum);
+    }
+}
 if (DECK === 'sleipnir_v2') {
     // WAR_STEED_OS generates one 0-cost Hoof Strike per Air ATTACK played.
     const w = H.sleipnir_v2.hooks.find(h => h.id === 'sleipnir_v2_hook');
@@ -192,6 +203,8 @@ const PAYOFF: Record<string, string[]> = {
     fafnir_v2: ['veinburst', 'boulder_smash'],
     sleipnir_v2: ['lance', 'cavalry_charge'],
     sleipnir_v1: ['stampede', 'momentum_crash'],
+    jormungandr_v1: ['ink_stream', 'serpents_coil'],
+    hraesvelgr_v1: ['tempest', 'carrion_swoop'],
 };
 
 /** Card-power knob, so a rate can be swept without editing programs.json. `card=id:power`. */
