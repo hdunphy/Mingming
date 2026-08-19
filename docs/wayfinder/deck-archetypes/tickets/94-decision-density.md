@@ -30,6 +30,12 @@ self-playing should rank bottom. If the ranking disagrees with the playtest, the
 INSTRUMENT is wrong (playtest is ground truth for feel) - report the disagreement, do
 not rationalize it.
 
+## Added column (Henry, 2026-08-19): the lever audit
+
+Per deck, count INDEPENDENT paths to lethal (0-TWO-LEVERS law). A lever an opponent can
+switch off with one status axis (the duality cancel) counts as half. Single-lever decks
+are flagged for their next pass regardless of their fun ranking.
+
 ## Deliverable
 
 research/decision-density.md (CRLF): the 32-deck ranking with all four columns, the

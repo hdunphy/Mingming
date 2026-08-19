@@ -10,12 +10,19 @@
  * Writes `docs/balance/deck_grid.json`.
  */
 import { runPairedBatch } from '../src/debug/balance/runBatch';
+import { CellCache, cellKey } from '../src/debug/balance/cellCache';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { ElementalMatrix } from '../src/engine/combatUtils';
 import { writeFileSync } from 'node:fs';
 
 const ITER = Number(process.env.ITER ?? 30);
+
+/** The slice of a pooled batch result the grid actually reads - and therefore all the cache keeps. */
+interface PooledResult {
+    iterations: number; decisive: number; decisiveWinRate: number;
+    averageTurns: number; ftkCount: number; deadCardRatio: number;
+}
 
 /**
  * Roles from `research/archetype-web.md`, including Henry's 2026-08-16 orphan assignments.
@@ -48,18 +55,52 @@ function bucketOf(a: string, b: string): 'ADV' | 'NEU' | 'DIS' {
     return 'NEU';
 }
 
+// Ticket 97: only cells whose inputs changed are re-run. `FORCE_FULL=1` bypasses the cache and is
+// the correctness gate - `scratch/cacheproof.ts` asserts the two assemblies are byte-identical.
+const cache = new CellCache();
+
+// EVERY KEY IS COMPUTED BEFORE THE FIRST BATTLE RUNS. Computing them inside the loop cost 60 of
+// 960 hits on the first warm run: the engine mutates registry-resident card data during a battle
+// (`currentCost` and friends), so a key taken after some cells had already run hashed a different
+// object than the same key taken before. Hoisting removes the ordering dependency entirely - and
+// the miss was the cache reporting an inconsistency honestly rather than serving a stale cell,
+// which is the failure mode worth having.
+const keys = new Map<string, string>();
+for (const a of decks) {
+    for (const b of decks) {
+        if (a.species === b.species) continue;
+        keys.set(`${a.deck}:${b.deck}`, cellKey({
+            playerSpecies: a.species, playerOS: a.deck,
+            enemySpecies: b.species, enemyOS: b.deck,
+            seed: `grid:${a.deck}:${b.deck}`, iterations: ITER,
+        }));
+    }
+}
+
 const cells: any[] = [];
 let done = 0;
 for (const a of decks) {
     for (const b of decks) {
         if (a.species === b.species) continue;   // mirrors and same-species v1-vs-v2 have their own suites
-        const r = runPairedBatch(
+        const seed = `grid:${a.deck}:${b.deck}`;
+        const key = keys.get(`${a.deck}:${b.deck}`)!;
+        const cached = cache.get<{ pooled: PooledResult }>(key);
+        const r = cached ?? runPairedBatch(
             matchupScenario({
                 player: a.species, enemy: b.species,
                 playerOS: a.deck, enemyOS: b.deck,
-                seed: `grid:${a.deck}:${b.deck}`,
+                seed,
             }),
             { iterations: ITER });
+        if (!cached) {
+            // Store ONLY the fields the grid reads. A pooled result carries per-game detail that
+            // would make the cache file enormous and that nothing downstream looks at.
+            cache.set(key, { pooled: {
+                iterations: r.pooled.iterations, decisive: r.pooled.decisive,
+                decisiveWinRate: r.pooled.decisiveWinRate, averageTurns: r.pooled.averageTurns,
+                ftkCount: r.pooled.ftkCount, deadCardRatio: r.pooled.deadCardRatio,
+            } });
+        }
         cells.push({
             deck: a.deck, species: a.species, opponent: b.deck, opponentSpecies: b.species,
             bucket: bucketOf(a.species, b.species),
@@ -76,6 +117,11 @@ for (const a of decks) {
     console.error(`[${done}/${decks.length}] ${a.deck.padEnd(18)} mean ${(mine.reduce((s, c) => s + c.winRate, 0) / mine.length * 100).toFixed(1)}%  ` +
         `zeros ${mine.filter(c => c.winRate <= 0).length}  hundreds ${mine.filter(c => c.winRate >= 1).length}  ftk ${mine.reduce((s, c) => s + c.ftk, 0)}`);
 }
+
+const stats = cache.stats();
+if (!stats.forced) cache.save();
+console.error(`\ncache: ${stats.hits} hit / ${stats.misses} miss (${(stats.rate * 100).toFixed(1)}%)` +
+    `${stats.forced ? '  [FORCE_FULL - nothing read, nothing written]' : ''}`);
 
 writeFileSync('docs/balance/deck_grid.json', `${JSON.stringify({
     schemaVersion: 1,
