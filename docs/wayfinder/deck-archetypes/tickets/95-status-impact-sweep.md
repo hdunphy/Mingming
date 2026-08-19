@@ -1,43 +1,37 @@
-# Status shape grid (ticket 95): percent-capped vs power-uncapped - make the rider half of every card real
+# Status re-denomination grid (ticket 95) - measured, STOP for Henry's pick
 
-- Type: wayfinder:research - REPORT-ONLY grid, then Henry picks the shape. Authorized
-  2026-08-19 (car session), REWRITTEN same day to Henry's power-denomination proposal.
-  Branch archetype-web.
-- Status: **open**
+- Type: wayfinder:research. Branch `archetype-web`. **Nothing shipped** - `STATUS_MODEL` ships at
+  the live values, 851 tests unchanged.
 
-## Why
+Report: [research/status-grid.md](../research/status-grid.md).
 
-Playtest: card choices are fake because statuses do not scale - 2%/stack capped +-25%
-(~2 damage from a 12-stack pile) while the scorer charges 15/10 power/stack and tooltips
-claimed 20%. Henry's proposal: POWER-DENOMINATE the four combat statuses - Strengthened/
-Weakened add/remove 1 power per stack on YOUR attacks; Sharp/Dazed become the INCOMING
-pair, moving enemy attack power against you by 1 per stack (name-to-axis mapping to be
-confirmed by Henry) - UNCAPPED, with sheds/counters as the control valve instead of a cap.
-Power is the game's universal currency (level-proof by construction - the same law that
-fixed REBIRTH and hel's Gateway).
+Both shapes are now one switchable model (`STATUS_MODEL` in `core/Hooks.ts`): PERCENT multiplies
+damage per stack against a cap, POWER adds power per stack before the divisor - the ticket-26 law,
+so it rides STAB and resistances and the scorer can price it. Eleven arms: percent {2,4,6}% x cap
+{25,40,60}%, and power {+1,+2}.
 
-## Grid - two shapes, Burn-grid style
+## The three findings
 
-PERCENT arms (live shape): rate {2 (live), 4, 6} x cap {25 (live), 40, 60}.
-POWER arms (Henry's shape): {+1, +2} power per stack, UNCAPPED, two-axis split as above.
-In-memory arms; instrument per arm: 30-iter field for ALL 32 decks (global engine change -
-control drift is telemetry), band-violation count vs the census, FTK (hard 0), mirror
-lengths, and named exhibits: (a) the status-heavy decks (gullinbursti, ratatoskr, draugr,
-sleipnir_v1, skoll_v1) whose riders finally matter, (b) **the TUG-OF-WAR cell:
-draugr-vs-Sharp-appliers under the duality cancel** - uncapped makes contested axes
-winner-take-all, which is what killed draugr in playtest; measure how bad it gets,
-(c2) THE GULLINBURSTI WALL (Legion ticket 94 finding: up to 13 Sharp + 21 BarkShield, the only uncapped mitigation in the game) - under power-uncapped arms his wall and the new statuses compound; named exhibit. (c) raw-stack scalers (momentum_crash, sun_devourer, TREACHERY/CORE_OVERCLOCK) -
-double-dip check under power shapes.
+1. **POWER is the only thing that has ever moved the wall.** `gullinbursti_v1` beats `fafnir_v2`
+   **100% in every percent arm** and **70.0% at POWER+1, 62.5% at +2**. Ticket 94 called that cell
+   untunable and earned it - a 62% shield cut moved it to 98.3%. Fafnir's uncapped Strengthened
+   count finally buys power that punches through a wall a +25% multiplier could never scratch.
+   **The re-denomination gives a beaten deck a second lever, which is the 0-TWO-LEVERS law.**
+2. **Uncapped power makes stack ENGINES runaway.** `sleipnir_v1` 43.3% -> **85.5%** at +1 (88.8% at
+   +2): his OS grants 2 Strengthened per 0-cost card and his deck is all 0-cost cards. The duality
+   cancel only valves a deck that faces another status deck; against one that applies none there is
+   nothing eating the stacks. **Bound the GENERATION, not the effect** - capping the effect is what
+   made statuses invisible in the first place.
+3. **Every arm makes the draugr/huldra tug-of-war worse** - 15.0% live, 2.5-7.5% everywhere else,
+   including both power arms. When statuses matter more, the side that applies more of them wins
+   harder. That cell needs the cancel rule or a second lever for draugr, not a denomination change.
 
-## Blast radius, stated up front
+## Recommendation
 
-Whichever shape ships: scorer per-stack prices, cleanse/removal premium (tickets 46/51),
-the duality note, and TacticalAI's statusValue() all re-derive - follow-up ticket, priced
-in. STOP after the grid; Henry picks; nothing ships from this ticket.
+**POWER +1**, conditional on bounding stack generation first. The feared raw-stack double-dip did
+not appear at +1 (`skoll_v2` -3.2, `gullinbursti_v2` -2.9). Raising the percentages instead is
+strictly worse: PCT6/cap60 inflates `huldra_v1` to 86.3%, leaves the wall at 100.0% and drops the
+tug-of-war to 2.5%.
 
-## Paired law (Henry, 2026-08-19): TWO LEVERS
-
-Uncapped contested statuses REQUIRE it: **every deck needs two independent win levers** -
-a counter matchup should be heavily unfavorable, never impossible (draugr's single-lever
-Dazed plan had a hard OFF switch). Audit column added to ticket 99's census: independent
-paths to lethal, per deck. Single-lever decks get flagged for their next pass.
+**Henry picks.** Blast radius when he does: `powerscale` status prices, cleanse/removal premiums
+derived from them, and `TacticalAI.statusValue` all encode 2%-per-stack arithmetic.

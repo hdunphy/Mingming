@@ -95,8 +95,13 @@ export function calculateModifier(attacker: IBattleEntity, target: IBattleEntity
   return getModifierBreakdown(attacker, target, program).modifier;
 }
 
-import { applyDamageModifiers } from './core/Hooks';
+import { applyDamageModifiers, STATUS_MODEL } from './core/Hooks';
 // ... types ...
+
+/** Raw stack count of one status, or 0. Ticket 95's POWER shape reads these directly. */
+function stacksOf(entity: IBattleEntity, status: string): number {
+  return entity.statusEffects.find(s => s.type === status)?.stacks ?? 0;
+}
 
 export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData, power: number, state: IBattleState): number {
   const modifier = calculateModifier(attacker, target, program);
@@ -104,8 +109,22 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   // Step 1: Base Level Damage
   const levelBase = Math.floor((2 * attacker.level) / 5) + 2;
 
+  // Ticket 95, POWER shape: the four duality statuses are worth POWER rather than a multiplier, so
+  // they are added HERE - before the divisor, STAB and resistances - which is the ticket-26 law
+  // (a bonus that rides the power is the only kind `powerscale` can price, and the only kind that
+  // behaves the same at every level). Under the live PERCENT shape this contributes nothing and
+  // `applyDamageModifiers` does the work instead; the two can never both fire.
+  const statusPower = STATUS_MODEL.shape === 'POWER'
+    ? STATUS_MODEL.powerPerStack * (
+        (stacksOf(attacker, 'Strengthened') - stacksOf(attacker, 'Weakened'))
+        + (stacksOf(target, 'Dazed') - stacksOf(target, 'Sharp')))
+    : 0;
+  // Floored at zero: a card whose power is cancelled into the negative deals nothing, it does not
+  // heal the target.
+  const effectivePower = Math.max(0, power + statusPower);
+
   // Step 2: Scaled Damage
-  const scaled = Math.floor(levelBase * power * attacker.attack / target.defense);
+  const scaled = Math.floor(levelBase * effectivePower * attacker.attack / target.defense);
 
   // Step 3: Reduction
   // No flat bonus here (docs/power_curve_spec.md rev 3): the old `+2` was paid per hit,
