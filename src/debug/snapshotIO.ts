@@ -237,13 +237,39 @@ interface SnapshotHotkeyOwner {
 const hotkeyOwners = new Map<symbol, { current: SnapshotHotkeyOwner }>();
 let hotkeyListenerInstalled = false;
 
+/**
+ * Ticket 90 (playtest round 1). Henry: *"The snapshot is hard to save. I don't always know if
+ * that is my last turn."* Exporting used to require a LIVE battle, so the moment the killing blow
+ * landed the evidence was gone and you had to predict the end of the game to capture it.
+ *
+ * The last non-null battle state is remembered here and used as the fallback, so Ctrl+Shift+E on
+ * the victory screen - or any time after - still writes the final board and its tape. It is
+ * cleared when a NEW battle starts (a new sessionId), so you can never export the previous fight
+ * by accident.
+ */
+let lastLiveBattle: IBattleState | null = null;
+
+/** Called by the hook on every render so the fallback tracks the live battle. */
+function rememberBattle(battle: IBattleState | null): void {
+    if (battle) lastLiveBattle = battle;
+}
+
+/** Exposed for tests and for a future "export last battle" button. */
+export function getLastLiveBattle(): IBattleState | null {
+    return lastLiveBattle;
+}
+
 function onHotkeyDown(event: KeyboardEvent): void {
     if (!isSnapshotExportHotkey(event)) return;
     event.preventDefault();
     const owner = hotkeyOwners.values().next().value;
     if (owner === undefined) return;
     const { battle, options } = owner.current;
-    options.onExport?.(exportSnapshot(battle, options.getTape?.() ?? options.tape));
+    const state = battle ?? lastLiveBattle;
+    if (!battle && state) {
+        console.info('[snapshot] no battle in progress — exporting the FINAL state of the last one.');
+    }
+    options.onExport?.(exportSnapshot(state, options.getTape?.() ?? options.tape));
 }
 
 function addHotkeyOwner(id: symbol, ref: { current: SnapshotHotkeyOwner }): void {
@@ -281,6 +307,7 @@ export function useSnapshotExportHotkey(options: SnapshotExportHotkeyOptions = {
 
     useEffect(() => {
         latest.current = { battle, options };
+        rememberBattle(battle);
     });
 
     useEffect(() => {

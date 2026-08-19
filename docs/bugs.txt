@@ -43,4 +43,18 @@
 
 [x] I added a bunch of nature cards in the deck tab, but they don't show up in my battle deck.
 
-[ ] Poison damage was understood as damage plus one poison stack. Poison should be calculated by the power.
+[x] Poison damage was understood as damage plus one poison stack. Poison should be calculated by the power.
+
+Play Test Notes:
+[x] Need a card played counter (ticket 90: HUD counter top-left, beside the turn number)
+[x] Damage is not properly previewed when hovering over the card for scaling cards (dmg per card played) (ticket 90: the post-damage scalings now come from ONE shared helper used by both the executor and the preview - and the preview was also off by one, because the reducer counts the card being cast)
+[x] Damage calculations felt wrong. Also its hard to tell how its working since it was accurate to the preview. Although power to damage is a little unclear. (ticket 90: two real causes - the status tooltips were wrong by 10x, and the preview ignored per-card scaling. The rest is real and is NOT a bug: at level 15 a 15-power card deals 2-3 damage into an 87 HP bar, and sleipnir_v1's damage is meant to come from hoofbeat_daemon and momentum_crash, not from her small cards - see research/playtest-round-1.md)
+[x] Strengthen and dazed status tooltip is wrong (ticket 90: they claimed 20% per stack; the engine applies 2% per stack capped at +-25%. All four of Strengthened/Weakened/Dazed/Sharp were wrong by 10x)
+[x] I don't see a turn counter (ticket 90: HUD counter top-left)
+[x] The snapshot is hard to save. I don't always know if that is my last turn. (ticket 90: Ctrl+Shift+E now falls back to the FINAL state of the last battle, so it works on the victory screen and after it)
+[ ] I can be put into sleep cycles. You can apply sleep status to someone who already has it. That shouldn't be allowed. Also it wasn't clear if the wake up was working on both damage and turn.
+
+Ticket 90 note: the extra-energy display ([ ] "should show 4/3") is still open above, but the
+over-energy branch IS implemented in MingmingUnit - currentEnergy renders in cyan when it exceeds
+maxEnergy. If it still reads 3/3 when Ratatoskr banks a point, the bug is in when Energized is
+converted into Energy, not in the display. Say so and I will chase that instead.

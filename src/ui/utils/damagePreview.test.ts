@@ -17,6 +17,16 @@ vi.mock('../../engine/data/programRegistry', async (importOriginal) => {
                     element: 'Fire', target: 'Single', category: 'Attack', rarity: 'Common',
                     baseCost: 1, constraints: [], actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' }]
                 }
+                : id === 'herd_charge'
+                ? {
+                    // Ticket 90: a CARDS_PLAYED scaler, the shape `stampede` uses. Its damage is
+                    // multiplied AFTER the divisor by the turn's play count, which is the half the
+                    // preview used to be blind to.
+                    id: 'herd_charge', name: 'Herd Charge', description: 'Test per-card scaler.',
+                    element: 'None', target: 'Single', category: 'Attack', rarity: 'Common',
+                    baseCost: 1, constraints: [],
+                    actions: [{ type: 'ATTACK', power: 10, target: 'TARGET', scaling: 'CARDS_PLAYED' }]
+                }
                 : original.GetProgramData(id)
         )
     };
@@ -230,6 +240,47 @@ describe('computeDamagePreview', () => {
             });
             const actualDamage = enemy.currentHp - after.enemyParty[0].currentHp;
             expect(actualDamage).toBe(preview.damage);
+        });
+    });
+
+    describe('post-damage scalings (ticket 90 - the preview Henry could not trust)', () => {
+        const SCALER: ProgramEntity = { id: 'card_h', dataId: 'herd_charge', currentCost: 1, isPlayable: true };
+
+        it('scales the preview by cards played this turn, and says so', () => {
+            const base = { ...state, playerDeck: { ...state.playerDeck, hand: [SCALER] } } as IBattleState;
+            // The preview counts the card being cast, exactly as the reducer does.
+            const atZero = computeDamagePreview({ ...base, cardsPlayedThisTurn: 0 }, 'strong', 'card_h', 'enemy');
+            const atThree = computeDamagePreview({ ...base, cardsPlayedThisTurn: 3 }, 'strong', 'card_h', 'enemy');
+
+            expect(atZero.damage).toBeGreaterThan(0);
+            expect(atZero.scalingMultiplier).toBe(1);
+            expect(atThree.damage).toBe(atZero.damage * 4);
+            expect(atThree.scalingMultiplier).toBe(4);
+            expect(atThree.scalingKind).toBe('CARDS_PLAYED');
+        });
+
+        it('preview equals the ACTUAL reducer damage for a per-card scaler (exact)', () => {
+            // Three cards already played this turn: the card should hit for 4x its printed damage
+            // once this play increments the counter, and the preview must agree exactly.
+            const played = {
+                ...state,
+                cardsPlayedThisTurn: 3,
+                playerDeck: { ...state.playerDeck, hand: [SCALER] },
+            } as IBattleState;
+
+            const preview = computeDamagePreview(played, 'strong', 'card_h', 'enemy');
+            const after = battleReducer(played, {
+                type: 'PLAY_PROGRAM',
+                payload: { sourceId: 'strong', targetId: 'enemy', programId: 'card_h' },
+            });
+            const actualDamage = enemy.currentHp - after.enemyParty[0].currentHp;
+            expect(actualDamage).toBe(preview.damage);
+        });
+
+        it('leaves a plain card at a multiplier of 1 with no scaling label', () => {
+            const plain = computeDamagePreview(state, 'strong', 'card_1', 'enemy');
+            expect(plain.scalingMultiplier).toBe(1);
+            expect(plain.scalingKind).toBeUndefined();
         });
     });
 });

@@ -37,25 +37,25 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Weakened',
         icon: '⬇️',
         description:
-            'Deals 20% less damage per stack (never below 10%). Permanent, but incoming Strengthened cancels it stack for stack.',
+            'Deals 2% less damage per stack, up to -25% at 13 stacks. Permanent, but incoming Strengthened cancels it stack for stack.',
     },
     Strengthened: {
         name: 'Strengthened',
         icon: '⬆️',
         description:
-            'Deals 20% more damage per stack. Permanent, but incoming Weakened cancels it stack for stack.',
+            'Deals 2% more damage per stack, up to +25% at 13 stacks. Permanent, but incoming Weakened cancels it stack for stack.',
     },
     Dazed: {
         name: 'Dazed',
         icon: '💫',
         description:
-            'Takes 20% more damage per stack. Permanent, but incoming Sharp cancels it stack for stack.',
+            'Takes 2% more damage per stack, up to +25% at 13 stacks. Permanent, but incoming Sharp cancels it stack for stack.',
     },
     Sharp: {
         name: 'Sharp',
         icon: '🛡️',
         description:
-            'Takes 20% less damage per stack (never below 10%). Permanent, but incoming Dazed cancels it stack for stack.',
+            'Takes 2% less damage per stack, up to -25% at 13 stacks. Permanent, but incoming Dazed cancels it stack for stack.',
     },
     Stunned: {
         name: 'Stunned',

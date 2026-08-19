@@ -1,4 +1,4 @@
-import type { IBattleState, IBattleEntity, ProgramData } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData, Element } from '../types';
 import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, StatusType } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
@@ -132,6 +132,61 @@ export function getEffectiveAttackPower(
     return power;
 }
 
+/**
+ * Post-damage scaling multiplier - the second half of a card's damage, and until ticket 90 the
+ * half the UI could not see.
+ *
+ * `getEffectiveAttackPower` above handles the scalings that ride the POWER (Sharp, missing HP,
+ * Strength...). These ones multiply the DAMAGE after the divisor, because they scale on the turn's
+ * history rather than on the caster: how many cards you have played, drawn, discarded, how much
+ * Energy you spent. That distinction is deliberate (ticket 26) and it stays.
+ *
+ * What was not deliberate is that `AttackExecutor` computed them inline, so
+ * `computeDamagePreview` - which calls `calculateDamage` directly - showed `stampede` at its
+ * printed 11 power no matter how many cards you had played. Henry, playtest round 1: *"Damage is
+ * not properly previewed when hovering over the card for scaling cards (dmg per card played)"* and
+ * *"damage calculations felt wrong"*. Both halves now come from here, so preview and reality
+ * cannot drift - the same fix shape as `getEffectiveAttackPower`.
+ *
+ * Returns 1 for a card with no post-damage scaling, so callers can multiply unconditionally.
+ */
+export function getDamageScalingMultiplier(
+    state: Pick<IBattleState, 'cardsPlayedThisTurn' | 'cardsDrawnThisTurn' | 'nonNaturalCardsDrawnThisTurn'
+        | 'cardsDiscardedThisTurn' | 'lastEnergySpent' | 'elementPlays'>,
+    scaling: string | undefined,
+    element: Element | undefined,
+    target: IBattleEntity | undefined,
+): number {
+    switch (scaling) {
+        case 'CARDS_PLAYED':
+            return state.cardsPlayedThisTurn;
+        case 'STATUS_COUNT': {
+            const stacks = (target?.statusEffects ?? []).reduce((acc, s) => acc + s.stacks, 0);
+            return 1 + stacks * 0.25; // +25% per status stack
+        }
+        case 'CARDS_DRAWN':
+            return state.cardsDrawnThisTurn;
+        case 'CARDS_DRAWN_TRIGGERED':
+            return state.nonNaturalCardsDrawnThisTurn ?? 0;
+        case 'ELEMENT_PLAYED':
+            return (element ? state.elementPlays?.[element] : undefined) || 1;
+        case 'CARDS_DISCARDED':
+            return state.cardsDiscardedThisTurn ?? 0;
+        case 'ENERGY_SPENT':
+            return state.lastEnergySpent ?? 0;
+        case 'ENERGY_SPENT_SQUARED': {
+            const spent = state.lastEnergySpent ?? 0;
+            return spent * spent;
+        }
+        case 'BURN_TIMES_ENERGY': {
+            const burn = target?.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
+            return burn * (state.lastEnergySpent ?? 0);
+        }
+        default:
+            return 1;
+    }
+}
+
 export class AttackExecutor extends ActionExecutor<AttackActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: AttackActionData, program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { element, scaling } = actionData;
@@ -162,41 +217,8 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
 
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
-            if (scaling === 'CARDS_PLAYED') {
-                const multiplier = state.cardsPlayedThisTurn;
-                damage = Math.floor(damage * multiplier);
-            } else if (scaling === 'STATUS_COUNT') {
-                const targetStatusCount = target.statusEffects.reduce((acc, s) => acc + s.stacks, 0);
-                damage += Math.floor(damage * (targetStatusCount * 0.25)); // +25% per status
-            } else if (scaling === 'CARDS_DRAWN') {
-                const multiplier = state.cardsDrawnThisTurn;
-                damage = Math.floor(damage * multiplier);
-            } else if (scaling === 'CARDS_DRAWN_TRIGGERED') {
-                // Ticket 71: only draws an effect CAUSED - a card, an OS or a daemon. The
-                // draw-phase refill is excluded, so this is zero on a turn you did nothing to
-                // earn it, exactly like BURN_TIMES_ENERGY and STATUS_CONSUMED. `CARDS_DRAWN`
-                // above keeps the natural-inclusive count for anything that still wants it.
-                damage = Math.floor(damage * (state.nonNaturalCardsDrawnThisTurn ?? 0));
-            } else if (scaling === 'ELEMENT_PLAYED') {
-                const elementPlayed = element || programToUse.element;
-                const multiplier = state.elementPlays?.[elementPlayed] || 1;
-                damage = Math.floor(damage * multiplier);
-            } else if (scaling === 'CARDS_DISCARDED') {
-                // Carrion Swoop: the windmill's payoff. Mirrors CARDS_PLAYED.
-                damage = Math.floor(damage * (state.cardsDiscardedThisTurn ?? 0));
-            } else if (scaling === 'ENERGY_SPENT') {
-                damage = Math.floor(damage * (state.lastEnergySpent ?? 0));
-            } else if (scaling === 'ENERGY_SPENT_SQUARED') {
-                // Thermal Lance: power x X^2, so ramping Energy is worth more than
-                // linearly more damage - the reason UPDRAFT_KERNEL's +1 matters.
-                const energySpent = state.lastEnergySpent ?? 0;
-                damage = Math.floor(damage * energySpent * energySpent);
-            } else if (scaling === 'BURN_TIMES_ENERGY') {
-                // Firestorm Talon: power x target's Burn stacks x X. Zero Burn = zero
-                // damage, so it is a payoff card, never an opener.
-                const burnStacks = target.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
-                damage = Math.floor(damage * burnStacks * (state.lastEnergySpent ?? 0));
-            }
+            // Ticket 90: one source of truth, shared with the UI preview.
+            damage = Math.floor(damage * getDamageScalingMultiplier(state, scaling, element || programToUse.element, target));
         }
 
         return applyMutations(state, [{
