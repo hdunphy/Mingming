@@ -207,6 +207,7 @@ const PAYOFF: Record<string, string[]> = {
     sleipnir_v2: ['lance', 'cavalry_charge'],
     huldra_v1: ['hexbloom', 'mind_thrall'],
     ratatoskr_v1: ['scavenge_data', 'nut_stash'],
+    draugr_v1: ['deathless_slumber', 'nightmare'],
     sleipnir_v1: ['stampede', 'momentum_crash'],
     jormungandr_v1: ['ink_stream', 'serpents_coil'],
     hraesvelgr_v1: ['tempest', 'carrion_swoop'],

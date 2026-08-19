@@ -366,11 +366,26 @@ class AsleepBehavior extends StatusBehavior {
         const existingIdx = effects.findIndex(s => s.type === 'Asleep');
 
         if (existingIdx !== -1) {
-            // Reset to 3 stacks
-            effects[existingIdx] = { ...effects[existingIdx], stacks: ASLEEP_INITIAL_STACKS };
-        } else {
-            effects.push(this.createInstance(ASLEEP_INITIAL_STACKS));
+            // TICKET 91 - SLEEP CANNOT BE RE-UPPED WHILE IT IS RUNNING.
+            //
+            // This used to reset the timer to ASLEEP_INITIAL_STACKS, which made a sleep LOCK
+            // reachable by any enemy whose move list contains Asleep: huldra's Debuff intent
+            // re-applied it every other turn, the counter went back to 3 every time, and the
+            // player never reached the wake-up. Henry, playtest: "that status shouldn't be legal
+            // to apply and re-up sleep."
+            //
+            // The anti-lock machinery already existed and was simply never reached - waking
+            // GRANTS a turn of StableOS (battleReducer's natural-expiry path and effectHandlers'
+            // damage-wake path both do it), and StableOS blocks Asleep and Stunned at the apply
+            // layer. Re-upping meant the timer never expired, so the immunity never fired.
+            //
+            // No-op while asleep is also exactly what `StunnedBehavior` already does; Asleep was
+            // the outlier. The guarantee this buys: every sleep ends in at most
+            // ASLEEP_INITIAL_STACKS turns and is followed by an awake turn that cannot be taken
+            // away, so a hard-CC chain always yields the board back.
+            return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  💤 ${target.name} is already asleep.`] };
         }
+        effects.push(this.createInstance(ASLEEP_INITIAL_STACKS));
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
     }
