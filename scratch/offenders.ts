@@ -195,6 +195,13 @@ if (knob.burnperm) {
 }
 if (knob.cut) REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].filter((c, i, a) => !(c === knob.cut && a.indexOf(c) === i));
 if (knob.swap) { const [from, to] = knob.swap.split(':'); REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c)); }
+// `swap2` / `swap3`: a second and third substitution, for arms that replace more than one card -
+// audhumbla_v2 needs two or three heals turned into damage before the cliff becomes a slope.
+for (const k of ['swap2', 'swap3'] as const) {
+    if (!knob[k]) continue;
+    const [from, to] = knob[k].split(':');
+    REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c));
+}
 
 const ITER = Number(process.env.ITER ?? 30);
 const hp = (p: ReadonlyArray<IBattleEntity>) => p.reduce((t, e) => t + e.currentHp, 0);
@@ -218,6 +225,7 @@ const PAYOFF: Record<string, string[]> = {
     fenrir_v2: ['molten_core', 'pyre_sacrifice'],
     skoll_v2: ['all_in', 'overdrive'],
     audhumbla_v1: ['supernova_v2', 'dawn_of_creation'],
+    audhumbla_v2: ['genesis_surge', 'sacred_spring'],
     gullinbursti_v1: ['stone_fist'],
     huldra_v1: ['hexbloom', 'mind_thrall'],
     sleipnir_v1: ['stampede', 'momentum_crash'],

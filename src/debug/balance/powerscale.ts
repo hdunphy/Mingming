@@ -213,14 +213,35 @@ const DEFENSE_STREAM_POWER_PER_STACK = 3.5;
  * `[4.5, 13.5, 28.5, 52.5]` - cumulative 1.5 / 4.5 / 9.5 / 17.5% of a pool at the spec's
  * 3-power-per-1%-maxHP rate. It was `[4.5, 15, 40]` on the old three-tier table.
  */
-export const BURN_TIER_POWER: number[] = DEFAULT_GAME_CONFIG.status.burnStacks.reduce<number[]>(
-    (acc, tier) => {
-        const priorPercent = acc.length === 0 ? 0 : acc[acc.length - 1] / POWER_PER_PERCENT_MAXHP;
-        acc.push((priorPercent + tier.damagePercent * 100) * POWER_PER_PERCENT_MAXHP);
-        return acc;
-    },
-    [],
-);
+/**
+ * TICKET 93: how long a PERMANENT pile is priced for.
+ *
+ * The triangular model below assumes the pile decays, so a pile of N delivers N + (N-1) + ... + 1
+ * tiers and then stops. With `decayPerTurn: 0` that sum is unbounded and the price is undefined -
+ * `burnPricing.test.ts` proved it the hard way by looping forever.
+ *
+ * A permanent pile is therefore priced over a fixed HORIZON, which is the same shape
+ * `TacticalAI.statusValue` already uses for stream statuses (`STATUS_HORIZON_TURNS`). Two turns is
+ * chosen rather than the AI's 2.5 because it very nearly preserves the price of a FULL pile across
+ * the change: a 4-stack pile used to deliver 8+5+3+1.5 = 17.5% of a pool over its life, and at a
+ * horizon of 2 it delivers 16%. What does move - correctly - is the price of SMALL piles: one
+ * stack was 1.5% and is now 3%, because a single stack that never wears off really is worth twice
+ * one that ticks once and dies.
+ */
+export const BURN_PERMANENT_HORIZON_TURNS = 2;
+
+export const BURN_TIER_POWER: number[] = BURN_CONFIG.decayPerTurn === 0
+    ? DEFAULT_GAME_CONFIG.status.burnStacks.map(
+        tier => tier.damagePercent * 100 * BURN_PERMANENT_HORIZON_TURNS * POWER_PER_PERCENT_MAXHP,
+    )
+    : DEFAULT_GAME_CONFIG.status.burnStacks.reduce<number[]>(
+        (acc, tier) => {
+            const priorPercent = acc.length === 0 ? 0 : acc[acc.length - 1] / POWER_PER_PERCENT_MAXHP;
+            acc.push((priorPercent + tier.damagePercent * 100) * POWER_PER_PERCENT_MAXHP);
+            return acc;
+        },
+        [],
+    );
 
 /**
  * Price of ONE detonation - ticket 62's overflow, at the same rate as everything else here.

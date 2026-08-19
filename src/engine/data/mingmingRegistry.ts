@@ -674,7 +674,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // is an attack and the deck is nothing but heals and cheap Light.
         decks: {
             "audhumbla_v1": ["pale_mercy", "pale_mercy", "dawnstrike", "healing_light", "sacred_spring", "supernova_v2", "genesis_surge", "dawn_of_creation", "radiant_spark"],
-            "audhumbla_v2": ["pale_mercy", "pale_mercy", "dawnstrike", "dawnstrike", "hallow", "healing_light", "sacred_spring", "uplift", "purify"]
+            "audhumbla_v2": ["pale_mercy", "pale_mercy", "dawnstrike", "dawnstrike", "smite", "healing_light", "sacred_spring", "radiant_spark", "purify"]
         },
         moves: [
             {

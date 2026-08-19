@@ -224,7 +224,14 @@ export const BURN_CONFIG: BurnMechanicConfig = {
     shape: 'DETONATE',
     maxStacks: 4,
     overflowPercent: 0.14,
-    decayPerTurn: 1,
+    // TICKET 93 (Henry): back to PERMANENT, the pre-rev-3 shape. Measured in ticket 92 - the only
+    // deck permanence breaks is `hraesvelgr_v2`, and only through `firestorm_talon`, which
+    // multiplies by the target's Burn pile and therefore compounds when the pile stops falling.
+    // That card drops 15 -> 10 power in the same ticket; she lands at 64.8% with her >90% cells
+    // back where they were. `fenrir_v2` gains 9.5 points and that is the POINT: his Burn is
+    // largely self-inflicted through `pyre_sacrifice`, so permanence finally pays him for a cost
+    // he was already carrying.
+    decayPerTurn: 0,
     tiers: DEFAULT_GAME_CONFIG.status.burnStacks,
 };
 

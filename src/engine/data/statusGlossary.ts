@@ -19,7 +19,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Burn',
         icon: '🔥',
         description:
-            'At end of turn, takes 1.5% / 3% / 5% / 8% of max HP as damage at 1 / 2 / 3 / 4 stacks (2+ stacks also shred defense), and decays 1 stack per turn. Caps at 4 stacks — going past the cap DETONATES for 14% of max HP and leaves the excess behind as the new pile.',
+            'At end of turn, takes 1.5% / 3% / 5% / 8% of max HP as damage at 1 / 2 / 3 / 4 stacks (2+ stacks also shred defense). PERMANENT — the pile does not decay. Caps at 4 stacks — going past the cap DETONATES for 14% of max HP and leaves the excess behind as the new pile.',
     },
     Poison: {
         name: 'Poison',

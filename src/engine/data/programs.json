@@ -2006,7 +2006,7 @@
     "firestorm_talon": {
         "id": "firestorm_talon",
         "name": "Firestorm Talon",
-        "description": "Spend all Energy: 15 power x target's Burn x X.",
+        "description": "Spend all Energy: 10 power x target's Burn x X.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2020,7 +2020,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 10,
                 "scaling": "BURN_TIMES_ENERGY",
                 "target": "TARGET"
             }

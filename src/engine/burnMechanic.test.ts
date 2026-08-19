@@ -103,16 +103,30 @@ describe('BURN_CONFIG is the shipped ticket-62 mechanic (DET-C4-D14)', () => {
         }
     });
 
-    it('ticks at the live tiers and decays one stack a turn', () => {
+    it('ticks at the live tiers and is PERMANENT - the pile does not decay (ticket 93)', () => {
         const b = getStatusBehavior('Burn');
         const e = target(1000);
         expect(b.endTurn(burn(4), e).damage).toBe(80);
         expect(b.endTurn(burn(4), e).defenseShred).toBe(5);
-        expect(b.endTurn(burn(4), e).updatedInstance?.stacks).toBe(3);
         expect(b.endTurn(burn(3), e).damage).toBe(50);
         expect(b.endTurn(burn(2), e).damage).toBe(30);
         expect(b.endTurn(burn(1), e).damage).toBe(15);
-        expect(b.endTurn(burn(1), e).updatedInstance).toBeNull();
+
+        // Ticket 93 (Henry): Burn is permanent again, the pre-rev-3 shape. Every pile survives its
+        // own tick at full strength - what used to fall to 3, and what used to expire at 1, both
+        // stay put. The DETONATE cap is what bounds it now, not the decay.
+        expect(b.endTurn(burn(4), e).updatedInstance?.stacks).toBe(4);
+        expect(b.endTurn(burn(1), e).updatedInstance?.stacks).toBe(1);
+        expect(b.endTurn(burn(1), e).updatedInstance).not.toBeNull();
+    });
+
+    it('a decaying pile is still expressible through the dial', () => {
+        withConfig({ decayPerTurn: 1 }, () => {
+            const b = getStatusBehavior('Burn');
+            const e = target(1000);
+            expect(b.endTurn(burn(4), e).updatedInstance?.stacks).toBe(3);
+            expect(b.endTurn(burn(1), e).updatedInstance).toBeNull();
+        });
     });
 });
 
