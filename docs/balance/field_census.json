@@ -4,11 +4,11 @@
  "iterationsPerOrder": 10,
  "summary": {
   "cells": 480,
-  "ftk": 0,
-  "ftkCells": 0,
-  "bandViolations": 218,
-  "bandViolationRate": 0.4542,
-  "neutralAbsolutes": 79
+  "ftk": 1,
+  "ftkCells": 1,
+  "bandViolations": 135,
+  "bandViolationRate": 0.2813,
+  "neutralAbsolutes": 28
  },
  "cells": [
   {
@@ -28,7 +28,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.9,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
@@ -38,13 +38,23 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
    "deck": "audhumbla_v1",
    "species": "audhumbla",
    "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
+   "opponent": "hel",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -54,37 +64,17 @@
   {
    "deck": "audhumbla_v1",
    "species": "audhumbla",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
    "opponent": "hraesvelgr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.75,
+   "winRate": 0.35,
    "ftk": 0
   },
   {
    "deck": "audhumbla_v1",
    "species": "audhumbla",
    "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
-   "opponent": "jormungandr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -94,287 +84,27 @@
   {
    "deck": "audhumbla_v1",
    "species": "audhumbla",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v1",
-   "species": "audhumbla",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
    "opponent": "jormungandr",
    "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "audhumbla_v2",
-   "species": "audhumbla",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "fafnir",
-   "bucket": "ADV",
    "games": 20,
    "decisive": 20,
    "winRate": 0.85,
    "ftk": 0
   },
   {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 18,
-   "winRate": 0.2777777777777778,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "hel",
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
+   "opponent": "kraken",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.75,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "hraesvelgr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "huldra",
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
+   "opponent": "nidhoggr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -382,289 +112,9 @@
    "ftk": 0
   },
   {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
    "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "sleipnir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v1",
-   "species": "draugr",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "hraesvelgr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "sleipnir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "draugr_v2",
-   "species": "draugr",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "draugr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "fenrir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "hraesvelgr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -672,139 +122,9 @@
    "ftk": 0
   },
   {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "jormungandr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "kraken",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
    "opponent": "skoll",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v1",
-   "species": "fafnir",
-   "opponent": "ymir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "draugr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "fenrir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "hel",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -812,89 +132,9 @@
    "ftk": 0
   },
   {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "jormungandr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "kraken",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "skoll",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
    "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "valkyrie",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -902,169 +142,19 @@
    "ftk": 0
   },
   {
-   "deck": "fafnir_v2",
-   "species": "fafnir",
-   "opponent": "ymir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "draugr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "fafnir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "gullinbursti",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "huldra",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "jormungandr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "kraken",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "ratatoskr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 19,
-   "winRate": 0.21052631578947367,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
    "opponent": "valkyrie",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.5,
    "ftk": 0
   },
   {
-   "deck": "fenrir_v1",
-   "species": "fenrir",
+   "deck": "audhumbla_v1",
+   "species": "audhumbla",
    "opponent": "ymir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "audhumbla",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -1072,39 +162,59 @@
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
    "opponent": "draugr",
-   "bucket": "ADV",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "fafnir",
+   "bucket": "NEU",
    "games": 20,
    "decisive": 20,
    "winRate": 0.8,
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "fafnir",
-   "bucket": "DIS",
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "fenrir",
+   "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.1,
+   "winRate": 0.05,
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
    "opponent": "gullinbursti",
-   "bucket": "DIS",
+   "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.2,
+   "winRate": 0,
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
    "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "hraesvelgr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -1112,9 +222,249 @@
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "audhumbla_v2",
+   "species": "audhumbla",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "fenrir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
    "opponent": "hraesvelgr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "kraken",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "skoll",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "sleipnir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v1",
+   "species": "draugr",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "audhumbla",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -1122,19 +472,19 @@
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "huldra",
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "fafnir",
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.95,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "jormungandr",
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "fenrir",
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
@@ -1142,9 +492,139 @@
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "hraesvelgr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
    "opponent": "kraken",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "skoll",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "sleipnir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "draugr_v2",
+   "species": "draugr",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v1",
+   "species": "fafnir",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v1",
+   "species": "fafnir",
+   "opponent": "draugr",
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
@@ -1152,98 +632,8 @@
    "ftk": 0
   },
   {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "ratatoskr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.4,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "fenrir_v2",
-   "species": "fenrir",
-   "opponent": "ymir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
-   "opponent": "draugr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "fenrir",
    "bucket": "ADV",
    "games": 20,
@@ -1252,38 +642,48 @@
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "hel",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.4,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "hraesvelgr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.95,
+   "winRate": 0.35,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "huldra",
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.1,
+   "winRate": 0.4,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "jormungandr",
    "bucket": "DIS",
    "games": 20,
@@ -1292,68 +692,68 @@
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "kraken",
    "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
    "games": 20,
    "decisive": 20,
    "winRate": 0,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "ratatoskr",
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.4,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "skoll",
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.95,
+   "winRate": 1,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "sleipnir",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.05,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "valkyrie",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.15,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v1",
-   "species": "gullinbursti",
+   "deck": "fafnir_v1",
+   "species": "fafnir",
    "opponent": "ymir",
    "bucket": "DIS",
    "games": 20,
@@ -1362,18 +762,18 @@
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
-   "species": "gullinbursti",
+   "deck": "fafnir_v2",
+   "species": "fafnir",
    "opponent": "audhumbla",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.45,
+   "winRate": 0.2,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
-   "species": "gullinbursti",
+   "deck": "fafnir_v2",
+   "species": "fafnir",
    "opponent": "draugr",
    "bucket": "DIS",
    "games": 20,
@@ -1382,7 +782,457 @@
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "fenrir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "jormungandr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "kraken",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "skoll",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "fafnir_v2",
+   "species": "fafnir",
+   "opponent": "ymir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "draugr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "fafnir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "gullinbursti",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "huldra",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "jormungandr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "kraken",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.05263157894736842,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "ratatoskr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v1",
+   "species": "fenrir",
+   "opponent": "ymir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "draugr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.9473684210526315,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "fafnir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "gullinbursti",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.47368421052631576,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "huldra",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "jormungandr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "kraken",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "ratatoskr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "fenrir_v2",
+   "species": "fenrir",
+   "opponent": "ymir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "draugr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
    "species": "gullinbursti",
    "opponent": "fafnir",
    "bucket": "NEU",
@@ -1392,79 +1242,49 @@
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
+   "deck": "gullinbursti_v1",
    "species": "gullinbursti",
    "opponent": "fenrir",
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
+   "deck": "gullinbursti_v1",
    "species": "gullinbursti",
    "opponent": "hel",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.75,
+   "winRate": 0.9,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
+   "deck": "gullinbursti_v1",
    "species": "gullinbursti",
    "opponent": "hraesvelgr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
+   "deck": "gullinbursti_v1",
    "species": "gullinbursti",
    "opponent": "huldra",
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.4,
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
+   "deck": "gullinbursti_v1",
    "species": "gullinbursti",
    "opponent": "jormungandr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v2",
-   "species": "gullinbursti",
-   "opponent": "kraken",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v2",
-   "species": "gullinbursti",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "gullinbursti_v2",
-   "species": "gullinbursti",
-   "opponent": "ratatoskr",
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
@@ -1472,19 +1292,99 @@
    "ftk": 0
   },
   {
-   "deck": "gullinbursti_v2",
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "kraken",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
    "species": "gullinbursti",
    "opponent": "skoll",
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.45,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v1",
+   "species": "gullinbursti",
+   "opponent": "ymir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
    "ftk": 0
   },
   {
    "deck": "gullinbursti_v2",
    "species": "gullinbursti",
-   "opponent": "sleipnir",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "draugr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "fafnir",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -1494,11 +1394,111 @@
   {
    "deck": "gullinbursti_v2",
    "species": "gullinbursti",
+   "opponent": "fenrir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "jormungandr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "kraken",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "skoll",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "gullinbursti_v2",
+   "species": "gullinbursti",
    "opponent": "valkyrie",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.7,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
@@ -1508,7 +1508,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.15,
    "ftk": 0
   },
   {
@@ -1518,7 +1518,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.15,
+   "winRate": 0.6,
    "ftk": 0
   },
   {
@@ -1528,7 +1528,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.2,
+   "winRate": 0.8,
    "ftk": 0
   },
   {
@@ -1538,11 +1538,161 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
    "winRate": 0.2,
    "ftk": 0
   },
   {
    "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v1",
+   "species": "hel",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v2",
+   "species": "hel",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.2631578947368421,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v2",
+   "species": "hel",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v2",
+   "species": "hel",
+   "opponent": "fafnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.3157894736842105,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v2",
    "species": "hel",
    "opponent": "fenrir",
    "bucket": "NEU",
@@ -1552,99 +1702,9 @@
    "ftk": 0
   },
   {
-   "deck": "hel_v1",
+   "deck": "hel_v2",
    "species": "hel",
    "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "valkyrie",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -1652,73 +1712,13 @@
    "ftk": 0
   },
   {
-   "deck": "hel_v1",
-   "species": "hel",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
    "deck": "hel_v2",
    "species": "hel",
    "opponent": "hraesvelgr",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
+   "decisive": 18,
+   "winRate": 0.3888888888888889,
    "ftk": 0
   },
   {
@@ -1727,8 +1727,8 @@
    "opponent": "huldra",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 20,
-   "winRate": 1,
+   "decisive": 19,
+   "winRate": 0.7894736842105263,
    "ftk": 0
   },
   {
@@ -1737,8 +1737,8 @@
    "opponent": "jormungandr",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
+   "decisive": 19,
+   "winRate": 0.3157894736842105,
    "ftk": 0
   },
   {
@@ -1748,7 +1748,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.45,
    "ftk": 0
   },
   {
@@ -1758,7 +1758,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 19,
-   "winRate": 0.9473684210526315,
+   "winRate": 0.7894736842105263,
    "ftk": 0
   },
   {
@@ -1768,2037 +1768,2037 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
    "deck": "hel_v2",
    "species": "hel",
    "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hel_v2",
-   "species": "hel",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "draugr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.4,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.4,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v1",
-   "species": "hraesvelgr",
-   "opponent": "ymir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.65,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "draugr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "hraesvelgr_v2",
-   "species": "hraesvelgr",
-   "opponent": "ymir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "hraesvelgr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "sleipnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v1",
-   "species": "huldra",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "hraesvelgr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "sleipnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "huldra_v2",
-   "species": "huldra",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "draugr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "fenrir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.65,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "skoll",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v1",
-   "species": "jormungandr",
-   "opponent": "ymir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "draugr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "fenrir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "skoll",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "jormungandr_v2",
-   "species": "jormungandr",
-   "opponent": "ymir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "draugr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "fenrir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "skoll",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v1",
-   "species": "kraken",
-   "opponent": "ymir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "draugr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "fenrir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "skoll",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "kraken_v2",
-   "species": "kraken",
-   "opponent": "ymir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v1",
-   "species": "nidhoggr",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.65,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "nidhoggr_v2",
-   "species": "nidhoggr",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.6,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "hraesvelgr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "sleipnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v1",
-   "species": "ratatoskr",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "hraesvelgr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "sleipnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "ratatoskr_v2",
-   "species": "ratatoskr",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "draugr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "fafnir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "gullinbursti",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "huldra",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "jormungandr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "kraken",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "ratatoskr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v1",
-   "species": "skoll",
-   "opponent": "ymir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "draugr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "fafnir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "fenrir",
    "bucket": "NEU",
    "games": 20,
    "decisive": 18,
-   "winRate": 0.6111111111111112,
+   "winRate": 0.7222222222222222,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v2",
+   "species": "hel",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v2",
+   "species": "hel",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.8421052631578947,
+   "ftk": 0
+  },
+  {
+   "deck": "hel_v2",
+   "species": "hel",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "draugr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "fafnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v1",
+   "species": "hraesvelgr",
+   "opponent": "ymir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "draugr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "fafnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "hraesvelgr_v2",
+   "species": "hraesvelgr",
+   "opponent": "ymir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "fenrir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "hraesvelgr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "kraken",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "skoll",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "sleipnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v1",
+   "species": "huldra",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "fenrir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "hraesvelgr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "kraken",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "skoll",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "sleipnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "huldra_v2",
+   "species": "huldra",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "draugr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "fenrir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "skoll",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v1",
+   "species": "jormungandr",
+   "opponent": "ymir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "draugr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "fenrir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "skoll",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "jormungandr_v2",
+   "species": "jormungandr",
+   "opponent": "ymir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "draugr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "fenrir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "skoll",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v1",
+   "species": "kraken",
+   "opponent": "ymir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "draugr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "fenrir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "skoll",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "kraken_v2",
+   "species": "kraken",
+   "opponent": "ymir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "fafnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v1",
+   "species": "nidhoggr",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "fafnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "nidhoggr_v2",
+   "species": "nidhoggr",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "fenrir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "hraesvelgr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "kraken",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.2,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "skoll",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "sleipnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v1",
+   "species": "ratatoskr",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "fenrir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "hraesvelgr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "kraken",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "skoll",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "sleipnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "ratatoskr_v2",
+   "species": "ratatoskr",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "draugr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "fafnir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.55,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "gullinbursti",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "huldra",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "jormungandr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 1
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "kraken",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "ratatoskr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.25,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v1",
+   "species": "skoll",
+   "opponent": "ymir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.3157894736842105,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "draugr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.7368421052631579,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "fafnir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
    "ftk": 0
   },
   {
@@ -3806,6 +3806,96 @@
    "species": "skoll",
    "opponent": "gullinbursti",
    "bucket": "DIS",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.05263157894736842,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.05263157894736842,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.3,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "huldra",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "jormungandr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "kraken",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.47368421052631576,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "ratatoskr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "skoll_v2",
+   "species": "skoll",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
    "games": 20,
    "decisive": 19,
    "winRate": 0.15789473684210525,
@@ -3814,96 +3904,6 @@
   {
    "deck": "skoll_v2",
    "species": "skoll",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 18,
-   "winRate": 0.3888888888888889,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "huldra",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "jormungandr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "kraken",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.25,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "ratatoskr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.2,
-   "ftk": 0
-  },
-  {
-   "deck": "skoll_v2",
-   "species": "skoll",
    "opponent": "ymir",
    "bucket": "ADV",
    "games": 20,
@@ -3918,7 +3918,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.1,
+   "winRate": 0.8,
    "ftk": 0
   },
   {
@@ -3928,7 +3928,7 @@
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.85,
+   "winRate": 1,
    "ftk": 0
   },
   {
@@ -3938,7 +3938,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.3,
+   "winRate": 0.8,
    "ftk": 0
   },
   {
@@ -3948,7 +3948,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.75,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
@@ -3958,7 +3958,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.05,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
@@ -3968,7 +3968,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.45,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
@@ -3988,7 +3988,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.45,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
@@ -3998,7 +3998,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
@@ -4008,7 +4008,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.3,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
@@ -4018,7 +4018,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.25,
+   "winRate": 0.9,
    "ftk": 0
   },
   {
@@ -4028,7 +4028,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.65,
+   "winRate": 0.8,
    "ftk": 0
   },
   {
@@ -4038,7 +4038,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.45,
+   "winRate": 0.9,
    "ftk": 0
   },
   {
@@ -4048,7 +4048,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.2,
+   "winRate": 1,
    "ftk": 0
   },
   {
@@ -4058,7 +4058,7 @@
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.5,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
@@ -4068,7 +4068,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.05,
+   "winRate": 0.35,
    "ftk": 0
   },
   {
@@ -4088,7 +4088,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.5,
+   "winRate": 0.3,
    "ftk": 0
   },
   {
@@ -4098,7 +4098,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.9,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
@@ -4115,6 +4115,76 @@
    "deck": "sleipnir_v2",
    "species": "sleipnir",
    "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "sleipnir_v2",
+   "species": "sleipnir",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "sleipnir_v2",
+   "species": "sleipnir",
+   "opponent": "huldra",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.1,
+   "ftk": 0
+  },
+  {
+   "deck": "sleipnir_v2",
+   "species": "sleipnir",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "sleipnir_v2",
+   "species": "sleipnir",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "sleipnir_v2",
+   "species": "sleipnir",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "sleipnir_v2",
+   "species": "sleipnir",
+   "opponent": "ratatoskr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "sleipnir_v2",
+   "species": "sleipnir",
+   "opponent": "skoll",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -4124,37 +4194,7 @@
   {
    "deck": "sleipnir_v2",
    "species": "sleipnir",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.55,
-   "ftk": 0
-  },
-  {
-   "deck": "sleipnir_v2",
-   "species": "sleipnir",
-   "opponent": "huldra",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0,
-   "ftk": 0
-  },
-  {
-   "deck": "sleipnir_v2",
-   "species": "sleipnir",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "sleipnir_v2",
-   "species": "sleipnir",
-   "opponent": "kraken",
+   "opponent": "valkyrie",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -4164,7 +4204,67 @@
   {
    "deck": "sleipnir_v2",
    "species": "sleipnir",
-   "opponent": "nidhoggr",
+   "opponent": "ymir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "fafnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 18,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "hel",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -4172,19 +4272,149 @@
    "ftk": 0
   },
   {
-   "deck": "sleipnir_v2",
-   "species": "sleipnir",
-   "opponent": "ratatoskr",
-   "bucket": "DIS",
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "hraesvelgr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.05,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
    "games": 20,
    "decisive": 20,
    "winRate": 0.65,
    "ftk": 0
   },
   {
-   "deck": "sleipnir_v2",
-   "species": "sleipnir",
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
    "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v1",
+   "species": "valkyrie",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "fafnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "fenrir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.7368421052631579,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "gullinbursti",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "hel",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -4192,87 +4422,7 @@
    "ftk": 0
   },
   {
-   "deck": "sleipnir_v2",
-   "species": "sleipnir",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "sleipnir_v2",
-   "species": "sleipnir",
-   "opponent": "ymir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.1,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.65,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
+   "deck": "valkyrie_v2",
    "species": "valkyrie",
    "opponent": "hraesvelgr",
    "bucket": "NEU",
@@ -4282,19 +4432,309 @@
    "ftk": 0
   },
   {
-   "deck": "valkyrie_v1",
+   "deck": "valkyrie_v2",
    "species": "valkyrie",
    "opponent": "huldra",
    "bucket": "NEU",
+   "games": 20,
+   "decisive": 4,
+   "winRate": 0,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "jormungandr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "kraken",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.75,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "skoll",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "sleipnir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "valkyrie_v2",
+   "species": "valkyrie",
+   "opponent": "ymir",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.65,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "fenrir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 19,
+   "winRate": 0.10526315789473684,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.95,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.85,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "hraesvelgr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "huldra",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "kraken",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.5,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "ratatoskr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.9,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "skoll",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "sleipnir",
+   "bucket": "DIS",
    "games": 20,
    "decisive": 20,
    "winRate": 0.05,
    "ftk": 0
   },
   {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "jormungandr",
+   "deck": "ymir_v1",
+   "species": "ymir",
+   "opponent": "valkyrie",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.35,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "audhumbla",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.45,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "draugr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.7,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "fafnir",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 1,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "fenrir",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.15,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "gullinbursti",
+   "bucket": "ADV",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.8,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "hel",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "hraesvelgr",
+   "bucket": "DIS",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.4,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "huldra",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -4302,49 +4742,39 @@
    "ftk": 0
   },
   {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "jormungandr",
+   "bucket": "ADV",
    "games": 20,
    "decisive": 20,
    "winRate": 1,
    "ftk": 0
   },
   {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "skoll",
-   "bucket": "NEU",
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "kraken",
+   "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.7,
+   "winRate": 1,
    "ftk": 0
   },
   {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "sleipnir",
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "nidhoggr",
+   "bucket": "NEU",
+   "games": 20,
+   "decisive": 20,
+   "winRate": 0.6,
+   "ftk": 0
+  },
+  {
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "ratatoskr",
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
@@ -4352,453 +4782,23 @@
    "ftk": 0
   },
   {
-   "deck": "valkyrie_v1",
-   "species": "valkyrie",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.3,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
+   "deck": "ymir_v2",
+   "species": "ymir",
+   "opponent": "skoll",
+   "bucket": "DIS",
    "games": 20,
    "decisive": 20,
    "winRate": 0.55,
    "ftk": 0
   },
   {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "fafnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "fenrir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "gullinbursti",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "hraesvelgr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "jormungandr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.15,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "kraken",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.75,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "skoll",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "sleipnir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "valkyrie_v2",
-   "species": "valkyrie",
-   "opponent": "ymir",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.05,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.65,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "hraesvelgr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.95,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.45,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "sleipnir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v1",
-   "species": "ymir",
-   "opponent": "valkyrie",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.8,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "audhumbla",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "draugr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "fafnir",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "fenrir",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.7,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "gullinbursti",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "hel",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "hraesvelgr",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.35,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "huldra",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.9,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "jormungandr",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "kraken",
-   "bucket": "ADV",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "nidhoggr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.5,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "ratatoskr",
-   "bucket": "NEU",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 1,
-   "ftk": 0
-  },
-  {
-   "deck": "ymir_v2",
-   "species": "ymir",
-   "opponent": "skoll",
-   "bucket": "DIS",
-   "games": 20,
-   "decisive": 20,
-   "winRate": 0.85,
-   "ftk": 0
-  },
-  {
    "deck": "ymir_v2",
    "species": "ymir",
    "opponent": "sleipnir",
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.7,
+   "winRate": 0.2,
    "ftk": 0
   },
   {
@@ -4808,7 +4808,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.75,
+   "winRate": 0.25,
    "ftk": 0
   }
  ]

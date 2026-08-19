@@ -61,7 +61,18 @@ export interface StatusDamageModel {
 }
 
 export const STATUS_MODEL: StatusDamageModel = {
-    shape: 'PERCENT',
+    // TICKET 102 (Henry, off ticket 95's grid): SHIPPED as POWER, +1 per stack.
+    //
+    // The percent shape was invisible - 2% a stack against a 25% cap is one or two points of damage
+    // at level 15, so a card spent on a status bought nothing a player could see. Power rides the
+    // pace divisor, STAB and resistances like any other power bonus (the ticket-26 law), so a stack
+    // is worth the same fraction of a hit at every level, and it does not cap.
+    //
+    // The grid's warning, kept here because it is the live risk: the duality cancel only valves a
+    // deck that FACES another status deck. An OS that generates stacks against an opponent who
+    // applies none has nothing eating them - `sleipnir_v1` measured 43.3% -> 85.5% on that alone.
+    // The bound belongs on generation, not on the effect.
+    shape: 'POWER',
     pctPerStack: 0.02,
     pctCap: 0.25,
     powerPerStack: 1,

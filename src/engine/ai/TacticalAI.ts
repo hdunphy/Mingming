@@ -6,7 +6,7 @@ import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
 import { BURN_CONFIG } from '../StatusBehaviors';
-import { STANCE_BONUS } from '../core/Hooks';
+import { STANCE_BONUS, STATUS_MODEL } from '../core/Hooks';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
 /**
@@ -107,6 +107,30 @@ function burnTotalPercent(stacks: number): number {
 }
 
 /**
+ * What `stacks` of a duality status are worth to their holder, in eval points.
+ *
+ * POWER shape: `powerPerStack` power on each attack across the horizon. A card's power converts to
+ * damage through the pace divisor, so one power is worth `1 / POWER_PER_TURN_DAMAGE` of a turn's
+ * throughput - approximated here from the same frame proxy the rest of this file uses, which keeps
+ * the units consistent with `TURN_DAMAGE_FRACTION`.
+ *
+ * PERCENT shape: the historical capped-percentage reading, kept so the eval follows the engine if
+ * the shape is ever switched back.
+ */
+function dualityValue(stacks: number, entity: IBattleEntity): number {
+    if (STATUS_MODEL.shape !== 'POWER') {
+        return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(stacks);
+    }
+    // A typical card carries ~40 power (the 1e budget), so one power is ~1/40th of a card and a
+    // turn is ~2 cards: `powerPerStack` stacks therefore move about `stacks / 80` of a turn's
+    // damage per attack, across `STATUS_HORIZON_TURNS` turns of ~2 attacks each.
+    const POWER_PER_CARD = 40;
+    const CARDS_PER_TURN = 2;
+    const fraction = (STATUS_MODEL.powerPerStack * stacks) / (POWER_PER_CARD * CARDS_PER_TURN);
+    return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * fraction;
+}
+
+/**
  * Eval contribution of one status instance on its holder (positive = good for the holder).
  */
 function statusValue(type: string, stacks: number, entity: IBattleEntity): number {
@@ -144,17 +168,23 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
         case 'Energized':
             // +stacks energy next turn; 1 energy ~ ENERGY_TURN_FRACTION of a turn's damage.
             return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * ENERGY_TURN_FRACTION * s;
+        // TICKET 102: the duality pair is POWER now, not a capped percentage, so the eval has to
+        // stop reading a ceiling that no longer exists. A stack is `powerPerStack` power on every
+        // relevant attack over the horizon; `dualityValue` converts that into the same HP-points
+        // currency everything else here uses, and is LINEAR in stacks because the effect is.
+        //
+        // This matters more than a tidy-up: while `statusValue` capped at 13 stacks, an AI holding
+        // 20 Strengthened valued the 14th through 20th at zero and would happily trade them away.
+        // The stance lesson from ticket 78 is the precedent - an eval that cannot see a mechanic
+        // plays as if the mechanic is not there.
         case 'Strengthened':
-            // +cappedPct outgoing damage over the horizon (own maxHp as the frame proxy -
-            // balance sims run same-species or same-level frames).
-            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return dualityValue(s, entity);
         case 'Weakened':
-            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return -dualityValue(s, entity);
         case 'Sharp':
-            // -cappedPct incoming damage over the horizon.
-            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return dualityValue(s, entity);
         case 'Dazed':
-            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return -dualityValue(s, entity);
         case 'Stunned':
             // Lose the next turn entirely: one full turn of throughput.
             return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION;

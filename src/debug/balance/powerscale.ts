@@ -1,3 +1,4 @@
+import { STATUS_MODEL } from '../../engine/core/Hooks';
 /**
  * The Card Budget Heuristic - `docs/balance_testing.md` section 1, tuned to match
  * `docs/power_curve_spec.md` rev 3 (the "1 energy = 40 power" rework).
@@ -171,11 +172,23 @@ const POWER_PER_PERCENT_MAXHP = 3;
  * same 25% as 13. Any card designed against the uncapped price is paying for stacks the
  * engine throws away.
  */
+/**
+ * TICKET 102: how many stacks the price counts.
+ *
+ * Under the PERCENT shape the damage effect capped at a net 25% swing, so stack 14 and beyond were
+ * worth literally nothing and the price clamped there. **The POWER shape has no cap** - stack 20 is
+ * worth exactly as much as stack 2 - so the clamp has to go, and a card that hands out a big pile is
+ * now priced for all of it. That is the single largest repricing in this change: `keen_edge` grants
+ * 5 Sharp, `iron_will` 4 Strengthened, `strength_burst` 5, and every one of them used to be scored
+ * against a ceiling they now blow through.
+ *
+ * Read off `STATUS_MODEL` rather than mirrored by hand, so a future change of shape or rate cannot
+ * leave the scorer describing a mechanic the engine no longer has (0-BURN-PRICE-LAG, twice).
+ */
 const streamStacks = (stacks: number): number =>
-    Math.min(stacks, Math.ceil(STATUS_PCT_CAP_MIRROR / STATUS_PCT_PER_STACK_MIRROR));
-/** Mirrors Hooks.ts applyDamageModifiers - kept in sync with the engine constants. */
-const STATUS_PCT_PER_STACK_MIRROR = 0.02;
-const STATUS_PCT_CAP_MIRROR = 0.25;
+    STATUS_MODEL.shape === 'POWER'
+        ? stacks
+        : Math.min(stacks, Math.ceil(STATUS_MODEL.pctCap / STATUS_MODEL.pctPerStack));
 
 /**
  * 2%/stack, 25% cap; offense stream (accelerates a fight, priced higher).
@@ -191,12 +204,37 @@ const STATUS_PCT_CAP_MIRROR = 0.25;
  * a self-hit the model also under-charged (see ASSUMED_MAX_HP below), so a card that costs
  * 13% of a health pool to gain ~1 HP of damage scored comfortably UNDER its 0-cost cap.
  */
-const OFFENSE_STREAM_POWER_PER_STACK = 5;
+/**
+ * TICKET 102 re-derivation, POWER shape. A stack of Strengthened adds `powerPerStack` POWER to every
+ * attack you make for the rest of the fight. Its worth is therefore
+ *
+ *     powerPerStack x (attacks it will ride)
+ *
+ * and "attacks it will ride" is the same horizon question every other future-scaling status answers
+ * here: ~2 attacks a turn (measured 1.7-3.6 cards/turn across the roster, most of them attacks)
+ * over the 2.5-turn horizon `TacticalAI` already uses = **5 attacks**.
+ *
+ * At `powerPerStack: 1` that lands on **5 power a stack** - the same number the percent shape was
+ * priced at, arrived at from the other direction. That coincidence is worth stating plainly: +1
+ * power a stack is worth about what 2% a stack was worth IN TOTAL. What changed is not the average
+ * value, it is that the value is now VISIBLE per hit and, crucially, **uncapped** - which is what
+ * moves the engines and what the grid measured.
+ */
+const STACK_ATTACK_HORIZON = 5;
+const OFFENSE_STREAM_POWER_PER_STACK = STATUS_MODEL.shape === 'POWER'
+    ? STATUS_MODEL.powerPerStack * STACK_ATTACK_HORIZON
+    : 5;
 /**
  * 2%/stack, 25% cap; defense stream (stalls a fight, priced lower - see cap note below).
  * Ticket 28: 10 -> 3.5, holding the 1.5:1 offense:defense ratio the old pair encoded.
  */
-const DEFENSE_STREAM_POWER_PER_STACK = 3.5;
+const DEFENSE_STREAM_POWER_PER_STACK = STATUS_MODEL.shape === 'POWER'
+    // The defensive pair rides the same count of attacks - the opponent's rather than yours - so the
+    // horizon term is identical and only the 1.5:1 offence premium separates them. That ratio is a
+    // design choice this file has encoded since ticket 28 (accelerating a fight is worth more than
+    // stalling one) and the re-denomination gives no reason to revisit it.
+    ? STATUS_MODEL.powerPerStack * STACK_ATTACK_HORIZON * (3.5 / 5)
+    : 3.5;
 /**
  * Burn's cumulative price to reach N stacks - tiered, not linear, because Burn decays 1/turn
  * and a pile of N therefore ticks N, N-1, ... 1 before it wears off.
@@ -371,7 +409,7 @@ const MEASURED_BOARD_PILE: Record<string, number> = {
  * fractional-stack law applies - every function reached here interpolates or is a formula, and
  * none of them index an array (the burnPower NaN lesson).
  */
-function statusPileValue(status: string | undefined, stacks: number): number {
+export function statusPileValue(status: string | undefined, stacks: number): number {
     if (!status || stacks <= 0) return 0;
     if (status === 'Strengthened' || status === 'Dazed') return streamStacks(stacks) * OFFENSE_STREAM_POWER_PER_STACK;
     if (status === 'Weakened' || status === 'Sharp') return streamStacks(stacks) * DEFENSE_STREAM_POWER_PER_STACK;
