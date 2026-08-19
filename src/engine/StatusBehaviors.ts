@@ -159,6 +159,13 @@ export interface BurnMechanicConfig {
     /** Stack ceiling. Crossing it is what triggers the shape above. */
     maxStacks: number;
     /**
+     * Stacks lost at the end of each of the burned entity's turns. 1 is the rev-3 behaviour;
+     * **0 restores the pre-rev-3 shape, where Burn was permanent** (Henry's question, ticket 92:
+     * *"I thought it was supposed to be permanent and not decrement between turns"*). Exposed as
+     * a dial rather than a literal so a sweep can answer that question without a rebuild.
+     */
+    decayPerTurn: number;
+    /**
      * Immediate damage per overflow EVENT, as a fraction of the burned entity's max HP.
      * VENT charges one event per excess stack; DETONATE one per cap-crossing.
      *
@@ -217,6 +224,7 @@ export const BURN_CONFIG: BurnMechanicConfig = {
     shape: 'DETONATE',
     maxStacks: 4,
     overflowPercent: 0.14,
+    decayPerTurn: 1,
     tiers: DEFAULT_GAME_CONFIG.status.burnStacks,
 };
 
@@ -291,9 +299,10 @@ class BurnBehavior extends StatusBehavior {
             logs.push(`  🔥 ${entity.name} — Burn shreds ${defenseShred} defense`);
         }
 
-        // docs/power_curve_spec.md rev 3: Burn now decays 1 stack/turn (was permanent).
-        // Tiers, def shred and the onApply overflow burst are unchanged.
-        const newStacks = instance.stacks - 1;
+        // docs/power_curve_spec.md rev 3: Burn decays `decayPerTurn` stacks a turn (it was
+        // permanent before rev 3). Tiers, def shred and the onApply overflow burst are unchanged.
+        // Set `decayPerTurn` to 0 to restore permanence - see the field measurement in ticket 92.
+        const newStacks = instance.stacks - BURN_CONFIG.decayPerTurn;
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — Burn wore off`);
             return { updatedInstance: null, damage, healing: 0, defenseShred, logs };

@@ -185,6 +185,14 @@ for (const st of ['hp', 'attack', 'defense', 'energy'] as const) if (knob[st]) R
 // Ticket 88: the two constants that are secretly the whole archetype axis. `energy` is 2 on 14 of
 // 15 species and `cardDraw` is 3 on 12 of 15 - ratatoskr's 3/4 is the only variation in the game.
 if (knob.draw) (REG[SPECIES] as unknown as { cardDraw: number }).cardDraw = Number(knob.draw);
+// Ticket 92, Henry's question: Burn was PERMANENT before rev 3 and now decays 1 stack a turn.
+// `burnperm` restores the old shape - the pile holds between turns - so we can measure whether
+// permanence makes any deck OP before changing anything. Patched through the exported config so
+// the tier table, the cap and the detonation are all untouched.
+if (knob.burnperm) {
+    const SB = await import('../src/engine/StatusBehaviors');
+    (SB as unknown as { BURN_CONFIG: { decayPerTurn?: number } }).BURN_CONFIG.decayPerTurn = 0;
+}
 if (knob.cut) REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].filter((c, i, a) => !(c === knob.cut && a.indexOf(c) === i));
 if (knob.swap) { const [from, to] = knob.swap.split(':'); REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c)); }
 
