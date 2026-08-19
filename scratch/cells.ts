@@ -293,73 +293,59 @@ if (knob.card) {
     }
 }
 
-// ---- 1. field win rate against all 31 other decks ----
-const opponents: Array<{ sp: string; deck: string }> = [];
-for (const sp of BALANCE_SPECIES) if (sp !== SPECIES)
-    for (const d of REG[sp].availableOS) opponents.push({ sp, deck: d });
-let sum = 0, lo = 0, hi = 0;
-for (const o of opponents) {
+
+// `shieldcap=N` - clamp Bark Shield to N%% of maxHP. Bark Shield is the only UNCAPPED mitigation
+// in the game: stacks are percent-of-maxHP, they absorb point for point, and gullinbursti can hold
+// 21 of them. If a rail is breakable by a mechanic rather than by numbers, this is the mechanic.
+if (knob.shieldcap) {
+    const SB = await import('../src/engine/StatusBehaviors');
+    const behavior = (SB.getStatusBehavior('BarkShield')) as unknown as {
+        onApply: (e: unknown[], n: number, t: unknown, s?: unknown, p?: unknown) => { updatedEffects: Array<{ type: string; stacks: number }> };
+    };
+    const original = behavior.onApply.bind(behavior);
+    const cap = Number(knob.shieldcap);
+    behavior.onApply = (effects, incoming, target, source, power) => {
+        const result = original(effects, incoming, target, source, power);
+        return {
+            ...result,
+            updatedEffects: result.updatedEffects.map(e =>
+                e.type === 'BarkShield' ? { ...e, stacks: Math.min(e.stacks, cap) } : e),
+        };
+    };
+}
+
+// `pierce` - injects a hypothetical payoff that IGNORES Bark Shield, to test whether the rail is
+// breakable by DESIGN when it is not breakable by numbers. Bark Shield absorbs point for point and
+// is the only uncapped mitigation in the game; a card that goes round it is the smallest change
+// that could reach a 0% cell.
+if (knob.pierce) {
+    const PR = (await import('../src/engine/data/programRegistry')).ProgramRegistry as unknown as Record<string, unknown>;
+    PR.sunder = {
+        id: 'sunder', name: 'Sunder', description: '60 power. Ignores Bark Shield.',
+        element: 'Earth', target: 'Single', category: 'Attack', rarity: 'Rare', baseCost: 2,
+        constraints: ['not_stunned', 'not_asleep', 'energy_base'],
+        actions: [{ type: 'ATTACK', power: 60, target: 'TARGET', ignoreShield: true }],
+    };
+}
+
+// ---- CELLS: the specific matchups this pass exists to fix ----
+// Ticket 94. Field win rate is the wrong instrument for an absolute: a 0% cell can stay 0% while
+// the field number moves five points, and the <10%/>90% counts in `offenders` include
+// type-advantaged cells, which Henry's bucket standard exempts. So measure the CELLS themselves.
+// env: CELLS="opponent,opponent,..."  (default: every neutral absolute this deck is in)
+const CELLS = (process.env.CELLS ?? '').split(',').filter(Boolean);
+const ITER_C = Number(process.env.ITER ?? 30);
+console.error(`\nCELLS ${DECK} [${ARM}]`);
+let worst = 1, best = 0;
+for (const opp of CELLS) {
+    const oppSpecies = opp.replace(/_v[12]$/, '');
     const r = runPairedBatch(matchupScenario({
-        player: SPECIES, enemy: o.sp, playerOS: DECK, enemyOS: o.deck, seed: `grid:${DECK}:${o.deck}`,
-    }), { iterations: ITER });
-    sum += r.pooled.decisiveWinRate;
-    if (r.pooled.decisiveWinRate < 0.1) lo++; if (r.pooled.decisiveWinRate > 0.9) hi++;
+        player: SPECIES, enemy: oppSpecies, playerOS: DECK, enemyOS: opp,
+        seed: `grid:${DECK}:${opp}`,
+    }), { iterations: ITER_C });
+    const w = r.pooled.decisiveWinRate;
+    worst = Math.min(worst, w); best = Math.max(best, w);
+    const flag = w === 0 ? '  <-- STILL 0%' : w === 1 ? '  <-- STILL 100%' : '';
+    console.error(`  vs ${opp.padEnd(18)}${(w * 100).toFixed(1).padStart(6)}%${flag}`);
 }
-const field = sum / opponents.length;
-
-// ---- 2. payoff accessibility and magnitude ----
-const pay: Record<string, { casts: number; firstTurns: number[]; shares: number[] }> = {};
-let games = 0, turnsTotal = 0, cardsPlayed = 0, crossings = 0, myTurns = 0;
-const shieldAtCast: number[] = [];
-for (const o of opponents) {
-    const setup = matchupScenario({ player: SPECIES, enemy: o.sp, playerOS: DECK, enemyOS: o.deck, seed: `pay:${DECK}:${o.deck}` });
-    for (const seed of deriveSeeds(setup.seed, 4)) for (const side of ['PLAYER', 'ENEMY'] as const) {
-        const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
-        let st: IBattleState = side === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
-        let g = 0; games++;
-        const first: Record<string, number> = {};
-        let wasBelowHalf = false, lastTurn = -1, playsThisTurn = 0;
-        const alive = (p: ReadonlyArray<IBattleEntity>) => p.some(e => e.currentHp > 0);
-        while (alive(st.playerParty) && alive(st.enemyParty) && st.turn <= 60 && g++ < 4000) {
-            const me = st.playerParty[0], foe = st.enemyParty[0];
-            const mine = st.activeSide === 'PLAYER';
-            if (mine && st.turn !== lastTurn) { if (lastTurn >= 0) cardsPlayed += playsThisTurn; playsThisTurn = 0; lastTurn = st.turn; myTurns++; }
-            const belowHalf = me.currentHp < me.maxHp / 2;
-            if (belowHalf && !wasBelowHalf) crossings++;
-            wasBelowHalf = belowHalf;
-
-            const act: BattleAction = getBestAction(st);
-            let cast: string | undefined;
-            if (mine && act.type === 'PLAY_PROGRAM') {
-                cast = st.playerDeck.hand.find(c => c.id === (act as never as { payload: { programId: string } }).payload.programId)?.dataId;
-                playsThisTurn++;
-            }
-            const before = hp(st.enemyParty), foeMax = foe.maxHp;
-            let next = battleReducer(st, act);
-            if (next === st) { next = battleReducer(st, { type: 'END_TURN' }); if (next === st) break; }
-            if (cast === 'avalanche')
-                shieldAtCast.push(me.statusEffects?.find(x => x.type === 'BarkShield')?.stacks ?? 0);
-            if (cast && PAYOFF[DECK].includes(cast)) {
-                const rec = (pay[cast] ??= { casts: 0, firstTurns: [], shares: [] });
-                rec.casts++;
-                rec.shares.push(Math.max(0, before - hp(next.enemyParty)) / foeMax);
-                if (first[cast] === undefined) { first[cast] = st.turn; rec.firstTurns.push(st.turn); }
-            }
-            st = next;
-        }
-        turnsTotal += st.turn;
-    }
-}
-
-const meanShield = shieldAtCast.length ? shieldAtCast.reduce((x, y) => x + y, 0) / shieldAtCast.length : 0;
-const q = (a: number[], p: number) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : 0; };
-const mean = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
-console.error(`\nRESULT ${DECK} [${ARM}]`);
-console.error(`  field ${(field * 100).toFixed(1)}%   <10%: ${lo}  >90%: ${hi}   avg game ${(turnsTotal / games).toFixed(1)} turns   cards/turn ${(cardsPlayed / Math.max(1, myTurns)).toFixed(2)}`);
-if (DECK === 'ymir_v1') console.error(`  Bark Shield when she casts avalanche: mean ${meanShield.toFixed(1)} stacks   <- the OS hands her 5 a turn, free`);
-if (DECK === 'nidhoggr_v2') console.error(`  she crosses below half HP ${(crossings / games).toFixed(2)}x a game  <- BLOOD_SCENT fires on her own crossings too`);
-for (const c of PAYOFF[DECK]) {
-    const r = pay[c]; if (!r) continue;
-    console.error(`  ${c.padEnd(14)} casts/game ${(r.casts / games).toFixed(2)}   first cast turn ${mean(r.firstTurns).toFixed(1)}   ` +
-        `damage as % of target maxHP: median ${(q(r.shares, .5) * 100).toFixed(0)}%  p90 ${(q(r.shares, .9) * 100).toFixed(0)}%  max ${(Math.max(...r.shares) * 100).toFixed(0)}%`);
-}
+console.error(`  worst ${(worst * 100).toFixed(1)}%   best ${(best * 100).toFixed(1)}%`);
