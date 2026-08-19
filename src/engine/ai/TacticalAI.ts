@@ -431,6 +431,50 @@ const LOOKAHEAD_REPLY_DEPTH = 2;
  */
 const LOOKAHEAD_DOMINANCE_MARGIN = 12;
 
+/**
+ * DECISION TAP - ticket 99's instrument seam, and the same shape as the store's `setActionTap`:
+ * production ships it inert, and only debug code ever fills it.
+ *
+ * Henry's playtest finding was that most decks play themselves - one line is obviously best, every
+ * hand, so there is no game to play. That is measurable from inside this function and nowhere else:
+ * the AI already computes what every candidate line is worth, and the shape of that distribution IS
+ * the answer. A turn where the best play leads by 40 eval points is a deck playing itself; a turn
+ * where the top two sit within a couple of points, and where LOOKING A TURN AHEAD changes the pick,
+ * is a decision.
+ *
+ * Zero cost when unset: one null check per decision.
+ */
+export interface DecisionRecord {
+    side: 'PLAYER' | 'ENEMY';
+    turn: number;
+    /** Lines that beat standing pat. 0 = no play was worth making; 1 = no choice existed. */
+    candidates: number;
+    /** Eval points between the best and second-best line. Undefined when there was no second. */
+    gap?: number;
+    /** True when the gap was inside the dominance margin - the decision was contested. */
+    close: boolean;
+    /** True when the 1-turn lookahead ran (close, not lethal, not a stalled battle). */
+    lookaheadRan: boolean;
+    /** True when the lookahead picked a DIFFERENT line than the greedy ranking would have. */
+    flipped: boolean;
+}
+
+let decisionTap: ((record: DecisionRecord) => void) | null = null;
+
+/** Install (or clear, with `null`) the decision tap. Debug-only. */
+export function setDecisionTap(tap: ((record: DecisionRecord) => void) | null): void {
+    decisionTap = tap;
+}
+
+/**
+ * `AI_GREEDY=1` disables the 1-turn lookahead, leaving the same-turn greedy ranking.
+ *
+ * This is ticket 99's first proxy: the win-rate difference between the two modes is what thinking
+ * one turn ahead is WORTH on a given deck. A deck that scores the same either way is a deck whose
+ * decisions do not matter - which is exactly the complaint the ticket exists to quantify.
+ */
+const GREEDY_ONLY = process.env.AI_GREEDY === '1';
+
 function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
     return party.every(e => e.currentHp <= 0);
 }
@@ -519,6 +563,10 @@ export function getBestAction(state: IBattleState): BattleAction {
         const baseline = evaluateState(state, side);
         const improving = candidates.filter(c => c.score > baseline);
         if (improving.length === 0) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: 0,
+                close: false, lookaheadRan: false, flipped: false,
+            });
             return { type: 'END_TURN' };
         }
 
@@ -535,15 +583,35 @@ export function getBestAction(state: IBattleState): BattleAction {
 
         const topN = improving.slice(0, LOOKAHEAD_TOP_N);
         if (topN.length === 1) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                close: false, lookaheadRan: false, flipped: false,
+            });
             return topN[0].action;
         }
-        if (topN[0].score - topN[1].score > LOOKAHEAD_DOMINANCE_MARGIN) {
+        const gap = topN[0].score - topN[1].score;
+        if (gap > LOOKAHEAD_DOMINANCE_MARGIN) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                gap, close: false, lookaheadRan: false, flipped: false,
+            });
+            return topN[0].action;
+        }
+        if (GREEDY_ONLY) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                gap, close: true, lookaheadRan: false, flipped: false,
+            });
             return topN[0].action;
         }
         // Stalled battles (docs/balance_testing.md 2.2 calls >30 turns a stall) get
         // greedy play only: the lookahead cannot un-stall a matchup whose decks
         // cannot close, and 400-game 60-turn mirror stalls dominate suite wall-clock.
         if (state.turn > 30) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                gap, close: true, lookaheadRan: false, flipped: false,
+            });
             return topN[0].action;
         }
 
@@ -558,6 +626,12 @@ export function getBestAction(state: IBattleState): BattleAction {
                 best = topN[i];
             }
         }
+        // FLIPPED is the signal ticket 99 is really after: the greedy ranking and the one-turn
+        // lookahead disagreed, so the turn contained a decision that a shallower player gets wrong.
+        decisionTap?.({
+            side, turn: state.turn, candidates: improving.length,
+            gap, close: true, lookaheadRan: true, flipped: best !== topN[0],
+        });
         return best.action;
     } finally {
         globalBattleEventBus.unmute();

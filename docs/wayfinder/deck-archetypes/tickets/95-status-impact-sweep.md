@@ -26,7 +26,7 @@ lengths, and named exhibits: (a) the status-heavy decks (gullinbursti, ratatoskr
 sleipnir_v1, skoll_v1) whose riders finally matter, (b) **the TUG-OF-WAR cell:
 draugr-vs-Sharp-appliers under the duality cancel** - uncapped makes contested axes
 winner-take-all, which is what killed draugr in playtest; measure how bad it gets,
-(c) raw-stack scalers (momentum_crash, sun_devourer, TREACHERY/CORE_OVERCLOCK) -
+(c2) THE GULLINBURSTI WALL (Legion ticket 94 finding: up to 13 Sharp + 21 BarkShield, the only uncapped mitigation in the game) - under power-uncapped arms his wall and the new statuses compound; named exhibit. (c) raw-stack scalers (momentum_crash, sun_devourer, TREACHERY/CORE_OVERCLOCK) -
 double-dip check under power shapes.
 
 ## Blast radius, stated up front
@@ -39,5 +39,5 @@ in. STOP after the grid; Henry picks; nothing ships from this ticket.
 
 Uncapped contested statuses REQUIRE it: **every deck needs two independent win levers** -
 a counter matchup should be heavily unfavorable, never impossible (draugr's single-lever
-Dazed plan had a hard OFF switch). Audit column added to ticket 94's census: independent
+Dazed plan had a hard OFF switch). Audit column added to ticket 99's census: independent
 paths to lethal, per deck. Single-lever decks get flagged for their next pass.
