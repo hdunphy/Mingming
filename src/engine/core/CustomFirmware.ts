@@ -1,5 +1,5 @@
 import { type HookDefinition, type HookContext, type HookResult, type MutationRequest, resolveCounterKey } from './HookTypes';
-import type { IBattleState, IBattleEntity } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData } from '../types';
 import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
@@ -66,8 +66,41 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  */
 export const OS_KNOBS = { hel: { pctPerEnergy: 6, capPct: 25 }, ymir: { iceBonus: 0.25 }, hraes: { shufflesNeeded: 2 }, fenrir: { berserkPct: 0.5 } };
 
-/** Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive". */
-const HEL_BLOOD_BLOCKED_COST = 999;
+/**
+ * Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive".
+ *
+ * TICKET 105: this leaked straight into the UI as the literal string "999" - Henry, at 23 HP:
+ * *"Last Rites says it costs 999 energy/HP? Would it kill me and thats why I can't play it?"*
+ * Exported now, with `isUnaffordableCost` as the check and `blockedCostReason` as the words,
+ * so the card face can say WHY instead of printing an internal sentinel at the player.
+ */
+export const UNAFFORDABLE_COST = 999;
+
+/** Is this cost the block sentinel rather than a real price? */
+export const isUnaffordableCost = (cost: number): boolean => cost >= UNAFFORDABLE_COST;
+
+/**
+ * Why a cast is blocked, in the player's words - or null if it is not blocked.
+ *
+ * Lives next to the rule that produces the block so the two cannot drift: any new blocking
+ * cost hook adds its reason here, and the card face picks it up for free.
+ */
+export function blockedCostReason(
+    state: IBattleState, source: IBattleEntity, program: ProgramData
+): string | null {
+    if (source.activeOS !== 'hel_v2') return null;
+    const pct = helBloodPct({ state, source, program, triggerDepth: 0 } as HookContext, source);
+    if (pct === 0) return null;
+    const hpCost = helBloodHpCost(pct, source);
+    if (hpCost >= source.currentHp) {
+        return `Would cost ${hpCost} HP in blood - more than you have left`;
+    }
+    const spent = (state.counters || {})[resolveCounterKey('hel_blood_spent', 'OWNER', source)] || 0;
+    if (spent + pct > OS_KNOBS.hel.capPct) {
+        return `Blood budget spent this turn (${spent}% of ${OS_KNOBS.hel.capPct}%)`;
+    }
+    return null;
+}
 
 /** Percent of max HP this cast would spend, or 0 if it is not a blood cast at all. */
 function helBloodPct(context: HookContext, owner: IBattleEntity): number {
@@ -79,6 +112,18 @@ function helBloodPct(context: HookContext, owner: IBattleEntity): number {
     const printed = numericBaseCost(program.baseCost);
     if (printed <= 0) return 0;
     return printed * OS_KNOBS.hel.pctPerEnergy;
+}
+
+/**
+ * The blood price in HP for a cast worth `pct` percent of max HP.
+ *
+ * TICKET 105: extracted so the COST hook and the TOLL hook cannot disagree. They used to
+ * compute the same number in two places, and the cost hook only knew how to refuse a cast for
+ * being over the turn budget - not for being LETHAL. Floor of 1: a cast always costs blood,
+ * however small the frame.
+ */
+function helBloodHpCost(pct: number, owner: IBattleEntity): number {
+    return Math.max(1, Math.ceil(owner.maxHp * (OS_KNOBS.hel.pctPerEnergy / 100)) * (pct / OS_KNOBS.hel.pctPerEnergy));
 }
 
 /**
@@ -347,7 +392,12 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 const spent = (context.state.counters || {})[resolveCounterKey('hel_blood_spent', 'OWNER', owner)] || 0;
                 // The cap is checked against what this cast WOULD take the total to, so a 3-Energy
                 // spell is refused at 10% spent even though 10 is under 20.
-                if (spent + pct > OS_KNOBS.hel.capPct) return HEL_BLOOD_BLOCKED_COST;
+                if (spent + pct > OS_KNOBS.hel.capPct) return UNAFFORDABLE_COST;
+                // TICKET 105: a price you cannot survive is a price you cannot pay. Without this,
+                // the toll below killed her mid-cast and the card resolved anyway - Henry's
+                // "I died first yet still got the victory". `>=` not `>`: paying your last point
+                // of HP is death, not a bargain.
+                if (helBloodHpCost(pct, owner) >= owner.currentHp) return UNAFFORDABLE_COST;
                 return 0;
             }
         },
@@ -359,8 +409,7 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 const pct = helBloodPct({ ...context, state }, owner);
                 if (pct === 0) return { state };
 
-                // Floor of 1: a cast always costs blood, however small the frame.
-                const hpCost = Math.max(1, Math.ceil(owner.maxHp * (OS_KNOBS.hel.pctPerEnergy / 100)) * (pct / OS_KNOBS.hel.pctPerEnergy));
+                const hpCost = helBloodHpCost(pct, owner);
                 const spentKey = resolveCounterKey('hel_blood_spent', 'OWNER', owner);
                 state = applyMutations(state, [
                     { type: 'HP', targetId: owner.id, sourceId: owner.id, payload: { amount: hpCost } },

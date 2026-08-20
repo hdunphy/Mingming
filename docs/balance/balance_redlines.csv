@@ -51,8 +51,8 @@ section,kind,subject,metric,value,threshold,comparison,detail
 2.3,OS_GAP,os:draugr,osGap,0.32,0.15,above,draugr_v2 wins 82.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:fafnir,osGap,0.19,0.15,above,fafnir_v1 wins 69.0% of the 100 decided games between fafnir_v1 and fafnir_v2 on an otherwise identical fafnir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:fafnir,osGap,0.19,0.15,above,fafnir_v1 wins 69.0% of the 100 decided games between fafnir_v1 and fafnir_v2 on an otherwise identical fafnir. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:fenrir,osGap,0.1768,0.15,above,fenrir_v2 wins 67.7% of the 99 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:fenrir,osGap,0.1768,0.15,above,fenrir_v2 wins 67.7% of the 99 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:fenrir,osGap,0.18,0.15,above,fenrir_v2 wins 68.0% of the 100 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:fenrir,osGap,0.18,0.15,above,fenrir_v2 wins 68.0% of the 100 decided games between fenrir_v1 and fenrir_v2 on an otherwise identical fenrir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:gullinbursti,osGap,0.21,0.15,above,gullinbursti_v1 wins 71.0% of the 100 decided games between gullinbursti_v1 and gullinbursti_v2 on an otherwise identical gullinbursti. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:gullinbursti,osGap,0.21,0.15,above,gullinbursti_v1 wins 71.0% of the 100 decided games between gullinbursti_v1 and gullinbursti_v2 on an otherwise identical gullinbursti. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:huldra,osGap,0.49,0.15,above,huldra_v1 wins 99.0% of the 100 decided games between huldra_v1 and huldra_v2 on an otherwise identical huldra. The weaker variant needs a buff or a lower cost.

@@ -997,8 +997,8 @@
    "opponent": "kraken",
    "bucket": "DIS",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.05263157894736842,
+   "decisive": 20,
+   "winRate": 0.05,
    "ftk": 0
   },
   {
@@ -1017,8 +1017,8 @@
    "opponent": "ratatoskr",
    "bucket": "ADV",
    "games": 20,
-   "decisive": 19,
-   "winRate": 1,
+   "decisive": 20,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
@@ -1687,8 +1687,8 @@
    "opponent": "fafnir",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.3157894736842105,
+   "decisive": 20,
+   "winRate": 0.3,
    "ftk": 0
   },
   {
@@ -1697,8 +1697,8 @@
    "opponent": "fenrir",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.6842105263157895,
+   "decisive": 20,
+   "winRate": 0.7,
    "ftk": 0
   },
   {
@@ -1717,8 +1717,8 @@
    "opponent": "hraesvelgr",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 18,
-   "winRate": 0.3888888888888889,
+   "decisive": 20,
+   "winRate": 0.35,
    "ftk": 0
   },
   {
@@ -1727,8 +1727,8 @@
    "opponent": "huldra",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.7894736842105263,
+   "decisive": 20,
+   "winRate": 0.75,
    "ftk": 0
   },
   {
@@ -1737,8 +1737,8 @@
    "opponent": "jormungandr",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.3157894736842105,
+   "decisive": 20,
+   "winRate": 0.3,
    "ftk": 0
   },
   {
@@ -1757,8 +1757,8 @@
    "opponent": "nidhoggr",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.7894736842105263,
+   "decisive": 20,
+   "winRate": 0.75,
    "ftk": 0
   },
   {
@@ -1777,8 +1777,8 @@
    "opponent": "skoll",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 18,
-   "winRate": 0.7222222222222222,
+   "decisive": 20,
+   "winRate": 0.65,
    "ftk": 0
   },
   {
@@ -1787,8 +1787,8 @@
    "opponent": "sleipnir",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 17,
-   "winRate": 0.4117647058823529,
+   "decisive": 20,
+   "winRate": 0.35,
    "ftk": 0
   },
   {
@@ -1797,8 +1797,8 @@
    "opponent": "valkyrie",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.8421052631578947,
+   "decisive": 20,
+   "winRate": 0.8,
    "ftk": 0
   },
   {
@@ -3947,8 +3947,8 @@
    "opponent": "fenrir",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.631578947368421,
+   "decisive": 20,
+   "winRate": 0.65,
    "ftk": 0
   },
   {
@@ -4247,8 +4247,8 @@
    "opponent": "fenrir",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 18,
-   "winRate": 0.5,
+   "decisive": 20,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
@@ -4397,8 +4397,8 @@
    "opponent": "fenrir",
    "bucket": "NEU",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.7368421052631579,
+   "decisive": 20,
+   "winRate": 0.75,
    "ftk": 0
   },
   {
@@ -4547,8 +4547,8 @@
    "opponent": "fenrir",
    "bucket": "DIS",
    "games": 20,
-   "decisive": 19,
-   "winRate": 0.10526315789473684,
+   "decisive": 20,
+   "winRate": 0.15,
    "ftk": 0
   },
   {

@@ -339,6 +339,36 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // 5. System Layer: onActionStart
     const { state: afterStart, isCancelled } = executeResolutionStack('onActionStart', context);
     if (isCancelled) return afterStart;
+
+    // TICKET 105 - THE DEAD DO NOT GET TO FINISH THEIR TURN.
+    //
+    // The guards at the top of this function check that the caster is alive BEFORE the card
+    // starts, and that was the only check there was. But a cost hook can kill the caster
+    // DURING its own `onActionStart` - hel_v2's UNDERWORLD_GATEWAY pays HP for Dark spells
+    // there - and the resolution loop below simply carried on. From Henry's round-3 playtest
+    // (snapshot `t4-77031961`), verbatim from the log:
+    //
+    //     Hel takes 10 damage DEFEATED
+    //     Hel's UNDERWORLD_GATEWAY pays 10 HP in blood!
+    //     Hel plays Last Rites -> Control
+    //     Control takes 17 damage DEFEATED
+    //
+    // A dead unit killed the enemy, and Henry got the victory screen: *"I died first yet
+    // still got the victory."* The card is already paid for and already in the discard by
+    // this point, which is the correct outcome for a cast whose price killed you: it is
+    // spent, and it fizzles.
+    //
+    // This is the GENERAL guard. `hel_v2`'s cost hook separately refuses a cast whose blood
+    // price would be lethal, so hel never reaches here - but the next mechanic that can kill
+    // its own caster mid-cast should not have to rediscover this.
+    const casterAfterStart = afterStart[activePartyKey].find(e => e.id === sourceId);
+    if (!casterAfterStart || casterAfterStart.currentHp <= 0) {
+        return applyMutations(afterStart, [{
+            type: 'LOG',
+            targetId: '',
+            payload: `${sourceEntity.name} falls paying for ${programData.name} - the cast fizzles.`
+        }]);
+    }
     snapshot = afterStart;
 
     // 6. Logging Layer: Emission (Priority 0)

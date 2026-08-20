@@ -887,6 +887,15 @@ body {
   text-shadow: 0 0 6px rgba(255, 68, 68, 0.6);
 }
 
+/* Ticket 105: a cost hook refused this cast (lethal blood price, or the turn's blood budget
+   is spent). The pip shows the card's real printed cost; the tooltip says why it cannot be
+   paid. Before this it rendered the internal 999 sentinel at the player. */
+.card-cost-blocked {
+  color: #ff6666;
+  border-color: #ff6666;
+  text-decoration: line-through;
+}
+
 /* ── Element-matched card glow (battle hand) ──
    Applied when the selected source unit's primary/secondary element
    matches the card's element (×1.5 STAB). Pure class toggle; the color
