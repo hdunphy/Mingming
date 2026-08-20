@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "B2 - a second 0% cell",
+  "description": "Also 0 of 60. Note the turn at which you felt the game was already lost.   [you: draugr_v2 | opponent: huldra_v1]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "draugr_v2"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "B2-draugr_v2-vs-huldra_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "draugr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "draugr_v2"
+        }
+      ],
+      "deck": [
+        "rimefrost",
+        "rimefrost",
+        "water_slap",
+        "frost_bite",
+        "numbing_gale",
+        "killing_frost",
+        "ice_spear",
+        "glacial_slam",
+        "rimebreaker",
+        "rimebreaker"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "huldra",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "deck": [
+          "growth",
+          "growth",
+          "soothe",
+          "water_slap",
+          "iron_bark",
+          "iron_bark",
+          "thorn_tithe",
+          "thorn_tithe",
+          "hexbloom"
+        ]
+      }
+    ]
+  }
+}

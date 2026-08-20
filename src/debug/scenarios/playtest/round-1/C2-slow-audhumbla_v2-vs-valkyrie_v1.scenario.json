@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "C2 - the longest game on the roster",
+  "description": "The AI takes 17 turns over this. Does it drag - and if so, from roughly which turn?   [you: audhumbla_v2 | opponent: valkyrie_v1]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "audhumbla_v2"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "C2-slow-audhumbla_v2-vs-valkyrie_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "audhumbla",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "audhumbla_v2"
+        }
+      ],
+      "deck": [
+        "pale_mercy",
+        "pale_mercy",
+        "dawnstrike",
+        "dawnstrike",
+        "hallow",
+        "healing_light",
+        "sacred_spring",
+        "uplift",
+        "purify"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "valkyrie",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "valkyrie_v1",
+        "deck": [
+          "pale_mercy",
+          "benediction",
+          "benediction",
+          "zealots_edge",
+          "zealots_edge",
+          "echo_of_valhalla",
+          "ascension",
+          "radiant_spark",
+          "smite",
+          "healing_light"
+        ]
+      }
+    ]
+  }
+}

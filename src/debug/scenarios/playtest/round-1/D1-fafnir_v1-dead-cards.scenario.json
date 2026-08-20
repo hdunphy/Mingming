@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "D1 - the deck with the deadest card",
+  "description": "hoardbreaker sits unplayed in the AI hand 89% of the time. Did you find a use for it, and when?   [you: fafnir_v1 | opponent: control]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "fafnir_v1"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "D1-fafnir_v1-dead-cards",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "fafnir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "fafnir_v1"
+        }
+      ],
+      "deck": [
+        "iron_will",
+        "iron_will",
+        "water_slap",
+        "grit",
+        "boulder_smash",
+        "boulder_smash",
+        "motherlode",
+        "motherlode",
+        "hoardbreaker",
+        "deep_vein",
+        "deep_vein"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ]
+  }
+}

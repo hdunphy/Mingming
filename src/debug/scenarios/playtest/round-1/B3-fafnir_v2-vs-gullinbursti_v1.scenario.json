@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "B3 - a third 0% cell",
+  "description": "Also 0 of 60. Three is enough to tell whether the zeros are a pilot artifact.   [you: fafnir_v2 | opponent: gullinbursti_v1]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "fafnir_v2"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "B3-fafnir_v2-vs-gullinbursti_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "fafnir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "fafnir_v2"
+        }
+      ],
+      "deck": [
+        "iron_will",
+        "iron_will",
+        "water_slap",
+        "rust_blood",
+        "rust_blood",
+        "boulder_smash",
+        "boulder_smash",
+        "squirrel_away",
+        "veinburst",
+        "veinburst"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "gullinbursti",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "gullinbursti_v1",
+        "deck": [
+          "water_slap",
+          "keen_edge",
+          "keen_edge",
+          "shield_shards",
+          "shield_shards",
+          "stone_bark",
+          "stone_fist",
+          "stone_fist",
+          "motherlode",
+          "spiked_carapace"
+        ]
+      }
+    ]
+  }
+}

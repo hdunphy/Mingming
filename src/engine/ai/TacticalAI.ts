@@ -503,7 +503,7 @@ export function setDecisionTap(tap: ((record: DecisionRecord) => void) | null): 
  * one turn ahead is WORTH on a given deck. A deck that scores the same either way is a deck whose
  * decisions do not matter - which is exactly the complaint the ticket exists to quantify.
  */
-const GREEDY_ONLY = process.env.AI_GREEDY === '1';
+const GREEDY_ONLY = typeof process !== 'undefined' && process.env?.AI_GREEDY === '1';
 
 function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
     return party.every(e => e.currentHp <= 0);

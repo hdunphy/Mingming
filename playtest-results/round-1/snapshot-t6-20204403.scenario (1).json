@@ -1,0 +1,380 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t6-20204403",
+  "description": "Auto-captured at turn 6, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_D1-fafnir_v1-dead-cards",
+    "seed": "2020440384",
+    "turn": 6,
+    "phase": "ACTION",
+    "activeSide": "PLAYER",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_049mjk0_1",
+        "definitionId": "fafnir",
+        "level": 15,
+        "experience": 2844,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "fafnir_v1",
+        "name": "Fafnir",
+        "maxHp": 83,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 31,
+        "defense": 39,
+        "speed": 10,
+        "primaryElement": "Earth",
+        "currentHp": 41,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "7ad80a3b-77b1-4eda-aa81-095316538fc5",
+            "type": "Dazed",
+            "stacks": 16
+          },
+          {
+            "id": "df1ab3aa-6298-4b5d-95a2-0a52326d9b40",
+            "type": "Strengthened",
+            "stacks": 12
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Fafnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_1t071fk_2",
+        "definitionId": "control",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "name": "Control",
+        "maxHp": 87,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 41,
+        "defense": 39,
+        "speed": 10,
+        "primaryElement": "None",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "b8bec615-e867-4da8-bc55-bb8441288056",
+            "type": "Weakened",
+            "stacks": 6
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Control.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1v38oow_c",
+          "dataId": "deep_vein",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1j4ey2o_b",
+          "dataId": "hoardbreaker",
+          "currentCost": 3,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_069x6gw_a",
+          "dataId": "motherlode",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_06dy4u8_8",
+          "dataId": "boulder_smash",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_1xmjxfk_5",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1vj0c4w_3",
+          "dataId": "iron_will",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1u0x9fk_9",
+          "dataId": "motherlode",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1f420zk_4",
+          "dataId": "iron_will",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1wsaha8_6",
+          "dataId": "grit",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1dguj0g_7",
+          "dataId": "boulder_smash",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0dzt6o0_d",
+          "dataId": "deep_vein",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_0yuns00_e",
+          "dataId": "baseline_jab",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_0n3qadc_l",
+          "dataId": "baseline_snare",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03dk7pc_g",
+          "dataId": "baseline_scuff",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1rnvekg_f",
+          "dataId": "baseline_jab",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ci7shs_i",
+          "dataId": "baseline_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1myvb40_h",
+          "dataId": "baseline_scuff",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ywdwjk_j",
+          "dataId": "baseline_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1swxnnk_m",
+          "dataId": "baseline_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_110ha80_n",
+          "dataId": "baseline_purge",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_15avrpc_k",
+          "dataId": "baseline_snare",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "Fafnir plays Tackle → Control",
+      "  → Control takes 1 damage",
+      "Fafnir plays Grit → Control",
+      "  → Control gains Weakened (3 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  → Fafnir gains Energized (2 stacks)",
+      "Fafnir's HOARD_PROTOCOL retains 2 Energy!",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Control plays Baseline Snare → Fafnir",
+      "  → Fafnir takes 2 damage",
+      "  → Fafnir gains Dazed (2 stacks)",
+      "Control plays Baseline Scuff → Fafnir",
+      "  → Fafnir takes 0 damage",
+      "  → Fafnir gains Dazed (1 stacks)",
+      "Control plays Baseline Strike → Fafnir",
+      "  → Fafnir takes 4 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Fafnir takes 1 damage",
+      "Fafnir's hoarded Energy burns its core for 1 damage!",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "Fafnir plays Iron Will → Fafnir",
+      "  → Fafnir gains Strengthened (4 stacks)",
+      "  → Fafnir gains Dazed (2 stacks)",
+      "Fafnir plays Motherlode → Control",
+      "  → Control takes 14 damage",
+      "Fafnir plays Boulder Smash → Control",
+      "  → Control takes 6 damage",
+      "--- PLAYER ends their turn ---",
+      "  → Fafnir gains Energized (1 stacks)",
+      "Fafnir's HOARD_PROTOCOL retains 1 Energy!",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Control plays Baseline Jab → Fafnir",
+      "  → Fafnir takes 1 damage",
+      "Control plays Baseline Snare → Fafnir",
+      "  → Fafnir takes 3 damage",
+      "  → Fafnir gains Dazed (2 stacks)",
+      "Control plays Baseline Scuff → Fafnir",
+      "  → Fafnir takes 0 damage",
+      "  → Fafnir gains Dazed (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "  → Fafnir takes 1 damage",
+      "Fafnir's hoarded Energy burns its core for 1 damage!",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "Fafnir plays Deep Vein → Control",
+      "  → Control takes 21 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Control plays Baseline Snare → Fafnir",
+      "  → Fafnir takes 3 damage",
+      "  → Fafnir gains Dazed (2 stacks)",
+      "Control plays Baseline Scuff → Fafnir",
+      "  → Fafnir takes 0 damage",
+      "  → Fafnir gains Dazed (1 stacks)",
+      "Control plays Baseline Jab → Fafnir",
+      "  → Fafnir takes 1 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "Fafnir plays Tackle → Control",
+      "  → Control takes 1 damage",
+      "Fafnir plays Iron Will → Fafnir",
+      "  → Fafnir gains Strengthened (4 stacks)",
+      "  → Fafnir gains Dazed (2 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  → Fafnir gains Energized (2 stacks)",
+      "Fafnir's HOARD_PROTOCOL retains 2 Energy!",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Control plays Baseline Strike → Fafnir",
+      "  → Fafnir takes 5 damage",
+      "Control plays Baseline Scuff → Fafnir",
+      "  → Fafnir takes 0 damage",
+      "  → Fafnir gains Dazed (1 stacks)",
+      "Control plays Baseline Strike → Fafnir",
+      "  → Fafnir takes 5 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Fafnir takes 1 damage",
+      "Fafnir's hoarded Energy burns its core for 1 damage!",
+      "⚔️ Turn 5 — PLAYER's turn begins",
+      "Fafnir plays Iron Will → Fafnir",
+      "  → Fafnir gains Strengthened (4 stacks)",
+      "  → Fafnir gains Dazed (2 stacks)",
+      "Fafnir plays Grit → Control",
+      "  → Control gains Weakened (3 stacks)",
+      "Fafnir plays Boulder Smash → Control",
+      "  → Control takes 7 damage",
+      "--- PLAYER ends their turn ---",
+      "  → Fafnir gains Energized (3 stacks)",
+      "Fafnir's HOARD_PROTOCOL retains 3 Energy!",
+      "⚔️ Turn 5 — ENEMY's turn begins",
+      "Control plays Baseline Slam → Fafnir",
+      "  → Fafnir takes 13 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Fafnir takes 2 damage",
+      "Fafnir's hoarded Energy burns its core for 2 damage!",
+      "⚔️ Turn 6 — PLAYER's turn begins",
+      "Fafnir plays Deep Vein → Control",
+      "  → Control takes 40 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 1 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 1,
+    "cardsDrawnThisTurn": 3,
+    "nonNaturalCardsDrawnThisTurn": 0,
+    "lastProgramPlayed": "deep_vein",
+    "counters": {
+      "fafnir_hoard:mm_049mjk0_1": 0,
+      "deck_shuffles": 2
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 1,
+      "Air": 0,
+      "Nature": 0,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 5,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T01:54:36.463Z"
+}

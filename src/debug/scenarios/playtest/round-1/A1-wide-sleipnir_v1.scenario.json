@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "A1 - the WIDE deck",
+  "description": "The AI plays 3.6 cards a turn with this deck. Play A2 straight after: did these feel like two different decks, or one deck with different cards?   [you: sleipnir_v1 | opponent: control]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "sleipnir_v1"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "A1-wide-sleipnir_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "sleipnir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "sleipnir_v1"
+        }
+      ],
+      "deck": [
+        "water_slap",
+        "water_slap",
+        "slipstream",
+        "slipstream",
+        "disorienting_gust",
+        "adrenaline",
+        "tailwind",
+        "zephyr_strike",
+        "stampede",
+        "stampede",
+        "momentum_crash",
+        "hoofbeat_daemon"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ]
+  }
+}
