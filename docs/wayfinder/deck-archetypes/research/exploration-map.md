@@ -30,7 +30,6 @@
 
 ## Open
 
-- Deploy choice: can the player send FEWER than their full team into a wild fight (1v1
-  blueprint farming late-run), or is party size simply party size? Henry chewing.
+- ~~Deploy choice~~ RULED 2026-08-20: party size is party size (simple version); alphas/rare nodes serve focused hunting.
 - Economy session (next): scrap income/costs, marketplace stock, potions/relics system,
   workshop pricing, faint rules in the gauntlet.
