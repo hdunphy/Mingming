@@ -539,7 +539,13 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     const ASSUMED_WEAKENED_STACKS = 5;      // measured 5.04
     const ASSUMED_BARKSHIELD_STACKS = 7;    // measured 7.70
 
-    const ASSUMED_CONSUMED_STACKS: Record<string, number> = { Burn: 1.5, Poison: 8, Strengthened: 8 };
+    // TICKET 101: `Regen: 10` is MEASURED, not guessed - `scratch/drinkcensus.ts` walked 60 real
+    // games of the rebuilt audhumbla_v2 and recorded the pile at the instant `drink_deep`
+    // resolved: mean 9.85, median 9, p90 17. The ticket expected ~6; the battery banks faster
+    // than that because PRIMORDIAL_MILK grants 3 per heal card against Regen's 1/turn decay.
+    // Without an entry here the fallback is ONE stack, and the pricer read `drink_deep` at 1.3
+    // against a 5.2-6.5 band - a card it could not see at all.
+    const ASSUMED_CONSUMED_STACKS: Record<string, number> = { Burn: 1.5, Poison: 8, Strengthened: 8, Regen: 10 };
     const consumedCount = (status?: string): number =>
         (status && ASSUMED_CONSUMED_STACKS[status] !== undefined)
             ? ASSUMED_CONSUMED_STACKS[status]

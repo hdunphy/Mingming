@@ -1034,11 +1034,11 @@
     },
     "audhumbla_v2": {
         "id": "audhumbla_v2",
-        "name": "NOURISH_ROUTINE",
-        "description": "50% of the printed heal power of every heal Audhumbla casts is also dealt as Light damage to a random enemy.",
+        "name": "PRIMORDIAL_MILK",
+        "description": "Every heal card Audhumbla casts also grants her 3 Regen.",
         "hooks": [
             {
-                "id": "aud_v2_nourish",
+                "id": "aud_v2_milk",
                 "trigger": "onHeal",
                 "priority": 40,
                 "when": {
@@ -1052,15 +1052,14 @@
                 },
                 "do": [
                     {
-                        "type": "ATTACK",
-                        "target": "RANDOM_ENEMY",
-                        "element": "Light",
-                        "power": 0.5,
-                        "scaling": "HEAL_POWER"
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Regen",
+                        "stacks": 3
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s NOURISH_ROUTINE turns the healing into Light damage against {target}!"
+                        "text": "{owner}'s PRIMORDIAL_MILK banks the healing as Regen."
                     }
                 ]
             }

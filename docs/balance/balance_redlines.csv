@@ -45,8 +45,8 @@ section,kind,subject,metric,value,threshold,comparison,detail
 1.3,CARD_OVER_BUDGET,umbral_feast,score,14.9,3,above,"Umbral Feast (umbral_feast) costs 1 energy and scores 14.9, 11.9 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,undertow,score,1.4,1,above,"Undertow (undertow) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,water_slap,score,1.2,1,above,"Tackle (water_slap) costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
-2.3,OS_GAP,os:audhumbla,osGap,0.4891,0.15,above,audhumbla_v1 wins 98.9% of the 92 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:audhumbla,osGap,0.4891,0.15,above,audhumbla_v1 wins 98.9% of the 92 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:audhumbla,osGap,0.34,0.15,above,audhumbla_v1 wins 84.0% of the 100 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:audhumbla,osGap,0.34,0.15,above,audhumbla_v1 wins 84.0% of the 100 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:draugr,osGap,0.32,0.15,above,draugr_v2 wins 82.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:draugr,osGap,0.32,0.15,above,draugr_v2 wins 82.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:fafnir,osGap,0.19,0.15,above,fafnir_v1 wins 69.0% of the 100 decided games between fafnir_v1 and fafnir_v2 on an otherwise identical fafnir. The weaker variant needs a buff or a lower cost.

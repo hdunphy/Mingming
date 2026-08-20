@@ -5776,5 +5776,57 @@
                 "target": "TARGET"
             }
         ]
+    },
+    "morning_dew": {
+        "id": "morning_dew",
+        "name": "Morning Dew",
+        "description": "Gain 5 Regen.",
+        "element": "Light",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Regen",
+                "stacks": 5,
+                "target": "SELF"
+            }
+        ]
+    },
+    "drink_deep": {
+        "id": "drink_deep",
+        "name": "Drink Deep",
+        "description": "Drink deep: consume all your Regen and deal 15 Light damage per stack consumed.",
+        "element": "Light",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Regen",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "scaling": "STATUS_CONSUMED",
+                "target": "TARGET"
+            }
+        ]
     }
 }

@@ -6,9 +6,9 @@
   "cells": 480,
   "ftk": 1,
   "ftkCells": 1,
-  "bandViolations": 125,
-  "bandViolationRate": 0.2604,
-  "neutralAbsolutes": 24
+  "bandViolations": 120,
+  "bandViolationRate": 0.25,
+  "neutralAbsolutes": 18
  },
  "cells": [
   {
@@ -168,7 +168,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.9,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
@@ -178,7 +178,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 1,
+   "winRate": 0.75,
    "ftk": 0
   },
   {
@@ -188,7 +188,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.35,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
@@ -198,7 +198,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.1,
    "ftk": 0
   },
   {
@@ -208,7 +208,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.35,
+   "winRate": 0.45,
    "ftk": 0
   },
   {
@@ -218,7 +218,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.55,
+   "winRate": 0.6,
    "ftk": 0
   },
   {
@@ -228,7 +228,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.05,
    "ftk": 0
   },
   {
@@ -238,7 +238,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.9,
+   "winRate": 0.75,
    "ftk": 0
   },
   {
@@ -248,7 +248,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.95,
+   "winRate": 0.9,
    "ftk": 0
   },
   {
@@ -268,7 +268,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.7,
    "ftk": 0
   },
   {
@@ -278,7 +278,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.95,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
@@ -288,7 +288,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.1,
+   "winRate": 0.15,
    "ftk": 0
   },
   {
@@ -298,7 +298,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
@@ -308,7 +308,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.05,
    "ftk": 0
   },
   {
