@@ -1,7 +1,11 @@
 # Sim speed, piece 1: the deterministic cell cache (ticket 97)
 
 - Type: wayfinder:task - infrastructure, **no balance changes**. Branch `archetype-web`.
-- Status: **piece 1 closed**, piece 2 parked, piece 3 not started.
+- Status: **piece 1 closed**. **Pieces 2 and 3 resolved by ticket 108** -
+  [research/three-tier-ai.md](../research/three-tier-ai.md): piece 2 (parallelism) is UNPARKED and
+  shipped as child processes rather than `worker_threads`, bit-identity gated; piece 3 (adaptive
+  sampling) is **rejected as a speed lever** - early stopping manufactures absolutes 10-for-13, and
+  blowout count is a metric this project rules on. It belongs back as a PRECISION lever instead.
 
 Picked up off the queue as one of the tickets that needs no design input.
 

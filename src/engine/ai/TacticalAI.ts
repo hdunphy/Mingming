@@ -450,9 +450,65 @@ function findBestSequence(
 //   discard pile (drawpile exhausted) falls back to the engine's own seeded shuffle.
 
 const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
-const LOOKAHEAD_TOP_N = 3;
-const LOOKAHEAD_DETERMINIZATIONS = 2;
+
+/**
+ * TICKET 108 - THE SCREENING TIER. `AI_LITE=1` narrows the lookahead instead of removing it.
+ *
+ * Henry's objection to a greedy screening tier was the right one: greedy is BIASED AGAINST
+ * DECISION-HEAVY CARDS, which is exactly what the fun program keeps adding. A screen that
+ * systematically under-rates hold-or-cash cards would rank arms wrongly in the one direction the
+ * project cares about - `drink_deep`, `momentum_crash` and `bracing_cold` are all cards whose whole
+ * point is that the greedy line is wrong.
+ *
+ * So the cheap tier keeps the lookahead and shrinks it: TWO candidates instead of three, ONE
+ * determinization instead of two. That is 2 lookahead evaluations per contested decision where full
+ * does 6 - the same KIND of judgement, a third of the work. The reply depth is deliberately NOT
+ * reduced: it is what makes a lookahead a lookahead.
+ *
+ * Full lookahead remains the default and the only thing a ship gate may use.
+ *
+ * ------------------------------------------------------------------------------------------------
+ * CALIBRATED, AND THE RULES THAT CAME OUT OF IT (ticket 108 - research/three-tier-ai.md)
+ * ------------------------------------------------------------------------------------------------
+ * Measured, not assumed. Three findings decide how these tiers may be used:
+ *
+ * 1. LITE RANKS LIKE FULL. Across a six-arm knob sweep (`rimebreaker` power 0/10/15/20/25/30 on
+ *    `draugr_v2`) lite reproduced full's ordering exactly, and its per-cell disagreement with full
+ *    (MAD 5.7-6.7) is SMALLER than full's disagreement with ITSELF across seed bases (MAD 6.0-13.2).
+ *    At arm-ranking grade the tier is not the dominant error term; the seed base is.
+ *
+ * 2. LITE COMPRESSES THE SPREAD AND BIASES WEAK ARMS UP. Over that sweep full spanned 41.7 -> 76.0
+ *    and lite 49.8 -> 76.3: lite reads ~77% of the slope, and the gap is largest where the arm is
+ *    weakest (+8.2 points at power 0, +0.3 at power 30). It is reading the deck's FLOOR - a shallower
+ *    search finds fewer of the losing lines. So:
+ *
+ *      **SCREEN WITH LITE, CONFIRM THE WINNER WITH FULL. Never read a band verdict off lite.**
+ *
+ *    An in-band/out-of-band call near 35 or 80 is exactly where an 8-point upward bias flips a
+ *    verdict, and a deck-health number is not a ranking.
+ *
+ * 3. GREEDY IS NOT SAFE FOR NUMERIC KNOBS - THE OPPOSITE OF WHAT WAS EXPECTED. Marginal card value
+ *    (deck field with the card printed, minus with its power zeroed):
+ *
+ *      | card                        | full  | lite  | greedy |
+ *      | momentum_crash (consume)    | +5.25 | +4.67 | +0.75  |
+ *      | zephyr_strike (flat 15)     | +3.67 | +3.00 | +0.67  |
+ *      | stampede (her biggest card) | +26.7 |   -   | +28.6  |
+ *      | rimebreaker (ANY_STATUS)    | +19.8 | +15.3 | +15.2  |
+ *
+ *    Greedy priced two of those four correctly and compressed the other two by 5-7x, and nothing in
+ *    the card's text predicts which. It reads a change the deck can SUBSTITUTE AROUND as nearly
+ *    free, because without lookahead it simply plays something else. A power knob is usually
+ *    exactly that kind of change. **Greedy is a decision-density probe (ticket 99), not a screen.**
+ */
+const LITE = process.env.AI_LITE === '1';
+const LOOKAHEAD_TOP_N = LITE ? 2 : 3;
+const LOOKAHEAD_DETERMINIZATIONS = LITE ? 1 : 2;
 const LOOKAHEAD_REPLY_DEPTH = 2;
+
+/** What tier is live, for a harness that wants to record it beside its numbers. */
+export const AI_TIER: 'greedy' | 'lite' | 'full' =
+    process.env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
 /**
  * Dominance pruning: when the best same-turn candidate leads the runner-up by more
  * than this many eval points (12 = 6 HP), the decision is not close and the
@@ -503,7 +559,7 @@ export function setDecisionTap(tap: ((record: DecisionRecord) => void) | null): 
  * one turn ahead is WORTH on a given deck. A deck that scores the same either way is a deck whose
  * decisions do not matter - which is exactly the complaint the ticket exists to quantify.
  */
-const GREEDY_ONLY = typeof process !== 'undefined' && process.env?.AI_GREEDY === '1';
+const GREEDY_ONLY = process.env.AI_GREEDY === '1';
 
 function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
     return party.every(e => e.currentHp <= 0);
