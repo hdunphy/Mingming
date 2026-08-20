@@ -1,11 +1,11 @@
 id,suite,role,player,playerOS,enemy,enemyOS,iterations,playerWins,enemyWins,draws,decisive,decisiveWinRate,winRate,averageTurns,deadCardRatio,enemyDeadCardRatio,ftkCount,truncatedCount,firstMoverEdge,sideBias,inconclusive,redlines
-gauntlet:control-overall,archetype-gauntlet,gauntlet-overall,control,,*registry*,,3200,125,3074,1,3199,0.0391,0.0391,5.91,0.1376,0.1323,0,0,,,false,
+gauntlet:control-overall,archetype-gauntlet,gauntlet-overall,control,,*registry*,,3200,125,3074,1,3199,0.0391,0.0391,5.92,0.1378,0.1316,0,0,,,false,
 gauntlet:control-overall:slot1,archetype-gauntlet,gauntlet-overall,control,,*registry*,,1600,51,1549,0,1600,0.0319,0.0319,6.07,0.1311,0.108,0,0,,,false,
-gauntlet:control-overall:slot2,archetype-gauntlet,gauntlet-overall,control,,*registry*,,1600,74,1525,1,1599,0.0463,0.0463,5.75,0.1441,0.1603,0,0,,,false,
+gauntlet:control-overall:slot2,archetype-gauntlet,gauntlet-overall,control,,*registry*,,1600,74,1525,1,1599,0.0463,0.0463,5.78,0.1445,0.1589,0,0,,,false,
 gauntlet:control-vs-audhumbla:audhumbla_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,audhumbla,audhumbla_v1,100,0,100,0,100,0,0,6.68,0.1,0.1133,0,0,0,1,false,
 gauntlet:control-vs-audhumbla:audhumbla_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,audhumbla,audhumbla_v2,100,0,100,0,100,0,0,8.53,0.144,0.1589,0,0,0,1,false,
 gauntlet:control-vs-draugr:draugr_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,draugr,draugr_v1,100,5,95,0,100,0.05,0.05,6.88,0.1,0.1745,0,0,-0.01,0.9,false,
-gauntlet:control-vs-draugr:draugr_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,draugr,draugr_v2,100,0,100,0,100,0,0,7.87,0.104,0.113,0,0,0,1,false,
+gauntlet:control-vs-draugr:draugr_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,draugr,draugr_v2,100,0,100,0,100,0,0,8.25,0.11,0.091,0,0,0,1,false,
 gauntlet:control-vs-fafnir:fafnir_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,fafnir,fafnir_v1,100,0,100,0,100,0,0,5.79,0.123,0.2064,0,0,0,1,false,
 gauntlet:control-vs-fafnir:fafnir_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,fafnir,fafnir_v2,100,5,95,0,100,0.05,0.05,5.09,0.146,0.154,0,0,-0.01,0.9,false,
 gauntlet:control-vs-fenrir:fenrir_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,fenrir,fenrir_v1,100,2,98,0,100,0.02,0.02,5.14,0.155,0.1944,0,0,0.02,0.96,false,
@@ -68,8 +68,8 @@ mirror:ymir,mirror,mirror,ymir,ymir_v1,ymir,ymir_v1,400,196,204,0,400,0.49,0.49,
 mirror:ymir,mirror,mirror,ymir,ymir_v1,ymir,ymir_v1,400,196,204,0,400,0.49,0.49,15.35,0.054,0.0528,0,0,0.035,0.02,false,
 os:audhumbla,os-variance,os-variance,audhumbla,audhumbla_v1,audhumbla,audhumbla_v2,100,84,16,0,100,0.84,0.84,9.69,0.0444,0.1156,0,0,0.06,0.68,false,OS_GAP
 os:audhumbla,os-variance,os-variance,audhumbla,audhumbla_v1,audhumbla,audhumbla_v2,100,84,16,0,100,0.84,0.84,9.69,0.0444,0.1156,0,0,0.06,0.68,false,OS_GAP
-os:draugr,os-variance,os-variance,draugr,draugr_v1,draugr,draugr_v2,100,18,82,0,100,0.18,0.18,7.05,0.2009,0.127,0,0,-0.02,0.64,false,OS_GAP
-os:draugr,os-variance,os-variance,draugr,draugr_v1,draugr,draugr_v2,100,18,82,0,100,0.18,0.18,7.05,0.2009,0.127,0,0,-0.02,0.64,false,OS_GAP
+os:draugr,os-variance,os-variance,draugr,draugr_v1,draugr,draugr_v2,100,10,90,0,100,0.1,0.1,6.79,0.2173,0.149,0,0,-0.02,0.8,false,OS_GAP
+os:draugr,os-variance,os-variance,draugr,draugr_v1,draugr,draugr_v2,100,10,90,0,100,0.1,0.1,6.79,0.2173,0.149,0,0,-0.02,0.8,false,OS_GAP
 os:fafnir,os-variance,os-variance,fafnir,fafnir_v1,fafnir,fafnir_v2,100,69,31,0,100,0.69,0.69,4.87,0.2709,0.217,0,0,0.19,0.38,false,OS_GAP
 os:fafnir,os-variance,os-variance,fafnir,fafnir_v1,fafnir,fafnir_v2,100,69,31,0,100,0.69,0.69,4.87,0.2709,0.217,0,0,0.19,0.38,false,OS_GAP
 os:fenrir,os-variance,os-variance,fenrir,fenrir_v1,fenrir,fenrir_v2,100,32,68,0,100,0.32,0.32,3.96,0.3489,0.3233,0,0,0.06,0.36,false,OS_GAP

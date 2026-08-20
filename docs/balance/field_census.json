@@ -468,7 +468,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.4,
+   "winRate": 0.5,
    "ftk": 0
   },
   {
@@ -478,7 +478,7 @@
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.85,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
@@ -488,7 +488,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0,
+   "winRate": 0.1,
    "ftk": 0
   },
   {
@@ -498,7 +498,7 @@
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.65,
+   "winRate": 0.95,
    "ftk": 0
   },
   {
@@ -508,7 +508,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.7,
+   "winRate": 0.9,
    "ftk": 0
   },
   {
@@ -518,7 +518,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.35,
+   "winRate": 0.3,
    "ftk": 0
   },
   {
@@ -528,7 +528,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.05,
+   "winRate": 0.4,
    "ftk": 0
   },
   {
@@ -558,7 +558,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.25,
+   "winRate": 0.4,
    "ftk": 0
   },
   {
@@ -588,7 +588,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.1,
+   "winRate": 0.25,
    "ftk": 0
   },
   {

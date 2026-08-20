@@ -11,6 +11,10 @@ const HookConditionSchema = z.object({
     isToken: z.boolean().optional(),
     statusApplied: z.string().optional(),
     statusAppliedIn: z.array(z.string()).optional(),
+    // Ticket 107: the anti-recursion guard. zod strips undeclared keys, so a hook using this
+    // without the line below would fire UNGUARDED - which for this particular condition means an
+    // infinite status cascade, not a no-op.
+    statusAppliedNotIn: z.array(z.string()).optional(),
     programCategoryIn: z.array(z.string()).optional(),
     programCategoryNot: z.array(z.string()).optional(),
     programAppliesStatus: z.boolean().optional(),

@@ -52,6 +52,17 @@ export type HookCondition = {
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;
     statusAppliedIn?: StatusType[]; // Passes when the applied status is any of these
+    /**
+     * TICKET 107: passes when the applied status is NOT any of these - the guard for a hook that
+     * REACTS to a status application by APPLYING a status, which would otherwise re-trigger itself.
+     * draugr_v2's Poison rider is the first: "statuses draugr applies to an enemy also apply
+     * 1 Poison" would apply Poison, see its own Poison, and apply more.
+     *
+     * An allow-list (`statusAppliedIn`) can express the same guard today and was the cheaper
+     * change, but it misstates the rule - the rider is "any status except my own" - and it rots
+     * silently the moment a new card applies a status nobody remembered to add to the list.
+     */
+    statusAppliedNotIn?: StatusType[];
     programCategoryIn?: string[]; // Passes when a program is in context and its category matches one of these
     programCategoryNot?: string[]; // Passes when a program is in context and its category matches NONE of these
     programAppliesStatus?: boolean; // Passes when the program in context does (true) / does not (false) contain a STATUS action

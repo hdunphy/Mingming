@@ -4956,7 +4956,7 @@
     "rimebreaker": {
         "id": "rimebreaker",
         "name": "Rimebreaker",
-        "description": "25 power for each different debuff on the target.",
+        "description": "20 power for each different status on the target - buffs, debuffs, anyone's.",
         "element": "Ice",
         "target": "Single",
         "category": "Attack",
@@ -4970,9 +4970,9 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 25,
+                "power": 20,
                 "target": "TARGET",
-                "scaling": "DISTINCT_STATUS"
+                "scaling": "ANY_STATUS"
             }
         ]
     },

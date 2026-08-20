@@ -536,6 +536,18 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     // conditional on the pile existing — except ASSUMED_DISTINCT_STATUS, which counts zeros and
     // is therefore the only one needing no floor caveat.
     const ASSUMED_DISTINCT_STATUS = 1;      // measured 0.70, unconditional
+    // TICKET 107: the any-status variant for `rimebreaker`'s rework, measured the SAME way as its
+    // debuff-only sibling above - distinct status TYPES on the card's target, counted
+    // unconditionally, zeros included - so the two constants are comparable.
+    // `scratch/anystatuscensus.ts`, 32,603 card-aims: **roster mean 2.01, median 2**.
+    // Two numbers from the same run worth recording:
+    //   - draugr_v2's OWN targets read 3.18, because his deck loads them. The constant prices the
+    //     card for the REGISTRY (anyone can draft it), not for the deck that ships it - which is
+    //     the same choice ticket 66 made.
+    //   - debuff-only has drifted 0.70 -> 1.19 since ticket 66 measured it, which is the POWER
+    //     re-denomination putting more statuses on more boards. It still rounds to 1, so
+    //     ASSUMED_DISTINCT_STATUS stays - but it is no longer the comfortable margin it was.
+    const ASSUMED_ANY_STATUS = 2;           // measured 2.01, unconditional
     const ASSUMED_WEAKENED_STACKS = 5;      // measured 5.04
     const ASSUMED_BARKSHIELD_STACKS = 7;    // measured 7.70
 
@@ -676,6 +688,7 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // included - so it needs no floor caveat. It was over-priced by 4.3x, which is most
             // of why `rimebreaker` carried a redline row.
             else if (action.scaling === 'DISTINCT_STATUS') power *= ASSUMED_DISTINCT_STATUS;
+            else if (action.scaling === 'ANY_STATUS') power *= ASSUMED_ANY_STATUS;
             // Ticket 66: BARKSHIELD_STACKS 3 -> 7 (measured 7.70, the largest board pile in the
             // game). Ticket 50's hand-derived "7-10" guess was close; the measurement replaces it.
             else if (action.scaling === 'BARKSHIELD_STACKS') power *= ASSUMED_BARKSHIELD_STACKS;

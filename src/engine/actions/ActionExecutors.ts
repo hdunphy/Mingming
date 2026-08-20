@@ -96,6 +96,20 @@ export function getEffectiveAttackPower(
         ).size;
         return power * distinct;
     }
+    if (action.scaling === 'ANY_STATUS') {
+        // TICKET 107: `rimebreaker` reads EVERYTHING on the target - buffs, debuffs, DoTs, Regen,
+        // whoever put them there. The inversion is the whole point of the rework: the measured
+        // reality of the DEBUFF-only version was 0.70 distinct debuffs on average and one or two
+        // against huldra, so the card read ~4 damage in Henry's hands. Against huldra it now eats
+        // her own Sharp pile - her win condition becomes draugr's ammunition.
+        //
+        // Deliberately polarised: enormous against a status deck, ~0 against a clean board. That
+        // is legal counter-texture under the archetype web - it is tech, not the plan.
+        const distinct = new Set(
+            (target?.statusEffects ?? []).filter(s => s.stacks > 0).map(s => s.type),
+        ).size;
+        return power * distinct;
+    }
     if (action.scaling === 'BARKSHIELD_STACKS') {
         // Ticket 50: reads the SOURCE's own standing BarkShield - avalanche casts the wall at
         // them. Uncapped, per Henry's law that per-stack scalers should underperform early and
