@@ -156,3 +156,64 @@ demand today.
   planned, because none of it is affordable until then.
 - **The §2 finding argues for reading team results as their own thing rather than as a correction to
   1v1 numbers** — a 27-turn game is a different game, not a longer one.
+
+---
+
+## 9. Addendum (2026-08-20): what this ticket did NOT deliver
+
+Written after reading `tickets/98-team-sim.md` itself. The work above was built from a relayed
+summary of the ticket, and the ticket has **four** deliverables, not two. Recording the gap rather
+than letting "BUILT" stand for all of it:
+
+| deliverable | status |
+|---|---|
+| 1. 3v3 runner, caster allocation exposed to the AI | **done** (§0 - it already existed) |
+| 2. Owner rule for draw-triggered firmware — *propose, Henry ratifies* | **proposed below, unbuilt** |
+| 3. Canary: ~6 comps (mono-element / spread / support-heavy), FTK, loops, **wasted energy**, entity-count tags | **partial** — 4 untyped comps; wasted energy now done; entity-count tags not reported |
+| 4. The two audit tag lists written into the registry as annotations | **not started** |
+
+### Wasted energy — measured, and it is a non-finding
+
+The ruling makes this a measured metric with no pre-patch, on the theory that three energy pools
+feeding one shared hand would leave members flush with nothing to cast. `scratch/wastedenergy.ts`,
+sampling at the moment a side ends its turn:
+
+| | pool left unspent at end of turn | living member-turns that spent NOTHING |
+|---|---|---|
+| 1v1 (baseline) | 12.5% | 0.0% |
+| **3v3** | **11.5%** | **0.0%** |
+
+**3v3 wastes no more energy than 1v1 does, and no member ever sat out a turn entirely.** The
+predicted failure does not appear. Small sample (2 battles, 14 sampled turns) so read it as a
+ranking, not a verdict — but it is the right shape of answer, and it argues against spending any
+design effort on an energy-sharing patch.
+
+### Deliverable 2: the owner rule, proposed
+
+**The question.** Firmware that triggers on *drawing* — kraken_v1's ink-on-draw, and anything else
+keyed to the draw phase — has an unambiguous owner in 1v1. In 3v3 the deck and the draw are
+per-SIDE: the pre-turn draw is one event of `sum(cardDraw) - (N-1)` cards for the whole team. If two
+members both run draw-triggered firmware, whose fires, and how many times?
+
+**Proposed rule: the draw is one event per SIDE, and every living member's draw-triggered firmware
+fires once against it — not once per card.**
+
+The reasoning, and the two alternatives it beats:
+
+- *Per card drawn* multiplies with team size **and** with `cardDraw`, which is the entity-count trap
+  guardrail 2 exists to catch — it is the TREACHERY 3x feed in another costume.
+- *First member only* makes the third slot's firmware silently dead, which violates the standing
+  principle that a card or hook doing nothing for an OS should do something **else**, never nothing.
+- *Once per member per side-draw* keeps each member's hook alive, scales linearly with how many
+  members actually invested in it, and costs a team that stacks three draw-triggered OSes exactly
+  what it paid for.
+
+**This is a proposal, not a decision** — the ticket says Henry ratifies. It is unbuilt, and nothing
+currently depends on it, because no team battle in the canary ran two draw-triggered OSes at once.
+
+### Deliverable 4, still open
+
+The entity-count and deck-size audit tag lists (TREACHERY's 3x feed, riptide, side-wide effects,
+`RANDOM_ENEMY` dilution; valkyrie's reshuffle OS in a 27-card pile) are named in the ruling but not
+yet written into the registry as annotations. That wants its own pass — it is a registry schema
+question, not a measurement.

@@ -12,9 +12,11 @@
  *     and 3v3 has three times the plays per turn to stall with. This is the canary's whole reason
  *     to exist: the `glimmer` loop (ticket 100) proves a shipped deck can already loop in 1v1, and
  *     a 27-card shared pile with three energy pools is a strictly better environment for that.
- *   - **wasted energy** - the ruled design says this is a MEASURED metric with no pre-patch. Three
- *     pools and one hand means a member can be flush while the hand is empty. Measuring it is the
- *     ruling; patching it is not.
+ *   - **wasted energy lives in `scratch/wastedenergy.ts`, NOT here.** An earlier version of this
+ *     comment claimed this suite watched it; it never did - the columns below are FTK, stalls,
+ *     turns, dead cards and first-mover edge, and none of them is an energy reading. Split out
+ *     rather than bolted on because the honest metric needs an end-of-turn sample and a 1v1
+ *     baseline to be read against.
  *   - **dead cards** - the DECK-SIZE audit. A 27-card pile draws a given card a third as often, so
  *     any deck whose plan needs a specific card should show it here.
  *   - **turns** - 1v1 battles run 2-3 turns. If 3v3 runs 15, every "damage over time" card in the
