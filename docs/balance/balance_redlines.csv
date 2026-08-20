@@ -65,5 +65,3 @@ section,kind,subject,metric,value,threshold,comparison,detail
 2.3,OS_GAP,os:ratatoskr,osGap,0.37,0.15,above,ratatoskr_v2 wins 87.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:skoll,osGap,0.35,0.15,above,skoll_v2 wins 85.0% of the 100 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:skoll,osGap,0.35,0.15,above,skoll_v2 wins 85.0% of the 100 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:ymir,osGap,0.38,0.15,above,ymir_v1 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:ymir,osGap,0.38,0.15,above,ymir_v1 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.

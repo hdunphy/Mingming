@@ -6,8 +6,8 @@
   "cells": 480,
   "ftk": 1,
   "ftkCells": 1,
-  "bandViolations": 124,
-  "bandViolationRate": 0.2583,
+  "bandViolations": 125,
+  "bandViolationRate": 0.2604,
   "neutralAbsolutes": 24
  },
  "cells": [
@@ -4668,7 +4668,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.3,
+   "winRate": 0.5,
    "ftk": 0
   },
   {
@@ -4678,7 +4678,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.7,
+   "winRate": 0.85,
    "ftk": 0
   },
   {
@@ -4708,7 +4708,7 @@
    "bucket": "ADV",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.8,
+   "winRate": 1,
    "ftk": 0
   },
   {
@@ -4718,7 +4718,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.6,
+   "winRate": 0.65,
    "ftk": 0
   },
   {
@@ -4728,7 +4728,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.4,
+   "winRate": 0.45,
    "ftk": 0
   },
   {
@@ -4738,7 +4738,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.2,
+   "winRate": 0.7,
    "ftk": 0
   },
   {
@@ -4768,7 +4768,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.6,
+   "winRate": 0.55,
    "ftk": 0
   },
   {
@@ -4778,7 +4778,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.7,
+   "winRate": 0.9,
    "ftk": 0
   },
   {
@@ -4788,7 +4788,7 @@
    "bucket": "DIS",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.55,
+   "winRate": 0.6,
    "ftk": 0
   },
   {
@@ -4808,7 +4808,7 @@
    "bucket": "NEU",
    "games": 20,
    "decisive": 20,
-   "winRate": 0.25,
+   "winRate": 0.4,
    "ftk": 0
   }
  ]

@@ -5087,12 +5087,12 @@
     "bracing_cold": {
         "id": "bracing_cold",
         "name": "Bracing Cold",
-        "description": "15 power. Gain 3 Strengthened.",
+        "description": "15 power. Gain 9 Strengthened.",
         "element": "Ice",
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
-        "baseCost": 1,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -5107,7 +5107,7 @@
             {
                 "type": "STATUS",
                 "status": "Strengthened",
-                "stacks": 3,
+                "stacks": 9,
                 "target": "SELF"
             }
         ]

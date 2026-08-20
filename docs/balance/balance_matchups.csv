@@ -1,7 +1,7 @@
 id,suite,role,player,playerOS,enemy,enemyOS,iterations,playerWins,enemyWins,draws,decisive,decisiveWinRate,winRate,averageTurns,deadCardRatio,enemyDeadCardRatio,ftkCount,truncatedCount,firstMoverEdge,sideBias,inconclusive,redlines
-gauntlet:control-overall,archetype-gauntlet,gauntlet-overall,control,,*registry*,,3200,127,3072,1,3199,0.0397,0.0397,5.95,0.134,0.1277,0,0,,,false,
+gauntlet:control-overall,archetype-gauntlet,gauntlet-overall,control,,*registry*,,3200,125,3074,1,3199,0.0391,0.0391,5.93,0.1346,0.1285,0,0,,,false,
 gauntlet:control-overall:slot1,archetype-gauntlet,gauntlet-overall,control,,*registry*,,1600,51,1549,0,1600,0.0319,0.0319,6.07,0.1311,0.108,0,0,,,false,
-gauntlet:control-overall:slot2,archetype-gauntlet,gauntlet-overall,control,,*registry*,,1600,76,1523,1,1599,0.0475,0.0475,5.83,0.1369,0.1505,0,0,,,false,
+gauntlet:control-overall:slot2,archetype-gauntlet,gauntlet-overall,control,,*registry*,,1600,74,1525,1,1599,0.0463,0.0463,5.8,0.1381,0.1521,0,0,,,false,
 gauntlet:control-vs-audhumbla:audhumbla_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,audhumbla,audhumbla_v1,100,0,100,0,100,0,0,6.68,0.1,0.1133,0,0,0,1,false,
 gauntlet:control-vs-audhumbla:audhumbla_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,audhumbla,audhumbla_v2,100,0,100,0,100,0,0,9.28,0.049,0.0178,0,0,0,1,false,
 gauntlet:control-vs-draugr:draugr_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,draugr,draugr_v1,100,5,95,0,100,0.05,0.05,6.88,0.1,0.1745,0,0,-0.01,0.9,false,
@@ -33,7 +33,7 @@ gauntlet:control-vs-sleipnir:sleipnir_v2,archetype-gauntlet,gauntlet-matchup,con
 gauntlet:control-vs-valkyrie:valkyrie_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,valkyrie,valkyrie_v1,100,0,100,0,100,0,0,7.38,0.083,0.048,0,0,0,1,false,
 gauntlet:control-vs-valkyrie:valkyrie_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,valkyrie,valkyrie_v2,100,0,100,0,100,0,0,5.57,0.12,0.0363,0,0,0,1,false,
 gauntlet:control-vs-ymir:ymir_v1,archetype-gauntlet,gauntlet-matchup,control,control_v1,ymir,ymir_v1,100,0,100,0,100,0,0,8.84,0.115,0.098,0,0,0,1,false,
-gauntlet:control-vs-ymir:ymir_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,ymir,ymir_v2,100,2,98,0,100,0.02,0.02,7.25,0.156,0.502,0,0,0.02,0.96,false,
+gauntlet:control-vs-ymir:ymir_v2,archetype-gauntlet,gauntlet-matchup,control,control_v1,ymir,ymir_v2,100,0,100,0,100,0,0,6.72,0.176,0.527,0,0,0,1,false,
 mirror:audhumbla,mirror,mirror,audhumbla,audhumbla_v1,audhumbla,audhumbla_v1,400,219,181,0,400,0.5475,0.5475,9.66,0.0658,0.0725,0,0,0.1375,0.095,false,
 mirror:audhumbla,mirror,mirror,audhumbla,audhumbla_v1,audhumbla,audhumbla_v1,400,219,181,0,400,0.5475,0.5475,9.66,0.0658,0.0725,0,0,0.1375,0.095,false,
 mirror:draugr,mirror,mirror,draugr,draugr_v1,draugr,draugr_v1,400,197,203,0,400,0.4925,0.4925,6.42,0.2144,0.2125,0,0,-0.0675,0.015,false,
@@ -96,5 +96,5 @@ os:sleipnir,os-variance,os-variance,sleipnir,sleipnir_v1,sleipnir,sleipnir_v2,10
 os:sleipnir,os-variance,os-variance,sleipnir,sleipnir_v1,sleipnir,sleipnir_v2,100,57,43,0,100,0.57,0.57,3.61,0.1901,0.1501,0,0,-0.03,0.14,false,
 os:valkyrie,os-variance,os-variance,valkyrie,valkyrie_v1,valkyrie,valkyrie_v2,100,63,37,0,100,0.63,0.63,7.12,0.075,0.0213,0,0,-0.01,0.26,false,
 os:valkyrie,os-variance,os-variance,valkyrie,valkyrie_v1,valkyrie,valkyrie_v2,100,63,37,0,100,0.63,0.63,7.12,0.075,0.0213,0,0,-0.01,0.26,false,
-os:ymir,os-variance,os-variance,ymir,ymir_v1,ymir,ymir_v2,100,88,12,0,100,0.88,0.88,10.73,0.124,0.486,0,0,0.04,0.76,false,OS_GAP
-os:ymir,os-variance,os-variance,ymir,ymir_v1,ymir,ymir_v2,100,88,12,0,100,0.88,0.88,10.73,0.124,0.486,0,0,0.04,0.76,false,OS_GAP
+os:ymir,os-variance,os-variance,ymir,ymir_v1,ymir,ymir_v2,100,63,37,0,100,0.63,0.63,10.17,0.126,0.504,0,0,0.09,0.26,false,
+os:ymir,os-variance,os-variance,ymir,ymir_v1,ymir,ymir_v2,100,63,37,0,100,0.63,0.63,10.17,0.126,0.504,0,0,0.09,0.26,false,
