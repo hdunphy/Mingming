@@ -30,7 +30,7 @@ import { dirname } from 'node:path';
 
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { FIRMWARE_REGISTRY } from '../../engine/data/firmwareRegistry';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { CustomFirmware } from '../../engine/core/CustomFirmware';
 
 /** Bump when the KEY's input set changes, so an old cache can never be read by new rules. */
@@ -112,7 +112,15 @@ function sideHash(species: string, os: string): string {
             try { return `card:${id}:${JSON.stringify(GetProgramData(id))}`; }
             catch { return `card:${id}:<missing>`; }
         }),
-        `firmware:${JSON.stringify((FIRMWARE_REGISTRY as Record<string, unknown>)[os] ?? null)}`,
+        // TICKET 103 BUG FIX - this line read `FIRMWARE_REGISTRY[os]` directly, and that registry
+        // is EMPTY until the first `getOSBehavior` call initialises it. Ticket 97 made the grid
+        // hoist every key BEFORE the first battle, which is exactly the moment nothing has
+        // initialised firmware yet - so the `?? null` fallback fired for all 32 decks and the
+        // firmware component of the key was the constant `null`. **The cache was blind to every
+        // hooks.json change from ticket 97 until now**, and it served a stale 960-cell grid for
+        // this ticket's own OS edit. `getOSBehavior` triggers the init, so the hash sees the
+        // real hooks. `cellCache.test.ts` pins it.
+        `firmware:${JSON.stringify(getOSBehavior(os) ?? null)}`,
         // CustomFirmware holds FUNCTIONS, which do not serialize - the engine-source hash covers
         // their bodies, so the id list is enough to catch one being added or removed.
         `custom:${((CustomFirmware as Record<string, unknown[]>)[os] ?? [])

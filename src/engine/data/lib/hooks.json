@@ -497,7 +497,7 @@
     "skoll_v2": {
         "id": "skoll_v2",
         "name": "SOLAR_OVERDRIVE_OS",
-        "description": "Skoll's attacks deal +15% damage per stack of Strength she holds (max 5 stacks).",
+        "description": "Skoll's attacks deal +15% damage per stack of Strength she holds. No cap.",
         "hooks": []
     },
     "jormungandr_v1": {
@@ -714,7 +714,7 @@
     "sleipnir_v1": {
         "id": "sleipnir_v1",
         "name": "MOMENTUM_DRIVE",
-        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 2 stacks of Strengthened.",
+        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened - and 2 instead of 1 once he already holds 4 or more.",
         "hooks": [
             {
                 "id": "sleipnir_v1_hook",
@@ -729,7 +729,28 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 2
+                        "stacks": 1
+                    }
+                ]
+            },
+            {
+                "id": "sleipnir_v1_ramp",
+                "trigger": "onActionStart",
+                "priority": 39,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "sourceStatus": {
+                        "status": "Strengthened",
+                        "minStacks": 4
+                    }
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
                     }
                 ]
             }

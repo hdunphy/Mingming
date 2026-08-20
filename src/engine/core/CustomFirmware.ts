@@ -84,7 +84,8 @@ function helBloodPct(context: HookContext, owner: IBattleEntity): number {
 /**
  * SOLAR_OVERDRIVE_OS (skoll_v2), ticket 64 — the hoarding half of the wolf.
  *
- * "Skoll's attacks deal +15% damage per stack of Strength she holds (max 5 stacks)."
+ * "Skoll's attacks deal +15% damage per stack of Strength she holds." (Ticket 103 removed the
+ * five-stack cap - see the constant below.)
  *
  * WHY IT IS HERE AND NOT IN hooks.json. The mechanism is `core_overclock_daemon`'s exactly —
  * an `onDamageCalculated` multiplier scaled by STRENGTH_STACKS — and that hook IS expressible
@@ -112,7 +113,21 @@ function helBloodPct(context: HookContext, owner: IBattleEntity): number {
 // overage is a CURVE problem - three 2-cost cards on a 2-Energy frame - and no authorized
 // knob reaches it. See the ticket-64 Resolution.
 const SKOLL_V2_DAMAGE_PER_STRENGTH = 0.15;
-const SKOLL_V2_STRENGTH_CAP = 5;
+/**
+ * TICKET 103: THE CAP IS GONE. It was 5, and it was the reason the one deck built to hoard
+ * Strength was the worst deck in the game after statuses became POWER: every other status deck
+ * got paid for a big pile and skoll's OS stopped reading hers at five. Removing it, and nothing
+ * else, took skoll_v2 from 34.5% field to 50.1% and cut her absolutes from 6 to 3.
+ *
+ * `Infinity` rather than a large number: a cap you cannot reach is still a cap somebody has to
+ * reason about, and Henry's standing rule is that arbitrary caps are not a design shape here.
+ * The valve is the duality cancel and the sheds, as it is for every other duality status.
+ *
+ * The `let` + setter is the balance sweep's seam (scratch/weak.ts measures cap values without a
+ * rebuild). Nothing in the game calls the setter.
+ */
+let SKOLL_V2_STRENGTH_CAP = Infinity;
+export function __setSkollStrengthCap(n: number): void { SKOLL_V2_STRENGTH_CAP = n; }
 
 /**
  * UNBOUND_KERNEL (fenrir_v1), ticket 84 - the half of the OS that was missing.

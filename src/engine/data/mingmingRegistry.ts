@@ -654,7 +654,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         name: "Audhumbla",
         baseStats: {
             hp: 100,
-            attack: 60,
+            attack: 75,
             defense: 90,
             // Ticket 53: 3 -> 2. GENESIS_FIRMWARE now hands out permanent max Energy from turn
             // one or two, so starting at 3 meant the ramp's first two ticks bought nothing she

@@ -5,6 +5,7 @@ section,kind,subject,metric,value,threshold,comparison,detail
 1.3,CARD_OVER_BUDGET,blood_rite,score,3.4,3,above,"Blood Rite (blood_rite) costs 1 energy and scores 3.4, 0.4 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,bloodlust,score,3.1,3,above,"Bloodlust (bloodlust) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,brute_force,score,3.1,3,above,"Brute Force (brute_force) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,capacitor,score,7.2,6.5,above,"Capacitor (capacitor) costs 2 energy and scores 7.2, 0.7 over the 6.5 budget for that cost."
 1.3,CARD_OVER_BUDGET,contagion,score,20.4,6.5,above,"Contagion (contagion) costs 2 energy and scores 20.4, 13.9 over the 6.5 budget for that cost. (score excludes unscored MULTIPLY_STATUS action(s) - actual value is at least this.)"
 1.3,CARD_OVER_BUDGET,corrosive_leak,score,2.3,1,above,"Corrosive Leak (corrosive_leak) costs 0 energy and scores 2.3, 1.3 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,crimson_draw,score,4.1,3,above,"Crimson Draw (crimson_draw) costs 1 energy and scores 4.1, 1.1 over the 3 budget for that cost."
@@ -30,6 +31,7 @@ section,kind,subject,metric,value,threshold,comparison,detail
 1.3,CARD_OVER_BUDGET,photosynthesis_v2,score,3.2,3,above,"Photosynthesis (photosynthesis_v2) costs 1 energy and scores 3.2, 0.2 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,pollen_cloud,score,1.1,1,above,"Pollen Cloud (pollen_cloud) costs 0 energy and scores 1.1, 0.1 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,pressure_point,score,3.1,3,above,"Pressure Point (pressure_point) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
+1.3,CARD_OVER_BUDGET,purify,score,3.3,3,above,"Purify (purify) costs 1 energy and scores 3.3, 0.3 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,shield_shards,score,3.1,3,above,"Shield Shards (shield_shards) costs 1 energy and scores 3.1, 0.1 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,sky_burial_ascended,score,4.1,3,above,"Sky Burial, Ascended (sky_burial_ascended) costs 1 energy and scores 4.1, 1.1 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,sleep_powder,score,4.5,3,above,"Sleep Powder (sleep_powder) costs 1 energy and scores 4.5, 1.5 over the 3 budget for that cost."
@@ -43,8 +45,8 @@ section,kind,subject,metric,value,threshold,comparison,detail
 1.3,CARD_OVER_BUDGET,umbral_feast,score,14.9,3,above,"Umbral Feast (umbral_feast) costs 1 energy and scores 14.9, 11.9 over the 3 budget for that cost."
 1.3,CARD_OVER_BUDGET,undertow,score,1.4,1,above,"Undertow (undertow) costs 0 energy and scores 1.4, 0.4 over the 1 budget for that cost."
 1.3,CARD_OVER_BUDGET,water_slap,score,1.2,1,above,"Tackle (water_slap) costs 0 energy and scores 1.2, 0.2 over the 1 budget for that cost."
-2.3,OS_GAP,os:audhumbla,osGap,0.5,0.15,above,audhumbla_v1 wins 100.0% of the 98 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:audhumbla,osGap,0.5,0.15,above,audhumbla_v1 wins 100.0% of the 98 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:audhumbla,osGap,0.4891,0.15,above,audhumbla_v1 wins 98.9% of the 92 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:audhumbla,osGap,0.4891,0.15,above,audhumbla_v1 wins 98.9% of the 92 decided games between audhumbla_v1 and audhumbla_v2 on an otherwise identical audhumbla. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:draugr,osGap,0.32,0.15,above,draugr_v2 wins 82.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:draugr,osGap,0.32,0.15,above,draugr_v2 wins 82.0% of the 100 decided games between draugr_v1 and draugr_v2 on an otherwise identical draugr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:fafnir,osGap,0.19,0.15,above,fafnir_v1 wins 69.0% of the 100 decided games between fafnir_v1 and fafnir_v2 on an otherwise identical fafnir. The weaker variant needs a buff or a lower cost.
@@ -55,13 +57,13 @@ section,kind,subject,metric,value,threshold,comparison,detail
 2.3,OS_GAP,os:gullinbursti,osGap,0.21,0.15,above,gullinbursti_v1 wins 71.0% of the 100 decided games between gullinbursti_v1 and gullinbursti_v2 on an otherwise identical gullinbursti. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:huldra,osGap,0.49,0.15,above,huldra_v1 wins 99.0% of the 100 decided games between huldra_v1 and huldra_v2 on an otherwise identical huldra. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:huldra,osGap,0.49,0.15,above,huldra_v1 wins 99.0% of the 100 decided games between huldra_v1 and huldra_v2 on an otherwise identical huldra. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:kraken,osGap,0.18,0.15,above,kraken_v2 wins 68.0% of the 100 decided games between kraken_v1 and kraken_v2 on an otherwise identical kraken. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:kraken,osGap,0.18,0.15,above,kraken_v2 wins 68.0% of the 100 decided games between kraken_v1 and kraken_v2 on an otherwise identical kraken. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:nidhoggr,osGap,0.28,0.15,above,nidhoggr_v2 wins 78.0% of the 100 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:nidhoggr,osGap,0.28,0.15,above,nidhoggr_v2 wins 78.0% of the 100 decided games between nidhoggr_v1 and nidhoggr_v2 on an otherwise identical nidhoggr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ratatoskr,osGap,0.37,0.15,above,ratatoskr_v2 wins 87.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ratatoskr,osGap,0.37,0.15,above,ratatoskr_v2 wins 87.0% of the 100 decided games between ratatoskr_v1 and ratatoskr_v2 on an otherwise identical ratatoskr. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:skoll,osGap,0.21,0.15,above,skoll_v2 wins 71.0% of the 100 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:skoll,osGap,0.21,0.15,above,skoll_v2 wins 71.0% of the 100 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:sleipnir,osGap,0.21,0.15,above,sleipnir_v1 wins 71.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
-2.3,OS_GAP,os:sleipnir,osGap,0.21,0.15,above,sleipnir_v1 wins 71.0% of the 100 decided games between sleipnir_v1 and sleipnir_v2 on an otherwise identical sleipnir. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:skoll,osGap,0.35,0.15,above,skoll_v2 wins 85.0% of the 100 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
+2.3,OS_GAP,os:skoll,osGap,0.35,0.15,above,skoll_v2 wins 85.0% of the 100 decided games between skoll_v1 and skoll_v2 on an otherwise identical skoll. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ymir,osGap,0.38,0.15,above,ymir_v1 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.
 2.3,OS_GAP,os:ymir,osGap,0.38,0.15,above,ymir_v1 wins 88.0% of the 100 decided games between ymir_v1 and ymir_v2 on an otherwise identical ymir. The weaker variant needs a buff or a lower cost.

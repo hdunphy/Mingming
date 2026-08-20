@@ -654,7 +654,7 @@
     "capacitor": {
         "id": "capacitor",
         "name": "Capacitor",
-        "description": "Gain 2 Energy next turn.",
+        "description": "Gain 2 Energy next turn and 3 Sharp.",
         "element": "None",
         "target": "Self",
         "category": "Skill",
@@ -670,6 +670,12 @@
                 "type": "STATUS",
                 "status": "Energized",
                 "stacks": 2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
                 "target": "SELF"
             }
         ]
@@ -2136,7 +2142,7 @@
     "momentum_crash": {
         "id": "momentum_crash",
         "name": "Momentum Crash",
-        "description": "Cash the charge: deal 8 Air damage for every stack of Strengthened you have.",
+        "description": "Cash the charge: consume all your Strengthened and deal 8 Air damage per stack consumed.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2149,9 +2155,15 @@
         ],
         "actions": [
             {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
                 "type": "ATTACK",
                 "power": 8,
-                "scaling": "STRENGTH_STACKS",
+                "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
         ]
@@ -3254,7 +3266,7 @@
     "purify": {
         "id": "purify",
         "name": "Purify",
-        "description": "Remove 2 Poison and 2 Burn from yourself.",
+        "description": "Remove 1 Poison, 1 Burn, 2 Weakened and 2 Dazed from yourself.",
         "element": "Light",
         "target": "Self",
         "category": "Skill",
@@ -3269,12 +3281,24 @@
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": -2,
+                "stacks": -1,
                 "target": "SELF"
             },
             {
                 "type": "STATUS",
                 "status": "Burn",
+                "stacks": -1,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": -2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
                 "stacks": -2,
                 "target": "SELF"
             }
@@ -4573,7 +4597,7 @@
     "shrug_off": {
         "id": "shrug_off",
         "name": "Shrug Off",
-        "description": "Remove 1 Dazed and 1 Weakened.",
+        "description": "Remove 1 Weakened, then gain 2 Sharp.",
         "element": "Nature",
         "target": "Self",
         "category": "Skill",
@@ -4587,14 +4611,14 @@
         "actions": [
             {
                 "type": "STATUS",
-                "status": "Dazed",
+                "status": "Weakened",
                 "stacks": -1,
                 "target": "SELF"
             },
             {
                 "type": "STATUS",
-                "status": "Weakened",
-                "stacks": -1,
+                "status": "Sharp",
+                "stacks": 2,
                 "target": "SELF"
             }
         ]
