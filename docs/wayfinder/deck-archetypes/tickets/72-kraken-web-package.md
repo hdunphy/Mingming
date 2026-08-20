@@ -2,7 +2,9 @@
 
 - Type: wayfinder:task - Henry-approved design (2026-08-16 session). Implementing session
   flips closed + appends Resolution.
-- Status: **open**
+- Status: **CLOSED - SUPERSEDED (2026-08-20, ticket 108 session).** The field gate this ticket
+  existed to fix is met by other means; the riptide daemon is UNBUILT and salvageable. See
+  Resolution.
 - Assignee: -
 - Blocked by: ticket 70 (SHIPPED - ATK 100 baseline). DEEP-PHASE POLICY + the NEW
   bucket-band standard bind (see HANDOFF: neutral cells are the only balance bugs; typed
@@ -112,3 +114,54 @@ combo) that lands field 0.35-0.80 with the most cells in their role bands, subje
 NEUTRAL cell at 0% or >90%, FTK 0, dead <=0.35, control >=0.60. Two seed bases near any
 line. Knobs unchanged (riptide 25 -> 20/30, threshold 3 -> 4) plus TIDAL_CRUSH -> 20 as a
 half-step if 25 overshoots. Anything else -> STOP.
+
+---
+
+## Resolution: superseded, with one design left on the table
+
+**Closed without building anything.** The ticket's premise was `kraken_v2` at **27.9% field, below
+the 0.35 gate**, with three instruments agreeing the residue was TOOLS rather than stats. The
+74-through-84 arc, and the status re-denomination after it, fixed her by other routes.
+
+Measured today, 30 iterations x 2 orders across the full 30-cell field row:
+
+| deck | field at ticket time | **field now** | gate |
+|---|---|---|---|
+| `kraken_v1` | 43.2% | **39.9%** | 0.35-0.80 - in band |
+| `kraken_v2` | **27.9%** | **43.7%** | 0.35-0.80 - **in band, +15.8** |
+
+`kraken_v2` is no longer the deck this ticket describes, and building a card to fix a problem that
+is gone would be shipping a change nothing asked for. **Part 1 (the card) and Part 2 (the five probe
+arms) are both cancelled.**
+
+### What is NOT resolved, and is deliberately left as a design rather than a bug
+
+Her remaining low cells - `ymir_v1` and `ymir_v2` at 0.0 for both OSes, plus `huldra` at 1.7 for v1 -
+are untouched by this closure. Under the bucket-band standard **only NEUTRAL cells are balance
+bugs**, and these have not been classified. That classification is a separate job; nobody should
+read "72 closed" as "kraken has no zero cells."
+
+### The salvage: the riptide daemon design survives its ticket
+
+The card was never built, and the design is still the best answer on record to a question the
+roster still has - **`kraken_v1` is the designated ZOO-KILLER control deck** under the archetype
+web, and she currently has no tool that punishes play velocity as such:
+
+> `riptide_daemon` | 1e Water Daemon Rare | Self | *"Daemon: an enemy that plays 3 or more cards in
+> one turn is seized by the deep - Kraken deals damage with 25 power for the 3rd card and every card
+> after it."*
+
+Everything that made it a good design still holds: it is data plus one counter rather than a new
+status; 1 Energy deliberately (the `core_overclock` autopsy - a 2e daemon on a 2e frame never comes
+online against the fast decks it exists to counter); power-denominated, never flat HP; no card
+generation, so it passes the loop audit.
+
+Two things have changed *in its favour* since it was written. **Ticket 103 raised the roster's
+card velocity** - `sleipnir_v1` now plays 3.40 cards a turn and hits four-plus on 47% of turns
+(research/draw-four.md), so a 3-cards-in-a-turn trigger fires far more than it would have. And
+**ticket 100 confirmed the zoo shape is live** rather than theoretical.
+
+**Henry's call, at leisure:** re-open the daemon as its own small ticket aimed at kraken_v1's web
+role, or let it go. It is not blocking anything. If it comes back, note that arm (e) from Part 2 -
+the cumulative-5-cards variant - is still the right control to run beside it, because it is what
+separates a velocity punish from a game-length punish with numbers instead of assertion.
