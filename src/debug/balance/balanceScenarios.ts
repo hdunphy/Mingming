@@ -191,6 +191,16 @@ export interface TeamSpec {
     player: ReadonlyArray<readonly [string, string]>;
     enemy: ReadonlyArray<readonly [string, string]>;
     seed?: string;
+    /**
+     * TICKET 109: extra cards added to a side's shared pile FOR THIS SCENARIO ONLY.
+     *
+     * The tag-abuse probes need a specific card in a specific comp's hands - SOLAR_OVERDRIVE
+     * hosting `core_overclock_daemon`, side-wide Burn stacking `inferno` + `heat_wave` - and those
+     * cards are not in the host's shipped deck. This adds them to the composed setup and touches
+     * NOTHING in the registry, which is what keeps a report-only ticket report-only.
+     */
+    playerExtras?: ReadonlyArray<string>;
+    enemyExtras?: ReadonlyArray<string>;
 }
 
 const teamName = (t: ReadonlyArray<readonly [string, string]>) => t.map(([, os]) => os).join('+');
@@ -210,10 +220,14 @@ export function teamScenario(spec: TeamSpec): ComposedSetup {
             party: player.map(([sp, os]) => unit(sp, os)),
             // Shared pile, per the ruled design. `buildScenarioState` already flattens the enemy
             // side the same way, so both sides get the same treatment without a special case.
-            deck: player.flatMap(([sp, os]) => getDeckForOS(sp, os)),
+            deck: [...player.flatMap(([sp, os]) => getDeckForOS(sp, os)), ...(spec.playerExtras ?? [])],
             relics: [],
         },
-        enemies: enemy.map(([sp, os]) => enemyUnit(sp, os)),
+        // Enemy extras ride on the first enemy's list - `buildScenarioState` flattens every
+        // enemy's deck into one side pile, so which member carries them is immaterial.
+        enemies: enemy.map(([sp, os], i) => (i === 0 && spec.enemyExtras?.length
+            ? { ...enemyUnit(sp, os), deck: [...getDeckForOS(sp, os), ...spec.enemyExtras] }
+            : enemyUnit(sp, os))),
         statJitter: BALANCE_STAT_JITTER,
     };
 }

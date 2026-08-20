@@ -10,6 +10,7 @@ import type {
     IMove
 } from './types';
 import { globalBattleEventBus } from './events';
+import { recordDotTick } from './statusCensus';
 import { type HookContext } from './core/Hooks';
 // We will import combatUtils later for card resolution
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
@@ -802,6 +803,10 @@ function processPostTurn(state: IBattleState): IBattleState {
                     timestamp: Date.now()
                 });
             }
+
+            // TICKET 109: the one site where DoT/HoT has an unambiguous cause - this loop is per
+            // status effect. Gated and 0-AI-SIM-COUNTS-guarded inside the recorder.
+            recordDotTick(effect.type, result.damage ?? 0, result.healing ?? 0);
 
             // Apply defense shred
             if (result.defenseShred > 0) {
