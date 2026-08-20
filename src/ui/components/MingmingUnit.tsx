@@ -493,7 +493,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                 </div>
 
                 {/* Elemental breakdown of the hover preview: STAB / type effectiveness / Sharp scaling */}
-                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0 || preview.scalingMultiplier !== 1) && (
+                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0 || preview.scalingMultiplier !== 1 || preview.hitCount > 1 || preview.lethal) && (
                     <div className="hud-preview-tags">
                         {preview.stab && (
                             <span
@@ -501,6 +501,21 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                 style={{ color: getElementAccent(preview.element), borderColor: getElementAccent(preview.element) }}
                             >
                                 ×1.5 STAB
+                            </span>
+                        )}
+                        {/* TICKET 104: the multi-hit chip. The number above is the TOTAL the
+                            target loses - `blood_rite` reads 8, not "4" and then a surprise
+                            second 4. This says how that total arrives, which is the half of
+                            the information Henry was missing when he wrote "it did 5 damage +
+                            another 5 dmg". */}
+                        {preview.hitCount > 1 && (
+                            <span className="hud-preview-chip">
+                                ×{preview.hitCount} HITS
+                            </span>
+                        )}
+                        {preview.lethal && (
+                            <span className="hud-preview-chip hud-preview-chip-lethal">
+                                LETHAL
                             </span>
                         )}
                         {preview.sharpBonus > 0 && (

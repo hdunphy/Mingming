@@ -880,6 +880,13 @@ body {
   /* dim red/gray — hits softer */
 }
 
+/* Ticket 104: this hover kills the target. Distinct from SUPER EFFECTIVE, which is about
+   the multiplier rather than the outcome. */
+.hud-preview-chip-lethal {
+  color: #ff4444;
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.6);
+}
+
 /* ── Element-matched card glow (battle hand) ──
    Applied when the selected source unit's primary/secondary element
    matches the card's element (×1.5 STAB). Pure class toggle; the color

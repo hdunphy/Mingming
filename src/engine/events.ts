@@ -148,6 +148,26 @@ export class BattleEventBus {
     public unmute(): void {
         this.enabled = true;
     }
+
+    /**
+     * TICKET 104. `mute`/`unmute` are a boolean, not a counter, so a nested muted section
+     * un-mutes the OUTER one when it finishes. The AI already runs whole card sequences
+     * through the reducer under `mute()`, and the damage preview now does the same - so a
+     * preview computed from inside an AI simulation would have let the AI's remaining
+     * candidate plays emit real events into the UI.
+     *
+     * Use this instead of a bare mute/unmute pair for any new muted section: it restores
+     * whatever the previous state was, so nesting is safe in either order.
+     */
+    public runMuted<T>(fn: () => T): T {
+        const wasEnabled = this.enabled;
+        this.enabled = false;
+        try {
+            return fn();
+        } finally {
+            this.enabled = wasEnabled;
+        }
+    }
 }
 
 export const globalBattleEventBus = new BattleEventBus();
