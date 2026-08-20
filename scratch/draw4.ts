@@ -18,8 +18,11 @@
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
 
+// DRAW sets the cardDraw of whatever species DECK names - the knob generalises, because the
+// interesting question turned out to be WHICH deck the recipe fits, not what sleipnir does with it.
 if (process.env.DRAW) {
-    (MingmingRegistry.sleipnir as { cardDraw: number }).cardDraw = Number(process.env.DRAW);
+    const sp = (process.env.DECK ?? 'sleipnir_v1').replace(/_v[12]$/, '');
+    (MingmingRegistry[sp] as { cardDraw: number }).cardDraw = Number(process.env.DRAW);
 }
 // The payback: ticket 88 measured the exchange at ~2-3 cards of power per draw point.
 for (const spec of (process.env.CUT ?? '').split(',').filter(Boolean)) {
@@ -66,12 +69,18 @@ for (const o of opponents.filter((_, i) => i % 3 === 0)) {
     });
     for (const seed of deriveSeeds(setup.seed, 4)) {
         let st = buildScenarioState({ ...applyStatJitter(setup, seed), seed }) as St;
-        let guard = 0, lastTurn = -1, played = 0;
+        let guard = 0, lastKey = '', played = 0;
         const alive = (p: ReadonlyArray<{ currentHp: number }>) => p.some(e => e.currentHp > 0);
         while (alive(st.playerParty) && alive(st.enemyParty) && st.turn <= 60 && guard++ < 4000) {
-            if (st.activeSide === 'PLAYER' && st.turn !== lastTurn) {
-                if (lastTurn !== -1) perTurn.push(played);
-                lastTurn = st.turn; played = 0;
+            // Bucket on the (turn, side) PAIR, not the turn number alone. Bucketing on the turn
+            // alone read valkyrie_v2 at 45-105 cards a turn: her OS can put the player on the
+            // board again inside the same `st.turn`, so the counter never saw a transition and
+            // accumulated a whole game into one bucket. A single-game trace showed her real rate
+            // is 1-5 a turn, so the 45 was the instrument, not the deck.
+            const key = `${st.turn}:${st.activeSide}`;
+            if (st.activeSide === 'PLAYER' && key !== lastKey) {
+                if (lastKey !== '') perTurn.push(played);
+                lastKey = key; played = 0;
             }
             const mine = st.activeSide === 'PLAYER';
             const action = getBestAction(st);
@@ -80,7 +89,7 @@ for (const o of opponents.filter((_, i) => i % 3 === 0)) {
             if (next === st) { next = battleReducer(st, { type: 'END_TURN' }); if (next === st) break; }
             st = next;
         }
-        if (lastTurn !== -1) perTurn.push(played);
+        if (lastKey !== '') perTurn.push(played);
     }
 }
 
@@ -99,6 +108,7 @@ console.error(`  field ${((sum / n) * 100).toFixed(1)}%   dead ${((dead / n) * 1
 console.error(`  CARDS PER TURN   mean ${mean(perTurn).toFixed(2)}   ` +
     `4+ on ${((perTurn.filter(v => v >= 4).length / perTurn.length) * 100).toFixed(0)}% of turns`);
 console.error(`  distribution     ${hist(perTurn)}`);
+console.error(`  max in one turn  ${Math.max(...perTurn)}   (a double-digit max means the bucketing broke, not the deck)`);
 console.error(`CSV,${DECK},${MingmingRegistry[SPECIES].cardDraw},${process.env.CUT ?? ''},` +
     `${((sum / n) * 100).toFixed(2)},${mean(perTurn).toFixed(3)},` +
     `${((perTurn.filter(v => v >= 4).length / perTurn.length) * 100).toFixed(1)}`);
