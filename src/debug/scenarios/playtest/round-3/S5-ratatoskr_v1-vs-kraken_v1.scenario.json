@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S5 - the new defensive axis",
+  "description": "Needs ticket 102. His ink applies Dazed to you on his draws. Dazed now EXPOSES you: +1 power to every attack that hits you, per stack, uncapped. Does incoming Dazed create real fear - did you change your line to play around it? NOTE: the pack said 'pilot anyone you like'; this uses ratatoskr_v1 because it carries shrug_off, the shed the pack asks you to watch for - swap the player block for any other species if you'd rather test a different deck.   [you: ratatoskr_v1 | opponent: kraken_v1]",
+  "tags": ["playtest", "round-3", "ticket-102", "ratatoskr_v1"],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "setup": {
+    "seed": "S5-ratatoskr_v1-vs-kraken_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "ratatoskr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "ratatoskr_v1" }
+      ],
+      "deck": ["forage","forage","water_slap","water_slap","healing_mist","shrug_off","nettle_sting","nettle_sting","seed_bomb_v2","seed_bomb_v2","echo_chamber_v2"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "kraken", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "kraken_v1",
+        "deck": ["whirlpool_v2","whirlpool_v2","pressure_point","pressure_point","ink_stream","ink_stream","surge_protection","undertow"]
+      }
+    ]
+  }
+}

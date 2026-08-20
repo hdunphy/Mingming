@@ -1,0 +1,361 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t7-14972472",
+  "description": "Auto-captured at turn 7, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_S6b-ymir_v2-vs-control",
+    "seed": "1497247232",
+    "turn": 7,
+    "phase": "ACTION",
+    "activeSide": "PLAYER",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_1j7edtk_1",
+        "definitionId": "ymir",
+        "level": 15,
+        "experience": 2844,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "ymir_v2",
+        "name": "Ymir",
+        "maxHp": 92,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 39,
+        "defense": 36,
+        "speed": 10,
+        "primaryElement": "Ice",
+        "currentHp": 24,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "78ee9e2d-c108-4925-b06d-4f057e06ddc8",
+            "type": "Strengthened",
+            "stacks": 9
+          },
+          {
+            "id": "04a4bd0c-b56e-4343-9e30-f7593541e958",
+            "type": "Dazed",
+            "stacks": 5
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Ymir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_1d76if4_2",
+        "definitionId": "control",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "name": "Control",
+        "maxHp": 87,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 41,
+        "defense": 39,
+        "speed": 10,
+        "primaryElement": "None",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "4e29dd6b-83cc-48e9-a130-242751ebcb97",
+            "type": "Dazed",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Control.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1mkdse8_4",
+          "dataId": "bracing_cold",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_057j43k_a",
+          "dataId": "glacial_maul",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1b2dq80_3",
+          "dataId": "bracing_cold",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1lbfda8_7",
+          "dataId": "ice_spear",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0wb0j1c_8",
+          "dataId": "numbing_gale",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1b5j8qo_c",
+          "dataId": "glacial_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1u7d4ow_6",
+          "dataId": "ice_spear",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_1cek4xs_5",
+          "dataId": "thaw",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1hkwjk0_9",
+          "dataId": "numbing_gale",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_06fs5j4_b",
+          "dataId": "glacial_maul",
+          "currentCost": 2,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1sjefi8_m",
+          "dataId": "baseline_purge",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1wnwwzk_i",
+          "dataId": "baseline_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ybs1ds_j",
+          "dataId": "baseline_snare",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1a7xon4_e",
+          "dataId": "baseline_jab",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_07rmwow_f",
+          "dataId": "baseline_scuff",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0c0yqdc_d",
+          "dataId": "baseline_jab",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1j6j0mw_k",
+          "dataId": "baseline_snare",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_1vp19mo_g",
+          "dataId": "baseline_scuff",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1szl0cg_l",
+          "dataId": "baseline_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03t191c_h",
+          "dataId": "baseline_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "Ymir plays Numbing Gale → Control",
+      "  → Control takes 6 damage",
+      "  → Control gains Dazed (2 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Control plays Baseline Snare → Ymir",
+      "  → Ymir takes 4 damage",
+      "  → Ymir gains Dazed (2 stacks)",
+      "Control plays Baseline Strike → Ymir",
+      "  → Ymir takes 6 damage",
+      "Control plays Baseline Scuff → Ymir",
+      "  → Ymir takes 1 damage",
+      "  → Ymir gains Dazed (1 stacks)",
+      "Control plays Baseline Jab → Ymir",
+      "  → Ymir takes 2 damage",
+      "Control plays Baseline Scuff → Ymir",
+      "  → Ymir takes 1 damage",
+      "  → Ymir gains Dazed (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "Ymir plays Thaw → Control",
+      "  → Control takes 2 damage",
+      "  → Ymir gains Strengthened (3 stacks)",
+      "  ✨ Ymir's Dazed reduced by 3 by Sharp",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Control plays Baseline Slam → Ymir",
+      "  → Ymir takes 13 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "Ymir plays Glacial Maul → Control",
+      "  → Control takes 22 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Control plays Baseline Scuff → Ymir",
+      "  → Ymir takes 1 damage",
+      "  → Ymir gains Dazed (1 stacks)",
+      "Control plays Baseline Scuff → Ymir",
+      "  → Ymir takes 1 damage",
+      "  → Ymir gains Dazed (1 stacks)",
+      "Control plays Baseline Jab → Ymir",
+      "  → Ymir takes 2 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "Ymir plays Thaw → Control",
+      "  → Control takes 3 damage",
+      "  → Ymir gains Strengthened (3 stacks)",
+      "  ✨ Ymir's Dazed canceled by Sharp",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Control plays Baseline Strike → Ymir",
+      "  → Ymir takes 6 damage",
+      "Control plays Baseline Snare → Ymir",
+      "  → Ymir takes 4 damage",
+      "  → Ymir gains Dazed (2 stacks)",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 5 — PLAYER's turn begins",
+      "Ymir plays Bracing Cold → Control",
+      "  → Control takes 7 damage",
+      "  → Ymir gains Strengthened (3 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 5 — ENEMY's turn begins",
+      "Control plays Baseline Jab → Ymir",
+      "  → Ymir takes 2 damage",
+      "Control plays Baseline Snare → Ymir",
+      "  → Ymir takes 4 damage",
+      "  → Ymir gains Dazed (2 stacks)",
+      "Control plays Baseline Strike → Ymir",
+      "  → Ymir takes 6 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 6 — PLAYER's turn begins",
+      "Ymir plays Glacial Maul → Control",
+      "  → Control takes 25 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 6 — ENEMY's turn begins",
+      "Control plays Baseline Scuff → Ymir",
+      "  → Ymir takes 1 damage",
+      "  → Ymir gains Dazed (1 stacks)",
+      "Control plays Baseline Slam → Ymir",
+      "  → Ymir takes 14 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 7 — PLAYER's turn begins",
+      "Ymir plays Glacial Maul → Control",
+      "  → Control takes 25 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 1 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 1,
+    "cardsDrawnThisTurn": 3,
+    "nonNaturalCardsDrawnThisTurn": 0,
+    "lastProgramPlayed": "glacial_maul",
+    "counters": {
+      "deck_shuffles": 4
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 0,
+      "Nature": 0,
+      "Ice": 1,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 2,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:defe0c07",
+  "createdAt": "2026-08-20T01:39:18.715Z"
+}

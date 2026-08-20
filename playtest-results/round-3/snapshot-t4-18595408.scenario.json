@@ -1,0 +1,483 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t4-18595408",
+  "description": "Auto-captured at turn 4, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_S5-ratatoskr_v1-vs-kraken_v1",
+    "seed": "1859540864",
+    "turn": 4,
+    "phase": "ACTION",
+    "activeSide": "PLAYER",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_1nustts_1",
+        "definitionId": "ratatoskr",
+        "level": 15,
+        "experience": 2844,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "ratatoskr_v1",
+        "name": "Ratatoskr",
+        "maxHp": 74,
+        "cardDraw": 4,
+        "maxEnergy": 3,
+        "attack": 27,
+        "defense": 29,
+        "speed": 10,
+        "primaryElement": "Nature",
+        "currentHp": 30,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "49581c20-a910-4d2c-9d3d-bdd639217907",
+            "type": "Dazed",
+            "stacks": 3
+          }
+        ],
+        "hooks": [],
+        "daemons": [
+          {
+            "id": "card_1klswsg_d",
+            "dataId": "echo_chamber_v2",
+            "currentCost": 2,
+            "isPlayable": true
+          }
+        ],
+        "artReference": "Ratatoskr.png",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 10,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_0xoips0_2",
+        "definitionId": "kraken",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "kraken_v1",
+        "name": "Kraken",
+        "maxHp": 73,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 41,
+        "defense": 37,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "3d9b39e3-b0ed-42ea-83e1-13d9f3556413",
+            "type": "Poison",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Kraken.png",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_05215og_7",
+          "dataId": "healing_mist",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1e0gtmo_8",
+          "dataId": "shrug_off",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_00jupiw_9",
+          "dataId": "nettle_sting",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0r53gn4_b",
+          "dataId": "seed_bomb_v2",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03lqeps_4",
+          "dataId": "forage",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1pfar5s_5",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_16ra800_3",
+          "dataId": "forage",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_19z0ge8_6",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0lhhkow_a",
+          "dataId": "nettle_sting",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0l0ernk_c",
+          "dataId": "seed_bomb_v2",
+          "currentCost": 2,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": [
+        {
+          "id": "b4b4476e-bed7-4534-ab1a-6a68baae54d6",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "8fba1478-e1f4-4fc0-bc2b-d6ad7f3150b7",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "379dfb66-4fdb-4f11-9100-eebaa5ffe22c",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "4b9a9291-7d58-4843-b50e-8b609c428074",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "d3e1d1fa-5996-4b31-8d19-94add27f5eab",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "4f64a5c1-cc25-47e9-beff-eae10efead87",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "2eaf26c8-e45d-4139-9b8e-e290b7bc6a6a",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "a890ca8d-1e67-4772-8ec9-83af7824219a",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "9e128b4c-4411-4c4f-bfad-bba60cb78a0c",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "af659dab-5992-4e6d-abe2-758da00f3472",
+          "dataId": "feedback_token",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ]
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1qkuuio_l",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_028qmf4_i",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0vpgj28_f",
+          "dataId": "whirlpool_v2",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0kzi41s_e",
+          "dataId": "whirlpool_v2",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ruog74_h",
+          "dataId": "pressure_point",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_0bsnsw0_j",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03tjg8w_k",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ru65mo_g",
+          "dataId": "pressure_point",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "  → Ratatoskr heals 0 HP (1 Overheal)",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Forage → Ratatoskr",
+      "  → Ratatoskr takes 2 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Forage → Ratatoskr",
+      "  → Ratatoskr takes 2 damage",
+      "Ratatoskr plays Echo Chamber → Ratatoskr",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Shrug Off → Ratatoskr",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Tackle → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 0 HP (1 Overheal)",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Kraken plays Whirlpool → Ratatoskr",
+      "  → Ratatoskr takes 3 damage",
+      "  → Ratatoskr gains Dazed (1 stacks)",
+      "Ratatoskr is blinded by Abyssal Ink!",
+      "Kraken plays Ink Stream → Ratatoskr",
+      "  → Ratatoskr takes 12 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Healing Mist → Ratatoskr",
+      "  → Ratatoskr heals 2 HP",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Tackle → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "Ratatoskr plays Nettle Sting → Kraken",
+      "  → Kraken takes 6 damage",
+      "  → Kraken gains Poison (1 stacks)",
+      "Ratatoskr plays Nettle Sting → Kraken",
+      "  → Kraken takes 6 damage",
+      "  → Kraken gains Poison (1 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Kraken plays Undertow → Kraken",
+      "  → Ratatoskr gains Dazed (1 stacks)",
+      "Ratatoskr is blinded by Abyssal Ink!",
+      "Kraken plays Whirlpool → Ratatoskr",
+      "  → Ratatoskr takes 3 damage",
+      "  → Ratatoskr gains Dazed (1 stacks)",
+      "Ratatoskr is blinded by Abyssal Ink!",
+      "Kraken plays Ink Stream → Ratatoskr",
+      "  → Ratatoskr takes 26 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Kraken takes 1 damage from Poison",
+      "  ☠️ Kraken — Poison deals 1 damage (2 stacks)",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Healing Mist → Ratatoskr",
+      "  → Ratatoskr heals 2 HP",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Shrug Off → Ratatoskr",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "Ratatoskr plays Nettle Sting → Kraken",
+      "  → Kraken takes 6 damage",
+      "  → Kraken gains Poison (1 stacks)",
+      "Ratatoskr plays Seed Bomb → Kraken",
+      "  → Kraken takes 24 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Kraken plays Whirlpool → Ratatoskr",
+      "  → Ratatoskr takes 3 damage",
+      "  → Ratatoskr gains Dazed (1 stacks)",
+      "Ratatoskr is blinded by Abyssal Ink!",
+      "Kraken plays Ink Stream → Ratatoskr",
+      "  → Ratatoskr takes 13 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Kraken takes 1 damage from Poison",
+      "  ☠️ Kraken — Poison deals 1 damage (2 stacks)",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Forage → Ratatoskr",
+      "  → Ratatoskr takes 2 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Tackle → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Forage → Ratatoskr",
+      "  → Ratatoskr takes 2 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr's ECHO_CHAMBER_DAEMON generates Feedback!",
+      "Ratatoskr plays Tackle → Kraken",
+      "  → Kraken takes 1 damage",
+      "  → Ratatoskr heals 1 HP",
+      "Ratatoskr spreads positive rumors!",
+      "Ratatoskr plays Feedback → Kraken",
+      "  → Kraken takes 1 damage",
+      "Ratatoskr plays Nettle Sting → Kraken",
+      "  → Kraken takes 6 damage",
+      "  → Kraken gains Poison (1 stacks)",
+      "Ratatoskr plays Seed Bomb → Kraken",
+      "  → Kraken takes 40 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 1 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 10,
+    "cardsDrawnThisTurn": 6,
+    "nonNaturalCardsDrawnThisTurn": 2,
+    "lastProgramPlayed": "seed_bomb_v2",
+    "counters": {
+      "last_overheal": 0,
+      "last_heal_intended": 1,
+      "last_heal_power": 10,
+      "deck_shuffles": 3
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 0,
+      "Nature": 2,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 8
+    },
+    "lastEnergySpent": 2,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:defe0c07",
+  "createdAt": "2026-08-20T01:31:23.844Z"
+}

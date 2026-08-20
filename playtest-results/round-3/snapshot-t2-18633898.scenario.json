@@ -1,0 +1,335 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t2-18633898",
+  "description": "Auto-captured at turn 2, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_S2a-fenrir_v1-vs-sleipnir_v1",
+    "seed": "1863389824",
+    "turn": 2,
+    "phase": "ACTION",
+    "activeSide": "ENEMY",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_0duihog_1",
+        "definitionId": "fenrir",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "fenrir_v1",
+        "name": "Fenrir",
+        "maxHp": 75,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 31,
+        "speed": 10,
+        "primaryElement": "Fire",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "99410c9e-9c07-495f-982c-ca784ac45c3f",
+            "type": "Strengthened",
+            "stacks": 3
+          },
+          {
+            "id": "fe2eba86-bad5-4a2a-8121-de9c96efee85",
+            "type": "Dazed",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Fenrir.png",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_1qxepkw_2",
+        "definitionId": "sleipnir",
+        "level": 15,
+        "experience": 2844,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "name": "Sleipnir",
+        "maxHp": 78,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 32,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 35,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "78812daf-193c-4a44-b5d0-e83ce2ee974b",
+            "type": "Strengthened",
+            "stacks": 10
+          },
+          {
+            "id": "78d802c3-cc26-4efb-a0ab-fa3af3f7f4f4",
+            "type": "Sharp",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Sleipnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 3,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_0oiitog_3",
+          "dataId": "ember_mend",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0fgpwqo_8",
+          "dataId": "battle_rhythm",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0nttb0g_6",
+          "dataId": "berserk_rush",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_09wf20w_5",
+          "dataId": "blood_rite",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_19ap1xc_9",
+          "dataId": "crimson_draw",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_14a10cg_a",
+          "dataId": "ragnarok_edge",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0x4po1s_b",
+          "dataId": "ragnarok_edge",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1s79r0g_7",
+          "dataId": "berserk_rush",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0rigg74_4",
+          "dataId": "blood_rite",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_0s4nb7k_c",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ow8q2o_l",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_190qeww_i",
+          "dataId": "tailwind",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1uyyha8_f",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1dyng8w_k",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0r96ups_n",
+          "dataId": "hoofbeat_daemon",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1vzgsjk_g",
+          "dataId": "disorienting_gust",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0orj5kw_d",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_076nbwg_h",
+          "dataId": "adrenaline",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_04lsni8_e",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_04zxmv4_m",
+          "dataId": "momentum_crash",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1cdy4u8_j",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Blood Rite → Sleipnir",
+      "  → Sleipnir takes 5 damage",
+      "  → Sleipnir takes 5 damage",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Crimson Draw → Sleipnir",
+      "  → Sleipnir takes 6 damage",
+      "  → Fenrir heals 2 HP (4 Overheal)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "  → Sleipnir gains Strengthened (2 stacks)",
+      "Sleipnir plays Tackle → Fenrir",
+      "  → Fenrir takes 3 damage",
+      "  → Sleipnir gains Strengthened (2 stacks)",
+      "Sleipnir plays Tackle → Fenrir",
+      "  → Fenrir takes 3 damage",
+      "Sleipnir plays Tailwind → Sleipnir",
+      "  → Sleipnir gains Strengthened (2 stacks)",
+      "Sleipnir plays Disorienting Gust → Fenrir",
+      "  → Fenrir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Sharp (1 stacks)",
+      "  → Sleipnir gains Strengthened (2 stacks)",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "Sleipnir plays Stampede → Fenrir",
+      "  → Fenrir takes 36 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Ragnarok Edge → Sleipnir",
+      "  → Sleipnir takes 27 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "  → Sleipnir gains Strengthened (2 stacks)",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "Sleipnir plays Momentum Crash → Fenrir",
+      "  → Fenrir takes 24 damage",
+      "Sleipnir plays Zephyr Strike → Fenrir",
+      "  → Fenrir takes 8 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 1 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 3,
+    "cardsDrawnThisTurn": 5,
+    "nonNaturalCardsDrawnThisTurn": 2,
+    "lastProgramPlayed": "zephyr_strike",
+    "counters": {
+      "last_overheal": 4,
+      "last_heal_intended": 6,
+      "last_heal_power": 34,
+      "deck_shuffles": 1
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 3,
+      "Nature": 0,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 1,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:defe0c07",
+  "createdAt": "2026-08-20T01:22:07.565Z"
+}

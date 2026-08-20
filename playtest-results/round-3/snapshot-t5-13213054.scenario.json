@@ -1,0 +1,365 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t5-13213054",
+  "description": "Auto-captured at turn 5, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_S7-fenrir_v1-vs-control",
+    "seed": "1321305472",
+    "turn": 5,
+    "phase": "ACTION",
+    "activeSide": "ENEMY",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_134r8jk_1",
+        "definitionId": "fenrir",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "fenrir_v1",
+        "name": "Fenrir",
+        "maxHp": 75,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 31,
+        "speed": 10,
+        "primaryElement": "Fire",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "5fb96ff8-6f08-4a7f-9d49-9ba1d4e5327d",
+            "type": "Strengthened",
+            "stacks": 9
+          },
+          {
+            "id": "4232e8d0-da97-4c49-bc6f-4fee3ab1589b",
+            "type": "Dazed",
+            "stacks": 8
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Fenrir.png",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_17osfls_2",
+        "definitionId": "control",
+        "level": 15,
+        "experience": 2844,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "name": "Control",
+        "maxHp": 87,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 41,
+        "defense": 39,
+        "speed": 10,
+        "primaryElement": "None",
+        "currentHp": 6,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Control.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_0ns6l1c_a",
+          "dataId": "ragnarok_edge",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_027hegw_8",
+          "dataId": "battle_rhythm",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1480fsw_7",
+          "dataId": "berserk_rush",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_0tk1jeo_3",
+          "dataId": "ember_mend",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_02y2kg0_9",
+          "dataId": "crimson_draw",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0cxr9xc_5",
+          "dataId": "blood_rite",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1caqscg_b",
+          "dataId": "ragnarok_edge",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0e12lts_4",
+          "dataId": "blood_rite",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0egvfgg_6",
+          "dataId": "berserk_rush",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_0h59j40_f",
+          "dataId": "baseline_scuff",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_12eoagw_e",
+          "dataId": "baseline_scuff",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_148t1q8_d",
+          "dataId": "baseline_jab",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_17uevb4_k",
+          "dataId": "baseline_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0867t6o_l",
+          "dataId": "baseline_purge",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0jgfq4g_i",
+          "dataId": "baseline_snare",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0uyuuww_c",
+          "dataId": "baseline_jab",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1xrlrsw_h",
+          "dataId": "baseline_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0a2cav4_g",
+          "dataId": "baseline_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_19le29s_j",
+          "dataId": "baseline_snare",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Crimson Draw → Control",
+      "  → Control takes 4 damage",
+      "  → Fenrir heals 1 HP (5 Overheal)",
+      "Fenrir plays Ember Mend → Fenrir",
+      "  → Fenrir heals 0 HP (1 Overheal)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Control plays Baseline Snare → Fenrir",
+      "  → Fenrir takes 4 damage",
+      "  → Fenrir gains Dazed (2 stacks)",
+      "Control plays Baseline Strike → Fenrir",
+      "  → Fenrir takes 7 damage",
+      "Control plays Baseline Scuff → Fenrir",
+      "  → Fenrir takes 1 damage",
+      "  → Fenrir gains Dazed (1 stacks)",
+      "Control plays Baseline Jab → Fenrir",
+      "  → Fenrir takes 3 damage",
+      "Control plays Baseline Jab → Fenrir",
+      "  → Fenrir takes 3 damage",
+      "Control plays Baseline Scuff → Fenrir",
+      "  → Fenrir takes 1 damage",
+      "  → Fenrir gains Dazed (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Battle Rhythm → Control",
+      "  → Control takes 7 damage",
+      "  → Fenrir gains Strengthened (2 stacks)",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Blood Rite → Control",
+      "  → Control takes 5 damage",
+      "  → Control takes 5 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Control plays Baseline Snare → Fenrir",
+      "  → Fenrir takes 5 damage",
+      "  → Fenrir gains Dazed (2 stacks)",
+      "Control plays Baseline Strike → Fenrir",
+      "  → Fenrir takes 8 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Ragnarok Edge → Control",
+      "  → Control takes 20 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Control plays Baseline Jab → Fenrir",
+      "  → Fenrir takes 3 damage",
+      "Control plays Baseline Slam → Fenrir",
+      "  → Fenrir takes 16 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "Fenrir plays Ember Mend → Fenrir",
+      "  → Fenrir heals 1 HP",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Crimson Draw → Control",
+      "  → Control takes 8 damage",
+      "  → Fenrir heals 6 HP",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Blood Rite → Control",
+      "  → Control takes 6 damage",
+      "  → Fenrir heals 7 HP",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Control plays Baseline Snare → Fenrir",
+      "  → Fenrir takes 6 damage",
+      "  → Fenrir gains Dazed (2 stacks)",
+      "Control plays Baseline Jab → Fenrir",
+      "  → Fenrir takes 4 damage",
+      "Control plays Baseline Strike → Fenrir",
+      "  → Fenrir takes 8 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 5 — PLAYER's turn begins",
+      "  → Fenrir gains Strengthened (1 stacks)",
+      "  → Fenrir takes 1 damage",
+      "Fenrir pushes its core to the limit!",
+      "Fenrir plays Ragnarok Edge → Control",
+      "  → Control takes 26 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 5 — ENEMY's turn begins",
+      "Control plays Baseline Strike → Fenrir",
+      "  → Fenrir takes 8 damage",
+      "Control plays Baseline Snare → Fenrir",
+      "  → Fenrir takes 6 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 1 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 2,
+    "cardsDrawnThisTurn": 3,
+    "nonNaturalCardsDrawnThisTurn": 0,
+    "lastProgramPlayed": "baseline_snare",
+    "counters": {
+      "last_overheal": 0,
+      "last_heal_intended": 7,
+      "last_heal_power": 40,
+      "deck_shuffles": 2
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 0,
+      "Nature": 0,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 2
+    },
+    "lastEnergySpent": 1,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:defe0c07",
+  "createdAt": "2026-08-20T01:45:59.435Z"
+}

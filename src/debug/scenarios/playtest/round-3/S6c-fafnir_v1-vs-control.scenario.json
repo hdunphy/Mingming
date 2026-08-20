@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S6c - favorites regression (fafnir_v1)",
+  "description": "One of your three favorites, replayed under the new status economy. Is the thing you loved intact? The status change shouldn't touch his engine, but hands catch what diffs don't. Rate it against your memory: better / same / worse, one sentence why. Play only ONE of S6a/S6b/S6c.   [you: fafnir_v1 | opponent: control]",
+  "tags": ["playtest", "round-3", "ticket-102", "fafnir_v1"],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "setup": {
+    "seed": "S6c-fafnir_v1-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "fafnir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "fafnir_v1" }
+      ],
+      "deck": ["iron_will","iron_will","water_slap","grit","boulder_smash","boulder_smash","motherlode","motherlode","hoardbreaker","deep_vein","deep_vein"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "control_v1",
+        "deck": ["baseline_jab","baseline_jab","baseline_scuff","baseline_scuff","baseline_strike","baseline_strike","baseline_snare","baseline_snare","baseline_slam","baseline_purge"]
+      }
+    ]
+  }
+}
