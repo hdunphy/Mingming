@@ -312,13 +312,19 @@ interface Candidate {
  * Recursive search to find the best sequence of actions for the current turn.
  * Simulates permutations of playable cards.
  */
+interface SequenceResult {
+    score: number;
+    firstAction: BattleAction | null;
+    leafState: IBattleState;
+}
+
 function findBestSequence(
     state: IBattleState,
     side: 'PLAYER' | 'ENEMY',
     depth: number,
     maxDepth: number,
     candidates?: Candidate[]
-): { score: number; firstAction: BattleAction | null; leafState: IBattleState } {
+): SequenceResult {
     // 1. Evaluate current state
     const currentScore = evaluateState(state, side);
 
@@ -343,6 +349,10 @@ function findBestSequence(
     let bestScore = currentScore;
     let bestAction: BattleAction | null = null;
     let bestLeaf: IBattleState = state;
+    const siblings = CENSUS ? new Set<string>() : null;
+    const deferred: Array<{
+        action: BattleAction; nextState: IBattleState; immediate: number; order: number;
+    }> | null = BEAM > 0 && depth > 0 ? [] : null;
 
     for (const card of hand) {
         const programData = GetProgramData(card.dataId);
@@ -389,7 +399,20 @@ function findBestSequence(
             const effectiveCost = executeCostCalculated(state, source, undefined, programData, printedCost).cost;
             if (source.currentEnergy < effectiveCost) continue;
 
-            for (const target of potentialTargets) {
+            // A Self card ignores the loop variable - `effectiveTargetId` below is the CASTER - so
+            // iterating every potential target emits the IDENTICAL action once per target and
+            // simulates it from scratch each time, then recurses into an identical subtree. In 1v1
+            // there is one target and it costs nothing; in 3v3 `AI_CENSUS=1` measured it at 18.1%
+            // of all simulations. Collapsing it is exact: the removed actions are byte-identical to
+            // the one kept.
+            //
+            // It is exact per candidate but NOT a no-op on the decision, and that is a fix rather
+            // than a regression: `getBestAction` takes the top `LOOKAHEAD_TOP_N` candidates, and
+            // those slots were being filled with three copies of one action, so the lookahead was
+            // examining one distinct line where it believed it was examining three.
+            const targetsForSource = programData.target === 'Self' ? [source] : potentialTargets;
+
+            for (const target of targetsForSource) {
                 // Validate constraints BEFORE simulating
                 if (!validateProgramConstraints(state, source, target, programData, effectiveCost)) {
                     continue; // Skip this card/target combo — constraints not met
@@ -407,11 +430,28 @@ function findBestSequence(
                     }
                 };
 
+                if (siblings) {
+                    census.enumerated++;
+                    const k = `${source.id}|${effectiveTargetId}|${card.id}`;
+                    if (siblings.has(k)) census.duplicate++; else siblings.add(k);
+                }
+
                 // Simulate
                 const nextState = battleReducer(state, action);
+                if (CENSUS) census.simulated++;
 
                 // Skip if state didn't change (reducer rejected it)
                 if (nextState === state) continue;
+
+                if (deferred !== null) {
+                    // Beam: hold the candidate with its IMMEDIATE score and recurse later, into
+                    // only the best `BEAM` of them.
+                    deferred.push({
+                        action, nextState, order: deferred.length,
+                        immediate: evaluateState(nextState, side),
+                    });
+                    continue;
+                }
 
                 // Recursive Call
                 const result = findBestSequence(nextState, side, depth + 1, maxDepth);
@@ -427,6 +467,28 @@ function findBestSequence(
                         bestAction = action;
                     }
                 }
+            }
+        }
+    }
+
+    if (deferred !== null && deferred.length > 0) {
+        let explore = deferred;
+        if (deferred.length > BEAM) {
+            // Select the best BEAM by immediate score, then RESTORE ENUMERATION ORDER before
+            // recursing. Both halves matter. Selecting is the optimisation; restoring the order is
+            // what stops the beam changing anything it did not prune - `bestScore` improves on a
+            // strict `>`, so among equal-scoring lines the first one VISITED wins, and recursing in
+            // score order silently re-picks ties. That bug cost a measurement: at AI_BEAM=16, well
+            // above 1v1's branching and pruning nothing there, 23 of 90 grid cells still moved.
+            explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
+            explore.sort((a, b) => a.order - b.order);
+            if (CENSUS) census.pruned += deferred.length - explore.length;
+        }
+        for (const d of explore) {
+            const result = findBestSequence(d.nextState, side, depth + 1, maxDepth);
+            if (result.score > bestScore) {
+                bestScore = result.score;
+                bestLeaf = result.leafState;
             }
         }
     }
@@ -505,6 +567,50 @@ const LITE = process.env.AI_LITE === '1';
 const LOOKAHEAD_TOP_N = LITE ? 2 : 3;
 const LOOKAHEAD_DETERMINIZATIONS = LITE ? 1 : 2;
 const LOOKAHEAD_REPLY_DEPTH = 2;
+
+/**
+ * `AI_CENSUS=1`: count what the same-turn enumeration actually walks. Off by default and behind a
+ * constant, so the shipped search is untouched. It exists because the 3v3 cost turned out to be
+ * enumeration rather than search depth, and "how many candidates" had been an estimate: it measured
+ * 83 reducer simulations per decision at 1v1 against 16,677 at 3v3, and 18.1% of the 3v3 ones
+ * byte-identical repeats (research/3v3-optimisation.md).
+ */
+const CENSUS = process.env.AI_CENSUS === '1';
+export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0 };
+export function censusReset(): void {
+    census.enumerated = 0; census.duplicate = 0; census.simulated = 0;
+    census.pruned = 0; census.decisions = 0;
+}
+export function censusNewDecision(): void { census.decisions++; }
+
+/**
+ * SAME-TURN BEAM (`AI_BEAM=<n>`, 0 = off, and off IS the default).
+ *
+ * `findBestSequence` recurses over every ordering of every play available this turn, so its cost is
+ * roughly `branching ^ MAX_DEPTH`. Branching is `casters x hand x targets` - about 6 in 1v1 and about
+ * 20 in 3v3 - which is why a 3v3 decision costs ~95x a 1v1 one rather than 3x.
+ *
+ * The beam still enumerates every candidate at a node (the simulation IS the score, so that part
+ * cannot be skipped) but RECURSES into only the best `BEAM` of them, cutting the exponent rather
+ * than the base.
+ *
+ * SIZING IT AGAINST 1v1. Measured on 90 grid cells (`draugr_v2`, `hel_v2`, `huldra_v1` field rows):
+ * `AI_BEAM` of 6, 8, 12 and 16 are all BIT-IDENTICAL to no beam at all; 4 moves 7 of the 90. So 6 is
+ * the boundary and **8 is the recommended setting**, keeping headroom while still running 3v3 ~2x
+ * faster than the beamless search.
+ *
+ * That identity is EMPIRICAL, not structural, and the difference matters. `AI_CENSUS=1` shows
+ * `AI_BEAM=8` pruning 3 candidates even at 1v1 - so 1v1 branching does exceed 8 occasionally, and
+ * the beam is not a no-op there; those 3 lines simply were not going to win. A wider roster, a
+ * bigger hand or a new card could change that. **Re-run the grid gate before trusting a beam width
+ * after any change to the card pool** - do not read "bit-identical on 90 cells" as "cannot move".
+ *
+ * It is an APPROXIMATION in 3v3, ranked on the immediate score, so it inherits the bias ticket 108
+ * measured in the cheap AI tier: it under-reads lines whose payoff is one play further on. Depth 0
+ * is never beamed - that is the layer producing the candidate list `getBestAction` ranks, and
+ * truncating it would hide legal plays from the decision entirely.
+ */
+const BEAM = Number(process.env.AI_BEAM ?? 0);
 
 /** What tier is live, for a harness that wants to record it beside its numbers. */
 export const AI_TIER: 'greedy' | 'lite' | 'full' =
