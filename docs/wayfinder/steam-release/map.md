@@ -26,6 +26,7 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 - [Gap audit](tickets/01-gap-audit.md) — engine, 3v3, persistence and the debug toolkit are strong; run structure, economy nodes, Macros/Drivers, onboarding, settings, packaging and Steamworks are missing outright; leveling is still everywhere and must be frozen out. Full findings in [research/01-gap-audit.md](research/01-gap-audit.md); Steam facts in [research/02-steam-facts.md](research/02-steam-facts.md).
 - **PvP is out of scope for the first release** (Henry, 2026-08-21) — see Out of scope.
 - **Success metric = shipped + 10 reviews; art budget ≤ $500 and only if recoupable; audio from owned/free packs** (Henry, 2026-08-21) — the marketing lane is sized to this.
+- [Repo hygiene](tickets/02-repo-hygiene.md) — line endings **normalized once** (`.gitattributes` `* text=auto eol=crlf` + `git add --renormalize`; 339 CRLF / 340 LF / 11 mixed blobs → 683 LF), so the sweep cannot recur; root artifacts untracked into `_to_delete/`; **`scratch/` stays tracked** (Henry, 2026-08-21 — six live provenance comments cite it); Kraken 7.37 MB → 95 KB and **`dist/` 8.0 MB → 1.0 MB**.
 
 ## Phases
 

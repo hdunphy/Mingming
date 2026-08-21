@@ -29,3 +29,17 @@ _transfer*/
 
 # Ticket 97: the balance cell cache is a build artifact, keyed on the engine hash.
 docs/balance/.cell-cache*.json
+# Ticket 02 (steam-release): root-level artifacts that are output, not source.
+# They were tracked until 2026-08-21 (test_results.txt alone was 18 MB, _repo_head.tgz 8.8 MB);
+# `git rm --cached` untracked them and the copies moved to _to_delete/ticket-02-artifacts/.
+test_results.txt
+test_output.txt
+tsc_err.txt
+tsc_errors.log
+debug_reducer.txt
+_repo_head.tgz
+_incoming_bf.tgz
+migrateCount.mjs
+replaceStatus.mjs
+update_factory*.js
+_WARNING-line-endings.md
