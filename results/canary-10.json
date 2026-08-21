@@ -1,0 +1,244 @@
+[
+ {
+  "a": "tag-poison-at-length",
+  "b": "panel-zoo",
+  "tier": "lite/beam8",
+  "winRate": 0,
+  "turns": 3.75,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.2948717948717949,
+  "deadB": 0.11194029850746269,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 19,
+   "Burn": 4
+  },
+  "hot": {},
+  "ticks": {
+   "Weakened": 8,
+   "Dazed": 19,
+   "Stunned": 3,
+   "Strengthened": 8,
+   "Poison": 11,
+   "Energized": 3,
+   "StableOS": 2,
+   "Sharp": 5,
+   "Burn": 2
+  },
+  "totalDamage": 1319,
+  "statusLanded": {
+   "Weakened": 10,
+   "Dazed": 29,
+   "Stunned": 4,
+   "Poison": 24,
+   "Burn": 6,
+   "Strengthened": 85,
+   "Energized": 4,
+   "Sharp": 3
+  },
+  "reshuffles": 4
+ },
+ {
+  "a": "tag-poison-at-length",
+  "b": "panel-control",
+  "tier": "lite/beam8",
+  "winRate": 0.75,
+  "turns": 9.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.11538461538461539,
+  "deadB": 0.16666666666666666,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Poison": 71,
+   "Burn": 38
+  },
+  "hot": {
+   "Regen": 32
+  },
+  "ticks": {
+   "Dazed": 72,
+   "Weakened": 101,
+   "Poison": 36,
+   "Burn": 17,
+   "Stunned": 13,
+   "Sharp": 20,
+   "Regen": 16,
+   "StableOS": 7
+  },
+  "totalDamage": 1431,
+  "statusLanded": {
+   "Dazed": 90,
+   "Weakened": 107,
+   "Poison": 57,
+   "Stunned": 14,
+   "Burn": 20,
+   "Sharp": 25,
+   "Regen": 16
+  },
+  "reshuffles": 13
+ },
+ {
+  "a": "tag-poison-at-length",
+  "b": "panel-ramp",
+  "tier": "lite/beam8",
+  "winRate": 0,
+  "turns": 7,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.15384615384615385,
+  "deadB": 0.16666666666666666,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 41,
+   "Burn": 23
+  },
+  "hot": {},
+  "ticks": {
+   "Dazed": 40,
+   "BarkShield": 36,
+   "Stunned": 10,
+   "Poison": 18,
+   "Strengthened": 30,
+   "StableOS": 7,
+   "Sharp": 2,
+   "Weakened": 26,
+   "Burn": 9
+  },
+  "totalDamage": 1553,
+  "statusLanded": {
+   "Dazed": 52,
+   "Poison": 37,
+   "Stunned": 10,
+   "Weakened": 31,
+   "Burn": 10,
+   "BarkShield": 72,
+   "Strengthened": 70,
+   "Sharp": 7
+  },
+  "reshuffles": 9
+ },
+ {
+  "a": "tag-poison-at-length",
+  "b": "panel-burst",
+  "tier": "lite/beam8",
+  "winRate": 0.5,
+  "turns": 6.5,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.13131313131313133,
+  "deadB": 0.14655172413793102,
+  "firstMoverEdge": 0.5,
+  "games": 4,
+  "dot": {
+   "Burn": 78,
+   "Poison": 110
+  },
+  "hot": {},
+  "ticks": {
+   "Burn": 24,
+   "Dazed": 24,
+   "Poison": 28,
+   "Weakened": 41,
+   "Stunned": 4,
+   "StableOS": 4,
+   "Sharp": 6
+  },
+  "totalDamage": 1329,
+  "statusLanded": {
+   "Dazed": 36,
+   "Burn": 43,
+   "Weakened": 32,
+   "Poison": 111,
+   "Stunned": 4,
+   "Sharp": 13
+  },
+  "reshuffles": 7
+ },
+ {
+  "a": "tag-poison-at-length",
+  "b": "panel-mixed-a",
+  "tier": "lite/beam8",
+  "winRate": 0.75,
+  "turns": 6.75,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.1346153846153846,
+  "deadB": 0.13675213675213677,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Burn": 10,
+   "Poison": 77
+  },
+  "hot": {},
+  "ticks": {
+   "Dazed": 41,
+   "Strengthened": 24,
+   "Burn": 5,
+   "Weakened": 28,
+   "Poison": 29,
+   "Sharp": 11,
+   "Stunned": 2,
+   "StableOS": 1
+  },
+  "totalDamage": 1569,
+  "statusLanded": {
+   "Strengthened": 77,
+   "Dazed": 65,
+   "Burn": 10,
+   "Weakened": 30,
+   "Poison": 76,
+   "Stunned": 5,
+   "Sharp": 7
+  },
+  "reshuffles": 8
+ },
+ {
+  "a": "tag-poison-at-length",
+  "b": "panel-mixed-b",
+  "tier": "lite/beam8",
+  "winRate": 1,
+  "turns": 9,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.08653846153846154,
+  "deadB": 0.2782608695652174,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 60,
+   "Burn": 28
+  },
+  "hot": {},
+  "ticks": {
+   "Dazed": 14,
+   "Poison": 25,
+   "Weakened": 39,
+   "BarkShield": 26,
+   "Energized": 9,
+   "Sharp": 46,
+   "Burn": 14,
+   "Stunned": 5,
+   "StableOS": 8,
+   "Asleep": 12
+  },
+  "totalDamage": 1444,
+  "statusLanded": {
+   "Dazed": 30,
+   "Poison": 53,
+   "Weakened": 38,
+   "Burn": 16,
+   "Stunned": 5,
+   "BarkShield": 85,
+   "Energized": 18,
+   "Sharp": 105,
+   "Asleep": 12
+  },
+  "reshuffles": 10
+ }
+]
