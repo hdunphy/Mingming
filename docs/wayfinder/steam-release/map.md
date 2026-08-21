@@ -26,6 +26,7 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 - [Gap audit](tickets/01-gap-audit.md) — engine, 3v3, persistence and the debug toolkit are strong; run structure, economy nodes, Macros/Drivers, onboarding, settings, packaging and Steamworks are missing outright; leveling is still everywhere and must be frozen out. Full findings in [research/01-gap-audit.md](research/01-gap-audit.md); Steam facts in [research/02-steam-facts.md](research/02-steam-facts.md).
 - **PvP is out of scope for the first release** (Henry, 2026-08-21) — see Out of scope.
 - **Success metric = shipped + 10 reviews; art budget ≤ $500 and only if recoupable; audio from owned/free packs** (Henry, 2026-08-21) — the marketing lane is sized to this.
+- [CI gate](tickets/03-ci-gate.md) — `ci.yml` hard-gates `npm ci` / `tsc -b` / `vitest run` / `build` on every push and PR, and `deploy.yml` calls it via `workflow_call` so **a red test blocks the Pages deploy**. The suite is **green: 69 files, 868 tests, 39 s** — the committed `test_output.txt` "4 failed" was a stale partial run. **Lint runs non-blocking** (Henry, 2026-08-21): 510 pre-existing errors, burndown split out as [ticket 55](tickets/55-lint-burndown.md).
 - [Repo hygiene](tickets/02-repo-hygiene.md) — line endings **normalized once** (`.gitattributes` `* text=auto eol=crlf` + `git add --renormalize`; 339 CRLF / 340 LF / 11 mixed blobs → 683 LF), so the sweep cannot recur; root artifacts untracked into `_to_delete/`; **`scratch/` stays tracked** (Henry, 2026-08-21 — six live provenance comments cite it); Kraken 7.37 MB → 95 KB and **`dist/` 8.0 MB → 1.0 MB**.
 
 ## Phases
@@ -42,6 +43,7 @@ Cheap, unblocked, and everything downstream is safer for them. Tickets 02/03/04/
 | [04 Error boundary + crash-safe saves](tickets/04-error-boundary.md) | task | agent | — |
 | [05 Release shape: Early Access or 1.0, and the entry bar in numbers](tickets/05-release-shape.md) | grilling | Henry | [01](tickets/01-gap-audit.md) |
 | [26 Desktop wrapper research: Electron + steamworks.js vs Tauri, with a spike](tickets/26-wrapper-research.md) | research | agent | — |
+| [55 Lint burndown: clear 510 errors and make the lint gate blocking](tickets/55-lint-burndown.md) | task | agent | [03](tickets/03-ci-gate.md) |
 
 ### Phase 1 — Vertical Slice (~mid-September → ~late November 2026)
 

@@ -1,0 +1,82 @@
+name: CI
+
+# Ticket 03 (steam-release map). Before this workflow existed, `deploy.yml` was the only
+# automation in the repo and it did nothing but build and publish `main` to Pages — the test
+# suite never ran anywhere except on a developer's machine, and the committed `test_output.txt`
+# that everyone read as the suite's state was a stale partial run ending in "4 failed".
+#
+# Two things run here that are load-bearing beyond "the tests pass":
+#   * `npm run build` ends in `scripts/assert-no-debug.mjs`, which walks dist/ for the debug
+#     toolkit's marker. That is the release gate that keeps `src/debug/` out of shipped bundles.
+#   * `src/ui/utils/previewParity.test.ts` replays cards through the real reducer and asserts the
+#     damage preview equals the actual result. It is part of `vitest run`, so it becomes a
+#     standing gate for free (deck-archetypes ticket 104).
+#
+# `npm run balance` is deliberately NOT here: 11 minutes on 2 cores. It stays manual until
+# deck-archetypes ticket 108 optimizes the pipeline (map § fog, "Nightly long-balance run").
+#
+# LINT IS ADVISORY FOR NOW (Henry, 2026-08-21). The tree fails `npm run lint` with 510 errors
+# that predate this workflow; blocking on them would have meant a 510-edit diff across the engine
+# inside a CI ticket. Ticket 55 owns the burndown and flips `continue-on-error` off at the end.
+# Everything else here is hard-blocking from day one.
+
+on:
+  push:
+    # `main` is covered by deploy.yml, which calls this workflow via workflow_call before it
+    # builds. Listing main here too would run every gate twice on every push to it.
+    branches-ignore: [ main ]
+  pull_request:
+  workflow_call:
+
+# One in-flight run per branch. A force-push mid-run cancels the run it superseded.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: typecheck / test / lint / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci`, not `npm install`: it installs exactly package-lock.json and fails if the
+      # lockfile and package.json have drifted, which is the point of running it in CI.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Tests
+        run: npx vitest run
+
+      - name: Lint (advisory — ticket 55 owns the burndown)
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Note lint outcome in the run summary
+        if: always()
+        run: |
+          if [ "${{ steps.lint.outcome }}" = "success" ]; then
+            echo "✅ **Lint clean.** If this holds, ticket 55 can drop \`continue-on-error\` from the lint step." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "⚠️ **Lint failing — advisory, not blocking.** Pre-existing debt; see \`docs/wayfinder/steam-release/tickets/55-lint-burndown.md\`." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Ends in scripts/assert-no-debug.mjs — proves the debug toolkit is absent from dist/.
+      - name: Build (includes the assert-no-debug release gate)
+        run: npm run build
