@@ -62,3 +62,24 @@ best-guess-vs-measured surprise list - where your pre-registered strongest comps
 research/3v3-pricing-and-canary.md (findings ranked by decision-relevance, card appendix,
 questions for Henry); **the canary comp set committed as a reusable suite file** (it
 becomes a standing gate once the 3v3 game stabilizes); ONE commit.
+
+## Mid-flight answers (Henry + designer, 2026-08-20 - for the confirm pass)
+
+1. **SPECIES CLAUSE RULED: no duplicate species per team** (pragmatic grounds - one-line
+   enforcement vs a tripled degeneracy surface; revisitable later as a challenge mode).
+   Your one-member-per-species assumption stands; nothing re-runs. Scenario-only
+   injection of tag extras: ratified.
+2. **VERIFY before the report: SOLAR_OVERDRIVE's stack cap state post-ticket-103.** It
+   shipped at max 5; if 103's cap-removal took it, Strengthened landing at 3.33x width
+   makes your pre-registered comp 3 the likeliest degeneracy. One-line check, name the
+   answer in the report.
+3. **Zoo-inversion hypothesis to test in the beamless confirm:** the web's control-preys-
+   on-zoo edge was NEVER BUILT (riptide died with ticket 72) - zoos scale with width,
+   control's answers don't. Also note the screening tier under-reads reactive play, which
+   inflates exactly this result - the confirm is decisive. If it holds, the designed fix
+   direction is the missing predator as a DRIVER (riptide's per-turn-threshold design,
+   party-wide, draftable) - do NOT nerf 1v1-healthy zoo decks. Report, don't fix.
+4. Your ticket-98 self-correction (1.33x not 4-10x) and the Poison width-inversion are
+   accepted as findings - the 'prices at length' fear was aimed at a game that doesn't
+   exist; the real finding is WIDTH multiplying stack counts 2-4x against 1v1-measured
+   constants. Rank that in the report's price-indictment list.
