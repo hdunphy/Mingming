@@ -23,6 +23,9 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ## Decisions so far
 
+- [Region graph](tickets/07-region-graph.md) — prototype reacted to, numbers ruled: 3 sequential mono biomes × 5 layers, width 2–3, lateral edges ~60%, mix wild 60 / event 14 / elite 10 / market 8 / workshop 8 with one market + one workshop guaranteed per biome, 1 pocket (wild/alpha/ambush) per biome, exit = elite (biome 3 = gym). **Fight envelope deliberately loose** (shortest ~6.7, longest ~14.6 fights) — the 8–10 ruling is the typical run, not a constraint. **Visibility 1 layer** + map-reveal items/events. **Entering a node always triggers it again** (re-fight, revisit) — farming is fine. **No rest nodes** (full heal stands). **Run start consolidated:** 3 random gym offers showing biome order + start region → pick → then pick party (first run picks a starter); offers guarantee three different openings so the starter-vs-counter problem is solved by choice.
+- [Start-kit rule](tickets/08-start-kit-rule.md) — a ⅓-kit solo start would redraw the same 3 cards every turn (draw 3/5/7 at 1/2/3 members; tuned decks cycle in ~3 turns), so: **start deck = 8 = 5 `startKit`-tagged cards + 3 generic None hits; recruits bring 3 kit + 1 generic; untagged kit cards join the pick pool while the species is in the party; player OS active from the start; generics are the removal sink's food.** Enemy decks mirror the kit fraction by biome depth (biome 1 no OS → biome 3 full tuned) so the balance corpus is the late-run reference. 8+4+4+~9 picks+~3 buys−~3 removals ≈ 25. Tags: agent proposes 5 per launch deck, Henry ratifies the 12 in one sitting (request to deck-archetypes).
+
 - [Release shape](tickets/05-release-shape.md) — **EARLY ACCESS.** Launch = Fire/Water/Nature as **3 mono-element biomes** (amends exploration-map's two-element rule — deferred until more types ship, because the launch triangle is a pure counter cycle), **6 species / 12 decks** (Air = stretch to 8/16; the other 10 species are the EA roadmap), **3 authored gym leaders** (leader + 3-deck team; wilds reuse the tuned decks with OS/sibling variation), **3 tiers**, all run systems in, **$4.99–7.99 at EA → $9.99 at 1.0**. Pre-agreed fallback: bad early matchups in the slice playtest → bring in all six non-Light/Dark elements early, never pair within the triangle. Tickets 27/28 re-cut.
 
 - [Gap audit](tickets/01-gap-audit.md) — engine, 3v3, persistence and the debug toolkit are strong; run structure, economy nodes, Macros/Drivers, onboarding, settings, packaging and Steamworks are missing outright; leveling is still everywhere and must be frozen out. Full findings in [research/01-gap-audit.md](research/01-gap-audit.md); Steam facts in [research/02-steam-facts.md](research/02-steam-facts.md).
@@ -133,7 +136,7 @@ The publishing, marketing and testing lane. [Steamworks account](tickets/41-stea
 9. [Gym gauntlet refit](tickets/18-gauntlet-refit.md) — the exam.
 10. [Run end](tickets/19-run-end.md) — closes the loop back to the ranch.
 
-Then, to make the slice *complete* rather than merely *closed*: Ranch-minimal (20), Marketplace (13), Workshop (14), Macros (15), Drivers (16, waits on deck-archetypes 109), Elites (17), 3v3 game-side (22), Onboarding-lite (24), and the Vertical Slice playtest (25).
+Tickets 06, 07, 08 and 21 are closed. Then, to make the slice *complete* rather than merely *closed*: Ranch-minimal (20), Marketplace (13), Workshop (14), Macros (15), Drivers (16, waits on deck-archetypes 109), Elites (17), 3v3 game-side (22), Onboarding-lite (24), and the Vertical Slice playtest (25).
 
 ## Calendar (planning numbers — ticket 46 makes them real)
 
@@ -155,8 +158,8 @@ Baby's arrival: Henry supplies the month (see Questions) and the calendar bends 
 2. **Reward-pool source** (pre-seeded, open) — do post-fight picks draw from the current party's species pools (designer's recommendation), from the biome's pools, or from the whole card pool? Ticket 12 builds behind one function so the answer can land late, but the playtest should run the ruled version.
 3. **Gauntlet revive shape** (pre-seeded, deferred to playtesting by design) — Revive ships as a rare Macro (ruled). The open part: is a Revive Macro the *only* route back, or does a fainted member auto-return at a reduced % if you have none? Decided from ticket 25's data, not before.
 4. **PvP matchmaking scope** — closed today: PvP is out of scope for the first release; it returns as its own wayfinder post-launch (ticket 53 writes the roadmap post).
-5. **Start-kit size** — how many cards does a member bring: 3, 4 or 5 of its 8–9? (3 members × 4 + ~10 picks/buys − 2 removals ≈ 20 fits the 20–25 target.) → ticket 08.
-6. **Region graph numbers** — nodes per biome (6 / 7 / 8), branch width (2 / 3), visibility (1 node / 2 nodes / whole biome), whether farming is capped, and the first-biome rule so a starter never opens against its hard counter (ticket 05 caution). → ticket 07.
+5. ~~Start-kit size~~ — **RULED** (ticket 08): 5 kit + 3 generics; recruits 3 + 1.
+6. ~~Region graph numbers~~ — **RULED** (ticket 07): 5 layers × width 2–3, loose envelope, 1-layer visibility, re-entry triggers again, no rest nodes, consolidated run start.
 7. **Workshop cost** — vision.md (older) says spend SCRAP at a workshop; economy-session.md (newer) says assembly costs blueprints only, anywhere. The map follows the newer ruling; please confirm. → ticket 14.
 8. **Energy transfer** — `TRANSFER_ENERGY` exists in the reducer, no UI uses it, and the 3v3 ruling never mentions it. Keep (and give it a UI + a price) or delete? → ticket 22.
 9. **Gauntlet with fewer than 3 members** — the gauntlet is "always full 3v3 curated"; if the player arrives with 2, is it 3 vs 2 (harsh but honest) or does the boss scale to party size (contradicts "symmetric by default" only at the exam)? → ticket 18.

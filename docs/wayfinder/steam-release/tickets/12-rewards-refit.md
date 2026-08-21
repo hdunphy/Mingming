@@ -20,3 +20,6 @@ A won fight pays scrap + one pick + possible blueprint; the blueprint persists t
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+Repeat fights on a re-entered node pay FULL rewards (Henry: 'farming is fine') — record repeat counts in the run clock telemetry (ticket 19) and do not pre-patch. A recruit's untagged kit cards are in the pick pool while it is in the party (ticket 08).

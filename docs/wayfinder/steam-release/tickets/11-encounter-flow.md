@@ -18,3 +18,6 @@ Entering a wild node from the map starts a correct fight and returns to the map 
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+Wild decks MIRROR the player's kit fraction by biome depth — one knob `kitFraction` per depth: biome 1 = 5 startKit + 3 generics, NO OS; biome 2 = kit + OS; biome 3 + gauntlet = full tuned decks + OS. Biomes are mono-element at launch (ticket 05). Re-entering a node re-rolls its encounter from node seed + visit count and fights again.

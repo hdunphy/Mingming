@@ -18,3 +18,6 @@ Henry can route a full run on the map in the dev build; the screen is the only w
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+Visibility is ONE layer ahead (types visible, contents hidden), with map-reveal arriving as an item/event. Edges are walkable both ways and ENTERING A NODE TRIGGERS IT AGAIN (re-fight wilds, revisit markets/workshops) — the screen must show visit counts, not a dead/alive state. No rest nodes exist.

@@ -18,3 +18,6 @@ Marketplace reachable from the map, all three verbs work, scrap is run-scoped an
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+Generic None-element filler (3 in the start deck, 1 per recruit) is what removal is for — price removal so stripping all generics over a run costs roughly one market visit's scrap. Revisiting a market is allowed (node re-entry), so stock re-rolls per visit and prices must not be farmable to zero.

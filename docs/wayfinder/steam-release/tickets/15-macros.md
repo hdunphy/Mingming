@@ -20,3 +20,6 @@ All 10 (+Revive) fire correctly with tests, previews show true numbers, and a ma
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+Add a MAP-REVEAL consumable (reveals the current biome's node types) to the Macro family or as a marketplace item — Henry asked for 'items and events that reveal more of the map' under 1-layer visibility (ticket 07). Pricing at 1e-card value like the others.

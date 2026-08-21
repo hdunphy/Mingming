@@ -18,3 +18,6 @@ A run can go from 1 to 3 members via workshops, the new member's cards merge int
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+Henry leans toward ALSO allowing card removal at workshops — decide the price here (same as market, or blueprint-cheap). A recruit joins with 4 cards: 3 `startKit` + 1 generic (ticket 08).

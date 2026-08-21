@@ -18,3 +18,6 @@ A new player can boot, assemble a starter, start a run, and land on the region m
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+Run start is CONSOLIDATED: three random gym offers (each shows its three biome types in order + the start region; the generator guarantees three different opening biomes) → pick one → THEN pick the party (first run ever: pick a starter from the three offered species instead). No QUICK DEPLOY, no fixed first-run order. Start deck per ticket 08: 5 `startKit` + 3 generics; OS active.

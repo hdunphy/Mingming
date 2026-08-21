@@ -18,3 +18,6 @@ Event node plays end-to-end; the schema has a validator test; the launch event s
 
 _(open)_
 
+## Amendments from tickets 07/08 (Henry, 2026-08-21)
+
+At least one launch event reveals the biome map (ticket 07 visibility rule). No rest/campfire events — full heal between nodes stands.
