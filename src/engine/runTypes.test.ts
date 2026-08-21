@@ -21,15 +21,16 @@ import {
 // watch it refuse, which the domain types exist to make impossible to express.
 type Fixture = Record<string, unknown>;
 
-function biome(i: number, a: string, b: string) {
-    return { id: `b${i}`, name: `Biome ${i}`, elements: [a, b] as [string, string] };
+/** Mono by default — ticket 05's EA shape. Pass a second element for the deferred pair shape. */
+function biome(i: number, ...elements: string[]) {
+    return { id: `b${i}`, name: `Biome ${i}`, elements };
 }
 
 function run(overrides: Fixture = {}) {
     return {
         seed: 'seed-0001',
         gymId: 'gym_emberfall',
-        biomes: [biome(0, 'Fire', 'Earth'), biome(1, 'Water', 'Ice'), biome(2, 'Nature', 'Air')],
+        biomes: [biome(0, 'Fire'), biome(1, 'Water'), biome(2, 'Nature')],
         nodes: [
             { id: 'n0', kind: 'wild', biomeIndex: 0, edges: ['n1'], x: 0, y: 0, visited: 1 },
             { id: 'n1', kind: 'gym', biomeIndex: 2, edges: [], x: 1, y: 0, visited: 0 },
@@ -61,17 +62,32 @@ describe('RunStateSchema — the run-shape rulings', () => {
     });
 
     it('requires exactly three biomes (exploration-map.md)', () => {
-        expect(RunStateSchema.safeParse(run({ biomes: [biome(0, 'Fire', 'Earth')] })).success).toBe(false);
+        expect(RunStateSchema.safeParse(run({ biomes: [biome(0, 'Fire')] })).success).toBe(false);
         expect(
             RunStateSchema.safeParse(
-                run({ biomes: [...(run().biomes as unknown[]), biome(3, 'Light', 'Dark')] }),
+                run({ biomes: [...(run().biomes as unknown[]), biome(3, 'Dark')] }),
             ).success,
         ).toBe(false);
     });
 
-    it('requires exactly two elements per biome', () => {
-        const bad = [{ id: 'b0', name: 'B', elements: ['Fire'] }, ...(run().biomes as unknown[]).slice(1)];
-        expect(RunStateSchema.safeParse(run({ biomes: bad })).success).toBe(false);
+    it('accepts MONO biomes — ticket 05 ruled one element each at EA launch', () => {
+        expect(RunStateSchema.safeParse(run()).success).toBe(true);
+        expect((run().biomes as Array<{ elements: string[] }>)[0].elements).toEqual(['Fire']);
+    });
+
+    it('still accepts TWO-element biomes, so the deferred pair shape needs no save break', () => {
+        // Ticket 05 defers two-element biomes rather than cancelling them, and save v4 has no
+        // migration path — so the schema has to admit the later shape today or a post-launch patch
+        // would have to wipe real players' runs.
+        const paired = [biome(0, 'Fire', 'Earth'), biome(1, 'Water', 'Ice'), biome(2, 'Nature', 'Air')];
+        expect(RunStateSchema.safeParse(run({ biomes: paired })).success).toBe(true);
+    });
+
+    it('rejects a biome with no elements, or three', () => {
+        const none = [{ id: 'b0', name: 'B', elements: [] }, ...(run().biomes as unknown[]).slice(1)];
+        expect(RunStateSchema.safeParse(run({ biomes: none })).success).toBe(false);
+        const three = [{ id: 'b0', name: 'B', elements: ['Fire', 'Earth', 'Ice'] }, ...(run().biomes as unknown[]).slice(1)];
+        expect(RunStateSchema.safeParse(run({ biomes: three })).success).toBe(false);
     });
 
     it('caps the party at 3', () => {

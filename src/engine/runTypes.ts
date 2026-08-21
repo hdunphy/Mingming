@@ -27,7 +27,14 @@
  * 3. **Save v4 is a CLEAN BREAK. No v3 → v4 migration.** Nothing is using the save system in
  *    anger, so v4 is the floor and anything older is discarded as if there were no save. See the
  *    note at the foot of this file for what that deletes.
- * 4. **Assembly costs a blueprint at the ranch, and a blueprint PLUS scrap at a mid-run workshop.**
+ * 4. **Biomes are MONO-ELEMENT at Early Access launch** ([ticket 05](../../docs/wayfinder/steam-release/tickets/05-release-shape.md),
+ *    Henry 2026-08-21), which amends `exploration-map.md`'s "each biome mixes two elements". The
+ *    launch triangle (Fire > Nature > Water > Fire) is a *pure counter cycle*, so every possible
+ *    pairing within it is a counter pair and a Fire starter walking into a Fire/Water biome is not
+ *    fun. Two-element biomes return as *friendly* pairs once the roster widens — **deferred, not
+ *    cancelled** — so `elements` is modelled as a 1-or-2 list rather than a single string. See
+ *    `IBiome` for why that matters more than it looks.
+ * 5. **Assembly costs a blueprint at the ranch, and a blueprint PLUS scrap at a mid-run workshop.**
  *    This resolves a direct conflict between `vision.md` ("spend SCRAP to assemble") and
  *    `economy-session.md` ("assembly (ranch AND workshop) costs blueprints only") by making both
  *    literally true of the place each was describing. Mid-run recruiting therefore competes with
@@ -92,15 +99,28 @@ export interface IRegionNode {
 }
 
 /**
- * `exploration-map.md`: "A run = THREE BIOMES, each a mix of TWO elements." The pair is the
- * routing information the player reads the map with, and the gym's team draws one member from each
- * biome — so the two elements are not decoration, they are the final exam's syllabus.
+ * A run is THREE biomes (`exploration-map.md`). What each biome *contains* changed under
+ * [ticket 05](../../docs/wayfinder/steam-release/tickets/05-release-shape.md): **mono-element at
+ * EA launch**, with two-element biomes deferred until the roster widens.
+ *
+ * `elements` is therefore a **1-or-2 list**, not a single string and not a fixed pair. That choice
+ * is doing real work rather than hedging:
+ *
+ * - Ticket 05 defers two-element biomes, it does not cancel them, and names a pre-agreed fallback
+ *   (bring in all six non-Light/Dark elements) that widens this axis too.
+ * - Save v4 has **no migration path** by ruling (ticket 06). Before launch that is free; *after*
+ *   an Early Access launch, changing the biome shape would mean either a v5 migration the ruling
+ *   forbids or wiping real players' runs. A list that already admits both shapes costs one
+ *   `.min(1).max(2)` today and saves a save-breaking patch later.
+ *
+ * The elements are the routing information the player reads the map with, and the gym's team draws
+ * one member per biome — so they are the final exam's syllabus, not decoration.
  */
 export interface IBiome {
     readonly id: string;
     readonly name: string;
-    /** Exactly two. Enforced by the schema, not by convention. */
-    readonly elements: readonly [string, string];
+    /** One element at EA launch; two once friendly pairs ship. Never zero, never three. */
+    readonly elements: ReadonlyArray<string>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -295,8 +315,10 @@ export interface IRanchMember {
 export const BiomeSchema = z.object({
     id: z.string(),
     name: z.string(),
-    // Exactly two elements — the routing pair, not a list that happens to have two things in it.
-    elements: z.tuple([z.string(), z.string()]),
+    // 1 at EA launch (ticket 05's mono biomes), 2 once friendly pairs ship. Bounded on both sides:
+    // an empty biome has no routing information at all, and three would be a design change nobody
+    // has ruled.
+    elements: z.array(z.string()).min(1).max(2),
 });
 
 export const RegionNodeSchema = z.object({

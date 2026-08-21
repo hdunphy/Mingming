@@ -66,6 +66,14 @@ Switched to `.default()`, which fills a **missing** field but fails on a **malfo
 
 **v3 has this exact pattern live right now** — `PlayerSaveSchema` uses `.catch([])` on `blueprints`, `relics`, `unlockedSectors` and `baseDecksGranted`. Harmless when blueprints were a list nobody could spend; not harmless once they are currency. Flagged into ticket 23 rather than fixed from a prototype ticket.
 
+### Amended 2026-08-21 by [ticket 05](05-release-shape.md): biomes are MONO-element at launch
+
+Ticket 05 ruled Fire/Water/Nature as **three mono-element biomes**, amending `exploration-map.md`'s "each biome mixes two elements" — the launch triangle is a pure counter cycle, so every pairing within it is a counter pair and a Fire starter opening into a Fire/Water biome is not fun. Two-element biomes return as *friendly* pairs once the roster widens.
+
+`RunStateSchema` had encoded the old rule as `elements: z.tuple([z.string(), z.string()])` with a test asserting exactly two. Henry ruled it becomes a **1-or-2 list** (`z.array(z.string()).min(1).max(2)`) rather than a single string, and the reason is the interaction with this ticket's own no-migration ruling: **before launch a schema change is free; after an Early Access launch it is either a v5 migration the ruling forbids or wiping real players' runs.** Ticket 05's pre-agreed fallback (bring in all six non-Light/Dark elements) widens the same axis. One `.min(1).max(2)` today buys out a save-breaking patch later.
+
+Tests updated: mono is the default fixture, a two-element biome still parses (proving the deferred shape needs no break), and zero-or-three elements are rejected. 27 tests.
+
 ### What this unblocks, and what it amended
 
 Gates the whole Vertical Slice: **07, 09, 10, 11, 12, 18, 19, 20 and 23 can now start.** Amended by this ticket: [23](23-save-v4.md) (two keys, no migration, the delete-list, `.catch` → `.default`) and [14](14-workshop-node.md) (blueprint + scrap, and it owns the number).
