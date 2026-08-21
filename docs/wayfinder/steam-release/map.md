@@ -6,7 +6,7 @@ Label: `wayfinder:map` · Branch: `steam-release-prep` · Charted 2026-08-21
 
 ## Destination
 
-Mingming is on sale on Steam — a shipped desktop build of the ruled game (expedition roguelike: three two-element biomes, an explorable region graph, 1→2→3 recruiting into a shared deck, a three-fight no-heal gauntlet, a persistent ranch fed by consumable blueprints, no leveling) with a store page, achievements, cloud saves, a demo that has been through Steam Next Fest, and at least **10 Steam reviews** within the first months. Release shape (Early Access vs 1.0) is decided in [Release shape](tickets/05-release-shape.md) — this wayfinder's recommendation is **Early Access**, see below. Success, per Henry (2026-08-21): *shipped + 10 reviews*; PvP is not part of it.
+Mingming is on sale on Steam — a shipped desktop build of the ruled game (expedition roguelike: three biomes (mono-element at EA launch; two-element biomes deferred until more types ship), an explorable region graph, 1→2→3 recruiting into a shared deck, a three-fight no-heal gauntlet, a persistent ranch fed by consumable blueprints, no leveling) with a store page, achievements, cloud saves, a demo that has been through Steam Next Fest, and at least **10 Steam reviews** within the first months. **Release shape RULED: Early Access** ([Release shape](tickets/05-release-shape.md), Henry 2026-08-21) — entry bar: Fire/Water/Nature, 3 mono biomes, 6 species / 12 decks (Air stretch), 3 authored gym leaders, 3 tiers, $4.99–7.99 → $9.99 at 1.0. Success, per Henry (2026-08-21): *shipped + 10 reviews*; PvP is not part of it.
 
 ### Why the recommendation is Early Access
 
@@ -22,6 +22,8 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 - **Capacity model (for dates):** ~10 Henry-hours/week + agent sessions most days; one `task` ticket ≈ one agent session + a Henry review; one `grilling` ≈ a 20–40-minute conversation (car-friendly). Dates below assume ~3 tickets/week and slip with family life — they are planning numbers, not promises.
 
 ## Decisions so far
+
+- [Release shape](tickets/05-release-shape.md) — **EARLY ACCESS.** Launch = Fire/Water/Nature as **3 mono-element biomes** (amends exploration-map's two-element rule — deferred until more types ship, because the launch triangle is a pure counter cycle), **6 species / 12 decks** (Air = stretch to 8/16; the other 10 species are the EA roadmap), **3 authored gym leaders** (leader + 3-deck team; wilds reuse the tuned decks with OS/sibling variation), **3 tiers**, all run systems in, **$4.99–7.99 at EA → $9.99 at 1.0**. Pre-agreed fallback: bad early matchups in the slice playtest → bring in all six non-Light/Dark elements early, never pair within the triangle. Tickets 27/28 re-cut.
 
 - [Gap audit](tickets/01-gap-audit.md) — engine, 3v3, persistence and the debug toolkit are strong; run structure, economy nodes, Macros/Drivers, onboarding, settings, packaging and Steamworks are missing outright; leveling is still everywhere and must be frozen out. Full findings in [research/01-gap-audit.md](research/01-gap-audit.md); Steam facts in [research/02-steam-facts.md](research/02-steam-facts.md).
 - **PvP is out of scope for the first release** (Henry, 2026-08-21) — see Out of scope.
@@ -149,18 +151,18 @@ Baby's arrival: Henry supplies the month (see Questions) and the calendar bends 
 
 ## Questions for Henry (un-ruled — this map does not decide them)
 
-1. **Release shape** — Early Access (recommended above) or 1.0? → ticket 05.
+1. ~~Release shape~~ — **RULED Early Access** (ticket 05, 2026-08-21).
 2. **Reward-pool source** (pre-seeded, open) — do post-fight picks draw from the current party's species pools (designer's recommendation), from the biome's pools, or from the whole card pool? Ticket 12 builds behind one function so the answer can land late, but the playtest should run the ruled version.
 3. **Gauntlet revive shape** (pre-seeded, deferred to playtesting by design) — Revive ships as a rare Macro (ruled). The open part: is a Revive Macro the *only* route back, or does a fainted member auto-return at a reduced % if you have none? Decided from ticket 25's data, not before.
 4. **PvP matchmaking scope** — closed today: PvP is out of scope for the first release; it returns as its own wayfinder post-launch (ticket 53 writes the roadmap post).
 5. **Start-kit size** — how many cards does a member bring: 3, 4 or 5 of its 8–9? (3 members × 4 + ~10 picks/buys − 2 removals ≈ 20 fits the 20–25 target.) → ticket 08.
-6. **Region graph numbers** — nodes per biome (6 / 7 / 8), branch width (2 / 3), visibility (1 node / 2 nodes / whole biome), and whether farming is capped. → ticket 07.
+6. **Region graph numbers** — nodes per biome (6 / 7 / 8), branch width (2 / 3), visibility (1 node / 2 nodes / whole biome), whether farming is capped, and the first-biome rule so a starter never opens against its hard counter (ticket 05 caution). → ticket 07.
 7. **Workshop cost** — vision.md (older) says spend SCRAP at a workshop; economy-session.md (newer) says assembly costs blueprints only, anywhere. The map follows the newer ruling; please confirm. → ticket 14.
 8. **Energy transfer** — `TRANSFER_ENERGY` exists in the reducer, no UI uses it, and the 3v3 ruling never mentions it. Keep (and give it a UI + a price) or delete? → ticket 22.
 9. **Gauntlet with fewer than 3 members** — the gauntlet is "always full 3v3 curated"; if the player arrives with 2, is it 3 vs 2 (harsh but honest) or does the boss scale to party size (contradicts "symmetric by default" only at the exam)? → ticket 18.
 10. **In-progress runs across app close** — one run slot, resumable (recommended; Steam players expect it), or runs that die with the session? → ticket 06.
 11. **Blueprint drop rate and scrap table** — numbers: blueprint chance per wild (15 / 20 / 25 %), scrap per win, card prices by rarity, removal price. → tickets 12/13.
-12. **Content at launch** — biome pairs (6 / 8), tiers (2 / 3), events (10 / 15), authored gyms — after the slice is played. → ticket 27.
+12. **Content at launch** — mostly ruled in ticket 05 (3 mono biomes, 6 species, 3 leaders, 3 tiers); still open: event count (10 / 15) and which three leaders. → ticket 27.
 13. **Art path and the $500** — capsule commission (recommended) vs species art; AI-assisted art with Steam disclosure, yes or no? → ticket 32.
 14. **Price, discount, launch month, and the baby's due month** — → ticket 46.
 15. **Code signing on Windows** (~$200–400/yr for a cert vs SmartScreen warnings; Steam does not require it) — → ticket 42.

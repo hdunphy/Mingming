@@ -1,6 +1,6 @@
 # Content plan: biome pairs, gyms, tiers and events at launch — in numbers (ticket 27)
 
-- Type: wayfinder:grilling
+- Type: wayfinder:grilling (RE-CUT 2026-08-21 by ticket 05 — most numbers are ruled; see Question)
 - Status: open
 - Assignee: 
 - Blocked by: [05](05-release-shape.md), [25](25-vs-playtest.md)
@@ -8,7 +8,7 @@
 
 ## Question
 
-With the Vertical Slice playtested and the release shape ruled (ticket 05), cut the launch content list with numbers: how many biome pairs (8 elements → 28 possible pairs; a run uses 3; propose 6–8 pairs so three-gym offers vary), how many authored gyms/bosses, how many difficulty tiers (propose 3), how many events, how many run modifiers, and whether all 16 species are starters or some are blueprint-only. Use the playtest's run-length and replay numbers to size it. Flag what each item costs in agent sessions so Henry trades scope against the calendar.
+Ticket 05 ruled the launch shape: Early Access; Fire/Water/Nature as 3 mono-element biomes; 6 species / 12 decks (Air stretch → 8/16); 3 authored gym leaders; 3 tiers. What remains to decide with Henry, after the slice playtest (ticket 25): (a) WHICH three leaders (species + OS + the 3-deck team shape per biome), (b) the event count (10 / 15) and run-modifier count at launch, (c) whether Air ships at EA or first patch, (d) whether the mono-biome fallback (all six non-Light/Dark elements early) triggers — use ticket 25's early-matchup numbers. Size each item in agent sessions.
 
 ## Done when
 
