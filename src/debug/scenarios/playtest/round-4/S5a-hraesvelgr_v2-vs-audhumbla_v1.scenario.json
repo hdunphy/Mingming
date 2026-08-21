@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S5a - burn never forgives (applier seat)",
+  "description": "Burn no longer decays: every stack is forever, cap 4, detonation at the cap. From the applier seat: does permanence make Burn feel like a real clock you're winding, and is steering around detonating (holding at 3 vs pushing through) a choice you actually made? Play S5b right after from the receiving end.   [you: hraesvelgr_v2 | opponent: audhumbla_v1]",
+  "tags": ["playtest", "round-4", "burn-permanence", "hraesvelgr_v2"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S5a-hraesvelgr_v2-vs-audhumbla_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "hraesvelgr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "hraesvelgr_v2" }
+      ],
+      "deck": ["sun_eaters_plunge","thermal_lance","firestorm_talon","cinder_gust","cinder_gust","tailwind","slipstream","zephyr_strike"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "audhumbla", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "audhumbla_v1",
+        "deck": ["pale_mercy","pale_mercy","dawnstrike","healing_light","sacred_spring","supernova_v2","genesis_surge","dawn_of_creation","radiant_spark"]
+      }
+    ]
+  }
+}

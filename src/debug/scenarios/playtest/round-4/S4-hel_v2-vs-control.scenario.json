@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S4 - hel at the edge",
+  "description": "Deliberately push the health-spend to the brink - play the greedy line you'd normally flinch from. Ticket 105 fixed death ordering, so lethal-adjacent self-spend should now resolve the way the card text reads. Did any spend-then-heal or spend-then-kill sequence resolve in an order that surprised you? Any surprise = snapshot it. Regression check: is the favorite you loved intact under the new status economy? NOTE: the pack didn't name an opponent; this uses control as a neutral baseline.   [you: hel_v2 | opponent: control]",
+  "tags": ["playtest", "round-4", "ticket-105", "hel_v2"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S4-hel_v2-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "hel", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "hel_v2" }
+      ],
+      "deck": ["pale_mercy","pale_mercy","forage","forage","dawnstrike","dawnstrike","venom_shade","soul_tithe","squirrel_away","last_rites"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "control_v1",
+        "deck": ["baseline_jab","baseline_jab","baseline_scuff","baseline_scuff","baseline_strike","baseline_strike","baseline_snare","baseline_snare","baseline_slam","baseline_purge"]
+      }
+    ]
+  }
+}

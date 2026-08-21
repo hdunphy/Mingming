@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S3 - ymir favorite regression",
+  "description": "Ticket 106 fixed the build turn (bracing_cold is now 2e/15 power/9 Strengthened, was 1e/15/3). Is the one-card-bonus-damage engine you loved intact? Does the build turn now feel like a deliberate setup you chose, or still like a mandatory stall? Better / same / worse than your memory, one sentence why. NOTE: the pack said 'a control deck of your choice' - this uses control_v1, the game's actual Control species.   [you: ymir_v2 | opponent: control]",
+  "tags": ["playtest", "round-4", "ticket-106", "ymir_v2"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S3-ymir_v2-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "ymir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "ymir_v2" }
+      ],
+      "deck": ["bracing_cold","bracing_cold","thaw","ice_spear","ice_spear","numbing_gale","numbing_gale","glacial_maul","glacial_maul","glacial_slam"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "control_v1",
+        "deck": ["baseline_jab","baseline_jab","baseline_scuff","baseline_scuff","baseline_strike","baseline_strike","baseline_snare","baseline_snare","baseline_slam","baseline_purge"]
+      }
+    ]
+  }
+}

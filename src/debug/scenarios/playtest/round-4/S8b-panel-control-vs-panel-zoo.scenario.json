@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S8b - first 3v3 hands (control seat)",
+  "description": "The archetype web says control should prey on zoo, but that edge was never actually built (riptide died with ticket 72). What did your control hands WISH for against width? Write the wish verbatim - it's direct input to the riptide-as-a-Driver design. Mechanics feel-check while you're in there: shared hand + STAB-by-caster - did 'who casts this' ever feel like a real decision? That's the entire 3v3 bet.   [you: panel-control (kraken_v1+huldra_v1+draugr_v2) | opponent: panel-zoo (jormungandr_v1+sleipnir_v1+hraesvelgr_v1)]",
+  "tags": ["playtest", "round-4", "ticket-109", "3v3", "panel-control"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S8b-panel-control-vs-panel-zoo",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "kraken", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "kraken_v1" },
+        { "definitionId": "huldra", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "huldra_v1" },
+        { "definitionId": "draugr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "draugr_v2" }
+      ],
+      "deck": ["whirlpool_v2","whirlpool_v2","pressure_point","pressure_point","ink_stream","ink_stream","surge_protection","undertow","growth","growth","soothe","water_slap","iron_bark","iron_bark","thorn_tithe","thorn_tithe","hexbloom","rimefrost","rimefrost","water_slap","frost_bite","numbing_gale","killing_frost","ice_spear","glacial_slam","rimebreaker","rimebreaker"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "jormungandr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "jormungandr_v1",
+        "deck": ["undertow","undertow","blind_spot","corrosive_leak","surge_protection","serpents_coil","serpents_coil","ink_stream","ink_stream"]
+      },
+      {
+        "definitionId": "sleipnir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "sleipnir_v1",
+        "deck": ["water_slap","water_slap","slipstream","slipstream","disorienting_gust","adrenaline","tailwind","zephyr_strike","stampede","stampede","momentum_crash","hoofbeat_daemon"]
+      },
+      {
+        "definitionId": "hraesvelgr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "hraesvelgr_v1",
+        "deck": ["feather_cache","feather_cache","war_molt","war_molt","sky_burial","sky_burial","tempest","tempest","carrion_swoop","carrion_swoop","zephyr_strike","slipstream"]
+      }
+    ]
+  }
+}

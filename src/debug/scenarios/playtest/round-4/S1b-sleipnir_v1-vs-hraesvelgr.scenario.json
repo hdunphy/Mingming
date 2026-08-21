@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S1b - sleipnir on the leash (your seat)",
+  "description": "Pilot sleipnir_v1 yourself under the post-103 bounded mint. Is it still a ramp FANTASY - do you feel yourself building toward something - or does it feel gutted? Note the biggest Strength pile you reached and whether getting there took decisions or just turns. His draw payoff died in ticket 100 - does the deck feel like it has a hole, or did it tighten? NOTE: the pack didn't name an opponent for this half; this uses control as a neutral baseline, matching round 3's S2b - swap the enemy block for a real deck if you'd rather.   [you: sleipnir_v1 | opponent: control]",
+  "tags": [
+    "playtest",
+    "round-4",
+    "ticket-103",
+    "sleipnir_v1"
+  ],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S1b-sleipnir_v1-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "sleipnir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "sleipnir_v1"
+        }
+      ],
+      "deck": [
+        "water_slap",
+        "water_slap",
+        "slipstream",
+        "slipstream",
+        "disorienting_gust",
+        "adrenaline",
+        "tailwind",
+        "zephyr_strike",
+        "stampede",
+        "stampede",
+        "momentum_crash",
+        "hoofbeat_daemon"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "hraesvelgr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "deck": [
+          "feather_cache",
+          "feather_cache",
+          "war_molt",
+          "war_molt",
+          "sky_burial",
+          "sky_burial",
+          "tempest",
+          "tempest",
+          "carrion_swoop",
+          "carrion_swoop",
+          "zephyr_strike",
+          "slipstream"
+        ]
+      }
+    ]
+  }
+}
