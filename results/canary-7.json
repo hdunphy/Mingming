@@ -1,0 +1,214 @@
+[
+ {
+  "a": "tag-rebirth-pile",
+  "b": "panel-zoo",
+  "tier": "lite/beam8",
+  "winRate": 0.25,
+  "turns": 5.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.13392857142857142,
+  "deadB": 0.0364963503649635,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Poison": 4
+  },
+  "hot": {},
+  "ticks": {
+   "Strengthened": 39,
+   "Sharp": 17,
+   "Dazed": 7,
+   "Poison": 4,
+   "Energized": 3
+  },
+  "totalDamage": 1464,
+  "statusLanded": {
+   "Strengthened": 77,
+   "Sharp": 11,
+   "Dazed": 8,
+   "Poison": 6,
+   "Energized": 3
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-rebirth-pile",
+  "b": "panel-control",
+  "tier": "lite/beam8",
+  "winRate": 1,
+  "turns": 5.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.09022556390977443,
+  "deadB": 0.2111111111111111,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 27,
+   "Burn": 6
+  },
+  "hot": {
+   "Regen": 20
+  },
+  "ticks": {
+   "Strengthened": 16,
+   "Weakened": 25,
+   "Dazed": 24,
+   "Sharp": 19,
+   "Stunned": 3,
+   "StableOS": 1,
+   "Poison": 4,
+   "Regen": 10,
+   "Burn": 3
+  },
+  "totalDamage": 1322,
+  "statusLanded": {
+   "Strengthened": 69,
+   "Dazed": 31,
+   "Sharp": 27,
+   "Weakened": 48,
+   "Stunned": 3,
+   "Poison": 30,
+   "Regen": 12,
+   "Burn": 4
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-rebirth-pile",
+  "b": "panel-ramp",
+  "tier": "lite/beam8",
+  "winRate": 0.25,
+  "turns": 7,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.07407407407407407,
+  "deadB": 0.16964285714285715,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {},
+  "hot": {},
+  "ticks": {
+   "Strengthened": 48,
+   "BarkShield": 23,
+   "Dazed": 21,
+   "Weakened": 18,
+   "Sharp": 29,
+   "Stunned": 4,
+   "StableOS": 3
+  },
+  "totalDamage": 1659,
+  "statusLanded": {
+   "Strengthened": 120,
+   "Sharp": 20,
+   "Dazed": 18,
+   "Weakened": 14,
+   "BarkShield": 73,
+   "Stunned": 4
+  },
+  "reshuffles": 8
+ },
+ {
+  "a": "tag-rebirth-pile",
+  "b": "panel-burst",
+  "tier": "lite/beam8",
+  "winRate": 0.75,
+  "turns": 5.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.17557251908396945,
+  "deadB": 0.1702127659574468,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Poison": 40,
+   "Burn": 88
+  },
+  "hot": {},
+  "ticks": {
+   "Strengthened": 19,
+   "Poison": 10,
+   "Burn": 28,
+   "Sharp": 34,
+   "Weakened": 1
+  },
+  "totalDamage": 1333,
+  "statusLanded": {
+   "Strengthened": 70,
+   "Sharp": 31,
+   "Poison": 58,
+   "Burn": 43,
+   "Weakened": 3
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-rebirth-pile",
+  "b": "panel-mixed-a",
+  "tier": "lite/beam8",
+  "winRate": 0.5,
+  "turns": 7,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.09302325581395349,
+  "deadB": 0.08108108108108109,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 29
+  },
+  "hot": {},
+  "ticks": {
+   "Strengthened": 56,
+   "Sharp": 39,
+   "Dazed": 13,
+   "Weakened": 14,
+   "Poison": 15
+  },
+  "totalDamage": 1586,
+  "statusLanded": {
+   "Strengthened": 129,
+   "Sharp": 17,
+   "Dazed": 25,
+   "Weakened": 19,
+   "Poison": 30
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-rebirth-pile",
+  "b": "panel-mixed-b",
+  "tier": "lite/beam8",
+  "winRate": 0.75,
+  "turns": 6.5,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.04580152671755725,
+  "deadB": 0.297029702970297,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {},
+  "hot": {},
+  "ticks": {
+   "Strengthened": 27,
+   "Sharp": 45,
+   "Energized": 6,
+   "Dazed": 16,
+   "Asleep": 5,
+   "BarkShield": 11,
+   "Weakened": 1
+  },
+  "totalDamage": 1384,
+  "statusLanded": {
+   "Strengthened": 74,
+   "Sharp": 62,
+   "Dazed": 18,
+   "Asleep": 9,
+   "Energized": 12,
+   "Weakened": 4,
+   "BarkShield": 36
+  },
+  "reshuffles": 6
+ }
+]

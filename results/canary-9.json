@@ -1,0 +1,238 @@
+[
+ {
+  "a": "tag-antiheal-vs-stall",
+  "b": "panel-zoo",
+  "tier": "lite/beam8",
+  "winRate": 0,
+  "turns": 5.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.15151515151515152,
+  "deadB": 0.05970149253731343,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 33
+  },
+  "hot": {
+   "Regen": 22
+  },
+  "ticks": {
+   "Weakened": 30,
+   "Sharp": 32,
+   "Regen": 11,
+   "Poison": 25,
+   "Energized": 4,
+   "Strengthened": 14
+  },
+  "totalDamage": 1495,
+  "statusLanded": {
+   "Weakened": 44,
+   "Sharp": 27,
+   "Regen": 12,
+   "Poison": 55,
+   "Dazed": 2,
+   "Strengthened": 90,
+   "Energized": 4
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-antiheal-vs-stall",
+  "b": "panel-control",
+  "tier": "lite/beam8",
+  "winRate": 0.25,
+  "turns": 11.5,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.037037037037037035,
+  "deadB": 0.018518518518518517,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Poison": 765,
+   "Burn": 48
+  },
+  "hot": {
+   "Regen": 90
+  },
+  "ticks": {
+   "Poison": 68,
+   "Sharp": 94,
+   "Weakened": 149,
+   "Burn": 22,
+   "Dazed": 26,
+   "Stunned": 7,
+   "Regen": 45,
+   "StableOS": 6
+  },
+  "totalDamage": 1475,
+  "statusLanded": {
+   "Poison": 436,
+   "Weakened": 252,
+   "Sharp": 98,
+   "Regen": 52,
+   "Burn": 20,
+   "Dazed": 49,
+   "Stunned": 7
+  },
+  "reshuffles": 16
+ },
+ {
+  "a": "tag-antiheal-vs-stall",
+  "b": "panel-ramp",
+  "tier": "lite/beam8",
+  "winRate": 0.25,
+  "turns": 6.5,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.0970873786407767,
+  "deadB": 0.14166666666666666,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Poison": 65
+  },
+  "hot": {
+   "Regen": 18
+  },
+  "ticks": {
+   "Sharp": 48,
+   "Regen": 9,
+   "Weakened": 35,
+   "BarkShield": 24,
+   "Poison": 22,
+   "Strengthened": 35,
+   "Stunned": 3,
+   "StableOS": 2,
+   "Dazed": 20
+  },
+  "totalDamage": 1530,
+  "statusLanded": {
+   "Sharp": 37,
+   "Regen": 10,
+   "Weakened": 65,
+   "Poison": 63,
+   "BarkShield": 84,
+   "Strengthened": 50,
+   "Dazed": 10,
+   "Stunned": 4
+  },
+  "reshuffles": 8
+ },
+ {
+  "a": "tag-antiheal-vs-stall",
+  "b": "panel-burst",
+  "tier": "lite/beam8",
+  "winRate": 0.5,
+  "turns": 7.75,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.027777777777777776,
+  "deadB": 0.16379310344827586,
+  "firstMoverEdge": 0.5,
+  "games": 4,
+  "dot": {
+   "Poison": 201,
+   "Burn": 288
+  },
+  "hot": {
+   "Regen": 36
+  },
+  "ticks": {
+   "Poison": 49,
+   "Weakened": 66,
+   "Sharp": 60,
+   "Burn": 57,
+   "Regen": 18
+  },
+  "totalDamage": 1384,
+  "statusLanded": {
+   "Weakened": 69,
+   "Poison": 245,
+   "Sharp": 79,
+   "Regen": 22,
+   "Burn": 56
+  },
+  "reshuffles": 8
+ },
+ {
+  "a": "tag-antiheal-vs-stall",
+  "b": "panel-mixed-a",
+  "tier": "lite/beam8",
+  "winRate": 0,
+  "turns": 5.75,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.12149532710280374,
+  "deadB": 0.096,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 93
+  },
+  "hot": {
+   "Regen": 24
+  },
+  "ticks": {
+   "Weakened": 34,
+   "Sharp": 23,
+   "Regen": 12,
+   "Poison": 36,
+   "Strengthened": 26,
+   "Dazed": 9
+  },
+  "totalDamage": 1634,
+  "statusLanded": {
+   "Poison": 103,
+   "Strengthened": 100,
+   "Weakened": 62,
+   "Sharp": 36,
+   "Regen": 20,
+   "Dazed": 32
+  },
+  "reshuffles": 7
+ },
+ {
+  "a": "tag-antiheal-vs-stall",
+  "b": "panel-mixed-b",
+  "tier": "lite/beam8",
+  "winRate": 0.5,
+  "turns": 10,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0,
+  "deadB": 0.14782608695652175,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Poison": 208
+  },
+  "hot": {
+   "Regen": 54
+  },
+  "ticks": {
+   "Poison": 45,
+   "Dazed": 12,
+   "BarkShield": 32,
+   "Weakened": 100,
+   "Energized": 10,
+   "Sharp": 106,
+   "Asleep": 13,
+   "Regen": 27,
+   "StableOS": 2
+  },
+  "totalDamage": 1539,
+  "statusLanded": {
+   "Poison": 194,
+   "Weakened": 109,
+   "Sharp": 189,
+   "Regen": 30,
+   "Energized": 20,
+   "Dazed": 12,
+   "BarkShield": 103,
+   "Asleep": 21
+  },
+  "reshuffles": 13
+ }
+]

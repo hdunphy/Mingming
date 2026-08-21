@@ -1,0 +1,235 @@
+[
+ {
+  "a": "tag-solar-jackpot",
+  "b": "panel-zoo",
+  "tier": "lite/beam8",
+  "winRate": 0,
+  "turns": 5.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.3068181818181818,
+  "deadB": 0.06666666666666667,
+  "firstMoverEdge": 0,
+  "games": 4,
+  "dot": {
+   "Burn": 132,
+   "Poison": 4
+  },
+  "hot": {},
+  "ticks": {
+   "Sharp": 36,
+   "BarkShield": 17,
+   "Burn": 25,
+   "Strengthened": 45,
+   "Poison": 4,
+   "Energized": 2
+  },
+  "totalDamage": 1226,
+  "statusLanded": {
+   "Sharp": 74,
+   "BarkShield": 67,
+   "Burn": 39,
+   "Strengthened": 93,
+   "Poison": 8,
+   "Energized": 4,
+   "Dazed": 1
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-solar-jackpot",
+  "b": "panel-control",
+  "tier": "lite/beam8",
+  "winRate": 0.75,
+  "turns": 8,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.23275862068965517,
+  "deadB": 0.17592592592592593,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Burn": 126,
+   "Poison": 36
+  },
+  "hot": {
+   "Regen": 22
+  },
+  "ticks": {
+   "Sharp": 69,
+   "BarkShield": 21,
+   "Weakened": 36,
+   "Burn": 38,
+   "Strengthened": 24,
+   "Stunned": 5,
+   "StableOS": 3,
+   "Poison": 6,
+   "Regen": 11,
+   "Dazed": 8
+  },
+  "totalDamage": 1392,
+  "statusLanded": {
+   "Sharp": 119,
+   "Burn": 65,
+   "BarkShield": 78,
+   "Strengthened": 30,
+   "Weakened": 51,
+   "Dazed": 25,
+   "Stunned": 5,
+   "Poison": 34,
+   "Regen": 12
+  },
+  "reshuffles": 7
+ },
+ {
+  "a": "tag-solar-jackpot",
+  "b": "panel-ramp",
+  "tier": "lite/beam8",
+  "winRate": 0.25,
+  "turns": 7.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.2549019607843137,
+  "deadB": 0.15254237288135594,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Burn": 135
+  },
+  "hot": {},
+  "ticks": {
+   "Strengthened": 64,
+   "Sharp": 51,
+   "BarkShield": 30,
+   "Burn": 32,
+   "Dazed": 21,
+   "Stunned": 2,
+   "Weakened": 13,
+   "StableOS": 1
+  },
+  "totalDamage": 1479,
+  "statusLanded": {
+   "Strengthened": 97,
+   "Sharp": 71,
+   "BarkShield": 99,
+   "Burn": 39,
+   "Stunned": 2,
+   "Dazed": 18,
+   "Weakened": 16
+  },
+  "reshuffles": 5
+ },
+ {
+  "a": "tag-solar-jackpot",
+  "b": "panel-burst",
+  "tier": "lite/beam8",
+  "winRate": 0.5,
+  "turns": 7,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.24761904761904763,
+  "deadB": 0.1810344827586207,
+  "firstMoverEdge": 0.5,
+  "games": 4,
+  "dot": {
+   "Burn": 193,
+   "Poison": 104
+  },
+  "hot": {},
+  "ticks": {
+   "Strengthened": 24,
+   "Sharp": 50,
+   "Burn": 46,
+   "BarkShield": 17,
+   "Poison": 22,
+   "Weakened": 4
+  },
+  "totalDamage": 1308,
+  "statusLanded": {
+   "Strengthened": 35,
+   "Sharp": 96,
+   "BarkShield": 83,
+   "Burn": 74,
+   "Poison": 90,
+   "Weakened": 5
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-solar-jackpot",
+  "b": "panel-mixed-a",
+  "tier": "lite/beam8",
+  "winRate": 0.5,
+  "turns": 8.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.21929824561403508,
+  "deadB": 0.14516129032258066,
+  "firstMoverEdge": 0.5,
+  "games": 4,
+  "dot": {
+   "Burn": 106,
+   "Poison": 48
+  },
+  "hot": {},
+  "ticks": {
+   "Sharp": 70,
+   "BarkShield": 25,
+   "Strengthened": 64,
+   "Burn": 33,
+   "Poison": 21,
+   "Dazed": 3,
+   "Weakened": 5
+  },
+  "totalDamage": 1545,
+  "statusLanded": {
+   "Sharp": 108,
+   "Strengthened": 133,
+   "BarkShield": 110,
+   "Burn": 42,
+   "Poison": 26,
+   "Dazed": 7,
+   "Weakened": 4
+  },
+  "reshuffles": 6
+ },
+ {
+  "a": "tag-solar-jackpot",
+  "b": "panel-mixed-b",
+  "tier": "lite/beam8",
+  "winRate": 0.75,
+  "turns": 8.25,
+  "truncated": 0,
+  "ftk": 0,
+  "deadA": 0.19469026548672566,
+  "deadB": 0.29310344827586204,
+  "firstMoverEdge": 0.25,
+  "games": 4,
+  "dot": {
+   "Burn": 124
+  },
+  "hot": {},
+  "ticks": {
+   "Strengthened": 43,
+   "Sharp": 76,
+   "Dazed": 7,
+   "Asleep": 4,
+   "Burn": 45,
+   "BarkShield": 42,
+   "Energized": 8,
+   "Weakened": 3
+  },
+  "totalDamage": 1422,
+  "statusLanded": {
+   "Strengthened": 42,
+   "Dazed": 10,
+   "Sharp": 180,
+   "BarkShield": 129,
+   "Burn": 39,
+   "Asleep": 9,
+   "Energized": 16,
+   "Weakened": 4
+  },
+  "reshuffles": 7
+ }
+]
