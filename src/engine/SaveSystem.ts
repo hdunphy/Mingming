@@ -126,22 +126,98 @@ export function migrateSave(raw: unknown): unknown {
 
 // --- Save/Load Functions ---
 
-export function saveGame(state: IPlayerSave): { success: boolean; error?: string } {
+/**
+ * How a write failed. Ticket 04 (steam-release map) split this out of the bare `error` string
+ * because the three cases need different words in front of the player:
+ *
+ *   `validation` — the state we were handed does not satisfy `PlayerSaveSchema`. A bug in the
+ *                  game, not something the player can act on; nothing is written, so whatever is
+ *                  in storage stays the last good save.
+ *   `quota`      — localStorage is full. Recoverable by the player (delete a slot, free space).
+ *   `storage`    — localStorage is unavailable outright: private-browsing modes, an embedded
+ *                  webview with storage disabled, `localStorage` missing entirely (node).
+ */
+export type SaveFailureKind = 'validation' | 'quota' | 'storage';
+
+export interface SaveResult {
+    success: boolean;
+    error?: string;
+    /** Present only when `success` is false. */
+    kind?: SaveFailureKind;
+}
+
+/**
+ * Browsers disagree on how they signal a full quota. Chrome/Safari throw `QuotaExceededError`
+ * (legacy code 22), Firefox throws `NS_ERROR_DOM_QUOTA_REACHED` (code 1014), and some older
+ * WebKit builds throw a plain `Error` whose message is the only clue.
+ */
+function isQuotaError(err: unknown): boolean {
+    if (typeof DOMException !== 'undefined' && err instanceof DOMException) {
+        if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') return true;
+        if (err.code === 22 || err.code === 1014) return true;
+    }
+    const name = (err as { name?: unknown })?.name;
+    if (name === 'QuotaExceededError' || name === 'NS_ERROR_DOM_QUOTA_REACHED') return true;
+    return /quota|exceeded the quota|storage is full/i.test(String((err as { message?: unknown })?.message ?? ''));
+}
+
+/**
+ * Write the active slot, or fail without touching what is already there.
+ *
+ * The ordering is the whole point: **validate, then serialize, then write**. A state that fails
+ * `PlayerSaveSchema` never reaches `setItem`, and a `setItem` that throws leaves the previous
+ * value intact per the Web Storage spec — so on every failure path the bytes in storage are still
+ * the last save that was known good. Ticket 04's requirement ("autosave must never write a save
+ * that fails `PlayerSaveSchema.parse()`" plus "a quota/write-failure path that does not lose the
+ * run") is met by that ordering, not by keeping a backup copy.
+ *
+ * What ticket 04 changed is that failure is now *reportable*: the returned `kind` lets
+ * `ui/store/saveHealth.ts` put it in front of the player, instead of only in a console that does
+ * not exist in a shipped build.
+ */
+export function saveGame(state: IPlayerSave): SaveResult {
+    // 1. Validate. Nothing below this line runs if the state is not a legal save.
     try {
-        // Validate before saving
         PlayerSaveSchema.parse(state);
-        const json = JSON.stringify(state);
-        localStorage.setItem(getActiveSaveKey(), json);
-        return { success: true };
     } catch (err) {
         if (err instanceof z.ZodError) {
             const messages = (err as any).issues.map((e: any) =>
                 `[${e.path.join('.')}] ${e.message}`
             ).join('\n');
             console.error('Save validation failed:\n' + messages);
-            return { success: false, error: messages };
+            return { success: false, error: messages, kind: 'validation' };
         }
-        return { success: false, error: String(err) };
+        return { success: false, error: String(err), kind: 'validation' };
+    }
+
+    // 2. Serialize. Separate from the write so a JSON failure is not misreported as a quota one.
+    let json: string;
+    try {
+        json = JSON.stringify(state);
+    } catch (err) {
+        console.error('Save serialization failed:', err);
+        return { success: false, error: String(err), kind: 'validation' };
+    }
+
+    // 3. Write. A throw here leaves the previous value in place — the run is not lost.
+    try {
+        localStorage.setItem(getActiveSaveKey(), json);
+        return { success: true };
+    } catch (err) {
+        if (isQuotaError(err)) {
+            console.error('Save failed — storage is full. The last good save is untouched.', err);
+            return {
+                success: false,
+                error: 'Browser storage is full, so this save could not be written. Your previous save is untouched.',
+                kind: 'quota',
+            };
+        }
+        console.error('Save failed — storage is unavailable. The last good save is untouched.', err);
+        return {
+            success: false,
+            error: `Storage is unavailable (${String(err)}). Your previous save is untouched.`,
+            kind: 'storage',
+        };
     }
 }
 

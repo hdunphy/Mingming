@@ -3,6 +3,7 @@ import type { Middleware } from '@reduxjs/toolkit';
 import battleReducer from './battleSlice';
 import gameReducer from './gameSlice';
 import { saveGame } from '../../engine/SaveSystem';
+import { reportSaveResult } from './saveHealth';
 
 /**
  * Dispatch tap — one optional observer of every dispatched action.
@@ -39,16 +40,24 @@ export const store = configureStore({
 });
 
 // Auto-save subscription
+//
+// `saveGame` validates before it serializes and serializes before it writes, so a state that
+// fails `PlayerSaveSchema` never reaches storage and a write that throws leaves the previous
+// bytes alone. What ticket 04 added on this side is the *reporting*: every outcome, success or
+// failure, goes to `saveHealth`, which `SaveHealthBanner` renders. The old `console.error` was
+// the only signal, and a packaged desktop build has no console for anyone to read it in.
+//
+// `reportSaveResult` is deliberately not a dispatch — this callback runs inside `store.subscribe`,
+// so dispatching here would re-enter the store on every single save.
 let prevGameState = store.getState().game;
 store.subscribe(() => {
     const state = store.getState();
     if (state.game !== prevGameState) {
         const result = saveGame(state.game);
         if (!result.success) {
-            // A failed autosave means player progress is silently not persisting.
-            // Shout so it gets caught in development instead of surfacing as data loss.
             console.error('[AutoSave] FAILED — progress is NOT being saved:', result.error);
         }
+        reportSaveResult(result);
         prevGameState = state.game;
     }
 });
