@@ -101,7 +101,17 @@ Part 2 confirms it at the comp level: **`tag-poison-at-length` — three Poison 
 specifically to exploit long games — reads 50.0%, dead average.** And my pre-registered
 Poison-clock-plus-healer comp ranked 22nd of 25.
 
-**Poison is not under-priced at 3v3; it is arguably over-priced there.** No fix proposed.
+**How big is the drop? Less certain than the panel number alone suggests — the raw canary data walked
+it back.** On the 384-game canary population Poison carries **6.03%** against the 1v1 baseline's
+6.64%, a ratio of **0.91x** rather than 0.64x. The two are not like-for-like: the canary deliberately
+includes a three-Poison-applier comp, which biases it up, while the panel comparison uses the same
+decks as the 1v1 baseline and is the cleaner control. Burn is stable across both populations (3.24%
+panel / 3.20% canary, 1.47-1.49x).
+
+So the honest statement is directional rather than a magnitude: **Poison's share of damage does not
+rise at 3v3 — it is flat to somewhat down, somewhere in 0.64-0.91x depending on the deck mix.** The
+predicted quadratic runaway does not happen either way, and **Poison is certainly not under-priced at
+3v3.** No fix proposed.
 
 ### 2.3 DoT attribution had to be built
 
@@ -239,7 +249,7 @@ and it is worth more than any single win rate here.
 |---|---|
 | TREACHERY feed (skoll_v1) | `tag-treachery` **58.3%** — feed is real, breaks nothing |
 | side-wide effects (inferno / heat_wave, both `target: 'Side'`) | `tag-sidewide-burn` **45.8%** |
-| reshuffle firmware in a 27-card pile (valkyrie_v2 REBIRTH) | `tag-rebirth-pile` **58.3%** |
+| reshuffle firmware in a 27-card pile (valkyrie_v2 REBIRTH) | `tag-rebirth-pile` **58.3%** — and **the deck-size prediction is WRONG**, below |
 | energy-ramp stacking | `tag-energy-ramp` **58.3%** |
 | **riptide procs** | **UNMEASURABLE — `riptide_daemon` does not exist.** Ticket 72 closed with the design salvaged but unbuilt |
 | **RANDOM_ENEMY dilution** | **NO SUCH CARD EXISTS.** The mechanic lives in valkyrie_v2's REBIRTH hook ("attacks a random enemy"), not in any card |
@@ -247,6 +257,34 @@ and it is worth more than any single win rate here.
 **Two of the five entity-count tags name things the registry does not contain.** The watch list was
 written from design intent rather than from the shipped pool, and should be re-derived from the pool
 before it is used as a checklist again.
+
+### The DECK-SIZE audit prediction is wrong: reshuffles are common, not absent
+
+Guardrail 2 predicted that "valkyrie reshuffle OS ~dies in a 27-card shared pile", and the ticket put
+REBIRTH procs at "predicted ~0". Measured, deck shuffles per game:
+
+| comp | reshuffles / game |
+|---|---|
+| `guess-4-sharp-wall` | **4.17** |
+| `guess-1-length-tax` | 3.12 |
+| `triple-sustain-STALL` | 2.96 |
+| **`tag-rebirth-pile`** (the comp actually running valkyrie_v2) | **1.58** |
+| `tag-treachery` (lowest of 16) | 0.96 |
+
+**Every comp reshuffles at least once a game, and the slow ones three or four times.** The counter is
+side-agnostic — it counts both sides — so valkyrie's own share of that 1.58 is at worst about half.
+Either way it is nowhere near zero, and **REBIRTH is a live hook in team play, not a dead one.**
+
+The prediction assumed a bigger pile means fewer cycles. It ignored that 3v3 draws
+`sum(cardDraw) - (N-1)` cards a turn, so the pile is consumed faster in proportion — the 27 cards are
+shared by three drawers, not held by one.
+
+### First-mover edge is roughly double 1v1's
+
+Across 96 canary pairings: **mean +0.160, median +0.250, range -0.250 to +0.500**, with **13 of 96
+past |0.25|**. The 1v1 grid runs about ±0.12. Moving first matters MORE at 3v3, which makes the
+paired-orientation harness more necessary than it already was — a single-orientation team number
+would be badly misleading.
 
 ---
 
@@ -259,6 +297,9 @@ before it is used as a checklist again.
   otherwise have silently poisoned a 26-minute beamless measurement.
 - **The panel is deliberately ordinary.** Every canary result is read against it, so a panel built
   from strong comps would compress everything toward 50%.
+- **The raw per-pairing JSON was analysed, not only the summary table** — which is what produced the
+  Poison walk-back in §2.2 and the reshuffle measurement in §6. A summary table hides population
+  effects; the raws did not.
 - **Screening vs beamless agreed well** where it was checked: zoo read 92.5% screening and 87.5%
   beamless, same ordering, same verdict. Consistent with ticket 108's finding that lite compresses
   the spread without reordering.
