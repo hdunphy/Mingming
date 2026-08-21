@@ -6,7 +6,7 @@ import { ELEMENTS } from './types';
 
 function makeDeadEntity(id: string, defId: string, name: string, element: any = 'Fire'): IBattleEntity {
     return {
-        id, name, level: 10, experience: 0,
+        id, name, 
         hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
         maxHp: 100, attack: 15, defense: 5,
         maxEnergy: 10, cardDraw: 1,
@@ -51,14 +51,14 @@ describe('RewardSystem', () => {
             expect(result.cardChoices).toHaveLength(1);
         });
 
-        it('grants no XP in the reward bundle (XP comes from the in-battle death-XP system)', () => {
+        // Ticket 21: `totalXP` is a vestigial field on IRewardBundle that is now structurally 0 —
+        // there is no XP anywhere. Kept as a regression guard until ticket 12 refits the bundle.
+        it('grants no XP in the reward bundle', () => {
             const e1 = makeDeadEntity('e1', 'fyrbot', 'Lv10');
-            e1.level = 10;
             const result = rollDropTable([e1], 1, 'seed');
             expect(result.totalXP).toBe(0);
 
             const e2 = makeDeadEntity('e2', 'fyrbot', 'Lv5');
-            e2.level = 5;
             const result2 = rollDropTable([e1, e2], 1, 'seed');
             expect(result2.totalXP).toBe(0);
         });

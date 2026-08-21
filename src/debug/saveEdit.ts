@@ -44,7 +44,6 @@ import gameReducer, {
     addRelic,
     addScrap,
     addToRoster,
-    grantExperience,
     healParty,
     loadSave,
     resetSave,
@@ -264,10 +263,9 @@ export function buildGrantCards(dataId: string, count: number): SaveEditAction {
  * Add a rostered instance. Goes through `addToRoster` rather than a hand-built save write so
  * the first synthesis of a species also grants its base deck (`gameSlice.ts:27-36`).
  */
-export function buildAddToRoster(definitionId: string, level: number): SaveEditAction | null {
+export function buildAddToRoster(definitionId: string): SaveEditAction | null {
     if (!MingmingRegistry[definitionId]) return null;
-    const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
-    return addToRoster(createMingmingInstance(definitionId, safeLevel));
+    return addToRoster(createMingmingInstance(definitionId));
 }
 
 export function buildSetActiveOS(mingmingId: string, activeOS: string): SaveEditAction {
@@ -289,10 +287,6 @@ export function buildHealParty(): SaveEditAction {
 
 export function buildUnlockSector(element: string): SaveEditAction {
     return unlockSector(element);
-}
-
-export function buildGrantExperience(mingmingId: string, amount: number): SaveEditAction {
-    return grantExperience({ mingmingId, amount });
 }
 
 /** Wipe to `createDefaultSave()`. */

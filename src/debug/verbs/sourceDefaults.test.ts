@@ -10,7 +10,7 @@ import { defaultSourceId, sideOf, sourceCandidates } from './sourceDefaults';
 
 function makeEntity(id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity {
     return {
-        id, name, level: 5, experience: 0,
+        id, name, 
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Fire', statusEffects: [],
@@ -27,7 +27,7 @@ function makeState(player: IBattleEntity[], enemy: IBattleEntity[]): IBattleStat
         playerParty: player, enemyParty: enemy,
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
-        logs: [], osLogs: [], procs: [], levelUpQueue: [],
+        logs: [], osLogs: [], procs: [], 
         cardsPlayedThisTurn: 0, cardsDrawnThisTurn: 0, lastProgramPlayed: null, counters: {}
     };
 }

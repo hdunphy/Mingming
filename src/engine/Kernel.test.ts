@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import { effectHandlers } from './effectHandlers';
-import { type IBattleState, type IBattleEntity, type ProgramData, StatusType, getExpForLevel } from './types';
+import { type IBattleState, type IBattleEntity, type ProgramData, StatusType } from './types';
 import { calculateModifier } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { GetProgramData } from './data/programRegistry';
@@ -19,7 +19,7 @@ vi.mock('./data/programRegistry', async (importOriginal) => {
 
 function createMockState(): IBattleState {
     const p1: IBattleEntity = {
-        id: 'p1', name: 'Hero', level: 10, experience: 0,
+        id: 'p1', name: 'Hero', 
         hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
@@ -28,7 +28,7 @@ function createMockState(): IBattleState {
     };
 
     const e1: IBattleEntity = {
-        id: 'e1', name: 'Villain', level: 10, experience: 0,
+        id: 'e1', name: 'Villain', 
         hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
@@ -45,7 +45,6 @@ function createMockState(): IBattleState {
         logs: [],
         osLogs: [],
         procs: [],
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
@@ -117,7 +116,7 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
 
     // 3. Type Effectiveness
     it('Type Effectiveness: Fire Program on Nature MingMing deals 1.5x damage (ticket 35)', () => {
-        const attacker = { primaryElement: 'Water', level: 10, attack: 10 } as IBattleEntity; // Non-STAB
+        const attacker = { primaryElement: 'Water', attack: 10 } as IBattleEntity; // Non-STAB
         const target = { primaryElement: 'Nature', defense: 10 } as IBattleEntity;
         const program = { element: 'Fire' } as ProgramData;
 
@@ -225,8 +224,4 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
     });
 
     // 6. Exponential XP
-    it('Exponential XP: calculateExp(level 50) returns 100,000', () => {
-        expect(getExpForLevel(50)).toBe(100000);
-    });
-
 });

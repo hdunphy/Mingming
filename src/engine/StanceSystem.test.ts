@@ -31,8 +31,6 @@ const makeEntity = (id: string, name: string, overrides: Partial<IBattleEntity> 
     name,
     definitionId: 'hel',
     nickname: name,
-    level: 10,
-    experience: 0,
     blueprintsCollected: 0,
     attackIV: 0,
     defenseIV: 0,
@@ -71,7 +69,6 @@ const makeState = (playerOverrides: Partial<IBattleEntity> = {}, hand: ProgramEn
     cardsDrawnThisTurn: 0,
     lastProgramPlayed: null,
     counters: {},
-    levelUpQueue: []
 });
 
 const card = (id: string, dataId: string, cost = 1): ProgramEntity => ({ id, dataId, currentCost: cost, isPlayable: true });

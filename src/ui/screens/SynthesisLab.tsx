@@ -234,7 +234,7 @@ export default function SynthesisLab() {
         const firstSynthesis = !baseDecksGranted.includes(deckGrantKey(architectureId, selectedOS ?? GetMingmingData(architectureId).availableOS[0]));
         dispatch(spendScrap(cost));
         const newMm = {
-            ...createMingmingInstance(architectureId, 1),
+            ...createMingmingInstance(architectureId),
             activeOS
         };
         dispatch(addToRoster(newMm));

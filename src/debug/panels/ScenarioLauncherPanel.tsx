@@ -47,7 +47,6 @@ import {
     launchBlockers,
     launchScenario,
     makeStatus,
-    matchPlayerLevel,
     mirrorSaveParty,
     osOptions,
     relicOptions,
@@ -271,15 +270,6 @@ function UnitEditor({ unit, index, isEnemy, cardIds, onChange, onRemove }: UnitE
                         </option>
                     ))}
                 </select>
-                <span style={labelStyle}>LV</span>
-                <input
-                    style={numberStyle}
-                    type="number"
-                    min={1}
-                    aria-label={`${side} ${index + 1} level`}
-                    value={unit.level}
-                    onChange={(e) => patch({ level: Math.max(1, readNumber(e.target.value, unit.level)) })}
-                />
                 <button type="button" style={buttonStyle(true)} onClick={onRemove} title="remove">
                     ×
                 </button>
@@ -804,13 +794,6 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                     onClick={() => patch({ enemies: [...draft.enemies, createEnemyUnit()] })}
                 >
                     + Enemy
-                </button>
-                <button
-                    type="button"
-                    style={buttonStyle()}
-                    onClick={() => patch({ enemies: matchPlayerLevel(draft.party, draft.enemies) })}
-                >
-                    ≡ Match player level
                 </button>
             </div>
             {draft.enemies.length === 0 ? (

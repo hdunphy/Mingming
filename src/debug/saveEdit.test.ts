@@ -15,14 +15,12 @@ import { describe, expect, it } from 'vitest';
 
 import { createDefaultSave, createStarterSave } from '../engine/gameTypes';
 import type { IPlayerSave } from '../engine/gameTypes';
-import { getExpForLevel } from '../engine/types';
 import { MingmingRegistry, getDeckForOS } from '../engine/data/mingmingRegistry';
 import gameReducer from '../ui/store/gameSlice';
 import {
     buildAddToRoster,
     buildGrantBlueprint,
     buildGrantCards,
-    buildGrantExperience,
     buildGrantRelic,
     buildGrantScraps,
     buildHealParty,
@@ -109,9 +107,8 @@ describe('v1 verbs each produce a schema-valid save', () => {
 
     it('add to roster, and the base-deck grant that rides along with it', () => {
         const before = baseline();
-        const after = expectAllowed(before, buildAddToRoster('fenrir', 12));
+        const after = expectAllowed(before, buildAddToRoster('fenrir'));
         expect(after.roster).toHaveLength(before.roster.length + 1);
-        expect(after.roster[after.roster.length - 1].level).toBe(12);
         // addToRoster is preferred over a hand-built write precisely because of this:
         expect(after.baseDecksGranted).toContain('fenrir:fenrir_v1'); // ticket 15: species+OS grant keys
         expect(after.cardInventory.length).toBe(
@@ -148,13 +145,6 @@ describe('v1 verbs each produce a schema-valid save', () => {
         const prepared = prepareEdit(before, buildUnlockSector(before.unlockedSectors[0]));
         expect(prepared.ok).toBe(true);
         if (prepared.ok) expect(prepared.changed).toBe(false);
-    });
-
-    it('grant XP, running the same level-up loop the battle path uses', () => {
-        const before = baseline();
-        const after = expectAllowed(before, buildGrantExperience(memberId(before), getExpForLevel(9)));
-        expect(after.roster[0].level).toBeGreaterThan(before.roster[0].level);
-        expect(after.roster[0].experience).toBe(before.roster[0].experience + getExpForLevel(9));
     });
 
     it('wipe save', () => {
@@ -248,7 +238,7 @@ describe('projection is side-effect free', () => {
 
         projectSave(before, buildGrantScraps(500));
         projectSave(before, buildUnlockSector('Dark'));
-        prepareEdit(before, buildAddToRoster('fenrir', 3) as SaveEditAction);
+        prepareEdit(before, buildAddToRoster('fenrir') as SaveEditAction);
 
         expect(stableStringify(before)).toBe(snapshot);
     });

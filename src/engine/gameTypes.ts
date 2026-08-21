@@ -4,7 +4,6 @@
  */
 
 import type { IMingmingState } from "./types";
-import { getExpForLevel } from "./types";
 import { MingmingRegistry, getDeckForOS } from "./data/mingmingRegistry";
 import { SeedStream, rollSeed } from "./core/SeedStream";
 
@@ -134,7 +133,7 @@ export function createStarterSave(
     const isFire = starterId === 'fenrir';
     const isNature = starterId === 'ratatoskr';
 
-    // Starter MingMing (Level 5)
+    // Starter MingMing. Ticket 21: no level — every unit is built at CALIBRATION_LEVEL.
     let nickname = 'Bubbles';
     if (isFire) nickname = 'Iggy';
     if (isNature) nickname = 'Nutty';
@@ -143,8 +142,6 @@ export function createStarterSave(
         id: rng.nextId('mm'),
         definitionId: starterId,
         nickname: nickname,
-        level: 5,
-        experience: getExpForLevel(5),
         blueprintsCollected: 0,
         // Starters keep their old 10-15 band (PlayerSaveSchema allows 0-31).
         attackIV: 10 + rng.nextInt(0, 5),
@@ -185,16 +182,19 @@ export function createStarterSave(
     };
 }
 
+/**
+ * Ticket 21: the `level` parameter is gone, not defaulted. Every assembled individual is built at
+ * `CALIBRATION_LEVEL`; the only thing that differs between two individuals of a species is the
+ * stat roll, which is exactly the collection depth `vision.md` asks for ("two krakens are not the
+ * same kraken").
+ */
 export function createMingmingInstance(
     definitionId: string,
-    level: number = 5,
     rng: SeedStream = new SeedStream(rollSeed())
 ): IMingmingState {
     return {
         id: rng.nextId('mm'),
         definitionId: definitionId,
-        level: level,
-        experience: getExpForLevel(level),
         blueprintsCollected: 0,
         // PlayerSaveSchema bounds IVs at int 0-31.
         attackIV: rng.nextInt(0, 31),

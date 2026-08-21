@@ -1,5 +1,6 @@
 
 import type { Element, IBattleEntity, ProgramData, IBattleState } from './types';
+import { CALIBRATION_LEVEL_DAMAGE_BASE } from './types';
 
 /**
  * Elemental Advantage Matrix. Source Element -> Target Element -> Multiplier.
@@ -106,8 +107,13 @@ function stacksOf(entity: IBattleEntity, status: string): number {
 export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, program: ProgramData, power: number, state: IBattleState): number {
   const modifier = calculateModifier(attacker, target, program);
 
-  // Step 1: Base Level Damage
-  const levelBase = Math.floor((2 * attacker.level) / 5) + 2;
+  // Step 1: Base damage coefficient.
+  //
+  // Was `Math.floor((2 * attacker.level) / 5) + 2` — the last place a per-entity level reached
+  // the damage formula. Ticket 21 freezes the engine at `CALIBRATION_LEVEL` (15), where that
+  // expression evaluates to exactly 8, so it is folded to a constant. Every balance row ever
+  // computed already ran at level 15, so this changes no number in the corpus.
+  const levelBase = CALIBRATION_LEVEL_DAMAGE_BASE;
 
   // Ticket 95, POWER shape: the four duality statuses are worth POWER rather than a multiplier, so
   // they are added HERE - before the divisor, STAB and resistances - which is the ticket-26 law

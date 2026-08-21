@@ -12,7 +12,6 @@ describe('Damage Calculation with Status Modifiers', () => {
         attacker = {
             id: 'attacker',
             name: 'Attacker',
-            level: 5,
             maxHp: 100,
             currentHp: 100,
             attack: 50,
@@ -28,7 +27,6 @@ describe('Damage Calculation with Status Modifiers', () => {
             tempHp: 0,
             daemons: [],
             definitionId: 'none',
-            experience: 0,
             blueprintsCollected: 0,
             attackIV: 0,
             defenseIV: 0,
@@ -38,7 +36,6 @@ describe('Damage Calculation with Status Modifiers', () => {
         defender = {
             id: 'defender',
             name: 'Defender',
-            level: 5,
             maxHp: 100,
             currentHp: 100,
             attack: 50,
@@ -54,7 +51,6 @@ describe('Damage Calculation with Status Modifiers', () => {
             tempHp: 0,
             daemons: [],
             definitionId: 'none',
-            experience: 0,
             blueprintsCollected: 0,
             attackIV: 0,
             defenseIV: 0,
@@ -76,7 +72,6 @@ describe('Damage Calculation with Status Modifiers', () => {
             procs: [],
             seed: 'test-seed',
             cardsPlayedThisTurn: 0,
-            levelUpQueue: [],
             cardsDrawnThisTurn: 0,
             lastProgramPlayed: null,
         counters: {}
@@ -98,46 +93,51 @@ describe('Damage Calculation with Status Modifiers', () => {
 
     it('should calculate base damage correctly', () => {
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // Level 5 -> levelBase = floor(2*5/5)+2 = 4
-        // scaled = floor(4 * 40 * 50 / 50) = 160
-        // reduced = 160 / 45 = 3.555... (spec rev 3.1 / ticket 23: no +2, /45 not /35)
+        // Ticket 21: levelBase is frozen at CALIBRATION_LEVEL_DAMAGE_BASE = 8 (it used to be
+        // floor(2*level/5)+2, and this suite ran at level 5, giving 4).
+        // scaled = floor(8 * 40 * 50 / 50) = 320
+        // reduced = 320 / 45 = 7.111... (spec rev 3.1 / ticket 23: no +2, /45 not /35)
         // modifier = 1.0 (program element is 'None', which never grants STAB)
-        // damage = floor(3.555 * 1.0) = 3
-        expect(damage).toBe(3);
+        // damage = floor(7.111 * 1.0) = 7
+        expect(damage).toBe(7);
     });
 
     it('should increase damage with Strengthened status', () => {
         (attacker as any).statusEffects = [{ id: 's1', type: StatusType.Strengthened, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3: 2%/stack (was 20%/stack). Status multipliers apply to the ALREADY-floored
-        // base (3 under rev 3.1), so 3 * 1.02 = 3.06 -> 3: a single stack is invisible at
-        // this scale, exactly as it was under rev 3's base of 4. The cap-vs-cap interaction
-        // below is what actually exercises the multiplier.
-        expect(damage).toBe(3);
+        // Ticket 102: one Strengthened is +1 POWER, so a 40-power card lands at 41:
+        // floor(8*41*50/50) = 328, 328/45 = 7.29 -> 7. Still inside the divisor's rounding at
+        // this size. The uncapped-stacking case below is what exercises the real behaviour.
+        expect(damage).toBe(7);
     });
 
     it('should decrease damage with Weakened status', () => {
         (attacker as any).statusEffects = [{ id: 'w1', type: StatusType.Weakened, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // Ticket 102: one Weakened is -1 POWER, so a 40-power card lands at 39. At this size that
-        // is inside the divisor's rounding - which is the honest reading of one stack: on a 1e card
-        // a single stack is ~2.5% of the power, the same order the old 2% multiplier was. The pile
-        // is where power differs, not the first stack.
-        expect(damage).toBe(3);
+        // Ticket 102: one Weakened is -1 POWER, so a 40-power card lands at 39:
+        // floor(8*39*50/50) = 312, 312/45 = 6.93 -> 6.
+        //
+        // Worth noting what ticket 21 changed here: at the old level-5 default this rounded back
+        // to the same 3 as the base case, so a single stack was invisible. At CALIBRATION_LEVEL
+        // the same stack is worth a visible point of damage. Statuses read more truthfully at the
+        // level the game is actually played at — which is the argument for freezing there.
+        expect(damage).toBe(6);
     });
 
     it('should reduce damage to a Sharp target', () => {
         (defender as any).statusEffects = [{ id: 'sh1', type: StatusType.Sharp, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // Ticket 102: one Sharp is -1 POWER off the incoming card - inside the rounding at 40 power.
-        expect(damage).toBe(3);
+        // Ticket 102: one Sharp is -1 POWER off the incoming card. 39 power -> 6.93 -> 6.
+        // (Was invisible at the old level-5 default; see the Weakened case.)
+        expect(damage).toBe(6);
     });
 
     it('should deal more damage to a Dazed target', () => {
         (defender as any).statusEffects = [{ id: 'd1', type: StatusType.Dazed, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3.1: base 3 * 1.02 = 3.06, floor = 3.
-        expect(damage).toBe(3);
+        // One Dazed is +1 POWER on the incoming card: 41 power -> 7.29 -> 7, i.e. still inside
+        // the rounding at this size, the mirror of the Strengthened case.
+        expect(damage).toBe(7);
     });
 
     it('ticket 102: Strengthened is UNCAPPED power - more stacks keep paying', () => {

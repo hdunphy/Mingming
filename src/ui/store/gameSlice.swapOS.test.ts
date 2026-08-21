@@ -17,8 +17,6 @@ const member = (id: string, definitionId: string, activeOS: string): IMingmingSt
     id,
     definitionId,
     nickname: 'Testling',
-    level: 5,
-    experience: 0,
     currentHp: 50,
     attackIV: 10,
     defenseIV: 10,

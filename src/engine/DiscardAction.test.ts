@@ -41,8 +41,8 @@ function stateWithHand(handDataIds: string[], seed = 'discard-seed', drawpileDat
         logs: [],
         osLogs: [],
         procs: [],
-        playerParty: [createMockEntity('Player', 'sleipnir', 10)],
-        enemyParty: [createMockEntity('Enemy', 'fenrir', 10)],
+        playerParty: [createMockEntity('Player', 'sleipnir')],
+        enemyParty: [createMockEntity('Enemy', 'fenrir')],
         playerDeck: {
             ownerId: 'PLAYER',
             deck: [],
@@ -68,7 +68,6 @@ function stateWithHand(handDataIds: string[], seed = 'discard-seed', drawpileDat
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        levelUpQueue: [],
         activeRelics: []
     } as unknown as IBattleState;
 }
@@ -155,7 +154,7 @@ const unit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}):
     currentHp: 4000, maxHp: 4000, tempHp: 0,
     attack: 10, defense: 10,
     maxEnergy: 5, currentEnergy: 5,
-    level: 1, experience: 0, cardDraw: 3,
+    cardDraw: 3,
     statusEffects: [], definitionId: 'sleipnir', hooks: [], speed: 10,
     primaryElement: 'Air', daemons: [], blueprintsCollected: 0,
     hpIV: 0, attackIV: 0, defenseIV: 0,
@@ -175,7 +174,6 @@ function reducerState(hand: ProgramEntity[]): IBattleState {
         enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], exhaust: [], deck: [] },
         logs: [], osLogs: [], procs: [],
         seed: '12345',
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,

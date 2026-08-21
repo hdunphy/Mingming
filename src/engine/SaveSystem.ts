@@ -22,12 +22,14 @@ import { deckGrantKey } from './gameTypes';
 
 // --- Zod Schemas ---
 
+// Ticket 21: `level` and `experience` are gone from `IMingmingState`, so a schema that still
+// required them would reject every save the game can now produce. Ticket 23 replaces this whole
+// file's schema with the v4 ranch/run split; until then it simply stops asking for fields that no
+// longer exist.
 const MingmingInstanceSchema = z.object({
     id: z.string(),
     definitionId: z.string(),
     nickname: z.string().optional(),
-    level: z.number().int().min(1),
-    experience: z.number().int().min(0),
     activeOS: z.string().optional(),
     blueprintsCollected: z.number().int().min(0),
     attackIV: z.number().int().min(0).max(31),

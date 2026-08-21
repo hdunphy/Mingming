@@ -112,8 +112,6 @@ export interface IMingmingState {
   id: string; // instance ID
   definitionId: string; // architecture name (e.g. 'fenrir')
   nickname?: string;
-  level: number;
-  experience: number;
   activeOS?: string;
   blueprintsCollected: number; // For OS swapping
   attackIV: number;
@@ -167,17 +165,44 @@ export interface IBattleEntity extends IMingmingState {
 // --- Transformation Logic ---
 
 /**
- * Calculates a standard stat (Attack/Defense) using the Unity Legacy Formula.
+ * THE CALIBRATION LEVEL — ticket 21 (steam-release map), from `vision.md`:
+ * *"LEVELING REMOVED. The engine freezes at the level-15 calibration point. No XP, no grind —
+ * progression IS acquisition (species, OS, cards, rolls). Difficulty = enemy team design, never
+ * stat inflation."*
+ *
+ * 15 is not arbitrary and is not new: it is `BALANCE_LEVEL` in `debug/balance/balanceScenarios.ts`,
+ * the level every row of the balance corpus has always been computed at ("low enough that base
+ * decks are still what a unit is fighting with, high enough that the stat curve is out of its
+ * early-level noise"). Freezing here is what makes the entire existing balance corpus become the
+ * shipped game's numbers permanently, rather than one sample of a moving curve.
+ *
+ * This constant is the ONLY survivor of the level system. Nothing reads a per-entity level any
+ * more, because no entity has one.
  */
-export function calculateStandardStat(base: number, modifier: number, level: number): number {
-  return Math.floor(((2 * base) + modifier + 25) * level / 100) + 5;
+export const CALIBRATION_LEVEL = 15;
+
+/**
+ * Standard stat (Attack/Defense), Unity Legacy Formula, frozen at `CALIBRATION_LEVEL`.
+ *
+ * The `level` parameter is GONE rather than defaulted. A default would leave a seam a future
+ * caller could pass 20 into and silently re-introduce stat inflation — the exact thing
+ * `vision.md` rules out ("difficulty = enemy team design, never stat inflation"). With no
+ * parameter, there is nothing to pass.
+ */
+export function calculateStandardStat(base: number, modifier: number): number {
+  return Math.floor(((2 * base) + modifier + 25) * CALIBRATION_LEVEL / 100) + 5;
 }
 
 /**
- * Calculates Health using the Unity Legacy Formula.
+ * The damage formula's base coefficient, frozen. Was `Math.floor((2 * level) / 5) + 2`, which at
+ * `CALIBRATION_LEVEL` is exactly 8. Lives here rather than in `combatUtils` so the one number the
+ * whole damage curve rests on sits next to the constant it was derived from.
  */
-export function calculateHealth(base: number, modifier: number, level: number): number {
-  return calculateStandardStat(base, modifier, level) + level + 30;
+export const CALIBRATION_LEVEL_DAMAGE_BASE = Math.floor((2 * CALIBRATION_LEVEL) / 5) + 2;
+
+/** Health, Unity Legacy Formula, frozen at `CALIBRATION_LEVEL`. Same reasoning as above. */
+export function calculateHealth(base: number, modifier: number): number {
+  return calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30;
 }
 
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {
@@ -185,7 +210,7 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
   const defenseIV = instance.defenseIV ?? 0;
   const hpIV = instance.hpIV ?? 0;
 
-  const finalHp = calculateHealth(definition.baseStats.hp, hpIV, instance.level);
+  const finalHp = calculateHealth(definition.baseStats.hp, hpIV);
 
   return {
     ...instance,
@@ -193,8 +218,8 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     maxHp: finalHp,
     cardDraw: definition.cardDraw,
     maxEnergy: definition.baseStats.energy,
-    attack: calculateStandardStat(definition.baseStats.attack, attackIV, instance.level),
-    defense: calculateStandardStat(definition.baseStats.defense, defenseIV, instance.level),
+    attack: calculateStandardStat(definition.baseStats.attack, attackIV),
+    defense: calculateStandardStat(definition.baseStats.defense, defenseIV),
     speed: 10, // Placeholder for future logic
 
     primaryElement: definition.primaryElement,
@@ -210,13 +235,6 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     artReference: definition.artReference,
     relicBonuses: { draw: 0, energy: 0, attackMod: 1 }
   };
-}
-
-/**
- * Calculates the total XP required to reach a specific level boundary.
- */
-export function getExpForLevel(level: number): number {
-  return Math.round(0.8 * Math.pow(level, 3));
 }
 
 /**
@@ -442,15 +460,6 @@ export interface ProgramEntity {
 
 // --- Deck & State Definitions ---
 
-export interface LevelUpEvent {
-  readonly entityId: string;
-  readonly nickname: string;
-  readonly oldLevel: number;
-  readonly newLevel: number;
-  readonly oldStats: { hp: number; attack: number; defense: number };
-  readonly newStats: { hp: number; attack: number; defense: number };
-}
-
 export interface IDeckState {
   readonly ownerId: string;
   readonly deck: ReadonlyArray<string>; // Array of ProgramData IDs
@@ -515,5 +524,4 @@ export interface IBattleState {
   readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;
   readonly counters: Record<string, number>;
-  readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
 }

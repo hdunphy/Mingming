@@ -239,7 +239,6 @@ const BattleStage: React.FC<BattleStageProps> = ({
                     <div className="stage-plaque-name">
                         <span className="stage-plaque-dot" style={{ background: playerAccent, boxShadow: `0 0 6px ${playerAccent}` }} />
                         {player.name.toUpperCase()}
-                        <span className="stage-plaque-level">LV.{player.level}</span>
                     </div>
                     <div className="stage-plaque-row">
                         <span className="stage-plaque-label">HP</span>
@@ -279,7 +278,6 @@ const BattleStage: React.FC<BattleStageProps> = ({
                     <div className="stage-plaque-name">
                         <span className="stage-plaque-dot" style={{ background: enemyAccent, boxShadow: `0 0 6px ${enemyAccent}` }} />
                         {enemy.name.toUpperCase()}
-                        <span className="stage-plaque-level">LV.{enemy.level}</span>
                     </div>
                     <div className="stage-plaque-row">
                         <span className="stage-plaque-label">HP</span>

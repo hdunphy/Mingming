@@ -66,7 +66,6 @@ export type DeckMode = 'base' | 'saved' | 'loaded';
  */
 export interface LauncherUnit {
     definitionId: string;
-    level: number;
     attackIV: number;
     defenseIV: number;
     hpIV: number;
@@ -143,7 +142,6 @@ export function relicOptions(): Array<{ id: string; name: string; description: s
 
 const DEFAULT_PLAYER_SPECIES = 'fenrir';
 const DEFAULT_ENEMY_SPECIES = 'draugr';
-const DEFAULT_LEVEL = 10;
 
 function firstSpeciesId(preferred: string): string {
     return MingmingRegistry[preferred] ? preferred : (Object.keys(MingmingRegistry)[0] ?? preferred);
@@ -155,10 +153,9 @@ function firstSpeciesId(preferred: string): string {
  * 31s rather than rolled IVs because a scenario is an experiment: an unpinned variable that
  * changes between two launches is the thing `ComposedSetup` exists to remove.
  */
-export function createUnit(definitionId: string, level: number = DEFAULT_LEVEL): LauncherUnit {
+export function createUnit(definitionId: string): LauncherUnit {
     return {
         definitionId,
-        level,
         attackIV: 31,
         defenseIV: 31,
         hpIV: 31,
@@ -216,22 +213,12 @@ export function mirrorSaveParty(save: IPlayerSave): LauncherUnit[] {
     const source = (chosen.length > 0 ? chosen : save.roster).slice(0, MAX_PARTY);
 
     return source.map((member) => ({
-        ...createUnit(member.definitionId, member.level),
+        ...createUnit(member.definitionId),
         attackIV: member.attackIV,
         defenseIV: member.defenseIV,
         hpIV: member.hpIV,
         activeOS: member.activeOS ?? osOptions(member.definitionId)[0] ?? '',
     }));
-}
-
-/**
- * `Match player level` — opt-in, reproducing what the old fallback branch force-applied at
- * `battleFactories.ts:188` but as a choice. Falls back to the default level when the party
- * is empty, so the button is never a no-op that looks like a bug.
- */
-export function matchPlayerLevel(party: LauncherUnit[], enemies: LauncherUnit[]): LauncherUnit[] {
-    const level = party.length > 0 ? Math.max(...party.map((unit) => unit.level)) : DEFAULT_LEVEL;
-    return enemies.map((enemy) => ({ ...enemy, level }));
 }
 
 // --- Deck resolution ---------------------------------------------------------
@@ -329,7 +316,6 @@ export function resolveDeck(draft: LauncherDraft, save: IPlayerSave | null): Res
 function toMemberSetup(unit: LauncherUnit): PartyMemberSetup {
     return {
         definitionId: unit.definitionId,
-        level: unit.level,
         attackIV: unit.attackIV,
         defenseIV: unit.defenseIV,
         hpIV: unit.hpIV,
@@ -380,7 +366,6 @@ export function toComposedSetup(
 export function draftFromSetup(setup: ComposedSetup, name: string): LauncherDraft {
     const toUnit = (member: PartyMemberSetup | EnemySetup): LauncherUnit => ({
         definitionId: member.definitionId,
-        level: member.level,
         attackIV: member.attackIV,
         defenseIV: member.defenseIV,
         hpIV: member.hpIV,
@@ -495,8 +480,6 @@ function toRosterMember(entity: IBattleEntity): IMingmingState {
     return {
         id: entity.id,
         definitionId: entity.definitionId,
-        level: entity.level,
-        experience: entity.experience,
         blueprintsCollected: entity.blueprintsCollected,
         attackIV: entity.attackIV,
         defenseIV: entity.defenseIV,

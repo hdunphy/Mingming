@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
-import { StatusType, getExpForLevel, calculateStandardStat, calculateHealth } from './types';
+import { StatusType } from './types';
 import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
@@ -24,115 +24,6 @@ export const effectHandlers: Record<string, EffectHandler> = {
     'GENERATE_CARD': handleGenerateCard,
     'CLEANSE': handleCleanse
 };
-
-// --- XP Helpers ---
-
-/**
- * XP a specific receiver earns for a knockout (before party split).
- *
- * Design (2026-08): decelerating pace with level-gap scaling.
- * - Base = the defeated unit's LEVEL SPAN (XP between its level and the next),
- *   not its cumulative total. The old cumulative/5 formula grew with the CUBE
- *   of level while the cost of a level grows with the SQUARE — past level ~13
- *   a single same-level KO granted more than a full level, so players leveled
- *   every battle, accelerating forever.
- * - Divisor grows slowly with the receiver's level (3, +1 per 10 levels), so
- *   high levels take visibly longer: ~3 same-level KOs per level at Lv5
- *   (solo), ~5 at Lv22, before the party split.
- * - Pokemon-style gap multiplier (2*their / (their + yours), clamped 0.5-1.5):
- *   stomping low-level sectors yields half XP; punching up pays a bonus.
- */
-export function calculateDeathXp(defeatedUnit: IBattleEntity, receiver: IBattleEntity): number {
-    const span = getExpForLevel(defeatedUnit.level + 1) - getExpForLevel(defeatedUnit.level);
-    const gap = Math.min(1.5, Math.max(0.5,
-        (2 * defeatedUnit.level) / (defeatedUnit.level + receiver.level)));
-    const divisor = 3 + Math.floor(receiver.level / 10);
-    return Math.max(1, Math.floor((span * gap) / divisor));
-}
-
-interface LevelUpResult {
-    entity: IBattleEntity;
-    events: any[];
-}
-
-function handleLevelUp(entity: IBattleEntity, events: any[] = []): LevelUpResult {
-    const xpNeeded = getExpForLevel(entity.level + 1);
-    if (entity.experience >= xpNeeded) {
-        const oldLevel = entity.level;
-        const newLevel = entity.level + 1;
-
-        const definition = GetMingmingData(entity.definitionId);
-        const baseHp = definition.baseStats.hp;
-        const baseAtk = definition.baseStats.attack;
-        const baseDef = definition.baseStats.defense;
-
-        const hpIV = entity.hpIV ?? 0;
-        const atkIV = entity.attackIV ?? 0;
-        const defIV = entity.defenseIV ?? 0;
-
-        const newMaxHp = calculateHealth(definition.baseStats.hp, hpIV, newLevel);
-        const newAttack = calculateStandardStat(definition.baseStats.attack, atkIV, newLevel);
-        const newDefense = calculateStandardStat(definition.baseStats.defense, defIV, newLevel);
-
-        const hpDiff = newMaxHp - entity.maxHp;
-
-        const oldStats = { hp: entity.maxHp, attack: entity.attack, defense: entity.defense };
-        const newStats = { hp: newMaxHp, attack: newAttack, defense: newDefense };
-
-        const leveledEntity: IBattleEntity = {
-            ...entity,
-            level: newLevel,
-            maxHp: newMaxHp,
-            currentHp: entity.currentHp + hpDiff,
-            attack: newAttack,
-            defense: newDefense
-        };
-
-        events.push({
-            entityId: entity.id,
-            nickname: entity.name,
-            oldLevel,
-            newLevel,
-            oldStats,
-            newStats
-        });
-
-        return handleLevelUp(leveledEntity, events);
-    }
-    return { entity, events };
-}
-
-function addExperience(state: IBattleState, entityId: string, amount: number): IBattleState {
-    console.log(`[addExperience] Distributing ${amount} XP to ${entityId}.`);
-    let levelUpEvents: any[] = [];
-
-    const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
-        party.map(e => {
-            if (e.id !== entityId) return e;
-            const { entity: updated, events } = handleLevelUp({ ...e, experience: e.experience + amount });
-            if (events.length > 0) {
-                levelUpEvents = [...levelUpEvents, ...events];
-                globalBattleEventBus.emit({
-                    type: 'LEVEL_UP',
-                    targetId: e.id,
-                    newLevel: updated.level,
-                    timestamp: Date.now()
-                });
-            }
-            return updated;
-        });
-
-    const newPlayerParty = updateParty(state.playerParty);
-    const newEnemyParty = updateParty(state.enemyParty);
-
-    return {
-        ...state,
-        playerParty: newPlayerParty,
-        enemyParty: newEnemyParty,
-        levelUpQueue: [...state.levelUpQueue, ...levelUpEvents]
-    };
-}
-
 
 function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number; program?: ProgramData; action?: any }): IBattleState {
     const { sourceId, targetId, power, element, damageOverride } = payload;
@@ -288,7 +179,7 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
         newState = fireHpThresholdCrossed(newState, targetId);
     }
 
-    // Death / XP Handling
+    // Death Handling
     if (newCurrentHp <= 0) {
         newState = checkDefeat(newState, targetId);
     }
@@ -302,10 +193,6 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
 
     const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
     console.log(`[checkDefeat] Checking defeat for ${target.name} (${targetId}) (Internal side: ${targetIsPlayer ? 'PLAYER' : 'ENEMY'}).`);
-    const opposingSideKey = targetIsPlayer ? 'enemyParty' : 'playerParty';
-    const opposingSide = state[opposingSideKey];
-    const aliveOpponents = opposingSide.filter(e => e.currentHp > 0);
-
     let newState = state;
 
     // Clear Daemons upon fainting
@@ -318,22 +205,10 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
         enemyParty: updateParty(newState.enemyParty)
     };
 
-    if (aliveOpponents.length > 0) {
-        // Per-receiver yield (level-gap + deceleration are receiver-specific),
-        // then split across the living party.
-        let totalAwarded = 0;
-        const awards: { id: string; amount: number }[] = [];
-        for (const ally of aliveOpponents) {
-            const amount = Math.max(1, Math.floor(calculateDeathXp(target, ally) / aliveOpponents.length));
-            awards.push({ id: ally.id, amount });
-            totalAwarded += amount;
-        }
-        newState = addLog(newState, `  ✨ ${totalAwarded} XP split among ${aliveOpponents.length} allies`);
-
-        for (const award of awards) {
-            newState = addExperience(newState, award.id, award.amount);
-        }
-    }
+    // Ticket 21: a knockout used to award XP here, split across the living party, and could
+    // level a unit mid-battle. Leveling is removed — the engine is frozen at CALIBRATION_LEVEL,
+    // and progression is acquisition (species, OS, cards, rolls), never stat growth. A faint now
+    // clears daemons and fires `onUnitFainted`, and nothing else.
 
     // Trigger onUnitFainted hook
     {
@@ -535,7 +410,7 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 
     // 4.5 Check Defeat (from immediate damage if any). Only trigger when this
     // application actually killed the target — applying a status to an entity
-    // that was already dead must not re-award death XP / re-fire faint hooks.
+    // that was already dead must not re-fire faint hooks.
     const currentTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
     if (currentTarget && currentTarget.currentHp <= 0 && initialTarget.currentHp > 0) {
         newState = checkDefeat(newState, targetId);

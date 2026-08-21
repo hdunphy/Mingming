@@ -51,7 +51,7 @@ import type {
     IMingmingState,
     ProgramEntity,
 } from '../../engine/types';
-import { getExpForLevel, initializeBattleEntity } from '../../engine/types';
+import { initializeBattleEntity } from '../../engine/types';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
 import { instantiateDeck } from '../../engine/data/battleFactories';
@@ -65,19 +65,16 @@ import type { ComposedSetup, EnemySetup, PartyMemberSetup } from './scenarioSche
 const ENTITY_ID_PREFIX = 'mm';
 
 /**
- * One combat unit, built straight from its setup. No procedural rolling: level and all
- * three IVs come from the file verbatim, which is the whole point of the composed kind.
+ * One combat unit, built straight from its setup. No procedural rolling: all three IVs come from
+ * the file verbatim, which is the whole point of the composed kind.
  *
- * `experience` is not in the schema (a scenario describes a battle, not a save), so it is
- * derived from the level rather than zeroed - a level-20 unit sitting at 0 XP would
- * mis-trigger the post-battle level-up queue.
+ * Ticket 21: there is no `level` any more. Every unit is built at `CALIBRATION_LEVEL`, so the only
+ * thing a setup can vary is species, OS, deck and stat roll.
  */
 function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBattleEntity {
     const instance: IMingmingState = {
         id: rng.nextId(ENTITY_ID_PREFIX),
         definitionId: setup.definitionId,
-        level: setup.level,
-        experience: getExpForLevel(setup.level),
         blueprintsCollected: 0,
         attackIV: setup.attackIV,
         defenseIV: setup.defenseIV,
@@ -273,7 +270,6 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         nonNaturalCardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        levelUpQueue: [],
         enemyMode,
     });
 }

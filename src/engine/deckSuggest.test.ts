@@ -11,8 +11,6 @@ function makeMember(id: string, definitionId: string): IMingmingState {
     return {
         id,
         definitionId,
-        level: 5,
-        experience: 0,
         blueprintsCollected: 0,
         attackIV: 10,
         defenseIV: 10,

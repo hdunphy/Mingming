@@ -5,7 +5,7 @@ import { createDefaultSave, createMingmingInstance } from '../gameTypes';
 import type { IPlayerSave } from '../gameTypes';
 
 const makeGymSave = (element: string, battleIndex: number = 2): IPlayerSave => {
-    const member = createMingmingInstance('fenrir', 10);
+    const member = createMingmingInstance('fenrir');
     return {
         ...createDefaultSave(),
         roster: [member],

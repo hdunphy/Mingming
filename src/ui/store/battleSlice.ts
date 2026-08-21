@@ -77,11 +77,6 @@ const battleSlice = createSlice({
             state.selectedSourceId = null;
             state.selectedTargetId = null;
             state.selectedCardId = null;
-        },
-        dismissLevelUp: (state) => {
-            if (state.battle) {
-                state.battle.levelUpQueue = state.battle.levelUpQueue.slice(1);
-            }
         }
     }
 });
@@ -95,8 +90,7 @@ export const {
     selectTarget,
     selectSource,
     setBattleState,
-    startBattle,
-    dismissLevelUp
+    startBattle
 } = battleSlice.actions;
 
 export default battleSlice.reducer;

@@ -256,7 +256,6 @@ export default function DeckTerminal() {
                             </div>
                             <div className="dt-party-info">
                                 <span className="dt-party-name">{name}</span>
-                                <span className="dt-party-level">Lv. {member.level}</span>
                             </div>
                             <span className="dt-element-chip" style={{ background: `${elementColor(el)}22`, color: getElementAccent(el), borderColor: `${elementColor(el)}88` }}>
                                 {getElementIcon(el)} {el}

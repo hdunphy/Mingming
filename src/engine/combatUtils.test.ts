@@ -14,14 +14,12 @@ vi.mock('./data/programRegistry', async (importOriginal) => {
 });
 
 // Mock Factory Helper
-function createMockEntity(id: string, primary: Element, secondary?: Element, level = 50, attack = 100, defense = 100): IBattleEntity {
+function createMockEntity(id: string, primary: Element, secondary?: Element, attack = 100, defense = 100): IBattleEntity {
     return {
         id,
         nickname: id,
         definitionId: 'def_' + id,
         name: id,
-        level,
-        experience: 0,
         blueprintsCollected: 0,
         hpIV: 0,
         attackIV: 0,
@@ -149,49 +147,52 @@ describe('Combat Utils - Modifier Breakdown (UI surfacing)', () => {
 });
 
 describe('Combat Utils - Damage Formula', () => {
-    it('should match manual calculation for Level 50 standard case (No STAB)', () => {
-        const attacker = createMockEntity('att', 'Water', undefined, 50, 100, 100); // Water != None
-        const target = createMockEntity('def', 'None', undefined, 50, 100, 100);
+    it('matches the manual calculation at the frozen calibration level (No STAB)', () => {
+        const attacker = createMockEntity('att', 'Water', undefined, 100, 100); // Water != None
+        const target = createMockEntity('def', 'None', undefined, 100, 100);
         const program = createMockProgram('None'); // Neutral element
         const state = { activeSide: 'PLAYER' } as any; // Mock state
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        // levelBase = floor(2*50/5)+2 = 22; scaled = floor(22*40*100/100) = 880;
-        // reduced = 880/45 = 19.55 (spec rev 3.1 / ticket 23: no +2, /45 not /35);
-        // modifier 1.0 (program element 'None' never grants STAB) -> floor(19.55) = 19.
-        expect(damage).toBe(19);
+        // Ticket 21 froze the level term: levelBase is CALIBRATION_LEVEL_DAMAGE_BASE = 8, not
+        // floor(2*level/5)+2, so this no longer varies with a level nobody has.
+        // scaled = floor(8*40*100/100) = 320; reduced = 320/45 = 7.11
+        // (spec rev 3.1 / ticket 23: no +2, /45 not /35);
+        // modifier 1.0 (program element 'None' never grants STAB) -> floor(7.11) = 7.
+        expect(damage).toBe(7);
     });
 
-    it('should match manual calculation for Level 100 (No STAB)', () => {
-        const attacker = createMockEntity('att', 'Water', undefined, 100, 100, 100);
-        const target = createMockEntity('def', 'None', undefined, 100, 100, 100);
+    it('is level-independent — the same inputs give the same damage, always', () => {
+        const attacker = createMockEntity('att', 'Water', undefined, 100, 100);
+        const target = createMockEntity('def', 'None', undefined, 100, 100);
         const program = createMockProgram('None');
         const state = { activeSide: 'PLAYER' } as any;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        // levelBase = floor(2*100/5)+2 = 42; scaled = floor(42*40*100/100) = 1680;
-        // reduced = 1680/45 = 37.33; modifier 1.0 -> floor(37.33) = 37.
-        expect(damage).toBe(37);
+        // This case used to pin level 100 and expect 37. There is no level to raise any more, so
+        // it now asserts the thing that replaced it: identical inputs, identical output — the
+        // property that makes the balance corpus permanent rather than a snapshot of one level.
+        expect(damage).toBe(7);
     });
 
     it('should match STAB calculation', () => {
-        const attacker = createMockEntity('att', 'Fire', undefined, 50, 100, 100);
-        const target = createMockEntity('def', 'None', undefined, 50, 100, 100); // Neutral target
+        const attacker = createMockEntity('att', 'Fire', undefined, 100, 100);
+        const target = createMockEntity('def', 'None', undefined, 100, 100); // Neutral target
         const program = createMockProgram('Fire');
         const state = { activeSide: 'PLAYER' } as any;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        // Same base as the Level 50 case (19.55 reduced) but modifier is 1.5 for STAB:
-        // floor(19.55 * 1.5) = floor(29.33) = 29.
-        expect(damage).toBe(29);
+        // Same base as the case above (7.11 reduced) but modifier is 1.5 for STAB:
+        // floor(7.11 * 1.5) = floor(10.67) = 10.
+        expect(damage).toBe(10);
     });
 });
 
 describe('Combat Utils - Heal Formula', () => {
     it('should calculate clamped heal', () => {
-        const attacker = createMockEntity('att', 'Water', undefined, 50, 10, 10);
+        const attacker = createMockEntity('att', 'Water', undefined, 10, 10);
 
-        const target = createMockEntity('def', 'Water', undefined, 50, 10, 10); // maxHp 100
+        const target = createMockEntity('def', 'Water', undefined, 10, 10); // maxHp 100
         const damagedTarget = { ...target, currentHp: 50 }; // 50 missing.
 
         // docs/power_curve_spec.md rev 3: calculateHeal no longer scales off the healer's
@@ -204,9 +205,9 @@ describe('Combat Utils - Heal Formula', () => {
     });
 
     it('should calculate raw heal correctly when not capped', () => {
-        const attacker = createMockEntity('att', 'Water', undefined, 10, 5, 5);
+        const attacker = createMockEntity('att', 'Water', undefined, 5, 5);
 
-        const target = createMockEntity('def', 'Water', undefined, 50, 100, 100);
+        const target = createMockEntity('def', 'Water', undefined, 100, 100);
         const injuredTarget = { ...target, maxHp: 200, currentHp: 100 }; // 100 missing.
 
         // Raw = maxHp * power / 400 = 200 * 5 / 400 = 2.5, floor = 2.
@@ -218,7 +219,7 @@ describe('Combat Utils - Heal Formula', () => {
 describe('STAB excludes None element (port-artifact fix)', () => {
     it("None-element cards never get STAB even though species carry secondaryElement 'None'", async () => {
         const { getModifierBreakdown } = await import('./combatUtils');
-        const attacker = { primaryElement: 'Fire', secondaryElement: 'None', level: 10 } as any;
+        const attacker = { primaryElement: 'Fire', secondaryElement: 'None' } as any;
         const target = { primaryElement: 'Water', secondaryElement: undefined } as any;
         const noneCard = { element: 'None' } as any;
         const breakdown = getModifierBreakdown(attacker, target, noneCard);

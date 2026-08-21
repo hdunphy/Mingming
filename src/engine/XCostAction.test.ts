@@ -22,7 +22,7 @@ const unit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}):
     maxEnergy: 5, currentEnergy: 2,
     // Level 20, not 1: under the rev-3.3 curve an 11-power card at level 1 floors to 0
     // damage, which would make the CARDS_DISCARDED assertion meaningless.
-    level: 20, experience: 0, cardDraw: 3,
+    cardDraw: 3,
     statusEffects: [], definitionId: 'hraesvelgr', hooks: [], speed: 10,
     primaryElement: 'Air', daemons: [], blueprintsCollected: 0,
     hpIV: 0, attackIV: 0, defenseIV: 0,
@@ -45,7 +45,6 @@ function stateWith(hand: ProgramEntity[], energy: number, enemyOverrides: Partia
         enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], exhaust: [], deck: [] },
         logs: [], osLogs: [], procs: [],
         seed: '12345',
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         cardsDiscardedThisTurn: 0,

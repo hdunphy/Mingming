@@ -14,10 +14,15 @@ import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegist
 import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/scenarioSchema';
 
 /**
- * Mid-game level. Low enough that base decks are still what a unit is fighting with,
- * high enough that the stat curve is out of its early-level noise.
+ * The level every row of this corpus was computed at — "low enough that base decks are still what
+ * a unit is fighting with, high enough that the stat curve is out of its early-level noise".
+ *
+ * Ticket 21 promoted this number into the engine itself as `CALIBRATION_LEVEL` and froze it there:
+ * scenarios no longer carry a level because no entity has one. Re-exported here so the balance
+ * suite's own documentation still names the number it has always run at, and so a mismatch between
+ * corpus and engine becomes impossible rather than merely unlikely.
  */
-export const BALANCE_LEVEL = 15;
+export { CALIBRATION_LEVEL as BALANCE_LEVEL } from '../../engine/types';
 
 /**
  * Ticket 19: IV jitter magnitude for every balance scenario (mirrors, OS variance,
@@ -83,7 +88,6 @@ function unit(definitionId: string, activeOS?: string): PartyMemberSetup {
     if (!definition) throw new Error(`[balanceScenarios] Unknown mingming '${definitionId}'.`);
     return {
         definitionId,
-        level: BALANCE_LEVEL,
         attackIV: BALANCE_IV,
         defenseIV: BALANCE_IV,
         hpIV: BALANCE_IV,

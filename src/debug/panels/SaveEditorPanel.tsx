@@ -31,7 +31,6 @@ import {
     buildAddToRoster,
     buildGrantBlueprint,
     buildGrantCards,
-    buildGrantExperience,
     buildGrantRelic,
     buildGrantScraps,
     buildHealParty,
@@ -153,10 +152,8 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
     const [cardId, setCardId] = useState(cardIds[0] ?? '');
     const [cardCount, setCardCount] = useState('1');
     const [newSpeciesId, setNewSpeciesId] = useState(speciesIds[0] ?? '');
-    const [newLevel, setNewLevel] = useState('5');
     const [targetId, setTargetId] = useState('');
     const [osId, setOsId] = useState('');
-    const [xpAmount, setXpAmount] = useState('500');
     const [sectorId, setSectorId] = useState<string>(sectorIds[0] ?? '');
 
     // --- Validity readout: is the live state savable, and did the last autosave land? ---
@@ -359,8 +356,7 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                             <option key={id} value={id}>{MingmingRegistry[id].name}</option>
                         ))}
                     </select>
-                    <input style={numberStyle} type="number" min="1" value={newLevel} onChange={(e) => setNewLevel(e.target.value)} />
-                    <button type="button" style={buttonStyle()} onClick={() => run('add to roster', buildAddToRoster(newSpeciesId, readNumber(newLevel)))}>
+                    <button type="button" style={buttonStyle()} onClick={() => run('add to roster', buildAddToRoster(newSpeciesId))}>
                         add
                     </button>
                 </div>
@@ -381,7 +377,7 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                     >
                         {save.roster.map((member) => (
                             <option key={member.id} value={member.id}>
-                                {member.nickname ?? MingmingRegistry[member.definitionId]?.name ?? member.definitionId} · L{member.level}
+                                {member.nickname ?? MingmingRegistry[member.definitionId]?.name ?? member.definitionId}
                             </option>
                         ))}
                     </select>
@@ -414,18 +410,6 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                     select — not the dry run — is what keeps the value meaningful.
                 </div>
 
-                <div style={{ ...rowStyle, marginTop: '8px' }}>
-                    <span style={labelStyle}>grant XP</span>
-                    <input style={numberStyle} type="number" value={xpAmount} onChange={(e) => setXpAmount(e.target.value)} />
-                    <button
-                        type="button"
-                        style={buttonStyle()}
-                        disabled={!target}
-                        onClick={() => target && run('grant XP', buildGrantExperience(target.id, readNumber(xpAmount)))}
-                    >
-                        grant
-                    </button>
-                </div>
                 <div style={noteStyle}>
                     Runs the same level-up loop the in-battle death-XP system uses. Rewards still grant no
                     XP — this is its own capability, not a reward-pipeline change.

@@ -10,7 +10,6 @@ import type {
 } from '../../engine/gameTypes';
 import { createDefaultSave, createStarterSave, DECK_SIZE, deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
-import { getExpForLevel } from '../../engine/types';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 
 const initialState: IPlayerSave = createDefaultSave();
@@ -45,39 +44,6 @@ const gameSlice = createSlice({
             // Also remove from active party if present
             state.activeParty = (state.activeParty as string[]).filter(pid => pid !== id);
             state.roster = (state.roster as IMingmingState[]).filter(m => m.id !== id);
-        },
-
-        /**
-         * Grants experience to a roster instance and runs the same level-up
-         * progression the battle path uses (`handleLevelUp` in effectHandlers),
-         * so a grant that crosses several thresholds behaves identically to
-         * earning that XP in combat: `experience` is cumulative and is never
-         * spent on a level, and levels are taken one threshold at a time.
-         *
-         * Derived stats (maxHp/attack/defense) are the battle-side half of
-         * handleLevelUp and have no roster counterpart to update -- they are
-         * recomputed from level + IVs by initializeBattleEntity when the unit
-         * next enters battle.
-         *
-         * This is a general game capability (a future XP relic/card grants it);
-         * it is deliberately NOT wired into applyRewardBundle -- see the note
-         * there on the rewards-grant-no-XP rule.
-         */
-        grantExperience: (state, action: PayloadAction<{ mingmingId: string, amount: number }>) => {
-            const { mingmingId, amount } = action.payload;
-            // Keep the save PlayerSaveSchema-valid: `experience` must remain a
-            // non-negative integer, and this action only ever grants XP.
-            if (!Number.isFinite(amount)) return;
-            const gain = Math.floor(amount);
-            if (gain <= 0) return;
-
-            const mm = state.roster.find(m => m.id === mingmingId);
-            if (!mm) return;
-
-            mm.experience += gain;
-            while (mm.experience >= getExpForLevel(mm.level + 1)) {
-                mm.level += 1;
-            }
         },
 
         // --- Active Party (max 3) ---
@@ -205,8 +171,8 @@ const gameSlice = createSlice({
                 (state.cardInventory as IOwnedProgram[]).push(card);
             }
 
-            // NOTE: The reward bundle intentionally grants NO XP. Roster XP comes
-            // exclusively from the in-battle death-XP system, persisted via syncPartyStats.
+            // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints — progression
+            // is acquisition, never stat growth.
         },
         updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number }> }>) => {
             if (state.gauntlet) {
@@ -247,22 +213,6 @@ const gameSlice = createSlice({
             (state.unlockedSectors as string[]).push(action.payload);
         },
 
-        syncPartyStats: (state, action: PayloadAction<ReadonlyArray<IBattleEntity>>) => {
-            const party = action.payload;
-            state.roster = state.roster.map(member => {
-                const match = party.find(p => p.id === member.id);
-                if (match) {
-                    return {
-                        ...member,
-                        level: match.level,
-                        experience: match.experience
-                        // Note: actual HP/Temp stats aren't persisted to the roster yet in this version,
-                        // but level and XP definitely should be.
-                    };
-                }
-                return member;
-            });
-        },
         startNewGauntlet: (_state, action: PayloadAction<'kraken' | 'fenrir' | 'ratatoskr'>) => {
             return createStarterSave(action.payload);
         },
@@ -333,7 +283,6 @@ const gameSlice = createSlice({
 export const {
     addToRoster,
     removeFromRoster,
-    grantExperience,
     setActiveParty,
     addCardToInventory,
     addCardsToInventory,
@@ -353,7 +302,6 @@ export const {
     startGauntlet,
     completeGauntlet,
     unlockSector,
-    syncPartyStats,
     startNewGauntlet,
     updateMingmingOS,
     swapOS,

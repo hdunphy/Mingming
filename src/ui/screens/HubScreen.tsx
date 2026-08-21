@@ -106,7 +106,6 @@ const HubScreen: React.FC = () => {
                     {activeMingming ? (
                         <div>
                             <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{activeMingming.nickname || activeMingming.definitionId.toUpperCase()}</div>
-                            <div style={{ color: '#aaa' }}>LEVEL {activeMingming.level}</div>
                             <div style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.6 }}>
                                 DECK SIZE: {save.activeDeck?.cards.length || 0} CARDS
                             </div>

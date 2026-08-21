@@ -19,13 +19,13 @@ function composedScenario() {
             enemyMode: 'MOVES',
             player: {
                 party: [
-                    { definitionId: 'fenrir', level: 10, attackIV: 31, defenseIV: 0, hpIV: 15 },
+                    { definitionId: 'fenrir', attackIV: 31, defenseIV: 0, hpIV: 15 },
                 ],
                 deck: ['ignite', 'scorch'],
                 relics: [] as string[],
             },
             enemies: [
-                { definitionId: 'draugr', level: 10, attackIV: 0, defenseIV: 0, hpIV: 0 },
+                { definitionId: 'draugr', attackIV: 0, defenseIV: 0, hpIV: 0 },
             ],
             gauntlet: null as unknown,
         },
@@ -46,7 +46,6 @@ function snapshotScenario() {
 function partyOf(count: number) {
     return Array.from({ length: count }, (_unused, index) => ({
         definitionId: 'fenrir',
-        level: 10,
         attackIV: 0,
         defenseIV: 0,
         hpIV: index,
@@ -130,13 +129,6 @@ describe('ScenarioSchema - composed', () => {
         expect(ScenarioSchema.safeParse(edge).success).toBe(true);
     });
 
-    it('requires level >= 1', () => {
-        const scenario = composedScenario();
-        scenario.setup.player.party[0].level = 0;
-
-        expect(ScenarioSchema.safeParse(scenario).success).toBe(false);
-    });
-
     it('requires enemyMode to be explicit on disk', () => {
         const scenario = composedScenario();
         Reflect.deleteProperty(scenario.setup, 'enemyMode');
@@ -153,7 +145,6 @@ describe('ScenarioSchema - composed', () => {
                 enemies: [
                     {
                         definitionId: 'draugr',
-                        level: 10,
                         attackIV: 0,
                         defenseIV: 0,
                         hpIV: 0,

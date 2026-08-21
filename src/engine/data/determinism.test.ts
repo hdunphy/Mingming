@@ -89,7 +89,7 @@ describe('createBattleState is deterministic under a threaded seed', () => {
 });
 
 describe('generateEncounter is deterministic', () => {
-    const party = [createMockEntity('P1', 'fenrir', 10, 0, new SeedStream('party'))];
+    const party = [createMockEntity('P1', 'fenrir', new SeedStream('party'))];
 
     it('same seed => same encounter', () => {
         const a = generateEncounter({ sectorElement: 'Fire', playerParty: party, seed: 'enc' });
@@ -158,7 +158,7 @@ describe('save factories are deterministic under a threaded seed (ticket 22)', (
     it('the generated save validates against PlayerSaveSchema (IVs stay in 0-31)', () => {
         expect(PlayerSaveSchema.safeParse(createStarterSave('fenrir', SAVE_SEED)).success).toBe(true);
         for (let i = 0; i < 200; i++) {
-            const mm = createMingmingInstance('fenrir', 5, new SeedStream('iv_' + i));
+            const mm = createMingmingInstance('fenrir', new SeedStream('iv_' + i));
             for (const iv of [mm.attackIV, mm.defenseIV, mm.hpIV]) {
                 expect(Number.isInteger(iv)).toBe(true);
                 expect(iv).toBeGreaterThanOrEqual(0);
@@ -177,7 +177,7 @@ describe('save factories are deterministic under a threaded seed (ticket 22)', (
         const draw = () => {
             const s = new SeedStream('leaf-factories');
             return {
-                member: createMingmingInstance('fenrir', 7, s),
+                member: createMingmingInstance('fenrir', s),
                 first: createOwnedProgram('fire_poke', s),
                 second: createOwnedProgram('fire_poke', s)
             };

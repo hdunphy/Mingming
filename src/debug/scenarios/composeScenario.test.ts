@@ -48,7 +48,6 @@ import {
     draftFromSetup,
     launchBlockers,
     launchScenario,
-    matchPlayerLevel,
     mirrorSaveParty,
     osOptions,
     relicOptions,
@@ -66,12 +65,10 @@ function makeSave(overrides: Partial<IPlayerSave> = {}): IPlayerSave {
     return { ...createDefaultSave(), ...overrides };
 }
 
-function rosterMember(id: string, definitionId: string, level: number) {
+function rosterMember(id: string, definitionId: string) {
     return {
         id,
         definitionId,
-        level,
-        experience: 0,
         blueprintsCollected: 0,
         attackIV: 7,
         defenseIV: 11,
@@ -85,8 +82,8 @@ function playableDraft(): LauncherDraft {
     return {
         ...createDraft(),
         seed: 'seed-fixed',
-        party: [createUnit('fenrir', 12)],
-        enemies: [createUnit('draugr', 12)],
+        party: [createUnit('fenrir')],
+        enemies: [createUnit('draugr')],
     };
 }
 
@@ -121,61 +118,9 @@ describe('registry-backed pickers', () => {
     });
 });
 
-describe('mirrorSaveParty', () => {
-    it('copies the active party verbatim, capped at three', () => {
-        const save = makeSave({
-            roster: [
-                rosterMember('r1', 'kraken', 14),
-                rosterMember('r2', 'ratatoskr', 12),
-                rosterMember('r3', 'fenrir', 9),
-                rosterMember('r4', 'draugr', 30),
-            ],
-            activeParty: ['r2', 'r1'],
-        });
-
-        const party = mirrorSaveParty(save);
-
-        expect(party.map((u) => u.definitionId)).toEqual(['ratatoskr', 'kraken']);
-        expect(party[0].level).toBe(12);
-        expect(party[0].attackIV).toBe(7);
-        expect(party[0].defenseIV).toBe(11);
-        expect(party[0].hpIV).toBe(13);
-        expect(party[0].activeOS).toBe('ratatoskr_v2');
-    });
-
-    it('falls back to the head of the roster when no active party is set', () => {
-        const save = makeSave({
-            roster: [
-                rosterMember('r1', 'kraken', 14),
-                rosterMember('r2', 'ratatoskr', 12),
-                rosterMember('r3', 'fenrir', 9),
-                rosterMember('r4', 'draugr', 30),
-            ],
-            activeParty: [],
-        });
-
-        expect(mirrorSaveParty(save)).toHaveLength(3);
-        expect(mirrorSaveParty(makeSave())).toEqual([]);
-    });
-});
-
-describe('matchPlayerLevel', () => {
-    it('lifts every enemy to the highest party level', () => {
-        const enemies = matchPlayerLevel(
-            [createUnit('fenrir', 8), createUnit('kraken', 21)],
-            [createUnit('draugr', 3), createUnit('ymir', 40)],
-        );
-        expect(enemies.map((e) => e.level)).toEqual([21, 21]);
-    });
-
-    it('uses the default level rather than no-oping when the party is empty', () => {
-        expect(matchPlayerLevel([], [createUnit('draugr', 3)])[0].level).toBe(10);
-    });
-});
-
 describe('deck resolution', () => {
     it('base mode pools the party species base decks', () => {
-        const draft = { ...createDraft(), party: [createUnit('fenrir', 5), createUnit('kraken', 5)] };
+        const draft = { ...createDraft(), party: [createUnit('fenrir'), createUnit('kraken')] };
         const resolved = resolveDeck(draft, makeSave());
 
         expect(resolved.cards).toEqual(baseDeckFor(draft.party));
@@ -358,7 +303,6 @@ describe('launchScenario — compose, materialize, dispatch', () => {
         expect(battle!.seed).toBeTruthy();
         expect(battle!.playerParty.map((e) => e.definitionId)).toEqual(['fenrir']);
         expect(battle!.enemyParty.map((e) => e.definitionId)).toEqual(['draugr']);
-        expect(battle!.playerParty[0].level).toBe(12);
         // Base decks came through: 9 cards, dealt into hand + drawpile.
         expect(battle!.playerDeck.drawpile.length + battle!.playerDeck.hand.length).toBe(9);
         expect(battle!.enemyMode).toBe('MOVES');
@@ -405,7 +349,7 @@ describe('launchScenario — seeding an empty slot', () => {
         return toComposedSetup(
             {
                 ...playableDraft(),
-                party: [createUnit('fenrir', 12), createUnit('kraken', 9)],
+                party: [createUnit('fenrir'), createUnit('kraken')],
                 relics: ['heatsink'],
             },
             makeSave(),
@@ -425,12 +369,10 @@ describe('launchScenario — seeding an empty slot', () => {
         const battle = store.getState().battle.battle!;
         const save = store.getState().game;
 
-        // THE REGRESSION THAT MATTERS: syncPartyStats matches roster to battle entities by id.
+        // THE REGRESSION THAT MATTERS: the composed save's roster ids ARE the battle's ids.
         expect(save.roster.map((m) => m.id)).toEqual(battle.playerParty.map((e) => e.id));
         expect(save.activeParty).toEqual(battle.playerParty.map((e) => e.id));
         expect(save.roster.map((m) => m.definitionId)).toEqual(['fenrir', 'kraken']);
-        expect(save.roster.map((m) => m.level)).toEqual([12, 9]);
-        expect(save.roster[0].experience).toBe(battle.playerParty[0].experience);
         expect(save.roster[0].activeOS).toBe(battle.playerParty[0].activeOS);
         expect(save.relics).toEqual(['heatsink']);
 
@@ -442,7 +384,7 @@ describe('launchScenario — seeding an empty slot', () => {
 
     it('leaves a populated roster alone — a slot branched from a real run is untouched', () => {
         const populated = makeSave({
-            roster: [rosterMember('r1', 'kraken', 14)],
+            roster: [rosterMember('r1', 'kraken')],
             activeParty: ['r1'],
             cardInventory: [{ instanceId: 'i1', dataId: 'ignite' }],
             activeDeck: { id: 'd1', name: 'Real Deck', cards: ['i1'] },

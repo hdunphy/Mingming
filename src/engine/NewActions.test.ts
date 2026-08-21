@@ -24,8 +24,8 @@ function createInitialState(): IBattleState {
         logs: [],
         osLogs: [],
         procs: [],
-        playerParty: [createMockEntity('Player', 'kraken', 10)],
-        enemyParty: [createMockEntity('Enemy', 'fenrir', 10)],
+        playerParty: [createMockEntity('Player', 'kraken')],
+        enemyParty: [createMockEntity('Enemy', 'fenrir')],
         playerDeck: {
             ownerId: 'PLAYER',
             deck: ['card_1', 'card_2', 'card_3'],
@@ -48,7 +48,6 @@ function createInitialState(): IBattleState {
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        levelUpQueue: [],
         activeRelics: []
     };
 }

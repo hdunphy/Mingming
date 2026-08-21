@@ -235,7 +235,13 @@ export const TestProgramRegistry: Record<string, ProgramData> = {
         category: 'Attack',
         baseCost: 1,
         constraints: [...STANDARD_CONSTRAINTS],
-        actions: [{ type: 'ATTACK', power: 20, target: 'TARGET' }],
+        // Ticket 21: power raised 20 -> 120. This card exists for exactly one test — the ymir_v2
+        // "+35% to Ice" assertion in OSGapClosures — and that test measures a PERCENTAGE. The
+        // percentage is applied to already-floored base damage, so the card has to be big enough
+        // for 35% of it to survive the floor. At 20 power under the frozen CALIBRATION_LEVEL the
+        // base lands at 3 and the whole bonus rounds away, which made the assertion vacuous rather
+        // than wrong. Nothing else in the tree references this id.
+        actions: [{ type: 'ATTACK', power: 120, target: 'TARGET' }],
         rarity: 'Common'
     },
     'card_water_blast': {

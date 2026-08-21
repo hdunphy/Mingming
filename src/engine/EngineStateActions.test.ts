@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleEntity, IBattleState, IMove, StatusEffectInstance } from './types';
-import { getExpForLevel } from './types';
 import { globalBattleEventBus, type BattleEvent } from './events';
 import { registerHook, HookPriority } from './core/Hooks';
 
@@ -18,7 +17,7 @@ import { registerHook, HookPriority } from './core/Hooks';
 
 function makeEntity(id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity {
     return {
-        id, name, level: 5, experience: 0,
+        id, name, 
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Fire', statusEffects: [],
@@ -38,7 +37,6 @@ function makeState(player: IBattleEntity[], enemy: IBattleEntity[]): IBattleStat
         logs: [],
         osLogs: [],
         procs: [],
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
@@ -224,7 +222,6 @@ describe('SET_VITALS', () => {
 
         expect(next.enemyParty[0].currentHp).toBe(0);
         expect(counts.onUnitFainted).toBe(1);
-        expect(next.playerParty[0].experience).toBeGreaterThan(0);
     });
 
     it('no-ops when the entity or the sourceId is not a real unit in the battle', () => {
@@ -436,9 +433,9 @@ describe('KILL_ENTITY', () => {
         // knockout XP must both land and cascade into the level-up queue.
         const state = makeState(
             [makeEntity('p1', 'Hero', {
-                level: 1, experience: getExpForLevel(2) - 1, hooks: ['test_kill']
+                hooks: ['test_kill']
             })],
-            [makeEntity('e1', 'Villain', { level: 5 })]
+            [makeEntity('e1', 'Villain', {})]
         );
 
         const next = battleReducer(state, {
@@ -448,11 +445,6 @@ describe('KILL_ENTITY', () => {
 
         expect(next.enemyParty[0].currentHp).toBe(0);
         expect(counts.onUnitFainted).toBe(1);
-        expect(next.playerParty[0].experience).toBeGreaterThanOrEqual(getExpForLevel(2));
-        expect(next.playerParty[0].level).toBeGreaterThan(1);
-        expect(next.levelUpQueue.length).toBeGreaterThan(0);
-        expect(next.levelUpQueue[0].entityId).toBe('p1');
-        expect(eventsOfType('LEVEL_UP').length).toBeGreaterThan(0);
     });
 
     it('credits the kill to the supplied source in the log', () => {

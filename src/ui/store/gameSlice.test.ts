@@ -24,7 +24,7 @@ import type { IMingmingState } from '../../engine/types';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 
 function makeMingming(id: string): IMingmingState {
-    return { id, definitionId: 'def_fire', level: 5, experience: 0, attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
+    return { id, definitionId: 'def_fire', attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
 }
 
 function makeCard(instanceId: string, dataId: string = 'flamethrower'): IOwnedProgram {
@@ -285,10 +285,9 @@ describe('gameSlice', () => {
 
     // --- Reward Bundle ---
     describe('applyRewardBundle', () => {
-        it('applies scrap, cards, and blueprints but grants NO XP (XP comes from in-battle awards)', () => {
+        it('applies scrap, cards, and blueprints', () => {
             let state = gameReducer(initial, addToRoster(makeMingming('mm1')));
             state = gameReducer(state, setActiveParty(['mm1']));
-            const xpBefore = state.roster[0].experience;
 
             const bundle: IRewardBundle = {
                 scraps: 42,
@@ -302,13 +301,10 @@ describe('gameSlice', () => {
             expect(state.scrapCount).toBe(42);
             expect(state.blueprints).toHaveLength(1);
             expect(state.cardInventory).toHaveLength(1);
-            // Bundle XP is never distributed to the roster
-            expect(state.roster[0].experience).toBe(xpBefore);
         });
 
         it('applies gym-clear draft picks through bundle.cards (draftRounds metadata is inert)', () => {
             let state = gameReducer(initial, addToRoster(makeMingming('mm1')));
-            const xpBefore = state.roster[0].experience;
 
             // A gym-clear bundle: the three drafted picks are accumulated into
             // `cards` at claim time; `draftRounds` itself grants nothing.
@@ -329,7 +325,6 @@ describe('gameSlice', () => {
             expect(state.scrapCount).toBe(30);
             // Only the picked cards land in the inventory — never the unpicked options
             expect(state.cardInventory.map(c => c.instanceId)).toEqual(['draft1', 'draft2', 'draft3']);
-            expect(state.roster[0].experience).toBe(xpBefore);
         });
     });
 

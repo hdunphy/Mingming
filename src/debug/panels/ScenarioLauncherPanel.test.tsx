@@ -127,8 +127,6 @@ describe('ScenarioLauncherPanel', () => {
                 {
                     id: 'r1',
                     definitionId: 'kraken',
-                    level: 17,
-                    experience: 0,
                     blueprintsCollected: 0,
                     attackIV: 31,
                     defenseIV: 31,
@@ -140,7 +138,6 @@ describe('ScenarioLauncherPanel', () => {
         });
 
         expect(markup).toContain('&quot;definitionId&quot;: &quot;kraken&quot;');
-        expect(markup).toContain('&quot;level&quot;: 17');
         // Enemy side defaults to one unit so the form is launchable immediately.
         expect(markup).toContain('&quot;definitionId&quot;: &quot;draugr&quot;');
         // The species select is the real registry, not the mockup's hardcoded list.

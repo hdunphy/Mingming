@@ -22,7 +22,7 @@ function makeValidSave(): IPlayerSave {
     return {
         version: 1,
         roster: [
-            { id: 'mm1', definitionId: 'def_fire', level: 5, experience: 100, blueprintsCollected: 0, attackIV: 10, defenseIV: 8, hpIV: 12 }
+            { id: 'mm1', definitionId: 'def_fire', blueprintsCollected: 0, attackIV: 10, defenseIV: 8, hpIV: 12 }
         ],
         activeParty: ['mm1'],
         cardInventory: [
@@ -109,9 +109,12 @@ describe('SaveSystem', () => {
             expect(result.success).toBe(false);
         });
 
-        it('rejects level < 1', () => {
+        it('rejects an out-of-band IV', () => {
+            // Was "rejects level < 1" until ticket 21 removed level. The IV band is the surviving
+            // per-instance numeric constraint, and the assertion it stands for — a schema-invalid
+            // roster member is refused rather than written — is the same one.
             const bad = makeValidSave();
-            (bad.roster as any)[0] = { ...bad.roster[0], level: 0 };
+            (bad.roster as any)[0] = { ...bad.roster[0], attackIV: 99 };
             const result = saveGame(bad);
             expect(result.success).toBe(false);
         });
@@ -157,12 +160,12 @@ describe('SaveSystem', () => {
 
         it('provides detailed error path for nested failures', () => {
             const bad = makeValidSave();
-            (bad.roster as any)[0] = { ...bad.roster[0], level: 'five' };
+            (bad.roster as any)[0] = { ...bad.roster[0], attackIV: 'five' };
             const result = PlayerSaveSchema.safeParse(bad);
             expect(result.success).toBe(false);
             if (!result.success) {
                 const paths = result.error.issues.map((e: any) => e.path.join('.'));
-                expect(paths.some(p => p.includes('level'))).toBe(true);
+                expect(paths.some(p => p.includes('attackIV'))).toBe(true);
             }
         });
     });

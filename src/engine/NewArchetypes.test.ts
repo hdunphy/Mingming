@@ -16,8 +16,8 @@ describe('Advanced Archetypes Logic', () => {
         // floor regardless of stats).
         // Distinct seeds - the same seed for both would also make `rng.nextId('mm')` mint
         // the same entity id for player and enemy, breaking every id-based lookup.
-        const player = createMockEntity('Player', 'fenrir', 10, 0, new SeedStream('new-archetypes-test-player'));
-        const enemy = createMockEntity('Enemy', 'fenrir', 10, 0, new SeedStream('new-archetypes-test-enemy'));
+        const player = createMockEntity('Player', 'fenrir', new SeedStream('new-archetypes-test-player'));
+        const enemy = createMockEntity('Enemy', 'fenrir', new SeedStream('new-archetypes-test-enemy'));
 
         initialState = {
             sessionId: 'test',
@@ -36,7 +36,6 @@ describe('Advanced Archetypes Logic', () => {
             cardsDrawnThisTurn: 0,
             lastProgramPlayed: null,
         counters: {},
-            levelUpQueue: [],
             activeRelics: []
         };
     });

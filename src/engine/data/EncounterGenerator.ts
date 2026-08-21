@@ -1,7 +1,7 @@
 import { MingmingRegistry, PLAYABLE_SPECIES } from './mingmingRegistry';
 import { ProgramRegistry } from './programRegistry';
 import type { Element, IBattleEntity, IMingmingState, IMingmingDefinition } from '../types';
-import { initializeBattleEntity, getExpForLevel } from '../types';
+import { initializeBattleEntity, } from '../types';
 import { PRNG } from '../core/PRNG';
 import { rollSeed } from '../core/SeedStream';
 
@@ -42,12 +42,13 @@ export function generateEncounter(options: IEncounterOptions): IGeneratedEncount
     const { sectorElement, playerParty, seed = rollSeed() } = options;
     const prng = new PRNG(seed);
 
-    // 1. Calculate Level Scaling
-    const avgPlayerLevel = Math.floor(playerParty.reduce((sum, p) => sum + p.level, 0) / playerParty.length);
-    const { value: enemyLevelVariance } = prng.nextInt(-2, 2);
-    const enemyLevel = Math.max(1, avgPlayerLevel + enemyLevelVariance);
+    // Ticket 21: enemies used to be generated at `avgPlayerLevel ± 2`. Level scaling is gone —
+    // `vision.md` rules difficulty as enemy team design, never stat inflation, so every unit on
+    // both sides is built at CALIBRATION_LEVEL and the encounter's difficulty lives entirely in
+    // WHICH species, deck and OS it fields. The ±2 PRNG draw is deleted rather than ignored,
+    // because a dead draw would silently shift every downstream roll in this seeded stream.
 
-    // 2. Randomize Party Size
+    // Randomize Party Size
     const { value: partySize } = prng.nextInt(1, playerParty.length);
 
     // 3. Filter Mingmings by Element (shared with the UI's sector intel list)
@@ -67,8 +68,6 @@ export function generateEncounter(options: IEncounterOptions): IGeneratedEncount
             id: `enemy_${mmId}_${nextSeed}`,
             definitionId: mmId,
             nickname: `Wild ${def.name}`,
-            level: enemyLevel,
-            experience: getExpForLevel(enemyLevel),
             blueprintsCollected: 0,
             hpIV: prng.nextInt(10, 31).value,
             attackIV: prng.nextInt(10, 31).value,

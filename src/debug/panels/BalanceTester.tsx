@@ -22,8 +22,6 @@ import './BalanceTester.css';
 const BalanceTester: React.FC = () => {
     const [idA, setIdA] = useState(Object.keys(MingmingRegistry)[0]);
     const [idB, setIdB] = useState(Object.keys(MingmingRegistry)[1]);
-    const [levelA, setLevelA] = useState(5);
-    const [levelB, setLevelB] = useState(5);
     const [power, setPower] = useState(40);
     const [batchReport, setBatchReport] = useState<BatchReport | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -34,11 +32,11 @@ const BalanceTester: React.FC = () => {
 
     const results = useMemo(() => {
         try {
-            return simulate1v1(idA, levelA, idB, levelB, power);
+            return simulate1v1(idA, idB, power);
         } catch (e) {
             return null;
         }
-    }, [idA, levelA, idB, levelB, power]);
+    }, [idA, idB, power]);
 
     const sortedMatchups = useMemo(() => {
         if (!batchReport || !sortConfig) return batchReport?.results || [];
@@ -94,7 +92,7 @@ const BalanceTester: React.FC = () => {
     };
 
     const runBatch = () => {
-        const report = runBatchSimulation(levelA, power); // Use levelA as reference for all
+        const report = runBatchSimulation(power);
         setBatchReport(report);
         setModalTab('summary');
         setAvgSortConfig(null);
@@ -131,7 +129,7 @@ const BalanceTester: React.FC = () => {
             avg.avgDamage.toFixed(2),
             avg.avgTTK.toFixed(2)
         ]);
-        downloadCSV(`averages_level${levelA}_pwr${power}.csv`, headers, rows);
+        downloadCSV(`averages_pwr${power}.csv`, headers, rows);
     };
 
     const exportMatchups = () => {
@@ -143,7 +141,7 @@ const BalanceTester: React.FC = () => {
             r.sideA.damage,
             r.sideA.ttk
         ]);
-        downloadCSV(`matchups_level${levelA}_pwr${power}.csv`, headers, rows);
+        downloadCSV(`matchups_pwr${power}.csv`, headers, rows);
     };
 
     return (
@@ -176,8 +174,6 @@ const BalanceTester: React.FC = () => {
                         </select>
                     </div>
                     <div className="control-group">
-                        <label>Level: {levelA}</label>
-                        <input type="range" min="1" max="100" value={levelA} onChange={(e) => setLevelA(parseInt(e.target.value))} />
                     </div>
                     <div className="stats-preview">
                         <div className="stat">HP: {results?.sideB.hp}</div>
@@ -204,8 +200,6 @@ const BalanceTester: React.FC = () => {
                         </select>
                     </div>
                     <div className="control-group">
-                        <label>Level: {levelB}</label>
-                        <input type="range" min="1" max="100" value={levelB} onChange={(e) => setLevelB(parseInt(e.target.value))} />
                     </div>
                     <div className="stats-preview">
                         <div className="stat">HP: {results?.sideA.hp}</div>
@@ -265,7 +259,7 @@ const BalanceTester: React.FC = () => {
                         >
                             <div className="modal-header">
                                 <div className="modal-title-row">
-                                    <h2>Matchup Analysis (Level {levelA}, Pwr {power})</h2>
+                                    <h2>Matchup Analysis (Pwr {power})</h2>
                                     <button className="close-icon" onClick={() => setBatchReport(null)}>✕</button>
                                 </div>
 

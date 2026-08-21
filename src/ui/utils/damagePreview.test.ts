@@ -35,7 +35,6 @@ vi.mock('../../engine/data/programRegistry', async (importOriginal) => {
 const makeEntity = (id: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity => ({
     id,
     name: id,
-    level: 5,
     maxHp: 100,
     currentHp: 100,
     attack: 50,
@@ -51,7 +50,6 @@ const makeEntity = (id: string, overrides: Partial<IBattleEntity> = {}): IBattle
     tempHp: 0,
     daemons: [],
     definitionId: 'none',
-    experience: 0,
     blueprintsCollected: 0,
     attackIV: 0,
     defenseIV: 0,
@@ -86,7 +84,6 @@ describe('computeDamagePreview', () => {
             procs: [],
             seed: 'test-seed',
             cardsPlayedThisTurn: 0,
-            levelUpQueue: [],
             cardsDrawnThisTurn: 0,
             lastProgramPlayed: null,
             counters: {}

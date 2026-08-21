@@ -7,8 +7,6 @@ const MEMBER: IMingmingState = {
     id: 'mm_slice_1',
     definitionId: 'fenrir',
     nickname: 'Iggy',
-    level: 5,
-    experience: 100,
     blueprintsCollected: 0,
     attackIV: 12,
     defenseIV: 13,

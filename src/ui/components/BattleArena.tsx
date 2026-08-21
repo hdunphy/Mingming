@@ -6,7 +6,7 @@ import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import BattleStage from './BattleStage';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, dismissLevelUp, executeIntent, startBattle } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, startBattle } from '../store/battleSlice';
 import type { IBattleEntity, Element } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -14,8 +14,7 @@ import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
 import { rollDropTable, rollDraftRounds } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
-import LevelUpOverlay from './LevelUpOverlay';
-import { applyRewardBundle as applyRewardAction, resetSave, syncPartyStats, updateGauntlet, completeGauntlet, addRelic } from '../store/gameSlice';
+import { applyRewardBundle as applyRewardAction, resetSave, updateGauntlet, completeGauntlet, addRelic } from '../store/gameSlice';
 import { deleteSave } from '../../engine/SaveSystem';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
@@ -151,21 +150,6 @@ const BattleArena: React.FC = () => {
     // Epic 3.5: Post-battle state
     const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
     const [showReport, setShowReport] = useState(false);
-
-    // Payoff-timing fix: the level-up overlay used to appear the instant the
-    // queue populated, covering the death glitch/stamp. Always delay its first
-    // appearance; subsequent queued level-ups (queue stays non-empty) show
-    // immediately since the death beat has already played.
-    const hasLevelUps = (battleState?.levelUpQueue.length ?? 0) > 0;
-    const [levelUpRevealed, setLevelUpRevealed] = useState(false);
-    useEffect(() => {
-        if (!hasLevelUps) {
-            setLevelUpRevealed(false);
-            return;
-        }
-        const timer = setTimeout(() => setLevelUpRevealed(true), LEVEL_UP_OVERLAY_DELAY_MS);
-        return () => clearTimeout(timer);
-    }, [hasLevelUps]);
 
     // Combat juice: event-bus driven VFX (floats, flashes, lunges, arena shake)
     const vfx = useBattleVfx(battleState);
@@ -425,7 +409,9 @@ const BattleArena: React.FC = () => {
 
     const handleContinue = (chosenCards: IOwnedProgram[], chosenRelic?: string) => {
         if (battleState) {
-            dispatch(syncPartyStats(battleState.playerParty));
+            // Ticket 21: `syncPartyStats` used to write level and XP back to the roster here.
+            // With leveling removed it had nothing left to persist and was deleted; a battle no
+            // longer mutates the roster at all.
 
             if (save.gauntlet) {
                 const persistedStats: Record<string, { hp: number }> = {};
@@ -662,13 +648,6 @@ const BattleArena: React.FC = () => {
                         bundle={rewardBundle}
                         winners={battleState.playerParty as any}
                         onContinue={handleContinue}
-                    />
-                )}
-                {battleState.levelUpQueue.length > 0 && levelUpRevealed && (
-                    <LevelUpOverlay
-                        key={`level-up-${battleState.levelUpQueue[0].entityId}-${battleState.levelUpQueue[0].newLevel}`}
-                        event={battleState.levelUpQueue[0]}
-                        onDismiss={() => dispatch(dismissLevelUp())}
                     />
                 )}
             </AnimatePresence>

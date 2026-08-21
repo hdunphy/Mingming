@@ -20,8 +20,6 @@ export function createSparseEntity(overrides: Partial<IBattleEntity> = {}): IBat
     return {
         id: 'p1',
         definitionId: 'fenrir',
-        level: 10,
-        experience: 0,
         blueprintsCollected: 0,
         attackIV: 0,
         defenseIV: 0,
@@ -112,7 +110,6 @@ export function createSparseBattleState(overrides: Partial<IBattleState> = {}): 
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        levelUpQueue: [],
         ...overrides,
     };
 }

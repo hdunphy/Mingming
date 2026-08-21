@@ -8,11 +8,14 @@ import { drawCards } from '../deckLogic';
 import { generateIntents } from '../core/IntentUtils';
 import { SeedStream, rollSeed } from '../core/SeedStream';
 
+/**
+ * Ticket 21: the `level` and `experience` parameters are gone. Every entity is built at
+ * `CALIBRATION_LEVEL`, so there was nothing left for a caller to vary and leaving the parameters
+ * in place would have been an invitation to re-introduce stat scaling.
+ */
 export function createMockEntity(
     name: string,
     mingmingId: string = 'fenrir',
-    level: number = 10,
-    experience: number = 0,
     rng: SeedStream = new SeedStream(rollSeed())
 ): IBattleEntity {
     const definition = GetMingmingData(mingmingId);
@@ -21,8 +24,6 @@ export function createMockEntity(
         id: rng.nextId('mm'),
         definitionId: mingmingId,
         nickname: name,
-        level: level,
-        experience: experience,
         blueprintsCollected: 0,
         hpIV: rng.nextInt(0, 31),
         attackIV: rng.nextInt(0, 31),
@@ -147,8 +148,6 @@ export function createBattleState(
         const primaryElement = elementsToUse[0];
         const secondaryElement = elementsToUse[1] || primaryElement;
 
-        const playerLevel = Math.max(...playerParty.map(p => p.level), 1);
-
         if (battleIndex === 0) {
             // Tier 1 (Grunt): Procedural 1-2 enemies
             const count = rng.nextInt(1, 2);
@@ -177,7 +176,7 @@ export function createBattleState(
             const bossId = wardenPool[0]?.id ?? 'fenrir';
             const guardId = (wardenPool[1] ?? wardenPool[0])?.id ?? 'fenrir';
 
-            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, playerLevel + 2, 0, rng);
+            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, rng);
             const superBoss: IBattleEntity = {
                 ...boss,
                 maxHp: boss.maxHp * 1.5,
@@ -191,8 +190,8 @@ export function createBattleState(
                     { id: 'boss_blast', name: 'Core Blast', intentType: 'Attack', priority: 8, actions: [{ type: 'ATTACK', power: 15, element: 'None', target: 'Side' }] }
                 ]
             };
-            const guard1 = createMockEntity('Firewall Sentinel', guardId, playerLevel, 0, rng);
-            const guard2 = createMockEntity('Firewall Sentinel', guardId, playerLevel, 0, rng);
+            const guard1 = createMockEntity('Firewall Sentinel', guardId, rng);
+            const guard2 = createMockEntity('Firewall Sentinel', guardId, rng);
 
             enemyParty = [guard1, superBoss, guard2]; // Boss in middle
 
@@ -209,8 +208,7 @@ export function createBattleState(
         enemyDeckIds = encounter.enemyDeckIds;
     } else {
         // Fallback or fixed encounters (e.g. initial dev test)
-        const enemyLevel = Math.max(...playerParty.map(p => p.level));
-        enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel, 0, rng));
+        enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, rng));
 
         // Use the old archetype logic for fixed encounters if needed, or simple direct IDs
         enemyDeckIds = enemyIds.map(enemyId => {
@@ -341,7 +339,6 @@ export function createBattleState(
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         },
         counters: {},
-        levelUpQueue: [],
         activeRelics: save.relics || [],
         enemyMode
     };

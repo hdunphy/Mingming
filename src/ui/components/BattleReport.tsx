@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import type { IBattleEntity } from '../../engine/types';
-import { getExpForLevel } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
@@ -56,7 +55,11 @@ const CountUp: React.FC<{ value: number; delayMs?: number; durationMs?: number }
     return <>{reduced ? value : display}</>;
 };
 
+// `winners` is still part of the props contract (callers pass the surviving party and ticket 12
+// will want it back for the rewards refit), but nothing reads it since ticket 21 removed the XP
+// panel. Destructured out and voided rather than deleted from the interface.
 const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
+    void winners;
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
     const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
 
@@ -291,29 +294,6 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
 
                         </div>
 
-                        <div className="xp-distribution-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <h3 style={{ margin: '0 0 12px', fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Efficiency Logs</h3>
-                            {winners.map((mm, wIdx) => {
-                                // XP is earned in-battle (death-XP system); show current progress toward next level.
-                                const currentLevelExp = getExpForLevel(mm.level);
-                                const nextLevelExp = getExpForLevel(mm.level + 1);
-                                const span = nextLevelExp - currentLevelExp;
-                                const xpProgress = span > 0
-                                    ? Math.min(100, Math.max(0, ((mm.experience - currentLevelExp) / span) * 100))
-                                    : 0;
-                                return (
-                                    <div key={mm.id} style={{ marginBottom: wIdx === winners.length - 1 ? 0 : '10px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: '800' }}>{mm.name.toUpperCase()}</span>
-                                            <span style={{ color: '#00d2ff', fontSize: '0.8rem', fontWeight: 'bold' }}>LV {mm.level}</span>
-                                        </div>
-                                        <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: '#00d2ff', width: `${xpProgress}%` }} />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
                     </div>
 
                     {/* Right: Card Selections (the centerpiece — no nested scroller, the panel body scrolls) */}

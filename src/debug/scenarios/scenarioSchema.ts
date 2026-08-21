@@ -87,15 +87,6 @@ const NextProgramModifierSchema = z.object({
     appliesTo: z.enum(['Attack', 'Skill', 'Daemon', 'Status', 'Heal']).optional(),
 });
 
-const LevelUpEventSchema = z.object({
-    entityId: z.string(),
-    nickname: z.string(),
-    oldLevel: z.number(),
-    newLevel: z.number(),
-    oldStats: z.object({ hp: z.number(), attack: z.number(), defense: z.number() }),
-    newStats: z.object({ hp: z.number(), attack: z.number(), defense: z.number() }),
-});
-
 // --- Snapshot: IBattleState --------------------------------------------------
 
 const BattleEntitySchema = z.object({
@@ -103,8 +94,6 @@ const BattleEntitySchema = z.object({
     id: z.string(),
     definitionId: z.string(),
     nickname: z.string().optional(),
-    level: z.number().int().min(1),
-    experience: z.number().int().min(0),
     activeOS: z.string().optional(),
     blueprintsCollected: z.number().int().min(0),
     attackIV: IVSchema,
@@ -169,7 +158,6 @@ export const BattleStateSchema = z.object({
     lastStatusConsumed: z.number().optional(),
     elementPlays: z.record(z.string(), z.number()).optional(),
     counters: z.record(z.string(), z.number()),
-    levelUpQueue: z.array(LevelUpEventSchema),
 });
 
 // --- Composed: ComposedSetup -------------------------------------------------
@@ -183,9 +171,11 @@ const GauntletContextSchema = z.object({
     persistedStats: z.record(z.string(), z.object({ hp: z.number() })),
 });
 
+// Ticket 21: `level` is gone from every setup schema. Existing scenario files still carry it —
+// zod strips unknown keys by default (nothing here is `.strict()`), so all 51 committed
+// `.scenario.json` files and playtest snapshots keep loading, with the stale field ignored.
 const PartyMemberSetupSchema = z.object({
     definitionId: z.string(),
-    level: z.number().int().min(1),
     attackIV: IVSchema,
     defenseIV: IVSchema,
     hpIV: IVSchema,
@@ -282,7 +272,6 @@ export interface GauntletContext {
 
 export interface PartyMemberSetup {
     definitionId: string;
-    level: number;
     attackIV: number;
     defenseIV: number;
     hpIV: number;

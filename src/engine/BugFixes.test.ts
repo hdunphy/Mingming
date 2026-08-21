@@ -13,7 +13,7 @@ function makeEntity(overrides: Partial<IBattleEntity> & { id: string; name: stri
     return {
         currentEnergy: 10, maxEnergy: 10, statusEffects: [],
         hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
-        level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Fire',
+        definitionId: 'def1', primaryElement: 'Fire',
         currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10,
         cardDraw: 1, tempHp: 0, daemons: [],
         ...overrides
@@ -32,7 +32,6 @@ function makeState(overrides: Partial<IBattleState> = {}): IBattleState {
         cardsPlayedThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        levelUpQueue: [],
         activeRelics: [],
         playerParty: [makeEntity({ id: 'p1', name: 'Hero' })],
         enemyParty: [makeEntity({ id: 'e1', name: 'Foe', primaryElement: 'Water' })],
@@ -228,119 +227,6 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
         } as any);
         const action = getBestAction(state);
         expect(action.type).toBe('PLAY_PROGRAM');
-    });
-});
-
-describe('Enemy combat mode guard (locked at battle creation)', () => {
-    it('CARDS mode lets the enemy AI play cards from its hand', async () => {
-        const { getBestAction } = await import('./ai/TacticalAI');
-        const state = makeState({
-            activeSide: 'ENEMY',
-            enemyMode: 'CARDS',
-            enemyParty: [makeEntity({ id: 'e1', name: 'CardUser', primaryElement: 'Nature' })],
-            enemyDeck: {
-                ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
-                hand: [{ id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true }]
-            }
-        } as any);
-        const action = getBestAction(state);
-        expect(action.type).toBe('PLAY_PROGRAM');
-    });
-
-    it('default (no enemyMode) is MOVES: no card play', async () => {
-        const { getBestAction } = await import('./ai/TacticalAI');
-        const state = makeState({
-            activeSide: 'ENEMY',
-            enemyParty: [makeEntity({ id: 'e1', name: 'MoveUser', currentIntent: null } as any)],
-            enemyDeck: {
-                ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
-                hand: [{ id: 'eh1', dataId: 'water_slap', currentCost: 1, isPlayable: true }]
-            }
-        } as any);
-        expect(getBestAction(state).type).toBe('END_TURN');
-    });
-
-    it('createBattleState defaults to MOVES: empty enemy hand, intents generated', async () => {
-        const { createBattleState } = await import('./data/battleFactories');
-        const { createStarterSave } = await import('./gameTypes');
-        const save = createStarterSave('fenrir');
-        const state = createBattleState(save as any, ['ratatoskr']);
-        expect(state.enemyMode).toBe('MOVES');
-        expect(state.enemyDeck.hand).toHaveLength(0);
-        expect(state.enemyDeck.drawpile).toHaveLength(0);
-        expect(state.enemyParty[0].currentIntent).toBeTruthy();
-    });
-
-    it('createBattleState with enemyMode CARDS: hand dealt, no intents', async () => {
-        const { createBattleState } = await import('./data/battleFactories');
-        const { createStarterSave } = await import('./gameTypes');
-        const save = createStarterSave('fenrir');
-        const state = createBattleState(save as any, ['ratatoskr'], undefined, { enemyMode: 'CARDS' });
-        expect(state.enemyMode).toBe('CARDS');
-        expect(state.enemyDeck.hand.length).toBeGreaterThan(0);
-        expect(state.enemyParty[0].currentIntent ?? null).toBeNull();
-    });
-});
-
-describe('XP pacing: decelerating span-based death XP with level-gap scaling', () => {
-    it('same-level KO at low level yields ~1/3 of a level (solo receiver)', async () => {
-        const { calculateDeathXp } = await import('./effectHandlers');
-        const { getExpForLevel } = await import('./types');
-        const defeated = makeEntity({ id: 'd', name: 'D', level: 5 });
-        const receiver = makeEntity({ id: 'r', name: 'R', level: 5 });
-        const span = getExpForLevel(6) - getExpForLevel(5);
-        const xp = calculateDeathXp(defeated as any, receiver as any);
-        expect(xp).toBe(Math.floor(span / 3));
-        expect(xp).toBeLessThan(span); // never a full level from one KO
-    });
-
-    it('high-level same-level KOs decelerate (bigger divisor)', async () => {
-        const { calculateDeathXp } = await import('./effectHandlers');
-        const { getExpForLevel } = await import('./types');
-        const defeated = makeEntity({ id: 'd', name: 'D', level: 22 });
-        const receiver = makeEntity({ id: 'r', name: 'R', level: 22 });
-        const span = getExpForLevel(23) - getExpForLevel(22);
-        const xp = calculateDeathXp(defeated as any, receiver as any);
-        expect(xp).toBe(Math.floor(span / 5)); // divisor 3 + floor(22/10)
-        // A same-level KO must never grant a full level anymore
-        expect(xp * 3).toBeLessThan(span * 2);
-    });
-
-    it('stomping low-level enemies yields half XP; punching up pays more', async () => {
-        const { calculateDeathXp } = await import('./effectHandlers');
-        const lowDefeated = makeEntity({ id: 'd1', name: 'D1', level: 5 });
-        const highDefeated = makeEntity({ id: 'd2', name: 'D2', level: 40 });
-        const receiver = makeEntity({ id: 'r', name: 'R', level: 20 });
-        const sameDefeated = makeEntity({ id: 'd3', name: 'D3', level: 20 });
-
-        const stomp = calculateDeathXp(lowDefeated as any, receiver as any);
-        const same = calculateDeathXp(sameDefeated as any, receiver as any);
-        const up = calculateDeathXp(highDefeated as any, receiver as any);
-
-        // Gap multiplier clamps: 0.5x for stomping, 1.5x cap punching up
-        const { getExpForLevel } = await import('./types');
-        const lowSpan = getExpForLevel(6) - getExpForLevel(5);
-        expect(stomp).toBe(Math.max(1, Math.floor((lowSpan * 0.5) / 5)));
-        expect(up).toBeGreaterThan(same);
-    });
-
-    it('battle KO still distributes XP and logs the split', () => {
-        let state = makeState({
-            playerParty: [
-                makeEntity({ id: 'p1', name: 'Hero', level: 10, experience: 800 }),
-                makeEntity({ id: 'p2', name: 'Ally', level: 10, experience: 800 })
-            ],
-            // 3 HP, not 5: fury_strike deals 4 under the rev-3.1 pace (ticket 23), and this
-            // test is about the XP split on a KO, not about the size of the hit.
-            enemyParty: [makeEntity({ id: 'e1', name: 'Foe', level: 10, currentHp: 3 })]
-        });
-        state = withHand(state, [{ id: 'h1', dataId: 'fury_strike' }]);
-        state = battleReducer(state, { type: 'PLAY_PROGRAM', payload: { sourceId: 'p1', targetId: 'e1', programId: 'h1' } });
-        expect(state.enemyParty[0].currentHp).toBe(0);
-        expect(state.logs.some(l => l.includes('XP split among 2 allies'))).toBe(true);
-        // Each receives floor(span(10)*1.0/4 / 2) = floor(265/4/2) = 33
-        expect(state.playerParty[0].experience).toBeGreaterThan(800);
-        expect(state.playerParty[0].experience - 800).toBeLessThan(100);
     });
 });
 

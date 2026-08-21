@@ -60,8 +60,6 @@ function makeSave(scrapCount: number): IPlayerSave {
             {
                 id: 'mm1',
                 definitionId: 'def_fire',
-                level: 5,
-                experience: 100,
                 blueprintsCollected: 0,
                 attackIV: 10,
                 defenseIV: 8,

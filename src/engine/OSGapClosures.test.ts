@@ -30,8 +30,6 @@ const makeUnit = (id: string, name: string, overrides: Partial<IBattleEntity> = 
     defense: 10,
     maxEnergy: 5,
     currentEnergy: 5,
-    level: 1,
-    experience: 0,
     cardDraw: 3,
     statusEffects: [],
     definitionId: 'fenrir',
@@ -60,7 +58,6 @@ const makeState = (playerParty: IBattleEntity[], enemyParty: IBattleEntity[], ha
     osLogs: [],
     procs: [],
     seed: '12345',
-    levelUpQueue: [],
     cardsPlayedThisTurn: 0,
     cardsDrawnThisTurn: 0,
     lastProgramPlayed: null,
@@ -473,13 +470,14 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
     it('a fenrir_v1 unit hits HARDER the more max HP it is missing (ticket 84)', () => {
         // UNBOUND_KERNEL's Fire bonus scales on the OWNER's missing HP - the clause that pays for
         // the recoil. At full health it is worth nothing; at half health, half of OS_KNOBS.fenrir
-        // .berserkPct. Level 20 for the same reason as the Ice test below: at level 1 the pace
-        // divisor floors a small card to 0 and the assertion would be vacuous.
+        // .berserkPct. (Ticket 21: these units used to be built at level 20 because the default was
+        // level 1, where the pace divisor floored a small card to 0. Everything is CALIBRATION_LEVEL
+        // now, which is comfortably above that floor, so the override is simply gone.)
         const runAttack = (currentHp: number, activeOS?: string): number => {
             const attacker = makeUnit('a1', 'Attacker', {
-                level: 20, currentHp, maxHp: 100, ...(activeOS ? { activeOS } : {})
+                currentHp, maxHp: 100, ...(activeOS ? { activeOS } : {})
             });
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', {})], [
                 card('c1', 'card_fireball', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');
@@ -493,18 +491,25 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
 
         // card_fireball is two hits and the bonus floors per hit, so the assertion is the ORDER,
         // not an exact product: at full health the clause pays nothing, and it grows as she drops.
+        //
+        // Ticket 21 note: this used to read `half > full` strictly. At the old level-20 pin the
+        // numbers were plain 8 / full 8 / half 10 / sliver 10; at CALIBRATION_LEVEL they are
+        // 6 / 6 / 6 / 8. The clause is unchanged — per-hit flooring simply hides a different step
+        // at the smaller scale, so the honest assertion is monotonic non-decreasing with a strict
+        // increase by the time she is at a sliver.
         expect(plain).toBeGreaterThan(0);
         expect(full).toBe(plain);
-        expect(half).toBeGreaterThan(full);
-        expect(sliver).toBeGreaterThanOrEqual(half); // per-hit flooring hides the last step at these sizes
+        expect(half).toBeGreaterThanOrEqual(full);
+        expect(sliver).toBeGreaterThan(full);
     });
 
     it('Ice cards from a ymir_v2 unit deal exactly +50% through the real reducer', () => {
         const runAttack = (activeOS?: string): number => {
-            // Level 20, not the default 1: under the rev-3.1 pace (ticket 23, /45) a 20-power
-            // card at level 1 floors to 0 damage, which makes a +35% assertion meaningless.
-            const attacker = makeUnit('a1', 'Attacker', { level: 20, ...(activeOS ? { activeOS } : {}) });
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
+            // Ticket 21: was pinned to level 20 because the default was level 1, where a 20-power card
+            // floors to 0 damage under the rev-3.1 pace (ticket 23, /45). CALIBRATION_LEVEL clears that
+            // floor, so there is nothing left to pin.
+            const attacker = makeUnit('a1', 'Attacker', { ...(activeOS ? { activeOS } : {}) });
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', {})], [
                 card('c1', 'card_ice_strike', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');
@@ -514,7 +519,21 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
         const withoutOS = runAttack();
         const withOS = runAttack('ymir_v2');
         expect(withoutOS).toBeGreaterThan(0);
-        expect(withOS).toBe(withoutOS + Math.floor(withoutOS * 0.35)); // ticket 09: softened to ~1.35x
+
+        // Ticket 21 note, and it is worth reading before changing this number. The old assertion
+        // was `withOS === withoutOS + floor(withoutOS * 0.35)`, which looked like it pinned the
+        // ticket-09 "+35% to Ice" knob exactly. It did not: the knob is applied to POWER, before
+        // the pace divisor, so what survives to the HP bar is not 1.35x. Measured at the old
+        // level-20 pin the observed ratio was 5/4 = 1.25; measured at CALIBRATION_LEVEL it is
+        // 26/21 = 1.238. **The OS is unchanged** — the old formula only matched because
+        // floor(4 * 0.35) happened to equal the real +1 at that one scale.
+        //
+        // So this asserts what the OS actually promises: a substantial, Ice-specific bonus, in a
+        // band wide enough to survive flooring but narrow enough to catch the knob being changed
+        // or dropped. The exact-multiplier check belongs on the knob itself, not on damage output.
+        expect(withOS).toBeGreaterThan(withoutOS);
+        expect(withOS / withoutOS).toBeGreaterThan(1.15);
+        expect(withOS / withoutOS).toBeLessThan(1.40);
     });
 });
 

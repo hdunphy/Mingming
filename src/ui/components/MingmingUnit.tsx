@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity, StatusType } from '../../engine/types';
 import type { IBattleState } from '../../engine/types';
-import { getExpForLevel } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
@@ -132,13 +131,11 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 }) => {
     const controls = useAnimation();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
-    const [levelUpVisible, setLevelUpVisible] = React.useState(false);
     const [showOSTooltip, setShowOSTooltip] = React.useState(false);
     const [showIntentTooltip, setShowIntentTooltip] = React.useState(false);
     const osIconRef = React.useRef<HTMLDivElement>(null);
     const intentIconRef = React.useRef<HTMLDivElement>(null);
     const prevHpRef = React.useRef(entity.currentHp);
-    const prevLevelRef = React.useRef(entity.level);
     // Pending timeouts, cleared on unmount so we never setState on an unmounted component.
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -189,20 +186,6 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             transition: { duration: 0.24, times: [0, 0.35, 1], ease: 'easeOut' },
         });
     }, [lungeKey, isEnemy, controls]);
-
-    // Level-up pop
-    useEffect(() => {
-        if (entity.level > prevLevelRef.current) {
-            setLevelUpVisible(true);
-            const timeout = setTimeout(() => setLevelUpVisible(false), 3000);
-            pendingTimeoutsRef.current.push(timeout);
-        }
-        prevLevelRef.current = entity.level;
-    }, [entity.level]);
-
-    const currentLevelExp = getExpForLevel(entity.level);
-    const nextLevelExp = getExpForLevel(entity.level + 1);
-    const xpProgress = ((entity.experience - currentLevelExp) / (nextLevelExp - currentLevelExp)) * 100;
 
     const isDead = entity.currentHp <= 0;
 
@@ -295,7 +278,6 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         {entity.primaryElement[0]}
                     </div>
                 )}
-                <div className="hud-level-overlay">LV.{entity.level}</div>
             </div>
 
             {/* ── Main Body ── */}
@@ -581,18 +563,6 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     </div>
                 </div>
 
-                {/* XP Row */}
-                <div className="hud-bar-row">
-                    <span className="hud-bar-label">XP</span>
-                    <div className="hud-xp-track">
-                        <motion.div
-                            className="hud-xp-fill"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(100, Math.max(0, xpProgress))}%` }}
-                            transition={{ duration: 0.8, delay: 0.3 }}
-                        />
-                    </div>
-                </div>
             </div>
 
             {/* ── Transient overlays (shared with the battle stage via UnitFxLayer) ── */}
@@ -602,16 +572,6 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             <FxFloats fx={fx} />
             <TerminatedStamp visible={isDead} glitching={deathGlitch} />
             <AnimatePresence>
-                {levelUpVisible && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.5, y: -10 }}
-                        animate={{ opacity: 1, scale: 1.2, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="hud-level-up"
-                    >
-                        LEVEL UP!
-                    </motion.div>
-                )}
                 {procs.map((proc, idx) => {
                     if (!proc.id) {
                         console.warn(`[MingmingUnit] Proc at index ${idx} on ${entity.name} has an empty ID!`);

@@ -72,8 +72,6 @@ describe('boss relic OSes', () => {
                     id: 'mm1',
                     definitionId: 'fenrir',
                     nickname: 'Iggy',
-                    level: 10,
-                    experience: 0,
                     blueprintsCollected: 0,
                     hpIV: 10,
                     attackIV: 10,
