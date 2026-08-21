@@ -159,6 +159,13 @@ export interface BurnMechanicConfig {
     /** Stack ceiling. Crossing it is what triggers the shape above. */
     maxStacks: number;
     /**
+     * Stacks lost at the end of each of the burned entity's turns. 1 is the rev-3 behaviour;
+     * **0 restores the pre-rev-3 shape, where Burn was permanent** (Henry's question, ticket 92:
+     * *"I thought it was supposed to be permanent and not decrement between turns"*). Exposed as
+     * a dial rather than a literal so a sweep can answer that question without a rebuild.
+     */
+    decayPerTurn: number;
+    /**
      * Immediate damage per overflow EVENT, as a fraction of the burned entity's max HP.
      * VENT charges one event per excess stack; DETONATE one per cap-crossing.
      *
@@ -217,6 +224,14 @@ export const BURN_CONFIG: BurnMechanicConfig = {
     shape: 'DETONATE',
     maxStacks: 4,
     overflowPercent: 0.14,
+    // TICKET 93 (Henry): back to PERMANENT, the pre-rev-3 shape. Measured in ticket 92 - the only
+    // deck permanence breaks is `hraesvelgr_v2`, and only through `firestorm_talon`, which
+    // multiplies by the target's Burn pile and therefore compounds when the pile stops falling.
+    // That card drops 15 -> 10 power in the same ticket; she lands at 64.8% with her >90% cells
+    // back where they were. `fenrir_v2` gains 9.5 points and that is the POINT: his Burn is
+    // largely self-inflicted through `pyre_sacrifice`, so permanence finally pays him for a cost
+    // he was already carrying.
+    decayPerTurn: 0,
     tiers: DEFAULT_GAME_CONFIG.status.burnStacks,
 };
 
@@ -291,9 +306,10 @@ class BurnBehavior extends StatusBehavior {
             logs.push(`  🔥 ${entity.name} — Burn shreds ${defenseShred} defense`);
         }
 
-        // docs/power_curve_spec.md rev 3: Burn now decays 1 stack/turn (was permanent).
-        // Tiers, def shred and the onApply overflow burst are unchanged.
-        const newStacks = instance.stacks - 1;
+        // docs/power_curve_spec.md rev 3: Burn decays `decayPerTurn` stacks a turn (it was
+        // permanent before rev 3). Tiers, def shred and the onApply overflow burst are unchanged.
+        // Set `decayPerTurn` to 0 to restore permanence - see the field measurement in ticket 92.
+        const newStacks = instance.stacks - BURN_CONFIG.decayPerTurn;
         if (newStacks <= 0) {
             logs.push(`  ✅ ${entity.name} — Burn wore off`);
             return { updatedInstance: null, damage, healing: 0, defenseShred, logs };
@@ -366,11 +382,26 @@ class AsleepBehavior extends StatusBehavior {
         const existingIdx = effects.findIndex(s => s.type === 'Asleep');
 
         if (existingIdx !== -1) {
-            // Reset to 3 stacks
-            effects[existingIdx] = { ...effects[existingIdx], stacks: ASLEEP_INITIAL_STACKS };
-        } else {
-            effects.push(this.createInstance(ASLEEP_INITIAL_STACKS));
+            // TICKET 91 - SLEEP CANNOT BE RE-UPPED WHILE IT IS RUNNING.
+            //
+            // This used to reset the timer to ASLEEP_INITIAL_STACKS, which made a sleep LOCK
+            // reachable by any enemy whose move list contains Asleep: huldra's Debuff intent
+            // re-applied it every other turn, the counter went back to 3 every time, and the
+            // player never reached the wake-up. Henry, playtest: "that status shouldn't be legal
+            // to apply and re-up sleep."
+            //
+            // The anti-lock machinery already existed and was simply never reached - waking
+            // GRANTS a turn of StableOS (battleReducer's natural-expiry path and effectHandlers'
+            // damage-wake path both do it), and StableOS blocks Asleep and Stunned at the apply
+            // layer. Re-upping meant the timer never expired, so the immunity never fired.
+            //
+            // No-op while asleep is also exactly what `StunnedBehavior` already does; Asleep was
+            // the outlier. The guarantee this buys: every sleep ends in at most
+            // ASLEEP_INITIAL_STACKS turns and is followed by an awake turn that cannot be taken
+            // away, so a hard-CC chain always yields the board back.
+            return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  💤 ${target.name} is already asleep.`] };
         }
+        effects.push(this.createInstance(ASLEEP_INITIAL_STACKS));
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
     }

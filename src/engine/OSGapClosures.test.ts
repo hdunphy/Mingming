@@ -78,17 +78,17 @@ Object.values(FIRMWARE_REGISTRY).forEach(os => {
     os.hooks.forEach(h => registerHook(h));
 });
 
-describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (50% of PRINTED heal power)', () => {
-    // Ticket 56 changed the DENOMINATION, which is the third shape this OS has had.
-    // Ticket 53 made it a dial on HP healed; that dial was measured in ticket 55 to convert
-    // ~4.5x smaller than the card text implies, because `calculateHeal` turns power into HP at
-    // `maxHp * power / 400` - so `pale_mercy` (14 power -> 3 HP) rounded to ZERO damage and a
-    // third of her deck did nothing through the OS. It now reads the PRINTED power.
+describe('Item 1 - AUDHUMBLA v2 PRIMORDIAL_MILK (heal cards bank Regen)', () => {
+    // TICKET 101 retired NOURISH_ROUTINE - the fourth shape this OS has had. The old one turned
+    // 50% of a heal's PRINTED power into Light damage at a random enemy; the rebuild banks the
+    // healing as Regen instead, which `drink_deep` later drinks for damage. Hold or cash.
     //
-    // The pins below assert the DENOMINATION rather than the damage, deliberately: this file's
-    // fixture is attack 10 vs defense 10 at level 1, where even 45 power resolves to 2 damage
-    // (ticket 52 hit the same floor). `last_heal_power` is exact and frame-independent.
-    it('records the PRINTED power of a card heal, not the HP it restored', () => {
+    // What these pins are actually protecting is the TRIGGER, which is unchanged and is the part
+    // that has broken before: it must read a heal CARD (`last_heal_power > 0`) and must NOT fire
+    // on an engine flat heal - including Regen's own end-of-turn tick, which would otherwise feed
+    // itself forever. The ticket-56 lesson that made `last_heal_power` the discriminator is what
+    // makes the rebuild loop-safe for free.
+    it('records the PRINTED power of a card heal, and banks Regen off it', () => {
         const aud = makeUnit('aud1', 'Audhumbla', { activeOS: 'audhumbla_v2', currentHp: 95 });
         let state = makeState([aud], [makeUnit('e1', 'Enemy')], [card('c1', 'card_heal_flat', 1)]);
         state = play(state, 'aud1', 'aud1', 'c1');
@@ -97,7 +97,8 @@ describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (50% of PRINTED heal power)', ()
         // land - and 80 is what the OS must see. The gap between 80 and 5 IS the ticket-56 bug.
         expect(state.counters['last_heal_power']).toBe(80);
         expect(state.playerParty[0].currentHp).toBe(100);
-        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
+        expect(state.logs.some(l => l.includes('PRIMORDIAL_MILK'))).toBe(true);
+        expect(state.playerParty[0].statusEffects.find(s => s.type === 'Regen')?.stacks).toBe(3);
     });
 
     it('fires at FULL HP, where zero HP is restored and the printed power is all there is', () => {
@@ -107,8 +108,9 @@ describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (50% of PRINTED heal power)', ()
 
         expect(state.playerParty[0].currentHp).toBe(100); // nothing healed
         expect(state.counters['last_heal_power']).toBe(80);
-        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(true);
-        expect(state.enemyParty[0].currentHp).toBeLessThan(100); // and it still struck
+        expect(state.logs.some(l => l.includes('PRIMORDIAL_MILK'))).toBe(true);
+        // Healing at full HP is wasted; the Regen is the point. That is the whole rebuild.
+        expect(state.playerParty[0].statusEffects.find(s => s.type === 'Regen')?.stacks).toBe(3);
     });
 
     it('does NOT convert an ENGINE heal - the OS reads "every heal she CASTS"', () => {
@@ -120,8 +122,8 @@ describe('Item 1 - AUDHUMBLA v2 NOURISH_ROUTINE (50% of PRINTED heal power)', ()
             { type: 'HP', targetId: 'aud1', sourceId: 'aud1', payload: { amount: 10, isHeal: true } }
         ]);
 
-        expect(state.logs.some(l => l.includes('NOURISH_ROUTINE'))).toBe(false);
-        expect(state.enemyParty[0].currentHp).toBe(100);
+        expect(state.logs.some(l => l.includes('PRIMORDIAL_MILK'))).toBe(false);
+        expect(state.playerParty[0].statusEffects.some(s => s.type === 'Regen')).toBe(false);
     });
 });
 

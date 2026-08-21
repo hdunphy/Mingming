@@ -611,6 +611,35 @@ const BattleArena: React.FC = () => {
                 </div>
             )}
 
+            {/* Ticket 90, playtest round 1: Henry had no way to see the turn number or how many
+                cards he had played - and `stampede`/`momentum_crash` scale on exactly that count,
+                so the deck's whole plan was invisible while piloting it. Fixed to the top-left,
+                out of the way of the party columns and the card fan. */}
+            <div
+                style={{
+                    position: 'fixed', top: '10px', left: '12px', zIndex: 1500, pointerEvents: 'none',
+                    display: 'flex', gap: '8px', alignItems: 'center',
+                    fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px',
+                }}
+            >
+                <span style={{
+                    padding: '4px 12px', borderRadius: '4px', background: 'rgba(0,0,0,0.55)',
+                    border: '1px solid rgba(255,255,255,0.18)', color: '#e8e4dc',
+                }}>
+                    TURN {battleState.turn}
+                </span>
+                <span
+                    title="Cards you have played this turn - what stampede, momentum crash and the other per-card scalers multiply by."
+                    style={{
+                        padding: '4px 12px', borderRadius: '4px', background: 'rgba(0,0,0,0.55)',
+                        border: `1px solid ${battleState.cardsPlayedThisTurn > 0 ? 'rgba(0,229,255,0.45)' : 'rgba(255,255,255,0.18)'}`,
+                        color: battleState.cardsPlayedThisTurn > 0 ? '#00e5ff' : '#8a837b',
+                    }}
+                >
+                    CARDS PLAYED {battleState.cardsPlayedThisTurn}
+                </span>
+            </div>
+
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
                 {isVictory && !showReport && (

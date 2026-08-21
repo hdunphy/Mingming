@@ -26,3 +26,6 @@ dist-ssr
 _to_delete/
 _scratch_balance/
 _transfer*/
+
+# Ticket 97: the balance cell cache is a build artifact, keyed on the engine hash.
+docs/balance/.cell-cache*.json

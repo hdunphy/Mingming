@@ -7,6 +7,23 @@
  * If a behavior changes, update the matching entry here.
  */
 import type { StatusType } from '../types';
+import { STATUS_MODEL } from '../core/Hooks';
+
+/**
+ * TICKET 102: the four duality statuses are re-denominated in POWER, and their text is DERIVED
+ * from `STATUS_MODEL` rather than written out - the ticket-90 lesson was that a hand-written
+ * tooltip goes stale silently and then lies to the player by a factor of ten. Under PERCENT the
+ * text still reads as a percentage against the cap; under POWER it reads as flat power with no
+ * ceiling, which is the live rule.
+ */
+const dualityRule = (direction: 'more' | 'less', who: 'Deals' | 'Takes'): string =>
+    STATUS_MODEL.shape === 'POWER'
+        ? `${who} ${STATUS_MODEL.powerPerStack} ${direction} POWER per stack - no cap, and it rides `
+          + `type advantage and resistances like a card's own power. A typical 1-Energy attack is `
+          + `about 40 power, so ten stacks is a quarter of a card.`
+        : `${who} ${(STATUS_MODEL.pctPerStack * 100).toFixed(0)}% ${direction} damage per stack, up to `
+          + `${direction === 'more' ? '+' : '-'}${(STATUS_MODEL.pctCap * 100).toFixed(0)}% at `
+          + `${Math.ceil(STATUS_MODEL.pctCap / STATUS_MODEL.pctPerStack)} stacks.`;
 
 export interface StatusGlossaryEntry {
     name: string;
@@ -19,7 +36,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Burn',
         icon: '🔥',
         description:
-            'At end of turn, takes 1.5% / 3% / 5% / 8% of max HP as damage at 1 / 2 / 3 / 4 stacks (2+ stacks also shred defense), and decays 1 stack per turn. Caps at 4 stacks — going past the cap DETONATES for 14% of max HP and leaves the excess behind as the new pile.',
+            'At end of turn, takes 1.5% / 3% / 5% / 8% of max HP as damage at 1 / 2 / 3 / 4 stacks (2+ stacks also shred defense). PERMANENT — the pile does not decay. Caps at 4 stacks — going past the cap DETONATES for 14% of max HP and leaves the excess behind as the new pile.',
     },
     Poison: {
         name: 'Poison',
@@ -31,31 +48,31 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Asleep',
         icon: '💤',
         description:
-            'Cannot act. Always applied at 3 stacks (reapplying resets it to 3), and loses 1 stack per turn AND 1 stack per incoming attack - so three hits break it, absorbed ones included. Statuses and damage-over-time do not. Waking grants 1 turn of StableOS.',
+            'Cannot act. Applied at 3 stacks; reapplying while asleep does nothing, so it can never be extended. Loses 1 stack per turn AND 1 stack per incoming attack - so three hits break it, absorbed ones included. Statuses and damage-over-time do not. Waking grants 1 turn of StableOS, which refuses Asleep and Stunned outright.',
     },
     Weakened: {
         name: 'Weakened',
         icon: '⬇️',
         description:
-            'Deals 20% less damage per stack (never below 10%). Permanent, but incoming Strengthened cancels it stack for stack.',
+            `${dualityRule('less', 'Deals')} Permanent, but incoming Strengthened cancels it stack for stack.`,
     },
     Strengthened: {
         name: 'Strengthened',
         icon: '⬆️',
         description:
-            'Deals 20% more damage per stack. Permanent, but incoming Weakened cancels it stack for stack.',
+            `${dualityRule('more', 'Deals')} Permanent, but incoming Weakened cancels it stack for stack.`,
     },
     Dazed: {
         name: 'Dazed',
         icon: '💫',
         description:
-            'Takes 20% more damage per stack. Permanent, but incoming Sharp cancels it stack for stack.',
+            `${dualityRule('more', 'Takes')} Permanent, but incoming Sharp cancels it stack for stack.`,
     },
     Sharp: {
         name: 'Sharp',
         icon: '🛡️',
         description:
-            'Takes 20% less damage per stack (never below 10%). Permanent, but incoming Dazed cancels it stack for stack.',
+            `${dualityRule('less', 'Takes')} Permanent, but incoming Dazed cancels it stack for stack.`,
     },
     Stunned: {
         name: 'Stunned',

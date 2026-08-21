@@ -161,3 +161,73 @@ export function osVarianceScenario(definitionId: string): ComposedSetup {
         seed: `balance:os:${definitionId}`,
     });
 }
+
+/**
+ * TICKET 98: a 3v3 team battle, composed from the SAME registry the 1v1 grid uses.
+ *
+ * WHAT THIS DOES NOT DO IS THE POINT. It builds no new engine machinery, because the ruled 3v3
+ * design (HANDOFF, "3v3 RECONFIRMED + DESIGN RULED") turned out to be **already live**:
+ *
+ *   - `IBattleState` carries parties, not frames, and the scenario schema already caps them at 3;
+ *   - `PLAY_PROGRAM` takes an explicit `sourceId` and resolves it against the active party, so any
+ *     member can cast - there is no "active" slot to switch;
+ *   - `TacticalAI` already enumerates every LIVING member as a candidate caster, so
+ *     caster-allocation is not a component to write, it is a search the AI is already running;
+ *   - the deck and hand are per-SIDE, which is the ruled shared-deck model;
+ *   - energy is per-entity;
+ *   - and `battleReducer`'s pre-turn draw already computes `sum(members' cardDraw) - (N-1)`.
+ *
+ * So the skeleton the ticket asks for is a HARNESS, not an engine change, and keeping it that way
+ * is what makes its numbers comparable to the 1v1 grid: the same reducer, the same AI, the same
+ * scorer. A team sim built on a parallel code path would answer a different question.
+ *
+ * The shared deck is the concatenation of the three members' OS decks - 27 cards where 1v1 runs 9.
+ * That is deliberately the naive composition and it is the thing the canary is watching: the
+ * DECK-SIZE audit (guardrail 2) predicts that draw-triggered and reshuffle-triggered firmware
+ * behaves differently in a 27-card pile, and the way to find out is to run it.
+ */
+export interface TeamSpec {
+    /** Up to 3 members, `[species, os]` each. */
+    player: ReadonlyArray<readonly [string, string]>;
+    enemy: ReadonlyArray<readonly [string, string]>;
+    seed?: string;
+    /**
+     * TICKET 109: extra cards added to a side's shared pile FOR THIS SCENARIO ONLY.
+     *
+     * The tag-abuse probes need a specific card in a specific comp's hands - SOLAR_OVERDRIVE
+     * hosting `core_overclock_daemon`, side-wide Burn stacking `inferno` + `heat_wave` - and those
+     * cards are not in the host's shipped deck. This adds them to the composed setup and touches
+     * NOTHING in the registry, which is what keeps a report-only ticket report-only.
+     */
+    playerExtras?: ReadonlyArray<string>;
+    enemyExtras?: ReadonlyArray<string>;
+}
+
+const teamName = (t: ReadonlyArray<readonly [string, string]>) => t.map(([, os]) => os).join('+');
+
+export function teamScenario(spec: TeamSpec): ComposedSetup {
+    const { player, enemy } = spec;
+    if (player.length === 0 || enemy.length === 0) {
+        throw new Error('[balanceScenarios] A team needs at least one member.');
+    }
+    if (player.length > 3 || enemy.length > 3) {
+        throw new Error('[balanceScenarios] Party cap is 3 (MingmingInstanceSchema).');
+    }
+    return {
+        seed: spec.seed ?? `team:${teamName(player)}-vs-${teamName(enemy)}`,
+        enemyMode: 'CARDS',
+        player: {
+            party: player.map(([sp, os]) => unit(sp, os)),
+            // Shared pile, per the ruled design. `buildScenarioState` already flattens the enemy
+            // side the same way, so both sides get the same treatment without a special case.
+            deck: [...player.flatMap(([sp, os]) => getDeckForOS(sp, os)), ...(spec.playerExtras ?? [])],
+            relics: [],
+        },
+        // Enemy extras ride on the first enemy's list - `buildScenarioState` flattens every
+        // enemy's deck into one side pile, so which member carries them is immaterial.
+        enemies: enemy.map(([sp, os], i) => (i === 0 && spec.enemyExtras?.length
+            ? { ...enemyUnit(sp, os), deck: [...getDeckForOS(sp, os), ...spec.enemyExtras] }
+            : enemyUnit(sp, os))),
+        statJitter: BALANCE_STAT_JITTER,
+    };
+}

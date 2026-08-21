@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "B1 - a cell the AI never wins",
+  "description": "The AI loses this 0 games out of 60, with no type disadvantage. If YOU can win it even once, the zero is a pilot problem, not a balance problem.   [you: kraken_v1 | opponent: audhumbla_v1]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "kraken_v1"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "B1-kraken_v1-vs-audhumbla_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "kraken",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "kraken_v1"
+        }
+      ],
+      "deck": [
+        "whirlpool_v2",
+        "whirlpool_v2",
+        "pressure_point",
+        "pressure_point",
+        "ink_stream",
+        "ink_stream",
+        "surge_protection",
+        "undertow"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "audhumbla",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "audhumbla_v1",
+        "deck": [
+          "pale_mercy",
+          "pale_mercy",
+          "dawnstrike",
+          "healing_light",
+          "sacred_spring",
+          "supernova_v2",
+          "genesis_surge",
+          "dawn_of_creation",
+          "radiant_spark"
+        ]
+      }
+    ]
+  }
+}

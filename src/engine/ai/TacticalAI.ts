@@ -6,7 +6,7 @@ import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
 import { BURN_CONFIG } from '../StatusBehaviors';
-import { STANCE_BONUS } from '../core/Hooks';
+import { STANCE_BONUS, STATUS_MODEL } from '../core/Hooks';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
 /**
@@ -107,6 +107,30 @@ function burnTotalPercent(stacks: number): number {
 }
 
 /**
+ * What `stacks` of a duality status are worth to their holder, in eval points.
+ *
+ * POWER shape: `powerPerStack` power on each attack across the horizon. A card's power converts to
+ * damage through the pace divisor, so one power is worth `1 / POWER_PER_TURN_DAMAGE` of a turn's
+ * throughput - approximated here from the same frame proxy the rest of this file uses, which keeps
+ * the units consistent with `TURN_DAMAGE_FRACTION`.
+ *
+ * PERCENT shape: the historical capped-percentage reading, kept so the eval follows the engine if
+ * the shape is ever switched back.
+ */
+function dualityValue(stacks: number, entity: IBattleEntity): number {
+    if (STATUS_MODEL.shape !== 'POWER') {
+        return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(stacks);
+    }
+    // A typical card carries ~40 power (the 1e budget), so one power is ~1/40th of a card and a
+    // turn is ~2 cards: `powerPerStack` stacks therefore move about `stacks / 80` of a turn's
+    // damage per attack, across `STATUS_HORIZON_TURNS` turns of ~2 attacks each.
+    const POWER_PER_CARD = 40;
+    const CARDS_PER_TURN = 2;
+    const fraction = (STATUS_MODEL.powerPerStack * stacks) / (POWER_PER_CARD * CARDS_PER_TURN);
+    return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * fraction;
+}
+
+/**
  * Eval contribution of one status instance on its holder (positive = good for the holder).
  */
 function statusValue(type: string, stacks: number, entity: IBattleEntity): number {
@@ -144,17 +168,23 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
         case 'Energized':
             // +stacks energy next turn; 1 energy ~ ENERGY_TURN_FRACTION of a turn's damage.
             return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * ENERGY_TURN_FRACTION * s;
+        // TICKET 102: the duality pair is POWER now, not a capped percentage, so the eval has to
+        // stop reading a ceiling that no longer exists. A stack is `powerPerStack` power on every
+        // relevant attack over the horizon; `dualityValue` converts that into the same HP-points
+        // currency everything else here uses, and is LINEAR in stacks because the effect is.
+        //
+        // This matters more than a tidy-up: while `statusValue` capped at 13 stacks, an AI holding
+        // 20 Strengthened valued the 14th through 20th at zero and would happily trade them away.
+        // The stance lesson from ticket 78 is the precedent - an eval that cannot see a mechanic
+        // plays as if the mechanic is not there.
         case 'Strengthened':
-            // +cappedPct outgoing damage over the horizon (own maxHp as the frame proxy -
-            // balance sims run same-species or same-level frames).
-            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return dualityValue(s, entity);
         case 'Weakened':
-            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return -dualityValue(s, entity);
         case 'Sharp':
-            // -cappedPct incoming damage over the horizon.
-            return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return dualityValue(s, entity);
         case 'Dazed':
-            return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * STATUS_HORIZON_TURNS * cappedPct(s);
+            return -dualityValue(s, entity);
         case 'Stunned':
             // Lose the next turn entirely: one full turn of throughput.
             return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION;
@@ -282,13 +312,19 @@ interface Candidate {
  * Recursive search to find the best sequence of actions for the current turn.
  * Simulates permutations of playable cards.
  */
+interface SequenceResult {
+    score: number;
+    firstAction: BattleAction | null;
+    leafState: IBattleState;
+}
+
 function findBestSequence(
     state: IBattleState,
     side: 'PLAYER' | 'ENEMY',
     depth: number,
     maxDepth: number,
     candidates?: Candidate[]
-): { score: number; firstAction: BattleAction | null; leafState: IBattleState } {
+): SequenceResult {
     // 1. Evaluate current state
     const currentScore = evaluateState(state, side);
 
@@ -313,6 +349,10 @@ function findBestSequence(
     let bestScore = currentScore;
     let bestAction: BattleAction | null = null;
     let bestLeaf: IBattleState = state;
+    const siblings = CENSUS ? new Set<string>() : null;
+    const deferred: Array<{
+        action: BattleAction; nextState: IBattleState; immediate: number; order: number;
+    }> | null = BEAM > 0 && depth > 0 ? [] : null;
 
     for (const card of hand) {
         const programData = GetProgramData(card.dataId);
@@ -359,7 +399,20 @@ function findBestSequence(
             const effectiveCost = executeCostCalculated(state, source, undefined, programData, printedCost).cost;
             if (source.currentEnergy < effectiveCost) continue;
 
-            for (const target of potentialTargets) {
+            // A Self card ignores the loop variable - `effectiveTargetId` below is the CASTER - so
+            // iterating every potential target emits the IDENTICAL action once per target and
+            // simulates it from scratch each time, then recurses into an identical subtree. In 1v1
+            // there is one target and it costs nothing; in 3v3 `AI_CENSUS=1` measured it at 18.1%
+            // of all simulations. Collapsing it is exact: the removed actions are byte-identical to
+            // the one kept.
+            //
+            // It is exact per candidate but NOT a no-op on the decision, and that is a fix rather
+            // than a regression: `getBestAction` takes the top `LOOKAHEAD_TOP_N` candidates, and
+            // those slots were being filled with three copies of one action, so the lookahead was
+            // examining one distinct line where it believed it was examining three.
+            const targetsForSource = programData.target === 'Self' ? [source] : potentialTargets;
+
+            for (const target of targetsForSource) {
                 // Validate constraints BEFORE simulating
                 if (!validateProgramConstraints(state, source, target, programData, effectiveCost)) {
                     continue; // Skip this card/target combo — constraints not met
@@ -377,11 +430,28 @@ function findBestSequence(
                     }
                 };
 
+                if (siblings) {
+                    census.enumerated++;
+                    const k = `${source.id}|${effectiveTargetId}|${card.id}`;
+                    if (siblings.has(k)) census.duplicate++; else siblings.add(k);
+                }
+
                 // Simulate
                 const nextState = battleReducer(state, action);
+                if (CENSUS) census.simulated++;
 
                 // Skip if state didn't change (reducer rejected it)
                 if (nextState === state) continue;
+
+                if (deferred !== null) {
+                    // Beam: hold the candidate with its IMMEDIATE score and recurse later, into
+                    // only the best `BEAM` of them.
+                    deferred.push({
+                        action, nextState, order: deferred.length,
+                        immediate: evaluateState(nextState, side),
+                    });
+                    continue;
+                }
 
                 // Recursive Call
                 const result = findBestSequence(nextState, side, depth + 1, maxDepth);
@@ -397,6 +467,28 @@ function findBestSequence(
                         bestAction = action;
                     }
                 }
+            }
+        }
+    }
+
+    if (deferred !== null && deferred.length > 0) {
+        let explore = deferred;
+        if (deferred.length > BEAM) {
+            // Select the best BEAM by immediate score, then RESTORE ENUMERATION ORDER before
+            // recursing. Both halves matter. Selecting is the optimisation; restoring the order is
+            // what stops the beam changing anything it did not prune - `bestScore` improves on a
+            // strict `>`, so among equal-scoring lines the first one VISITED wins, and recursing in
+            // score order silently re-picks ties. That bug cost a measurement: at AI_BEAM=16, well
+            // above 1v1's branching and pruning nothing there, 23 of 90 grid cells still moved.
+            explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
+            explore.sort((a, b) => a.order - b.order);
+            if (CENSUS) census.pruned += deferred.length - explore.length;
+        }
+        for (const d of explore) {
+            const result = findBestSequence(d.nextState, side, depth + 1, maxDepth);
+            if (result.score > bestScore) {
+                bestScore = result.score;
+                bestLeaf = result.leafState;
             }
         }
     }
@@ -420,9 +512,109 @@ function findBestSequence(
 //   discard pile (drawpile exhausted) falls back to the engine's own seeded shuffle.
 
 const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
-const LOOKAHEAD_TOP_N = 3;
-const LOOKAHEAD_DETERMINIZATIONS = 2;
+
+/**
+ * TICKET 108 - THE SCREENING TIER. `AI_LITE=1` narrows the lookahead instead of removing it.
+ *
+ * Henry's objection to a greedy screening tier was the right one: greedy is BIASED AGAINST
+ * DECISION-HEAVY CARDS, which is exactly what the fun program keeps adding. A screen that
+ * systematically under-rates hold-or-cash cards would rank arms wrongly in the one direction the
+ * project cares about - `drink_deep`, `momentum_crash` and `bracing_cold` are all cards whose whole
+ * point is that the greedy line is wrong.
+ *
+ * So the cheap tier keeps the lookahead and shrinks it: TWO candidates instead of three, ONE
+ * determinization instead of two. That is 2 lookahead evaluations per contested decision where full
+ * does 6 - the same KIND of judgement, a third of the work. The reply depth is deliberately NOT
+ * reduced: it is what makes a lookahead a lookahead.
+ *
+ * Full lookahead remains the default and the only thing a ship gate may use.
+ *
+ * ------------------------------------------------------------------------------------------------
+ * CALIBRATED, AND THE RULES THAT CAME OUT OF IT (ticket 108 - research/three-tier-ai.md)
+ * ------------------------------------------------------------------------------------------------
+ * Measured, not assumed. Three findings decide how these tiers may be used:
+ *
+ * 1. LITE RANKS LIKE FULL. Across a six-arm knob sweep (`rimebreaker` power 0/10/15/20/25/30 on
+ *    `draugr_v2`) lite reproduced full's ordering exactly, and its per-cell disagreement with full
+ *    (MAD 5.7-6.7) is SMALLER than full's disagreement with ITSELF across seed bases (MAD 6.0-13.2).
+ *    At arm-ranking grade the tier is not the dominant error term; the seed base is.
+ *
+ * 2. LITE COMPRESSES THE SPREAD AND BIASES WEAK ARMS UP. Over that sweep full spanned 41.7 -> 76.0
+ *    and lite 49.8 -> 76.3: lite reads ~77% of the slope, and the gap is largest where the arm is
+ *    weakest (+8.2 points at power 0, +0.3 at power 30). It is reading the deck's FLOOR - a shallower
+ *    search finds fewer of the losing lines. So:
+ *
+ *      **SCREEN WITH LITE, CONFIRM THE WINNER WITH FULL. Never read a band verdict off lite.**
+ *
+ *    An in-band/out-of-band call near 35 or 80 is exactly where an 8-point upward bias flips a
+ *    verdict, and a deck-health number is not a ranking.
+ *
+ * 3. GREEDY IS NOT SAFE FOR NUMERIC KNOBS - THE OPPOSITE OF WHAT WAS EXPECTED. Marginal card value
+ *    (deck field with the card printed, minus with its power zeroed):
+ *
+ *      | card                        | full  | lite  | greedy |
+ *      | momentum_crash (consume)    | +5.25 | +4.67 | +0.75  |
+ *      | zephyr_strike (flat 15)     | +3.67 | +3.00 | +0.67  |
+ *      | stampede (her biggest card) | +26.7 |   -   | +28.6  |
+ *      | rimebreaker (ANY_STATUS)    | +19.8 | +15.3 | +15.2  |
+ *
+ *    Greedy priced two of those four correctly and compressed the other two by 5-7x, and nothing in
+ *    the card's text predicts which. It reads a change the deck can SUBSTITUTE AROUND as nearly
+ *    free, because without lookahead it simply plays something else. A power knob is usually
+ *    exactly that kind of change. **Greedy is a decision-density probe (ticket 99), not a screen.**
+ */
+const LITE = process.env.AI_LITE === '1';
+const LOOKAHEAD_TOP_N = LITE ? 2 : 3;
+const LOOKAHEAD_DETERMINIZATIONS = LITE ? 1 : 2;
 const LOOKAHEAD_REPLY_DEPTH = 2;
+
+/**
+ * `AI_CENSUS=1`: count what the same-turn enumeration actually walks. Off by default and behind a
+ * constant, so the shipped search is untouched. It exists because the 3v3 cost turned out to be
+ * enumeration rather than search depth, and "how many candidates" had been an estimate: it measured
+ * 83 reducer simulations per decision at 1v1 against 16,677 at 3v3, and 18.1% of the 3v3 ones
+ * byte-identical repeats (research/3v3-optimisation.md).
+ */
+const CENSUS = process.env.AI_CENSUS === '1';
+export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0 };
+export function censusReset(): void {
+    census.enumerated = 0; census.duplicate = 0; census.simulated = 0;
+    census.pruned = 0; census.decisions = 0;
+}
+export function censusNewDecision(): void { census.decisions++; }
+
+/**
+ * SAME-TURN BEAM (`AI_BEAM=<n>`, 0 = off, and off IS the default).
+ *
+ * `findBestSequence` recurses over every ordering of every play available this turn, so its cost is
+ * roughly `branching ^ MAX_DEPTH`. Branching is `casters x hand x targets` - about 6 in 1v1 and about
+ * 20 in 3v3 - which is why a 3v3 decision costs ~95x a 1v1 one rather than 3x.
+ *
+ * The beam still enumerates every candidate at a node (the simulation IS the score, so that part
+ * cannot be skipped) but RECURSES into only the best `BEAM` of them, cutting the exponent rather
+ * than the base.
+ *
+ * SIZING IT AGAINST 1v1. Measured on 90 grid cells (`draugr_v2`, `hel_v2`, `huldra_v1` field rows):
+ * `AI_BEAM` of 6, 8, 12 and 16 are all BIT-IDENTICAL to no beam at all; 4 moves 7 of the 90. So 6 is
+ * the boundary and **8 is the recommended setting**, keeping headroom while still running 3v3 ~2x
+ * faster than the beamless search.
+ *
+ * That identity is EMPIRICAL, not structural, and the difference matters. `AI_CENSUS=1` shows
+ * `AI_BEAM=8` pruning 3 candidates even at 1v1 - so 1v1 branching does exceed 8 occasionally, and
+ * the beam is not a no-op there; those 3 lines simply were not going to win. A wider roster, a
+ * bigger hand or a new card could change that. **Re-run the grid gate before trusting a beam width
+ * after any change to the card pool** - do not read "bit-identical on 90 cells" as "cannot move".
+ *
+ * It is an APPROXIMATION in 3v3, ranked on the immediate score, so it inherits the bias ticket 108
+ * measured in the cheap AI tier: it under-reads lines whose payoff is one play further on. Depth 0
+ * is never beamed - that is the layer producing the candidate list `getBestAction` ranks, and
+ * truncating it would hide legal plays from the decision entirely.
+ */
+const BEAM = Number(process.env.AI_BEAM ?? 0);
+
+/** What tier is live, for a harness that wants to record it beside its numbers. */
+export const AI_TIER: 'greedy' | 'lite' | 'full' =
+    process.env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
 /**
  * Dominance pruning: when the best same-turn candidate leads the runner-up by more
  * than this many eval points (12 = 6 HP), the decision is not close and the
@@ -430,6 +622,50 @@ const LOOKAHEAD_REPLY_DEPTH = 2;
  * concentrated on the genuinely contested choices (setup-vs-tempo calls).
  */
 const LOOKAHEAD_DOMINANCE_MARGIN = 12;
+
+/**
+ * DECISION TAP - ticket 99's instrument seam, and the same shape as the store's `setActionTap`:
+ * production ships it inert, and only debug code ever fills it.
+ *
+ * Henry's playtest finding was that most decks play themselves - one line is obviously best, every
+ * hand, so there is no game to play. That is measurable from inside this function and nowhere else:
+ * the AI already computes what every candidate line is worth, and the shape of that distribution IS
+ * the answer. A turn where the best play leads by 40 eval points is a deck playing itself; a turn
+ * where the top two sit within a couple of points, and where LOOKING A TURN AHEAD changes the pick,
+ * is a decision.
+ *
+ * Zero cost when unset: one null check per decision.
+ */
+export interface DecisionRecord {
+    side: 'PLAYER' | 'ENEMY';
+    turn: number;
+    /** Lines that beat standing pat. 0 = no play was worth making; 1 = no choice existed. */
+    candidates: number;
+    /** Eval points between the best and second-best line. Undefined when there was no second. */
+    gap?: number;
+    /** True when the gap was inside the dominance margin - the decision was contested. */
+    close: boolean;
+    /** True when the 1-turn lookahead ran (close, not lethal, not a stalled battle). */
+    lookaheadRan: boolean;
+    /** True when the lookahead picked a DIFFERENT line than the greedy ranking would have. */
+    flipped: boolean;
+}
+
+let decisionTap: ((record: DecisionRecord) => void) | null = null;
+
+/** Install (or clear, with `null`) the decision tap. Debug-only. */
+export function setDecisionTap(tap: ((record: DecisionRecord) => void) | null): void {
+    decisionTap = tap;
+}
+
+/**
+ * `AI_GREEDY=1` disables the 1-turn lookahead, leaving the same-turn greedy ranking.
+ *
+ * This is ticket 99's first proxy: the win-rate difference between the two modes is what thinking
+ * one turn ahead is WORTH on a given deck. A deck that scores the same either way is a deck whose
+ * decisions do not matter - which is exactly the complaint the ticket exists to quantify.
+ */
+const GREEDY_ONLY = process.env.AI_GREEDY === '1';
 
 function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
     return party.every(e => e.currentHp <= 0);
@@ -519,6 +755,10 @@ export function getBestAction(state: IBattleState): BattleAction {
         const baseline = evaluateState(state, side);
         const improving = candidates.filter(c => c.score > baseline);
         if (improving.length === 0) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: 0,
+                close: false, lookaheadRan: false, flipped: false,
+            });
             return { type: 'END_TURN' };
         }
 
@@ -535,15 +775,35 @@ export function getBestAction(state: IBattleState): BattleAction {
 
         const topN = improving.slice(0, LOOKAHEAD_TOP_N);
         if (topN.length === 1) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                close: false, lookaheadRan: false, flipped: false,
+            });
             return topN[0].action;
         }
-        if (topN[0].score - topN[1].score > LOOKAHEAD_DOMINANCE_MARGIN) {
+        const gap = topN[0].score - topN[1].score;
+        if (gap > LOOKAHEAD_DOMINANCE_MARGIN) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                gap, close: false, lookaheadRan: false, flipped: false,
+            });
+            return topN[0].action;
+        }
+        if (GREEDY_ONLY) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                gap, close: true, lookaheadRan: false, flipped: false,
+            });
             return topN[0].action;
         }
         // Stalled battles (docs/balance_testing.md 2.2 calls >30 turns a stall) get
         // greedy play only: the lookahead cannot un-stall a matchup whose decks
         // cannot close, and 400-game 60-turn mirror stalls dominate suite wall-clock.
         if (state.turn > 30) {
+            decisionTap?.({
+                side, turn: state.turn, candidates: improving.length,
+                gap, close: true, lookaheadRan: false, flipped: false,
+            });
             return topN[0].action;
         }
 
@@ -558,6 +818,12 @@ export function getBestAction(state: IBattleState): BattleAction {
                 best = topN[i];
             }
         }
+        // FLIPPED is the signal ticket 99 is really after: the greedy ranking and the one-turn
+        // lookahead disagreed, so the turn contained a decision that a shallower player gets wrong.
+        decisionTap?.({
+            side, turn: state.turn, candidates: improving.length,
+            gap, close: true, lookaheadRan: true, flipped: best !== topN[0],
+        });
         return best.action;
     } finally {
         globalBattleEventBus.unmute();

@@ -1,0 +1,423 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t7-37539840",
+  "description": "Auto-captured at turn 7, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_B2-draugr_v2-vs-huldra_v1",
+    "seed": "37539840",
+    "turn": 7,
+    "phase": "ACTION",
+    "activeSide": "PLAYER",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_1axtou8_1",
+        "definitionId": "draugr",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "draugr_v2",
+        "name": "Draugr",
+        "maxHp": 83,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 36,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Ice",
+        "currentHp": 25,
+        "currentEnergy": 2,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "339683c2-3176-459e-98fd-18f58923b0c4",
+            "type": "Weakened",
+            "stacks": 14
+          },
+          {
+            "id": "5e3a598e-3a9c-47f7-bb53-894647f17053",
+            "type": "Poison",
+            "stacks": 20
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Draugr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 0,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_192r6kg_2",
+        "definitionId": "huldra",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "name": "Huldra",
+        "maxHp": 80,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 35,
+        "speed": 10,
+        "primaryElement": "Nature",
+        "currentHp": 50,
+        "currentEnergy": 1,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "720bad7f-87d4-43db-b793-9207ced8179b",
+            "type": "Sharp",
+            "stacks": 5
+          },
+          {
+            "id": "0b35f589-1de2-4234-91a0-9a5088b3337e",
+            "type": "Weakened",
+            "stacks": 14
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Huldra.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 3,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1pqks8w_6",
+          "dataId": "frost_bite",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1hj3v9c_a",
+          "dataId": "glacial_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ngojk0_c",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1dib11c_5",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ntei2o_7",
+          "dataId": "numbing_gale",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0qdt43k_9",
+          "dataId": "ice_spear",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1r28we8_8",
+          "dataId": "killing_frost",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_037whz4_b",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0dbrdvk_4",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1r0naf4_3",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "discard": [],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1afwwsg_f",
+          "dataId": "soothe",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03nhxmo_j",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1uyd14w_i",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1i41veo_l",
+          "dataId": "hexbloom",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_09h2sxs_h",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1tl99mo_d",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_103nlz4_e",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0xj36dc_g",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0thfxts_k",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "Draugr plays Tackle → Huldra",
+      "  → Huldra takes 2 damage",
+      "Draugr plays Numbing Gale → Huldra",
+      "  → Huldra takes 5 damage",
+      "  → Huldra gains Dazed (2 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Huldra plays Iron Bark → Huldra",
+      "  ✨ Huldra's Dazed canceled by Sharp",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "Huldra plays Thorn Tithe → Draugr",
+      "  → Draugr takes 10 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "Draugr plays Frost Bite → Huldra",
+      "  → Huldra takes 3 damage",
+      "  → Huldra gains Burn (2 stacks)",
+      "Draugr plays Ice Spear → Huldra",
+      "  → Huldra takes 5 damage",
+      "  → Huldra gains Weakened (1 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Huldra plays Tackle → Draugr",
+      "  → Draugr takes 0 damage",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (3 → 2 stacks)",
+      "  → Huldra takes 2 damage from Burn",
+      "  🔥 Huldra — Burn deals 2 damage (2 stacks)",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "Draugr plays Rimefrost → Huldra",
+      "  → Huldra gains Weakened (1 stacks)",
+      "  ✨ Huldra's Sharp reduced by 1 by Dazed",
+      "Draugr plays Rimebreaker → Huldra",
+      "  → Huldra takes 10 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Huldra plays Thorn Tithe → Draugr",
+      "  → Draugr takes 7 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (4 → 3 stacks)",
+      "  → Huldra takes 1 damage from Burn",
+      "  🔥 Huldra — Burn deals 1 damage (1 stacks)",
+      "  ✅ Huldra — Burn wore off",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "Draugr plays Rimefrost → Huldra",
+      "  → Huldra gains Weakened (1 stacks)",
+      "  ✨ Huldra's Sharp reduced by 1 by Dazed",
+      "Draugr plays Rimefrost → Huldra",
+      "  → Huldra gains Weakened (1 stacks)",
+      "  ✨ Huldra's Sharp reduced by 1 by Dazed",
+      "Draugr plays Rimebreaker → Huldra",
+      "  → Huldra takes 4 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Hexbloom → Draugr",
+      "  → Draugr gains Poison (22 stacks)",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (3 → 2 stacks)",
+      "⚔️ Turn 5 — PLAYER's turn begins",
+      "Draugr plays Ice Spear → Huldra",
+      "  → Huldra takes 4 damage",
+      "  → Huldra gains Weakened (1 stacks)",
+      "Draugr plays Frost Bite → Huldra",
+      "  → Huldra takes 2 damage",
+      "  → Huldra gains Burn (2 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  → Draugr takes 18 damage from Poison",
+      "  ☠️ Draugr — Poison deals 18 damage (22 stacks)",
+      "⚔️ Turn 5 — ENEMY's turn begins",
+      "Huldra plays Tackle → Draugr",
+      "  → Draugr takes 0 damage",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "  → Huldra takes 2 damage from Burn",
+      "  🔥 Huldra — Burn deals 2 damage (2 stacks)",
+      "⚔️ Turn 6 — PLAYER's turn begins",
+      "Draugr plays Tackle → Huldra",
+      "  → Huldra takes 1 damage",
+      "Draugr plays Numbing Gale → Huldra",
+      "  → Huldra takes 3 damage",
+      "  ✨ Huldra's Sharp reduced by 2 by Dazed",
+      "Draugr plays Killing Frost → Huldra",
+      "  → Huldra takes 2 damage",
+      "  → Huldra gains Weakened (2 stacks)",
+      "  ✨ Huldra's Sharp reduced by 2 by Dazed",
+      "--- PLAYER ends their turn ---",
+      "  → Draugr takes 17 damage from Poison",
+      "  ☠️ Draugr — Poison deals 17 damage (21 stacks)",
+      "⚔️ Turn 6 — ENEMY's turn begins",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Tackle → Draugr",
+      "  → Draugr takes 0 damage",
+      "Huldra plays Thorn Tithe → Draugr",
+      "  → Draugr takes 6 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (1 → 0 stacks)",
+      "  ✅ Huldra — Regen wore off",
+      "  → Huldra takes 1 damage from Burn",
+      "  🔥 Huldra — Burn deals 1 damage (1 stacks)",
+      "  ✅ Huldra — Burn wore off",
+      "⚔️ Turn 7 — PLAYER's turn begins"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 0,
+    "cardsDrawnThisTurn": 3,
+    "nonNaturalCardsDrawnThisTurn": 0,
+    "lastProgramPlayed": "thorn_tithe",
+    "counters": {
+      "last_overheal": 0,
+      "last_heal_intended": 1,
+      "last_heal_power": 8,
+      "deck_shuffles": 4
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 0,
+      "Nature": 0,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 1,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T01:27:37.227Z"
+}

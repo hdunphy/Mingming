@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S4 - audhumbla baseline, before the milk",
+  "description": "One game, as she is today. Her Regen-as-ammo rebuild is designed but not built - capture what's wrong precisely first. Count the turns where you had an actual choice (predicted: near zero). Note every moment you would have DRUNK the Regen pile if the payoff card existed - if those moments are frequent and tense, the rebuild is right; if you never wished for it, say so before it's built.   [you: audhumbla_v2 | opponent: gullinbursti_v1]",
+  "tags": ["playtest", "round-3", "audhumbla_v2"],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "setup": {
+    "seed": "S4-audhumbla_v2-vs-gullinbursti_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "audhumbla", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "audhumbla_v2" }
+      ],
+      "deck": ["pale_mercy","pale_mercy","dawnstrike","dawnstrike","smite","healing_light","sacred_spring","radiant_spark","purify"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "gullinbursti", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "gullinbursti_v1",
+        "deck": ["water_slap","keen_edge","keen_edge","shield_shards","shield_shards","stone_bark","stone_fist","stone_fist","motherlode","spiked_carapace"]
+      }
+    ]
+  }
+}

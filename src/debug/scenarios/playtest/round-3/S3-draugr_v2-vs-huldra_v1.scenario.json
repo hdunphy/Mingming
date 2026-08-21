@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S3 - the tug-of-war, before we fix it",
+  "description": "The contested-status cell - your Dazed against their economy - worsens under every shape we measured. Direct input to the draugr second-lever design session. Name the turn you felt you'd lost agency, and write down what your hands wished the deck could do instead - that's his second lever. NOTE: the pack said 'huldra' with no OS suffix; this uses huldra_v1 to match round-1's B2 precedent - swap to huldra_v2 if that's what you meant.   [you: draugr_v2 | opponent: huldra_v1]",
+  "tags": ["playtest", "round-3", "draugr_v2"],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "setup": {
+    "seed": "S3-draugr_v2-vs-huldra_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "draugr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "draugr_v2" }
+      ],
+      "deck": ["rimefrost","rimefrost","water_slap","frost_bite","numbing_gale","killing_frost","ice_spear","glacial_slam","rimebreaker","rimebreaker"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "huldra", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "huldra_v1",
+        "deck": ["growth","growth","soothe","water_slap","iron_bark","iron_bark","thorn_tithe","thorn_tithe","hexbloom"]
+      }
+    ]
+  }
+}

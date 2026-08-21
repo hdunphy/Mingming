@@ -141,12 +141,45 @@ export class BattleEventBus {
         this.listeners.forEach(listener => listener(event));
     }
 
+    /**
+     * Is the bus live? TICKET 109 needs this as the **0-AI-SIM-COUNTS predicate**.
+     *
+     * Any counter placed inside the reducer is also executed by `TacticalAI`'s speculative plays -
+     * it runs whole card sequences through the real reducer to score them - so a naive counter
+     * measures the AI's imagination alongside the battle, inflating every rate by the branching
+     * factor. The AI runs that search muted, which makes "is the bus live" exactly the predicate
+     * that separates a real play from a simulated one.
+     */
+    public get isLive(): boolean {
+        return this.enabled;
+    }
+
     public mute(): void {
         this.enabled = false;
     }
 
     public unmute(): void {
         this.enabled = true;
+    }
+
+    /**
+     * TICKET 104. `mute`/`unmute` are a boolean, not a counter, so a nested muted section
+     * un-mutes the OUTER one when it finishes. The AI already runs whole card sequences
+     * through the reducer under `mute()`, and the damage preview now does the same - so a
+     * preview computed from inside an AI simulation would have let the AI's remaining
+     * candidate plays emit real events into the UI.
+     *
+     * Use this instead of a bare mute/unmute pair for any new muted section: it restores
+     * whatever the previous state was, so nesting is safe in either order.
+     */
+    public runMuted<T>(fn: () => T): T {
+        const wasEnabled = this.enabled;
+        this.enabled = false;
+        try {
+            return fn();
+        } finally {
+            this.enabled = wasEnabled;
+        }
     }
 }
 

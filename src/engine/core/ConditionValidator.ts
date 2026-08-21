@@ -83,6 +83,12 @@ export const ConditionValidator = {
             if (!context.statusApplied || !condition.statusAppliedIn.includes(context.statusApplied)) return false;
         }
 
+        // 4b-ii. Ticket 107: the exclusion form. A hook that applies a status in response to a
+        // status application has to be able to say "but not the one I apply", or it feeds itself.
+        if (condition.statusAppliedNotIn) {
+            if (context.statusApplied && condition.statusAppliedNotIn.includes(context.statusApplied)) return false;
+        }
+
         // 4c. Program Category Checks
         if (condition.programCategoryIn) {
             if (!context.program || !condition.programCategoryIn.includes(context.program.category)) return false;

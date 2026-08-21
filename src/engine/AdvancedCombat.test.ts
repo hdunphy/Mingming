@@ -129,7 +129,7 @@ describe('Advanced Combat Mechanics', () => {
     // Ticket 62 shipped a FOUR-tier spread table (cap 3 -> 4). This test read its tiers out of
     // `burnConfig` and so stayed green through that change while its title went stale - a green
     // test asserting the wrong sentence. Title and coverage both corrected here.
-    it('Burn Scaling: 1/2/3/4 stacks = 1.5%/3%/5%/8% maxHP, with shred from 2 stacks up', () => {
+    it('Burn Scaling: 1/2/3/4 stacks = 1.5%/3%/5%/8% maxHP, with shred from 2 stacks up, and the pile is PERMANENT (ticket 93)', () => {
         const burnBehavior = getStatusBehavior('Burn');
         const burnConfig = DEFAULT_GAME_CONFIG.status.burnStacks;
 
@@ -144,28 +144,28 @@ describe('Advanced Combat Mechanics', () => {
         expect(result1.defenseShred).toBe(Math.floor(100 * burnConfig[0].defShredPercent));
         // docs/power_curve_spec.md rev 3: Burn now decays 1 stack/turn (was permanent) -
         // 1 stack ticks its damage once, then wears off.
-        expect(result1.updatedInstance).toBeNull();
+        expect(result1.updatedInstance?.stacks).toBe(1); // ticket 93: permanent - the pile stays
 
         // 2 Stacks - ticks at the 2-stack tier, then decays to 1 (not removed yet).
         const burn2: StatusEffectInstance = { id: 'b2', type: 'Burn', stacks: 2 };
         const result2 = burnBehavior.endTurn(burn2, entity);
         expect(result2.damage).toBe(Math.floor(1000 * burnConfig[1].damagePercent));
         expect(result2.defenseShred).toBe(Math.floor(100 * burnConfig[1].defShredPercent));
-        expect(result2.updatedInstance?.stacks).toBe(1);
+        expect(result2.updatedInstance?.stacks).toBe(2);
 
         // 3 Stacks - ticks at the 3-stack tier, then decays to 2.
         const burn3: StatusEffectInstance = { id: 'b3', type: 'Burn', stacks: 3 };
         const result3 = burnBehavior.endTurn(burn3, entity);
         expect(result3.damage).toBe(Math.floor(1000 * burnConfig[2].damagePercent));
         expect(result3.defenseShred).toBe(Math.floor(100 * burnConfig[2].defShredPercent));
-        expect(result3.updatedInstance?.stacks).toBe(2);
+        expect(result3.updatedInstance?.stacks).toBe(3);
 
         // 4 Stacks - the cap, and the top tier: 8% + 5% shred, unchanged by ticket 62.
         const burn4: StatusEffectInstance = { id: 'b4', type: 'Burn', stacks: 4 };
         const result4 = burnBehavior.endTurn(burn4, entity);
         expect(result4.damage).toBe(Math.floor(1000 * burnConfig[3].damagePercent));
         expect(result4.defenseShred).toBe(Math.floor(100 * burnConfig[3].defShredPercent));
-        expect(result4.updatedInstance?.stacks).toBe(3);
+        expect(result4.updatedInstance?.stacks).toBe(4);
 
         // Pinned in absolute terms too, so the next tier-table edit cannot slide past this
         // test the way the last one did.

@@ -654,7 +654,7 @@
     "capacitor": {
         "id": "capacitor",
         "name": "Capacitor",
-        "description": "Gain 2 Energy next turn.",
+        "description": "Gain 2 Energy next turn and 3 Sharp.",
         "element": "None",
         "target": "Self",
         "category": "Skill",
@@ -670,6 +670,12 @@
                 "type": "STATUS",
                 "status": "Energized",
                 "stacks": 2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
                 "target": "SELF"
             }
         ]
@@ -2006,7 +2012,7 @@
     "firestorm_talon": {
         "id": "firestorm_talon",
         "name": "Firestorm Talon",
-        "description": "Spend all Energy: 15 power x target's Burn x X.",
+        "description": "Spend all Energy: 10 power x target's Burn x X.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2020,7 +2026,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 10,
                 "scaling": "BURN_TIMES_ENERGY",
                 "target": "TARGET"
             }
@@ -2136,7 +2142,7 @@
     "momentum_crash": {
         "id": "momentum_crash",
         "name": "Momentum Crash",
-        "description": "Cash the charge: deal 8 Air damage for every stack of Strengthened you have.",
+        "description": "Cash the charge: consume all your Strengthened and deal 8 Air damage per stack consumed.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
@@ -2149,9 +2155,15 @@
         ],
         "actions": [
             {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
                 "type": "ATTACK",
                 "power": 8,
-                "scaling": "STRENGTH_STACKS",
+                "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
         ]
@@ -3254,7 +3266,7 @@
     "purify": {
         "id": "purify",
         "name": "Purify",
-        "description": "Remove 2 Poison and 2 Burn from yourself.",
+        "description": "Remove 1 Poison, 1 Burn, 2 Weakened and 2 Dazed from yourself.",
         "element": "Light",
         "target": "Self",
         "category": "Skill",
@@ -3269,12 +3281,24 @@
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": -2,
+                "stacks": -1,
                 "target": "SELF"
             },
             {
                 "type": "STATUS",
                 "status": "Burn",
+                "stacks": -1,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": -2,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
                 "stacks": -2,
                 "target": "SELF"
             }
@@ -4573,7 +4597,7 @@
     "shrug_off": {
         "id": "shrug_off",
         "name": "Shrug Off",
-        "description": "Remove 1 Dazed and 1 Weakened.",
+        "description": "Remove 1 Weakened, then gain 2 Sharp.",
         "element": "Nature",
         "target": "Self",
         "category": "Skill",
@@ -4587,14 +4611,14 @@
         "actions": [
             {
                 "type": "STATUS",
-                "status": "Dazed",
+                "status": "Weakened",
                 "stacks": -1,
                 "target": "SELF"
             },
             {
                 "type": "STATUS",
-                "status": "Weakened",
-                "stacks": -1,
+                "status": "Sharp",
+                "stacks": 2,
                 "target": "SELF"
             }
         ]
@@ -4932,7 +4956,7 @@
     "rimebreaker": {
         "id": "rimebreaker",
         "name": "Rimebreaker",
-        "description": "25 power for each different debuff on the target.",
+        "description": "20 power for each different status on the target - buffs, debuffs, anyone's.",
         "element": "Ice",
         "target": "Single",
         "category": "Attack",
@@ -4946,9 +4970,9 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 25,
+                "power": 20,
                 "target": "TARGET",
-                "scaling": "DISTINCT_STATUS"
+                "scaling": "ANY_STATUS"
             }
         ]
     },
@@ -5063,12 +5087,12 @@
     "bracing_cold": {
         "id": "bracing_cold",
         "name": "Bracing Cold",
-        "description": "15 power. Gain 3 Strengthened.",
+        "description": "15 power. Gain 9 Strengthened.",
         "element": "Ice",
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
-        "baseCost": 1,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -5083,7 +5107,7 @@
             {
                 "type": "STATUS",
                 "status": "Strengthened",
-                "stacks": 3,
+                "stacks": 9,
                 "target": "SELF"
             }
         ]
@@ -5749,6 +5773,58 @@
             {
                 "type": "ATTACK",
                 "power": 25,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "morning_dew": {
+        "id": "morning_dew",
+        "name": "Morning Dew",
+        "description": "Gain 5 Regen.",
+        "element": "Light",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Regen",
+                "stacks": 5,
+                "target": "SELF"
+            }
+        ]
+    },
+    "drink_deep": {
+        "id": "drink_deep",
+        "name": "Drink Deep",
+        "description": "Drink deep: consume all your Regen and deal 15 Light damage per stack consumed.",
+        "element": "Light",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Regen",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
         ]

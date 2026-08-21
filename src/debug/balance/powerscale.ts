@@ -1,3 +1,4 @@
+import { STATUS_MODEL } from '../../engine/core/Hooks';
 /**
  * The Card Budget Heuristic - `docs/balance_testing.md` section 1, tuned to match
  * `docs/power_curve_spec.md` rev 3 (the "1 energy = 40 power" rework).
@@ -171,11 +172,23 @@ const POWER_PER_PERCENT_MAXHP = 3;
  * same 25% as 13. Any card designed against the uncapped price is paying for stacks the
  * engine throws away.
  */
+/**
+ * TICKET 102: how many stacks the price counts.
+ *
+ * Under the PERCENT shape the damage effect capped at a net 25% swing, so stack 14 and beyond were
+ * worth literally nothing and the price clamped there. **The POWER shape has no cap** - stack 20 is
+ * worth exactly as much as stack 2 - so the clamp has to go, and a card that hands out a big pile is
+ * now priced for all of it. That is the single largest repricing in this change: `keen_edge` grants
+ * 5 Sharp, `iron_will` 4 Strengthened, `strength_burst` 5, and every one of them used to be scored
+ * against a ceiling they now blow through.
+ *
+ * Read off `STATUS_MODEL` rather than mirrored by hand, so a future change of shape or rate cannot
+ * leave the scorer describing a mechanic the engine no longer has (0-BURN-PRICE-LAG, twice).
+ */
 const streamStacks = (stacks: number): number =>
-    Math.min(stacks, Math.ceil(STATUS_PCT_CAP_MIRROR / STATUS_PCT_PER_STACK_MIRROR));
-/** Mirrors Hooks.ts applyDamageModifiers - kept in sync with the engine constants. */
-const STATUS_PCT_PER_STACK_MIRROR = 0.02;
-const STATUS_PCT_CAP_MIRROR = 0.25;
+    STATUS_MODEL.shape === 'POWER'
+        ? stacks
+        : Math.min(stacks, Math.ceil(STATUS_MODEL.pctCap / STATUS_MODEL.pctPerStack));
 
 /**
  * 2%/stack, 25% cap; offense stream (accelerates a fight, priced higher).
@@ -191,12 +204,37 @@ const STATUS_PCT_CAP_MIRROR = 0.25;
  * a self-hit the model also under-charged (see ASSUMED_MAX_HP below), so a card that costs
  * 13% of a health pool to gain ~1 HP of damage scored comfortably UNDER its 0-cost cap.
  */
-const OFFENSE_STREAM_POWER_PER_STACK = 5;
+/**
+ * TICKET 102 re-derivation, POWER shape. A stack of Strengthened adds `powerPerStack` POWER to every
+ * attack you make for the rest of the fight. Its worth is therefore
+ *
+ *     powerPerStack x (attacks it will ride)
+ *
+ * and "attacks it will ride" is the same horizon question every other future-scaling status answers
+ * here: ~2 attacks a turn (measured 1.7-3.6 cards/turn across the roster, most of them attacks)
+ * over the 2.5-turn horizon `TacticalAI` already uses = **5 attacks**.
+ *
+ * At `powerPerStack: 1` that lands on **5 power a stack** - the same number the percent shape was
+ * priced at, arrived at from the other direction. That coincidence is worth stating plainly: +1
+ * power a stack is worth about what 2% a stack was worth IN TOTAL. What changed is not the average
+ * value, it is that the value is now VISIBLE per hit and, crucially, **uncapped** - which is what
+ * moves the engines and what the grid measured.
+ */
+const STACK_ATTACK_HORIZON = 5;
+const OFFENSE_STREAM_POWER_PER_STACK = STATUS_MODEL.shape === 'POWER'
+    ? STATUS_MODEL.powerPerStack * STACK_ATTACK_HORIZON
+    : 5;
 /**
  * 2%/stack, 25% cap; defense stream (stalls a fight, priced lower - see cap note below).
  * Ticket 28: 10 -> 3.5, holding the 1.5:1 offense:defense ratio the old pair encoded.
  */
-const DEFENSE_STREAM_POWER_PER_STACK = 3.5;
+const DEFENSE_STREAM_POWER_PER_STACK = STATUS_MODEL.shape === 'POWER'
+    // The defensive pair rides the same count of attacks - the opponent's rather than yours - so the
+    // horizon term is identical and only the 1.5:1 offence premium separates them. That ratio is a
+    // design choice this file has encoded since ticket 28 (accelerating a fight is worth more than
+    // stalling one) and the re-denomination gives no reason to revisit it.
+    ? STATUS_MODEL.powerPerStack * STACK_ATTACK_HORIZON * (3.5 / 5)
+    : 3.5;
 /**
  * Burn's cumulative price to reach N stacks - tiered, not linear, because Burn decays 1/turn
  * and a pile of N therefore ticks N, N-1, ... 1 before it wears off.
@@ -213,14 +251,35 @@ const DEFENSE_STREAM_POWER_PER_STACK = 3.5;
  * `[4.5, 13.5, 28.5, 52.5]` - cumulative 1.5 / 4.5 / 9.5 / 17.5% of a pool at the spec's
  * 3-power-per-1%-maxHP rate. It was `[4.5, 15, 40]` on the old three-tier table.
  */
-export const BURN_TIER_POWER: number[] = DEFAULT_GAME_CONFIG.status.burnStacks.reduce<number[]>(
-    (acc, tier) => {
-        const priorPercent = acc.length === 0 ? 0 : acc[acc.length - 1] / POWER_PER_PERCENT_MAXHP;
-        acc.push((priorPercent + tier.damagePercent * 100) * POWER_PER_PERCENT_MAXHP);
-        return acc;
-    },
-    [],
-);
+/**
+ * TICKET 93: how long a PERMANENT pile is priced for.
+ *
+ * The triangular model below assumes the pile decays, so a pile of N delivers N + (N-1) + ... + 1
+ * tiers and then stops. With `decayPerTurn: 0` that sum is unbounded and the price is undefined -
+ * `burnPricing.test.ts` proved it the hard way by looping forever.
+ *
+ * A permanent pile is therefore priced over a fixed HORIZON, which is the same shape
+ * `TacticalAI.statusValue` already uses for stream statuses (`STATUS_HORIZON_TURNS`). Two turns is
+ * chosen rather than the AI's 2.5 because it very nearly preserves the price of a FULL pile across
+ * the change: a 4-stack pile used to deliver 8+5+3+1.5 = 17.5% of a pool over its life, and at a
+ * horizon of 2 it delivers 16%. What does move - correctly - is the price of SMALL piles: one
+ * stack was 1.5% and is now 3%, because a single stack that never wears off really is worth twice
+ * one that ticks once and dies.
+ */
+export const BURN_PERMANENT_HORIZON_TURNS = 2;
+
+export const BURN_TIER_POWER: number[] = BURN_CONFIG.decayPerTurn === 0
+    ? DEFAULT_GAME_CONFIG.status.burnStacks.map(
+        tier => tier.damagePercent * 100 * BURN_PERMANENT_HORIZON_TURNS * POWER_PER_PERCENT_MAXHP,
+    )
+    : DEFAULT_GAME_CONFIG.status.burnStacks.reduce<number[]>(
+        (acc, tier) => {
+            const priorPercent = acc.length === 0 ? 0 : acc[acc.length - 1] / POWER_PER_PERCENT_MAXHP;
+            acc.push((priorPercent + tier.damagePercent * 100) * POWER_PER_PERCENT_MAXHP);
+            return acc;
+        },
+        [],
+    );
 
 /**
  * Price of ONE detonation - ticket 62's overflow, at the same rate as everything else here.
@@ -350,7 +409,7 @@ const MEASURED_BOARD_PILE: Record<string, number> = {
  * fractional-stack law applies - every function reached here interpolates or is a formula, and
  * none of them index an array (the burnPower NaN lesson).
  */
-function statusPileValue(status: string | undefined, stacks: number): number {
+export function statusPileValue(status: string | undefined, stacks: number): number {
     if (!status || stacks <= 0) return 0;
     if (status === 'Strengthened' || status === 'Dazed') return streamStacks(stacks) * OFFENSE_STREAM_POWER_PER_STACK;
     if (status === 'Weakened' || status === 'Sharp') return streamStacks(stacks) * DEFENSE_STREAM_POWER_PER_STACK;
@@ -477,10 +536,28 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     // conditional on the pile existing — except ASSUMED_DISTINCT_STATUS, which counts zeros and
     // is therefore the only one needing no floor caveat.
     const ASSUMED_DISTINCT_STATUS = 1;      // measured 0.70, unconditional
+    // TICKET 107: the any-status variant for `rimebreaker`'s rework, measured the SAME way as its
+    // debuff-only sibling above - distinct status TYPES on the card's target, counted
+    // unconditionally, zeros included - so the two constants are comparable.
+    // `scratch/anystatuscensus.ts`, 32,603 card-aims: **roster mean 2.01, median 2**.
+    // Two numbers from the same run worth recording:
+    //   - draugr_v2's OWN targets read 3.18, because his deck loads them. The constant prices the
+    //     card for the REGISTRY (anyone can draft it), not for the deck that ships it - which is
+    //     the same choice ticket 66 made.
+    //   - debuff-only has drifted 0.70 -> 1.19 since ticket 66 measured it, which is the POWER
+    //     re-denomination putting more statuses on more boards. It still rounds to 1, so
+    //     ASSUMED_DISTINCT_STATUS stays - but it is no longer the comfortable margin it was.
+    const ASSUMED_ANY_STATUS = 2;           // measured 2.01, unconditional
     const ASSUMED_WEAKENED_STACKS = 5;      // measured 5.04
     const ASSUMED_BARKSHIELD_STACKS = 7;    // measured 7.70
 
-    const ASSUMED_CONSUMED_STACKS: Record<string, number> = { Burn: 1.5, Poison: 8, Strengthened: 8 };
+    // TICKET 101: `Regen: 10` is MEASURED, not guessed - `scratch/drinkcensus.ts` walked 60 real
+    // games of the rebuilt audhumbla_v2 and recorded the pile at the instant `drink_deep`
+    // resolved: mean 9.85, median 9, p90 17. The ticket expected ~6; the battery banks faster
+    // than that because PRIMORDIAL_MILK grants 3 per heal card against Regen's 1/turn decay.
+    // Without an entry here the fallback is ONE stack, and the pricer read `drink_deep` at 1.3
+    // against a 5.2-6.5 band - a card it could not see at all.
+    const ASSUMED_CONSUMED_STACKS: Record<string, number> = { Burn: 1.5, Poison: 8, Strengthened: 8, Regen: 10 };
     const consumedCount = (status?: string): number =>
         (status && ASSUMED_CONSUMED_STACKS[status] !== undefined)
             ? ASSUMED_CONSUMED_STACKS[status]
@@ -611,6 +688,7 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // included - so it needs no floor caveat. It was over-priced by 4.3x, which is most
             // of why `rimebreaker` carried a redline row.
             else if (action.scaling === 'DISTINCT_STATUS') power *= ASSUMED_DISTINCT_STATUS;
+            else if (action.scaling === 'ANY_STATUS') power *= ASSUMED_ANY_STATUS;
             // Ticket 66: BARKSHIELD_STACKS 3 -> 7 (measured 7.70, the largest board pile in the
             // game). Ticket 50's hand-derived "7-10" guess was close; the measurement replaces it.
             else if (action.scaling === 'BARKSHIELD_STACKS') power *= ASSUMED_BARKSHIELD_STACKS;

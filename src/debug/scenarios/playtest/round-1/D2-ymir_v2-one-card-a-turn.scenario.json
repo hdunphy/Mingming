@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "D2 - one card a turn",
+  "description": "Her OS caps you at ONE card a turn, so most of the hand is unplayable by design. Does that read as a cost you are paying, or as the game being broken?   [you: ymir_v2 | opponent: control]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "ymir_v2"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "D2-ymir_v2-one-card-a-turn",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "ymir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "ymir_v2"
+        }
+      ],
+      "deck": [
+        "bracing_cold",
+        "bracing_cold",
+        "thaw",
+        "ice_spear",
+        "ice_spear",
+        "numbing_gale",
+        "numbing_gale",
+        "glacial_maul",
+        "glacial_maul",
+        "glacial_slam"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "control_v1",
+        "deck": [
+          "baseline_jab",
+          "baseline_jab",
+          "baseline_scuff",
+          "baseline_scuff",
+          "baseline_strike",
+          "baseline_strike",
+          "baseline_snare",
+          "baseline_snare",
+          "baseline_slam",
+          "baseline_purge"
+        ]
+      }
+    ]
+  }
+}

@@ -37,10 +37,33 @@
 [x] New enemy AI ignores Stun and was able to perform a move through the stun. We need to still have checks for stun and sleep status effects and ensure the "moves" still use the buffs/debuffs.
 [x] I don't see the intenion of the enemy AI. It needs to calculate it's move on the beginning of the player's turn, not on its own turn.
 [x] OS doesn't make sense on the enemy AI anymore. Kraken gains heal on card draw, but it doesn't use cards anymore. For now disable them on enemies.
-[ ] Extra energy should be shown on the mingming card with a different color. Like ratatoskr gains energy the next turn but his bar shows 3/3 it should show 4/3.
+[x] Extra energy should be shown on the mingming card with a different color. Like ratatoskr gains energy the next turn but his bar shows 3/3 it should show 4/3.
 [x] early on we need to increase the chance of a blueprint. If a player has < 3 mingmings available blueprint chances should be 75% chance of finding one.
 [x] It would be nice to show the expected damage on the card when hovering over an enemy.
 
 [x] I added a bunch of nature cards in the deck tab, but they don't show up in my battle deck.
 
-[ ] Poison damage was understood as damage plus one poison stack. Poison should be calculated by the power.
+[x] Poison damage was understood as damage plus one poison stack. Poison should be calculated by the power.
+
+Play Test Notes:
+[x] Need a card played counter (ticket 90: HUD counter top-left, beside the turn number)
+[x] Damage is not properly previewed when hovering over the card for scaling cards (dmg per card played) (ticket 90: the post-damage scalings now come from ONE shared helper used by both the executor and the preview - and the preview was also off by one, because the reducer counts the card being cast)
+[x] Damage calculations felt wrong. Also its hard to tell how its working since it was accurate to the preview. Although power to damage is a little unclear. (ticket 90: two real causes - the status tooltips were wrong by 10x, and the preview ignored per-card scaling. The rest is real and is NOT a bug: at level 15 a 15-power card deals 2-3 damage into an 87 HP bar, and sleipnir_v1's damage is meant to come from hoofbeat_daemon and momentum_crash, not from her small cards - see research/playtest-round-1.md)
+[x] Strengthen and dazed status tooltip is wrong (ticket 90: they claimed 20% per stack; the engine applies 2% per stack capped at +-25%. All four of Strengthened/Weakened/Dazed/Sharp were wrong by 10x)
+[x] I don't see a turn counter (ticket 90: HUD counter top-left)
+[x] The snapshot is hard to save. I don't always know if that is my last turn. (ticket 90: Ctrl+Shift+E now falls back to the FINAL state of the last battle, so it works on the victory screen and after it)
+[ ] I can be put into sleep cycles. You can apply sleep status to someone who already has it. That shouldn't be allowed. Also it wasn't clear if the wake up was working on both damage and turn.
+
+Ticket 90 note: the extra-energy display ([ ] "should show 4/3") is still open above, but the
+over-energy branch IS implemented in MingmingUnit - currentEnergy renders in cyan when it exceeds
+maxEnergy. If it still reads 3/3 when Ratatoskr banks a point, the bug is in when Energized is
+converted into Energy, not in the display. Say so and I will chase that instead.
+
+8/19/2026 (published branch)
+[x] Sleep lock: Huldra's move applies Asleep every other turn and re-applying RESET the timer to 3,
+    so the player never woke up. (ticket 91: re-applying Asleep while already asleep is now a no-op,
+    matching Stunned - which has always worked that way. The anti-lock machinery already existed and
+    was simply never reached: waking grants a turn of StableOS and StableOS refuses Asleep outright,
+    but the timer never expired so the immunity never fired. Sleep now always ends within 3 turns and
+    is always followed by an awake turn. Costs draugr_v1 - the sleep deck - 6 points of field win
+    rate, 47.6 -> 41.6, and she stays in band with FEWER blowout cells.)

@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import { selectCard, playProgram, endTurn } from '../store/battleSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { calculateDamage } from '../../engine/combatUtils';
 import type { IBattleState } from '../../engine/types';
 import { validateSingleConstraint, getEffectiveCardCost } from '../../engine/battleReducer';
 import { executeCostCalculated } from '../../engine/resolutionEngine';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { isUnaffordableCost, blockedCostReason } from '../../engine/core/CustomFirmware';
+import { computeDamagePreview } from '../utils/damagePreview';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { getElementAccent } from '../utils/contrastText';
@@ -98,10 +99,20 @@ const CardHand: React.FC<{
                         const effectiveCost = source && battleState
                             ? executeCostCalculated(battleState, source, undefined, data, printedCost).cost
                             : printedCost;
-                        const isDiscounted = effectiveCost < card.currentCost;
+                        // TICKET 105: a cost hook can return an UNAFFORDABLE sentinel rather than a
+                        // price - hel_v2 refuses a Dark cast that would be lethal or over her blood
+                        // budget. That sentinel used to render as the literal "999" on the card face.
+                        // Show the real printed cost, grey the card, and put the reason in the tooltip.
+                        const isBlocked = isUnaffordableCost(effectiveCost);
+                        const blockReason = isBlocked && source && battleState
+                            ? blockedCostReason(battleState, source, data)
+                            : null;
+                        const displayCost = isBlocked ? printedCost : effectiveCost;
+                        const isDiscounted = !isBlocked && effectiveCost < card.currentCost;
                         const constraints = (data.constraints || [])
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: effectiveCost }))
                             .map(formatConstraint);
+                        if (isBlocked) constraints.push(blockReason ?? 'Cannot be paid for right now');
                         // Per-unit OS card limit (e.g. YMIR v2 GLACIAL_PACE_OS: 2 cards/turn).
                         // The reducer rejects the play silently, so the tooltip carries the reason.
                         const sourceOS = source?.activeOS ? getOSBehavior(source.activeOS) : undefined;
@@ -121,13 +132,16 @@ const CardHand: React.FC<{
                         const stabAccent = isStabMatch ? getElementAccent(data.element) : null;
 
                         // Damage Preview on Card logic
+                        // TICKET 105: this was a THIRD implementation of the damage preview - it
+                        // called `calculateDamage` on the card's first ATTACK action, which is the
+                        // exact shape ticket 104 replaced on the unit face. So the number on the CARD
+                        // and the number on the TARGET disagreed on every card 104 fixed: multi-hit,
+                        // consume-scaling, conditional branches, firmware bonuses. Same helper now, so
+                        // there is one preview in the game and `previewParity.test.ts` covers it.
                         let cardPreviewDamage = 0;
                         if (isSelected && hoveredEntityId && battleState) {
-                            const target = enemyParty.find(e => e.id === hoveredEntityId);
-                            const attackAction = data.actions.find(a => a.type === 'ATTACK');
-                            if (target && source && attackAction) {
-                                cardPreviewDamage = calculateDamage(source, target, data, attackAction.power || 0, battleState);
-                            }
+                            cardPreviewDamage = computeDamagePreview(
+                                battleState, source?.id, card.id, hoveredEntityId).damage;
                         }
 
                         return (
@@ -180,10 +194,12 @@ const CardHand: React.FC<{
                             >
                                 {/* Cost badge */}
                                 <div
-                                    className={`card-cost ${isDiscounted ? 'card-cost-discounted' : ''}`}
-                                    title={isDiscounted ? `Discounted from ${card.currentCost} (primed effect)` : undefined}
+                                    className={`card-cost ${isDiscounted ? 'card-cost-discounted' : ''}${isBlocked ? ' card-cost-blocked' : ''}`}
+                                    title={isBlocked
+                                        ? (blockReason ?? 'Cannot be paid for right now')
+                                        : (isDiscounted ? `Discounted from ${card.currentCost} (primed effect)` : undefined)}
                                 >
-                                    {effectiveCost}
+                                    {displayCost}
                                     {isDiscounted && <span className="card-cost-original">{card.currentCost}</span>}
                                 </div>
                                 {isStabMatch && source && (

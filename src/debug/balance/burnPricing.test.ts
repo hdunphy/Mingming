@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { burnPower, BURN_TIER_POWER, BURN_DETONATION_POWER, calculatePowerscale } from './powerscale';
+import { burnPower, BURN_TIER_POWER, BURN_DETONATION_POWER, calculatePowerscale, BURN_PERMANENT_HORIZON_TURNS } from './powerscale';
 import { getStatusBehavior, BURN_CONFIG } from '../../engine/StatusBehaviors';
 import { DEFAULT_GAME_CONFIG } from '../../engine/data/gameConfig';
 import type { IBattleEntity, StatusEffectInstance, ProgramData } from '../../engine/types';
@@ -32,10 +32,16 @@ function engineTotalDamage(stacks: number): number {
     const applied = behavior.onApply([], stacks, frame());
     let total = applied.immediateDamage;
     let instance = applied.updatedEffects.find(e => e.type === 'Burn') as StatusEffectInstance | undefined;
-    while (instance) {
+    // Ticket 93: a PERMANENT pile never expires, so "until it wears off" is not a bound - this
+    // loop used to hang the whole suite. Permanence is priced over BURN_PERMANENT_HORIZON_TURNS
+    // instead, and the engine reading has to use the same horizon or the two cannot agree.
+    let ticks = 0;
+    const maxTicks = BURN_CONFIG.decayPerTurn === 0 ? BURN_PERMANENT_HORIZON_TURNS : Infinity;
+    while (instance && ticks < maxTicks) {
         const ticked = behavior.endTurn(instance, frame());
         total += ticked.damage;
         instance = ticked.updatedInstance ?? undefined;
+        ticks++;
     }
     return total;
 }
@@ -49,7 +55,8 @@ describe('burnPower agrees with the engine', () => {
 
     it('is derived from the live tier table, not transcribed from it', () => {
         expect(BURN_TIER_POWER).toHaveLength(DEFAULT_GAME_CONFIG.status.burnStacks.length);
-        expect(BURN_TIER_POWER).toEqual([4.5, 13.5, 28.5, 52.5]);
+        // Ticket 93: permanence re-derives the table on a fixed horizon rather than a decay sum.
+        expect(BURN_TIER_POWER).toEqual([9, 18, 30, 48]);
         expect(BURN_DETONATION_POWER).toBe(42);
     });
 
@@ -63,11 +70,13 @@ describe('burnPower agrees with the engine', () => {
         }
     });
 
-    it('is NOT monotonic — 5 stacks price below 4, because the detonation spends the pile', () => {
-        expect(burnPower(5)).toBeLessThan(burnPower(4));
-        expect(burnPower(9)).toBeLessThan(burnPower(8));
+    it('is monotonic again under permanence — 5 stacks price ABOVE 4 (ticket 93)', () => {
+        // A detonation still SPENDS the pile, but what survives no longer decays, so crossing
+        // the cap is now worth more than sitting on it - the opposite of the decaying model.
+        expect(burnPower(5)).toBeGreaterThan(burnPower(4));
+        expect(burnPower(9)).toBeGreaterThan(burnPower(8));
         // and the engine says the same thing, which is the point
-        expect(enginePower(5)).toBeLessThan(enginePower(4));
+        expect(enginePower(5)).toBeGreaterThan(enginePower(4));
     });
 
     it('scores zero and negative stack counts as nothing', () => {
@@ -85,18 +94,18 @@ describe('a Burn card is scored at the new rate', () => {
     } as unknown as ProgramData);
 
     // Card scores are reported to 1 decimal, so these are the rounded form of
-    // burnPower(N) / 10 - 2.85 -> 2.9, 5.25 -> 5.3, 4.65 -> 4.7.
-    it('a 3-stack Burn card now scores 2.9, where the old three-tier table said 4.0', () => {
-        expect(calculatePowerscale(card(3)).score).toBe(2.9);
+    // burnPower(N) / 10, ticket 93's permanent table: 3.0 at 3 stacks, 4.8 at 4, 5.1 at 5.
+    it('a 3-stack Burn card scores 3.0 under permanence (ticket 93)', () => {
+        expect(calculatePowerscale(card(3)).score).toBe(3);
     });
 
-    it('a 4-stack Burn card reaches the cap and scores 5.3', () => {
-        expect(calculatePowerscale(card(4)).score).toBe(5.3);
+    it('a 4-stack Burn card reaches the cap and scores 4.8', () => {
+        expect(calculatePowerscale(card(4)).score).toBe(4.8);
     });
 
-    it('a 5-stack Burn card scores BELOW a 4-stack one — 4.7 against 5.3', () => {
-        expect(calculatePowerscale(card(5)).score).toBe(4.7);
-        expect(calculatePowerscale(card(5)).score).toBeLessThan(calculatePowerscale(card(4)).score);
+    it('a 5-stack Burn card scores ABOVE a 4-stack one — 5.1 against 4.8', () => {
+        expect(calculatePowerscale(card(5)).score).toBe(5.1);
+        expect(calculatePowerscale(card(5)).score).toBeGreaterThan(calculatePowerscale(card(4)).score);
     });
 });
 
@@ -110,9 +119,9 @@ describe('fractional stack counts (ASSUMED_STATUS_COUNT is 1.5)', () => {
         }
     });
 
-    it('1.5 stacks price at the midpoint of 1 and 2', () => {
+    it('1.5 stacks price at the midpoint of 1 and 2 (9 and 18 under permanence)', () => {
         expect(burnPower(1.5)).toBeCloseTo((burnPower(1) + burnPower(2)) / 2, 6);
-        expect(burnPower(1.5)).toBe(9);
+        expect(burnPower(1.5)).toBe(13.5);
     });
 
     it('stays monotonic BELOW the cap, where interpolation applies', () => {
@@ -163,7 +172,8 @@ describe('the 1.5 consumed-stack assumption is BURN-ONLY', () => {
         // `ash_communion` consumes BURN at 1.5 and is unmoved, which is the point of the block.
         const ash = GetProgramData('ash_communion');
         const umbral = GetProgramData('umbral_feast');
-        if (ash) expect(calculatePowerscale(ash).score).toBe(4.1);
+        // Ticket 93: ash_communion consumes Burn, so permanence re-prices what it eats.
+        if (ash) expect(calculatePowerscale(ash).score).toBe(4.6);
         if (umbral) expect(calculatePowerscale(umbral).score).toBe(14.9);
     });
 });

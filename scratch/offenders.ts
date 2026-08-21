@@ -82,6 +82,43 @@ if (DECK === 'fenrir_v1') {
         if (stAct) stAct.stacks = Number(knob.str);
     }
 }
+if (DECK === 'sleipnir_v1') {
+    // MOMENTUM_DRIVE grants 2 Strengthened per 0-cost card. `momentum` sets that rate; the
+    // waste test is whether HALVING it costs her anything, because she applies ~20 stacks a
+    // game into a payoff that reads at most STRENGTH_STACK_CAP (8) and a damage bonus that
+    // caps at +25% (12.5 stacks).
+    const w = H.sleipnir_v1.hooks.find(h => h.id === 'sleipnir_v1_hook');
+    if (w && knob.momentum) {
+        const st = w.do?.find(x => x.type === 'STATUS') as { stacks?: number } | undefined;
+        if (st) st.stacks = Number(knob.momentum);
+    }
+}
+// Ticket 94 - the three engines behind 16 of the 20 remaining absolutes.
+// `nourish` - NOURISH_ROUTINE converts this fraction of a heal's printed power into damage. At
+// 0.5 audhumbla_v2's whole offence is a fraction of her sustain, which is why her games run 10.5
+// turns and why every result is decided by one inequality instead of by play.
+if (DECK === 'audhumbla_v2' && knob.nourish) {
+    const n = H.audhumbla_v2.hooks.find(h => h.id === 'aud_v2_nourish');
+    const atk = n?.do?.find(x => x.type === 'ATTACK') as { power?: number } | undefined;
+    if (atk) atk.power = Number(knob.nourish);
+}
+// `shield=a:b:c` - gullinbursti's Bark Shield grants, in deck order: shield_shards,
+// spiked_carapace, stone_bark. Sharp is CAPPED at -25% and is his identity, so it is untouched;
+// Bark Shield absorbs point for point with no cap, which is what makes the wall unbreakable
+// rather than merely strong.
+if (DECK.startsWith('gullinbursti') && knob.shieldnums) {
+    const [shards, carapace, bark] = knob.shieldnums.split(':').map(Number);
+    const PR = (await import('../src/engine/data/programRegistry')).ProgramRegistry as unknown as
+        Record<string, { actions: Array<{ type: string; status?: string; stacks?: number }> }>;
+    const setShield = (card: string, value: number) => {
+        if (!Number.isFinite(value)) return;
+        for (const act of PR[card]?.actions ?? [])
+            if (act.type === 'STATUS' && act.status === 'BarkShield') act.stacks = value;
+    };
+    setShield('shield_shards', shards);
+    setShield('spiked_carapace', carapace);
+    setShield('stone_bark', bark);
+}
 if (DECK === 'sleipnir_v2') {
     // WAR_STEED_OS generates one 0-cost Hoof Strike per Air ATTACK played.
     const w = H.sleipnir_v2.hooks.find(h => h.id === 'sleipnir_v2_hook');
@@ -170,9 +207,27 @@ const REG = MingmingRegistry as unknown as Record<string, {
     baseStats: { hp: number; attack: number; defense: number; energy: number };
     availableOS: string[]; decks: Record<string, string[]>;
 }>;
-for (const st of ['hp', 'attack', 'defense'] as const) if (knob[st]) REG[SPECIES].baseStats[st] = Number(knob[st]);
+for (const st of ['hp', 'attack', 'defense', 'energy'] as const) if (knob[st]) REG[SPECIES].baseStats[st] = Number(knob[st]);
+// Ticket 88: the two constants that are secretly the whole archetype axis. `energy` is 2 on 14 of
+// 15 species and `cardDraw` is 3 on 12 of 15 - ratatoskr's 3/4 is the only variation in the game.
+if (knob.draw) (REG[SPECIES] as unknown as { cardDraw: number }).cardDraw = Number(knob.draw);
+// Ticket 92, Henry's question: Burn was PERMANENT before rev 3 and now decays 1 stack a turn.
+// `burnperm` restores the old shape - the pile holds between turns - so we can measure whether
+// permanence makes any deck OP before changing anything. Patched through the exported config so
+// the tier table, the cap and the detonation are all untouched.
+if (knob.burnperm) {
+    const SB = await import('../src/engine/StatusBehaviors');
+    (SB as unknown as { BURN_CONFIG: { decayPerTurn?: number } }).BURN_CONFIG.decayPerTurn = 0;
+}
 if (knob.cut) REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].filter((c, i, a) => !(c === knob.cut && a.indexOf(c) === i));
 if (knob.swap) { const [from, to] = knob.swap.split(':'); REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c)); }
+// `swap2` / `swap3`: a second and third substitution, for arms that replace more than one card -
+// audhumbla_v2 needs two or three heals turned into damage before the cliff becomes a slope.
+for (const k of ['swap2', 'swap3'] as const) {
+    if (!knob[k]) continue;
+    const [from, to] = knob[k].split(':');
+    REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c));
+}
 
 const ITER = Number(process.env.ITER ?? 30);
 const hp = (p: ReadonlyArray<IBattleEntity>) => p.reduce((t, e) => t + e.currentHp, 0);
@@ -191,7 +246,17 @@ const PAYOFF: Record<string, string[]> = {
     fafnir_v1: ['deep_vein', 'hoardbreaker'],
     fafnir_v2: ['veinburst', 'boulder_smash'],
     sleipnir_v2: ['lance', 'cavalry_charge'],
+    ratatoskr_v1: ['scavenge_data', 'nut_stash'],
+    draugr_v1: ['deathless_slumber', 'nightmare'],
+    fenrir_v2: ['molten_core', 'pyre_sacrifice'],
+    skoll_v2: ['all_in', 'overdrive'],
+    audhumbla_v1: ['supernova_v2', 'dawn_of_creation'],
+    audhumbla_v2: ['genesis_surge', 'sacred_spring'],
+    gullinbursti_v1: ['stone_fist'],
+    huldra_v1: ['hexbloom', 'mind_thrall'],
     sleipnir_v1: ['stampede', 'momentum_crash'],
+    jormungandr_v1: ['ink_stream', 'serpents_coil'],
+    hraesvelgr_v1: ['tempest', 'carrion_swoop'],
 };
 
 /** Card-power knob, so a rate can be swept without editing programs.json. `card=id:power`. */

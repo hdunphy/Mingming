@@ -29,6 +29,55 @@ import { GetProgramData } from '../data/programRegistry';
  * Henry picked 0.35 off that sweep. Re-sweep before moving it again - the right number
  * depends on what else has changed.
  */
+/**
+ * TICKET 95: the two shapes the duality statuses can take, as one switchable model.
+ *
+ * Henry, after playing: *"the statuses don't feel very noticeable. Like a very small change in
+ * damage output maybe 1-2 dmg once you hit the cap."* He is describing the live shape exactly -
+ * 2% per stack against a +-25% cap, which at level 15 is one or two points of damage on a card
+ * that deals ten. You spend a card to apply them and see nothing.
+ *
+ * PERCENT (live): each stack multiplies damage by `pctPerStack`, the net swing capped at `pctCap`.
+ *   Bounded by construction, and the reason the cap exists is real - uncapped multipliers on both
+ *   sides used to multiply a mirror down to ~1% damage and deadlock it.
+ *
+ * POWER (Henry's proposal): each stack is worth `powerPerStack` POWER on the relevant side, added
+ *   before the pace divisor, STAB and resistances - the ticket-26 law that a bonus riding the power
+ *   is the only kind the scorer can price. UNCAPPED, because the valve is the duality itself:
+ *   Weakened cancels Strengthened stack for stack, Sharp cancels Dazed, and sheds/cleanses exist.
+ *   A deadlock needs both sides to out-stack each other indefinitely, which the cancel prevents.
+ *
+ * Sweeping this is ticket 95's grid; nothing is decided here. `STATUS_MODEL` ships at the live
+ * values so importing this file changes no number.
+ */
+export interface StatusDamageModel {
+    shape: 'PERCENT' | 'POWER';
+    /** PERCENT: damage multiplier per stack. */
+    pctPerStack: number;
+    /** PERCENT: cap on the net swing, either direction. */
+    pctCap: number;
+    /** POWER: power added per stack, before the divisor. Uncapped by design. */
+    powerPerStack: number;
+}
+
+export const STATUS_MODEL: StatusDamageModel = {
+    // TICKET 102 (Henry, off ticket 95's grid): SHIPPED as POWER, +1 per stack.
+    //
+    // The percent shape was invisible - 2% a stack against a 25% cap is one or two points of damage
+    // at level 15, so a card spent on a status bought nothing a player could see. Power rides the
+    // pace divisor, STAB and resistances like any other power bonus (the ticket-26 law), so a stack
+    // is worth the same fraction of a hit at every level, and it does not cap.
+    //
+    // The grid's warning, kept here because it is the live risk: the duality cancel only valves a
+    // deck that FACES another status deck. An OS that generates stacks against an opponent who
+    // applies none has nothing eating them - `sleipnir_v1` measured 43.3% -> 85.5% on that alone.
+    // The bound belongs on generation, not on the effect.
+    shape: 'POWER',
+    pctPerStack: 0.02,
+    pctCap: 0.25,
+    powerPerStack: 1,
+};
+
 export const STANCE_BONUS = { dark: 0.35, light: 0.35 };
 
 /**
@@ -154,17 +203,21 @@ export const applyDamageModifiers = (
     // formula let attacker-Weakened x defender-Sharp multiply down to ~1% net
     // damage; capped at 25% each, the worst case is 0.75 x 0.75 = 56% net damage,
     // which resolves in a handful of turns instead of never.
-    const STATUS_PCT_PER_STACK = 0.02;
-    const STATUS_PCT_CAP = 0.25;
+    const { pctPerStack: STATUS_PCT_PER_STACK, pctCap: STATUS_PCT_CAP } = STATUS_MODEL;
     const cappedPct = (stacks: number) => Math.min(STATUS_PCT_CAP, stacks * STATUS_PCT_PER_STACK);
+
+    // Ticket 95: under the POWER shape the four duality statuses are not a multiplier at all -
+    // they are added to the card's POWER before the pace divisor, in `combatUtils.calculateDamage`.
+    // Returning early here is what keeps the two shapes from double-counting.
+    const powerShape = STATUS_MODEL.shape === 'POWER';
 
     // Source side (Attacker)
     if (context.source) {
         for (const effect of context.source.statusEffects) {
             if (effect.type === 'Strengthened') {
-                damage *= (1 + cappedPct(effect.stacks));
+                if (!powerShape) damage *= (1 + cappedPct(effect.stacks));
             } else if (effect.type === 'Weakened') {
-                damage *= (1 - cappedPct(effect.stacks));
+                if (!powerShape) damage *= (1 - cappedPct(effect.stacks));
             } else if (effect.type === 'DarkStance') {
                 // Stance system: while in Dark Stance the attacker deals more damage.
                 // Ticket 77: a knob, not a literal - Henry wanted the bonus swept before
@@ -178,10 +231,10 @@ export const applyDamageModifiers = (
     if (context.target) {
         for (const effect of context.target.statusEffects) {
             if (effect.type === 'Dazed') {
-                damage *= (1 + cappedPct(effect.stacks));
+                if (!powerShape) damage *= (1 + cappedPct(effect.stacks));
             } else if (effect.type === 'Sharp') {
                 //sharp reduces incoming damage.
-                damage *= (1 - cappedPct(effect.stacks));
+                if (!powerShape) damage *= (1 - cappedPct(effect.stacks));
             } else if (effect.type === 'LightStance') {
                 // Stance system (ticket 36): while in Light Stance the DEFENDER takes -30%
                 // damage. Symmetric with the source-side DarkStance +30% branch above, and

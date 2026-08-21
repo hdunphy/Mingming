@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S2a - feel the runaway (his seat)",
+  "description": "Needs ticket 102. His OS mints 2 Strength per 0-cost card, uncapped, and the grid says he's ~85% now. Lose if you must - feel WHERE it tips. Play S2b right after from the sleipnir seat.   [you: fenrir_v1 | opponent: sleipnir_v1]",
+  "tags": ["playtest", "round-3", "ticket-102", "fenrir_v1"],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "setup": {
+    "seed": "S2a-fenrir_v1-vs-sleipnir_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "fenrir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "fenrir_v1" }
+      ],
+      "deck": ["ember_mend","blood_rite","blood_rite","berserk_rush","berserk_rush","battle_rhythm","crimson_draw","ragnarok_edge","ragnarok_edge"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "sleipnir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "sleipnir_v1",
+        "deck": ["water_slap","water_slap","slipstream","slipstream","disorienting_gust","adrenaline","tailwind","zephyr_strike","stampede","stampede","momentum_crash","hoofbeat_daemon"]
+      }
+    ]
+  }
+}

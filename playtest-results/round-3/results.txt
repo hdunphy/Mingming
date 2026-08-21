@@ -1,0 +1,42 @@
+# round 3 playtesting notes
+
+## Skoll_v1 vs Kraken_v1
+- Got dominated. Kraken could consistently hit 20dmg with her ink_stream
+- I only got to 3 or 4 str
+- Should heal be % max health? Not sure I like that card
+
+## Fenrir_v1 vs Sleipnir_V1
+- Card calculated damage still doesn't work. Blood Rite estimated 4 damage, but it did 5 damage + another 5 dmg. Hard to play when you don't have all the right information.
+- Got wiped on turn 2. Momentum Crash did 24 damage followed by Zephyr strike
+- Sleipnir had 10 str by turn 2! I think this is before the debufs
+
+## Sleipnir_v1 vs Control
+- 4str after turn 1
+- stampede was calculated correctly
+- after turn 3 had a nice str boost to 14! Tackle only did 4 damage. Does that make sense?
+- won on turn 5 with 22 str. This felt fun to play although was a little OP. Control got me down to 20 HP
+
+## Ratatoskr_v1 vs kraken_v1
+- Skipped some of the other ones since we haven't changed them yet
+- Keep using up all my cards still have energy
+- got lucky on the last turn with a bunch of draw cards dealth 40 damage with seed bomb. That felt fun. I was at 30HP and kraken was hitting hard.
+- played 10 cards that turn. The daemon synergizes nicely
+
+## Hel_v2 vs control
+- I deal a lot of self damage
+- I'm at 23 HP and Last Rites says it costs 999 energy/HP? Would it kill me and thats why I can't play it?
+- I could play Lst Rites at the end of the game, but I died first yet still got the victory
+- It does feel a little like the cost is too high and I'm just trying to heal myself. It was still fun to balance.
+
+## ymir_v2 vs control
+- Sometimes I want to build statuses, but the 2e cards do too much dmg compared to the 1e so it feels like I can't make the fun choice to try and add some str and dazed to get the most out of my attacks. Thats how he should play. Early build str + weaken enemy and then slam in the last few turns
+- This time it didn't feel as fun
+
+## fafnir_v1 vs control
+- Deep vein predicted 9 dmg dealt 36 dmg. The previews are broken almost everywhere
+- still fun and got the win easy vs control
+
+## fenrir_v1 vs control
+- was fun but lost
+- the cards might need some rework. Its often hard to understand what will happen (hurt by the broken damage preview) but he feels too weak before he hits the 50% threshold
+- Only got to 8 str. He probably needs more to hit harder. Control did get to 6HP and I probably could've maximized better

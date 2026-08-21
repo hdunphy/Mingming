@@ -654,7 +654,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         name: "Audhumbla",
         baseStats: {
             hp: 100,
-            attack: 60,
+            attack: 75,
             defense: 90,
             // Ticket 53: 3 -> 2. GENESIS_FIRMWARE now hands out permanent max Energy from turn
             // one or two, so starting at 3 meant the ramp's first two ticks bought nothing she
@@ -674,7 +674,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // is an attack and the deck is nothing but heals and cheap Light.
         decks: {
             "audhumbla_v1": ["pale_mercy", "pale_mercy", "dawnstrike", "healing_light", "sacred_spring", "supernova_v2", "genesis_surge", "dawn_of_creation", "radiant_spark"],
-            "audhumbla_v2": ["pale_mercy", "pale_mercy", "dawnstrike", "dawnstrike", "hallow", "healing_light", "sacred_spring", "uplift", "purify"]
+            "audhumbla_v2": ["pale_mercy", "healing_light", "sacred_spring", "morning_dew", "drink_deep", "smite", "radiant_spark", "dawnstrike", "dawnstrike"]
         },
         moves: [
             {

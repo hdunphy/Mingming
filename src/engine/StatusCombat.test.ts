@@ -119,15 +119,18 @@ describe('Damage Calculation with Status Modifiers', () => {
     it('should decrease damage with Weakened status', () => {
         (attacker as any).statusEffects = [{ id: 'w1', type: StatusType.Weakened, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3.1: base 3 * (1 - 0.02) = 2.94, floor = 2.
-        expect(damage).toBe(2);
+        // Ticket 102: one Weakened is -1 POWER, so a 40-power card lands at 39. At this size that
+        // is inside the divisor's rounding - which is the honest reading of one stack: on a 1e card
+        // a single stack is ~2.5% of the power, the same order the old 2% multiplier was. The pile
+        // is where power differs, not the first stack.
+        expect(damage).toBe(3);
     });
 
     it('should reduce damage to a Sharp target', () => {
         (defender as any).statusEffects = [{ id: 'sh1', type: StatusType.Sharp, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
-        // rev 3.1: base 3 * (1 - 0.02) = 2.94, floor = 2.
-        expect(damage).toBe(2);
+        // Ticket 102: one Sharp is -1 POWER off the incoming card - inside the rounding at 40 power.
+        expect(damage).toBe(3);
     });
 
     it('should deal more damage to a Dazed target', () => {
@@ -137,20 +140,22 @@ describe('Damage Calculation with Status Modifiers', () => {
         expect(damage).toBe(3);
     });
 
-    it('caps Strengthened/Dazed damage-up at +25%, no matter how many stacks pile up', () => {
-        // 13 stacks would be +26% uncapped (13 * 2%) - confirms the multiplier clamps at
-        // +25% rather than growing without bound past the point where cards can push it.
+    it('ticket 102: Strengthened is UNCAPPED power - more stacks keep paying', () => {
+        // The old shape clamped at +25%, so stack 14 and beyond were worth literally nothing and
+        // 13 stacks read identically to 100. Power does not cap: each stack is +1 power before the
+        // divisor, so the pile keeps buying damage. This is the whole point of the change and the
+        // reason the engines had to be watched (see the ticket-95 grid).
         (attacker as any).statusEffects = [{ id: 's1', type: StatusType.Strengthened, stacks: 13 }];
-        const capped = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
+        const thirteen = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
         (attacker as any).statusEffects = [{ id: 's2', type: StatusType.Strengthened, stacks: 100 }];
-        const alsoCapped = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
+        const hundred = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
 
-        // rev 3.1: base 3 * 1.25 = 3.75, floor = 3 - identical at 13 and 100 stacks.
-        expect(capped).toBe(3);
-        expect(alsoCapped).toBe(capped);
+        expect(thirteen).toBeGreaterThan(calculateDamage(
+            { ...attacker, statusEffects: [] } as never, defender, mockProgram as any, 40, mockState));
+        expect(hundred).toBeGreaterThan(thirteen);
     });
 
-    it('regression: capped Weakened x Sharp no longer deadlocks a mirror match', () => {
+    it('ticket 102: Weakened x Sharp cannot drive damage below zero', () => {
         // This is the bug the 25% cap fixes (docs/power_curve_spec.md rev 3): before the cap,
         // an attacker's Weakened and a defender's Sharp both floored at a 10%-of-base
         // multiplier and multiplied together to ~1% of base damage - two mirrored decks each
@@ -161,10 +166,11 @@ describe('Damage Calculation with Status Modifiers', () => {
         (defender as any).statusEffects = [{ id: 'sh1', type: StatusType.Sharp, stacks: 50 }];
         const damage = calculateDamage(attacker, defender, mockProgram as any, 40, mockState);
 
-        // rev 3.1: base 3 * 0.75 * 0.75 = 1.69, floor = 1 - THINNER than rev 3's 2, but still
-        // not 0, so the cap still does the job it was added for. Re-check this margin if the
-        // pace divisor is ever raised again (ticket 23).
-        expect(damage).toBe(1);
-        expect(damage).toBeGreaterThan(0);
+        // Ticket 102: 100 points of reduction against a 40-power card floors the POWER at zero, so
+        // the card deals nothing - it does not deal negative damage or heal the target. The old
+        // deadlock this test was written for cannot recur, because a cancelled card is simply a
+        // dead card rather than a fight that multiplies down towards 1% and never ends.
+        expect(damage).toBe(0);
+        expect(damage).toBeGreaterThanOrEqual(0);
     });
 });

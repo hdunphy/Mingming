@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mingming playtest - round 1 score sheet</title>
+<style>
+:root{--bg:#faf9f7;--surface:#fff;--line:#e6e2dc;--ink:#1f1d1a;--ink2:#57534e;--ink3:#8a837b;
+ --accent:#3c6e57;--warn:#b3541e;--sel:#1f6f8b;}
+@media (prefers-color-scheme:dark){:root{--bg:#16150f;--surface:#201e19;--line:#332f27;--ink:#f2efe9;
+ --ink2:#b9b2a7;--ink3:#867e73;--accent:#6ee7a8;--sel:#5aa8c4;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:28px 18px 90px}
+h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--ink2);font-size:13.5px;margin:0 0 20px}
+.block{margin:26px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3)}
+.m{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.m h3{margin:0 0 2px;font-size:15px}
+.m .vs{color:var(--ink2);font-size:13px;margin:0 0 4px}
+.m .ask{color:var(--ink2);font-size:13px;margin:0 0 12px;border-left:2px solid var(--line);padding-left:10px}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:9px}
+.lab{font-size:12.5px;color:var(--ink2);min-width:108px}
+button.opt{background:transparent;border:1px solid var(--line);color:var(--ink2);border-radius:999px;
+ padding:3px 11px;font-size:13px;cursor:pointer;font-family:inherit}
+button.opt[aria-pressed="true"]{background:var(--sel);border-color:var(--sel);color:#fff}
+input[type=number]{width:62px;background:transparent;border:1px solid var(--line);color:var(--ink);
+ border-radius:6px;padding:3px 6px;font:inherit;font-size:13px}
+input[type=text]{flex:1;min-width:220px;background:transparent;border:1px solid var(--line);color:var(--ink);
+ border-radius:6px;padding:5px 8px;font:inherit;font-size:13.5px}
+textarea{width:100%;min-height:80px;background:var(--surface);border:1px solid var(--line);color:var(--ink);
+ border-radius:8px;padding:9px 11px;font:inherit;font-size:13.5px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+ padding:11px 18px;display:flex;gap:12px;align-items:center;justify-content:center}
+button.go{background:var(--accent);border:none;color:#04150d;border-radius:8px;padding:9px 20px;
+ font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink2);border-radius:8px;
+ padding:9px 16px;font:inherit;font-size:14px;cursor:pointer}
+.count{color:var(--ink3);font-size:12.5px}
+#out{white-space:pre-wrap;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--surface);
+ border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:14px;display:none}
+.note{color:var(--ink3);font-size:12.5px;margin-top:18px}
+</style></head><body><div class="wrap">
+<h1>Playtest round 1</h1>
+<p class="sub">Fill in what you noticed - I read the exported snapshots for everything countable.
+Nothing is saved between refreshes, so hit <b>Copy results</b> before you close this.</p>
+<div id="app"></div>
+<div class="block">Anything else</div>
+<textarea id="global" placeholder="Whatever stood out - a card that felt wrong, a turn that decided a game, something that annoyed you."></textarea>
+<pre id="out"></pre>
+<p class="note">Snapshots: press Ctrl+Shift+E on the last turn you are still alive, then move the files
+from Downloads into <code>playtest-results/round-1/</code>.</p>
+</div>
+<div class="bar">
+  <span class="count" id="count">0 of 9 filled</span>
+  <button class="go" id="copy">Copy results</button>
+  <button class="ghost" id="show">Show text</button>
+</div>
+<script>
+const MATCHES = [
+ {b:'A - does "wide" read as a different deck?', id:'A1', you:'sleipnir_v1', foe:'control',
+  ask:'AI plays 3.6 cards a turn here. Play A2 straight after.'},
+ {b:null, id:'A2', you:'fenrir_v1', foe:'control',
+  ask:'1.8 cards a turn, lowest HP frame in the game. Two different decks, or one deck with different cards?'},
+ {b:'B - are the zero cells real, or is it the AI?', id:'B1', you:'kraken_v1', foe:'audhumbla_v1',
+  ask:'AI loses this 0 of 60, no type disadvantage. Win it once and the zero is a pilot artifact.'},
+ {b:null, id:'B2', you:'draugr_v2', foe:'huldra_v1', ask:'Also 0 of 60. Which turn did it feel decided?'},
+ {b:null, id:'B3', you:'fafnir_v2', foe:'gullinbursti_v1', ask:'Also 0 of 60.'},
+ {b:'C - pace', id:'C1', you:'hel_v2', foe:'ratatoskr_v2', ask:'AI ends this in 2.9 turns. Does a three-turn game feel like a game?'},
+ {b:null, id:'C2', you:'audhumbla_v2', foe:'valkyrie_v1', ask:'AI takes 17 turns. Does it drag, and from which turn?'},
+ {b:'D - dead cards', id:'D1', you:'fafnir_v1', foe:'control', ask:'hoardbreaker is unplayed 89% of the time for the AI. Did you find a use for it?'},
+ {b:null, id:'D2', you:'ymir_v2', foe:'control', ask:'One card a turn by OS. A cost you are paying, or the game being broken?'},
+];
+const state = {};
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const scale = (id, key, labels) => labels.map((l,i) =>
+  `<button class="opt" data-m="${id}" data-k="${key}" data-v="${i+1}" aria-pressed="false" title="${esc(l)}">${i+1}</button>`).join('');
+
+app.innerHTML = MATCHES.map(m => `
+ ${m.b ? `<div class="block">${esc(m.b)}</div>` : ''}
+ <div class="m">
+   <h3>${m.id} &mdash; ${esc(m.you)}</h3>
+   <p class="vs">you: <b>${esc(m.you)}</b> &nbsp;vs&nbsp; ${esc(m.foe)}</p>
+   <p class="ask">${esc(m.ask)}</p>
+   <div class="row"><span class="lab">result</span>
+     ${['win','loss','abandoned'].map(r=>`<button class="opt" data-m="${m.id}" data-k="result" data-v="${r}" aria-pressed="false">${r}</button>`).join('')}
+     <span class="lab" style="min-width:auto">turns</span>
+     <input type="number" min="1" max="60" data-m="${m.id}" data-k="turns">
+   </div>
+   <div class="row"><span class="lab">felt distinct</span>${scale(m.id,'distinct',['not at all','','','','completely'])}
+     <span class="count">1 = same as any other deck, 5 = its own thing</span></div>
+   <div class="row"><span class="lab">real choices</span>${scale(m.id,'choices',['hand played itself','','','','constant decisions'])}
+     <span class="count">1 = the hand played itself, 5 = constant decisions</span></div>
+   <div class="row"><span class="lab">pace</span>
+     ${['too fast','about right','too slow'].map(p=>`<button class="opt" data-m="${m.id}" data-k="pace" data-v="${p}" aria-pressed="false">${p}</button>`).join('')}
+   </div>
+   <div class="row"><span class="lab">one line</span><input type="text" data-m="${m.id}" data-k="note" placeholder="what you noticed"></div>
+ </div>`).join('');
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('button.opt'); if (!b) return;
+  const {m,k,v} = b.dataset;
+  (state[m] ??= {})[k] = state[m][k] === v ? undefined : v;
+  app.querySelectorAll(`button.opt[data-m="${m}"][data-k="${k}"]`).forEach(x =>
+    x.setAttribute('aria-pressed', String(x.dataset.v === state[m][k])));
+  tally();
+});
+app.addEventListener('input', e => {
+  const el = e.target; if (!el.dataset.m) return;
+  (state[el.dataset.m] ??= {})[el.dataset.k] = el.value.trim() || undefined;
+  tally();
+});
+function tally(){
+  const n = MATCHES.filter(m => state[m.id] && Object.values(state[m.id]).some(Boolean)).length;
+  document.getElementById('count').textContent = `${n} of ${MATCHES.length} filled`;
+}
+function build(){
+  const lines = ['PLAYTEST ROUND 1 - results', ''];
+  lines.push('| match | you | vs | result | turns | distinct | choices | pace | note |');
+  lines.push('|---|---|---|---|---|---|---|---|---|');
+  for (const m of MATCHES){
+    const s = state[m.id] || {};
+    if (!Object.values(s).some(Boolean)) continue;
+    lines.push(`| ${m.id} | ${m.you} | ${m.foe} | ${s.result||'-'} | ${s.turns||'-'} | ${s.distinct||'-'} | ${s.choices||'-'} | ${s.pace||'-'} | ${(s.note||'').replace(/\|/g,'/')} |`);
+  }
+  const g = document.getElementById('global').value.trim();
+  if (g) lines.push('', 'NOTES', g);
+  return lines.join('\n');
+}
+document.getElementById('copy').addEventListener('click', async () => {
+  const text = build();
+  try { await navigator.clipboard.writeText(text); document.getElementById('copy').textContent = 'Copied'; setTimeout(()=>document.getElementById('copy').textContent='Copy results',1500); }
+  catch { const o=document.getElementById('out'); o.style.display='block'; o.textContent=text; o.scrollIntoView({behavior:'smooth'}); }
+});
+document.getElementById('show').addEventListener('click', () => {
+  const o = document.getElementById('out');
+  o.style.display = o.style.display === 'block' ? 'none' : 'block';
+  o.textContent = build();
+});
+</script></body></html>

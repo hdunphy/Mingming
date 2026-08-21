@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S2b - feel the runaway (your seat)",
+  "description": "Needs ticket 102. Play sleipnir_v1 yourself. At what stack count did the game feel decided? Is the runaway FUN-broken or just broken - would you miss anything if his mint were capped at ~4 Str/turn? NOTE: the pack didn't name an opponent for this half, so this uses control as a neutral baseline - swap the enemy block for a different opponent if you'd rather feel the runaway against a real deck.   [you: sleipnir_v1 | opponent: control]",
+  "tags": ["playtest", "round-3", "ticket-102", "sleipnir_v1"],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "setup": {
+    "seed": "S2b-sleipnir_v1-vs-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "sleipnir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "sleipnir_v1" }
+      ],
+      "deck": ["water_slap","water_slap","slipstream","slipstream","disorienting_gust","adrenaline","tailwind","zephyr_strike","stampede","stampede","momentum_crash","hoofbeat_daemon"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "control", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "control_v1",
+        "deck": ["baseline_jab","baseline_jab","baseline_scuff","baseline_scuff","baseline_strike","baseline_strike","baseline_snare","baseline_snare","baseline_slam","baseline_purge"]
+      }
+    ]
+  }
+}

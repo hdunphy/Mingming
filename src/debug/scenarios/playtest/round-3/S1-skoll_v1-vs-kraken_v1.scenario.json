@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S1 - are riders real now?",
+  "description": "Needs ticket 102 (STATUS_MODEL = POWER, +1/stack). Your rebuilt consume-cycle deck, first time in hand: TREACHERY feeds Strength when you're hit, fury_strike/battle_rhythm add stacks, sun_devourer eats the pile at 15 power per stack. Play it twice - was the second game's line the same as the first?   [you: skoll_v1 | opponent: kraken_v1]",
+  "tags": ["playtest", "round-3", "ticket-102", "skoll_v1"],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "setup": {
+    "seed": "S1-skoll_v1-vs-kraken_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "skoll", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "skoll_v1" }
+      ],
+      "deck": ["sun_devourer","sun_devourer","fury_strike","fury_strike","brute_force","battle_rhythm","crimson_draw","crimson_draw","water_slap"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "kraken", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "kraken_v1",
+        "deck": ["whirlpool_v2","whirlpool_v2","pressure_point","pressure_point","ink_stream","ink_stream","surge_protection","undertow"]
+      }
+    ]
+  }
+}

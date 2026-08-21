@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "C1 - the fastest game on the roster",
+  "description": "The AI ends this in 2.9 turns. Does a three-turn game feel like a game?   [you: hel_v2 | opponent: ratatoskr_v2]",
+  "tags": [
+    "playtest",
+    "ticket-89",
+    "hel_v2"
+  ],
+  "registryHash": "1:c71f1259",
+  "createdAt": "2026-08-19T00:00:00.000Z",
+  "setup": {
+    "seed": "C1-fast-hel_v2-vs-ratatoskr_v2",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "hel",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "hel_v2"
+        }
+      ],
+      "deck": [
+        "pale_mercy",
+        "pale_mercy",
+        "forage",
+        "forage",
+        "dawnstrike",
+        "dawnstrike",
+        "venom_shade",
+        "soul_tithe",
+        "squirrel_away",
+        "last_rites"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "ratatoskr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "ratatoskr_v2",
+        "deck": [
+          "pollen_cloud",
+          "pollen_cloud",
+          "water_slap",
+          "water_slap",
+          "nagging_bite",
+          "nagging_bite",
+          "crippling_vine",
+          "slander",
+          "echo_chamber_v2"
+        ]
+      }
+    ]
+  }
+}
