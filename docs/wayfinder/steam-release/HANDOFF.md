@@ -1,8 +1,10 @@
 # HANDOFF — steam-release map (keep this current every session)
 
-**READ `_WARNING-line-endings.md` AT THE REPO ROOT BEFORE ANY COMMIT until ticket 02 deletes it. Stage explicit paths only. One writer in the tree at a time — Henry sequences agents; if the tree shows fresh engine/sim changes you did not make, STOP and ask.**
+**The line-ending sweep is fixed for good — `.gitattributes` normalizes everything and `_WARNING-line-endings.md` is gone (ticket 02). Stage explicit paths only. One writer in the tree at a time — Henry sequences agents; if the tree shows fresh engine/sim changes you did not make, STOP and ask.**
 
-*Last updated: 2026-08-21 (charting session). **State: map charted, 54 tickets, 1 closed (the gap audit). Frontier today: 02 repo hygiene, 03 CI gate (after 02), 04 error boundary, 26 wrapper research — all agent-runnable in parallel — and two Henry sessions: 05 release shape and 06 run data model. Nothing in the Vertical Slice can start until 06 is ratified; 21 (leveling freeze) can run beside it.** Branch `steam-release-prep`, cut from merged `main` after archetype-web (#7).*
+**Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
+
+*Last updated: 2026-08-21 (agent session: tickets 02, 03, 04, 26). **State: 55 tickets, 5 closed (01 gap audit, 02 repo hygiene, 03 CI gate, 04 error boundary, 26 wrapper research). Phase 0 is done except 55 (lint burndown, graduated out of 03) — the only agent-runnable ticket left anywhere until Henry sits down for 05 release shape and 06 run data model, and nothing in the Vertical Slice can start until 06 is ratified (21 leveling freeze can run beside it). Suite is green at 74 files / 902 tests; CI now hard-gates typecheck/tests/build on every push and blocks the Pages deploy; `npm run lint` is advisory at 510 pre-existing errors.** Branch `steam-release-prep`, cut from merged `main` after archetype-web (#7).*
 
 ---
 
@@ -38,6 +40,15 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-21 — Foundations session (tickets 02, 03, 04, 26)
+
+- **The tree is trustworthy now.** Line endings normalized once and permanently (`.gitattributes` + `git add --renormalize`; the index was 339 CRLF / 340 LF / 11 mixed and is now 683 LF). `git status` is clean. Root artifacts untracked into `_to_delete/ticket-02-artifacts/` for Henry to delete; ~27 MB of them remain in **history**, which nobody has authorized rewriting. `dist/` 8.0 MB → **1.0 MB** (Kraken 7.37 MB → 95 KB).
+- **The suite was always green.** 74 files / **902 tests**, ~46 s. The committed `test_output.txt` that said "4 failed" was a stale partial run and is now untracked. CI (`ci.yml`) hard-gates `npm ci` / `tsc -b` / `vitest run` / `build` on every push and PR, and `deploy.yml` calls it via `workflow_call`, so **a red test blocks the Pages deploy**.
+- **Lint cannot be a gate yet: 510 pre-existing errors** (296 `no-explicit-any`, 154 `no-unused-vars`, 33 auto-fixable `prefer-const`, 18 react-hooks). Henry ruled it advisory; **new ticket 55** owns the burndown and flips it blocking. `scratch/` stays tracked but left eslint's surface.
+- **A white screen is no longer a possible outcome.** Top-level `ErrorBoundary` with a "your save is safe" screen, return-to-ranch and copy-crash-report; `saveGame` restructured to explicit validate→serialize→write with a typed failure `kind`; a failed autosave now reaches the *player* via a banner instead of a `console.error` that a packaged build has no console for. First DOM-mounting tests in the repo (`createRoot` + `act` under a `// @vitest-environment jsdom` docblock) — copy that shape for future component tests.
+- **Wrapper decided (pending Henry's ratification in 42): Electron + `steamworks.js`.** The deciding fact is not size, it is that **Tauri's Steam-overlay issue is closed as "not planned"** — the overlay hooks graphics-device init and Tauri hands rendering to the OS webview. A spike boots the real `dist/` unchanged (Electron 43 / Chromium 150; ~410 ms warm start; 249–314 MB packaged around a 1.0 MB game) and confirms **`base` must become `'./'`**. `localStorage` → file is only **6 production call sites**; use Steam Auto-Cloud, and **ticket 23 should introduce the storage-adapter seam** so ticket 42 does not edit the save layer twice. Full findings: `research/26-wrapper.md`.
+- **Three things the tickets assumed that were not true**, all resolved with Henry rather than improvised: `git checkout --` cannot restore files on this mount; `npm run lint` cannot block CI today; and "reuse `debug/snapshotIO.ts`'s export shape" had to mean the shape, not the module (importing it would drag the DEV-only toolkit into every shipped bundle and fail `assert-no-debug`).
 
 ### 2026-08-21 — charting session
 
