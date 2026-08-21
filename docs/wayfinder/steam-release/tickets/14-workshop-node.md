@@ -8,7 +8,7 @@
 
 ## Deliverable
 
-A mid-run node where the player spends a BLUEPRINT (economy-session ruling: blueprints only, no scrap — vision.md's older "spend SCRAP at a workshop" line is superseded; confirm with Henry, see Questions) to assemble a species into the party (stats roll at assembly; joins with its start kit per ticket 08; species clause enforced), or spends a blueprint to reflash a party member's OS. Party grows 1 → 2 → 3 here and only here ("recruiting IS drafting"). Reuse `SynthesisLab`'s assembly flow and `FirmwareTerminal`'s reflash flow.
+A mid-run node where the player spends a BLUEPRINT **plus scrap** (**RULED by Henry 2026-08-21** in [ticket 06](06-run-data-model.md): a blueprint alone at the ranch, a blueprint **and** scrap at a mid-run workshop — which makes both `vision.md`'s "spend SCRAP to assemble" and `economy-session.md`'s "blueprints only" literally true of the place each was describing. The consequence to design around: **mid-run recruiting now competes with the marketplace for the same run currency**, so growing the team vs sharpening the deck is a real route decision, while between runs a blueprint is always spendable. **This ticket owns the scrap number** — ticket 06 deliberately did not set it) to assemble a species into the party (stats roll at assembly; joins with its start kit per ticket 08; species clause enforced), or spends a blueprint to reflash a party member's OS. Party grows 1 → 2 → 3 here and only here ("recruiting IS drafting"). Reuse `SynthesisLab`'s assembly flow and `FirmwareTerminal`'s reflash flow.
 
 ## Done when
 

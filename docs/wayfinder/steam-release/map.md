@@ -26,6 +26,7 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 - [Gap audit](tickets/01-gap-audit.md) — engine, 3v3, persistence and the debug toolkit are strong; run structure, economy nodes, Macros/Drivers, onboarding, settings, packaging and Steamworks are missing outright; leveling is still everywhere and must be frozen out. Full findings in [research/01-gap-audit.md](research/01-gap-audit.md); Steam facts in [research/02-steam-facts.md](research/02-steam-facts.md).
 - **PvP is out of scope for the first release** (Henry, 2026-08-21) — see Out of scope.
 - **Success metric = shipped + 10 reviews; art budget ≤ $500 and only if recoupable; audio from owned/free packs** (Henry, 2026-08-21) — the marketing lane is sized to this.
+- [Run data model](tickets/06-run-data-model.md) — **the Vertical Slice is unblocked.** `IRunState` / `IRanchState` prototyped in `src/engine/runTypes.ts` (25 tests). Henry ruled: a run **survives app close, one slot**; ranch and run under **separate storage keys** so a corrupt run never costs a blueprint (`reconcileLoadedState` enforces the cross-object laws and always discards the run, never the ranch); **save v4 is a clean break, no v3 migration**; and **assembly costs a blueprint at the ranch, a blueprint + scrap at a workshop** — resolving a direct `vision.md` vs `economy-session.md` contradiction, and making mid-run recruiting compete with the marketplace for scrap. First enforcement anywhere of the no-duplicate-species law.
 - [Desktop wrapper](tickets/26-wrapper-research.md) — **Electron + `steamworks.js`**, and the reason is not size but the overlay: Tauri's overlay issue is closed as *not planned*. A spike boots the real `dist/` (Electron 43 / Chromium 150, ~410 ms warm start, 249–314 MB packaged around a 1.0 MB game) and confirms **`base` must become `'./'`**. `localStorage` → file is only 6 call sites; Steam Auto-Cloud, and [ticket 23](tickets/23-save-v4.md) should introduce the adapter seam. Findings in [research/26-wrapper.md](research/26-wrapper.md); Henry ratifies in [42](tickets/42-desktop-packaging.md).
 - [Error boundary + crash-safe saves](tickets/04-error-boundary.md) — a render throw now shows a "your save is safe" screen with return-to-ranch and a copy-crash-report button instead of a white screen; `saveGame` is explicitly validate→serialize→write with a typed failure `kind`, and a failed autosave reaches the **player** through a banner rather than a console a shipped build does not have. Suite 868 → **902**.
 - [CI gate](tickets/03-ci-gate.md) — `ci.yml` hard-gates `npm ci` / `tsc -b` / `vitest run` / `build` on every push and PR, and `deploy.yml` calls it via `workflow_call` so **a red test blocks the Pages deploy**. The suite is **green: 69 files, 868 tests, 39 s** — the committed `test_output.txt` "4 failed" was a stale partial run. **Lint runs non-blocking** (Henry, 2026-08-21): 510 pre-existing errors, burndown split out as [ticket 55](tickets/55-lint-burndown.md).
@@ -35,7 +36,7 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ### Phase 0 — Foundations (now → ~mid-September 2026)
 
-Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 26 all closed 2026-08-21**; 55 (lint burndown) graduated out of 03 and is the only agent-runnable ticket left in this phase. 05 and 06 are Henry sessions and now gate everything.
+Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 26 all closed 2026-08-21**; 55 (lint burndown) graduated out of 03 and is the only agent-runnable ticket left in this phase. **05 (release shape) is the one Henry session still outstanding here** — 06 closed the same day and is no longer a Phase-0 blocker.
 
 | Ticket | Type | Driver | Blocked by |
 |---|---|---|---|
@@ -118,7 +119,7 @@ The publishing, marketing and testing lane. [Steamworks account](tickets/41-stea
 
 ## The critical path — ten tickets that gate the Vertical Slice, in order
 
-1. [Run data model](tickets/06-run-data-model.md) — nothing else has a place to live until a run is a thing in state. **Henry session.**
+1. ~~[Run data model](tickets/06-run-data-model.md)~~ — **CLOSED 2026-08-21.** `runTypes.ts` prototyped and ratified; the rest of this path is unblocked.
 2. [Leveling removal](tickets/21-leveling-freeze.md) — every encounter/reward/ranch ticket otherwise re-inherits XP. Agent, parallel with 06.
 3. [Start-kit rule](tickets/08-start-kit-rule.md) — the "team is the deck" arithmetic. **Henry session (car-friendly).**
 4. [Region graph](tickets/07-region-graph.md) — generator + Henry's parameters (count, width, visibility). **Prototype with Henry.**
