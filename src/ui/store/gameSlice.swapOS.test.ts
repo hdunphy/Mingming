@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import gameReducer, { swapOS, addToRoster } from './gameSlice';
 import { createDefaultSave, deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 import { getDeckForOS } from '../../engine/data/mingmingRegistry';
-import { PlayerSaveSchema, migrateSave } from '../../engine/SaveSystem';
+import { PlayerSaveSchema } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
 import type { IPlayerSave } from '../../engine/gameTypes';
 
@@ -100,19 +100,16 @@ describe('Ticket 15 - swapOS', () => {
     });
 });
 
-describe('Ticket 15 - save migration v3 (grant keying)', () => {
-    it('rewrites legacy species entries to species:os using the roster member OS', () => {
+describe('Ticket 23 - the v3 migration is gone, not relocated', () => {
+    it('has no upgrade path left: a legacy save shape simply fails validation', () => {
+        // Ticket 15 used to migrate bare species entries in `baseDecksGranted` to `species:os`.
+        // Save v4 is the floor (Henry, 2026-08-21) — a pre-v4 blob reads as NO SAVE rather than
+        // being repaired, so the only thing left to assert is that nothing pretends to fix it.
         const legacy = {
             version: 2,
             roster: [{ definitionId: 'kraken', activeOS: 'kraken_v2' }],
             baseDecksGranted: ['kraken', 'fenrir', 'huldra:huldra_v1']
         };
-        const out = migrateSave(legacy) as Record<string, unknown>;
-        expect(out.version).toBe(3);
-        expect(out.baseDecksGranted).toEqual([
-            'kraken:kraken_v2',      // from the roster member's active OS
-            'fenrir:fenrir_v1',      // no member -> availableOS[0]
-            'huldra:huldra_v1'       // already keyed -> untouched
-        ]);
+        expect(PlayerSaveSchema.safeParse(legacy).success).toBe(false);
     });
 });

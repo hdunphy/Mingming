@@ -24,7 +24,8 @@ import { useDispatch, useSelector, useStore } from 'react-redux';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
-import { loadGame } from '../../engine/SaveSystem';
+import { loadGameState } from '../../engine/SaveSystem';
+import { toRanchState } from '../../engine/save/ranchProjection';
 import { ELEMENTS } from '../../engine/types';
 import type { RootState } from '../../ui/store/store';
 import {
@@ -159,14 +160,19 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
     // --- Validity readout: is the live state savable, and did the last autosave land? ---
 
     const liveValidity = useMemo(() => validateSave(save), [save]);
+    // Ticket 23: what is persisted is the save v4 RANCH, not the whole slice. So "in sync" is a
+    // comparison between the stored ranch and the live slice *projected* to a ranch — comparing
+    // against the whole slice would read as permanently out-of-sync, since cards, deck and scrap
+    // are run-scoped now and deliberately never written.
     const persisted = useMemo(() => {
         try {
-            return loadGame();
+            return loadGameState();
         } catch (err) {
-            return { data: null, error: String(err) };
+            return { ranch: null, run: null, error: String(err) };
         }
     }, [save]);
-    const persistedInSync = persisted.data !== null && savesAreIdentical(persisted.data, save);
+    const persistedInSync =
+        persisted.ranch !== null && savesAreIdentical(persisted.ranch, toRanchState(save));
 
     // --- The one path from a button to the store ---
 
@@ -219,11 +225,11 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                 </div>
             );
         }
-        if (persisted.data === null) {
+        if (persisted.ranch === null) {
             return (
                 <div style={bannerStyle(WARN)}>
                     <strong>SAVE VALID</strong> — but nothing is stored yet
-                    {persisted.error ? `: ${persisted.error}` : ' (no save in localStorage).'}
+                    {persisted.error ? `: ${persisted.error}` : ' (no ranch in storage).'}
                 </div>
             );
         }
@@ -231,7 +237,7 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
             return (
                 <div style={bannerStyle(WARN)}>
                     <strong>SAVE VALID, STORED COPY IS BEHIND</strong> — the live state is savable but
-                    localStorage does not match it. The last autosave did not land.
+                    the stored copy does not match it. The last autosave did not land.
                 </div>
             );
         }
@@ -481,8 +487,8 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                     <input style={controlStyle} type="file" accept="application/json,.json" onChange={onReplaceFile} />
                 </div>
                 <div style={noteStyle}>
-                    Read path mirrors loadGame: parse, migrate an older shape, validate. A file that fails
-                    is reported and never dispatched.
+                    Read path is parse then validate — ticket 23 removed the upgrade step, so a file that
+                    does not already describe a legal state is reported and never dispatched.
                 </div>
             </section>
 

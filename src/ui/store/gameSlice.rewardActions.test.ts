@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import gameReducer, { unlockSector, addToRoster } from './gameSlice';
 import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
-import { PlayerSaveSchema } from '../../engine/SaveSystem';
+import { PlayerSaveSchema } from '../../engine/gameTypes';
 
 function makeMingming(id: string): IMingmingState {
     return {

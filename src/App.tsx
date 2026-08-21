@@ -10,7 +10,9 @@ import MainMenuView from './ui/components/MainMenuView'
 import SectorTerminal from './ui/screens/SectorTerminal'
 import RelicTerminal from './ui/screens/RelicTerminal'
 
-import { loadGame } from './engine/SaveSystem'
+import { loadGameState } from './engine/SaveSystem'
+import { applyRanchState } from './engine/save/ranchProjection'
+import { createDefaultSave } from './engine/gameTypes'
 import { loadSave } from './ui/store/gameSlice'
 import type { RootState } from './ui/store/store'
 import { initAudio, playSfx } from './ui/audio/AudioEngine'
@@ -51,10 +53,17 @@ function App() {
   const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
   const gauntlet = useSelector((state: RootState) => state.game.gauntlet);
 
+  // Ticket 23: load reads save v4's two keys and reconciles them. Only the ranch half has a home
+  // in the store today — the run half waits for tickets 09–15 — so a discarded run is logged and
+  // dropped rather than dispatched. `loadGameState` already guarantees a discarded run never costs
+  // the ranch.
   useEffect(() => {
-    const result = loadGame();
-    if (result.data) {
-      dispatch(loadSave(result.data));
+    const result = loadGameState();
+    if (result.discarded) {
+      console.warn(`[Load] In-progress run discarded: ${result.discarded}. Your ranch is intact.`);
+    }
+    if (result.ranch) {
+      dispatch(loadSave(applyRanchState(createDefaultSave(), result.ranch)));
     }
   }, [dispatch]);
 

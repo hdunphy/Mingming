@@ -338,12 +338,14 @@ export type ScenarioDraft =
 
 /**
  * Version-keyed migration of raw (already JSON-parsed) scenario data. Runs BEFORE
- * schema validation, exactly like `migrateSave` (SaveSystem.ts:78-94).
+ * schema validation, the same ordering the save layer's own version handling uses.
  *
  * At `CURRENT_SCENARIO_VERSION = 1` there is nothing to migrate: the only change since
  * the schema was locked is the optional `tape` field, which by construction needs no
- * version bump. The single normalization here matches `migrateSave`'s precedent of
- * treating an unversioned file as v1.
+ * version bump. The single normalization here treats an unversioned file as v1.
+ *
+ * Note this is scenario versioning, which is INDEPENDENT of save versioning: ticket 23 made save
+ * v4 a floor with no upgrade path, while scenarios keep theirs. Battle snapshots are not saves.
  */
 export function migrateScenario(raw: unknown): unknown {
     if (raw === null || typeof raw !== 'object') return raw;

@@ -2,185 +2,191 @@
  * Save slot storage.
  *
  * The obligations here are the ones from the ticket that can be proved without Redux:
- *   1. a pre-slot `mingming_save` is adopted on first read — copied, never moved;
- *   2. the save API writes to the active slot and to nothing else;
- *   3. switching the active slot does not cross-write either slot's payload;
- *   4. deleting a slot leaves neither an orphaned index entry nor an orphaned payload key.
+ *   1. the save API writes to the active slot and to nothing else;
+ *   2. switching the active slot does not cross-write either slot's payload;
+ *   3. deleting a slot leaves neither an orphaned index entry nor an orphaned payload key —
+ *      and, since ticket 23, that means BOTH of a slot's keys;
+ *   4. nothing adopts a pre-slot save any more (v4 is the floor).
  *
  * The Redux half — clearing a live battle before the pointer moves, and moving `state.game`
  * with it — is covered in `src/debug/saveSlots.test.ts`.
+ *
+ * Driven through the storage adapter (`save/storage.ts`) rather than a global `localStorage` stub,
+ * so ticket 42's file backend inherits this suite unchanged.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import type { IPlayerSave } from './gameTypes';
-
-// localStorage must exist before SaveSystem/SaveSlots run: the default vitest environment
-// here is `node`, which has none. Same stub shape as SaveSystem.test.ts.
-const backing: Record<string, string> = {};
-const localStorageMock = {
-    getItem: (key: string) => backing[key] ?? null,
-    setItem: (key: string, value: string) => {
-        backing[key] = value;
-    },
-    removeItem: (key: string) => {
-        delete backing[key];
-    },
-    clear: () => {
-        Object.keys(backing).forEach((k) => delete backing[k]);
-    },
-    get length() {
-        return Object.keys(backing).length;
-    },
-    key: (i: number) => Object.keys(backing)[i] ?? null,
-};
-vi.stubGlobal('localStorage', localStorageMock);
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
     FIRST_SLOT_ID,
-    LEGACY_SAVE_KEY,
     SLOT_INDEX_KEY,
     createSlot,
     deleteSlot,
-    getActiveSaveKey,
+    getActiveRanchKey,
+    getActiveRunKey,
     getActiveSlotId,
     hasSlotData,
     listSlots,
     readSlotRaw,
     renameSlot,
     setActiveSlotId,
-    slotStorageKey,
+    slotRanchKey,
+    slotRunKey,
 } from './SaveSlots';
-import { deleteSave, hasSave, loadGame, saveGame } from './SaveSystem';
+import { deleteSave, hasSave, loadGameState, saveRanch, saveRun } from './SaveSystem';
+import { resetSaveStorage, setSaveStorage, type ISaveStorage } from './save/storage';
+import type { IRanchState, IRunState } from './runTypes';
 
-function makeSave(scrapCount: number): IPlayerSave {
+class MemoryStorage implements ISaveStorage {
+    readonly map = new Map<string, string>();
+    read(key: string): string | null {
+        return this.map.get(key) ?? null;
+    }
+    write(key: string, value: string): void {
+        this.map.set(key, value);
+    }
+    remove(key: string): void {
+        this.map.delete(key);
+    }
+    keys(): string[] {
+        return [...this.map.keys()];
+    }
+}
+
+let storage: MemoryStorage;
+
+beforeEach(() => {
+    storage = new MemoryStorage();
+    setSaveStorage(storage);
+});
+
+afterEach(() => {
+    resetSaveStorage();
+});
+
+/** `tier` is the marker each assertion below tracks from slot to slot. */
+function makeRanch(tier: number): IRanchState {
     return {
-        version: 2,
-        roster: [
-            {
-                id: 'mm1',
-                definitionId: 'def_fire',
-                blueprintsCollected: 0,
-                attackIV: 10,
-                defenseIV: 8,
-                hpIV: 12,
-            },
-        ],
-        activeParty: ['mm1'],
-        cardInventory: [],
-        activeDeck: null,
-        scrapCount,
-        blueprints: [],
-        relics: [],
-        gauntlet: null,
-        unlockedSectors: ['Fire'],
-        baseDecksGranted: [],
+        roster: [{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 10, defenseIV: 8, hpIV: 12 }],
+        blueprints: {},
+        codex: { seen: [], played: [] },
+        gymsCleared: [],
+        highestTierCleared: tier,
     };
 }
 
-/** Every localStorage key currently set, sorted — used to prove nothing is orphaned. */
-function keys(): string[] {
-    return Object.keys(backing).sort();
+function makeRun(): IRunState {
+    return {
+        seed: 'seed-1',
+        gymId: 'gym_water',
+        biomes: [
+            { id: 'b0', name: 'A', elements: ['Fire'] },
+            { id: 'b1', name: 'B', elements: ['Water'] },
+            { id: 'b2', name: 'C', elements: ['Nature'] },
+        ],
+        nodes: [{ id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: [], visited: 1 }],
+        currentNodeId: 'n0',
+        partyIds: ['mm1'],
+        deck: [],
+        scrap: 10,
+        macros: [null, null, null],
+        drivers: [],
+        tier: 0,
+        modifiers: [],
+        phase: 'map',
+        gauntlet: null,
+        outcome: null,
+        fightsResolved: 0,
+        startedAt: 1,
+    };
 }
 
-beforeEach(() => {
-    localStorage.clear();
-});
+/** Every storage key currently set, sorted — used to prove nothing is orphaned. */
+function keys(): string[] {
+    return storage.keys().sort();
+}
 
-describe('legacy adoption', () => {
-    it('adopts a pre-slot save into the first slot on the first read', () => {
-        localStorage.setItem(LEGACY_SAVE_KEY, JSON.stringify(makeSave(250)));
+const tier = (): number | undefined => loadGameState().ranch?.highestTierCleared;
 
-        const loaded = loadGame();
+describe('v4 is the floor — nothing is adopted from before slots existed', () => {
+    it('starts a new player rather than rescuing a pre-slot `mingming_save`', () => {
+        // The adoption-by-copy is gone with the migration chain (ticket 23). These bytes are not
+        // parseable by anything now, so copying them into a slot would only plant a payload that
+        // reads as "no save" anyway.
+        storage.write('mingming_save', JSON.stringify({ version: 3, scrapCount: 250 }));
 
-        expect(loaded.data).not.toBeNull();
-        expect(loaded.data!.scrapCount).toBe(250);
-        expect(getActiveSlotId()).toBe(FIRST_SLOT_ID);
-        expect(listSlots()).toHaveLength(1);
+        expect(loadGameState().ranch).toBeNull();
+        expect(hasSlotData(FIRST_SLOT_ID)).toBe(false);
+        expect(keys()).not.toContain(slotRanchKey(FIRST_SLOT_ID));
     });
 
-    it('copies rather than moves — the legacy key survives untouched as a recovery net', () => {
-        const legacyJson = JSON.stringify(makeSave(250));
-        localStorage.setItem(LEGACY_SAVE_KEY, legacyJson);
-
-        loadGame();
-
-        expect(localStorage.getItem(LEGACY_SAVE_KEY)).toBe(legacyJson);
-        expect(readSlotRaw(FIRST_SLOT_ID)).toBe(legacyJson);
+    it('leaves the legacy key alone rather than deleting it — it is not ours to remove', () => {
+        storage.write('mingming_save', 'legacy bytes');
+        loadGameState();
+        expect(storage.read('mingming_save')).toBe('legacy bytes');
     });
 
-    it('leaves the legacy copy frozen while the adopted slot moves on', () => {
-        const legacyJson = JSON.stringify(makeSave(250));
-        localStorage.setItem(LEGACY_SAVE_KEY, legacyJson);
-        loadGame();
-
-        saveGame(makeSave(999));
-
-        expect(localStorage.getItem(LEGACY_SAVE_KEY)).toBe(legacyJson);
-        expect(loadGame().data!.scrapCount).toBe(999);
-    });
-
-    it('adopts exactly once — a second launch reads the slot, not the legacy key', () => {
-        localStorage.setItem(LEGACY_SAVE_KEY, JSON.stringify(makeSave(250)));
-        loadGame();
-        saveGame(makeSave(10));
-
-        // "Second launch": the index already exists, so nothing is re-adopted.
-        localStorage.setItem(LEGACY_SAVE_KEY, JSON.stringify(makeSave(777)));
-
-        expect(loadGame().data!.scrapCount).toBe(10);
-    });
-
-    it('creates a single empty slot when there is no legacy save at all', () => {
-        expect(loadGame().data).toBeNull();
+    it('creates a single empty slot when there is nothing at all', () => {
+        expect(loadGameState().ranch).toBeNull();
         expect(listSlots().map((slot) => slot.id)).toEqual([FIRST_SLOT_ID]);
         expect(hasSlotData(FIRST_SLOT_ID)).toBe(false);
     });
 
-    it('does not paste the legacy save over a slot that already has a payload', () => {
-        // A corrupted index with intact payloads: rebuilding must not clobber real progress.
-        saveGame(makeSave(500));
-        localStorage.setItem(LEGACY_SAVE_KEY, JSON.stringify(makeSave(1)));
-        localStorage.setItem(SLOT_INDEX_KEY, '{not json');
+    it('rebuilds a corrupted index without clobbering the payload it points at', () => {
+        saveRanch(makeRanch(5));
+        storage.write(SLOT_INDEX_KEY, '{not json');
 
-        expect(loadGame().data!.scrapCount).toBe(500);
+        expect(tier()).toBe(5);
     });
 });
 
 describe('the save API addresses the active slot', () => {
-    it('derives the key from the active slot', () => {
-        expect(getActiveSaveKey()).toBe(slotStorageKey(FIRST_SLOT_ID));
+    it('derives both keys from the active slot', () => {
+        expect(getActiveRanchKey()).toBe(slotRanchKey(FIRST_SLOT_ID));
+        expect(getActiveRunKey()).toBe(slotRunKey(FIRST_SLOT_ID));
+
         const second = createSlot('scratch')!;
         setActiveSlotId(second.id);
-        expect(getActiveSaveKey()).toBe(slotStorageKey(second.id));
+
+        expect(getActiveRanchKey()).toBe(slotRanchKey(second.id));
+        expect(getActiveRunKey()).toBe(slotRunKey(second.id));
     });
 
     it('writes to the active slot and to no other key', () => {
         const main = listSlots()[0];
-        saveGame(makeSave(100));
+        saveRanch(makeRanch(100));
         const scratch = createSlot('scratch')!;
 
         setActiveSlotId(scratch.id);
-        saveGame(makeSave(7));
+        saveRanch(makeRanch(7));
 
-        expect(JSON.parse(readSlotRaw(main.id)!).scrapCount).toBe(100);
-        expect(JSON.parse(readSlotRaw(scratch.id)!).scrapCount).toBe(7);
-        expect(localStorage.getItem(LEGACY_SAVE_KEY)).toBeNull();
+        expect(JSON.parse(readSlotRaw(main.id)!).ranch.highestTierCleared).toBe(100);
+        expect(JSON.parse(readSlotRaw(scratch.id)!).ranch.highestTierCleared).toBe(7);
     });
 
     it('reads back the slot that is active, not the one that was', () => {
-        saveGame(makeSave(100));
+        saveRanch(makeRanch(100));
         const scratch = createSlot('scratch')!;
         setActiveSlotId(scratch.id);
-        saveGame(makeSave(7));
+        saveRanch(makeRanch(7));
 
-        expect(loadGame().data!.scrapCount).toBe(7);
+        expect(tier()).toBe(7);
         setActiveSlotId(listSlots()[0].id);
-        expect(loadGame().data!.scrapCount).toBe(100);
+        expect(tier()).toBe(100);
+    });
+
+    it('keeps each slot’s run under its own key', () => {
+        saveRanch(makeRanch(1));
+        saveRun(makeRun());
+        const scratch = createSlot('scratch')!;
+
+        setActiveSlotId(scratch.id);
+        expect(loadGameState().run).toBeNull();
+        expect(storage.read(slotRunKey(listSlots()[0].id))).not.toBeNull();
     });
 
     it('deleteSave/hasSave only touch the active slot', () => {
-        saveGame(makeSave(100));
+        saveRanch(makeRanch(100));
         const scratch = createSlot('scratch', listSlots()[0].id)!;
         setActiveSlotId(scratch.id);
 
@@ -201,7 +207,7 @@ describe('the save API addresses the active slot', () => {
 
 describe('createSlot', () => {
     it('creates an empty slot by default', () => {
-        saveGame(makeSave(100));
+        saveRanch(makeRanch(100));
         const slot = createSlot('empty one')!;
 
         expect(slot.name).toBe('empty one');
@@ -209,12 +215,16 @@ describe('createSlot', () => {
         expect(listSlots()).toHaveLength(2);
     });
 
-    it('duplicates the source payload byte-for-byte when branching', () => {
-        saveGame(makeSave(100));
+    it('duplicates BOTH payloads byte-for-byte when branching', () => {
+        // "Branch this run" has to mean the whole game state, or the branch starts with the right
+        // ranch and someone else's run.
+        saveRanch(makeRanch(100));
+        saveRun(makeRun());
         const source = listSlots()[0];
         const branch = createSlot('branch', source.id)!;
 
         expect(readSlotRaw(branch.id)).toBe(readSlotRaw(source.id));
+        expect(storage.read(slotRunKey(branch.id))).toBe(storage.read(slotRunKey(source.id)));
     });
 
     it('does not switch to the new slot', () => {
@@ -234,7 +244,7 @@ describe('createSlot', () => {
 
 describe('renameSlot', () => {
     it('renames without moving the payload', () => {
-        saveGame(makeSave(100));
+        saveRanch(makeRanch(100));
         const before = readSlotRaw(FIRST_SLOT_ID);
 
         expect(renameSlot(FIRST_SLOT_ID, 'Real Save')).toBe(true);
@@ -248,33 +258,36 @@ describe('renameSlot', () => {
 });
 
 describe('deleteSlot', () => {
-    it('removes the index entry and the payload key together', () => {
-        saveGame(makeSave(100));
+    it('removes the index entry and BOTH payload keys together', () => {
+        saveRanch(makeRanch(100));
+        saveRun(makeRun());
         const scratch = createSlot('scratch', FIRST_SLOT_ID)!;
-        expect(keys()).toContain(slotStorageKey(scratch.id));
+        expect(keys()).toContain(slotRanchKey(scratch.id));
+        expect(keys()).toContain(slotRunKey(scratch.id));
 
         expect(deleteSlot(scratch.id)).toBe(true);
 
         expect(listSlots().map((s) => s.id)).not.toContain(scratch.id);
-        expect(keys()).not.toContain(slotStorageKey(scratch.id));
-        expect(keys()).toEqual([SLOT_INDEX_KEY, slotStorageKey(FIRST_SLOT_ID)].sort());
+        expect(keys()).toEqual(
+            [SLOT_INDEX_KEY, slotRanchKey(FIRST_SLOT_ID), slotRunKey(FIRST_SLOT_ID)].sort(),
+        );
     });
 
     it('moves the active pointer off a deleted active slot', () => {
-        saveGame(makeSave(100));
+        saveRanch(makeRanch(100));
         const scratch = createSlot('scratch')!;
         setActiveSlotId(scratch.id);
 
         expect(deleteSlot(scratch.id)).toBe(true);
         expect(getActiveSlotId()).toBe(FIRST_SLOT_ID);
-        expect(loadGame().data!.scrapCount).toBe(100);
+        expect(tier()).toBe(100);
     });
 
     it('refuses to delete the last remaining slot', () => {
-        saveGame(makeSave(100));
+        saveRanch(makeRanch(100));
         expect(deleteSlot(FIRST_SLOT_ID)).toBe(false);
         expect(listSlots()).toHaveLength(1);
-        expect(loadGame().data!.scrapCount).toBe(100);
+        expect(tier()).toBe(100);
     });
 
     it('refuses an unknown slot', () => {

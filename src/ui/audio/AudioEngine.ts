@@ -8,7 +8,7 @@
  *   keydown unlockers.
  * - Every public function is a silent no-op when audio is unavailable
  *   (SSR / vitest node env / jsdom without AudioContext) and never throws.
- * - Volume + mute persist in localStorage under 'mingming_audio' (a dedicated
+ * - Volume + mute persist through the save-storage adapter under 'mingming_audio' (a dedicated
  *   key, separate from the game save), wrapped in try/catch.
  * - Identical SFX within ~35ms coalesce; at most 8 simultaneous voices
  *   (oldest culled). See limiters.ts for the pure logic.
@@ -26,6 +26,7 @@ import {
     type ToneOpts,
 } from './sfxRecipes';
 import { SfxRateLimiter, VoicePool } from './limiters';
+import { getSaveStorage } from '../../engine/save/storage';
 
 export type { SfxName, SfxOptions } from './sfxRecipes';
 
@@ -44,13 +45,22 @@ export interface AudioSettings {
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
 
-function defaultStorage(): StorageLike | null {
-    try {
-        if (typeof localStorage !== 'undefined') return localStorage;
-    } catch {
-        // Accessing localStorage itself can throw (privacy modes).
-    }
-    return null;
+/**
+ * Ticket 23: this used to reach for the global `localStorage` directly. It now goes through the
+ * save-storage adapter (`engine/save/storage.ts`), which is the one module allowed to name it —
+ * Steam Cloud syncs files, not `localStorage`, and ticket 42 swaps a file backend in behind that
+ * interface. Audio settings are a separate KEY, not a separate store, so they ride along.
+ *
+ * The `StorageLike` shape is kept because tests inject their own two-method fake; only the default
+ * changed. The adapter already swallows read failures and reports absence, and `write` throws on
+ * failure into `saveAudioSettings`'s existing catch — a full disk must never silence the game.
+ */
+function defaultStorage(): StorageLike {
+    const backend = getSaveStorage();
+    return {
+        getItem: (key: string) => backend.read(key),
+        setItem: (key: string, value: string) => backend.write(key, value),
+    };
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));

@@ -1,10 +1,15 @@
 /**
- * Ticket 04 (steam-release map): autosave must never write a save that fails
- * `PlayerSaveSchema.parse()`, and a quota / write failure must not lose the run.
+ * Ticket 04 (steam-release map): autosave must never write a save that fails validation, and a
+ * quota / write failure must not lose progress.
  *
  * The guarantee under test is an *ordering* one — validate, then serialize, then write — so every
- * case here asserts the same thing from a different angle: after the failure, the bytes in
- * storage are still the last save that was known good.
+ * case here asserts the same thing from a different angle: after the failure, what you can still
+ * LOAD is the last state that was known good. `SaveSystem.test.ts` covers the classification of
+ * each failure kind; this file covers what survives one.
+ *
+ * Ticket 23 moved these from the single v3 blob to save v4's two keys, which adds a case the blob
+ * could not have: a failing run write must leave the *ranch* alone. That is the entire argument
+ * for splitting the keys, so it is asserted directly.
  *
  * The reporting half (a failed write becoming visible to the player) lives in
  * `src/ui/store/saveHealth.test.ts`; the engine has no business importing from `src/ui`.
@@ -12,134 +17,144 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { saveGame, loadGame, CURRENT_SAVE_VERSION } from './SaveSystem';
-import { getActiveSaveKey } from './SaveSlots';
-import type { IPlayerSave } from './gameTypes';
+import { loadGameState, saveRanch, saveRun } from './SaveSystem';
+import { getActiveRanchKey } from './SaveSlots';
+import { resetSaveStorage, setSaveStorage, type ISaveStorage } from './save/storage';
+import type { IRanchState, IRunState } from './runTypes';
 
-const backing: Record<string, string> = {};
-let setItemImpl: (key: string, value: string) => void = (key, value) => {
-    backing[key] = value;
-};
+class FlakyStorage implements ISaveStorage {
+    readonly map = new Map<string, string>();
+    /** When set, `write` throws this instead of storing. */
+    failWith: unknown = null;
 
-vi.stubGlobal('localStorage', {
-    getItem: (key: string) => backing[key] ?? null,
-    setItem: (key: string, value: string) => setItemImpl(key, value),
-    removeItem: (key: string) => {
-        delete backing[key];
-    },
-    clear: () => {
-        Object.keys(backing).forEach((k) => delete backing[k]);
-    },
-    get length() {
-        return Object.keys(backing).length;
-    },
-    key: (i: number) => Object.keys(backing)[i] ?? null,
-});
-
-function goodSave(overrides: Partial<IPlayerSave> = {}): IPlayerSave {
-    return {
-        version: CURRENT_SAVE_VERSION,
-        roster: [],
-        activeParty: [],
-        cardInventory: [],
-        activeDeck: null,
-        scrapCount: 100,
-        blueprints: [],
-        relics: [],
-        gauntlet: null,
-        unlockedSectors: ['Fire'],
-        baseDecksGranted: [],
-        ...overrides,
-    } as IPlayerSave;
+    read(key: string): string | null {
+        return this.map.get(key) ?? null;
+    }
+    write(key: string, value: string): void {
+        if (this.failWith !== null) throw this.failWith;
+        this.map.set(key, value);
+    }
+    remove(key: string): void {
+        this.map.delete(key);
+    }
+    keys(): string[] {
+        return [...this.map.keys()];
+    }
 }
 
+let storage: FlakyStorage;
 let consoleError: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-    Object.keys(backing).forEach((k) => delete backing[k]);
-    setItemImpl = (key, value) => {
-        backing[key] = value;
-    };
+    storage = new FlakyStorage();
+    setSaveStorage(storage);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
     consoleError.mockRestore();
+    resetSaveStorage();
 });
 
-describe('saveGame — a bad write never overwrites a good save', () => {
-    it('writes a valid save and reports success', () => {
-        const result = saveGame(goodSave({ scrapCount: 7 }));
-        expect(result.success).toBe(true);
-        expect(result.kind).toBeUndefined();
-        expect(loadGame().data?.scrapCount).toBe(7);
-    });
+function goodRanch(overrides: Partial<IRanchState> = {}): IRanchState {
+    return {
+        roster: [{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 5, defenseIV: 5, hpIV: 5 }],
+        blueprints: { kraken: 3 },
+        codex: { seen: [], played: [] },
+        gymsCleared: [],
+        highestTierCleared: 0,
+        ...overrides,
+    };
+}
 
-    it('refuses a schema-invalid state and leaves the last good save in place', () => {
-        saveGame(goodSave({ scrapCount: 500 }));
-        const lastGoodBytes = backing[getActiveSaveKey()];
+function goodRun(overrides: Partial<IRunState> = {}): IRunState {
+    return {
+        seed: 'seed-1',
+        gymId: 'gym_water',
+        biomes: [
+            { id: 'b0', name: 'A', elements: ['Fire'] },
+            { id: 'b1', name: 'B', elements: ['Water'] },
+            { id: 'b2', name: 'C', elements: ['Nature'] },
+        ],
+        nodes: [{ id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: [], visited: 1 }],
+        currentNodeId: 'n0',
+        partyIds: ['mm1'],
+        deck: [],
+        scrap: 10,
+        macros: [null, null, null],
+        drivers: [],
+        tier: 0,
+        modifiers: [],
+        phase: 'map',
+        gauntlet: null,
+        outcome: null,
+        fightsResolved: 0,
+        startedAt: 1,
+        ...overrides,
+    };
+}
 
-        // `scrapCount: -1` fails `z.number().int().min(0)`.
-        const result = saveGame(goodSave({ scrapCount: -1 }));
+describe('a refused write leaves the loadable state exactly as it was', () => {
+    it('a schema-invalid ranch never reaches the backend', () => {
+        saveRanch(goodRanch());
+
+        // `highestTierCleared` cannot be negative. Nothing is written, so the last good bytes stand.
+        const result = saveRanch(goodRanch({ highestTierCleared: -1 }));
 
         expect(result.success).toBe(false);
         expect(result.kind).toBe('validation');
-        expect(result.error).toContain('scrapCount');
-        expect(backing[getActiveSaveKey()]).toBe(lastGoodBytes);
-        expect(loadGame().data?.scrapCount).toBe(500);
+        expect(loadGameState().ranch).toEqual(goodRanch());
     });
 
-    it('refuses an over-size activeParty (the 3-member cap) without writing', () => {
-        saveGame(goodSave({ scrapCount: 11 }));
-        const lastGoodBytes = backing[getActiveSaveKey()];
+    it('an IV outside 0–31 is refused rather than clamped', () => {
+        saveRanch(goodRanch());
+        const result = saveRanch(goodRanch({
+            roster: [{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 32, defenseIV: 5, hpIV: 5 }],
+        }));
 
-        const result = saveGame(goodSave({ activeParty: ['a', 'b', 'c', 'd'] }));
+        expect(result.success).toBe(false);
+        expect(loadGameState().ranch?.roster[0].attackIV).toBe(5);
+    });
+
+    it('a backend that throws mid-write leaves the previous bytes intact', () => {
+        saveRanch(goodRanch());
+        const before = storage.read(getActiveRanchKey());
+
+        storage.failWith = Object.assign(new Error('quota'), { name: 'QuotaExceededError' });
+        const result = saveRanch(goodRanch({ highestTierCleared: 9 }));
+
+        expect(result.success).toBe(false);
+        expect(storage.read(getActiveRanchKey())).toBe(before);
+        expect(loadGameState().ranch?.highestTierCleared).toBe(0);
+    });
+
+    it('says so loudly — a packaged build has no console anyone reads, so this feeds the banner', () => {
+        storage.failWith = new Error('nope');
+        saveRanch(goodRanch());
+        expect(consoleError).toHaveBeenCalled();
+    });
+});
+
+describe('two keys means a failing run write cannot cost the ranch', () => {
+    it('leaves the ranch loadable when the run write throws', () => {
+        saveRanch(goodRanch());
+
+        storage.failWith = Object.assign(new Error('quota'), { name: 'QuotaExceededError' });
+        const result = saveRun(goodRun());
+
+        expect(result.success).toBe(false);
+        // The whole point of the split (Henry, 2026-08-21): the blast radius of a failed run write
+        // stops at the run. Under the v3 single blob this same failure took the roster with it.
+        expect(loadGameState().ranch).toEqual(goodRanch());
+    });
+
+    it('refuses a run whose currentNodeId matches no node, without touching the ranch', () => {
+        saveRanch(goodRanch());
+        const result = saveRun(goodRun({ currentNodeId: 'nowhere' }));
 
         expect(result.success).toBe(false);
         expect(result.kind).toBe('validation');
-        expect(backing[getActiveSaveKey()]).toBe(lastGoodBytes);
-    });
-
-    it('classifies a full quota as `quota` and keeps the run loadable', () => {
-        saveGame(goodSave({ scrapCount: 900 }));
-        const lastGoodBytes = backing[getActiveSaveKey()];
-
-        setItemImpl = () => {
-            throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
-        };
-
-        const result = saveGame(goodSave({ scrapCount: 950 }));
-
-        expect(result.success).toBe(false);
-        expect(result.kind).toBe('quota');
-        expect(result.error).toMatch(/storage is full/i);
-        // The write threw, so storage still holds the previous value — the run is not lost.
-        expect(backing[getActiveSaveKey()]).toBe(lastGoodBytes);
-        expect(loadGame().data?.scrapCount).toBe(900);
-    });
-
-    it('classifies a Firefox-style quota error too', () => {
-        saveGame(goodSave());
-        setItemImpl = () => {
-            const err = new Error('persistent storage maximum size reached');
-            err.name = 'NS_ERROR_DOM_QUOTA_REACHED';
-            throw err;
-        };
-        expect(saveGame(goodSave({ scrapCount: 3 })).kind).toBe('quota');
-    });
-
-    it('classifies an unavailable localStorage as `storage`, not `quota`', () => {
-        saveGame(goodSave({ scrapCount: 12 }));
-        const lastGoodBytes = backing[getActiveSaveKey()];
-
-        setItemImpl = () => {
-            throw new Error('SecurityError: access to storage is denied');
-        };
-
-        const result = saveGame(goodSave({ scrapCount: 13 }));
-
-        expect(result.success).toBe(false);
-        expect(result.kind).toBe('storage');
-        expect(backing[getActiveSaveKey()]).toBe(lastGoodBytes);
+        expect(loadGameState().ranch).toEqual(goodRanch());
+        expect(loadGameState().run).toBeNull();
     });
 });

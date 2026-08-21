@@ -251,23 +251,33 @@ describe('parseSaveFileText', () => {
         if (result.ok) expect(savesAreIdentical(result.save, baseline())).toBe(true);
     });
 
-    it('migrates an older save shape rather than rejecting it wholesale', () => {
-        const legacy = {
-            version: 1,
+    it('fills omitted optional fields and flags that it did (ticket 23: default, never migrate)', () => {
+        // The upgrade chain is gone — save v4 is the floor. What survives is `PlayerSaveSchema`'s
+        // `.default()` fills, which handle a file that simply omits an optional list. That is a
+        // different guarantee from migration and the flag now says so.
+        const sparse = {
+            version: 4,
             roster: [],
             activeParty: [],
             cardInventory: [],
             activeDeck: null,
             scrapCount: 10,
-            baseDecksGranted: [],
         };
-        const result = parseSaveFileText(JSON.stringify(legacy));
+        const result = parseSaveFileText(JSON.stringify(sparse));
         expect(result.ok).toBe(true);
         if (result.ok) {
-            expect(result.migrated).toBe(true);
-            expect(result.save.version).toBe(3);
+            expect(result.defaulted).toBe(true);
             expect(result.save.unlockedSectors).toEqual([]);
+            expect(result.save.blueprints).toEqual([]);
         }
+    });
+
+    it('rejects a malformed field instead of silently emptying it', () => {
+        // The `.catch([])` -> `.default([])` swap (ticket 23). Under `.catch` this parsed clean
+        // with an EMPTY blueprint list, and the next autosave wrote that emptiness over the good
+        // save. Blueprints are the only persistent currency in the game; that is data loss.
+        const corrupt = { ...baseline(), blueprints: [{ architectureId: 'kraken' }] };
+        expect(parseSaveFileText(JSON.stringify(corrupt)).ok).toBe(false);
     });
 
     it('rejects non-JSON', () => {

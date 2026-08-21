@@ -1,11 +1,13 @@
 /**
- * Save slots — one localStorage save per named slot, with an index of what exists.
+ * Save slots — a ranch and an optional run per named slot, with an index of what exists.
+ *
+ * Storage goes through `save/storage.ts`; nothing here names a backend.
  *
  * WHY THIS MODULE EXISTS
  *
  * Ending a battle is a write to the real save. `BattleArena` dispatches `syncPartyStats`,
  * `applyRewardBundle`, `addRelic` and the gauntlet actions into `gameSlice`, and
- * `src/ui/store/store.ts:43-54` autosaves every `state.game` change straight to localStorage.
+ * `src/ui/store/store.ts`'s subscription autosaves every `state.game` change straight to storage.
  * `syncPartyStats` matches roster members *by id*, and a fabricated debug battle can reuse
  * real roster ids — so a debug run that is allowed to end lands its levels, HP and rewards on
  * the player's actual mingmings. There is no undo.
@@ -22,41 +24,44 @@
  * the existing API: the four functions keep their exact signatures and silently address the
  * active slot. Every call site is untouched, and switching slots is a single write here.
  *
- * STORAGE LAYOUT
+ * STORAGE LAYOUT (ticket 23: TWO keys per slot, not one)
  *
- *   mingming_saves            the index: { version, activeSlotId, slots: [{ id, name, createdAt }] }
- *   mingming_save__<slotId>   one save payload per slot, byte-identical to the old format
- *   mingming_save             the legacy pre-slot key — read once, then left alone forever
+ *   mingming_saves             the index: { version, activeSlotId, slots: [{ id, name, createdAt }] }
+ *   mingming_ranch__<slotId>   the ranch — roster, blueprint counts, codex, gyms/tier cleared
+ *   mingming_run__<slotId>     the run in progress, absent when there is none
  *
- * MIGRATION IS A COPY, NOT A MOVE
+ * The split is Henry's ruling (ticket 06) and its whole purpose is blast radius: a corrupt run
+ * costs a run, never a blueprint or an individual. `SaveSystem` reads both and reconciles them.
  *
- * The first read after upgrading finds a legacy `mingming_save` and no index. It creates the
- * index with one slot and *copies* the legacy bytes into that slot's key. The legacy key is
- * never written and never deleted afterwards: it is a frozen recovery net holding the save
- * exactly as it stood the moment slots arrived. If slot handling ever eats a run, the old
- * save is still literally there. The cost is one duplicated save's worth of localStorage,
- * which is nothing against the failure it insures.
+ * THE LEGACY ADOPTION IS GONE (ticket 23). It existed to copy a pre-slot `mingming_save` into the
+ * first slot. Save v4 is a clean break with no migration — a pre-v4 blob reads as a new player —
+ * so there is nothing left to rescue and keeping the copy would only resurrect a shape nothing can
+ * parse.
  *
  * This module is engine code: no React, no Redux, and no import from `src/debug/`. It reads no
- * Vite build-env flags either, so it runs under plain node.
+ * Vite build-env flags either, so it runs under plain node. Storage goes through
+ * `save/storage.ts` so ticket 42 can swap in a file backend.
  */
 
 import { z } from 'zod';
 
-/** The pre-slot key. Read during migration; never written, never removed. */
-export const LEGACY_SAVE_KEY = 'mingming_save';
+import { getSaveStorage, type ISaveStorage } from './save/storage';
 
 /** Where the index lives. */
 export const SLOT_INDEX_KEY = 'mingming_saves';
 
-/** Per-slot payload keys are this prefix plus the slot id. */
-export const SLOT_KEY_PREFIX = 'mingming_save__';
+/** Per-slot ranch payload keys are this prefix plus the slot id. */
+export const RANCH_KEY_PREFIX = 'mingming_ranch__';
+
+/** Per-slot run payload keys are this prefix plus the slot id. */
+export const RUN_KEY_PREFIX = 'mingming_run__';
 
 export const CURRENT_SLOT_INDEX_VERSION = 1;
 
 /**
- * Id given to the slot that adopts the legacy save, and the id assumed when localStorage is
- * unavailable so key derivation is still a total function.
+ * The first slot's id, and the id assumed when storage is unavailable so key derivation stays a
+ * total function. (It used to also be the slot the legacy save was adopted into; ticket 23 removed
+ * that adoption along with the migration it fed.)
  */
 export const FIRST_SLOT_ID = 'slot_1';
 
@@ -99,52 +104,46 @@ const SlotIndexSchema = z
         { message: 'duplicate slot id' },
     );
 
-// --- Storage access (localStorage can be absent in node, or throw in privacy modes) ---
+// --- Storage access (ticket 23: through the adapter, so nothing here names localStorage) ---
 
-function storage(): Storage | null {
-    try {
-        if (typeof localStorage !== 'undefined') return localStorage;
-    } catch {
-        // Touching localStorage itself can throw. Same guard shape as AudioEngine.ts.
-    }
-    return null;
+type Store = ISaveStorage;
+
+function storage(): Store | null {
+    return getSaveStorage();
 }
 
-function safeGet(store: Storage, key: string): string | null {
-    try {
-        return store.getItem(key);
-    } catch {
-        return null;
-    }
+function safeGet(store: Store, key: string): string | null {
+    return store.read(key);
 }
 
-function safeSet(store: Storage, key: string, value: string): boolean {
+function safeSet(store: Store, key: string, value: string): boolean {
     try {
-        store.setItem(key, value);
+        store.write(key, value);
         return true;
     } catch {
         return false;
     }
 }
 
-function safeRemove(store: Storage, key: string): void {
-    try {
-        store.removeItem(key);
-    } catch {
-        // Nothing useful to do; the caller's next read reports the truth either way.
-    }
+function safeRemove(store: Store, key: string): void {
+    store.remove(key);
 }
 
 // --- Key derivation ---
 
-/** `mingming_save__<slotId>`. Total: callers never have to handle a missing slot here. */
-export function slotStorageKey(slotId: string): string {
-    return `${SLOT_KEY_PREFIX}${slotId}`;
+/** `mingming_ranch__<slotId>`. Total: callers never have to handle a missing slot here. */
+export function slotRanchKey(slotId: string): string {
+    return `${RANCH_KEY_PREFIX}${slotId}`;
+}
+
+/** `mingming_run__<slotId>`. Absent while the slot has no run in progress. */
+export function slotRunKey(slotId: string): string {
+    return `${RUN_KEY_PREFIX}${slotId}`;
 }
 
 // --- Index read / write ---
 
-function readIndex(store: Storage): SlotIndex | null {
+function readIndex(store: Store): SlotIndex | null {
     const raw = safeGet(store, SLOT_INDEX_KEY);
     if (!raw) return null;
     try {
@@ -155,26 +154,20 @@ function readIndex(store: Storage): SlotIndex | null {
     }
 }
 
-function writeIndex(store: Storage, index: SlotIndex): boolean {
+function writeIndex(store: Store, index: SlotIndex): boolean {
     const parsed = SlotIndexSchema.safeParse(index);
     if (!parsed.success) return false;
     return safeSet(store, SLOT_INDEX_KEY, JSON.stringify(parsed.data));
 }
 
 /**
- * The migration point. Called by every slot-aware read and write, so whichever one happens
- * first after the upgrade performs the adoption exactly once.
+ * Create the index when there is none (a new player, or a corrupted index being rebuilt).
+ *
+ * Ticket 23 removed the legacy-adoption copy that used to live here. It existed to rescue a
+ * pre-slot `mingming_save`, and save v4's clean break means such a blob can no longer be parsed by
+ * anything — copying it forward would only plant bytes that read as a new player anyway.
  */
-function adoptLegacy(store: Storage): SlotIndex {
-    const legacy = safeGet(store, LEGACY_SAVE_KEY);
-    const destination = slotStorageKey(FIRST_SLOT_ID);
-
-    // Copy, never move. The guard matters when the index was corrupted rather than absent:
-    // rebuilding must not paste a stale legacy save over a slot that already holds progress.
-    if (legacy !== null && safeGet(store, destination) === null) {
-        safeSet(store, destination, legacy);
-    }
-
+function createIndex(store: Store): SlotIndex {
     const index: SlotIndex = {
         version: CURRENT_SLOT_INDEX_VERSION,
         activeSlotId: FIRST_SLOT_ID,
@@ -184,16 +177,16 @@ function adoptLegacy(store: Storage): SlotIndex {
     return index;
 }
 
-function ensureIndex(store: Storage): SlotIndex {
-    return readIndex(store) ?? adoptLegacy(store);
+function ensureIndex(store: Store): SlotIndex {
+    return readIndex(store) ?? createIndex(store);
 }
 
 /** Lowest unused `slot_N`, skipping ids whose payload key somehow still exists. */
-function nextSlotId(store: Storage, index: SlotIndex): string {
+function nextSlotId(store: Store, index: SlotIndex): string {
     const taken = new Set(index.slots.map((slot) => slot.id));
     for (let n = 1; ; n++) {
         const candidate = `slot_${n}`;
-        if (!taken.has(candidate) && safeGet(store, slotStorageKey(candidate)) === null) {
+        if (!taken.has(candidate) && safeGet(store, slotRanchKey(candidate)) === null) {
             return candidate;
         }
     }
@@ -201,7 +194,7 @@ function nextSlotId(store: Storage, index: SlotIndex): string {
 
 // --- Public slot API ---
 
-/** Every slot, in creation order. Empty only when localStorage is unavailable. */
+/** Every slot, in creation order. Empty only when storage is unavailable. */
 export function listSlots(): ReadonlyArray<SaveSlot> {
     const store = storage();
     if (!store) return [];
@@ -220,9 +213,14 @@ export function getActiveSlotId(): string {
     return ensureIndex(store).activeSlotId;
 }
 
-/** The concrete localStorage key the four save functions use. */
-export function getActiveSaveKey(): string {
-    return slotStorageKey(getActiveSlotId());
+/** The concrete storage key the ranch is written to. */
+export function getActiveRanchKey(): string {
+    return slotRanchKey(getActiveSlotId());
+}
+
+/** The run key for the active slot. Absent from storage while no run is in progress. */
+export function getActiveRunKey(): string {
+    return slotRunKey(getActiveSlotId());
 }
 
 /**
@@ -254,9 +252,11 @@ export function createSlot(name: string, copyFromSlotId?: string): SaveSlot | nu
     const index = ensureIndex(store);
 
     let payload: string | null = null;
+    let runPayload: string | null = null;
     if (copyFromSlotId !== undefined) {
         if (!index.slots.some((slot) => slot.id === copyFromSlotId)) return null;
-        payload = safeGet(store, slotStorageKey(copyFromSlotId));
+        payload = safeGet(store, slotRanchKey(copyFromSlotId));
+        runPayload = safeGet(store, slotRunKey(copyFromSlotId));
     }
 
     const slot: SaveSlot = {
@@ -268,7 +268,9 @@ export function createSlot(name: string, copyFromSlotId?: string): SaveSlot | nu
     // Index first: a payload with no index entry is an orphan nothing will ever clean up,
     // whereas an index entry with no payload is just an empty slot, which is a legal state.
     if (!writeIndex(store, { ...index, slots: [...index.slots, slot] })) return null;
-    if (payload !== null) safeSet(store, slotStorageKey(slot.id), payload);
+    if (payload !== null) safeSet(store, slotRanchKey(slot.id), payload);
+    // A branched slot carries the run too, so "copy this slot" means the whole game state.
+    if (runPayload !== null) safeSet(store, slotRunKey(slot.id), runPayload);
     return slot;
 }
 
@@ -310,7 +312,8 @@ export function deleteSlot(slotId: string): boolean {
         slots: remaining,
     };
     if (!writeIndex(store, next)) return false;
-    safeRemove(store, slotStorageKey(slotId));
+    safeRemove(store, slotRanchKey(slotId));
+    safeRemove(store, slotRunKey(slotId));
     return true;
 }
 
@@ -318,19 +321,13 @@ export function deleteSlot(slotId: string): boolean {
 export function readSlotRaw(slotId: string): string | null {
     const store = storage();
     if (!store) return null;
-    return safeGet(store, slotStorageKey(slotId));
+    return safeGet(store, slotRanchKey(slotId));
 }
 
 export function hasSlotData(slotId: string): boolean {
     return readSlotRaw(slotId) !== null;
 }
 
-/** The untouched pre-slot save, if the user had one. Recovery net readout for the panel. */
-export function readLegacySaveRaw(): string | null {
-    const store = storage();
-    if (!store) return null;
-    return safeGet(store, LEGACY_SAVE_KEY);
-}
 
 // --- Naming ---
 

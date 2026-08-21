@@ -71,29 +71,40 @@ export const NODE_KINDS = [
 ] as const;
 
 /**
- * `exploration-map.md`: "Map shape: an explorable GRAPH, explicitly NOT Spire's three lanes — you
- * find your way to the boss, with room to FARM if you don't feel ready."
+ * `exploration-map.md`: "an explorable GRAPH, explicitly NOT Spire's three lanes — you find your
+ * way to the boss, with room to FARM if you don't feel ready." The shape below is
+ * [ticket 07](../../docs/wayfinder/steam-release/tickets/07-region-graph.md)'s ruled model:
+ * **3 sequential biomes × 5 layers** (entry, 3 middle, exit), width 2–3 per middle layer, lateral
+ * edges between siblings on ~60% of layers, one dead-end **pocket** per biome, biome exit = an
+ * elite (biome 3's exit is the gym).
  *
- * Two consequences the type has to carry that a lane model would not:
- *   - **`visited` is a count, not a boolean.** Farming means re-entering. A cleared wild node has
- *     to be able to say "you already took this one" without pretending it never happened.
- *   - **`edges` is a plain adjacency list, undirected in practice.** Backtracking is the farming
- *     affordance; a DAG would forbid it silently.
+ * Three consequences the type has to carry that a lane model would not:
+ *
+ *   - **`visited` is a count, not a boolean, and it is load-bearing.** Ticket 07: *"Entering a
+ *     node triggers it again, always"* — wilds re-fight at **full rewards** ("farming is fine"),
+ *     markets and workshops can be revisited at the price of re-fighting the wilds on the way. A
+ *     node's contents are rolled at entry from the node's seed **plus this count**, so re-entry
+ *     re-rolls honestly instead of replaying a cached encounter.
+ *   - **`edges` is walkable in both directions.** Ticket 07 again: *"the graph is genuinely
+ *     explorable, not a frontier picker."* A DAG would forbid backtracking silently.
+ *   - **`layer` replaces raw x/y.** The generator lays nodes out in layers, so layer + biome is
+ *     the position; ticket 10's screen derives pixels from it. Storing pixels in the save would
+ *     freeze a layout decision the UI has not made yet.
  */
 export interface IRegionNode {
     readonly id: string;
     readonly kind: NodeKind;
-    /** Which biome this node sits in — indexes into `IRunState.biomes`. */
+    /** Which biome this node sits in — indexes into `IRunState.biomes`. Biomes are sequential. */
     readonly biomeIndex: number;
-    /** Node ids reachable from here. */
+    /** 0–4 within its biome: 0 entry, 1–3 middle, 4 exit (an elite, or the gym in biome 3). */
+    readonly layer: number;
+    /** Ticket 07: one dead-end side node per biome — a wild, an alpha, or an ambush. */
+    readonly pocket: boolean;
+    /** Node ids reachable from here. Walkable both ways. */
     readonly edges: ReadonlyArray<string>;
-    /** Layout only. The graph's meaning is in `edges`; these are for drawing it (ticket 10). */
-    readonly x: number;
-    readonly y: number;
     /**
-     * How many times the player has entered and resolved this node. 0 = never.
-     * **[ASSUMED]** that a cleared node stays re-enterable (farming) but pays out less or nothing
-     * the second time. The falloff rule is an economy question, not a data-model one — ticket 12.
+     * How many times the player has entered and resolved this node. 0 = never. Feeds the
+     * content roll at entry — see the note above on why re-entry must re-roll.
      */
     readonly visited: number;
 }
@@ -325,9 +336,10 @@ export const RegionNodeSchema = z.object({
     id: z.string(),
     kind: z.enum(NODE_KINDS),
     biomeIndex: z.number().int().min(0).max(2),
+    // 5 layers per biome (ticket 07): 0 entry, 1-3 middle, 4 exit.
+    layer: z.number().int().min(0).max(4),
+    pocket: z.boolean(),
     edges: z.array(z.string()),
-    x: z.number(),
-    y: z.number(),
     visited: z.number().int().min(0),
 });
 
@@ -543,10 +555,10 @@ export function reconcileLoadedState(rawRanch: unknown, rawRun: unknown): Reconc
  *
  * **What ticket 23 should therefore DELETE rather than extend:**
  *
- * - `migrateSave()` and its v1→v2 and v2→v3 branches (`SaveSystem.ts`, ~45 lines).
+ * - The version-keyed upgrade function and its v1→v2 / v2→v3 branches (`SaveSystem.ts`, ~45 lines).
  * - The migration cases in `SaveSystem.test.ts` (20 tests today; the v1/v2/v3 chain goes).
- * - `migrateSave`'s import and use in `debug/saveEdit.ts:206` (`parseSaveFileText`) — the debug
- *   save-editor's file-import path currently migrates on read and would simply validate instead.
+ * - Its import and use in `debug/saveEdit.ts` (`parseSaveFileText`) — the debug save-editor's
+ *   file-import path currently upgrades on read and would simply validate instead.
  *   `debug/saveSlots.ts` and `SaveSlotsPanel.tsx` document that path in comments and need the
  *   same edit.
  * - `SaveSlots.ts`'s legacy `mingming_save` adoption-by-copy, which exists to rescue pre-slot

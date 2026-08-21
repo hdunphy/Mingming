@@ -1,8 +1,8 @@
 # Save schema v4: ranch + run, migration from v3, in-progress run survives restart (ticket 23)
 
 - Type: wayfinder:task
-- Status: open
-- Assignee: 
+- Status: closed
+- Assignee: agent
 - Blocked by: [06](06-run-data-model.md)
 - Phase: Vertical Slice
 
@@ -34,5 +34,69 @@ An app close mid-run resumes at the same node with the same seed; a v3 blob in s
 
 ## Resolution
 
-_(open)_
+**Closed 2026-08-21.** Save v4 is live: two keys, no migration, `.default()` throughout, and the
+storage adapter seam in place. Suite **906 → 916**, `tsc -b` clean, build green.
 
+### What landed
+
+| File | What it is now |
+| --- | --- |
+| `engine/save/storage.ts` | **New.** `ISaveStorage` + `LocalSaveStorage` + a swappable module singleton. The only module that names `localStorage`. |
+| `engine/SaveSystem.ts` | Rewritten. `saveRanch` / `saveRun` / `loadGameState` / `deleteSave` / `hasSave`. |
+| `engine/SaveSlots.ts` | Two keys per slot (`mingming_ranch__<id>`, `mingming_run__<id>`); legacy adoption deleted. |
+| `engine/save/ranchProjection.ts` | **New, and temporary — ticket 09 deletes it.** See "The transitional seam". |
+| `engine/gameTypes.ts` | `PlayerSaveSchema` moved here from `SaveSystem` (it validates the in-memory slice now, not the save), `.catch` → `.default`. |
+| `ui/audio/AudioEngine.ts` | Migrated to the adapter — the third of ticket 26's three `localStorage` files. |
+
+Both done-when greps pass: `grep -rn "migrateSave" src` returns nothing, and `localStorage`
+appears nowhere outside `engine/save/storage.ts` — comments included, which cost a few rewordings.
+
+### Three orderings that are the actual guarantees
+
+1. **Version check BEFORE schema parse** (`loadGameState`). A v3 blob also fails `RanchSaveSchema`,
+   so parsing first would report it as an *error* — and ticket 04's loader treats an error as damage
+   and clings to the last good bytes. Checking the version first is what makes a v3 save read as a
+   **new player**. Asserted directly, not just through its outcome.
+2. **Validate → serialize → write** (`writeValidated`). On every failure path the bytes in storage
+   are still the last save that was known good. No backup copy is kept; the ordering *is* the
+   guarantee.
+3. **`saveRun(null)` REMOVES the key** rather than writing a null envelope, so "not in a run" has
+   exactly one representation — the same one a fresh player produces.
+
+### The transitional seam (needs your eye)
+
+`IRanchState` drops `cardInventory`, `activeDeck`, `scrapCount`, `relics`, `gauntlet` and
+`baseDecksGranted`. Those six are read by **~40 files**, including the entire balance harness and
+the scenario system. Rewriting the `game` slice to `IRanchState` today would rewrite all of them,
+and tickets 09–15 would rewrite them again.
+
+So the slice shape is untouched and the **save boundary** translates: `toRanchState` on write,
+`applyRanchState` on read. v4 is genuinely the persisted format; the pre-roguelike screens keep
+working; `ranchProjection.ts` is one small file with a delete-me-in-09 note on it.
+
+**The behaviour change to be aware of: a reload now keeps your roster and blueprints and drops your
+cards, deck and scrap.** That is ticket 06's ruling rather than a shortcut — every dropped field is
+run-scoped in the ratified model — but it is a real difference the next time you open the build, and
+`ranchProjection.test.ts` asserts it deliberately so nobody "fixes" it without reading 06.
+
+Two lossy edges, both documented in the file:
+
+- **Blueprints** project as counts (v3 dedup'd them on `architectureId`, the exact opposite of a
+  consumable). `name` and `compileCost` are registry-derived display fields, so hydration
+  re-synthesizes them rather than storing them.
+- **`gymsCleared` ↔ `unlockedSectors`.** Clearing a Gym unlocks that element's sector in the current
+  game, so the two lists hold the same information. The three starting sectors are not a clear and
+  are re-seeded by `createDefaultSave`, so only elements beyond the defaults round-trip.
+
+### Notes for later tickets
+
+- **[09](09-run-start.md)** deletes `ranchProjection.ts`, moves the six run-scoped fields into
+  `IRunState`, and grows `store.ts`'s autosave a second arm calling `saveRun` on run-slice changes.
+  The subscription is commented with exactly that.
+- **[42](42-desktop-packaging.md)** implements `FileSaveStorage` behind `ISaveStorage` and calls
+  `setSaveStorage` once at Electron boot. Nothing else should need to change; the test for that is
+  the `localStorage` grep above. Note audio settings now ride the same backend under their own key.
+- **[36](36-settings-screen.md)**'s save management has `deleteSave` (wipes both keys) and the
+  `SaveSlots` API to build on.
+- The debug save-editor's file import **validates instead of upgrading**; its `migrated` flag became
+  `defaulted`, which is a narrower and now-accurate claim.

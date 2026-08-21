@@ -10,10 +10,13 @@
  * reuses real roster ids, so a fabricated debug level lands on a real mingming. Slots are the
  * containment: switch to a scratch slot, break whatever you like, switch back.
  *
- * Every mutation here goes through `../saveSlots`, which vets a slot's payload with
- * `parseSaveFileText` (the same `migrateSave` + `PlayerSaveSchema` path `loadGame` and the save
- * editor's file import use) *before* moving anything, and clears any live battle before the
- * active pointer moves. Nothing in this file writes localStorage or dispatches directly.
+ * Every mutation here goes through `../saveSlots`, which vets a slot's payload against save v4's
+ * `RanchSaveSchema` *before* moving anything, and clears any live battle before the active pointer
+ * moves. Nothing in this file writes storage or dispatches directly.
+ *
+ * TICKET 23: a slot is now TWO keys — `mingming_ranch__<id>` and `mingming_run__<id>` — and only
+ * the ranch has a home in the store today, so that is what this panel reports on. The run key is
+ * copied and deleted with the slot but has nothing to display until tickets 09–15 land runs.
  *
  * The player-facing slot picker in `MainMenuView` is explicitly out of scope — this is an
  * operator tool, and the storage layer it sits on is what a player-facing picker would reuse.
@@ -24,16 +27,15 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import {
-    FIRST_SLOT_ID,
-    LEGACY_SAVE_KEY,
     getActiveSlotId,
     listSlots,
-    readLegacySaveRaw,
     renameSlot,
-    slotStorageKey,
+    slotRanchKey,
+    slotRunKey,
     type SaveSlot,
 } from '../../engine/SaveSlots';
-import { loadGame } from '../../engine/SaveSystem';
+import { loadGameState } from '../../engine/SaveSystem';
+import { toRanchState } from '../../engine/save/ranchProjection';
 import type { RootState } from '../../ui/store/store';
 import { savesAreIdentical, validateSave } from '../saveEdit';
 import { createSlotOp, deleteSlotOp, readSlotSave, switchToSlot, type SlotOpResult } from '../saveSlots';
@@ -162,19 +164,20 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
 
     const slots: ReadonlyArray<SaveSlot> = listSlots();
     const activeId = getActiveSlotId();
-    const legacyPresent = readLegacySaveRaw() !== null;
 
     // Same readout the save editor shows: is what is on disk in this slot what the store holds?
-    // It matters here because "Copy current save" duplicates the *stored* bytes.
-    const persisted = ((): { data: unknown; error?: string } => {
+    // It matters here because "Copy current save" duplicates the *stored* bytes. Compared as
+    // ranches (ticket 23) — the slice's run-scoped half is never written, so comparing whole
+    // slices would report a permanent, meaningless drift.
+    const persisted = ((): { ranch: unknown; error?: string } => {
         try {
-            return loadGame();
+            return loadGameState();
         } catch (err) {
-            return { data: null, error: String(err) };
+            return { ranch: null, error: String(err) };
         }
     })();
     const liveValid = validateSave(save);
-    const inSync = persisted.data !== null && savesAreIdentical(persisted.data, save);
+    const inSync = persisted.ranch !== null && savesAreIdentical(persisted.ranch, toRanchState(save));
 
     const report = (verb: string, op: SlotOpResult): void => {
         bumpRevision();
@@ -212,8 +215,8 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
         <div style={bannerStyle(liveValid.valid ? (inSync ? OK : WARN) : BAD)}>
             <strong>ACTIVE SLOT: {activeId}</strong> ({slots.find((s) => s.id === activeId)?.name ?? '?'})
             {'\n'}
-            key {slotStorageKey(activeId)} — every autosave, defeat wipe and hub restart hits this key
-            and nothing else.
+            keys {slotRanchKey(activeId)} + {slotRunKey(activeId)} — every autosave, defeat wipe and hub
+            restart hits these keys and nothing else.
             {!liveValid.valid && `\nlive state fails PlayerSaveSchema, so this slot is NOT persisting.`}
             {liveValid.valid && !inSync && `\nstored copy is behind the live state — the last autosave did not land.`}
         </div>
@@ -388,20 +391,11 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
             </section>
 
             <section style={sectionStyle}>
-                <div style={{ ...labelStyle, marginBottom: '4px' }}>legacy save</div>
+                <div style={{ ...labelStyle, marginBottom: '4px' }}>save version</div>
                 <div style={noteStyle}>
-                    {legacyPresent ? (
-                        <>
-                            <code>{LEGACY_SAVE_KEY}</code> still exists. It was <em>copied</em> into{' '}
-                            <code>{FIRST_SLOT_ID}</code> when slots were first read and has not been written
-                            since — it is a frozen snapshot of the save as it stood before slots existed, kept
-                            deliberately as a recovery net.
-                        </>
-                    ) : (
-                        <>
-                            No <code>{LEGACY_SAVE_KEY}</code> — this browser never held a pre-slot save.
-                        </>
-                    )}
+                    Save v4 is the floor (ticket 23): anything older reads as <em>no save</em> rather than a
+                    corrupt one, and there is no migration to run. The pre-slot <code>mingming_save</code> key
+                    and its adoption-by-copy are gone with it — nothing can parse those bytes any more.
                 </div>
             </section>
 

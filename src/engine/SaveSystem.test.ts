@@ -1,257 +1,341 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { IPlayerSave } from './gameTypes';
-import { createDefaultSave } from './gameTypes';
+/**
+ * Save v4 — the persistence contract, ticket 23.
+ *
+ * These tests drive the real module through the **storage adapter seam** (`save/storage.ts`)
+ * rather than a stubbed global `localStorage`. That is deliberate: ticket 42 swaps in a file
+ * backend for Steam Cloud, and a suite written against `localStorage` would have to be rewritten
+ * along with it. Written against `ISaveStorage`, every assertion below stays true for any backend.
+ *
+ * The v1–v3 migration cases that used to live here are gone rather than updated. v4 is the floor
+ * (Henry, 2026-08-21) and the thing worth asserting now is the *absence* of a repair path — see
+ * "v4 is the floor".
+ */
 
-// Set up localStorage mock BEFORE importing SaveSystem
-const store: Record<string, string> = {};
-const localStorageMock = {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { Object.keys(store).forEach(k => delete store[k]); },
-    get length() { return Object.keys(store).length; },
-    key: (i: number) => Object.keys(store)[i] ?? null,
-};
-vi.stubGlobal('localStorage', localStorageMock);
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { saveGame, loadGame, deleteSave, hasSave, PlayerSaveSchema, migrateSave } from './SaveSystem';
+import {
+    CURRENT_SAVE_VERSION,
+    deleteSave,
+    hasSave,
+    loadGameState,
+    saveRanch,
+    saveRun,
+} from './SaveSystem';
+import { getActiveRanchKey, getActiveRunKey } from './SaveSlots';
+import { resetSaveStorage, setSaveStorage, type ISaveStorage } from './save/storage';
+import type { IRanchState, IRunState } from './runTypes';
 
-// Vitest uses jsdom/happy-dom which provides localStorage mock
+// --- A backend under the test's control ------------------------------------------------------
 
-function makeValidSave(): IPlayerSave {
+class MemoryStorage implements ISaveStorage {
+    readonly map = new Map<string, string>();
+    /** Set to throw from `write`, to drive the quota/unavailable classification. */
+    failWith: unknown = null;
+
+    read(key: string): string | null {
+        return this.map.get(key) ?? null;
+    }
+    write(key: string, value: string): void {
+        if (this.failWith !== null) throw this.failWith;
+        this.map.set(key, value);
+    }
+    remove(key: string): void {
+        this.map.delete(key);
+    }
+    keys(): string[] {
+        return [...this.map.keys()];
+    }
+}
+
+let storage: MemoryStorage;
+
+beforeEach(() => {
+    storage = new MemoryStorage();
+    setSaveStorage(storage);
+});
+
+afterEach(() => {
+    resetSaveStorage();
+});
+
+const ranchKey = (): string => getActiveRanchKey();
+const runKey = (): string => getActiveRunKey();
+
+// --- Fixtures ---------------------------------------------------------------------------------
+
+function makeRanch(overrides: Partial<IRanchState> = {}): IRanchState {
     return {
-        version: 1,
         roster: [
-            { id: 'mm1', definitionId: 'def_fire', blueprintsCollected: 0, attackIV: 10, defenseIV: 8, hpIV: 12 }
+            { id: 'mm1', definitionId: 'kraken', nickname: 'Bubbles', activeOS: 'kraken_v1', attackIV: 10, defenseIV: 8, hpIV: 12 },
+            { id: 'mm2', definitionId: 'fenrir', activeOS: 'fenrir_v1', attackIV: 3, defenseIV: 31, hpIV: 0 },
         ],
-        activeParty: ['mm1'],
-        cardInventory: [
-            { instanceId: 'c1', dataId: 'flamethrower' },
-            { instanceId: 'c2', dataId: 'erupt' }
-        ],
-        activeDeck: { id: 'd1', name: 'Fire Deck', cards: ['c1', 'c2'] },
-        scrapCount: 250,
-        blueprints: [
-            { architectureId: 'arch_fire', name: 'Fire Blueprint', compileCost: 100 }
-        ],
-        relics: [],
-        gauntlet: null,
-        unlockedSectors: ['Fire', 'Water', 'Nature'],
-        baseDecksGranted: []
+        blueprints: { kraken: 2, fenrir: 1 },
+        codex: { seen: ['prog_a'], played: ['prog_a'] },
+        gymsCleared: ['gym_water'],
+        highestTierCleared: 1,
+        ...overrides,
     };
 }
 
-describe('SaveSystem', () => {
-    beforeEach(() => {
-        localStorage.clear();
+function makeRun(overrides: Partial<IRunState> = {}): IRunState {
+    return {
+        seed: 'seed-1',
+        gymId: 'gym_water',
+        biomes: [
+            { id: 'b0', name: 'Ember Flats', elements: ['Fire'] },
+            { id: 'b1', name: 'Tidewrack', elements: ['Water'] },
+            { id: 'b2', name: 'Rootfall', elements: ['Nature'] },
+        ],
+        nodes: [
+            { id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: ['n1'], visited: 1 },
+            { id: 'n1', kind: 'marketplace', biomeIndex: 0, layer: 1, pocket: false, edges: ['n0'], visited: 0 },
+        ],
+        currentNodeId: 'n0',
+        partyIds: ['mm1'],
+        deck: [{ instanceId: 'c1', dataId: 'prog_a', ownerId: 'mm1' }],
+        scrap: 40,
+        macros: [null, null, null],
+        drivers: [],
+        tier: 0,
+        modifiers: [],
+        phase: 'map',
+        gauntlet: null,
+        outcome: null,
+        fightsResolved: 2,
+        startedAt: 1_700_000_000_000,
+        ...overrides,
+    };
+}
+
+// --- Round trip -------------------------------------------------------------------------------
+
+describe('saveRanch / saveRun round-trip', () => {
+    it('restores a ranch byte-for-byte', () => {
+        const ranch = makeRanch();
+        expect(saveRanch(ranch).success).toBe(true);
+
+        const loaded = loadGameState();
+        expect(loaded.error).toBeUndefined();
+        expect(loaded.ranch).toEqual(ranch);
+        expect(loaded.run).toBeNull();
     });
 
-    describe('saveGame + loadGame round-trip', () => {
-        it('saves and loads a valid save', () => {
-            const save = makeValidSave();
-            const saveResult = saveGame(save);
-            expect(saveResult.success).toBe(true);
+    it('an in-progress run survives a restart at the same node and seed', () => {
+        // The headline requirement of ticket 23: closing the app mid-run must not cost the run.
+        saveRanch(makeRanch());
+        expect(saveRun(makeRun()).success).toBe(true);
 
-            const loadResult = loadGame();
-            expect(loadResult.data).not.toBeNull();
-            expect(loadResult.data!.scrapCount).toBe(250);
-            expect(loadResult.data!.roster).toHaveLength(1);
-            expect(loadResult.data!.roster[0].id).toBe('mm1');
-            expect(loadResult.data!.cardInventory).toHaveLength(2);
-            expect(loadResult.data!.blueprints).toHaveLength(1);
-        });
-
-        it('saves and loads default save', () => {
-            const save = createDefaultSave();
-            const saveResult = saveGame(save);
-            expect(saveResult.success).toBe(true);
-
-            const loadResult = loadGame();
-            expect(loadResult.data).not.toBeNull();
-            expect(loadResult.data!.scrapCount).toBe(0);
-            expect(loadResult.data!.roster).toHaveLength(0);
-        });
+        const loaded = loadGameState();
+        expect(loaded.discarded).toBeUndefined();
+        expect(loaded.run?.seed).toBe('seed-1');
+        expect(loaded.run?.currentNodeId).toBe('n0');
+        expect(loaded.run?.scrap).toBe(40);
     });
 
-    describe('Zod validation rejects bad data', () => {
-        it('rejects string where number expected (scrapCount)', () => {
-            const bad = { ...makeValidSave(), scrapCount: 'five' as any };
-            const result = saveGame(bad);
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('scrapCount');
-        });
+    it('writes the two keys independently — a ranch save does not touch the run key', () => {
+        saveRanch(makeRanch());
+        saveRun(makeRun());
+        const runBytes = storage.read(runKey());
 
-        it('rejects missing version field', () => {
-            const bad = { ...makeValidSave() } as any;
-            delete bad.version;
-            const result = saveGame(bad);
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('version');
-        });
-
-        it('rejects negative scrap count', () => {
-            const bad = { ...makeValidSave(), scrapCount: -10 };
-            const result = saveGame(bad);
-            expect(result.success).toBe(false);
-        });
-
-        it('rejects IV > 31', () => {
-            const bad = makeValidSave();
-            (bad.roster as any)[0] = { ...bad.roster[0], attackIV: 50 };
-            const result = saveGame(bad);
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('attackIV');
-        });
-
-        it('rejects activeParty with more than 3 entries', () => {
-            const bad = { ...makeValidSave(), activeParty: ['a', 'b', 'c', 'd'] };
-            const result = saveGame(bad);
-            expect(result.success).toBe(false);
-        });
-
-        it('rejects an out-of-band IV', () => {
-            // Was "rejects level < 1" until ticket 21 removed level. The IV band is the surviving
-            // per-instance numeric constraint, and the assertion it stands for — a schema-invalid
-            // roster member is refused rather than written — is the same one.
-            const bad = makeValidSave();
-            (bad.roster as any)[0] = { ...bad.roster[0], attackIV: 99 };
-            const result = saveGame(bad);
-            expect(result.success).toBe(false);
-        });
-
-        it('rejects corrupted JSON on load', () => {
-            localStorage.setItem('mingming_save', '{not valid json!!!');
-            const result = loadGame();
-            expect(result.data).toBeNull();
-            expect(result.error).toContain('invalid JSON');
-        });
-
-        it('rejects well-formed but schema-invalid JSON on load', () => {
-            localStorage.setItem('mingming_save', JSON.stringify({ foo: 'bar' }));
-            const result = loadGame();
-            expect(result.data).toBeNull();
-            expect(result.error).toBeDefined();
-        });
+        saveRanch(makeRanch({ highestTierCleared: 2 }));
+        expect(storage.read(runKey())).toBe(runBytes);
     });
 
-    describe('deleteSave / hasSave', () => {
-        it('hasSave returns false when no save', () => {
-            expect(hasSave()).toBe(false);
-        });
+    it('saveRun(null) REMOVES the run key rather than writing a null envelope', () => {
+        saveRanch(makeRanch());
+        saveRun(makeRun());
+        expect(storage.read(runKey())).not.toBeNull();
 
-        it('hasSave returns true after saving', () => {
-            saveGame(makeValidSave());
-            expect(hasSave()).toBe(true);
-        });
+        expect(saveRun(null).success).toBe(true);
+        // Absence, not a stored null: "no run" then has exactly one representation, which is the
+        // same one a fresh player produces.
+        expect(storage.read(runKey())).toBeNull();
+        expect(loadGameState().run).toBeNull();
+    });
+});
 
-        it('deleteSave removes the save', () => {
-            saveGame(makeValidSave());
-            expect(hasSave()).toBe(true);
-            deleteSave();
-            expect(hasSave()).toBe(false);
-        });
+// --- v4 is the floor --------------------------------------------------------------------------
+
+describe('v4 is the floor — a pre-v4 blob is a NEW PLAYER, not a corrupt one', () => {
+    it('reads a v3 save as no save at all, with no error reported', () => {
+        // The distinction is load-bearing. Ticket 04's loader treats a reported error as damage and
+        // clings to the last good bytes; a v3 save is meant to be abandoned, so reporting it as
+        // corruption would be exactly wrong.
+        storage.write(ranchKey(), JSON.stringify({
+            version: 3,
+            roster: [],
+            activeParty: [],
+            cardInventory: [],
+            activeDeck: null,
+            scrapCount: 250,
+        }));
+
+        const loaded = loadGameState();
+        expect(loaded.ranch).toBeNull();
+        expect(loaded.error).toBeUndefined();
     });
 
-    describe('PlayerSaveSchema direct validation', () => {
-        it('parses valid data', () => {
-            const result = PlayerSaveSchema.safeParse(makeValidSave());
-            expect(result.success).toBe(true);
-        });
+    it('checks the version BEFORE the schema, so ordering is what produces that result', () => {
+        // A v3 blob also fails `RanchSaveSchema`. If the parse ran first it would surface as an
+        // error. This asserts the ordering, not just the outcome.
+        storage.write(ranchKey(), JSON.stringify({ version: 3, garbage: true }));
+        expect(loadGameState().error).toBeUndefined();
+    });
 
-        it('provides detailed error path for nested failures', () => {
-            const bad = makeValidSave();
-            (bad.roster as any)[0] = { ...bad.roster[0], attackIV: 'five' };
-            const result = PlayerSaveSchema.safeParse(bad);
-            expect(result.success).toBe(false);
-            if (!result.success) {
-                const paths = result.error.issues.map((e: any) => e.path.join('.'));
-                expect(paths.some(p => p.includes('attackIV'))).toBe(true);
-            }
+    it('still reports genuinely corrupt bytes as corruption', () => {
+        storage.write(ranchKey(), '{ not json');
+        const loaded = loadGameState();
+        expect(loaded.ranch).toBeNull();
+        expect(loaded.error).toContain('Corrupted save data');
+    });
+
+    it('reports a v4 envelope that fails the ranch schema as an error', () => {
+        storage.write(ranchKey(), JSON.stringify({
+            version: CURRENT_SAVE_VERSION,
+            ranch: { roster: [{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 99, defenseIV: 0, hpIV: 0 }] },
+        }));
+        const loaded = loadGameState();
+        expect(loaded.ranch).toBeNull();
+        expect(loaded.error).toContain('attackIV');
+    });
+});
+
+// --- Reconciliation ---------------------------------------------------------------------------
+
+describe('a corrupt run costs the run and nothing else', () => {
+    it('keeps the ranch and reports the discard when the run bytes are unparseable', () => {
+        const ranch = makeRanch();
+        saveRanch(ranch);
+        storage.write(runKey(), '{ not json');
+
+        const loaded = loadGameState();
+        expect(loaded.ranch).toEqual(ranch);
+        expect(loaded.run).toBeNull();
+        expect(loaded.discarded).toBe('run-schema-invalid');
+    });
+
+    it('keeps the ranch when the run fails its schema', () => {
+        saveRanch(makeRanch());
+        storage.write(runKey(), JSON.stringify({ version: CURRENT_SAVE_VERSION, run: { seed: 'x' } }));
+
+        const loaded = loadGameState();
+        expect(loaded.ranch).not.toBeNull();
+        expect(loaded.discarded).toBe('run-schema-invalid');
+    });
+
+    it('discards a run whose party points at a member the ranch does not have', () => {
+        saveRanch(makeRanch({ roster: [] }));
+        saveRun(makeRun());
+
+        const loaded = loadGameState();
+        expect(loaded.ranch).not.toBeNull();
+        expect(loaded.discarded).toBe('party-references-missing-member');
+    });
+
+    it('discards a run whose party holds two of the same species', () => {
+        saveRanch(makeRanch({
+            roster: [
+                { id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 1, defenseIV: 1, hpIV: 1 },
+                { id: 'mm2', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 2, defenseIV: 2, hpIV: 2 },
+            ],
+        }));
+        saveRun(makeRun({ partyIds: ['mm1', 'mm2'] }));
+
+        const loaded = loadGameState();
+        expect(loaded.ranch).not.toBeNull();
+        expect(loaded.discarded).toBe('party-has-duplicate-species');
+    });
+
+    it('a run with no ranch is nothing, since every party id points into the roster', () => {
+        saveRun(makeRun());
+        const loaded = loadGameState();
+        expect(loaded.ranch).toBeNull();
+        expect(loaded.run).toBeNull();
+    });
+});
+
+// --- `.default()`, never `.catch()` ------------------------------------------------------------
+
+describe('malformed persistent currency FAILS rather than emptying itself', () => {
+    it('rejects a negative blueprint count instead of parsing it away as {}', () => {
+        // v3 used `.catch([])` here. Under `.catch` this loaded clean with an EMPTY inventory and
+        // the next autosave wrote that emptiness over the good save. Blueprints are the only
+        // persistent currency in the game, so that is unrecoverable data loss.
+        storage.write(ranchKey(), JSON.stringify({
+            version: CURRENT_SAVE_VERSION,
+            ranch: { ...makeRanch(), blueprints: { kraken: -1 } },
+        }));
+        const loaded = loadGameState();
+        expect(loaded.ranch).toBeNull();
+        expect(loaded.error).toContain('blueprints');
+    });
+
+    it('still fills a MISSING optional field, which is what `.default()` is for', () => {
+        storage.write(ranchKey(), JSON.stringify({
+            version: CURRENT_SAVE_VERSION,
+            ranch: { roster: [] },
+        }));
+        const loaded = loadGameState();
+        expect(loaded.ranch).toEqual({
+            roster: [],
+            blueprints: {},
+            codex: { seen: [], played: [] },
+            gymsCleared: [],
+            highestTierCleared: 0,
         });
     });
 });
 
-describe('Gauntlet persistence (HP-only by design)', () => {
-    // Writing `mingming_save` directly now exercises the legacy-adoption path in SaveSlots:
-    // it is copied into the first slot only when no slot index exists yet. These blocks used
-    // to inherit whatever localStorage the block above left behind, so they clear it first.
-    beforeEach(() => {
-        localStorage.clear();
+// --- Write failures ---------------------------------------------------------------------------
+
+describe('a bad write never overwrites a good save', () => {
+    it('refuses a schema-invalid ranch and leaves the stored bytes untouched', () => {
+        saveRanch(makeRanch());
+        const good = storage.read(ranchKey());
+
+        const result = saveRanch({ ...makeRanch(), highestTierCleared: -5 });
+        expect(result.success).toBe(false);
+        expect(result.kind).toBe('validation');
+        expect(storage.read(ranchKey())).toBe(good);
     });
 
-    it('accepts persistedStats with hp only — matches what the game writes', () => {
-        const save: IPlayerSave = {
-            ...makeValidSave(),
-            gauntlet: {
-                type: 'Gym',
-                element: 'Fire',
-                currentBattleIndex: 1,
-                totalBattles: 3,
-                persistedStats: { mm1: { hp: 42 } }
-            }
-        };
-        expect(saveGame(save).success).toBe(true);
-
-        const loaded = loadGame();
-        expect(loaded.data).not.toBeNull();
-        expect(loaded.data!.gauntlet).not.toBeNull();
-        expect(loaded.data!.gauntlet!.persistedStats['mm1'].hp).toBe(42);
+    it('classifies a Chrome-style full quota as `quota`', () => {
+        storage.failWith = Object.assign(new Error('quota'), { name: 'QuotaExceededError' });
+        const result = saveRanch(makeRanch());
+        expect(result.kind).toBe('quota');
     });
 
-    it('still loads old saves whose persistedStats carried energy (ignored)', () => {
-        const raw = {
-            ...makeValidSave(),
-            gauntlet: {
-                type: 'Gym',
-                element: 'Fire',
-                currentBattleIndex: 1,
-                totalBattles: 3,
-                persistedStats: { mm1: { hp: 42, energy: 3 } }
-            }
-        };
-        localStorage.setItem('mingming_save', JSON.stringify(raw));
-        const loaded = loadGame();
-        expect(loaded.data).not.toBeNull();
-        expect(loaded.data!.gauntlet!.persistedStats['mm1'].hp).toBe(42);
+    it('classifies a Firefox-style full quota as `quota` too', () => {
+        storage.failWith = Object.assign(new Error('persistent storage maximum size reached'), {
+            name: 'NS_ERROR_DOM_QUOTA_REACHED',
+        });
+        expect(saveRanch(makeRanch()).kind).toBe('quota');
+    });
+
+    it('classifies an unavailable backend as `storage`, not `quota`', () => {
+        storage.failWith = new Error('Storage is unavailable');
+        const result = saveRanch(makeRanch());
+        expect(result.kind).toBe('storage');
     });
 });
 
-describe('Save migration', () => {
-    beforeEach(() => {
-        localStorage.clear();
+// --- Removal ----------------------------------------------------------------------------------
+
+describe('deleteSave / hasSave', () => {
+    it('hasSave asks about the ranch — a run without one is meaningless', () => {
+        expect(hasSave()).toBe(false);
+        saveRanch(makeRanch());
+        expect(hasSave()).toBe(true);
     });
 
-    it('loads a legacy v1 save missing blueprints/relics/gauntlet/unlockedSectors', () => {
-        const legacy: any = makeValidSave();
-        delete legacy.blueprints;
-        delete legacy.relics;
-        delete legacy.gauntlet;
-        delete legacy.unlockedSectors;
-        localStorage.setItem('mingming_save', JSON.stringify(legacy));
+    it('deleteSave wipes BOTH keys', () => {
+        saveRanch(makeRanch());
+        saveRun(makeRun());
 
-        const loaded = loadGame();
-        expect(loaded.data).not.toBeNull();
-        expect(loaded.data!.blueprints).toEqual([]);
-        expect(loaded.data!.relics).toEqual([]);
-        expect(loaded.data!.gauntlet).toBeNull();
-        expect(loaded.data!.unlockedSectors).toEqual([]);
-        expect(loaded.data!.version).toBe(3); // v3 = ticket 15 grant keying
-        expect(loaded.data!.scrapCount).toBe(250);
-    });
+        deleteSave();
 
-    it('migrateSave upgrades version and leaves modern saves intact', () => {
-        const modern = { ...makeValidSave(), version: 3 };
-        expect(migrateSave(modern)).toEqual(modern);
-    });
-
-    it('loads a save missing baseDecksGranted (defaults to [] via catch)', () => {
-        const legacy: any = { ...makeValidSave(), version: 3 };
-        delete legacy.baseDecksGranted;
-        localStorage.setItem('mingming_save', JSON.stringify(legacy));
-
-        const loaded = loadGame();
-        expect(loaded.data).not.toBeNull();
-        expect(loaded.data!.baseDecksGranted).toEqual([]);
-        expect(loaded.data!.scrapCount).toBe(250);
+        expect(storage.read(ranchKey())).toBeNull();
+        expect(storage.read(runKey())).toBeNull();
+        expect(hasSave()).toBe(false);
     });
 });

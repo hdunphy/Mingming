@@ -8,6 +8,8 @@
 
 ## Deliverable
 
+**From [ticket 23](23-save-v4.md) (2026-08-21): this ticket DELETES `src/engine/save/ranchProjection.ts`.** Save v4 persists `IRanchState`, but the six run-scoped fields it drops (`cardInventory`, `activeDeck`, `scrapCount`, `relics`, `gauntlet`, `baseDecksGranted`) had nowhere to live yet, so 23 left the `game` slice in its pre-roguelike shape and translated at the save boundary. Landing the run loop means: move those six into `IRunState`, delete the projection module and its test, and grow the autosave subscription in `ui/store/store.ts` a second arm that calls `saveRun` on run-slice changes (the two keys are written independently — that is the point of the split). The subscription carries a comment saying so.
+
 Replace `MainMenuView`'s hardcoded three starters + `HubScreen`'s QUICK DEPLOY with the ruled run start: choose ONE assembled mingming from the ranch (roster), see three offered gyms (each = a boss + its three biome pairs, with difficulty tier shown), pick one, and a run is created from `IRunState` with a seed, the region graph (ticket 07), the start kit (ticket 08), 0 scrap, empty Macro slots. First-ever boot still needs a starter grant (three species, no scrap): keep the starter pick but route it through blueprint assembly so the ranch is the single path.
 
 ## Done when

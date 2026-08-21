@@ -32,8 +32,8 @@ function run(overrides: Fixture = {}) {
         gymId: 'gym_emberfall',
         biomes: [biome(0, 'Fire'), biome(1, 'Water'), biome(2, 'Nature')],
         nodes: [
-            { id: 'n0', kind: 'wild', biomeIndex: 0, edges: ['n1'], x: 0, y: 0, visited: 1 },
-            { id: 'n1', kind: 'gym', biomeIndex: 2, edges: [], x: 1, y: 0, visited: 0 },
+            { id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: ['n1'], visited: 1 },
+            { id: 'n1', kind: 'gym', biomeIndex: 2, layer: 4, pocket: false, edges: ['n0'], visited: 0 },
         ],
         currentNodeId: 'n0',
         partyIds: ['m1'],
@@ -125,6 +125,20 @@ describe('RunStateSchema — the run-shape rulings', () => {
 
     it('rejects negative scrap', () => {
         expect(RunStateSchema.safeParse(run({ scrap: -1 })).success).toBe(false);
+    });
+
+    it('carries ticket 07\'s node model — layer, pocket, and a re-entry count', () => {
+        const nodes = run().nodes as Array<Record<string, unknown>>;
+        expect(nodes[0].layer).toBe(0);
+        expect(nodes[1].layer).toBe(4);          // biome 3's exit layer is the gym
+        expect(nodes[0].pocket).toBe(false);
+        // `visited` is a COUNT: ticket 07 rules that entering a node triggers it again, always.
+        expect(nodes[0].visited).toBe(1);
+    });
+
+    it('rejects a layer outside the 5 per biome', () => {
+        const bad = [{ ...(run().nodes as Array<Record<string, unknown>>)[0], layer: 5 }, ...(run().nodes as unknown[]).slice(1)];
+        expect(RunStateSchema.safeParse(run({ nodes: bad })).success).toBe(false);
     });
 
     it('holds exactly three macro slots, empties included', () => {

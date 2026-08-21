@@ -5,7 +5,7 @@ import { generateEncounter } from './EncounterGenerator';
 import { SeedStream, rollSeed } from '../core/SeedStream';
 import { createStarterSave, createMingmingInstance, createOwnedProgram } from '../gameTypes';
 import type { IPlayerSave } from '../gameTypes';
-import { PlayerSaveSchema } from '../SaveSystem';
+import { PlayerSaveSchema } from '../gameTypes';
 
 /**
  * Ticket 09 "done when": same seed + same inputs => deep-equal IBattleState.

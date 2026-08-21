@@ -27,10 +27,11 @@
  *
  * VALIDATION
  *
- * Reads go through `parseSaveFileText` from `./saveEdit` — the same JSON.parse -> `migrateSave`
- * -> `PlayerSaveSchema` path `loadGame` uses and the same one the save editor's file import
- * uses. A slot whose payload fails is refused *before* the pointer moves, so a corrupt slot
- * cannot become the active slot and wedge the autosave with nothing but a console.error.
+ * A slot's stored payload is a save v4 **ranch envelope** (ticket 23), not a whole game state, so
+ * reads validate it with `RanchSaveSchema` and then project it into the slice shape the same way
+ * `App.tsx` does on boot. There is no migration step: v4 is the floor, and a payload that fails is
+ * refused *before* the pointer moves, so a corrupt slot cannot become the active slot and wedge
+ * the autosave with nothing but a console.error.
  *
  * React-free on purpose: `dispatch` is a parameter, so all of this is testable headlessly.
  */
@@ -45,9 +46,12 @@ import {
     type SaveSlot,
 } from '../engine/SaveSlots';
 import type { IPlayerSave } from '../engine/gameTypes';
+import { createDefaultSave } from '../engine/gameTypes';
+import { RanchSaveSchema } from '../engine/runTypes';
+import { applyRanchState } from '../engine/save/ranchProjection';
 import { setBattleState } from '../ui/store/battleSlice';
 import { loadSave, resetSave } from '../ui/store/gameSlice';
-import { parseSaveFileText, type SaveEditAction } from './saveEdit';
+import { type SaveEditAction } from './saveEdit';
 
 /** Same shape every debug write reports: applied, or refused with reasons and no side effect. */
 export interface SlotOpResult {
@@ -77,8 +81,23 @@ export type SlotSaveRead =
 export function readSlotSave(slotId: string): SlotSaveRead {
     const raw = readSlotRaw(slotId);
     if (raw === null) return { kind: 'empty' };
-    const parsed = parseSaveFileText(raw);
-    return parsed.ok ? { kind: 'valid', save: parsed.save } : { kind: 'invalid', issues: parsed.issues };
+
+    let json: unknown;
+    try {
+        json = JSON.parse(raw);
+    } catch (err) {
+        return { kind: 'invalid', issues: [`not valid JSON: ${String(err)}`] };
+    }
+
+    const parsed = RanchSaveSchema.safeParse(json);
+    if (!parsed.success) {
+        return {
+            kind: 'invalid',
+            issues: parsed.error.issues.map((issue) => `[${issue.path.join('.')}] ${issue.message}`),
+        };
+    }
+
+    return { kind: 'valid', save: applyRanchState(createDefaultSave(), parsed.data.ranch) };
 }
 
 function slotExists(slotId: string): boolean {
@@ -103,7 +122,7 @@ export function switchToSlot(slotId: string, dispatch: SlotDispatch): SlotOpResu
     const target = readSlotSave(slotId);
     if (target.kind === 'invalid') {
         return refuse(
-            `slot ${slotId} holds a save that fails PlayerSaveSchema — not switched, so the ` +
+            `slot ${slotId} holds a payload that fails RanchSaveSchema — not switched, so the ` +
                 'autosave is not wedged:',
             ...target.issues,
         );
@@ -134,7 +153,7 @@ export function createSlotOp(name: string, copyFromSlotId?: string): SlotOpResul
         if (!slotExists(copyFromSlotId)) return refuse(`unknown source slot: ${copyFromSlotId}`);
         const source = readSlotSave(copyFromSlotId);
         if (source.kind === 'invalid') {
-            return refuse(`source slot ${copyFromSlotId} fails PlayerSaveSchema — nothing branched:`, ...source.issues);
+            return refuse(`source slot ${copyFromSlotId} fails RanchSaveSchema — nothing branched:`, ...source.issues);
         }
     }
 

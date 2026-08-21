@@ -72,7 +72,7 @@ describe('migrateScenario', () => {
         expect(migrateScenario(scenario)).toEqual(scenario);
     });
 
-    it('treats an unversioned file as v1, mirroring migrateSave', () => {
+    it('treats an unversioned file as v1', () => {
         const { version: _dropped, ...unversioned } = composedScenario();
 
         expect((migrateScenario(unversioned) as { version: number }).version).toBe(1);

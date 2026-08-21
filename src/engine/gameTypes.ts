@@ -3,9 +3,12 @@
  * Persistent data structures for the player's save file.
  */
 
+import { z } from "zod";
+
 import type { IMingmingState } from "./types";
 import { MingmingRegistry, getDeckForOS } from "./data/mingmingRegistry";
 import { SeedStream, rollSeed } from "./core/SeedStream";
+import { SAVE_VERSION_V4 } from "./runTypes";
 
 // --- Card Inventory ---
 
@@ -85,10 +88,30 @@ export interface IGauntletState {
     readonly persistedStats: Record<string, { hp: number }>;
 }
 
-// --- Root Save Object ---
+// --- Root game-state object ---
 
+/**
+ * **This is the in-memory shape of the `game` slice — it is no longer the save format.**
+ *
+ * Ticket 23 (steam-release map) made save v4 the persisted format: `IRanchState` under one key and
+ * `IRunState` under another (`engine/runTypes.ts`). Only the ranch half of what you see below —
+ * `roster`, `blueprints`, and the gym/tier progress derived from `unlockedSectors` — actually
+ * reaches storage now. Everything else here (`cardInventory`, `activeDeck`, `scrapCount`,
+ * `relics`, `gauntlet`, `baseDecksGranted`) is **run-scoped by ticket 06's ratified model** and
+ * deliberately does not survive a reload.
+ *
+ * That is a real, intended behaviour change, not an oversight: those fields are the ones that
+ * move into `IRunState` as tickets 09–15 land the run loop. Until then the pre-roguelike hub
+ * screens keep reading them out of this slice, they just start empty each boot.
+ *
+ * `engine/save/ranchProjection.ts` is the seam between this shape and the v4 ranch, and it is
+ * marked for deletion by ticket 09.
+ *
+ * `version` is vestigial here — kept only because the debug save-editor's import/export files
+ * carry it. The authority on save versions is `SAVE_VERSION_V4`.
+ */
 export interface IPlayerSave {
-    readonly version: number;               // Schema version for migration
+    readonly version: number;
     readonly roster: ReadonlyArray<IMingmingState>;
     readonly activeParty: ReadonlyArray<string>; // Max 3 IMingmingInstance.id refs
     readonly cardInventory: ReadonlyArray<IOwnedProgram>;
@@ -101,11 +124,80 @@ export interface IPlayerSave {
     readonly baseDecksGranted: ReadonlyArray<string>; // deckGrantKey(species, os) entries - which starting kits were granted (ticket 15; legacy saves held bare species ids, migrated in SaveSystem v3)
 }
 
+// --- Schemas ---
+//
+// `PlayerSaveSchema` used to live in `SaveSystem.ts` and *was* the save schema. Ticket 23 moved it
+// here because that is no longer what it is: v4 persists `RanchSaveSchema` / `RunSaveSchema`, and
+// this one now validates the in-memory slice shape. Its two surviving jobs are the debug
+// save-editor's file import (`debug/saveEdit.ts`) and tests that need to assert a legal slice.
+//
+// **`.default()`, never `.catch()`** (ticket 23, Henry 2026-08-21). The v3 original used
+// `.catch([])` on `blueprints`, `relics`, `unlockedSectors` and `baseDecksGranted`. `.catch`
+// swallows *malformed* input and lets the parse succeed, so one corrupt blueprint entry silently
+// emptied the inventory and the next autosave wrote that emptiness over the good save. `.default()`
+// fills a **missing** field and fails a **malformed** one, which is the outcome we want: a failed
+// parse is visible and recoverable, silent data loss is neither.
+
+const MingmingInstanceSchema = z.object({
+    id: z.string(),
+    definitionId: z.string(),
+    nickname: z.string().optional(),
+    activeOS: z.string().optional(),
+    blueprintsCollected: z.number().int().min(0),
+    attackIV: z.number().int().min(0).max(31),
+    defenseIV: z.number().int().min(0).max(31),
+    hpIV: z.number().int().min(0).max(31),
+});
+
+const OwnedProgramSchema = z.object({
+    instanceId: z.string(),
+    dataId: z.string(),
+});
+
+const ActiveDeckSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    cards: z.array(z.string()),
+});
+
+const BlueprintSchema = z.object({
+    architectureId: z.string(),
+    name: z.string(),
+    compileCost: z.number().int().min(0),
+});
+
+const GauntletStateSchema = z.object({
+    type: z.enum(['Gym', 'Sector']),
+    element: z.string(),
+    currentBattleIndex: z.number(),
+    totalBattles: z.number(),
+    // Design decision: only HP persists between gauntlet battles (health is the
+    // resource you manage across the run). Energy, statuses, and everything else
+    // reset fresh each battle, so only `hp` is stored.
+    persistedStats: z.record(z.string(), z.object({
+        hp: z.number()
+    }))
+});
+
+export const PlayerSaveSchema = z.object({
+    version: z.number().int().min(1),
+    roster: z.array(MingmingInstanceSchema),
+    activeParty: z.array(z.string()).max(3),
+    cardInventory: z.array(OwnedProgramSchema),
+    activeDeck: ActiveDeckSchema.nullable(),
+    scrapCount: z.number().int().min(0),
+    blueprints: z.array(BlueprintSchema).default([]),
+    relics: z.array(z.string()).default([]),
+    gauntlet: GauntletStateSchema.nullable().default(null),
+    unlockedSectors: z.array(z.string()).default([]),
+    baseDecksGranted: z.array(z.string()).default([])
+});
+
 // --- Factory Helpers ---
 
 export function createDefaultSave(): IPlayerSave {
     return {
-        version: 3, // keep in sync with SaveSystem.CURRENT_SAVE_VERSION
+        version: SAVE_VERSION_V4,
         roster: [],
         activeParty: [],
         cardInventory: [],
@@ -164,7 +256,7 @@ export function createStarterSave(
     const starterCards: IOwnedProgram[] = starterCardIds.map(dataId => createOwnedProgram(dataId, rng));
 
     return {
-        version: 3, // keep in sync with SaveSystem.CURRENT_SAVE_VERSION
+        version: SAVE_VERSION_V4,
         roster: [starter],
         activeParty: [starter.id],
         cardInventory: starterCards,

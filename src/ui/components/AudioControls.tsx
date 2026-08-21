@@ -6,7 +6,8 @@ import { getVolume, isMuted, playSfx, setMuted, setVolume } from '../audio/Audio
  * styled. Lives in the App nav corner; `floating` renders a fixed top-right
  * variant for the battle screen (which replaces the nav entirely).
  *
- * The engine owns persistence (localStorage 'mingming_audio'); this component
+ * The engine owns persistence (the 'mingming_audio' key, through the save-storage
+ * adapter); this component
  * just mirrors it into local state. Clicking the toggle is itself the user
  * gesture that unlocks the AudioContext.
  */

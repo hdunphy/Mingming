@@ -35,9 +35,8 @@
 import { z } from 'zod';
 
 import { MingmingRegistry } from '../engine/data/mingmingRegistry';
-import { createMingmingInstance, createOwnedProgram } from '../engine/gameTypes';
+import { createMingmingInstance, createOwnedProgram, PlayerSaveSchema } from '../engine/gameTypes';
 import type { IBlueprint, IOwnedProgram, IPlayerSave } from '../engine/gameTypes';
-import { PlayerSaveSchema, migrateSave } from '../engine/SaveSystem';
 import gameReducer, {
     addBlueprint,
     addCardsToInventory,
@@ -186,13 +185,25 @@ export function savesAreIdentical(a: unknown, b: unknown): boolean {
 // --- Replace-from-file ---
 
 export type SaveFileParse =
-    | { readonly ok: true; readonly save: IPlayerSave; readonly migrated: boolean }
+    | {
+        readonly ok: true;
+        readonly save: IPlayerSave;
+        /**
+         * True when validation filled in fields the file did not carry, so the panel can say
+         * "loaded, with defaults applied" rather than implying a byte-for-byte restore.
+         *
+         * This used to mean "an older save shape was upgraded". Ticket 23 deleted the upgrade
+         * chain — save v4 is the floor and there is no migration — so the only difference a parse
+         * can now introduce is `PlayerSaveSchema`'s `.default()` fills.
+         */
+        readonly defaulted: boolean;
+    }
     | { readonly ok: false; readonly issues: ReadonlyArray<string> };
 
 /**
- * Read path for "replace save from file", mirroring `loadGame` (`SaveSystem.ts:113-121`):
- * JSON.parse -> `migrateSave` -> validate. Migrating first means an older export loads
- * instead of being rejected wholesale. The validated object is what `loadSave` receives.
+ * Read path for "replace save from file": JSON.parse -> validate. **Validate, never migrate**
+ * (ticket 23) — a file that does not describe a legal save is rejected with its issues rather than
+ * silently reshaped into one.
  */
 export function parseSaveFileText(text: string): SaveFileParse {
     let raw: unknown;
@@ -202,14 +213,14 @@ export function parseSaveFileText(text: string): SaveFileParse {
         return { ok: false, issues: [`not valid JSON: ${String(err)}`] };
     }
 
-    const migrated = migrateSave(raw);
-    const validation = validateSave(migrated);
+    const validation = validateSave(raw);
     if (!validation.valid) return { ok: false, issues: validation.issues };
 
+    const parsed = PlayerSaveSchema.parse(raw) as IPlayerSave;
     return {
         ok: true,
-        save: PlayerSaveSchema.parse(migrated) as IPlayerSave,
-        migrated: !savesAreIdentical(raw, migrated),
+        save: parsed,
+        defaulted: !savesAreIdentical(raw, parsed),
     };
 }
 

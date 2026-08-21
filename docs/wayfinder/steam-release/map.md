@@ -23,6 +23,7 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ## Decisions so far
 
+- [Save schema v4](tickets/23-save-v4.md) — **v4 is live and it is the FLOOR.** Two keys (`mingming_ranch__<slot>` / `mingming_run__<slot>`) written independently; anything not v4 reads as *no save*, not corruption, and the **version check runs before the schema parse** — which is the whole reason a v3 blob makes a new player instead of something ticket 04's loader clings to as damaged. `.catch()` is gone from every persistent field (v3's live data-loss bug). The **storage adapter seam** (`engine/save/storage.ts`) landed with it, so ticket 42 swaps a file backend in without reopening the save layer — `localStorage` now appears in exactly one file, `AudioEngine` included. **The transitional cost, which needs your eye:** the run half of the model has nowhere to live until 09–15, so the game slice keeps its old shape and the save boundary translates (`engine/save/ranchProjection.ts`, deleted by 09). Consequence in the build **today**: a reload keeps your roster and blueprints and **drops your cards, deck and scrap** — every dropped field is run-scoped under 06's ruling, and the tests assert it on purpose. Suite 906 → **916**.
 - [Region graph](tickets/07-region-graph.md) — prototype reacted to, numbers ruled: 3 sequential mono biomes × 5 layers, width 2–3, lateral edges ~60%, mix wild 60 / event 14 / elite 10 / market 8 / workshop 8 with one market + one workshop guaranteed per biome, 1 pocket (wild/alpha/ambush) per biome, exit = elite (biome 3 = gym). **Fight envelope deliberately loose** (shortest ~6.7, longest ~14.6 fights) — the 8–10 ruling is the typical run, not a constraint. **Visibility 1 layer** + map-reveal items/events. **Entering a node always triggers it again** (re-fight, revisit) — farming is fine. **No rest nodes** (full heal stands). **Run start consolidated:** 3 random gym offers showing biome order + start region → pick → then pick party (first run picks a starter); offers guarantee three different openings so the starter-vs-counter problem is solved by choice.
 - [Start-kit rule](tickets/08-start-kit-rule.md) — a ⅓-kit solo start would redraw the same 3 cards every turn (draw 3/5/7 at 1/2/3 members; tuned decks cycle in ~3 turns), so: **start deck = 8 = 5 `startKit`-tagged cards + 3 generic None hits; recruits bring 3 kit + 1 generic; untagged kit cards join the pick pool while the species is in the party; player OS active from the start; generics are the removal sink's food.** Enemy decks mirror the kit fraction by biome depth (biome 1 no OS → biome 3 full tuned) so the balance corpus is the late-run reference. 8+4+4+~9 picks+~3 buys−~3 removals ≈ 25. Tags: agent proposes 5 per launch deck, Henry ratifies the 12 in one sitting (request to deck-archetypes).
 
@@ -129,14 +130,14 @@ The publishing, marketing and testing lane. [Steamworks account](tickets/41-stea
 2. ~~[Leveling removal](tickets/21-leveling-freeze.md)~~ — **CLOSED 2026-08-21.** The engine is frozen at `CALIBRATION_LEVEL`; nothing downstream can re-inherit XP.
 3. [Start-kit rule](tickets/08-start-kit-rule.md) — the "team is the deck" arithmetic. **Henry session (car-friendly).**
 4. [Region graph](tickets/07-region-graph.md) — generator + Henry's parameters (count, width, visibility). **Prototype with Henry.**
-5. [Save schema v4](tickets/23-save-v4.md) — lands 06; resumes a run after app close.
+5. ~~[Save schema v4](tickets/23-save-v4.md)~~ — **CLOSED 2026-08-21.** Two keys, no migration, storage adapter seam. Run persistence is wired at the save layer; 09 gives it a run to hold.
 6. [Run start](tickets/09-run-start.md) — starter + one-of-three gyms.
 7. [Region map screen](tickets/10-region-map-screen.md) — the run's hub.
 8. [Node encounter flow](tickets/11-encounter-flow.md) + [Rewards refit](tickets/12-rewards-refit.md) — the fight-and-grow beat (two sessions, same week).
 9. [Gym gauntlet refit](tickets/18-gauntlet-refit.md) — the exam.
 10. [Run end](tickets/19-run-end.md) — closes the loop back to the ranch.
 
-Tickets 06, 07, 08 and 21 are closed. Then, to make the slice *complete* rather than merely *closed*: Ranch-minimal (20), Marketplace (13), Workshop (14), Macros (15), Drivers (16, waits on deck-archetypes 109), Elites (17), 3v3 game-side (22), Onboarding-lite (24), and the Vertical Slice playtest (25).
+Tickets 06, 07, 08, 21 and 23 are closed. Then, to make the slice *complete* rather than merely *closed*: Ranch-minimal (20), Marketplace (13), Workshop (14), Macros (15), Drivers (16, waits on deck-archetypes 109), Elites (17), 3v3 game-side (22), Onboarding-lite (24), and the Vertical Slice playtest (25).
 
 ## Calendar (planning numbers — ticket 46 makes them real)
 
