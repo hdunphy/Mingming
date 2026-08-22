@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10, 11). **State: 55 tickets, 13 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11). THE RUN LOOP RUNS: gym offers -> party -> seeded region -> walk the map -> enter a node -> fight -> back to the map, all persisted across an app close. `state.game` IS `IRanchState`; the run owns cards, deck, scrap, drivers and the gauntlet; `ranchProjection` is deleted. Critical path: 12 -> 18 -> 19. **12 (rewards refit) is next.** Ticket 18 has grown (it rebuilds the gauntlet chain ticket 11 deleted). Also agent-runnable: 13, 14, 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. Suite green at 85 files / 1077 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10, 11, 12). **State: 55 tickets, 14 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12). THE FIGHT-AND-GROW BEAT IS IN: offers -> party -> region -> walk -> fight -> rewards -> back to the map, persisted. Critical path: 18 -> 19. **Next agent-runnable: 13 (marketplace) or 14 (workshop), then 18/19.** Ticket 18 has grown (it rebuilds the gauntlet chain ticket 11 deleted). Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **A pile of proposed economy numbers is waiting on Henry — see tickets 12 and 09.** Suite green at 86 files / 1107 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,18 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Rewards refit (ticket 12) — **every economy number is now one table, and all of them want Henry**
+
+- A won fight pays scrap + one pick-1-of-3 per defeated enemy + maybe a blueprint. `IRewardBundle.totalXP` is deleted from the type, so XP has no slot to reappear in.
+- **Two exported tables keyed by node kind, every value a proposal.** `BLUEPRINT_DROP_RATE`: wild/ambush 0.20, elite 0.25, **alpha 1.00 (ruled by ticket 07)**, gym 0.50 placeholder. `SCRAP_PER_ENEMY`: wild 8–14, ambush 10–16, elite 18–26, alpha 30–40, gym 20–30 — a full 8–10 fight run with three members lands near **450–500 scrap**, and **ticket 13 calibrates against this and may move it**.
+- **`getBlueprintRate(rosterSize)` is deleted.** It scaled drops by roster size (0.75/0.50/0.15) — mercy when a blueprint was a dedup'd permission, inverted now it is currency: roster size records blueprints already SPENT, so it throttled hardest on the player deepest in the grind Henry blessed, and it would have delivered the alpha's ruled 100% as 15%.
+- **The blueprint banks when it DROPS, not on CONTINUE.** It was firing from component state on the button, so winning a fight and closing the app on the reward screen lost it outright — and "dead runs still pay forward" only means something if the payment does not wait on a click. Idempotent per battle seed via a ref (a state guard double-credits under StrictMode). Scrap/cards/driver deliberately still land on claim: they are run-scoped and the run resumes into the identical re-rolled fight, so paying early would pay twice.
+- **The last open economy item shipped as the recommendation, behind one function.** `rewardCardPool` draws from the current party's species pools (ticket 08: a species' untagged kit cards are in the pool while it is in the party). Alternatives named in its doc comment; **Henry's ruling changes that one function and nothing else**.
+- Repeat fights pay full rewards — asserted four ways, including flat mean scrap across visits 1/2/3/6/12. `rollDropTable` cannot see a visit count or a run, so a falloff cannot be added by accident.
+- Flagged not fixed: closing the app on the reward screen resumes the same unfinished encounter, so re-winning banks the blueprint again. Bounded by the sanctioned farm (one won fight per blueprint either way).
+- **Process note for future sessions: the cloud working copy's `docs/` tree goes stale.** A subagent wrote this resolution against a stale ticket 12 that was missing Henry's 07/08 amendment; transferring it would have silently reverted him. Resolutions are now written on the device, and only `src/` is ever transferred.
+- Suite **1077 → 1107**.
 
 ### 2026-08-22 — Node encounter flow (ticket 11) — **the loop closes, and a save-wipe bug was one lost fight away**
 

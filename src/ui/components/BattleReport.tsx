@@ -9,9 +9,23 @@ import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 
+/**
+ * The post-fight reward screen — refitted by ticket 12.
+ *
+ * What it shows is now exactly what a fight pays: **scrap**, **any blueprint**, and **one
+ * pick-1-of-3 per defeated enemy**. There is no XP panel (ticket 21 deleted levelling; ticket 12
+ * removed the last field), and the gym-clear draft is parked for ticket 18 — see `draftRounds`
+ * below.
+ *
+ * The component decides nothing about the rewards themselves. `RewardSystem` rolls the bundle and
+ * `BattleArena` routes each half to its slice — blueprints to the ranch the moment they drop, scrap
+ * and the picked cards to the run when `onContinue` fires. So the only state here is *which option
+ * the player clicked*.
+ */
 interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
+    /** Picked cards, in choice order. `BattleArena` mints them into `IRunState.deck`. */
     onContinue: (chosenCards: IOwnedProgram[], chosenRelic?: string) => void;
 }
 
@@ -56,15 +70,23 @@ const CountUp: React.FC<{ value: number; delayMs?: number; durationMs?: number }
     return <>{reduced ? value : display}</>;
 };
 
-// `winners` is still part of the props contract (callers pass the surviving party and ticket 12
-// will want it back for the rewards refit), but nothing reads it since ticket 21 removed the XP
-// panel. Destructured out and voided rather than deleted from the interface.
+// `winners` is still part of the props contract but nothing reads it, and **ticket 12 looked and
+// still does not need it**: the refit's inputs are the node kind and the *party* (for the pick
+// pool), both of which `BattleArena` resolves before it rolls, so the report is handed a finished
+// bundle and never has to ask who survived. Left in the interface for ticket 19's run-end screen,
+// which is the next thing likely to want the surviving party. Destructured out and voided.
 const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
     void winners;
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
     const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
+    //
+    // **Unreachable since ticket 12, on purpose.** Nothing sets `bundle.draftRounds` any more: the
+    // gauntlet and its draft belong to ticket 18, which is where the `rollDraftRounds` invocation
+    // went. The panel below, `RewardSystem.rollDraftRounds` and `IRewardBundle.draftRounds` are the
+    // three halves of one parked feature, kept together so 18 re-wires rather than rewrites. The
+    // `?? []` is what makes it dormant instead of broken.
     const draftRounds = bundle.draftRounds ?? [];
     const [draftIndex, setDraftIndex] = useState(0);
     const [draftPicks, setDraftPicks] = useState<IOwnedProgram[]>([]);
@@ -257,7 +279,8 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                 </div>
 
                 <div className="report-body report-columns" style={{ flex: '1 1 auto', padding: '6px 28px 12px' }}>
-                    {/* Left: Summary & XP */}
+                    {/* Left: what the fight paid — scrap, and any blueprint. No XP: ticket 21
+                        deleted levelling and ticket 12 removed the field from the bundle. */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         <div className="report-summary-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                             <h3 style={{ margin: '0 0 12px', fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Yield</h3>
@@ -281,13 +304,19 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                         borderRadius: '6px'
                                     }}
                                 >
+                                    {/* Ticket 12: "NEW BLUEPRINT DETECTED" was a lie the moment
+                                        blueprints became consumable counts (ticket 20) — a species
+                                        you already own drops again, and that repeat drop IS the
+                                        re-roll grind rather than a mistake. The line reads as a
+                                        quantity for the same reason the ranch stores one, and the
+                                        "+1" says it stacked onto whatever was there. */}
                                     <div style={{ fontSize: '0.7rem', color: '#ff00ff', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
-                                        New Blueprint Detected
+                                        Blueprint Recovered
                                     </div>
                                     {bundle.blueprints.map((speciesId, i) => (
                                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{GetMingmingData(speciesId).name} Blueprint</span>
-                                            <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>ACQUIRED</span>
+                                            <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>+1</span>
                                         </div>
                                     ))}
                                 </motion.div>

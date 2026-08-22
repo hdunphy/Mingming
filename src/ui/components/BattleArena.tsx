@@ -7,17 +7,16 @@ import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import BattleStage from './BattleStage';
 import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent } from '../store/battleSlice';
-import type { IBattleEntity, Element } from '../../engine/types';
+import type { IBattleEntity } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
-import { rollDropTable, rollDraftRounds } from '../../engine/RewardSystem';
+import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
 import { addDriver, addRunCards, addRunScrap, endRun, resolveEncounter } from '../store/runSlice';
-import { GYM_REGISTRY } from '../../engine/run/gyms';
-import type { IRunCard } from '../../engine/runTypes';
+import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
@@ -342,7 +341,13 @@ const BattleArena: React.FC = () => {
     //
     // What a defeat costs is the run, and only the run. See `handleDefeat` below.
 
-    const rosterSize = useSelector((state: RootState) => state.game.roster.length);
+    /**
+     * The node this fight is happening on — the key into ticket 12's two reward knobs
+     * (`BLUEPRINT_DROP_RATE`, `SCRAP_PER_ENEMY`). A battle with no run behind it is a debug
+     * scenario, which has no node at all; `'wild'` is the baseline both tables are quoted against,
+     * so a scenario pays what an ordinary fight pays rather than nothing.
+     */
+    const nodeKind: NodeKind = run?.nodes.find(n => n.id === run.currentNodeId)?.kind ?? 'wild';
 
     // Audio: battle-end stinger, played once per battle (seed = battle identity;
     // gauntlets chain battles without ever passing through battleState === null).
@@ -379,10 +384,36 @@ const BattleArena: React.FC = () => {
         primedIdsRef.current = next;
     }, [battleState]);
 
-    // Roll rewards on victory
+    /**
+     * Roll rewards on victory.
+     *
+     * TICKET 12 CHANGED WHAT THIS ASKS FOR. The old call was
+     * `rollDropTable(enemyParty, rosterSize, seed)`; the middle argument scaled the blueprint
+     * chance down as the ranch filled up, and `RewardSystem` deletes it (see the long note beside
+     * `BLUEPRINT_DROP_RATE`). What the roll needs instead is **the node kind**, which is what both
+     * reward tables are keyed by, and **the player's party**, which is what the pick pool is drawn
+     * from now (`rewardCardPool`). `battleState.playerParty` is the party as it stands in this
+     * fight — including anyone recruited mid-run, which is ticket 08's clause about a recruit's
+     * untagged kit cards entering the pool the moment it joins.
+     *
+     * TICKET 12 ALSO REMOVED THE GYM-CLEAR MINI-DRAFT FROM THIS PATH. On the last fight of a
+     * gauntlet it used to blank `cardChoices` and substitute three `rollDraftRounds` rounds.
+     * **Ticket 18 owns the gauntlet refit**, and until it lands nothing advances
+     * `IRunState.gauntlet` at all (see `handleContinue`), so the branch was reachable only through
+     * a state no code produces. `rollDraftRounds` and `IRewardBundle.draftRounds` are still there
+     * for 18 to re-wire; what is gone is the invocation.
+     *
+     * The driver choice on a gauntlet's last fight stays as ticket 11 left it — ticket 16 owns
+     * drivers and has not been through here yet.
+     */
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
-            let bundle = rollDropTable(battleState.enemyParty, rosterSize, battleState.seed);
+            let bundle = rollDropTable({
+                defeated: battleState.enemyParty,
+                nodeKind,
+                party: battleState.playerParty,
+                seed: battleState.seed,
+            });
 
             // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
             if (gauntlet && gauntlet.fightIndex >= gauntlet.totalFights - 1) {
@@ -394,31 +425,55 @@ const BattleArena: React.FC = () => {
                     const { shuffled } = prng.shuffle(available);
                     bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
                 }
-
-                // GYM CLEAR: the single pick-1-of-3 upgrades into a 3-round sequential mini-draft
-                // weighted toward the gym's element. cardChoices are replaced (not stacked) —
-                // scrap/blueprints and everything else the bundle grants stay unchanged.
-                //
-                // Ticket 11: the element comes from `GYM_REGISTRY[run.gymId]`. `IGauntletProgress`
-                // deliberately carries neither `type` nor `element` (ticket 06) — in a run the
-                // gauntlet is always the chosen gym's, so a second copy of its element could only
-                // ever drift from the first.
-                const gym = run ? GYM_REGISTRY[run.gymId] : undefined;
-                if (gym) {
-                    bundle = {
-                        ...bundle,
-                        cardChoices: [],
-                        draftRounds: rollDraftRounds(
-                            `${battleState.seed}-gym-draft`,
-                            gym.element as Element
-                        )
-                    };
-                }
             }
 
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, rosterSize, gauntlet, drivers, run]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers]);
+
+    /**
+     * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
+     *
+     * Ticket 12's Done-when: *"the blueprint persists to the ranch immediately (dead runs still pay
+     * forward)"*. Before this ticket `addBlueprint` fired in `handleContinue`, i.e. on the reward
+     * *claim*, and the bundle it read from was component state — so a player who won a fight and
+     * closed the app on the reward screen lost the blueprint outright. Nothing had written it
+     * anywhere: the ranch autosave had nothing to save, and the run save carries no pending bundle.
+     *
+     * Scrap, cards and the driver still land on claim, and the asymmetry is the point rather than
+     * an inconsistency. Those three are **run-scoped** — if the app closes here the run resumes at
+     * `phase: 'encounter'` and re-rolls the identical fight from the identical seed (ticket 11's
+     * resume contract), so the player is paid for it when they win it again; paying twice would be
+     * the actual bug. The blueprint is the one **persistent** reward, the ranch is a separate save
+     * key precisely so a lost run cannot reach it, and "dead runs still pay forward" only means
+     * anything if the payment does not wait on a button.
+     *
+     * Idempotent per battle, via a ref rather than the `rewardBundle` state. `StrictMode`
+     * double-invokes effects on mount and both invocations see the same pre-render state, so a
+     * state guard would credit twice in development. The ref is keyed by the battle seed so a
+     * gauntlet's next fight (which reuses this mounted component) banks its own drops.
+     *
+     * **The known consequence, and why it is acceptable.** Banking early plus the unfinished
+     * encounter means a player who closes the app on the reward screen resumes into the *same*
+     * fight and, on winning it again, banks the same blueprint again. It is bounded by exactly what
+     * Henry has already blessed: re-entering the node pays full rewards too, so the exploit costs
+     * one won fight per blueprint — the same price as the sanctioned farm, with more steps. Closing
+     * it would mean either persisting a pending bundle (a third save shape, for 30 seconds of
+     * state) or resolving the node before the player claims (which loses the fight's rewards if the
+     * app dies a moment later). Both are worse trades than a farm that is already legal.
+     */
+    const bankedBlueprintSeedRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!rewardBundle || !battleState) return;
+        if (bankedBlueprintSeedRef.current === battleState.seed) return;
+        bankedBlueprintSeedRef.current = battleState.seed;
+
+        // One dispatch per entry, not per species: `blueprints` is a list in which duplicates are
+        // meaningful and `addBlueprint` stacks the count (ticket 20).
+        for (const speciesId of rewardBundle.blueprints) {
+            dispatch(addBlueprint(speciesId));
+        }
+    }, [rewardBundle, battleState, dispatch]);
 
     /**
      * Defeat: the run is over.
@@ -448,6 +503,11 @@ const BattleArena: React.FC = () => {
      * could not write both slices, and splitting it is what makes the destination of each reward
      * legible at the call site.
      *
+     * **TICKET 12 MOVED THE RANCH HALF EARLIER.** Blueprints are banked by the effect above the
+     * moment the bundle is rolled, not here — the ticket's Done-when is that a blueprint persists
+     * *immediately*, so that a dead run, or an app closed on the reward screen, still pays forward.
+     * Only the run-scoped rewards are claimed at this button.
+     *
      * Cards become `IRunCard`s with `ownerId: null` — `runTypes.ts` reserves that for cards that
      * were bought, drafted or granted rather than brought by a member, which is exactly what a
      * reward card is.
@@ -476,10 +536,10 @@ const BattleArena: React.FC = () => {
      */
     const handleContinue = (chosenCards: IOwnedProgram[], chosenRelic?: string) => {
         if (rewardBundle) {
-            // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints.
-            for (const speciesId of rewardBundle.blueprints) {
-                dispatch(addBlueprint(speciesId));
-            }
+            // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints — and ticket 12
+            // moved the **blueprints** out of this handler: they are banked to the ranch as soon as
+            // they drop, by the effect above, so that closing the app on the reward screen cannot
+            // lose them. What is claimed here is the run-scoped half.
             if (rewardBundle.scraps > 0) {
                 dispatch(addRunScrap(rewardBundle.scraps));
             }

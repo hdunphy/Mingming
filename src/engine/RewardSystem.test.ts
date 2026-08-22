@@ -1,12 +1,37 @@
+/**
+ * What a won fight pays — ticket 12.
+ *
+ * The five pieces of the refit, each with the assertion that would catch it regressing: no XP in
+ * the bundle, blueprint rates keyed by node kind (with the alpha's guarantee and the repeat drop),
+ * scrap keyed by node kind and scaling with enemy count, the pick pool drawn from the party's
+ * species, and determinism.
+ *
+ * **The load-bearing test in this file is `repeat fights on a re-entered node`.** Henry's amendment
+ * of 2026-08-21 rules that farming is fine and a re-entered node pays FULL rewards; it is the one
+ * rule a plausible future patch ("wilds pay less the third time") would quietly break, and the one
+ * that leaves no trace in the type system, because the payout has no visit parameter to shrink.
+ */
+
 import { describe, it, expect } from 'vitest';
-import { rollDropTable, rollDraftRounds, getScrapYield } from './RewardSystem';
+import {
+    BLUEPRINT_DROP_RATE,
+    SALVAGE_CHOICES_PER_FOE,
+    SCRAP_PER_ENEMY,
+    getScrapYield,
+    rewardCardPool,
+    rollDraftRounds,
+    rollDropTable,
+} from './RewardSystem';
 import { ProgramRegistry } from './data/programRegistry';
-import type { IBattleEntity } from './types';
+import { getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
+import { encounterSeed } from './run/encounter';
+import type { IRegionNode, IRunState } from './runTypes';
+import type { Element, IBattleEntity } from './types';
 import { ELEMENTS } from './types';
 
-function makeDeadEntity(id: string, defId: string, name: string, element: any = 'Fire'): IBattleEntity {
+function makeDeadEntity(id: string, defId: string, name: string, element: Element = 'Fire'): IBattleEntity {
     return {
-        id, name, 
+        id, name,
         hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0,
         maxHp: 100, attack: 15, defense: 5,
         maxEnergy: 10, cardDraw: 1,
@@ -24,128 +49,477 @@ function makeAliveEntity(id: string, defId: string, name: string): IBattleEntity
     return { ...makeDeadEntity(id, defId, name), currentHp: 50 };
 }
 
+/** A party as `rewardCardPool` wants it — species + firmware, which `IBattleEntity` also satisfies. */
+const FENRIR_V1 = [{ definitionId: 'fenrir', activeOS: 'fenrir_v1' }];
+const FENRIR_AND_KRAKEN = [
+    { definitionId: 'fenrir', activeOS: 'fenrir_v1' },
+    { definitionId: 'kraken', activeOS: 'kraken_v1' },
+];
+
+/** N dead enemies of one species, which is what a symmetric wild fields. */
+function deadParty(count: number, defId = 'fyrbot', element: Element = 'Fire'): IBattleEntity[] {
+    return Array.from({ length: count }, (_, i) => makeDeadEntity(`e${i}`, defId, `Foe ${i}`, element));
+}
+
 describe('RewardSystem', () => {
-    describe('rollDropTable - Logic', () => {
-        it('returns deterministic results for the same seed', () => {
-            const defeated = [makeDeadEntity('e1', 'fyrbot', 'Fyrbot')];
-            const r1 = rollDropTable(defeated, 1, 'fixed-seed-123');
-            const r2 = rollDropTable(defeated, 1, 'fixed-seed-123');
+    describe('the bundle has no XP (ticket 12, piece 1)', () => {
+        it('does not carry a totalXP field at all', () => {
+            const bundle = rollDropTable({
+                defeated: deadParty(3),
+                nodeKind: 'wild',
+                party: FENRIR_V1,
+                seed: 'no-xp',
+            });
 
-            expect(r1.scraps).toBe(r2.scraps);
-            expect(r1.totalXP).toBe(r2.totalXP);
-            expect(r1.blueprints.length).toBe(r2.blueprints.length);
+            // Not `toBe(0)` — ticket 21 already made it structurally zero and that was the state
+            // this ticket was asked to end. The field must be absent, so that nothing can read it
+            // and nothing can start writing it again.
+            expect('totalXP' in bundle).toBe(false);
+            expect(Object.keys(bundle).sort()).toEqual(['blueprints', 'cardChoices', 'cards', 'scraps']);
+        });
 
-            for (let i = 0; i < r1.cardChoices.length; i++) {
-                for (let j = 0; j < 3; j++) {
-                    expect(r1.cardChoices[i].options[j].dataId).toBe(r2.cardChoices[i].options[j].dataId);
-                }
+        it('pays scrap, one pick per defeated enemy, and possibly a blueprint — and nothing else', () => {
+            const bundle = rollDropTable({
+                defeated: deadParty(3),
+                nodeKind: 'wild',
+                party: FENRIR_V1,
+                seed: 'done-when',
+            });
+
+            expect(bundle.scraps).toBeGreaterThan(0);
+            expect(bundle.cardChoices).toHaveLength(3);
+            for (const choice of bundle.cardChoices) {
+                expect(choice.options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
             }
+            expect(Array.isArray(bundle.blueprints)).toBe(true);
         });
 
-        it('skips alive entities', () => {
-            const entities = [
-                makeDeadEntity('e1', 'fyrbot', 'Dead'),
-                makeAliveEntity('e2', 'fyrbot', 'Alive')
-            ];
-            const result = rollDropTable(entities, 1, '42');
-            expect(result.cardChoices).toHaveLength(1);
-        });
-
-        // Ticket 21: `totalXP` is a vestigial field on IRewardBundle that is now structurally 0 —
-        // there is no XP anywhere. Kept as a regression guard until ticket 12 refits the bundle.
-        it('grants no XP in the reward bundle', () => {
-            const e1 = makeDeadEntity('e1', 'fyrbot', 'Lv10');
-            const result = rollDropTable([e1], 1, 'seed');
-            expect(result.totalXP).toBe(0);
-
-            const e2 = makeDeadEntity('e2', 'fyrbot', 'Lv5');
-            const result2 = rollDropTable([e1, e2], 1, 'seed');
-            expect(result2.totalXP).toBe(0);
+        it('skips enemies that are still standing', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'fyrbot', 'Dead'), makeAliveEntity('e2', 'fyrbot', 'Alive')],
+                nodeKind: 'wild',
+                party: FENRIR_V1,
+                seed: '42',
+            });
+            expect(bundle.cardChoices).toHaveLength(1);
         });
     });
 
-    describe('rollDropTable - Pooling & Rarity', () => {
-        it('only drops cards matching the enemy element or None', () => {
-            const defeated = [makeDeadEntity('e1', 'fyrbot', 'Fire Mon', 'Fire')];
-            const result = rollDropTable(defeated, 1, 'some-seed');
+    describe('blueprint drops by node kind (ticket 12, piece 2)', () => {
+        /** Fraction of single-enemy fights that dropped a blueprint, over `n` seeds. */
+        function dropRate(nodeKind: Parameters<typeof rollDropTable>[0]['nodeKind'], n = 600): number {
+            let drops = 0;
+            for (let i = 0; i < n; i++) {
+                const bundle = rollDropTable({
+                    defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                    nodeKind,
+                    party: FENRIR_V1,
+                    seed: `bp-${nodeKind}-${i}`,
+                });
+                if (bundle.blueprints.length > 0) drops++;
+            }
+            return drops / n;
+        }
 
-            for (const choice of result.cardChoices) {
-                for (const option of choice.options) {
-                    const data = ProgramRegistry[option.dataId];
-                    expect(['Fire', 'None']).toContain(data.element);
+        it('an alpha ALWAYS drops one (ticket 07: "guards a guaranteed blueprint")', () => {
+            for (let i = 0; i < 100; i++) {
+                const bundle = rollDropTable({
+                    defeated: [makeDeadEntity('e1', 'kraken', 'Alpha')],
+                    nodeKind: 'alpha',
+                    party: FENRIR_V1,
+                    seed: `alpha-${i}`,
+                });
+                expect(bundle.blueprints).toEqual(['kraken']);
+            }
+            expect(BLUEPRINT_DROP_RATE.alpha).toBe(1);
+        });
+
+        it('drops at roughly the table rate for every fight kind', () => {
+            // Wide bands on purpose: these assert that the table is what the roll consults, not
+            // that a proposal survived a ratification. 600 samples put the standard error near
+            // 0.02, so ±0.08 is several sigma and none of this flakes.
+            for (const kind of ['wild', 'ambush', 'elite', 'gym'] as const) {
+                const observed = dropRate(kind);
+                expect(Math.abs(observed - BLUEPRINT_DROP_RATE[kind]),
+                    `${kind}: observed ${observed}, table says ${BLUEPRINT_DROP_RATE[kind]}`)
+                    .toBeLessThan(0.08);
+            }
+        });
+
+        it('drops the species you defeated, not something else', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'jormungandr', 'Alpha')],
+                nodeKind: 'alpha',
+                party: FENRIR_V1,
+                seed: 'species',
+            });
+            expect(bundle.blueprints).toEqual(['jormungandr']);
+        });
+
+        it('a species already owned can drop AGAIN — the roll cannot see the ranch', () => {
+            // The re-roll grind, in the form the code can actually assert: `rollDropTable` takes no
+            // ranch, no blueprint counts and no "already owned" list, so there is nowhere for a
+            // duplicate to be suppressed. Two alphas of the same species in one fight pay two
+            // blueprints of it, and `gameSlice.addBlueprint` stacks them (ticket 20 —
+            // `gameSlice.rewardActions.test.ts` holds that half).
+            const bundle = rollDropTable({
+                defeated: [
+                    makeDeadEntity('e1', 'kraken', 'Alpha A'),
+                    makeDeadEntity('e2', 'kraken', 'Alpha B'),
+                ],
+                nodeKind: 'alpha',
+                party: FENRIR_V1,
+                seed: 'duplicate-species',
+            });
+            expect(bundle.blueprints).toEqual(['kraken', 'kraken']);
+        });
+
+        it('pays no blueprint on a kind that is not a fight', () => {
+            for (const kind of ['marketplace', 'workshop', 'event'] as const) {
+                for (let i = 0; i < 25; i++) {
+                    const bundle = rollDropTable({
+                        defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                        nodeKind: kind,
+                        party: FENRIR_V1,
+                        seed: `non-fight-${kind}-${i}`,
+                    });
+                    expect(bundle.blueprints).toEqual([]);
+                }
+            }
+        });
+    });
+
+    describe('scrap by node kind, scaling with enemy count (ticket 12, piece 3)', () => {
+        it('scales with the number of defeated enemies', () => {
+            // Party size IS enemy count for an ordinary wild (`enemyPartySize`), so this is the
+            // ticket's "a 3v3 should pay meaningfully more than a solo one" — and it holds per
+            // seed, not just on average, because each extra corpse appends a positive roll.
+            const solo = rollDropTable({ defeated: deadParty(1), nodeKind: 'wild', party: FENRIR_V1, seed: 'scale' });
+            const duo = rollDropTable({ defeated: deadParty(2), nodeKind: 'wild', party: FENRIR_V1, seed: 'scale' });
+            const trio = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: 'scale' });
+
+            expect(duo.scraps).toBeGreaterThan(solo.scraps);
+            expect(trio.scraps).toBeGreaterThan(duo.scraps);
+            expect(trio.scraps).toBeGreaterThanOrEqual(2 * solo.scraps - SCRAP_PER_ENEMY.wild.max);
+        });
+
+        it('stays inside the band for its kind, times the body count', () => {
+            for (const kind of ['wild', 'ambush', 'elite', 'alpha', 'gym'] as const) {
+                const band = SCRAP_PER_ENEMY[kind];
+                for (let n = 1; n <= 3; n++) {
+                    for (let i = 0; i < 20; i++) {
+                        const bundle = rollDropTable({
+                            defeated: deadParty(n),
+                            nodeKind: kind,
+                            party: FENRIR_V1,
+                            seed: `band-${kind}-${n}-${i}`,
+                        });
+                        expect(bundle.scraps).toBeGreaterThanOrEqual(n * band.min);
+                        expect(bundle.scraps).toBeLessThanOrEqual(n * band.max);
+                    }
                 }
             }
         });
 
-        it('never offers token cards (isToken or rarity Token) for any element', () => {
-            for (const element of ELEMENTS) {
-                for (let i = 0; i < 25; i++) {
-                    const defeated = [makeDeadEntity('e1', 'fyrbot', `${element} Mon`, element)];
-                    const result = rollDropTable(defeated, 1, `token-seed-${element}-${i}`);
+        it('pays an elite strictly more than a wild of the same size', () => {
+            // The bands do not overlap (wild tops out at 14, an elite starts at 18), so this is a
+            // per-seed guarantee rather than a statistical one — the elite is the biome's exam.
+            for (let i = 0; i < 50; i++) {
+                const wild = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: `vs-${i}` });
+                const elite = rollDropTable({ defeated: deadParty(3), nodeKind: 'elite', party: FENRIR_V1, seed: `vs-${i}` });
+                expect(elite.scraps).toBeGreaterThan(wild.scraps);
+            }
+        });
 
-                    for (const choice of result.cardChoices) {
+        it('pays an ambush more than a wild on average (the extra body, and the extra risk)', () => {
+            const mean = (kind: 'wild' | 'ambush') => {
+                let total = 0;
+                for (let i = 0; i < 200; i++) {
+                    total += rollDropTable({
+                        defeated: deadParty(3),
+                        nodeKind: kind,
+                        party: FENRIR_V1,
+                        seed: `mean-${i}`,
+                    }).scraps;
+                }
+                return total / 200;
+            };
+            expect(mean('ambush')).toBeGreaterThan(mean('wild'));
+        });
+
+        it('pays nothing on a kind that is not a fight', () => {
+            const bundle = rollDropTable({
+                defeated: deadParty(3),
+                nodeKind: 'event',
+                party: FENRIR_V1,
+                seed: 'event-scrap',
+            });
+            expect(bundle.scraps).toBe(0);
+        });
+    });
+
+    describe('repeat fights on a re-entered node pay FULL rewards (Henry, 2026-08-21)', () => {
+        /**
+         * The seed a node hands the reward roll on its Nth entry — the real derivation
+         * (`encounterSeed` = run seed + node id + visit count), because the whole hazard is that a
+         * future patch reads the visit count for a payout instead of only for the re-roll.
+         */
+        const seedForVisit = (runSeed: string, visit: number): string => encounterSeed(
+            { seed: runSeed } as IRunState,
+            { id: 'node_wild_2', visited: visit } as IRegionNode,
+        );
+
+        it('pays the same on the sixth visit as on the first', () => {
+            const meanFor = (visit: number) => {
+                let total = 0;
+                const samples = 200;
+                for (let i = 0; i < samples; i++) {
+                    total += rollDropTable({
+                        defeated: deadParty(3),
+                        nodeKind: 'wild',
+                        party: FENRIR_V1,
+                        seed: seedForVisit(`farm-run-${i}`, visit),
+                    }).scraps;
+                }
+                return total / samples;
+            };
+
+            const first = meanFor(1);
+            for (const visit of [2, 3, 6, 12]) {
+                // A 3-body wild averages ~33. Any falloff worth shipping would move this by far
+                // more than 3, and no honest re-roll can.
+                expect(Math.abs(meanFor(visit) - first), `visit ${visit} paid differently`).toBeLessThan(3);
+            }
+        });
+
+        it('still drops blueprints at the full rate on a re-entered node', () => {
+            const rateFor = (visit: number) => {
+                let drops = 0;
+                const samples = 400;
+                for (let i = 0; i < samples; i++) {
+                    const bundle = rollDropTable({
+                        defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                        nodeKind: 'wild',
+                        party: FENRIR_V1,
+                        seed: seedForVisit(`farm-bp-${i}`, visit),
+                    });
+                    if (bundle.blueprints.length > 0) drops++;
+                }
+                return drops / samples;
+            };
+            expect(Math.abs(rateFor(7) - BLUEPRINT_DROP_RATE.wild)).toBeLessThan(0.08);
+        });
+
+        it('still offers a full pick-1-of-3 per enemy on a re-entered node', () => {
+            const tenth = rollDropTable({
+                defeated: deadParty(3),
+                nodeKind: 'wild',
+                party: FENRIR_V1,
+                seed: seedForVisit('farm-picks', 10),
+            });
+            expect(tenth.cardChoices).toHaveLength(3);
+            for (const choice of tenth.cardChoices) {
+                expect(choice.options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
+            }
+        });
+
+        it('takes no visit count at all — there is nowhere to put a falloff', () => {
+            // Structural, and the strongest form of the ruling available: the bundle is a pure
+            // function of (defeated, nodeKind, party, seed). Two entries that happened to roll the
+            // same seed are the same fight and pay the same, which is only true because nothing
+            // else is an input.
+            const a = rollDropTable({ defeated: deadParty(2), nodeKind: 'wild', party: FENRIR_V1, seed: 'same' });
+            const b = rollDropTable({ defeated: deadParty(2), nodeKind: 'wild', party: FENRIR_V1, seed: 'same' });
+            expect(a).toEqual(b);
+        });
+    });
+
+    describe('the pick pool is the party (ticket 12, piece 4)', () => {
+        it('draws only from the party species per-OS deck lists', () => {
+            const allowed = new Set(getDeckForOS('fenrir', 'fenrir_v1'));
+            for (let i = 0; i < 40; i++) {
+                const bundle = rollDropTable({
+                    defeated: deadParty(3, 'jormungandr', 'Water'),
+                    nodeKind: 'wild',
+                    party: FENRIR_V1,
+                    seed: `pool-${i}`,
+                });
+                for (const choice of bundle.cardChoices) {
+                    for (const option of choice.options) {
+                        expect(allowed, `${option.dataId} is not a fenrir_v1 card`).toContain(option.dataId);
+                    }
+                }
+            }
+        });
+
+        it('ignores the defeated enemy element — the pool is the party, not the corpse', () => {
+            // The pre-ticket-12 rule would have offered Water/None cards here. fenrir_v1 is a Fire
+            // list, and that is what comes out.
+            const bundle = rollDropTable({
+                defeated: deadParty(1, 'jormungandr', 'Water'),
+                nodeKind: 'wild',
+                party: FENRIR_V1,
+                seed: 'element-blind',
+            });
+            for (const option of bundle.cardChoices[0].options) {
+                expect(['Fire', 'None']).toContain(ProgramRegistry[option.dataId].element);
+            }
+        });
+
+        it("includes a species' UNTAGGED kit cards while it is in the party (ticket 08)", () => {
+            const pool = rewardCardPool(FENRIR_V1);
+            const kit = new Set(MingmingRegistry['fenrir'].startKits!['fenrir_v1']);
+            const untagged = getDeckForOS('fenrir', 'fenrir_v1').filter((id) => !kit.has(id));
+
+            expect(untagged.length, 'fixture assumes fenrir_v1 has cards outside its start kit')
+                .toBeGreaterThan(0);
+            for (const id of untagged) {
+                expect(pool, `${id} is the half of the deck the run is supposed to draft back`)
+                    .toContain(id);
+            }
+            // And the tagged half is in there too — a kit card can drop as a second copy.
+            for (const id of kit) expect(pool).toContain(id);
+        });
+
+        it('unions every party member, and only party members', () => {
+            const pool = rewardCardPool(FENRIR_AND_KRAKEN);
+            const fenrir = getDeckForOS('fenrir', 'fenrir_v1');
+            const kraken = getDeckForOS('kraken', 'kraken_v1');
+
+            for (const id of fenrir) expect(pool).toContain(id);
+            for (const id of kraken) expect(pool).toContain(id);
+            for (const id of pool) expect([...fenrir, ...kraken]).toContain(id);
+        });
+
+        it('dedupes for membership — a doubled card is not a doubled drop chance', () => {
+            const pool = rewardCardPool(FENRIR_V1);
+            expect(new Set(pool).size).toBe(pool.length);
+            // fenrir_v1 doubles blood_rite; the pool still lists it once.
+            expect(getDeckForOS('fenrir', 'fenrir_v1').filter((id) => id === 'blood_rite')).toHaveLength(2);
+        });
+
+        it('can offer a card the player already holds — duplicates are legal', () => {
+            // Nothing is filtered against the run deck. Over many fights with a small party pool
+            // the same dataId is offered again and again; that is the intended shape, not a bug.
+            const counts = new Map<string, number>();
+            for (let i = 0; i < 60; i++) {
+                const bundle = rollDropTable({
+                    defeated: deadParty(1),
+                    nodeKind: 'wild',
+                    party: FENRIR_V1,
+                    seed: `dupe-${i}`,
+                });
+                for (const option of bundle.cardChoices[0].options) {
+                    counts.set(option.dataId, (counts.get(option.dataId) ?? 0) + 1);
+                }
+            }
+            expect([...counts.values()].some((n) => n > 1)).toBe(true);
+        });
+
+        it('offers three DISTINCT cards within one pick', () => {
+            for (let i = 0; i < 100; i++) {
+                const bundle = rollDropTable({
+                    defeated: deadParty(3),
+                    nodeKind: 'wild',
+                    party: FENRIR_V1,
+                    seed: `distinct-${i}`,
+                });
+                for (const choice of bundle.cardChoices) {
+                    const ids = choice.options.map((o) => o.dataId);
+                    expect(new Set(ids).size).toBe(ids.length);
+                }
+            }
+        });
+
+        it('never offers a token', () => {
+            for (const element of ELEMENTS) {
+                for (let i = 0; i < 10; i++) {
+                    const bundle = rollDropTable({
+                        defeated: deadParty(2, 'fyrbot', element),
+                        nodeKind: 'wild',
+                        // Empty party on purpose: this exercises the element fallback, which is the
+                        // wide registry pool where the tokens live.
+                        party: [],
+                        seed: `token-${element}-${i}`,
+                    });
+                    for (const choice of bundle.cardChoices) {
                         for (const option of choice.options) {
                             const data = ProgramRegistry[option.dataId];
                             expect(data, `unknown card ${option.dataId}`).toBeDefined();
-                            expect(data.isToken ?? false, `${option.dataId} is a token (element ${element})`).toBe(false);
-                            expect(data.rarity as string, `${option.dataId} has Token rarity (element ${element})`).not.toBe('Token');
+                            expect(data.isToken ?? false, `${option.dataId} is a token`).toBe(false);
+                            expect(data.rarity as string).not.toBe('Token');
                         }
                     }
                 }
             }
         });
 
-        it('respects rarity weights (statistically)', () => {
-            const defeated = [makeDeadEntity('e1', 'fyrbot', 'Fire Mon', 'Fire')];
-            const counts: Record<string, number> = { Common: 0, Uncommon: 0, Rare: 0, Epic: 0 };
-            const iterations = 100;
+        it('falls back to the element pool when the party contributes nothing', () => {
+            const pool = rewardCardPool([], 'Fire');
+            expect(pool.length).toBeGreaterThan(0);
+            for (const id of pool) expect(['Fire', 'None']).toContain(ProgramRegistry[id].element);
 
-            for (let i = 0; i < iterations; i++) {
-                const result = rollDropTable(defeated, 1, `seed-${i}`);
-                for (const choice of result.cardChoices) {
-                    for (const option of choice.options) {
-                        const rarity = ProgramRegistry[option.dataId].rarity;
-                        counts[rarity]++;
-                    }
+            // An unknown species has no registry deck, so it contributes nothing either.
+            expect(rewardCardPool([{ definitionId: 'not_a_species' }], 'Fire')).toEqual(pool);
+        });
+
+        it('respects rarity weights within the pool (statistically)', () => {
+            const counts: Record<string, number> = { Common: 0, Uncommon: 0, Rare: 0, Epic: 0 };
+            for (let i = 0; i < 100; i++) {
+                const bundle = rollDropTable({
+                    defeated: deadParty(1),
+                    nodeKind: 'wild',
+                    party: [],
+                    seed: `rarity-${i}`,
+                });
+                for (const option of bundle.cardChoices[0].options) {
+                    counts[ProgramRegistry[option.dataId].rarity]++;
                 }
             }
-
-            // In 300 card options (100 * 3), Common should be the vast majority (~70%)
             expect(counts.Common).toBeGreaterThan(counts.Uncommon);
-            expect(counts.Common).toBeGreaterThan(150); // > 50% just to be safe with variance
-            // Rare/Epic should be low
+            expect(counts.Common).toBeGreaterThan(150);
             expect(counts.Rare + counts.Epic).toBeLessThan(counts.Common);
         });
     });
 
-    describe('rollDropTable - Blueprint Scaling', () => {
-        it('drops blueprints more often with small roster', () => {
-            const defeated = [makeDeadEntity('e1', 'fyrbot', 'Fyrbot')];
-            let bpCountSmall = 0;
-            let bpCountLarge = 0;
-            const iterations = 200;
+    describe('determinism', () => {
+        it('same seed + same enemies + same party → an identical bundle, instance ids included', () => {
+            const input = {
+                defeated: deadParty(3),
+                nodeKind: 'elite' as const,
+                party: FENRIR_AND_KRAKEN,
+                seed: 'fixed-seed-123',
+            };
+            // Deep equality, not a field-by-field comparison: the claimed pick keeps its
+            // `instanceId` all the way into `IRunState.deck`, so a resumed run (ticket 23) must
+            // mint the same card the player was shown, not just the same card *name*.
+            expect(rollDropTable(input)).toEqual(rollDropTable(input));
+        });
 
-            // Roster size 1 (25% rate)
-            for (let i = 0; i < iterations; i++) {
-                const res = rollDropTable(defeated, 1, `roster-1-${i}`);
-                if (res.blueprints.length > 0) bpCountSmall++;
-            }
+        it('different seeds produce different bundles', () => {
+            const a = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: 'seed-a' });
+            const b = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: 'seed-b' });
+            expect(a).not.toEqual(b);
+        });
 
-            // Roster size 5 (5% rate)
-            for (let i = 0; i < iterations; i++) {
-                const res = rollDropTable(defeated, 5, `roster-5-${i}`);
-                if (res.blueprints.length > 0) bpCountLarge++;
-            }
-
-            // Statistically, small roster should have significantly more blueprints
-            expect(bpCountSmall).toBeGreaterThan(bpCountLarge);
-            // Expect roughly 50 (200 * 0.25) vs 10 (200 * 0.05)
-            expect(bpCountSmall).toBeGreaterThan(25);
-            expect(bpCountLarge).toBeLessThan(40);
+        it('mints a unique instanceId for every option in a bundle', () => {
+            const bundle = rollDropTable({
+                defeated: deadParty(3),
+                nodeKind: 'wild',
+                party: FENRIR_V1,
+                seed: 'unique-ids',
+            });
+            const ids = bundle.cardChoices.flatMap((c) => c.options.map((o) => o.instanceId));
+            expect(ids).toHaveLength(9);
+            expect(new Set(ids).size).toBe(9);
         });
     });
 
-    describe('rollDraftRounds (gym-clear mini-draft)', () => {
+    /**
+     * Ticket 12 removed the invocation from the battle path; **ticket 18 owns the gauntlet and its
+     * draft**. The function stays tested so 18 inherits something working rather than a comment.
+     */
+    describe('rollDraftRounds (parked for ticket 18)', () => {
         it('returns 3 rounds of 3 options by default', () => {
             const rounds = rollDraftRounds('gym-seed', 'Fire');
             expect(rounds).toHaveLength(3);
@@ -212,6 +586,10 @@ describe('RewardSystem', () => {
         });
     });
 
+    /**
+     * The sell side of the economy. Nothing calls it yet — ticket 13 (marketplace) is its caller —
+     * and it is kept covered so 13 finds a tested price list instead of writing a second one.
+     */
     describe('getScrapYield', () => {
         it('returns correct values for known rarities', () => {
             expect(getScrapYield('Common')).toBe(10);

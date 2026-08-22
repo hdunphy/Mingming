@@ -49,24 +49,40 @@ export interface ICardChoice {
 
 // --- Reward Bundle (returned by RewardSystem) ---
 
+/**
+ * What a won fight pays. **There is no `totalXP` and there must not be one again** (ticket 12).
+ *
+ * Ticket 21 deleted levelling and froze the engine at `CALIBRATION_LEVEL`; the field survived that
+ * ticket as a structurally-zero number so the reward path did not have to change in the same
+ * commit, and every consumer has been reading a hard 0 ever since. Ticket 12 removes it, so the
+ * type no longer has a slot XP could quietly reappear in.
+ */
 export interface IRewardBundle {
     readonly scraps: number;
     /** Species ids, one entry per blueprint dropped. Duplicates are meaningful — they stack. */
     readonly blueprints: ReadonlyArray<string>;
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
-    readonly totalXP: number;
     readonly relicChoices?: ReadonlyArray<string>;
     /**
-     * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented
-     * before the normal report. Picks accumulate into `cards` at claim time,
-     * so applyRewardBundle needs no special handling. Absent for regular battles.
+     * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented before the normal
+     * report. **Nothing sets this since ticket 12** — the gauntlet and its draft belong to ticket
+     * 18, which is where the invocation went. `RewardSystem.rollDraftRounds` and `BattleReport`'s
+     * draft panel are the other two halves of the same parked feature; all three stay so 18 has
+     * something to re-wire rather than rewrite. Absent for regular battles.
      */
     readonly draftRounds?: ReadonlyArray<ICardChoice>;
 }
 
 // --- Drop Table ---
 
+/**
+ * **Vestigial — nothing constructs or reads this** (checked in ticket 12). It describes a
+ * per-architecture drop table from before rewards were keyed by node kind; the live knobs are
+ * `RewardSystem.BLUEPRINT_DROP_RATE` and `RewardSystem.SCRAP_PER_ENEMY`, and the card pool comes
+ * from `RewardSystem.rewardCardPool`. Left in place rather than deleted in this ticket because it
+ * is inert and deleting types nobody imports is repo hygiene (ticket 02), not a rewards refit.
+ */
 export interface IDropTableEntry {
     readonly architectureId: string;
     readonly blueprintDropRate: number;   // 0–1, e.g. 0.05 = 5%
