@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { ProgramData, Element, TargetType, ProgramCategory, ProgramAction, ProgramConstraint, Rarity } from '../../engine/types';
+import type { ProgramData, ProgramAction, ProgramConstraint } from '../../engine/types';
 import { ELEMENTS, TARGET_TYPES, PROGRAM_CATEGORIES, RARITIES } from '../../engine/types';
 import actionsLib from '../../engine/data/lib/actions.json';
 import constraintsLib from '../../engine/data/lib/constraints.json';

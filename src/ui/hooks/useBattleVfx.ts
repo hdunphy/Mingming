@@ -96,7 +96,14 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     const [vfx, setVfx] = React.useState<VfxState>({ unitFx: {}, shakeKey: 0 });
 
     // Latest engine state for max-HP lookups inside the (synchronous) listener.
+    //
+    // ticket 55: reviewed, not a defect. The write has to happen during render, which is the whole
+    // point of the pattern: the event-bus listener runs SYNCHRONOUSLY inside the same commit as a
+    // dispatch, so a ref updated in an effect would still hold the previous battle state when the
+    // listener reads it. This is the standard latest-value ref, and it is a write (never a read)
+    // during render.
     const stateRef = React.useRef(battleState);
+    // eslint-disable-next-line react-hooks/refs
     stateRef.current = battleState;
 
     const floatIdRef = React.useRef(1);

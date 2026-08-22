@@ -73,12 +73,20 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
 
     // The art fallback state is per-entity (a swapped-in unit gets a fresh try).
     useEffect(() => {
+        // ticket 55: reviewed, not a defect. This is "reset state when a prop changes"; React's
+        // preferred alternative is a `key` on this component, which the parent cannot supply
+        // without re-keying the whole stage and remounting the animation state that outlives an art
+        // swap.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setArtBroken(false);
     }, [entity.artReference]);
 
     // Death FX: CRT glitch on the frame HP hits 0 (same beat as the HUD card).
     useEffect(() => {
         if (entity.currentHp <= 0 && prevHpRef.current > 0) {
+            // ticket 55: reviewed, not a defect. A 500ms one-shot FX owned by a timer, fired on an
+            // HP-crossing that only a ref can see. Same shape as the turn banner in `BattleArena`.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDeathGlitch(true);
             const timeout = setTimeout(() => setDeathGlitch(false), 500);
             prevHpRef.current = entity.currentHp;

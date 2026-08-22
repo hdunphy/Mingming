@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity, StatusType } from '../../engine/types';
 import type { IBattleState } from '../../engine/types';
@@ -10,7 +11,7 @@ import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary'
 import { computeDamagePreview, type DamagePreview } from '../utils/damagePreview';
 import { targetVerdict } from '../utils/targeting';
 import { readableTextOn, badgeTextShadow, getElementAccent } from '../utils/contrastText';
-import { formatMultiplier } from './ElementMatchupTooltip';
+import { formatMultiplier } from './elementMatchups';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
@@ -22,7 +23,8 @@ import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
  */
 const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, stacks }) => {
     const [showTooltip, setShowTooltip] = React.useState(false);
-    const badgeRef = React.useRef<HTMLDivElement>(null);
+    // Ticket 55: measured after layout rather than read during render — see `useAnchoredRect`.
+    const { ref: badgeRef, rect } = useAnchoredRect<HTMLDivElement>(showTooltip);
     const info = statusGlossary[type];
     const color = STATUS_COLORS[type] ?? '#ccc';
     // BarkShield stacks are now a %maxHp float (docs/power_curve_spec.md rev 3) that
@@ -41,11 +43,10 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
             <span className="hud-status-icon">{info?.icon ?? '✦'}</span>
             {stacks > 1 && <span className="hud-status-stacks">×{displayStacks}</span>}
 
-            {showTooltip && info && createPortal(
+            {showTooltip && info && rect !== null && createPortal(
                 <div
                     className="os-tooltip-portal"
-                    style={badgeRef.current ? (() => {
-                        const rect = badgeRef.current.getBoundingClientRect();
+                    style={(() => {
                         const isRightSide = rect.left > window.innerWidth / 2;
                         return {
                             position: 'fixed' as const,
@@ -56,7 +57,7 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
                             borderColor: color,
                             boxShadow: `0 0 20px ${color}55`
                         };
-                    })() : {}}
+                    })()}
                 >
                     <div className="tooltip-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
                         <span className="tooltip-os-name" style={{ color }}>{info.name.toUpperCase()}</span>

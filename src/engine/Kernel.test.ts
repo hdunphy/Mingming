@@ -4,7 +4,6 @@ import { effectHandlers } from './effectHandlers';
 import { type IBattleState, type IBattleEntity, type ProgramData, StatusType } from './types';
 import { calculateModifier } from './combatUtils';
 import { globalBattleEventBus } from './events';
-import { GetProgramData } from './data/programRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 
 vi.mock('./data/programRegistry', async (importOriginal) => {

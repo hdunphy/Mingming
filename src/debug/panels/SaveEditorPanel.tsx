@@ -151,6 +151,11 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
         } catch (err) {
             return { ranch: null, run: null, error: String(err) };
         }
+        // ticket 55: reviewed, deliberate. `save` is not READ here; it is the trigger. This memo
+        // re-reads what is on disk, and the question it answers ("is the store in sync with
+        // storage?") changes exactly when the store's save changes. Removing the dep would freeze
+        // the panel's answer at mount.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [save]);
     const persistedInSync = persisted.ranch !== null && savesAreIdentical(persisted.ranch, save);
 

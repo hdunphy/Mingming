@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { globalBattleEventBus } from './events';
-import { GetProgramData } from './data/programRegistry';
 import { initDaemonHooks } from './data/daemonHooks';
 
 initDaemonHooks();
@@ -171,7 +170,7 @@ describe('Daemon System', () => {
 
     it('THERMAL_OVERLOAD should increase damage and deal recoil', () => {
         // 1. Install Daemon
-        let state = battleReducer(initialState, {
+        const state = battleReducer(initialState, {
             type: 'PLAY_PROGRAM',
             payload: { sourceId: 'p1', targetId: 'p1', programId: 'h2' }
         });
@@ -219,12 +218,9 @@ describe('Daemon System', () => {
         // We need an enemy action. Let's switch to enemy turn or just force a status application that deals damage if needed.
         // Actually, handleAttack calls checkDefeat.
 
-        // Mocking an enemy attack on p1
-        const killAction = {
-            type: 'APPLY_STATUS' as const,
-            payload: { targetId: 'p1', status: 'Poison', stacks: 1 } // Status application can deal damage if behavior says so? 
-            // Better use a direct HP mutation via action if possible, but APPLY_STATUS doesn't deal dmg by default unless it's a specific behavior.
-        };
+        // Ticket 55: a `killAction` literal sat here, unreferenced, with its own comment saying
+        // APPLY_STATUS would not actually deal the damage this test needs. It was a rejected
+        // approach left in the file, not a step of the test.
 
         // Let's use handleAttack directly if possible or just use battleReducer with a custom action if supported.
         // Since we only have specific actions, let's use a scratch from enemy.
@@ -275,7 +271,6 @@ describe('Daemon System', () => {
         const nextState = battleReducer(state, playAction);
 
         // 3. Verify that a feedback token was added to hand
-        const p1 = nextState.playerParty.find(p => p.id === 'p1');
         // Check logs only if the hook triggers successfully and uses the actual string provided by the hook
         expect(nextState.logs.some(l => l.includes('ECHO_CHAMBER'))).toBe(true);
         const generatedToken = nextState.playerDeck.hand.find(c => c.dataId === 'feedback_token');

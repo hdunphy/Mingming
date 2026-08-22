@@ -110,6 +110,11 @@ function App() {
     }
     if (prevInBattle.current && !isInBattle) {
       if (gauntlet || wasGauntletBattle.current) {
+        // ticket 55: reviewed, not a defect. This reacts to a TRANSITION (in-battle ->
+        // not-in-battle) that no render can observe on its own; the previous value lives in a ref
+        // precisely because it is not derivable from props or state. Deriving the tab during render
+        // would need the same ref read and would trade one lint rule for another.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setActiveTab('ranch');
       }
       wasGauntletBattle.current = false;

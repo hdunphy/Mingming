@@ -17,7 +17,6 @@ import { type HookContext } from './core/Hooks';
 
 import { GetProgramData } from './data/programRegistry';
 import { getMacro, type IMacroDefinition } from './data/macroRegistry';
-import { numericBaseCost } from './types';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
@@ -31,10 +30,9 @@ function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
 }
 
-// Use the Registry to look up base costs.
-const GetBaseCost = (dataId: string): number => {
-    return numericBaseCost(GetProgramData(dataId).baseCost);
-};
+// Ticket 55: `GetBaseCost` lived here and had no callers. `getEffectiveCardCost` is the one
+// cost entry point — it handles X-cost and the next-program discount, which a bare base-cost
+// lookup could not, and every reader (AI, cost pip, this reducer) already goes through it.
 
 // --- Actions ---
 
@@ -285,7 +283,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // the instance through every pile.
     const growthKey = `card_growth:${card.id}`;
     const growth = programData.growPerPlay ? (state.counters?.[growthKey] || 0) : 0;
-    const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
+    // Ticket 55: a second, unused copy of the discount arithmetic used to sit here.
+    // `getEffectiveCardCost` (above) already applies `nextProgramModifier.costReduction` through
+    // `doesModifierApply`, so this recomputation fed nothing and could only ever disagree.
     const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
 
     const costRes = executeCostCalculated(state, sourceEntity, targetEntity, programData, baseCost);
@@ -469,7 +469,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     finalState = afterMod;
 
                     // Execution
-                    let modifiedAction = { ...action };
+                    const modifiedAction = { ...action };
                     if (growth > 0 && modifiedAction.type === 'ATTACK'
                         && (modifiedAction as any).power !== undefined) {
                         (modifiedAction as any).power = (modifiedAction as any).power + growth;
@@ -990,17 +990,12 @@ function processPostTurn(state: IBattleState): IBattleState {
 
             let damage = result.damage;
 
-            // Apply scaling hooks (e.g., Thermal Overload boosting Burn damage)
+            // Apply scaling hooks (e.g., Thermal Overload boosting Burn damage).
+            //
+            // Ticket 55 removed a hand-built `HookContext` here that nothing read:
+            // `executeStatusDamageCalculated` builds its own, so the local was scaffolding left
+            // behind when this call replaced a direct hook invocation.
             if (damage > 0) {
-                const context: HookContext = {
-                    source: undefined, // System or self?
-                    target: entity,
-                    state: state,
-                    triggerDepth: 0
-                };
-
-                // We use calculateStatusDamage naming or just reuse the logic
-                // For simplicity, let's call it 'onStatusDamageCalculated'
                 const { state: _, damage: finalDamage } = executeStatusDamageCalculated(state, entity, damage, effect.type);
                 damage = finalDamage;
             }
@@ -1148,7 +1143,6 @@ function processPreTurn(state: IBattleState): IBattleState {
     const activeDeckKey = nextSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
 
     const activeParty = state[activePartyKey];
-    const activeDeck = state[activeDeckKey];
 
     // Emit TURN_START
     globalBattleEventBus.emit({

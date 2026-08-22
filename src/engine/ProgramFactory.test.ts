@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity, StatusType } from './types';
-import { GetProgramData } from './data/programRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 
 vi.mock('./data/programRegistry', async (importOriginal) => {

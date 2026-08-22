@@ -1,5 +1,5 @@
 
-import type { Element, IBattleEntity, ProgramData, StatusType, TurnPhase } from './types';
+import type { Element, StatusType, TurnPhase } from './types';
 
 export type BattleEventType =
     | 'BATTLE_STARTED'

@@ -24,5 +24,34 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      /*
+       * TICKET 55, STEP 2. An underscore means "this parameter is part of the signature and this
+       * implementation does not need it" — and 71 of the 141 `no-unused-vars` errors were exactly
+       * that, already written with the prefix by whoever wrote them.
+       *
+       * `StatusBehaviors.ts` (35) and `ActionExecutors.ts` (36) are the whole argument. Every
+       * behaviour implements one interface, so `onApply(_source, _target, _power)` has to accept
+       * three arguments whether or not Burn cares about the source. Deleting the parameters is
+       * impossible (position is meaning), renaming them loses what they are, and `void _source` at
+       * the top of eleven functions is noise that exists solely to satisfy a linter. The convention
+       * is already in the code; this teaches the linter to read it.
+       *
+       * `ignoreRestSiblings` is on for one idiom the codebase uses deliberately and cannot write any
+       * other way: `const { nextProgramModifier, ...rest } = e` is how `battleReducer` STRIPS a
+       * field from an entity. The binding exists precisely so the value is left behind, and it has
+       * to carry the real property name — an underscore would change which field is removed.
+       *
+       * Deliberately NOT a blanket downgrade: an unused *local* is still an error unless it is
+       * named with a leading underscore, which keeps the rule doing the job it is here for.
+       */
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+      }],
+    },
   },
 ])

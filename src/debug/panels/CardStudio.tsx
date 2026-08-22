@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { GetProgramData, getInflatedProgramRegistry } from '../../engine/data/programRegistry';
+import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 import { budgetBandFor, calculatePowerscale } from '../balance/powerscale';
 import CardForm from '../../ui/screens/CardForm';

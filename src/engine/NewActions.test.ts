@@ -73,7 +73,7 @@ describe('New Utility Actions', () => {
     it('CLEANSE should remove debuffs', () => {
         // Add poison and sleep to player
         const player = initialState.playerParty[0];
-        let state = {
+        const state = {
             ...initialState,
             playerParty: [{
                 ...player,

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
-import type { TurnPhase, IBattleEntity, ProgramEntity, IBattleState, ProgramData } from './types';
-import { globalBattleEventBus } from './events';
+import type { IBattleEntity, IBattleState } from './types';
 import { registerHook, HookPriority } from './core/Hooks';
 import { applyMutations } from './resolutionEngine';
 import { TestProgramRegistry } from './data/testProgramRegistry';

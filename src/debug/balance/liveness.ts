@@ -38,7 +38,7 @@ import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { HookLibrarySchema } from '../../engine/data/HookSchema';
 import { matchupScenario, mirrorScenario, BALANCE_SPECIES, CONTROL_SPECIES } from './balanceScenarios';
-import { runBatch, deriveSeeds } from './runBatch';
+import { runBatch } from './runBatch';
 import { quietly } from './balanceReporting';
 
 const RAW = JSON.parse(fs.readFileSync('src/engine/data/lib/hooks.json', 'utf8'));

@@ -113,7 +113,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
             case 'DISCARD': {
                 const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
-                let deck = newState[deckKey];
+                const deck = newState[deckKey];
                 const amount = mutation.payload.amount;
                 const isRandom = mutation.payload.isRandom;
 
@@ -203,7 +203,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
                 let deck = newState[deckKey];
 
-                let toExhaust = deck.hand.slice(0, mutation.payload.amount);
+                const toExhaust = deck.hand.slice(0, mutation.payload.amount);
                 toExhaust.forEach(c => {
                     deck = exhaustCard(deck, c.id, 'HAND');
                 });
@@ -215,8 +215,8 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
                 let deck = newState[deckKey];
 
-                let sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
-                let sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
+                const sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
+                const sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
                 // Ticket 32: optional cost predicate, then clamp to the space actually left in
                 // hand - RETURN previously ignored HAND_SIZE_LIMIT and silently dropped the
                 // overflow, which makes a "return everything" card unpredictable.
@@ -226,7 +226,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     : sourcePile.filter(c => numericBaseCost(GetProgramData(c.dataId).baseCost) <= maxCost);
                 const headroom = Math.max(0, HAND_SIZE_LIMIT - deck.hand.length);
                 const requested = mutation.payload.amount ?? eligible.length;
-                let toReturn = eligible.slice(0, Math.min(requested, headroom));
+                const toReturn = eligible.slice(0, Math.min(requested, headroom));
 
                 toReturn.forEach(c => {
                     deck = returnCard(deck, c.id, sourcePileStr as any, mutation.payload.destinationPile || 'HAND');
@@ -309,8 +309,8 @@ export function executeResolutionStack(
     phase: keyof HookDefinition,
     initialContext: HookContext
 ): { state: IBattleState; isCancelled: boolean } {
-    let currentState = initialContext.state;
-    let isCancelled = false;
+    const currentState = initialContext.state;
+    const isCancelled = false;
 
     if (initialContext.triggerDepth > 5 || resolutionStackDepth >= MAX_RESOLUTION_DEPTH) {
         console.warn(`CRITICAL_EVENT_OVERFLOW: Max trigger depth reached (phase: ${phase}).`);
@@ -418,7 +418,7 @@ export function executeStatusDamageCalculated(
     initialDamage: number,
     _statusType: string
 ): { state: IBattleState; damage: number } {
-    let currentState = state;
+    const currentState = state;
     let damage = initialDamage;
 
     // Use full party search for global/side-wide hooks
@@ -474,7 +474,7 @@ export function executeCostCalculated(
     program: ProgramData,
     initialCost: number
 ): { state: IBattleState; cost: number } {
-    let currentState = state;
+    const currentState = state;
     let cost = initialCost;
 
     // Use full party search for global/side-wide hooks

@@ -1,16 +1,6 @@
-import {
-    type HookDefinition,
-    type DataHookDefinition,
-    type ModifierDataHookDefinition,
-    type HookCondition,
-    type HookAction,
-    type HookContext,
-    type HookResult,
-    type MutationRequest
-} from './HookTypes';
+import { type HookDefinition, type DataHookDefinition, type ModifierDataHookDefinition, type HookCondition, type HookAction, type HookContext, type HookResult } from './HookTypes';
 import { resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ActionType } from '../types';
-import { StatusType } from '../types';
 import { PRNG } from './PRNG';
 import { ConditionValidator, NEGATIVE_STATUSES } from './ConditionValidator';
 import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExecutors';

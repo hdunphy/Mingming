@@ -1,6 +1,6 @@
 import type { ProgramData } from '../types';
 import { StatusType } from '../types';
-import { STANDARD_CONSTRAINTS, ASLEEP_CONSTRAINT, BASE_CONSTRAINT, ALERT_CONSTRAINT } from './programRegistry';
+import { STANDARD_CONSTRAINTS } from './programRegistry';
 
 export const TestProgramRegistry: Record<string, ProgramData> = {
     'prog_drain': {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { registerHook } from './core/Hooks';
-import { FIRMWARE_REGISTRY, getOSBehavior } from './data/firmwareRegistry';
+import { FIRMWARE_REGISTRY } from './data/firmwareRegistry';
 import { initDaemonHooks } from './data/daemonHooks';
 import { applyMutations } from './resolutionEngine';
 import { TestProgramRegistry } from './data/testProgramRegistry';
@@ -70,8 +70,6 @@ const play = (state: IBattleState, sourceId: string, targetId: string, programId
 
 const status = (id: string, type: string, stacks: number) =>
     ({ id, type, stacks, duration: -1 } as any);
-
-const str = (e: IBattleEntity, type: string) => e.statusEffects.find(s => s.type === type)?.stacks ?? 0;
 
 // Register OS + daemon hooks
 Object.values(FIRMWARE_REGISTRY).forEach(os => { os.hooks.forEach(h => registerHook(h)); });

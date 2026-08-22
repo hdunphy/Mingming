@@ -2,7 +2,7 @@ import type { IBattleState, IBattleEntity, ProgramData, Element } from '../types
 import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
-import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
+ // Need to refactor checkDefeat or keep it in effectHandlers for now
 import { applyMutations, executeDraw, executeStatusDamageCalculated } from '../resolutionEngine';
 import { GetProgramData } from '../data/programRegistry';
 import { revivedHpFor } from '../data/macroRegistry';
@@ -207,8 +207,8 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         const { element, scaling } = actionData;
 
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
-        let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
-        let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
         if (!target) return state;
 
@@ -348,8 +348,8 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: HealActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { power } = actionData;
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
-        let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
-        let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
         if (!target) return state;
         if (!source) return state;
@@ -688,7 +688,7 @@ export function resolveProgramFree(
         const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
         if (!target || target.currentHp <= 0) continue;
 
-        let resolved: ProgramAction = { ...action };
+        const resolved: ProgramAction = { ...action };
         if (growth > 0 && resolved.type === 'ATTACK' && (resolved as any).power !== undefined) {
             (resolved as any).power = (resolved as any).power + growth;
         }

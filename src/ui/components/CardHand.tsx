@@ -15,7 +15,7 @@ import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
-import { formatMultiplier } from './ElementMatchupTooltip';
+import { formatMultiplier } from './elementMatchups';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx } from '../audio/AudioEngine';
 

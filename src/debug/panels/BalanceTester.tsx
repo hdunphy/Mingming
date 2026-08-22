@@ -16,7 +16,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { simulate1v1, runBatchSimulation } from '../../engine/sim/Simulator';
-import type { BatchReport, SIM_TTK_Result } from '../../engine/sim/Simulator';
+import type { BatchReport } from '../../engine/sim/Simulator';
 import './BalanceTester.css';
 
 const BalanceTester: React.FC = () => {
@@ -33,7 +33,7 @@ const BalanceTester: React.FC = () => {
     const results = useMemo(() => {
         try {
             return simulate1v1(idA, idB, power);
-        } catch (e) {
+        } catch {
             return null;
         }
     }, [idA, idB, power]);

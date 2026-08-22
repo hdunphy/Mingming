@@ -1,6 +1,5 @@
-import { type HookDefinition, type HookContext, type HookResult, type MutationRequest, resolveCounterKey } from './HookTypes';
+import { type HookDefinition, type HookContext, type HookResult, resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
 import { resolveProgramFree } from '../actions/ActionExecutors';

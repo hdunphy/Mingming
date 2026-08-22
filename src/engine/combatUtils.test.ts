@@ -1,8 +1,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
-import { calculateDamage, calculateModifier, calculateHeal, getModifierBreakdown, ElementalMatrix } from './combatUtils';
+import { calculateDamage, calculateModifier, calculateHeal, getModifierBreakdown } from './combatUtils';
 import type { IBattleEntity, ProgramData, Element } from './types';
-import { GetProgramData } from './data/programRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 
 vi.mock('./data/programRegistry', async (importOriginal) => {

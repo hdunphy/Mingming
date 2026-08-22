@@ -10,7 +10,6 @@ const StarterCard: React.FC<{
     description: string;
     onSelect: () => void;
 }> = ({ id, name, element, description, onSelect }) => {
-    const isWater = id === 'kraken';
     const isFire = id === 'fenrir';
     const isNature = id === 'ratatoskr';
 

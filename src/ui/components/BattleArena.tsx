@@ -52,12 +52,6 @@ import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import AudioControls from './AudioControls';
 
-/**
- * Hold the level-up overlay after the queue first populates, so the death FX
- * (450ms CRT glitch + TERMINATED stamp beat) finish before it covers the stage.
- */
-const LEVEL_UP_OVERLAY_DELAY_MS = 900;
-
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
         key={side}
@@ -179,7 +173,6 @@ const BattleArena: React.FC = () => {
     // Ticket 24. `seenTips` is a ranch field, so the lesson outlives the run that taught it.
     const seenTips = useSelector((state: RootState) => state.game.seenTips);
 
-    const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
     const [showTurnBanner, setShowTurnBanner] = useState(false);
     const [dragPoint, setDragPoint] = useState<{ x: number, y: number } | null>(null);
     const [originPoint, setOriginPoint] = useState<{ x: number, y: number } | null>(null);
@@ -412,6 +405,10 @@ const BattleArena: React.FC = () => {
 
     useEffect(() => {
         if (battleState?.activeSide !== prevSideRef.current) {
+            // ticket 55: reviewed, not a defect. The banner is a TIMED effect (up now, down in 2s
+            // via setTimeout), so the state is owned by the timer rather than derived from the
+            // battle. There is nothing to compute during render.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowTurnBanner(true);
             const timer = setTimeout(() => setShowTurnBanner(false), 2000);
             prevSideRef.current = battleState?.activeSide;
@@ -663,6 +660,12 @@ const BattleArena: React.FC = () => {
                 }
             }
 
+            // ticket 55: reviewed, not a defect, and deliberately NOT derived during render. The
+            // bundle is ROLLED from a seeded PRNG and must be rolled exactly once per victory: a
+            // render-phase derivation could run twice under StrictMode or a discarded render and
+            // hand the player a different drop each time. The `rewardBundle &&` guard above is the
+            // once-only latch.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
     }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers]);

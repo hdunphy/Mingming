@@ -26,7 +26,7 @@
  */
 import { calculateDamage } from '../combatUtils';
 import { initializeBattleEntity } from '../types';
-import type { IBattleEntity, ProgramData, IBattleState } from '../types';
+import type { ProgramData, IBattleState } from '../types';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 
 export interface SIM_TTK_Result {

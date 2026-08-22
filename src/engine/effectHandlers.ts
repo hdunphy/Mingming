@@ -3,8 +3,6 @@ import { StatusType } from './types';
 import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
-import { GetMingmingData } from './data/mingmingRegistry';
-import { drawCards } from './deckLogic';
 import { applyHealModifiers } from './core/Hooks';
 
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -30,8 +28,8 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
 
-    let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
-    let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+    const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+    const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
     if (!target) return state;
 
@@ -59,7 +57,7 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     // Apply Status Post-Damage (Shields)
     let finalDamage = damage;
     let newStatus = [...target.statusEffects];
-    let statusLogs: string[] = [];
+    const statusLogs: string[] = [];
 
     if (finalDamage > 0 && newStatus.length > 0) {
         for (const effect of [...newStatus]) {
@@ -234,8 +232,8 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     const { sourceId, targetId, power, flatHeal, healPower } = payload;
     // ... find entities ...
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
-    let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
-    let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+    const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+    const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
     if (!target) return state;
     if (!source && flatHeal === undefined) return state;
@@ -350,9 +348,9 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 
     // 2. Duality cancellation
     const oppositeStatus = DUALITY_MAP[status];
-    let currentEffects = [...initialTarget.statusEffects];
+    const currentEffects = [...initialTarget.statusEffects];
     let remainingStacks = scaledStacks;
-    let dualityLogs: string[] = [];
+    const dualityLogs: string[] = [];
 
     if (oppositeStatus && remainingStacks > 0) {
         const oppositeIndex = currentEffects.findIndex(s => s.type === oppositeStatus);

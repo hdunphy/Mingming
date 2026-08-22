@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { IBattleState, IBattleEntity, ProgramData } from './types';
+import type { IBattleState } from './types';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { createMockEntity } from './data/battleFactories';
 import { SeedStream } from './core/SeedStream';
-import { GetProgramData } from './data/programRegistry';
 
 describe('Advanced Archetypes Logic', () => {
     let initialState: IBattleState;
@@ -43,7 +42,7 @@ describe('Advanced Archetypes Logic', () => {
     it('MULTIPLY_STATUS should double status stacks', () => {
         // 1. Give enemy some Poison
         const enemy = { ...initialState.enemyParty[0] };
-        let state: IBattleState = {
+        const state: IBattleState = {
             ...initialState,
             enemyParty: [{
                 ...enemy,
@@ -66,7 +65,7 @@ describe('Advanced Archetypes Logic', () => {
     it('TRIGGER_STATUS should deal poison damage immediately', () => {
         // 1. Give enemy Poison
         const enemy = { ...initialState.enemyParty[0] };
-        let state: IBattleState = {
+        const state: IBattleState = {
             ...initialState,
             enemyParty: [{
                 ...enemy,
@@ -89,7 +88,7 @@ describe('Advanced Archetypes Logic', () => {
 
     it('PLAY_LAST_CARD should repeat the previous card actions', () => {
         // 1. Mock a "Test Strike" played previously
-        let state: IBattleState = {
+        const state: IBattleState = {
             ...initialState,
             lastProgramPlayed: 'test_strike'
         };

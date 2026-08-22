@@ -2,10 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import { getStatusBehavior } from './StatusBehaviors';
 import type { IBattleState, IBattleEntity, ProgramData, StatusEffectInstance } from './types';
-import { StatusType } from './types';
 import { calculateDamage } from './combatUtils';
 import { registerHook } from './core/Hooks';
-import { GetProgramData } from './data/programRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 import { DEFAULT_GAME_CONFIG } from './data/gameConfig';
 

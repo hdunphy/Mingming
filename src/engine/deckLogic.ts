@@ -14,7 +14,7 @@ export const HAND_SIZE_LIMIT = 9;
  * Emits CARD_DRAWN and DECK_SHUFFLED events.
  */
 export function drawCards(deckState: IDeckState, count: number, seed: string): { state: IDeckState; nextSeed: string; shuffled: boolean } {
-    let currentHand = [...deckState.hand];
+    const currentHand = [...deckState.hand];
     let currentDrawpile = [...deckState.drawpile];
     let currentDiscard = [...deckState.discard];
     let currentSeed = seed;
@@ -173,9 +173,9 @@ export function returnCard(deckState: IDeckState, cardId: string, fromPile: 'DIS
  * Searches the drawpile (and optionally discard) for cards matching a criteria and moves them to hand.
  */
 export function searchCard(deckState: IDeckState, amount: number, criteria?: { element?: string; category?: string; }, includeDiscard = false): IDeckState {
-    let newDraw = [...deckState.drawpile];
-    let newDiscard = [...deckState.discard];
-    let newHand = [...deckState.hand];
+    const newDraw = [...deckState.drawpile];
+    const newDiscard = [...deckState.discard];
+    const newHand = [...deckState.hand];
     let cardsFound = 0;
 
     const matchesCriteria = (card: ProgramEntity) => {

@@ -2,7 +2,7 @@
 
 - Type: wayfinder:task
 - Status: open
-- Assignee: 
+- Assignee: agent
 - Blocked by: [03](03-ci-gate.md)
 - Phase: Foundations
 
@@ -48,6 +48,111 @@ Suggested order, smallest blast radius first — each step is independently comm
 ## Done when
 
 `npm run lint` exits 0 on `steam-release-prep`, the lint step in `ci.yml` is blocking, and `npx vitest run` still reports 868 passing tests.
+
+## Progress — steps 1-3 landed 2026-08-22 (steps 4-5 still open)
+
+**452 errors -> 256, and the 256 are all one rule.** `npx tsc -b` clean, **1547 tests passing**,
+build green. The ticket stays open: step 4 (`no-explicit-any`) and step 5 (make the gate blocking)
+are untouched, and step 5 cannot land before step 4 does.
+
+| Rule | Before | After |
+|---|---|---|
+| `@typescript-eslint/no-explicit-any` | 256 | **256** |
+| `@typescript-eslint/no-unused-vars` | 141 | **0** |
+| `prefer-const` | 31 | **0** |
+| `react-refresh/only-export-components` | 8 | **0** |
+| `react-hooks/refs` | 7 | **0** |
+| `react-hooks/set-state-in-effect` | 5 | **0** |
+| `no-case-declarations` | 3 | **0** |
+| `react-hooks/exhaustive-deps` | 1 | **0** |
+
+(The table in this ticket's header was measured at ticket 03's commit; the tree had moved since, so
+the "before" column is what `eslint` reported at the start of this pass.)
+
+### Step 1 — `--fix`
+
+31 `prefer-const`, mechanically. Zero semantic change; suite unmoved.
+
+### Step 2 — the underscore convention, then 56 genuinely dead things
+
+**71 of the 141 `no-unused-vars` were already correct** and the linter could not read them.
+`StatusBehaviors.ts` (35) and `ActionExecutors.ts` (36) are the whole argument: every behaviour
+implements one interface, so `onApply(_source, _target, _power)` must accept three arguments whether
+or not Burn cares about the source. Position is meaning, so the parameters cannot be deleted;
+`void _source` at the top of eleven functions is noise that exists only to satisfy a linter. So the
+rule now carries `argsIgnorePattern: '^_'` (plus vars / caught-errors / destructured-array). The
+convention was already in the code — this teaches the linter to read it.
+
+`ignoreRestSiblings` is on for exactly one idiom: `const { nextProgramModifier, ...rest } = e` is how
+`battleReducer` **strips** a field, so the binding exists precisely to be discarded and has to carry
+the real property name. Deliberately not a blanket downgrade — an unused local is still an error
+unless it is underscore-prefixed.
+
+That left 56 real ones: 44 dead imports and 12 dead locals, all deleted. **Four were worth reading
+before deleting**, and all four turned out to be scaffolding rather than defects:
+
+- `battleReducer.ts:288` `appliedCostReduction` — a **second copy of the discount arithmetic**.
+  Harmless only because `getEffectiveCardCost` (line 218) already applies
+  `nextProgramModifier.costReduction` through `doesModifierApply`; this one fed nothing and could
+  only ever disagree with it.
+- `battleReducer.ts:995` `context: HookContext` — hand-built, then never passed to anything.
+  `executeStatusDamageCalculated` builds its own; the local is what was left when a direct hook
+  invocation was replaced by that call, along with two comments describing the replaced approach.
+- `battleReducer.ts:35` `GetBaseCost` — a base-cost lookup with no callers, which could not have
+  handled X-cost or the next-program discount anyway. `getEffectiveCardCost` is the one entry point.
+- `BattleArena.tsx:59` `LEVEL_UP_OVERLAY_DELAY_MS` — ticket 21 removed levelling; the constant and
+  its docblock outlived the overlay they timed.
+
+### Step 3 — the ones the ticket said to treat as defect reports first
+
+**`react-hooks/refs` (7) — one real bug found, fixed for all three sites at once.** Three hover
+tooltips positioned their portal by calling `getBoundingClientRect()` **during render**:
+`style={ref.current ? (() => { ... })() : {}}`. The render-phase read is what the rule flags, and it
+is not a bug *today* (the portal only exists while hovered, and by then the anchor is attached). The
+bug is the `: {}` half — on the first render of a newly mounted anchor the ref is null, so the portal
+renders with **no positioning at all**, `position: static`, at the top-left of the body.
+
+`ui/hooks/useAnchoredRect.ts` replaces all three: measure in `useLayoutEffect`, keep the rect in
+state, and let `rect === null` mean *not measured* so the consumer renders nothing rather than
+something misplaced. One hook, three call sites, no render-phase layout reads left.
+
+**`react-refresh/only-export-components` (8) — three new modules, no behaviour change.** The helpers
+were never really component-local: `getElementIcon` and `getElementColor` were imported from
+`ProgramCard` by two other files, `formatMultiplier` by three. They now live in `cardIcons.ts`,
+`cardKeywords.ts` and `elementMatchups.ts`. The payoff is real rather than cosmetic — a module that
+mixes a component with plain functions cannot hot-reload as a component, so every edit to a card
+chip during development was throwing away component state.
+
+**`no-case-declarations` (3) — braced, and it was not purely stylistic.** `const` in an unbraced
+`case` is scoped to the *whole* switch, so `ConditionValidator`'s `op` / `valStr` / `threshold` were
+in the temporal dead zone of every case below them. The neighbouring cases were already braced.
+
+**`set-state-in-effect` (5+1) and one `refs` — reviewed, disabled with the reason in the file.** Each
+one is a documented `eslint-disable-next-line` rather than a restructure, and each carries the
+argument for why:
+
+- `App.tsx` — reacts to a **transition** (in-battle -> not-in-battle) that no render can observe;
+  the previous value is in a ref precisely because it is not derivable.
+- `BattleArena` turn banner and `BattleStage` death glitch — **timed one-shots** owned by a
+  `setTimeout`, not state derived from props.
+- `BattleArena` reward bundle — **rolled from a seeded PRNG** and must roll exactly once per victory;
+  a render-phase derivation could run twice under StrictMode and hand the player a different drop.
+- `BattleStage` art fallback — "reset state when a prop changes"; React's preferred `key` alternative
+  would remount animation state that deliberately outlives an art swap.
+- `useBattleVfx` — the latest-value ref, **written** (never read) during render, because the event-bus
+  listener runs synchronously inside the same commit as a dispatch and an effect-updated ref would
+  still hold the previous state when it fires.
+- `SaveEditorPanel`'s `exhaustive-deps` — `save` is not read in the memo, it is the **trigger**: the
+  memo re-reads what is on disk, and "is the store in sync with storage?" changes exactly when the
+  store's save changes.
+
+### What is left
+
+**Step 4: 256 `no-explicit-any`.** 134 are in test files, 19 in `src/debug`, ~103 in engine and UI
+source. The ticket's own warning applies to the last group — if typing an engine internal means
+changing a public engine type, that is a deck-archetypes concern and this ticket stops.
+
+**Step 5 (drop `continue-on-error` from CI) cannot land until step 4 does**, so lint stays advisory.
 
 ## Resolution
 
