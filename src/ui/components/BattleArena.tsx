@@ -7,6 +7,8 @@ import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import BattleStage from './BattleStage';
 import MacroRack from './MacroRack';
+import Callout from './Callout';
+import { nextBattleTip } from '../../engine/tips';
 import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -162,6 +164,8 @@ const BattleArena: React.FC = () => {
     const run = useSelector((state: RootState) => state.run.run);
     const gauntlet = run?.gauntlet ?? null;
     const drivers = run?.drivers;
+    // Ticket 24. `seenTips` is a ranch field, so the lesson outlives the run that taught it.
+    const seenTips = useSelector((state: RootState) => state.game.seenTips);
 
     const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
     const [showTurnBanner, setShowTurnBanner] = useState(false);
@@ -1081,6 +1085,13 @@ const BattleArena: React.FC = () => {
                     setOriginPoint(null);
                 }}
             >
+              {/*
+                * ONBOARDING — ticket 24. Only inside a run, for `MacroRack`'s reason: a debug
+                * scenario is not a player's first fight, and burning a once-ever tip on one would
+                * mean the real first fight never gets it. Absolutely positioned (see Callout.css),
+                * so it costs the console none of the 30px of vertical slack ticket 22 measured.
+                */}
+              {run && <Callout tip={nextBattleTip(battleState, seenTips)} placement="battle" />}
               <div className="console-row">
                 {/*
                   * THE MACRO RACK — ticket 15. Beside the hand, not in it: a macro is not a card

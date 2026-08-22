@@ -73,6 +73,7 @@ function makeRanch(overrides: Partial<IRanchState> = {}): IRanchState {
         codex: { seen: ['prog_a'], played: ['prog_a'] },
         gymsCleared: ['gym_water'],
         highestTierCleared: 1,
+        seenTips: [],
         ...overrides,
     };
 }
@@ -282,6 +283,10 @@ describe('malformed persistent currency FAILS rather than emptying itself', () =
             codex: { seen: [], played: [] },
             gymsCleared: [],
             highestTierCleared: 0,
+            // Ticket 24's added field, filled by its `.default([])` — which is the whole reason it
+            // needed no version bump: a v4 save written before tips existed is a player who has
+            // seen none.
+            seenTips: [],
         });
     });
 });

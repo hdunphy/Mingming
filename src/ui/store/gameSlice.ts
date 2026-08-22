@@ -71,6 +71,7 @@ export function createEmptyRanch(): IRanchState {
         codex: { seen: [], played: [] },
         gymsCleared: [],
         highestTierCleared: 0,
+        seenTips: [],
     };
 }
 
@@ -171,6 +172,37 @@ const gameSlice = createSlice({
             }
         },
 
+        // --- Onboarding tips (ticket 24) ---
+        /**
+         * Record that a tip has been shown. Add-only and deduped, `recordCodexSeen`'s laws for
+         * `recordCodexSeen`'s reason — a tip that could come back is a tutorial that repeats itself.
+         *
+         * There is deliberately **no `unseeTip`**. Replaying the tips is a debug affordance, not a
+         * player one, and it already exists: the God Tools save editor writes `seenTips` like any
+         * other ranch field, and `resetSave` clears it with everything else.
+         */
+        markTipSeen: (state, action: PayloadAction<string>) => {
+            const id = action.payload;
+            if (id === '' || state.seenTips.includes(id)) return;
+            (state.seenTips as string[]).push(id);
+        },
+
+        /**
+         * "Skip tips" — the caller passes every id it knows about (`ALL_TIP_IDS`).
+         *
+         * The list comes from the caller rather than being imported here so that this slice does not
+         * depend on the tip registry: the save stores strings, and a slice that knew the union would
+         * have to be edited every time a tip is added.
+         */
+        skipTips: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            const held = new Set(state.seenTips);
+            for (const id of action.payload) {
+                if (id === '' || held.has(id)) continue;
+                held.add(id);
+                (state.seenTips as string[]).push(id);
+            }
+        },
+
         // --- Gym and tier progress ---
         /**
          * Record a gym clear. `gymsCleared` is what run start reads to decide which leaders and
@@ -254,6 +286,8 @@ export const {
     addBlueprint,
     assembleMingming,
     recordCodexSeen,
+    markTipSeen,
+    skipTips,
     markGymCleared,
     recordTierCleared,
     updateMingmingOS,

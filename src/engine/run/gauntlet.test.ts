@@ -107,6 +107,7 @@ const ranchOf = (party: ReadonlyArray<IMingmingState>): IRanchState => ({
     codex: { seen: [], played: [] },
     gymsCleared: [],
     highestTierCleared: 0,
+    seenTips: [],
 });
 
 const BOSS = GAUNTLET_FIGHTS - 1;

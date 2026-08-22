@@ -22,6 +22,7 @@ import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
+import { ALL_TIP_IDS } from '../../engine/tips';
 import type { IGauntletProgress, IRanchMember, IRunState, NodeKind, RunOutcome } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 
@@ -51,11 +52,16 @@ const BASE = createRun({
     startedAt: 1_700_000_000_000,
 });
 
-function render(run: IRunState): string {
+/**
+ * `seenTips` defaults to "already taught" so that ticket 24's map callout is opt-in per test: every
+ * assertion in this file predates it and is about the node, not the tutorial. The two tests that
+ * ARE about the tutorial pass `[]` explicitly.
+ */
+function render(run: IRunState, seenTips: ReadonlyArray<string> = ALL_TIP_IDS): string {
     const store = configureStore({
         reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
         preloadedState: {
-            game: { ...createEmptyRanch(), roster: ROSTER },
+            game: { ...createEmptyRanch(), roster: ROSTER, seenTips: [...seenTips] },
             run: { run },
         },
         middleware: (getDefault) => getDefault({ serializableCheck: false }),
@@ -284,5 +290,27 @@ describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
             gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
         }));
         expect(markup).toContain('Abandon run');
+    });
+});
+
+describe('RunScreen — onboarding on the map (ticket 24)', () => {
+    it('teaches the map before the gym, one tip at a time', () => {
+        const fresh = render(BASE, []);
+        expect(fresh).toContain('The map tells you first');
+        // One at a time: the gym tip is next in line and must NOT also be on screen.
+        expect(fresh).not.toContain('The gym is the run');
+        expect(fresh).toContain('Skip tips');
+
+        const next = render(BASE, ['map:types']);
+        expect(next).toContain('The gym is the run');
+        expect(next).not.toContain('The map tells you first');
+    });
+
+    it('says nothing once the player has been taught, or has skipped', () => {
+        const markup = render(BASE, ALL_TIP_IDS);
+        expect(markup).not.toContain('The map tells you first');
+        expect(markup).not.toContain('Skip tips');
+        // The map itself is untouched.
+        expect(markup).toContain('Travel');
     });
 });

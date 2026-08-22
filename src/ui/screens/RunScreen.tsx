@@ -75,6 +75,8 @@ import { playSfx } from '../audio/AudioEngine';
 import GauntletNode from './GauntletNode';
 import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
+import Callout from '../components/Callout';
+import { nextMapTip } from '../../engine/tips';
 import RunSummary from './RunSummary';
 import WorkshopNode from './WorkshopNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
@@ -405,6 +407,14 @@ export default function RunScreen(): ReactNode {
                         );
                     })}
                 </div>
+
+                {/*
+                  * ONBOARDING — ticket 24. Above the map rather than inside it: `RegionMap` takes
+                  * props and touches no store (its test renders it with no `<Provider>` at all), and
+                  * reaching into the store from in there to read `seenTips` would spend that
+                  * property on one strip.
+                  */}
+                <Callout tip={nextMapTip(run, ranch.seenTips)} />
 
                 <RegionMap
                     nodes={run.nodes}

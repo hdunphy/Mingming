@@ -85,7 +85,7 @@ describe('assembleMingming — one blueprint, atomically', () => {
         const after = gameReducer(before, assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
 
         expect(Object.keys(after).sort()).toEqual(
-            ['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster'],
+            ['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster', 'seenTips'],
         );
         expect(after.codex).toEqual({ seen: [], played: [] });
     });

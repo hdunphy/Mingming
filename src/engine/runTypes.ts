@@ -307,6 +307,17 @@ export interface IRanchState {
     /** Gym ids beaten — what tiers and gyms are offered at run start. */
     readonly gymsCleared: ReadonlyArray<string>;
     readonly highestTierCleared: number;
+    /**
+     * Onboarding tips already shown (ticket 24). `TipId`s, but typed as plain strings for the same
+     * reason the codex stores raw dataIds: the save has to survive a build that renamed or retired
+     * a tip, and a union in the schema would fail the parse on an id this build never heard of.
+     *
+     * On the RANCH rather than the run, deliberately: a player who dies in biome 0 has still been
+     * taught what energy is, and being taught it again on the next attempt is the thing tutorials
+     * are hated for. It is also what makes the first fight easier exactly once — see `createRun`'s
+     * `onboarding` flag.
+     */
+    readonly seenTips: ReadonlyArray<string>;
 }
 
 export interface IRanchMember {
@@ -431,6 +442,10 @@ export const RanchStateSchema = z.object({
     codex: CodexSchema.default({ seen: [], played: [] }),
     gymsCleared: z.array(z.string()).default([]),
     highestTierCleared: z.number().int().min(0).default(0),
+    // Ticket 24. `.default([])` and no version bump: a v4 save written before this field existed is
+    // a player who has seen no tips, which is exactly what the default says. That is the whole
+    // reason the field is add-only and never removed — see `IRanchState.seenTips`.
+    seenTips: z.array(z.string()).default([]),
 });
 
 /**

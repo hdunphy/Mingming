@@ -39,7 +39,7 @@ import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmin
 import { initializeBattleEntity } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
-import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
+import { ONBOARDING_MODIFIER, START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
 
 // ---------------------------------------------------------------------------------------------
@@ -209,6 +209,65 @@ export function kitFractionFor(node: IRegionNode): IKitFraction {
 }
 
 // ---------------------------------------------------------------------------------------------
+// The first fight of a first run (ticket 24)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Is this the fight ticket 24's callouts are teaching in?
+ *
+ * # WHAT THE TICKET ASKED FOR, AND WHAT IS ACTUALLY BUILDABLE
+ *
+ * Ticket 24 asks for *"a scripted FIRST FIGHT (the `Epic8` 'Initiation' idea)"*. Epic8's Initiation
+ * is a **scripted counter**: "this opponent's element is always the weakness of the player's chosen
+ * starter". That cannot be built without breaking something ruled later and harder — the biome's
+ * element **is** the promise the map makes (`encounterSpeciesPool`, ticket 07/05), and the biome
+ * was chosen by the player two screens ago on the gym offer. An opponent whose element is picked to
+ * counter the player is an opponent the map lied about. Epic8 also predates `vision.md` wholesale:
+ * it puts the Initiation in a Training Hub that no longer exists.
+ *
+ * **So this is not scripted content. It is a floor on the first fight**, and the floor is made of
+ * rules that already exist:
+ *
+ * - the enemy deck is pinned to `KIT_FRACTION_BY_BIOME[0]` — the same eight cards the player is
+ *   holding, no firmware — rather than whatever the node's depth or kind would give it;
+ * - the enemy party is pinned to **one** body.
+ *
+ * Neither is a hidden coefficient, which is what `vision.md`'s "never bigger numbers" forbids in
+ * the other direction: difficulty is still a deck, and a player who reads the enemy's hand sees
+ * exactly the same eight cards as their own.
+ *
+ * # WHY IT NEEDS TO EXIST AT ALL
+ *
+ * Because the first node the player steps on is **not** guaranteed to be a gentle wild.
+ * `generateRegionGraph` assigns biome-0 layer-1 kinds from the shuffled `[marketplace, workshop,
+ * ...weighted pool]` list, and that pool contains `elite`. An elite takes `FULL_KIT_FRACTION`
+ * regardless of depth (see `kitFractionFor`), so a brand-new player holding 8 cards with one
+ * mingming can have their first ever fight against a full tuned per-OS deck. An `ambush` there is
+ * two enemies against their one. Either is a run ended by the map roll before the tutorial finished
+ * its sentence.
+ *
+ * # ONCE, AND ONLY EVER ONCE
+ *
+ * The gate is `fightsResolved === 0` **and** the run carrying `ONBOARDING_MODIFIER`, which
+ * `RunStart` only sets when the ranch has not seen the battle tips yet. So:
+ *
+ * - it is the first fight of the run, not every run's first fight — the second run is the real game;
+ * - **"Skip tips" turns it off too**, because skipping marks the battle tips seen and the next run
+ *   is therefore not an onboarding run. A player who says they do not need to be taught is not
+ *   quietly handed an easier first fight anyway. That is a consequence of tying both halves of this
+ *   ticket to one piece of state, and it is the right one.
+ *
+ * **FLAGGED FOR HENRY.** Whether the first fight should be softened at all is a design call, not an
+ * implementation one — the alternative reading is that a roguelike's first fight is allowed to be
+ * whatever the seed says it is, and losing it teaches that too. Deleting this function and the two
+ * `onboarding ?` expressions in `rollEncounter` reverts it completely; nothing else reads the
+ * modifier.
+ */
+export function isOnboardingFight(run: IRunState): boolean {
+    return run.fightsResolved === 0 && run.modifiers.includes(ONBOARDING_MODIFIER);
+}
+
+// ---------------------------------------------------------------------------------------------
 // The seed (ticket 07)
 // ---------------------------------------------------------------------------------------------
 
@@ -335,9 +394,13 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
     const roster = new SeedStream(new SeedStream(seed).fork('enemy-roster'));
     const decks = new SeedStream(new SeedStream(seed).fork('enemy-deck'));
 
-    const fraction = kitFractionFor(node);
+    // Ticket 24. The first fight of a first-ever run is the one the player is being taught in, so
+    // it is pinned to the gentlest row of ticket 08's table and to a single body — see
+    // `isOnboardingFight` for why this is a floor on the fight rather than a rewrite of it.
+    const onboarding = isOnboardingFight(run);
+    const fraction = onboarding ? KIT_FRACTION_BY_BIOME[0] : kitFractionFor(node);
     const pool = encounterSpeciesPool(run, node);
-    const size = enemyPartySize(node.kind, party.length);
+    const size = onboarding ? 1 : enemyPartySize(node.kind, party.length);
 
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];

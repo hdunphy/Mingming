@@ -63,6 +63,7 @@ function goodRanch(overrides: Partial<IRanchState> = {}): IRanchState {
         codex: { seen: [], played: [] },
         gymsCleared: [],
         highestTierCleared: 0,
+        seenTips: [],
         ...overrides,
     };
 }

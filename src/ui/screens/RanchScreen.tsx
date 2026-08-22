@@ -59,6 +59,8 @@ import { assembleMingming } from '../store/gameSlice';
 import type { RootState } from '../store/store';
 import FirmwareTerminal from '../components/FirmwareTerminal';
 import { TypeChartPanel } from '../components/TypeChart';
+import Callout from '../components/Callout';
+import { RANCH_BLUEPRINT_TIP } from '../../engine/tips';
 import RunStart from './RunStart';
 import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
@@ -86,7 +88,7 @@ export interface RanchScreenProps {
 }
 
 export default function RanchScreen({ initialSection = 'expedition' }: RanchScreenProps = {}): ReactNode {
-    const { roster, blueprints } = useSelector((s: RootState) => s.game);
+    const { roster, blueprints, seenTips } = useSelector((s: RootState) => s.game);
     // Ticket 11: drivers are run-scoped (`IRunState.drivers`). The Vault shows the run's, when
     // there is one — see `VaultSection` for why it is still here at all.
     const drivers = useSelector((s: RootState) => s.run.run?.drivers ?? EMPTY_DRIVERS);
@@ -120,7 +122,7 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
                     onOpenFirmware={() => setShowFirmware(true)}
                 />
             )}
-            {section === 'assembly' && <AssemblySection blueprints={blueprints} />}
+            {section === 'assembly' && <AssemblySection blueprints={blueprints} seenTips={seenTips} />}
             {section === 'vault' && <VaultSection drivers={drivers} />}
 
             {showFirmware && <FirmwareTerminal onClose={() => setShowFirmware(false)} />}
@@ -192,7 +194,13 @@ function StatRoll({ member }: { member: IRanchMember }): ReactNode {
 
 // --- Assembly ----------------------------------------------------------------------------------
 
-function AssemblySection({ blueprints }: { blueprints: Readonly<Record<string, number>> }): ReactNode {
+function AssemblySection({
+    blueprints,
+    seenTips,
+}: {
+    blueprints: Readonly<Record<string, number>>;
+    seenTips: ReadonlyArray<string>;
+}): ReactNode {
     const dispatch = useDispatch();
     const [pending, setPending] = useState<{ speciesId: string; osId: string } | null>(null);
     const [built, setBuilt] = useState<IRanchMember | null>(null);
@@ -223,6 +231,14 @@ function AssemblySection({ blueprints }: { blueprints: Readonly<Record<string, n
             <div className="ranch-section-head">
                 <h2>Assembly bay</h2>
             </div>
+
+            {/*
+              * ONBOARDING — ticket 24, the one ranch tip. It sits here rather than on the roster
+              * tab because this is the screen where the sentence is actionable: the blueprints the
+              * run banked are in front of you and the button spends one.
+              */}
+            <Callout tip={seenTips.includes(RANCH_BLUEPRINT_TIP.id) ? null : RANCH_BLUEPRINT_TIP} />
+
             <p className="ranch-note">
                 Assembly costs <strong>one blueprint</strong> of the species and nothing else — scrap is
                 run-scoped and buys nothing here. Stats roll once, at assembly, and never change:

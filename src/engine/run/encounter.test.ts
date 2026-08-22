@@ -26,11 +26,18 @@ import {
     encounterSeed,
     enemyPartySize,
     isFightNode,
+    isOnboardingFight,
     kitFractionFor,
     rollEncounter,
 } from './encounter';
 import { buildBattleSetup, toMingmingState } from './battleSetup';
-import { START_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
+import {
+    ONBOARDING_MODIFIER,
+    START_GENERICS,
+    START_KIT_SIZE,
+    createRun,
+    startKitIdsFor,
+} from './createRun';
 import { GYM_REGISTRY, type IGymOffer } from './gyms';
 import { createBattleState } from '../data/battleFactories';
 import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
@@ -408,6 +415,7 @@ describe('full heal between nodes', () => {
         codex: { seen: [], played: [] },
         gymsCleared: [],
         highestTierCleared: 0,
+        seenTips: [],
     };
 
     it('starts every node’s battle at full HP with no statuses, however the last one went', () => {
@@ -461,5 +469,85 @@ describe('full heal between nodes', () => {
 
         expect(battle.enemyParty.map((e) => e.id)).toEqual(encounter.enemyParty.map((e) => e.id));
         expect(battle.enemyParty.every((e) => e.activeOS !== undefined)).toBe(true);
+    });
+});
+
+
+// ---------------------------------------------------------------------------------------------
+// Ticket 24 — the first fight of a first run
+// ---------------------------------------------------------------------------------------------
+
+describe('ticket 24: the onboarding fight is a floor, and it applies exactly once', () => {
+    // `KRAKEN` is already an `IMingmingState` — the party a run is created with, not a ranch row.
+    const party = [KRAKEN];
+
+    function onboardingRun(elements: ReadonlyArray<string>, seed = 'onboarding-seed'): IRunState {
+        const offer: IGymOffer = {
+            gym: GYM_REGISTRY.gym_emberfall,
+            biomes: elements.map((element, index) => biome(element, index)),
+        };
+        return createRun({ seed, offer, party: [KRAKEN], startedAt: 0, onboarding: true });
+    }
+
+    it('createRun only carries the modifier when the caller asks for it', () => {
+        expect(makeRun(['Fire', 'Water', 'Nature']).modifiers).toEqual([]);
+        expect(onboardingRun(['Fire', 'Water', 'Nature']).modifiers).toEqual([ONBOARDING_MODIFIER]);
+    });
+
+    it('is the FIRST fight of the run and nothing after it', () => {
+        const run = onboardingRun(['Fire', 'Water', 'Nature']);
+        expect(isOnboardingFight(run)).toBe(true);
+        expect(isOnboardingFight({ ...run, fightsResolved: 1 })).toBe(false);
+        // And never in an ordinary run, whatever the fight count.
+        expect(isOnboardingFight(makeRun(['Fire', 'Water', 'Nature']))).toBe(false);
+    });
+
+    it('pins an elite first fight to one body holding the biome-0 eight', () => {
+        // The reason this exists: `generateRegionGraph` can put an elite in biome 0 layer 1, and
+        // `kitFractionFor` gives an elite the FULL tuned deck at any depth. A first-ever player
+        // holding 8 cards would meet a complete per-OS list.
+        const run = onboardingRun(['Fire', 'Water', 'Nature']);
+        const elite = node({ id: 'b0l1n0', kind: 'elite', layer: 1, visited: 1 });
+
+        const softened = rollEncounter({ run, node: elite, party });
+        expect(softened.enemyParty).toHaveLength(1);
+        expect(softened.enemyDeckIds).toHaveLength(START_KIT_SIZE + START_GENERICS);
+        expect(softened.enemyParty[0].activeOS).toBeUndefined();
+
+        // The same node in the same run, one fight later, is the real elite again.
+        const real = rollEncounter({ run: { ...run, fightsResolved: 1 }, node: elite, party });
+        expect(real.enemyDeckIds.length).toBeGreaterThan(START_KIT_SIZE + START_GENERICS);
+        expect(real.enemyParty[0].activeOS).toBeDefined();
+    });
+
+    it('pins an ambush first fight to one enemy rather than two', () => {
+        const run = onboardingRun(['Fire', 'Water', 'Nature']);
+        const ambush = node({ id: 'b0l1n1', kind: 'ambush', layer: 1, visited: 1 });
+        expect(rollEncounter({ run, node: ambush, party }).enemyParty).toHaveLength(1);
+        expect(
+            rollEncounter({ run: { ...run, fightsResolved: 1 }, node: ambush, party }).enemyParty,
+        ).toHaveLength(2);
+    });
+
+    it('leaves an ordinary biome-0 wild exactly as it was', () => {
+        // The floor must be a floor, not a second difficulty curve: where the node was already
+        // gentle, the softened roll and the ordinary roll are the same fight, seed included.
+        const plain = node({ id: 'b0l1n2', kind: 'wild', layer: 1, visited: 1 });
+        const softened = rollEncounter({ run: onboardingRun(['Fire', 'Water', 'Nature']), node: plain, party });
+        const ordinary = rollEncounter({ run: makeRun(['Fire', 'Water', 'Nature'], 'onboarding-seed'), node: plain, party });
+        expect(softened.enemyParty.map(identityOf)).toEqual(ordinary.enemyParty.map(identityOf));
+        expect(softened.enemyDeckIds).toEqual(ordinary.enemyDeckIds);
+        expect(softened.seed).toBe(ordinary.seed);
+    });
+
+    it('never touches the species pool, so the map keeps its promise', () => {
+        // Epic8's "Initiation" wanted the opponent's element picked to counter the player. The
+        // biome's element is what the map promised two screens earlier, so it is left alone — see
+        // `isOnboardingFight`'s header.
+        const run = onboardingRun(['Fire', 'Fire', 'Fire']);
+        const encounter = rollEncounter({ run, node: node({ id: 'b0l1n0', layer: 1, visited: 1 }), party });
+        for (const enemy of encounter.enemyParty) {
+            expect(GetMingmingData(enemy.definitionId).primaryElement).toBe('Fire');
+        }
     });
 });

@@ -497,7 +497,7 @@ describe('the workshop respects the ranch/run split', () => {
 
         // The ranch gained an individual and lost a blueprint. It gained no scrap and no cards.
         expect(Object.keys(store.getState().game).sort())
-            .toEqual(['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster']);
+            .toEqual(['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster', 'seenTips']);
         // The run gained a party member and four cards. It gained nothing that outlives it.
         store.dispatch(endRun('victory'));
         store.dispatch(clearRun());

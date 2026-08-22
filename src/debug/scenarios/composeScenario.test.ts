@@ -449,7 +449,7 @@ describe('launchScenario — seeding an empty slot', () => {
 
         const ranch = store.getState().game;
         expect(Object.keys(ranch).sort()).toEqual(
-            ['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster'],
+            ['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster', 'seenTips'],
         );
         expect(ranch.blueprints).toEqual({});
         expect(ranch.gymsCleared).toEqual([]);

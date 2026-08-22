@@ -19,6 +19,8 @@ import gameReducer, {
     markGymCleared,
     recordCodexSeen,
     recordTierCleared,
+    markTipSeen,
+    skipTips,
     loadSave,
     resetSave,
     createEmptyRanch,
@@ -164,6 +166,37 @@ describe('gameSlice', () => {
         });
     });
 
+    describe('onboarding tips (ticket 24)', () => {
+        it('records a tip once and never twice', () => {
+            let state = gameReducer(initial, markTipSeen('battle:energy'));
+            state = gameReducer(state, markTipSeen('battle:energy'));
+            expect(state.seenTips).toEqual(['battle:energy']);
+        });
+
+        it('keeps them in the order they were taught', () => {
+            let state = gameReducer(initial, markTipSeen('battle:energy'));
+            state = gameReducer(state, markTipSeen('battle:play'));
+            expect(state.seenTips).toEqual(['battle:energy', 'battle:play']);
+        });
+
+        it('ignores an empty id rather than storing a blank', () => {
+            expect(gameReducer(initial, markTipSeen('')).seenTips).toEqual([]);
+        });
+
+        it('skipTips adds every id the caller knows about, without duplicating what is there', () => {
+            // The caller passes `ALL_TIP_IDS`; the slice deliberately does not import the registry.
+            let state = gameReducer(initial, markTipSeen('battle:energy'));
+            state = gameReducer(state, skipTips(['battle:energy', 'battle:play', 'map:types']));
+            expect(state.seenTips).toEqual(['battle:energy', 'battle:play', 'map:types']);
+        });
+
+        it('survives a save round trip as part of the ranch', () => {
+            // `seenTips` is a ranch field precisely so a run that ends does not un-teach the player.
+            const taught = gameReducer(initial, markTipSeen('battle:energy'));
+            expect(gameReducer(initial, loadSave(taught)).seenTips).toEqual(['battle:energy']);
+        });
+    });
+
     describe('save/load', () => {
         it('loads a ranch verbatim', () => {
             // Ticket 11: no projection, no merge. What `loadGameState` returns is what the slice
@@ -174,6 +207,7 @@ describe('gameSlice', () => {
                 codex: { seen: ['fire_poke'], played: ['fire_poke'] },
                 gymsCleared: ['gym_emberfall'],
                 highestTierCleared: 1,
+                seenTips: [],
             };
             const state = gameReducer(initial, loadSave(ranch));
             expect(state).toEqual(ranch);

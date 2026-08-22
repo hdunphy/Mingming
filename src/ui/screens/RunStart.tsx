@@ -32,6 +32,7 @@ import { rollSeed } from '../../engine/core/SeedStream';
 import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
+import { FIRST_BATTLE_TIP_ID } from '../../engine/tips';
 import { offerGyms, type IGymOffer } from '../../engine/run/gyms';
 import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
@@ -53,6 +54,10 @@ function useOfferScreen(): ReadonlyArray<IGymOffer> {
 export default function RunStart(): ReactNode {
     const dispatch = useDispatch();
     const roster = useSelector((s: RootState) => s.game.roster);
+    // Ticket 24: "has this player been taught a fight yet?" is one question with one answer, and it
+    // lives in `seenTips`. The first battle tip is the proxy for the whole set because it is the one
+    // that fires unconditionally — every other tip waits for a moment that may never arrive.
+    const seenTips = useSelector((s: RootState) => s.game.seenTips);
 
     const offers = useOfferScreen();
     const [chosen, setChosen] = useState<IGymOffer | null>(null);
@@ -92,6 +97,7 @@ export default function RunStart(): ReactNode {
             // doc comment.
             party: party.map(toMingmingState),
             startedAt: Date.now(),
+            onboarding: !seenTips.includes(FIRST_BATTLE_TIP_ID),
         })));
         playSfx('breach');
     };

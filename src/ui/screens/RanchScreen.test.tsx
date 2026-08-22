@@ -85,6 +85,28 @@ describe('RanchScreen', () => {
         expect(markup).not.toMatch(/deck builder/i);
     });
 
+    it('teaches blueprints on the assembly tab, once — ticket 24', () => {
+        const fresh = render({ roster: [member('a1', 'kraken')], seenTips: [] }, 'assembly');
+        expect(fresh).toContain('Blueprints are what you keep');
+        // Both exits are on screen. A tutorial you cannot leave is the thing returning players
+        // resent, so "everything skippable" is asserted rather than assumed.
+        expect(fresh).toContain('Got it');
+        expect(fresh).toContain('Skip tips');
+
+        const taught = render(
+            { roster: [member('a1', 'kraken')], seenTips: ['ranch:blueprints'] },
+            'assembly',
+        );
+        expect(taught).not.toContain('Blueprints are what you keep');
+        // The section itself is untouched by the tip being gone.
+        expect(taught).toContain('Assembly bay');
+    });
+
+    it('does not put the blueprint tip on a tab it is not about', () => {
+        const markup = render({ roster: [member('a1', 'kraken')], seenTips: [] }, 'roster');
+        expect(markup).not.toContain('Blueprints are what you keep');
+    });
+
     it('the vault reports the RUN’s drivers, and says so when there is no run', () => {
         const markup = render({ roster: [member('a1', 'kraken')] }, 'vault');
 
