@@ -48,19 +48,25 @@
  * same; the block comment above `recruitIntoParty` argues the ordering, which is the part that has
  * to be right.
  *
+ * # WHAT TICKET 18 ADDED
+ *
+ * The gauntlet: `beginGauntlet`, `advanceGauntlet`, `reviveGauntletMember` and `finishGauntlet` —
+ * the four reducers that drive `IGauntletProgress`. They are the **only** writers of `persistedHp`
+ * anywhere in the codebase, and that is a property worth stating rather than discovering: outside a
+ * gauntlet a full heal is true by construction, because there is nowhere else in `IRunState` to put
+ * an HP number (`encounter.test.ts` asserts exactly that, and ticket 11's own note says why).
+ *
  * # WHAT IS DELIBERATELY NOT HERE YET
  *
- * Rewards beyond the economy reducers, and the gauntlet: tickets 15 through 19. **Gauntlet progress
- * in particular is untouched** — `IRunState.gauntlet` is carried and persisted, but nothing here
- * advances it, because ticket 18 owns the gauntlet refit and half-moving it would leave two
- * partial implementations to reconcile. Every later ticket adds reducers here rather than reaching
- * into `IRunState` from a component.
+ * Rewards beyond the economy reducers, and the run-end screen: ticket 19. Every later ticket adds
+ * reducers here rather than reaching into `IRunState` from a component.
  */
 
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { isFightNode } from '../../engine/run/encounter';
+import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { isMarketNode } from '../../engine/run/marketplace';
 import {
     biomeRevealModifier,
@@ -548,6 +554,231 @@ const runSlice = createSlice({
             };
         },
 
+        // --- The gauntlet (ticket 18) ---
+        //
+        // # THE FOUR REDUCERS, AND WHY THE HP LIVES HERE AND NOWHERE ELSE
+        //
+        // `exploration-map.md`: *"The gym is a GAUNTLET: three fights, NO healing between them"*,
+        // against *"FULL HEAL between regular nodes"*. That asymmetry is the whole feature, and it
+        // is implemented by omission everywhere except in these four reducers:
+        // `IGauntletProgress.persistedHp` is the only place a run stores an HP number, so a fight
+        // outside a gauntlet cannot carry damage even by accident (`buildBattleSetup` passes `{}`
+        // whenever `run.gauntlet` is null, and `encounter.test.ts` pins it).
+        //
+        // # STATUSES AND ENERGY DO NOT CARRY — READING, FLAGGED FOR HENRY
+        //
+        // Ticket 18 asks: *"whether statuses also carry is Henry's call"*. The reading taken here is
+        // **HP only**, and it is not a coin toss:
+        //
+        //  1. `IGauntletProgress` is a RATIFIED type (ticket 06, `runTypes.ts`). It has exactly
+        //     `fightIndex`, `totalFights`, `persistedHp` and `downedMemberIds` — there is no field a
+        //     status could be written to, and this ticket may not widen it.
+        //  2. Its own docblock keeps v3's ruling verbatim: *"only `hp` persists between the three
+        //     fights; energy, statuses and everything else reset each fight."* v3's `IGauntletState`
+        //     carried the same sentence in the same words, so this is continuity, not a new call.
+        //
+        // Carrying a Burn between fights would also make Kindle the strongest macro in the game for
+        // one fight of the run and dead for the rest, which is a balance decision nobody has taken.
+        // If Henry wants statuses to carry, it is a ratified-type change (ticket 06) before it is a
+        // reducer change.
+        //
+        // All four keep the slice's silent-no-op-on-invalid convention, and replace rather than
+        // mutate.
+
+        /**
+         * Enter the gym: the run stops being a map and becomes three fights.
+         *
+         * Dispatched by `RunScreen` when the phase the walk produced (`enterNode` sets
+         * `'encounter'` for every fight kind, and a gym is one) lands on a `gym` node with no
+         * gauntlet in progress. It is a reducer rather than a spread in that effect for this file's
+         * standing reason — a component that edits `IRunState` in place is a component that owns the
+         * save shape — and because the state it produces is the one an app close has to resume into.
+         *
+         * **Idempotent, and it has to be.** React runs effects twice under `StrictMode` and the
+         * phase it reads is the phase it writes, so a second dispatch must be a no-op rather than a
+         * reset of `fightIndex` to 0 — that would be an infinite gauntlet, and it would be
+         * discovered by a player rather than by a test.
+         *
+         * **Gated on the node actually being a gym**, the same guard `rerollMarketStock` makes for
+         * the same reason: a stray dispatch on a wild would otherwise put the run into a phase whose
+         * screen has no fight behind it.
+         */
+        beginGauntlet: (state): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            if (run.gauntlet !== null) return { run };
+
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            if (!here || here.kind !== 'gym') return { run };
+
+            return {
+                run: {
+                    ...run,
+                    phase: 'gauntlet',
+                    gauntlet: {
+                        fightIndex: 0,
+                        totalFights: GAUNTLET_FIGHTS,
+                        // Nobody is hurt and nobody is down before the first fight. The empty
+                        // objects are the "full heal on the way in" that `exploration-map.md` grants
+                        // between ordinary nodes — the gauntlet's asymmetry starts after fight one.
+                        persistedHp: {},
+                        downedMemberIds: [],
+                    },
+                },
+            };
+        },
+
+        /**
+         * A gauntlet fight was won and it was not the last: **record what the party has left, and
+         * move to the next fight.**
+         *
+         * The payload is the party as the battle left it — one entry per member, HP included, taken
+         * off `IBattleState.playerParty` by `BattleArena`. The reducer derives both stored fields
+         * from it rather than being told them separately, which is what makes the revive hook work
+         * with no special case: a member who was down at the start of this fight and was brought back
+         * by a Revive reports positive HP here, so it **leaves `downedMemberIds` and enters
+         * `persistedHp`** by the same rule that put it there. Ticket 15's resolution names that as the
+         * thing this ticket has to wire, and this is the wire.
+         *
+         * **Merged onto the previous record, not replacing it.** A member missing from the payload
+         * keeps the HP it carried in. That is defensive rather than expected — `buildBattleSetup`
+         * fields every party member, downed ones included — but the failure it prevents is the bad
+         * one: an omitted member would otherwise silently walk into the next fight at FULL HP, which
+         * is the one thing the gauntlet is not allowed to do.
+         *
+         * HP is floored at 0 and integer-ised because `RunStateSchema` types `persistedHp` as
+         * non-negative integers, and a run that cannot save itself is worse than a rounded number.
+         *
+         * `fightsResolved` goes up here, exactly as `resolveEncounter` does it for a node: a gauntlet
+         * fight is a fight the player resolved, and ticket 25 reads that number to find out whether
+         * the 35-45 minute run holds. The phase deliberately does NOT go back to `'map'` — there is
+         * no walking out of the exam, and `RunScreen` renders the Pit Stop for as long as the phase
+         * says `'gauntlet'`.
+         *
+         * Refused on the last fight: that one is `finishGauntlet`'s, and advancing past it would
+         * leave `fightIndex` pointing at a fight that does not exist.
+         */
+        advanceGauntlet: (
+            state,
+            action: PayloadAction<ReadonlyArray<{ memberId: string; hp: number }>>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const gauntlet = run.gauntlet;
+            if (!gauntlet) return { run };
+            if (gauntlet.fightIndex >= gauntlet.totalFights - 1) return { run };
+
+            const persistedHp: Record<string, number> = { ...gauntlet.persistedHp };
+            const downed = new Set(gauntlet.downedMemberIds);
+
+            for (const entry of action.payload) {
+                // Only the party. A battle can contain entities the run does not own (nothing does
+                // that today), and writing one into `persistedHp` would leave a key no member
+                // matches — harmless until the day something iterates it.
+                if (!run.partyIds.includes(entry.memberId)) continue;
+                const hp = Number.isFinite(entry.hp) ? Math.max(0, Math.floor(entry.hp)) : 0;
+                persistedHp[entry.memberId] = hp;
+                if (hp <= 0) downed.add(entry.memberId);
+                else downed.delete(entry.memberId);
+            }
+
+            return {
+                run: {
+                    ...run,
+                    fightsResolved: run.fightsResolved + 1,
+                    gauntlet: {
+                        ...gauntlet,
+                        fightIndex: gauntlet.fightIndex + 1,
+                        persistedHp,
+                        downedMemberIds: [...downed],
+                    },
+                },
+            };
+        },
+
+        /**
+         * A downed member is back on their feet — **the hook, not the policy.**
+         *
+         * `economy-session.md` rules the outcome and defers the shape: *"Gauntlet death: revivable,
+         * never gone-for-gauntlet"*, with the revive's mechanism *"deferred to playtesting"* (ticket
+         * 25). Ticket 15 built the first candidate — a rare Revive macro at
+         * `REVIVE_PERCENT_MAX_HP`% of max HP — and the second candidate (auto-return at a reduced
+         * percentage between fights) reads and writes the same two fields. **This reducer is what
+         * both shapes need and neither owns**: whoever decides a member is alive again says so here,
+         * and the number they say it with is theirs.
+         *
+         * **The economy is ticket 25's to settle.** Nothing here prices a revive, limits how many a
+         * gauntlet allows, or decides whether one is free between fights. What is fixed is the
+         * invariant: a member cannot be both down and alive, so leaving `downedMemberIds` and
+         * entering `persistedHp` is one action.
+         *
+         * Dispatched by `BattleArena` beside `fireMacro`, in the same order and for the same reason
+         * `consumeMacro` argues: the battle half first, then the run. If the app dies between them
+         * the player has a revived unit in a battle they will re-fight — and re-fight *with* the
+         * revive, because this is what the resumed fight rebuilds from.
+         *
+         * Refused when the member is not currently down (a revive on a living unit is a bug at the
+         * call site, exactly as `ReviveExecutor` treats it) and when the HP is not a positive
+         * integer — reviving to 0 is not reviving.
+         */
+        reviveGauntletMember: (
+            state,
+            action: PayloadAction<{ memberId: string; hp: number }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const gauntlet = run.gauntlet;
+            if (!gauntlet) return { run };
+
+            const { memberId, hp } = action.payload;
+            if (!Number.isInteger(hp) || hp < 1) return { run };
+            if (!gauntlet.downedMemberIds.includes(memberId)) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    gauntlet: {
+                        ...gauntlet,
+                        persistedHp: { ...gauntlet.persistedHp, [memberId]: hp },
+                        downedMemberIds: gauntlet.downedMemberIds.filter((id) => id !== memberId),
+                    },
+                },
+            };
+        },
+
+        /**
+         * The last fight is won: the gauntlet is over.
+         *
+         * Clears `IGauntletProgress` and puts the phase back to `'map'`, counting the fight. It does
+         * **not** end the run, and that is the same separation `resolveEncounter` keeps: winning the
+         * gauntlet is the run's victory condition (`exploration-map.md`: the gym is the only way a
+         * run is won), but `endRun('victory')` is the action that says so, and ticket 19 owns what
+         * the player sees afterwards. `BattleArena` dispatches both, in that order.
+         *
+         * The progress object is cleared rather than left at `fightIndex: 3`, because a completed
+         * gauntlet is not a gauntlet in progress and `phase: 'gauntlet'` with nothing left to fight
+         * is a state no screen describes.
+         *
+         * Refused unless the run is actually on the last fight — finishing early would skip fights
+         * the player never had to win.
+         */
+        finishGauntlet: (state): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const gauntlet = run.gauntlet;
+            if (!gauntlet) return { run };
+            if (gauntlet.fightIndex < gauntlet.totalFights - 1) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    phase: 'map',
+                    gauntlet: null,
+                    fightsResolved: run.fightsResolved + 1,
+                },
+            };
+        },
+
         /**
          * Win a driver — the party-wide passive an elite pays out (`macros-and-drivers.md`). Was
          * `gameSlice.addRelic`; the rename is ticket 16's vocabulary, and the move is ticket 06's
@@ -586,6 +817,10 @@ export const {
     grantMacro,
     consumeMacro,
     fireMapReveal,
+    beginGauntlet,
+    advanceGauntlet,
+    reviveGauntletMember,
+    finishGauntlet,
     addDriver,
 } = runSlice.actions;
 

@@ -226,12 +226,14 @@ describe('toComposedSetup', () => {
         const draft: LauncherDraft = {
             ...playableDraft(),
             relics: ['expansion_slot'],
+            // Ticket 18 reconciled `GauntletContext` with the ratified `IGauntletProgress`: no
+            // `type` and no `element`, `fightIndex`/`totalFights` rather than
+            // `currentBattleIndex`/`totalBattles`, and HP as a flat map beside the downed list.
             gauntlet: {
-                type: 'Gym',
-                element: 'Fire',
-                currentBattleIndex: 1,
-                totalBattles: 3,
-                persistedStats: {},
+                fightIndex: 1,
+                totalFights: 3,
+                persistedHp: { mm_carried: 12 },
+                downedMemberIds: ['mm_down'],
             },
         };
         draft.party[0] = {
@@ -248,7 +250,10 @@ describe('toComposedSetup', () => {
         expect(setup.player.relics).toEqual(['expansion_slot']);
         expect(setup.enemies[0].maxHpOverride).toBe(500);
         expect(setup.enemies[0].deck).toEqual(['ignite']);
-        expect(setup.gauntlet?.totalBattles).toBe(3);
+        expect(setup.gauntlet?.totalFights).toBe(3);
+        expect(setup.gauntlet?.fightIndex).toBe(1);
+        expect(setup.gauntlet?.persistedHp).toEqual({ mm_carried: 12 });
+        expect(setup.gauntlet?.downedMemberIds).toEqual(['mm_down']);
     });
 
     it('shows a placeholder seed while the field is blank, and honours an override', () => {

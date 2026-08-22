@@ -46,7 +46,7 @@ export function instantiateDeck(deckIds: string[], rng: SeedStream = new SeedStr
     });
 }
 
-import { generateEncounter, getSectorSpecies } from './EncounterGenerator';
+import { generateEncounter } from './EncounterGenerator';
 import type { Element, EnemyCombatMode } from '../types';
 
 export interface BattleOptions {
@@ -87,10 +87,17 @@ export interface IBattleSetup {
     readonly deck: ReadonlyArray<string>;
     /** Was `relics`. Applied to the player side and copied to `IBattleState.activeRelics`. */
     readonly drivers: ReadonlyArray<string>;
-    /** HP carried between gauntlet fights, by member id. Empty outside a gauntlet. */
+    /**
+     * HP carried between gauntlet fights, by member id. Empty outside a gauntlet.
+     *
+     * **A 0 in here is not the same as an absent key**, and ticket 18 depends on the difference: an
+     * absent key means "this member was not carrying anything, build it at full HP", while a 0 means
+     * "this member is DOWN and stays down into this fight" (`IGauntletProgress.downedMemberIds`
+     * names the same members). The carry below therefore tests `!== undefined` rather than
+     * truthiness — `if (carriedHp)` would silently full-heal every fainted member at the start of
+     * every gauntlet fight, which is the exact bug the three-fight chain exists to avoid.
+     */
     readonly persistedHp: Readonly<Record<string, number>>;
-    /** Set only inside a gym gauntlet — it selects the enemy tier. */
-    readonly gauntlet: { readonly element: Element; readonly fightIndex: number } | null;
     /**
      * A pre-rolled enemy side — ticket 11, part 2. Set for every fight started from a region node;
      * absent everywhere else.
@@ -132,8 +139,13 @@ export function createBattleState(
     const playerParty = playerPartyMembers.map(mm => {
         let entity = initializeBattleEntity(mm, GetMingmingData(mm.definitionId));
 
-        // Milestone 8.3: Gauntlet Persistence. `persistedHp` is empty outside a gauntlet
-        // (`IGauntletProgress.persistedHp`), so this needs no gauntlet check of its own.
+        // Gauntlet persistence (ticket 18, and Milestone 8.3 before it). `persistedHp` is empty
+        // outside a gauntlet (`IGauntletProgress.persistedHp` is the only HP store in `IRunState`),
+        // so this needs no gauntlet check of its own — which is also why a full heal between
+        // ordinary nodes is true by construction rather than by a rule someone has to remember.
+        //
+        // `!== undefined`, never a truthiness test: 0 is a downed member and must build at 0. See
+        // `IBattleSetup.persistedHp`.
         const carriedHp = setup.persistedHp[mm.id];
         if (carriedHp !== undefined) {
             entity = {
@@ -181,72 +193,27 @@ export function createBattleState(
     if (setup.encounter) {
         enemyParty = [...setup.encounter.enemyParty];
         enemyDeckIds = [...setup.encounter.enemyDeckIds];
-    // Ticket 11: `IGauntletProgress` carries no `type`. A gauntlet in a run is always the gym's —
-    // `GYM_REGISTRY[run.gymId]` is what a run is aimed at, and v3's 'Sector' arm had no caller.
-    } else if (setup.gauntlet) {
-        const battleIndex = setup.gauntlet.fightIndex;
-        const gymElement = setup.gauntlet.element;
-
-        // Multi-Element Synergy
-        const synergyMap: Record<string, Element[]> = {
-            Fire: ['Fire', 'Earth'],
-            Water: ['Water', 'Nature'],
-            Ice: ['Ice', 'Dark'],
-            Nature: ['Nature', 'Water']
-        };
-        const elementsToUse = synergyMap[gymElement] || [gymElement];
-        const primaryElement = elementsToUse[0];
-        const secondaryElement = elementsToUse[1] || primaryElement;
-
-        if (battleIndex === 0) {
-            // Tier 1 (Grunt): Procedural 1-2 enemies
-            const count = rng.nextInt(1, 2);
-            const encounter = generateEncounter({
-                sectorElement: primaryElement,
-                playerParty,
-                seed: rng.fork('encounter_grunt')
-            });
-            enemyParty = encounter.enemyParty.slice(0, count);
-            enemyDeckIds = encounter.enemyDeckIds;
-        } else if (battleIndex === 1) {
-            // Tier 2 (Elite): Procedural 3 enemies + synergistic deck
-            const encounter = generateEncounter({
-                sectorElement: secondaryElement,
-                playerParty,
-                seed: rng.fork('encounter_elite')
-            });
-            enemyParty = encounter.enemyParty;
-            enemyDeckIds = encounter.enemyDeckIds;
-        } else {
-            // Tier 3 (Gym Leader): Hand-crafted boss party.
-            // Wardens come from the breach's own species pool so a Light breach
-            // spawns Light wardens, not Fenrir. Fallback only guards against an
-            // empty pool (never crash).
-            const wardenPool = getSectorSpecies(primaryElement);
-            const bossId = wardenPool[0]?.id ?? 'fenrir';
-            const guardId = (wardenPool[1] ?? wardenPool[0])?.id ?? 'fenrir';
-
-            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, rng);
-            const superBoss: IBattleEntity = {
-                ...boss,
-                maxHp: boss.maxHp * 1.5,
-                currentHp: boss.maxHp * 1.5,
-                // Assign Boss Relic
-                activeOS: primaryElement === 'Water' || primaryElement === 'Nature' ? 'boss_relic_water' :
-                    primaryElement === 'Ice' || primaryElement === 'Dark' ? 'boss_relic_ice' : 'boss_relic_fire',
-                moves: [
-                    { id: 'boss_slam', name: 'Titan Slam', intentType: 'Attack', priority: 10, actions: [{ type: 'ATTACK', power: 25, element: primaryElement, target: 'Single' }] },
-                    { id: 'boss_surge', name: 'System Surge', intentType: 'Buff', priority: 5, actions: [{ type: 'STATUS', status: 'Strengthened', stacks: 2, target: 'Self' }] },
-                    { id: 'boss_blast', name: 'Core Blast', intentType: 'Attack', priority: 8, actions: [{ type: 'ATTACK', power: 15, element: 'None', target: 'Side' }] }
-                ]
-            };
-            const guard1 = createMockEntity('Firewall Sentinel', guardId, rng);
-            const guard2 = createMockEntity('Firewall Sentinel', guardId, rng);
-
-            enemyParty = [guard1, superBoss, guard2]; // Boss in middle
-
-            enemyDeckIds = []; // No longer using decks for bosses, logic now relies on 'moves'
-        }
+    /*
+     * TICKET 18 DELETED THE GYM-TIER BRANCH THAT USED TO SIT HERE.
+     *
+     * It was pre-run-loop, and every one of its parts contradicted a ruling that has landed since:
+     *
+     *   - a hardcoded `synergyMap` paired each gym element with a second one (Fire+Earth,
+     *     Water+Nature), which ticket 05's mono-element biomes and pure counter cycle replaced;
+     *   - tier 1 rolled ONE OR TWO enemies, where ticket 18 rules the gauntlet "always full 3v3
+     *     curated";
+     *   - tier 3 built a "Sector Warden" at `maxHp * 1.5` with three hardcoded moves, i.e. difficulty
+     *     as a bigger number and as bespoke content in the battle factory — ticket 21 froze stat
+     *     scaling and `vision.md` rules difficulty as team design ("never bigger numbers");
+     *   - and it drew its species from `getSectorSpecies(gymElement)`, so the boss had nothing to do
+     *     with the three biomes the player had just walked, which is precisely the connection ticket
+     *     18 exists to make.
+     *
+     * Its replacement is `engine/run/gauntlet.rollGauntletFight`, which arrives through
+     * `setup.encounter` above like any other pre-rolled fight. The battle factory therefore has no
+     * gauntlet branch at all any more, and `IBattleSetup` no longer carries a `gauntlet` field: what
+     * a gauntlet still needs from this function is `persistedHp`, and that is one lookup, not a mode.
+     */
     } else if (sectorElement) {
         // Epic 8: Logic transition to Encounter Generator
         const encounter = generateEncounter({
@@ -278,12 +245,16 @@ export function createBattleState(
     }
 
     // Epic 2/22/2026: Disable OS on enemies as they use intents now.
-    // Exception: gym tier-3 bosses keep their boss_relic_* OS (design decision).
     //
     // Ticket 11: a pre-rolled run encounter is exempt, because for it the OS is not an oversight to
     // be cleaned up but half of ticket 08's ruled kit fraction — a biome-0 enemy runs no firmware
     // and a biome-1 enemy runs its own, and `engine/run/encounter.ts` has already said which. A
     // blanket strip here would silently delete that rule and make every depth field the same enemy.
+    //
+    // Ticket 18: the `boss_relic_*` exemption below is now the ONLY thing left of the old gym
+    // branch, and it is kept for the paths that still build enemies here (the debug/legacy ones).
+    // A run's boss arrives through `setup.encounter` with its signature firmware already on it, so
+    // it never reaches this line at all.
     if (!setup.encounter) {
         enemyParty = enemyParty.map(e => ({
             ...e,
@@ -354,7 +325,7 @@ export function createBattleState(
     // A battle with no enemies is unwinnable-by-definition and renders a ghost
     // arena (empty enemy column, instant hollow victory). Fail loudly instead.
     if (enemyParty.length === 0) {
-        throw new Error(`[createBattleState] No enemies generated (gauntlet: ${JSON.stringify(setup.gauntlet)}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
+        throw new Error(`[createBattleState] No enemies generated (encounter: ${setup.encounter ? setup.encounter.enemyParty.length : 'none'}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
     }
 
     // Move users get no drawpile/hand at all; card users get a dealt hand.

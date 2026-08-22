@@ -161,13 +161,51 @@ export const BattleStateSchema = z.object({
 
 // --- Composed: ComposedSetup -------------------------------------------------
 
-/** Mirrors `GauntletStateSchema` (SaveSystem.ts:41-52). */
+/**
+ * Gauntlet context — **reconciled with `IGauntletProgress` by ticket 18.**
+ *
+ * This used to mirror v3's `GauntletStateSchema`: `type: 'Gym' | 'Sector'`, `element`,
+ * `currentBattleIndex`, `totalBattles`, `persistedStats: { [id]: { hp } }`. Every one of those five
+ * fields is now wrong about the game:
+ *
+ * - **`type`** — v3's 'Sector' arm had no caller and ticket 11 deleted the last of it. A gauntlet is
+ *   a gym's, and there is no second kind.
+ * - **`element`** — `IGauntletProgress` deliberately carries none (ticket 06): in a run the gauntlet
+ *   is always `GYM_REGISTRY[run.gymId]`'s, so a second copy could only drift from the first.
+ * - **`currentBattleIndex` / `totalBattles`** — renamed to `fightIndex` / `totalFights` in the
+ *   ratified type, and the schema following the ratified name is the point of reconciling at all.
+ * - **`persistedStats: { hp }`** — the per-member object was a place for a second carried stat to be
+ *   added quietly. Ticket 06 flattened it to `persistedHp: Record<string, number>` precisely because
+ *   only HP persists: *"Energy, statuses and everything else reset fresh each battle."*
+ *
+ * And one field is added: **`downedMemberIds`**, which `economy-session.md`'s "revivable, never
+ * gone-for-gauntlet" needs and v3 had nowhere to put.
+ *
+ * # WHY THIS IS NOT A SCENARIO VERSION BUMP
+ *
+ * `CURRENT_SCENARIO_VERSION` is bumped "only when a shape change cannot be expressed as an optional
+ * field", and the reason to bump is always **stored files that would stop loading**. There are none:
+ *
+ * - `gauntlet` is a **composed**-only field, and every stored `composed` scenario in the repo (37
+ *   `.scenario.json` files) carries `"gauntlet": null` or omits it. Nothing on disk has ever held a
+ *   v3-shaped object here.
+ * - The 14 files in `playtest-results/` are `kind: "snapshot"` — they have no `setup` at all, so
+ *   they cannot be affected by this either way. (They also carry their own `registryHash`, which is
+ *   what actually governs their staleness, and this change touches no registry.)
+ * - `composeScenario.createDraft` hardcodes `gauntlet: null` and the launcher is the only thing that
+ *   writes these files, so a non-null v3 gauntlet is not merely absent — it was unreachable.
+ *
+ * A bump with no file to migrate would re-stamp every future save as v2 to describe a migration that
+ * does nothing, which is worse than useless: it makes the version number stop meaning "the shape
+ * changed under stored data". If a hand-written file somewhere does carry the old shape, zod rejects
+ * it by name (`fightIndex` required) and `loadScenario` reports it — a visible failure on a field
+ * `buildScenarioState` ignores anyway.
+ */
 const GauntletContextSchema = z.object({
-    type: z.enum(['Gym', 'Sector']),
-    element: z.string(),
-    currentBattleIndex: z.number(),
-    totalBattles: z.number(),
-    persistedStats: z.record(z.string(), z.object({ hp: z.number() })),
+    fightIndex: z.number().int().min(0),
+    totalFights: z.number().int().min(1),
+    persistedHp: z.record(z.string(), z.number().int().min(0)),
+    downedMemberIds: z.array(z.string()).default([]),
 });
 
 // Ticket 21: `level` is gone from every setup schema. Existing scenario files still carry it —
@@ -261,12 +299,21 @@ export const ScenarioSchema = z.discriminatedUnion('kind', [
 // Written by hand rather than inferred so `state` keeps its `IBattleState` identity
 // for the materializer and `battleSlice.setBattleState`.
 
+/**
+ * Ticket 18: field-for-field `engine/runTypes.IGauntletProgress`, minus its `readonly`s (the rest of
+ * this file's public surface is mutable draft state that the launcher edits in place).
+ *
+ * It is written out rather than imported because `scenarioSchema` is a **file format** and
+ * `IGauntletProgress` is a ratified save type: a debug file that silently followed a save-shape
+ * change would be a stored file that stops loading without anyone deciding it should. Copying the
+ * shape deliberately, with the divergence spelled out above `GauntletContextSchema`, is what keeps
+ * the two in step *on purpose*.
+ */
 export interface GauntletContext {
-    type: 'Gym' | 'Sector';
-    element: string;
-    currentBattleIndex: number;
-    totalBattles: number;
-    persistedStats: Record<string, { hp: number }>;
+    fightIndex: number;
+    totalFights: number;
+    persistedHp: Record<string, number>;
+    downedMemberIds: string[];
 }
 
 export interface PartyMemberSetup {

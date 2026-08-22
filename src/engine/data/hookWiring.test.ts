@@ -7,6 +7,29 @@ import { getHook } from '../core/HookRegistry';
 import { HookFactory } from '../core/HookFactory';
 import { createBattleState } from './battleFactories';
 import type { IBattleSetup } from './battleFactories';
+import { createRun } from '../run/createRun';
+import { GAUNTLET_FIGHTS, rollGauntletFight } from '../run/gauntlet';
+import { GYM_REGISTRY } from '../run/gyms';
+import type { IBiome } from '../runTypes';
+import type { IMingmingState } from '../types';
+
+/** A run's three biomes at Early Access: one per launch element, mono (ticket 05). */
+const BIOMES: ReadonlyArray<IBiome> = [
+    { id: 'biome_water', name: 'Water', elements: ['Water'] },
+    { id: 'biome_nature', name: 'Nature', elements: ['Nature'] },
+    { id: 'biome_fire', name: 'Fire', elements: ['Fire'] },
+];
+
+const PARTY_MEMBER: IMingmingState = {
+    id: 'mm1',
+    definitionId: 'fenrir',
+    nickname: 'Iggy',
+    activeOS: 'fenrir_v1',
+    blueprintsCollected: 0,
+    hpIV: 10,
+    attackIV: 10,
+    defenseIV: 10,
+};
 
 // Force both registration paths before asserting anything.
 initDaemonHooks();
@@ -64,38 +87,47 @@ describe('boss relic OSes', () => {
         expect(getHook('boss_relic_ice_tax')?.onCostCalculated).toBeTypeOf('function');
     });
 
-    it('a gym tier-3 boss retains its boss_relic OS through createBattleState', () => {
+    /**
+     * TICKET 18 REWROTE THIS TEST BECAUSE IT REWROTE WHAT A BOSS IS.
+     *
+     * It used to build a "Sector Warden" through `createBattleState`'s gym-tier branch and check the
+     * one entity in the middle of the line-up kept its relic. That branch is gone: the whole boss
+     * TEAM now carries signature firmware, it is rolled by `engine/run/gauntlet.ts`, and it reaches
+     * the factory pre-built through `setup.encounter`.
+     *
+     * What is still worth asserting here is the wiring claim this file exists for — a `boss_relic_*`
+     * id survives battle creation *and* resolves to a registered firmware with live hooks. A boss
+     * whose OS string is intact but whose hooks were never registered is a boss that does nothing,
+     * and nothing else in the suite would notice.
+     */
+    it('every member of a gauntlet boss team keeps a live boss_relic OS through createBattleState', () => {
+        const run = createRun({
+            seed: 'hook-wiring-gauntlet',
+            offer: { gym: GYM_REGISTRY.gym_emberfall, biomes: BIOMES },
+            party: [PARTY_MEMBER],
+            startedAt: 0,
+        });
+        const gymNode = run.nodes.find(n => n.kind === 'gym')!;
+        const fight = rollGauntletFight({ run, node: gymNode, fightIndex: GAUNTLET_FIGHTS - 1 });
+
         const setup: IBattleSetup = {
-            party: [
-                {
-                    id: 'mm1',
-                    definitionId: 'fenrir',
-                    nickname: 'Iggy',
-                    blueprintsCollected: 0,
-                    hpIV: 10,
-                    attackIV: 10,
-                    defenseIV: 10
-                }
-            ],
+            party: [PARTY_MEMBER],
             deck: [],
             drivers: [],
             persistedHp: {},
-            // Tier 3: the gym leader fight.
-            gauntlet: { element: 'Fire', fightIndex: 2 }
+            encounter: { enemyParty: fight.enemyParty, enemyDeckIds: fight.enemyDeckIds },
         };
 
-        const state = createBattleState(setup, []);
+        const state = createBattleState(setup, [], undefined, { seed: fight.seed, enemyMode: 'CARDS' });
 
         expect(state.enemyParty).toHaveLength(3);
-        const boss = state.enemyParty.find(e => e.activeOS?.startsWith('boss_relic_'));
-        expect(boss, 'gym boss should keep its boss_relic OS').toBeDefined();
-        expect(boss!.activeOS).toBe('boss_relic_fire');
-        expect(getOSBehavior(boss!.activeOS!)).toBeDefined();
-
-        // Regular enemies (the guards) still have their OS stripped.
-        const others = state.enemyParty.filter(e => e.id !== boss!.id);
-        expect(others).toHaveLength(2);
-        others.forEach(guard => expect(guard.activeOS).toBeUndefined());
+        for (const boss of state.enemyParty) {
+            expect(boss.activeOS?.startsWith('boss_relic_'), `${boss.name} should carry signature firmware`).toBe(true);
+            expect(getOSBehavior(boss.activeOS!)).toBeDefined();
+            expect(getOSBehavior(boss.activeOS!)!.hooks.length).toBeGreaterThan(0);
+        }
+        // Three distinct signatures, not one tripled — `gauntlet.bossFirmwareFor`'s de-duplication.
+        expect(new Set(state.enemyParty.map(e => e.activeOS)).size).toBe(3);
     });
 });
 

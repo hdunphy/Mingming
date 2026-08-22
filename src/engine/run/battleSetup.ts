@@ -16,9 +16,8 @@
  */
 
 import type { IBattleSetup } from '../data/battleFactories';
-import { GYM_REGISTRY } from './gyms';
 import type { IRanchMember, IRanchState, IRunState } from '../runTypes';
-import type { Element, IMingmingState } from '../types';
+import type { IMingmingState } from '../types';
 
 /**
  * A ranch member, widened to the shape combat builds entities from.
@@ -52,11 +51,21 @@ export function toMingmingState(member: IRanchMember): IMingmingState {
  * today — silently fielding the members who do exist is a better answer than refusing to start the
  * fight over a state nothing can produce. `createBattleState` still throws on an empty party.
  *
- * The gauntlet's **element comes from the gym registry**, not from the run state. `IGauntletProgress`
- * deliberately carries no `type` and no `element` (ticket 06): in a run the gauntlet is always
- * `GYM_REGISTRY[run.gymId]`'s, so storing the element again would be a second copy of a fact that
- * can drift from the first. An unknown `gymId` yields a null gauntlet — the fight falls back to the
- * ordinary encounter path rather than picking an arbitrary element.
+ * # WHAT A GAUNTLET STILL NEEDS FROM HERE, AFTER TICKET 18: ONE FIELD
+ *
+ * Ticket 11 passed a `gauntlet: { element, fightIndex }` down to the battle factory, because the
+ * factory had a branch that built the gym's enemies out of it. **Ticket 18 deleted that branch** —
+ * a gauntlet fight is rolled by `engine/run/gauntlet.rollGauntletFight` and arrives through
+ * `encounter` like any other pre-rolled fight — so the field went with it. What is left is
+ * `persistedHp`, and it carries the whole of the gauntlet's asymmetry:
+ *
+ * - **`run.gauntlet` null → `{}` → a full heal, by construction.** There is nowhere else in
+ *   `IRunState` to put an HP number, so "FULL HEAL between regular nodes" (`exploration-map.md`) is
+ *   not a rule anyone has to remember to apply; it is what happens when nothing carries.
+ * - **A member at 0 is IN the map, not missing from it.** `persistedHp[id] === 0` builds that member
+ *   into the fight at 0 HP — down, revivable, and still a legal target for the Revive macro's
+ *   `DOWNED_ALLY` targeting. Dropping downed members from the map (or from the party) would make
+ *   them gone-for-gauntlet, which `economy-session.md` forbids in those words.
  *
  * `encounter` is ticket 11 part 2's addition: the enemies a region node rolled, passed straight
  * through. It is a parameter rather than something this function rolls itself because the roll
@@ -76,17 +85,14 @@ export function buildBattleSetup(
         if (member) party.push(toMingmingState(member));
     }
 
-    const gym = GYM_REGISTRY[run.gymId];
-
     return {
         party,
         deck: run.deck.map((card) => card.dataId),
         drivers: [...run.drivers],
+        // Copied rather than aliased: `IRunState` is deeply readonly and `IBattleSetup` is handed to
+        // a factory that is free to read it however it likes. A zero in here is a downed member —
+        // see the header, and `IBattleSetup.persistedHp`.
         persistedHp: run.gauntlet ? { ...run.gauntlet.persistedHp } : {},
-        gauntlet:
-            run.gauntlet && gym
-                ? { element: gym.element as Element, fightIndex: run.gauntlet.fightIndex }
-                : null,
         encounter: encounter ?? null,
     };
 }

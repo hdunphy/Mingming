@@ -22,7 +22,7 @@ import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
-import type { IRanchMember, IRunState, NodeKind, RunOutcome } from '../../engine/runTypes';
+import type { IGauntletProgress, IRanchMember, IRunState, NodeKind, RunOutcome } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 
 const MEMBER: IMingmingState = {
@@ -130,6 +130,87 @@ describe('RunScreen — a node that fired says so', () => {
         const markup = render(standingOn('marketplace'));
         expect(markup).toContain('run-screen-seed');
         expect(markup).toContain('fights');
+    });
+});
+
+/**
+ * THE PIT STOP — ticket 18.
+ *
+ * `runSlice.gauntlet.test.ts` proves the chain and `engine/run/gauntlet.test.ts` proves who is in
+ * each fight. What is left, and is a different failure, is whether the between-fights screen shows
+ * the three things the ticket asks for — **HP, macros, and the next opponent's visible types** —
+ * because those three are the terms of the only decision on offer here, and a screen that shows two
+ * of them is a screen where the decision cannot be made.
+ *
+ * Effects do not run under `renderToStaticMarkup`, so the run arrives already in `phase: 'gauntlet'`
+ * — which is exactly the state `beginGauntlet` writes, and the state an app close resumes into.
+ */
+describe('RunScreen — the gauntlet takes the screen', () => {
+    const inGauntlet = (
+        over: Partial<IRunState> = {},
+        gauntlet: Partial<IGauntletProgress> = {},
+    ): IRunState => standingOn('gym', {
+        phase: 'gauntlet',
+        gauntlet: {
+            fightIndex: 0,
+            totalFights: 3,
+            persistedHp: {},
+            downedMemberIds: [],
+            ...gauntlet,
+        },
+        ...over,
+    });
+
+    it('shows which fight it is, and that nothing heals between them', () => {
+        const markup = render(inGauntlet());
+
+        expect(markup).toContain('fight 1 of 3');
+        expect(markup).toContain('No healing between these three fights');
+        expect(markup).toContain('Begin fight 1 of 3');
+    });
+
+    it('shows the party’s HP as the resource being managed', () => {
+        const markup = render(inGauntlet({}, { fightIndex: 1, persistedHp: { mm1: 12 } }));
+
+        expect(markup).toContain('HP carries between fights');
+        expect(markup).toContain('12/');
+    });
+
+    it('calls a downed member out as revivable rather than hiding them', () => {
+        // `economy-session.md`: "revivable, never gone-for-gauntlet". A member the screen drops is a
+        // member the player has already written off.
+        const markup = render(inGauntlet({}, { fightIndex: 1, persistedHp: { mm1: 0 }, downedMemberIds: ['mm1'] }));
+
+        expect(markup).toContain('Down');
+        expect(markup).toContain('revivable');
+    });
+
+    it('shows the macro rack, and says which macros can fire here', () => {
+        const markup = render(inGauntlet({ macros: ['revive', 'ping_sweep', null] }));
+
+        expect(markup).toContain('Revive');
+        expect(markup).toContain('fires in the fight');
+        // The map-reveal is the one macro that cannot fire inside the gauntlet, and its row says so
+        // rather than vanishing (ticket 20's precedent: a dead affordance explains itself).
+        expect(markup).toContain('fires on the map');
+    });
+
+    it('shows the next opponent as TYPES — never a species list', () => {
+        // `exploration-map.md`'s visibility rule does not lapse at the last node: a roster would hand
+        // over the counter-pick the run was supposed to have already made.
+        const run = inGauntlet({}, { fightIndex: 2 });
+        const markup = render(run);
+
+        for (const biome of run.biomes) {
+            expect(markup).toContain(biome.elements[0]);
+        }
+        expect(markup).toContain('signature firmware');
+    });
+
+    it('does NOT draw the region map — there is no walking out of the exam', () => {
+        expect(render(inGauntlet())).not.toContain('rm-canvas');
+        // ...and an ordinary node still does.
+        expect(render(standingOn('marketplace'))).toContain('rm-canvas');
     });
 });
 

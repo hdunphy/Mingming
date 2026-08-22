@@ -897,13 +897,16 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                             checked={draft.gauntlet !== null}
                             onChange={(e) =>
                                 patch({
+                                    // Ticket 18: the shape is `IGauntletProgress`'s now — no `type`
+                                    // (a gauntlet is a gym's; v3's 'Sector' arm had no caller) and
+                                    // no `element` (it comes from `GYM_REGISTRY[run.gymId]`, so a
+                                    // copy here could only drift). Three fights is the ruled length.
                                     gauntlet: e.target.checked
                                         ? {
-                                              type: 'Gym',
-                                              element: 'Fire',
-                                              currentBattleIndex: 0,
-                                              totalBattles: 3,
-                                              persistedStats: {},
+                                              fightIndex: 0,
+                                              totalFights: 3,
+                                              persistedHp: {},
+                                              downedMemberIds: [],
                                           }
                                         : null,
                                 })
@@ -915,37 +918,18 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
 
                 {draft.gauntlet && (
                     <div style={rowStyle}>
-                        <span style={labelStyle}>TYPE</span>
-                        <select
-                            style={controlStyle}
-                            aria-label="gauntlet type"
-                            value={draft.gauntlet.type}
-                            onChange={(e) =>
-                                patch({ gauntlet: { ...draft.gauntlet!, type: e.target.value as 'Gym' | 'Sector' } })
-                            }
-                        >
-                            <option value="Gym">Gym</option>
-                            <option value="Sector">Sector</option>
-                        </select>
-                        <span style={labelStyle}>ELEMENT</span>
-                        <input
-                            style={{ ...controlStyle, width: '90px' }}
-                            aria-label="gauntlet element"
-                            value={draft.gauntlet.element}
-                            onChange={(e) => patch({ gauntlet: { ...draft.gauntlet!, element: e.target.value } })}
-                        />
-                        <span style={labelStyle}>BATTLE</span>
+                        <span style={labelStyle}>FIGHT</span>
                         <input
                             style={numberStyle}
                             type="number"
                             min={0}
-                            aria-label="gauntlet battle index"
-                            value={draft.gauntlet.currentBattleIndex}
+                            aria-label="gauntlet fight index"
+                            value={draft.gauntlet.fightIndex}
                             onChange={(e) =>
                                 patch({
                                     gauntlet: {
                                         ...draft.gauntlet!,
-                                        currentBattleIndex: readNumber(e.target.value, 0),
+                                        fightIndex: readNumber(e.target.value, 0),
                                     },
                                 })
                             }
@@ -955,15 +939,23 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                             style={numberStyle}
                             type="number"
                             min={1}
-                            aria-label="gauntlet total battles"
-                            value={draft.gauntlet.totalBattles}
+                            aria-label="gauntlet total fights"
+                            value={draft.gauntlet.totalFights}
                             onChange={(e) =>
                                 patch({
-                                    gauntlet: { ...draft.gauntlet!, totalBattles: readNumber(e.target.value, 1) },
+                                    gauntlet: { ...draft.gauntlet!, totalFights: readNumber(e.target.value, 1) },
                                 })
                             }
                         />
                         <span style={{ ...labelStyle, opacity: 0.45 }}>
+                            {/*
+                              * Ticket 18: still context-only, and still for the same reason —
+                              * `buildScenarioState` ignores this field entirely, because HP is set
+                              * per unit on the composed setup and `IBattleState` has no gauntlet.
+                              * `persistedHp` / `downedMemberIds` are carried through a load/save
+                              * round trip but have no editor here: a scenario that wants a member at
+                              * 12 HP sets that member's `currentHp`.
+                              */}
                             run context for the injection layer — `IBattleState` has no gauntlet field
                         </span>
                     </div>

@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15). **State: 55 tickets, 17 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12, 13, 14, 15). The run loop runs end to end except the gauntlet. **Next: 18 (gauntlet refit — GROWN, it rebuilds the chain ticket 11 deleted AND owns Revive's carry-over), then 19 (run end).** Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **Proposed numbers awaiting Henry are in tickets 12, 13, 14 and 15.** Suite green at 97 files / 1323 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18). **State: 55 tickets, 18 closed. THE WHOLE RUN LOOP EXISTS: offers -> party -> region -> nodes -> market -> workshop -> macros -> three-fight gauntlet. **Next: 19 (run end) closes the loop back to the ranch.** Also open: 22, 24, 25, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **HENRY'S QUEUE IS GETTING LONG — proposed numbers and flagged readings in tickets 12, 13, 14, 15 and 18. The loudest is ticket 18's: the gym pays 3x what ticket 12 sized it for, because those rates were set when the gym was one fight.** Suite green at 99 files / 1380 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,17 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Gym gauntlet refit (ticket 18) — **the exam exists, and the gym now overpays 3x**
+
+- Three unhealed fights, a boss drawn from **the run's own three biomes** with `boss_relic_*` firmware (de-duped so two biomes sharing an element cannot stack the same relic), and a Pit Stop between fights showing HP, the macro rack and the next opponent's types.
+- **Both questions the ticket said to ask Henry were taken as readings, both cheap to reverse.** Statuses do NOT carry — the ratified `IGauntletProgress` has nowhere to put one and v3's schema said it outright, plus carrying Burn would make Kindle the best macro for fight 1 and dead for the other two. And the boss team is **always three whatever the player brings** — two workshops exist to get you there, which is what makes "recruiting IS drafting" mean anything; `GAUNTLET_ENEMY_COUNT` + `enemyPartySize` are two lines to soften it.
+- **LOUDEST OPEN ITEM: the gym pays three times what ticket 12 sized it for.** `BLUEPRINT_DROP_RATE.gym` and `SCRAP_PER_ENEMY.gym` were set when the gym was ONE fight; three fights of three bodies is ~4.5 blueprints and ~225 scrap a gauntlet. Blueprints are the only persistent currency. One line to change once Henry rules; `RewardSystem`'s own comment already predicted 18 would want one authored award instead.
+- Deleted from `battleFactories`: the whole hardcoded gauntlet branch — `synergyMap`, the tier-1 grunt roll, the `${element} Sector Warden` at 1.5x HP with three hardcoded moves and two Firewall Sentinels. **`IBattleSetup.gauntlet` went with it**; a gauntlet now hands the factory nothing but `persistedHp`.
+- **`GauntletContext` reconciled with `IGauntletProgress`, no version bump — checked, not assumed:** all 37 committed scenarios carry `gauntlet: null` or omit it (it is composed-only and `createDraft` hardcodes null), and all 14 `playtest-results/` files are snapshots with no `setup`. Bumping with nothing to migrate would re-stamp every future file to describe a no-op.
+- **Revive's hook is wired both ways** — at fire time and again in `advanceGauntlet`'s recompute — so a revive cannot be lost to ordering. The economy stays ticket 25's.
+- **The FTK/stall gate exists over all eight boss comps** (the whole boss space, not a sample): `npx vitest run --config vitest.balance.config.ts src/debug/balance/gauntlet-boss.balance.ts`. A 1-seed smoke pass gave FTK 0, no stalls, 4.6 turns — **and the boss won 12 of 12**. Too small to be a number; it is the shape to aim a real pass at. Also measured: a 3v3 costs ~300x a 1v1 in this harness (pre-existing to ticket 98).
+- Suite **1323 → 1380**.
 
 ### 2026-08-22 — Macros (ticket 15) — **thirteen of them, and the one action the vocabulary could not express**
 

@@ -1,0 +1,170 @@
+/*
+ * The Pit Stop — ticket 18.
+ *
+ * Co-located with the component and prefixed `gn-`, following `WorkshopNode.css` and
+ * `MarketplaceNode.css`: the 2500-line global sheet is what these prefixes exist to stay out of, and
+ * a screen whose styles travel with it is a screen ticket 34's art pass can restyle in one file.
+ *
+ * Built from the same bones as the other two node panels — one column of rows, one real button —
+ * so a player who has read the workshop can read this at a glance, and so the 1280x800 Steam Deck
+ * frame (ticket 37) narrows the rows rather than clipping anything off the right-hand edge. The
+ * accent is the gym's warning amber rather than the market's purple or the workshop's green:
+ * this is the one node with no way back out.
+ */
+
+.gn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid rgba(255, 204, 0, 0.34);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.24);
+    padding: 0.7rem 0.8rem;
+}
+
+/* --- Header --- */
+
+.gn-head { display: flex; flex-direction: column; gap: 0.35rem; }
+.gn-title { margin: 0; font-size: 1rem; letter-spacing: 0.04em; }
+.gn-note { margin: 0; font-size: 0.74rem; opacity: 0.78; line-height: 1.45; }
+
+/* Three pips, because "fight 2 of 3" is a fact the player should be able to read without reading. */
+.gn-progress { display: flex; gap: 0.3rem; }
+
+.gn-pip {
+    display: inline-grid;
+    place-items: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    border: 1px solid rgba(255, 204, 0, 0.35);
+    border-radius: 50%;
+    font: 700 0.66rem/1 monospace;
+    opacity: 0.6;
+}
+
+.gn-pip.done { opacity: 1; color: #6ee7a8; border-color: rgba(110, 231, 168, 0.6); }
+.gn-pip.now { opacity: 1; color: #ffcc00; border-color: #ffcc00; background: rgba(255, 204, 0, 0.12); }
+
+.gn-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+}
+
+.gn-section-head h3 { margin: 0; font-size: 0.82rem; letter-spacing: 0.06em; }
+.gn-tag-note { font: 0.7rem/1.3 monospace; opacity: 0.7; white-space: nowrap; }
+
+/* --- Rows --- */
+
+.gn-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.gn-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    border: 1px solid rgba(255, 204, 0, 0.2);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.35rem 0.5rem;
+}
+
+/* A downed member is still on the screen and still readable — they are revivable, not gone. */
+.gn-row.down { border-color: rgba(232, 115, 74, 0.5); background: rgba(232, 115, 74, 0.08); }
+.gn-row.empty-slot { opacity: 0.7; border-style: dashed; }
+
+.gn-row-card { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.45rem; min-width: 0; }
+.gn-row-name { font-weight: 700; font-size: 0.84rem; }
+.gn-row-meta { font: 0.72rem/1.3 monospace; opacity: 0.72; }
+
+.gn-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 204, 0, 0.4);
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    color: #e6d9a8;
+    white-space: nowrap;
+}
+
+.gn-tag.danger { border-color: rgba(232, 115, 74, 0.6); color: #f2a184; }
+
+/* --- HP: the number first, the bar second --- */
+
+.gn-hp { display: flex; align-items: center; gap: 0.45rem; }
+.gn-hp-figure { font: 700 0.78rem/1.2 monospace; color: #ffcc66; }
+
+.gn-hp-track {
+    display: inline-block;
+    width: 7rem;
+    max-width: 30vw;
+    height: 0.45rem;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+}
+
+.gn-hp-fill { display: block; height: 100%; background: #6ee7a8; }
+.gn-row.down .gn-hp-fill { background: #e8734a; }
+
+/* --- The opponent: types only (exploration-map.md's visibility rule) --- */
+
+.gn-enemies {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.gn-enemy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border: 1px solid rgba(255, 204, 0, 0.28);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.35rem 0.55rem;
+    min-width: 8rem;
+}
+
+.gn-enemy.boss { border-color: rgba(255, 80, 80, 0.55); background: rgba(255, 80, 80, 0.08); }
+.gn-enemy-element { font-weight: 700; font-size: 0.84rem; }
+.gn-enemy-meta { font: 0.66rem/1.3 monospace; opacity: 0.7; }
+
+.gn-empty { font-size: 0.74rem; opacity: 0.7; padding: 0.3rem 0; }
+
+/* --- The way in --- */
+
+.gn-button {
+    align-self: flex-start;
+    margin-top: 0.4rem;
+    background: rgba(255, 204, 0, 0.16);
+    color: inherit;
+    font: 0.8rem/1.3 monospace;
+    border: 1px solid rgba(255, 204, 0, 0.5);
+    border-radius: 5px;
+    padding: 0.45rem 0.9rem;
+    cursor: pointer;
+}
+
+.gn-button:hover:not(:disabled) { border-color: #ffcc00; background: rgba(255, 204, 0, 0.28); }
+.gn-button:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+
+/*
+ * A disabled button still has to be READABLE, because its label is where the refusal is explained
+ * (ticket 20's precedent, kept by `WorkshopNode.css` for the same reason).
+ */
+.gn-button:disabled { cursor: not-allowed; opacity: 0.55; border-style: dashed; }

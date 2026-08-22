@@ -35,6 +35,14 @@
  * the **ranch** as well as the run (an assembled individual joins the permanent roster), so it is
  * handed `ranch` alongside `run` where the market needs only the party.
  *
+ * # THE GYM IS THE EXCEPTION, AND IT IS AN EXCEPTION ON PURPOSE (ticket 18)
+ *
+ * `GauntletNode` renders **instead of** the map, not over it. The gauntlet is three fights with no
+ * way out but through (`exploration-map.md`: *"three fights, NO healing between them"*), so leaving
+ * the region map on screen would offer a walk the run has no rule for. It is also the one node whose
+ * fight does not start by itself: stepping on it calls `beginGauntlet` and the Pit Stop takes over,
+ * because the whole value of a between-fights screen is that the player gets to look first.
+ *
  * The one remaining non-fight kind does nothing yet and says so on screen. A node that fired and
  * produced no visible change is indistinguishable from a node that failed to fire.
  */
@@ -53,9 +61,10 @@ import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import { startBattle } from '../store/battleSlice';
-import { clearRun, enterNode, fireMapReveal } from '../store/runSlice';
+import { beginGauntlet, clearRun, enterNode, fireMapReveal } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
+import GauntletNode from './GauntletNode';
 import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
 import WorkshopNode from './WorkshopNode';
@@ -127,6 +136,23 @@ export default function RunScreen(): ReactNode {
 
         const node = run.nodes.find((n) => n.id === run.currentNodeId);
         if (!node || !isFightNode(node.kind)) return;
+
+        /*
+         * TICKET 18: THE GYM IS A FIGHT KIND, BUT IT IS NOT *A* FIGHT.
+         *
+         * `enterNode` sets `phase: 'encounter'` for every kind in `FIGHT_KINDS`, the gym included —
+         * which was right when the gym was one battle. It is three now, so the gym's arm of this
+         * effect hands the run to `beginGauntlet` instead of rolling an encounter: that reducer sets
+         * `phase: 'gauntlet'` and the Pit Stop below takes it from there. Rolling a fight here as
+         * well would start battle one twice over.
+         *
+         * `beginGauntlet` is idempotent (it refuses when a gauntlet is already in progress), which
+         * is what makes this safe under `StrictMode`'s double-invoked effects.
+         */
+        if (node.kind === 'gym') {
+            dispatch(beginGauntlet());
+            return;
+        }
 
         const party: IMingmingState[] = [];
         for (const id of run.partyIds) {
@@ -202,6 +228,34 @@ export default function RunScreen(): ReactNode {
                     >
                         Return to the ranch
                     </button>
+                </section>
+            </div>
+        );
+    }
+
+    /**
+     * The gauntlet takes the whole screen — **ticket 18.**
+     *
+     * Not a panel over the map like the shop and the bench, because the gauntlet is the one node you
+     * cannot walk away from: `exploration-map.md` makes the gym three fights with no healing
+     * between them, and a live map underneath would offer a walk that has no rule behind it. The
+     * header stays (which gym, how far in, how much scrap) and so does **Abandon run** — quitting a
+     * run is always allowed, it just costs the run.
+     */
+    if (run.phase === 'gauntlet') {
+        return (
+            <div className="ranch-screen">
+                <header className="ranch-header">
+                    <h1>🏛 {gym?.name ?? run.gymId}</h1>
+                    <div className="ranch-run-meta">
+                        Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
+                        {' '}{run.fightsResolved} fights · {run.scrap} scrap
+                    </div>
+                    <button type="button" className="ranch-button subtle" onClick={abandon}>Abandon run</button>
+                </header>
+
+                <section className="ranch-section ranch-section-wide">
+                    <GauntletNode run={run} node={current} ranch={ranch} />
                 </section>
             </div>
         );

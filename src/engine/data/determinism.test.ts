@@ -7,6 +7,9 @@ import { SeedStream, rollSeed } from '../core/SeedStream';
 import { createMingmingInstance, createOwnedProgram, createRanchMember } from '../gameTypes';
 import { RanchMemberSchema } from '../runTypes';
 import { toMingmingState } from '../run/battleSetup';
+import { createRun } from '../run/createRun';
+import { rollGauntletFight } from '../run/gauntlet';
+import { GYM_REGISTRY } from '../run/gyms';
 
 /**
  * Ticket 09 "done when": same seed + same inputs => deep-equal IBattleState.
@@ -30,28 +33,53 @@ function seededSetup(seed: string = SAVE_SEED): IBattleSetup {
         deck: getDeckForOS('fenrir', 'fenrir_v1'),
         drivers: [],
         persistedHp: {},
-        gauntlet: null,
     };
 }
 
 const SEEDED_SAVE: IBattleSetup = seededSetup();
 
-const gymSave = (fightIndex: number): IBattleSetup => ({
-    ...SEEDED_SAVE,
-    gauntlet: { element: 'Fire', fightIndex },
+/**
+ * Ticket 18: the three "gym tier" branches this list used to cover are gone — `createBattleState`
+ * has no gauntlet branch any more. A gauntlet fight is rolled by `engine/run/gauntlet.ts` and
+ * arrives through `setup.encounter`, so the branch to prove deterministic is the pre-rolled one, and
+ * `run/gauntlet.test.ts` proves the roll itself replays. This fixture stands in for a gauntlet's
+ * enemies exactly as it would for a node's.
+ */
+const GAUNTLET_RUN = createRun({
+    seed: 'determinism-gauntlet',
+    offer: {
+        gym: GYM_REGISTRY.gym_emberfall,
+        biomes: [
+            { id: 'biome_water', name: 'Water', elements: ['Water'] },
+            { id: 'biome_nature', name: 'Nature', elements: ['Nature'] },
+            { id: 'biome_fire', name: 'Fire', elements: ['Fire'] },
+        ],
+    },
+    party: [SEEDED_SAVE.party[0]],
+    startedAt: 0,
 });
+
+const preRolled = (fightIndex: number): IBattleSetup => {
+    const gymNode = GAUNTLET_RUN.nodes.find(n => n.kind === 'gym')!;
+    const fight = rollGauntletFight({ run: GAUNTLET_RUN, node: gymNode, fightIndex });
+    return {
+        ...SEEDED_SAVE,
+        // A fight after the first carries HP, which is the one thing a gauntlet adds to a setup.
+        persistedHp: fightIndex === 0 ? {} : { [SEEDED_SAVE.party[0].id]: 17 },
+        encounter: { enemyParty: fight.enemyParty, enemyDeckIds: fight.enemyDeckIds },
+    };
+};
 
 const SEED: BattleOptions = { seed: 'ticket-09-seed' };
 
 describe('createBattleState is deterministic under a threaded seed', () => {
-    // Every creation branch: fixed enemyIds, procedural sector, and all three
-    // gym tiers (each of which used its own Date.now() seed source).
+    // Every creation branch: fixed enemyIds, procedural sector, and the pre-rolled encounter a run
+    // node and a gauntlet fight both come in through.
     const branches: Array<[string, () => ReturnType<typeof createBattleState>]> = [
         ['fixed enemyIds fallback', () => createBattleState(SEEDED_SAVE, ['ratatoskr'], undefined, SEED)],
         ['procedural sector encounter', () => createBattleState(SEEDED_SAVE, [], 'Fire', SEED)],
-        ['gym tier 1 (grunt, random count)', () => createBattleState(gymSave(0), [], undefined, SEED)],
-        ['gym tier 2 (elite)', () => createBattleState(gymSave(1), [], undefined, SEED)],
-        ['gym tier 3 (warden boss)', () => createBattleState(gymSave(2), [], undefined, SEED)],
+        ['pre-rolled encounter (gauntlet fight 1)', () => createBattleState(preRolled(0), [], undefined, SEED)],
+        ['pre-rolled encounter with carried HP (gauntlet fight 2)', () => createBattleState(preRolled(1), [], undefined, SEED)],
         ['enemyMode CARDS', () => createBattleState(SEEDED_SAVE, [], 'Fire', { ...SEED, enemyMode: 'CARDS' })]
     ];
 

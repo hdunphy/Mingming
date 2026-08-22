@@ -13,11 +13,21 @@ import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer, canFireMacro } from '../../engine/battleReducer';
-import { getMacro } from '../../engine/data/macroRegistry';
+import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
-import { addDriver, addRunCards, addRunScrap, consumeMacro, endRun, resolveEncounter } from '../store/runSlice';
+import {
+    addDriver,
+    addRunCards,
+    addRunScrap,
+    advanceGauntlet,
+    consumeMacro,
+    endRun,
+    finishGauntlet,
+    resolveEncounter,
+    reviveGauntletMember,
+} from '../store/runSlice';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
@@ -339,6 +349,42 @@ const BattleArena: React.FC = () => {
         if (canFireMacro(battleState, payload) !== null) return;
 
         dispatch(fireMacro(payload));
+
+        /*
+         * TICKET 18: THE REVIVE HOOK — the run has to hear about it too.
+         *
+         * A gauntlet member who faints is *revivable, never gone-for-gauntlet*
+         * (`economy-session.md`), and the record of who is down lives in the RUN
+         * (`IGauntletProgress.downedMemberIds`), not in the battle. So a revive that only lands in
+         * the battle is a revive the next fight undoes: `buildBattleSetup` would carry the member's
+         * 0 straight back in and re-down them. `reviveGauntletMember` is the other half.
+         *
+         * The HP comes from `revivedHpFor`, the same function `ReviveExecutor` uses, so the run
+         * records the number the battle actually gave rather than a second guess at it. The percent
+         * is read off the macro's own action rather than the constant, so a future macro that
+         * revives at some other fraction needs nothing here.
+         *
+         * **THIS IS THE HOOK, NOT THE POLICY.** Ticket 18 is explicit that *"the exact revive
+         * economy is DEFERRED TO PLAYTESTING (ticket 25)"*, and nothing here prices a revive, caps
+         * how many a gauntlet allows, or decides whether the second candidate shape (auto-return
+         * between fights at a reduced %) replaces it. Whatever ticket 25 settles, it dispatches this
+         * same reducer.
+         *
+         * Dispatched after `fireMacro` for `consumeMacro`'s reason, spelled out in that reducer: a
+         * crash between two synchronous dispatches should leave the *generous* state, and here that
+         * is a battle where the member is up.
+         */
+        if (gauntlet) {
+            const revive = macro.actions.find((action) => action.type === 'REVIVE');
+            const target = battleState.playerParty.find((p) => p.id === targetId);
+            if (revive && target) {
+                dispatch(reviveGauntletMember({
+                    memberId: target.id,
+                    hp: revivedHpFor(target.maxHp, (revive as { percent?: number }).percent),
+                }));
+            }
+        }
+
         dispatch(consumeMacro(slot));
         dispatch(selectCard(null));
     };
@@ -552,20 +598,26 @@ const BattleArena: React.FC = () => {
      * `RunScreen`'s trigger effect keys off `phase === 'encounter'`, so leaving the phase behind
      * would re-fire the fight the instant the arena closed.
      *
-     * **Winning on the GYM node ends the run.** That is the run's victory condition
-     * (`exploration-map.md`: the gym is the only way a run is won), and it is recognised by the node
-     * the player is standing on rather than by `gauntlet`, because **the gauntlet refit is ticket
-     * 18** — until it lands, the gym node is a single battle and `IRunState.gauntlet` stays null
-     * through the whole run. The durable half is recorded either way: `markGymCleared` and
-     * `recordTierCleared` write to the ranch, which is what run start reads. Ticket 18 replaces the
-     * node check with real gauntlet progress and ticket 19 replaces what the player sees next.
+     * # TICKET 18: A GAUNTLET FIGHT DOES NOT RESOLVE A NODE, IT ADVANCES A CHAIN
      *
-     * **THE GAUNTLET IS NOT ADVANCED HERE, DELIBERATELY.** The old flow dispatched `updateGauntlet`
-     * (bump the index, stash the party's HP) and then re-entered `startBattle` for the next fight.
-     * `IGauntletProgress` is run state now and **ticket 18 owns the gauntlet refit**, so `runSlice`
-     * has no reducer that advances it — and chaining without one would replay fight one forever,
-     * which is worse than not chaining. What survives is the durable half: winning the last fight
-     * records the gym clear and the tier on the ranch, which is what run start reads.
+     * The three branches below are the same event seen at three points in a run, and the difference
+     * between them is which reducer counts the fight:
+     *
+     * - **An ordinary node**: `resolveEncounter` — back to the map, `fightsResolved` +1.
+     * - **Gauntlet fight 1 or 2**: `advanceGauntlet`, carrying the party's HP as the battle left it.
+     *   The phase stays `'gauntlet'` (there is no walking out of the exam), `fightIndex` moves, and
+     *   the Pit Stop is what the player lands on. **The payload is the whole party, downed members
+     *   included**, because the reducer derives both `persistedHp` and `downedMemberIds` from it —
+     *   which is also how a member revived mid-fight stops being down, with no special case.
+     * - **The last gauntlet fight**: `finishGauntlet`, then the gym clear, then `endRun('victory')`.
+     *
+     * Winning the gauntlet is the run's victory condition (`exploration-map.md`: the gym is the only
+     * way a run is won). Ticket 11 recognised it by the NODE the player was standing on, because
+     * `IRunState.gauntlet` was always null then; it is recognised by **gauntlet progress** now, and
+     * the node check is gone. Ticket 19 still owns what the player sees next.
+     *
+     * A defeat does not come through here at all — `handleDefeat` ends the run, and a wipe in fight
+     * one of three is exactly as final as a wipe anywhere else on the map.
      */
     const handleContinue = (chosenCards: IOwnedProgram[], chosenRelic?: string) => {
         if (rewardBundle) {
@@ -589,16 +641,26 @@ const BattleArena: React.FC = () => {
             }
         }
 
-        // Back to the map, and one more fight on the tally. A no-op outside a run, which is what a
-        // debug scenario's victory is.
-        dispatch(resolveEncounter());
+        const lastGauntletFight = gauntlet !== null && gauntlet.fightIndex >= gauntlet.totalFights - 1;
 
-        const node = run?.nodes.find(n => n.id === run.currentNodeId) ?? null;
-        const clearedGym = node?.kind === 'gym' || (gauntlet !== null && gauntlet.fightIndex >= gauntlet.totalFights - 1);
-        if (run && clearedGym) {
+        if (gauntlet && !lastGauntletFight) {
+            // The party as this fight left it — HP and all, downed members included. Nothing is
+            // healed on the way out, which is the whole of "three fights, NO healing between them".
+            dispatch(advanceGauntlet(
+                (battleState?.playerParty ?? []).map(member => ({ memberId: member.id, hp: member.currentHp })),
+            ));
+        } else if (gauntlet) {
+            dispatch(finishGauntlet());
+        } else {
+            // Back to the map, and one more fight on the tally. A no-op outside a run, which is what
+            // a debug scenario's victory is.
+            dispatch(resolveEncounter());
+        }
+
+        if (run && lastGauntletFight) {
             dispatch(markGymCleared(run.gymId));
             dispatch(recordTierCleared(run.tier));
-            // Ordered after `resolveEncounter`, which sets the phase back to 'map': the run is over,
+            // Ordered after `finishGauntlet`, which sets the phase back to 'map': the run is over,
             // not back on the map, and `endRun` is what says so.
             dispatch(endRun('victory'));
         }
@@ -751,7 +813,14 @@ const BattleArena: React.FC = () => {
                         letterSpacing: '3px'
                     }}
                 >
-                    BREACH — BATTLE {Math.min(gauntlet.fightIndex + 1, gauntlet.totalFights)}/{gauntlet.totalFights}
+                    {/*
+                      * Ticket 18 renamed this from "BREACH — BATTLE n/3". A breach was the pre-run
+                      * vocabulary; what the player is standing in is the gym's gauntlet, and the
+                      * last fight is the leader's own team — worth saying, because it is the one
+                      * fight where holding a Revive rather than spending it is a real decision.
+                      */}
+                    GAUNTLET — FIGHT {Math.min(gauntlet.fightIndex + 1, gauntlet.totalFights)}/{gauntlet.totalFights}
+                    {gauntlet.fightIndex >= gauntlet.totalFights - 1 ? ' · LEADER' : ''}
                 </div>
             )}
 

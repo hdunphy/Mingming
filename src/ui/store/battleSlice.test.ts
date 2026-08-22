@@ -22,8 +22,10 @@ const SETUP: IBattleSetup = {
     party: [MEMBER],
     deck: [],
     drivers: [],
-    persistedHp: {},
-    gauntlet: null
+    // Ticket 18 removed `IBattleSetup.gauntlet`: a gym's enemies are rolled by
+    // `engine/run/gauntlet.ts` and arrive through `encounter`, so the only thing a gauntlet still
+    // hands the factory is `persistedHp`.
+    persistedHp: {}
 };
 
 const initial = battleReducer(undefined, { type: '@@INIT' } as any);

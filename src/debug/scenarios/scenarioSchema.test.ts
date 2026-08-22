@@ -106,6 +106,53 @@ describe('ScenarioSchema - composed', () => {
         expect(ScenarioSchema.safeParse(scenario).success).toBe(true);
     });
 
+    /**
+     * Ticket 18 reconciled `GauntletContext` with the ratified `IGauntletProgress`. Three claims are
+     * worth pinning, and the third is the reason the change needed no scenario-version bump.
+     */
+    describe('gauntlet context (ticket 18)', () => {
+        it('accepts IGauntletProgress’s shape', () => {
+            const scenario = composedScenario();
+            scenario.setup.gauntlet = {
+                fightIndex: 1,
+                totalFights: 3,
+                persistedHp: { mm1: 22, mm2: 0 },
+                downedMemberIds: ['mm2'],
+            };
+
+            expect(ScenarioSchema.safeParse(scenario).success).toBe(true);
+        });
+
+        it('rejects the v3 shape it replaced', () => {
+            // `type` / `element` / `currentBattleIndex` / `totalBattles` / `persistedStats`. Nothing
+            // on disk carries this (see the note above `GauntletContextSchema`), so rejecting it is
+            // a visible failure for a hand-written file rather than a migration anyone needs.
+            const scenario = composedScenario();
+            scenario.setup.gauntlet = {
+                type: 'Gym',
+                element: 'Fire',
+                currentBattleIndex: 1,
+                totalBattles: 3,
+                persistedStats: { mm1: { hp: 22 } },
+            };
+
+            expect(ScenarioSchema.safeParse(scenario).success).toBe(false);
+        });
+
+        it('defaults downedMemberIds, so the field can be omitted', () => {
+            const scenario = composedScenario();
+            scenario.setup.gauntlet = { fightIndex: 0, totalFights: 3, persistedHp: {} };
+
+            const result = ScenarioSchema.safeParse(scenario);
+            expect(result.success).toBe(true);
+            expect(
+                result.success && result.data.kind === 'composed'
+                    ? result.data.setup.gauntlet?.downedMemberIds
+                    : undefined,
+            ).toEqual([]);
+        });
+    });
+
     it('caps the party at 3, mirroring PARTY_SIZE / RunStateSchema.partyIds', () => {
         const ok = composedScenario();
         ok.setup.player.party = partyOf(3);

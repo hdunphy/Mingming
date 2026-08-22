@@ -5,6 +5,7 @@ import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
 import { applyMutations, executeDraw, executeStatusDamageCalculated } from '../resolutionEngine';
 import { GetProgramData } from '../data/programRegistry';
+import { revivedHpFor } from '../data/macroRegistry';
 import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
@@ -911,10 +912,12 @@ export class ReviveExecutor extends ActionExecutor<ReviveActionData> {
         // Only the downed. A revive on a living unit is a bug at the call site, not a small heal.
         if (target.currentHp > 0) return state;
 
-        const percent = Math.max(1, Math.min(100, actionData.percent ?? 0));
-        // At least 1 HP: a percentage that floors to zero would "revive" a unit into still being
-        // dead, which is the worst possible outcome for a rare, single-use rescue.
-        const restored = Math.max(1, Math.floor(target.maxHp * percent / 100));
+        // Ticket 18 moved the arithmetic (the 1-100 clamp and the floor of 1) to
+        // `macroRegistry.revivedHpFor`, because the run has to record the same number this writes:
+        // `runSlice.reviveGauntletMember` takes the revived member out of `downedMemberIds` and puts
+        // this HP into `persistedHp`, or the next gauntlet fight re-downs them. Two copies of the
+        // formula would be two answers to "how much HP did that revive give".
+        const restored = revivedHpFor(target.maxHp, actionData.percent ?? 0);
 
         const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
             party.map(e => (e.id === targetId ? { ...e, currentHp: restored, tempHp: 0 } : e));

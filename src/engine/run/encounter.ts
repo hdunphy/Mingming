@@ -60,6 +60,13 @@ import { nodeSeed } from './nodeSeed';
  * module's sizing rules. Two copies of that list would be a bug waiting for the day someone adds a
  * ninth kind.
  */
+/*
+ * **`gym` is in this list but it is not rolled by this module** — ticket 18. The gym is a fight kind
+ * (walking onto it puts the run into `phase: 'encounter'`, which is what starts the trigger), but
+ * what it starts is a three-fight gauntlet: `RunScreen` hands that arm to `runSlice.beginGauntlet`
+ * and the fights themselves are rolled by `engine/run/gauntlet.rollGauntletFight`. Removing it from
+ * this list would make entering the gym do nothing at all, which is why it stays.
+ */
 export const FIGHT_KINDS: ReadonlyArray<NodeKind> = ['wild', 'elite', 'alpha', 'ambush', 'gym'];
 
 export function isFightNode(kind: NodeKind): boolean {
@@ -190,7 +197,11 @@ export const FULL_KIT_FRACTION: IKitFraction = KIT_FRACTION_BY_BIOME[KIT_FRACTIO
  * on the field. Facing a complete tuned deck for the first time at the end of biome 0 is what makes
  * the elite legible as a checkpoint, and it is the same lesson the gym asks for twice more later.
  *
- * The gym takes it too, for the plainer reason that it is the run's final exam.
+ * The gym takes it too, for the plainer reason that it is the run's final exam. **Ticket 18 leans on
+ * that clause from outside**: `rollGauntletFight` builds all three gauntlet fights with full tuned
+ * decks and firmware *because* this function pins a gym node to the deepest row, and
+ * `gauntlet.test.ts` asserts the two agree rather than letting the gauntlet hold its own opinion
+ * about the gym's depth.
  */
 export function kitFractionFor(node: IRegionNode): IKitFraction {
     if (node.kind === 'elite' || node.kind === 'gym') return FULL_KIT_FRACTION;

@@ -125,6 +125,25 @@ export const FREE_EXEC_COST_REDUCTION = 99;
  */
 export const REVIVE_PERCENT_MAX_HP = 50;
 
+/**
+ * The HP a revived unit comes back on. **One formula, two callers** — added by ticket 18.
+ *
+ * `ReviveExecutor` does the revive inside the battle; `runSlice.reviveGauntletMember` records it in
+ * the run so the next gauntlet fight does not re-down the member it just brought back (and so a
+ * resumed fight rebuilds with the revive the player already paid for). Those two numbers must be the
+ * same number, and the way to guarantee that is for there to be one of them rather than a constant
+ * multiplied in two places.
+ *
+ * The clamps are the executor's own, kept verbatim: a percentage outside 1-100 is a mis-authored
+ * macro rather than a reason to crash, and the floor of 1 exists because a percentage that rounds to
+ * zero would "revive" a unit into still being dead — the worst possible outcome for a rare,
+ * single-use rescue.
+ */
+export function revivedHpFor(maxHp: number, percent: number = REVIVE_PERCENT_MAX_HP): number {
+    const bounded = Math.max(1, Math.min(100, percent));
+    return Math.max(1, Math.floor(maxHp * bounded / 100));
+}
+
 /** `cache_pull`: "draw 2", ruled. */
 const CACHE_PULL_DRAW = 2;
 
