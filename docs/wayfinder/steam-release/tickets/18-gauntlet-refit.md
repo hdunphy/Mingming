@@ -120,4 +120,23 @@ pointed at. Also measured: a 3v3 battle costs **~300x a 1v1** in this harness (~
 ~60ms), which is pre-existing to ticket 98's `teamScenario` rather than anything added here, and is
 why the file documents its timeout arithmetic.
 
+### Post-close measurement: the full gate finished (2026-08-22)
 
+`GAUNTLET_BOSS_SEEDS=1` over **all eight comps x the six-comp panel, both turn orders = 96 battles**,
+63 minutes wall. **Gate green: FTK 0, pooled average 7.4 turns** (the per-test stall assertion reads
+the pooled mean, and every comp cleared it).
+
+**The smoke pass was not a fluke, and the shape it pointed at is real: the player panel won 1 of 96.**
+Per boss comp, player W/L/D: skoll-jormungandr-huldra 1/10/1, fenrir-jormungandr-huldra 0/11/1,
+fenrir-kraken-huldra 0/11/1, the other five 0/12/0. The single player win was `panel-zoo` against
+skoll-jormungandr-huldra.
+
+Three stalls, and they are all the same shape: **every stall is a huldra comp against `panel-mixed-b`**
+(24.0, 26.5 and 36.0 average turns, vs ~7 everywhere else). That is `boss_relic_water`'s
+heal-on-being-hit against the one panel comp that cannot out-damage it — the exact failure mode the
+suite's header names, caught at the smallest sample the harness can run.
+
+**Still printed, not redlined** — a gym boss is meant to beat a driverless reference panel that this
+harness cannot give the two fights' worth of spent HP a real gauntlet arrives on. But 95.8% is a
+number for ticket 25's playtest to read against, and for ticket 28 to hold in view when it authors
+the leaders these placeholders stand in for. 1 seed is the floor; a tuning pass should buy more.
