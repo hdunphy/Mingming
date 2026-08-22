@@ -60,10 +60,11 @@ function goodRanch(overrides: Partial<IRanchState> = {}): IRanchState {
     return {
         roster: [{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 5, defenseIV: 5, hpIV: 5 }],
         blueprints: { kraken: 3 },
-        codex: { seen: [], played: [] },
+        codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: 0,
         seenTips: [],
+        codexMilestones: [],
         ...overrides,
     };
 }

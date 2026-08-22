@@ -59,13 +59,14 @@ import { assembleMingming } from '../store/gameSlice';
 import type { RootState } from '../store/store';
 import FirmwareTerminal from '../components/FirmwareTerminal';
 import { TypeChartPanel } from '../components/TypeChart';
+import CodexScreen from './CodexScreen';
 import Callout from '../components/Callout';
 import { RANCH_BLUEPRINT_TIP } from '../../engine/tips';
 import RunStart from './RunStart';
 import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
 
-type Section = 'expedition' | 'roster' | 'assembly' | 'vault';
+type Section = 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex';
 
 /** Stable empty array, so the `no run in progress` selector does not re-render on every dispatch. */
 const EMPTY_DRIVERS: ReadonlyArray<string> = [];
@@ -75,6 +76,7 @@ const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: string }> = [
     { id: 'roster', label: 'Roster', icon: '🤖' },
     { id: 'assembly', label: 'Assembly', icon: '🔬' },
     { id: 'vault', label: 'Vault', icon: '💎' },
+    { id: 'codex', label: 'Codex', icon: '📖' },
 ];
 
 export interface RanchScreenProps {
@@ -88,7 +90,7 @@ export interface RanchScreenProps {
 }
 
 export default function RanchScreen({ initialSection = 'expedition' }: RanchScreenProps = {}): ReactNode {
-    const { roster, blueprints, seenTips } = useSelector((s: RootState) => s.game);
+    const { roster, blueprints, seenTips, codex, codexMilestones } = useSelector((s: RootState) => s.game);
     // Ticket 11: drivers are run-scoped (`IRunState.drivers`). The Vault shows the run's, when
     // there is one — see `VaultSection` for why it is still here at all.
     const drivers = useSelector((s: RootState) => s.run.run?.drivers ?? EMPTY_DRIVERS);
@@ -124,6 +126,9 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
             )}
             {section === 'assembly' && <AssemblySection blueprints={blueprints} seenTips={seenTips} />}
             {section === 'vault' && <VaultSection drivers={drivers} />}
+            {/* Ticket 31. Props rather than its own `useSelector`, so the screen is renderable in a
+                test from a plain object and the ranch stays the only thing that reads the store. */}
+            {section === 'codex' && <CodexScreen codex={codex} firedMilestones={codexMilestones} />}
 
             {showFirmware && <FirmwareTerminal onClose={() => setShowFirmware(false)} />}
         </div>

@@ -68,11 +68,26 @@ export function createEmptyRanch(): IRanchState {
     return {
         roster: [],
         blueprints: {},
-        codex: { seen: [], played: [] },
+        codex: { seen: [], played: [], species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: 0,
         seenTips: [],
+        codexMilestones: [],
     };
+}
+
+/**
+ * Add to an add-only, deduped ledger — the codex's one law, in one place (ticket 31).
+ *
+ * Takes the immer draft's readonly array and casts, which is the convention every reducer in this
+ * file already uses. Empty ids are dropped rather than stored: a blank entry would count toward a
+ * completion total that has no member to match it.
+ */
+function addTo(ledger: ReadonlyArray<string>, id: string): void {
+    if (id === '') return;
+    const list = ledger as string[];
+    if (list.includes(id)) return;
+    list.push(id);
 }
 
 const initialState: IRanchState = createEmptyRanch();
@@ -136,6 +151,15 @@ const gameSlice = createSlice({
             counts[action.payload.definitionId] = held - 1;
             if (counts[action.payload.definitionId] === 0) delete counts[action.payload.definitionId];
             (state.roster as IRanchMember[]).push(action.payload);
+
+            // Ticket 31: the codex records the build HERE rather than at the call site, for the
+            // reason `recordCodexSeen` gives — a law enforced per caller is a law that lapses at the
+            // next one. This is the *player-facing* assembly path, so it is the one that means "you
+            // built one": `addToRoster` deliberately does not record, because it is the debug and
+            // test seam and a fixture is not an achievement.
+            addTo(state.codex.assembled, action.payload.definitionId);
+            addTo(state.codex.species, action.payload.definitionId);
+            addTo(state.codex.os, action.payload.activeOS);
         },
 
         // --- Codex ---
@@ -170,6 +194,47 @@ const gameSlice = createSlice({
                 held.add(dataId);
                 seen.push(dataId);
             }
+        },
+
+        /**
+         * Ticket 31: the other four ledgers, merged in one action.
+         *
+         * One action rather than four because the recorder learns several things at the same
+         * instant — a battle starts and the whole field's species are known at once; a card
+         * resolves and it is simultaneously *seen* and (if you cast it) *played*. Four dispatches
+         * per event would be four store notifications and four autosaves for one fact.
+         *
+         * Every field optional, all add-only, all deduped by `addTo`. `seen` is here too so that
+         * the in-battle recorder does not have to reach for `recordCodexSeen` and get a different
+         * set of laws.
+         */
+        recordCodex: (
+            state,
+            action: PayloadAction<{
+                readonly seen?: ReadonlyArray<string>;
+                readonly played?: ReadonlyArray<string>;
+                readonly species?: ReadonlyArray<string>;
+                readonly assembled?: ReadonlyArray<string>;
+                readonly os?: ReadonlyArray<string>;
+            }>,
+        ) => {
+            for (const id of action.payload.seen ?? []) addTo(state.codex.seen, id);
+            for (const id of action.payload.played ?? []) addTo(state.codex.played, id);
+            for (const id of action.payload.species ?? []) addTo(state.codex.species, id);
+            for (const id of action.payload.assembled ?? []) addTo(state.codex.assembled, id);
+            for (const id of action.payload.os ?? []) addTo(state.codex.os, id);
+        },
+
+        /**
+         * Record that a completion milestone has FIRED (ticket 31).
+         *
+         * Separate from "currently satisfied", which `engine/codex.milestonesMet` computes from the
+         * ledgers. A milestone is an event: once the payouts exist (Henry's numbers), firing is what
+         * pays, and paying twice for the same threshold is the failure this list prevents. Add-only
+         * and deduped, so a second dispatch of the same id is a no-op rather than a second payment.
+         */
+        recordCodexMilestones: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            for (const id of action.payload) addTo(state.codexMilestones, id);
         },
 
         // --- Onboarding tips (ticket 24) ---
@@ -262,6 +327,9 @@ const gameSlice = createSlice({
             counts[mm.definitionId] = held - 1;
             if (counts[mm.definitionId] === 0) delete counts[mm.definitionId];
             mm.activeOS = targetOS;
+
+            // Ticket 31: the other way a firmware gets equipped.
+            addTo(state.codex.os, targetOS);
         },
 
         // --- Load / reset ---
@@ -286,6 +354,8 @@ export const {
     addBlueprint,
     assembleMingming,
     recordCodexSeen,
+    recordCodex,
+    recordCodexMilestones,
     markTipSeen,
     skipTips,
     markGymCleared,

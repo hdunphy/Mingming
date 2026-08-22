@@ -33,7 +33,7 @@ const member = (id: string, definitionId: string, activeOS?: string): IRanchMemb
     activeOS: activeOS ?? `${definitionId}_v1`,
 });
 
-function render(game: Partial<IRanchState>, section: 'expedition' | 'roster' | 'assembly' | 'vault' = 'roster'): string {
+function render(game: Partial<IRanchState>, section: 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex' = 'roster'): string {
     const store = configureStore({
         reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
         preloadedState: { game: { ...createEmptyRanch(), ...game } },
@@ -112,5 +112,15 @@ describe('RanchScreen', () => {
 
         expect(markup).toContain('Nothing installed');
         expect(markup).toMatch(/run-scoped|lost when it ends/i);
+    });
+
+    it('has a codex tab, and it opens on the overview — ticket 31', () => {
+        const markup = render({ roster: [member('a1', 'kraken')] }, 'codex');
+
+        expect(markup).toContain('📖');
+        expect(markup).toContain('Codex');
+        // Fresh ranch, so every track reads zero — and the screen still shows the target.
+        expect(markup).toContain('Cards seen');
+        expect(markup).toMatch(/0 \/ \d+/);
     });
 });

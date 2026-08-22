@@ -69,10 +69,11 @@ function makeRanch(tier: number): IRanchState {
     return {
         roster: [{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 10, defenseIV: 8, hpIV: 12 }],
         blueprints: {},
-        codex: { seen: [], played: [] },
+        codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: tier,
         seenTips: [],
+        codexMilestones: [],
     };
 }
 

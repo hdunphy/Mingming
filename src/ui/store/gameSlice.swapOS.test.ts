@@ -38,9 +38,15 @@ describe('Ticket 15 - swapOS', () => {
         // The last blueprint of a species leaves no zero behind — an empty key would show the
         // ranch screen a species it cannot actually assemble or reflash.
         expect(after.blueprints).toEqual({});
-        // The only things that changed are the OS and the count. Ticket 11: there is no card
-        // inventory and no grant ledger for a stray write to land in.
-        expect(after).toEqual({ ...baseState(), roster: [member('m1', 'kraken', 'kraken_v2')], blueprints: {} });
+        // The only things that changed are the OS, the count, and — since ticket 31 — the codex's
+        // firmware ledger, because equipping is exactly what that ledger records. Ticket 11: there
+        // is still no card inventory and no grant ledger for a stray write to land in.
+        expect(after).toEqual({
+            ...baseState(),
+            roster: [member('m1', 'kraken', 'kraken_v2')],
+            blueprints: {},
+            codex: { ...baseState().codex, os: ['kraken_v2'] },
+        });
         // The resulting state must survive the autosave schema.
         expect(() => RanchStateSchema.parse(after)).not.toThrow();
     });

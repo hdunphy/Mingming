@@ -104,10 +104,11 @@ const ranchMember = (m: IMingmingState): IRanchMember => ({
 const ranchOf = (party: ReadonlyArray<IMingmingState>): IRanchState => ({
     roster: party.map(ranchMember),
     blueprints: {},
-    codex: { seen: [], played: [] },
+    codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
     gymsCleared: [],
     highestTierCleared: 0,
     seenTips: [],
+    codexMilestones: [],
 });
 
 const BOSS = GAUNTLET_FIGHTS - 1;

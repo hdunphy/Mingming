@@ -54,8 +54,14 @@ describe('assembleMingming — one blueprint, atomically', () => {
         expect(after.blueprints).toEqual({ kraken: 1 });
         expect(after.roster.map((m) => m.id)).toEqual(['mm1']);
         // Ticket 20 deleted the flat 100-scrap `compileCost`, and ticket 11 deleted the field it
-        // was charged against. The ranch touches nothing but the blueprint and the roster.
-        expect(after).toEqual({ ...before, blueprints: { kraken: 1 }, roster: [member('mm1', 'kraken', 'kraken_v1')] });
+        // was charged against. The ranch touches nothing but the blueprint, the roster and — since
+        // ticket 31 — the three codex ledgers that record what you built.
+        expect(after).toEqual({
+            ...before,
+            blueprints: { kraken: 1 },
+            roster: [member('mm1', 'kraken', 'kraken_v1')],
+            codex: { ...before.codex, assembled: ['kraken'], species: ['kraken'], os: ['kraken_v1'] },
+        });
     });
 
     it('removes the species key entirely at zero rather than leaving a 0', () => {
@@ -85,9 +91,37 @@ describe('assembleMingming — one blueprint, atomically', () => {
         const after = gameReducer(before, assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
 
         expect(Object.keys(after).sort()).toEqual(
-            ['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster', 'seenTips'],
+            ['blueprints', 'codex', 'codexMilestones', 'gymsCleared', 'highestTierCleared', 'roster', 'seenTips'],
         );
-        expect(after.codex).toEqual({ seen: [], played: [] });
+        // Still no CARDS. Ticket 31 added three codex ledgers and assembly writes two of them —
+        // `seen`/`played` are the card ones and both stay empty, which is the claim this test makes.
+        expect(after.codex.seen).toEqual([]);
+        expect(after.codex.played).toEqual([]);
+    });
+
+    it('records the build in the codex — ticket 31', () => {
+        // At the reducer rather than the caller: assembling is the only way a species enters the
+        // roster and the only way its starting firmware is first equipped, so the ledgers cannot
+        // come apart from the roster they describe.
+        const before = save({ blueprints: { kraken: 2 } });
+        const after = gameReducer(before, assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
+
+        expect(after.codex.assembled).toEqual(['kraken']);
+        expect(after.codex.species).toEqual(['kraken']);
+        expect(after.codex.os).toEqual(['kraken_v1']);
+
+        // Add-only and deduped: a second kraken is a second individual, not a second codex entry.
+        const twice = gameReducer(after, assembleMingming(member('mm2', 'kraken', 'kraken_v1')));
+        expect(twice.codex.assembled).toEqual(['kraken']);
+        expect(twice.roster).toHaveLength(2);
+    });
+
+    it('does NOT record a codex build for the debug/test roster path', () => {
+        // `addToRoster` is the seam tests and God Tools use. A fixture is not an achievement, and a
+        // debug-injected roster that silently completed the bestiary would make the codex a lie.
+        const after = gameReducer(save({}), addToRoster(member('mm1', 'kraken', 'kraken_v1')));
+        expect(after.codex.assembled).toEqual([]);
+        expect(after.codex.os).toEqual([]);
     });
 
     it('re-assembly is the re-roll: two blueprints, two distinct individuals of one species', () => {

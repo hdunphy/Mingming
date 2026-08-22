@@ -270,7 +270,11 @@ describe('parseSaveFileText', () => {
             expect(result.defaulted).toBe(true);
             expect(result.save.gymsCleared).toEqual([]);
             expect(result.save.highestTierCleared).toBe(0);
-            expect(result.save.codex).toEqual({ seen: [], played: [] });
+            // Ticket 31 added three more ledgers, each with its own `.default([])` — which is
+            // exactly the guarantee this test is about: a file that omits a field gets the empty
+            // one, and nothing migrates.
+            expect(result.save.codex).toEqual({ seen: [], played: [], species: [], assembled: [], os: [] });
+            expect(result.save.codexMilestones).toEqual([]);
             // Ticket 20: the fill is an empty COUNT MAP, not an empty list.
             expect(result.save.blueprints).toEqual({});
         }

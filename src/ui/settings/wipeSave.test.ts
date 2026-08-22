@@ -54,7 +54,7 @@ const RANCH: IRanchState = {
     ...createEmptyRanch(),
     roster: [{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 10, defenseIV: 10, hpIV: 10 }],
     blueprints: { kraken: 4 },
-    codex: { seen: ['hydro_blast'], played: [] },
+    codex: { seen: ['hydro_blast'], played: [] , species: [], assembled: [], os: [] },
     gymsCleared: ['gym_emberfall'],
     seenTips: ['battle:energy'],
 };

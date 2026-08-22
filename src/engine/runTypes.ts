@@ -293,6 +293,20 @@ export type BlueprintCounts = Readonly<Record<string, number>>;
 export interface ICodex {
     readonly seen: ReadonlyArray<string>;   // program dataIds encountered
     readonly played: ReadonlyArray<string>; // program dataIds actually cast
+    /**
+     * Ticket 31. Three more ledgers, each a different claim about the player and none derivable
+     * from the others — see `engine/codex.ts` for why collapsing any two loses something.
+     *
+     * `species` is the bestiary: anything that stood on a battlefield, yours or theirs.
+     * `assembled` is what you built out of a blueprint — a strict subset of `species`.
+     * `os` is every firmware that has ever been equipped on something you own.
+     *
+     * All add-only and deduped, like `seen`, and all `.default([])` in the schema so a v4 save
+     * written before ticket 31 loads as a player who has recorded none of them.
+     */
+    readonly species: ReadonlyArray<string>;
+    readonly assembled: ReadonlyArray<string>;
+    readonly os: ReadonlyArray<string>;
 }
 
 export interface IRanchState {
@@ -318,6 +332,15 @@ export interface IRanchState {
      * `onboarding` flag.
      */
     readonly seenTips: ReadonlyArray<string>;
+    /**
+     * Codex milestones that have already FIRED (ticket 31), as ids into `CODEX_MILESTONES`.
+     *
+     * Separate from "currently satisfied", which `codex.milestonesMet` computes from the ledgers on
+     * demand. A milestone is an event that pays out once; storing satisfaction instead of firing
+     * would pay again every time the screen mounted. The payouts themselves are unwired pending
+     * Henry's numbers — see `CodexMilestone`.
+     */
+    readonly codexMilestones: ReadonlyArray<string>;
 }
 
 export interface IRanchMember {
@@ -415,6 +438,10 @@ export const RanchMemberSchema = z.object({
 export const CodexSchema = z.object({
     seen: z.array(z.string()).default([]),
     played: z.array(z.string()).default([]),
+    // Ticket 31, all `.default([])` and no version bump — same argument as ticket 24's `seenTips`.
+    species: z.array(z.string()).default([]),
+    assembled: z.array(z.string()).default([]),
+    os: z.array(z.string()).default([]),
 });
 
 /**
@@ -439,13 +466,14 @@ export const CodexSchema = z.object({
 export const RanchStateSchema = z.object({
     roster: z.array(RanchMemberSchema),
     blueprints: z.record(z.string(), z.number().int().min(0)).default({}),
-    codex: CodexSchema.default({ seen: [], played: [] }),
+    codex: CodexSchema.default({ seen: [], played: [], species: [], assembled: [], os: [] }),
     gymsCleared: z.array(z.string()).default([]),
     highestTierCleared: z.number().int().min(0).default(0),
     // Ticket 24. `.default([])` and no version bump: a v4 save written before this field existed is
     // a player who has seen no tips, which is exactly what the default says. That is the whole
     // reason the field is add-only and never removed — see `IRanchState.seenTips`.
     seenTips: z.array(z.string()).default([]),
+    codexMilestones: z.array(z.string()).default([]),
 });
 
 /**

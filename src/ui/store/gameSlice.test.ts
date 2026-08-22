@@ -204,10 +204,11 @@ describe('gameSlice', () => {
             const ranch: IRanchState = {
                 roster: [makeMingming('mm1', 'kraken')],
                 blueprints: { kraken: 3 },
-                codex: { seen: ['fire_poke'], played: ['fire_poke'] },
+                codex: { seen: ['fire_poke'], played: ['fire_poke'] , species: [], assembled: [], os: [] },
                 gymsCleared: ['gym_emberfall'],
                 highestTierCleared: 1,
                 seenTips: [],
+                codexMilestones: [],
             };
             const state = gameReducer(initial, loadSave(ranch));
             expect(state).toEqual(ranch);

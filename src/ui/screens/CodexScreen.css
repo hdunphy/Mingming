@@ -1,0 +1,230 @@
+/*
+ * The codex — ticket 31. A collection screen, so the layout question is "how do 212 cells read at a
+ * glance", and the answer is a dense auto-fill grid with the unfound ones dimmed rather than hidden.
+ *
+ * Co-located, following the precedent every screen in `src/ui/screens` set (`RanchScreen.css`,
+ * `RegionMap.css`, `WorkshopNode.css`...). It reuses `.ranch-section` / `.ranch-note` from
+ * `RanchScreen.css` for the frame, because the codex is a ranch tab rather than a place of its own.
+ */
+
+.codex-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 12px 0 16px;
+}
+
+.codex-tab {
+    padding: 6px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(240, 240, 245, 0.72);
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.codex-tab:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.codex-tab.active {
+    border-color: var(--accent-primary);
+    background: rgba(124, 58, 237, 0.22);
+    color: #fff;
+}
+
+.codex-note {
+    margin: 10px 0 14px;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: rgba(240, 240, 245, 0.62);
+}
+
+.codex-subhead {
+    margin: 22px 0 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-primary);
+}
+
+/* --- Progress bars --------------------------------------------------------------------------- */
+
+.codex-bars {
+    display: grid;
+    gap: 8px;
+}
+
+.codex-bar-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 88px;
+    gap: 10px;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.codex-bar-track {
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.codex-bar-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent-primary);
+    /* No transition: the number is the point, and a bar that animates on mount reads as loading. */
+}
+
+.codex-bar-count {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: rgba(240, 240, 245, 0.75);
+}
+
+/* --- Milestones ------------------------------------------------------------------------------ */
+
+.codex-milestones {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 4px;
+}
+
+.codex-milestone {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    font-size: 0.8rem;
+    color: rgba(240, 240, 245, 0.5);
+}
+
+.codex-milestone.done {
+    color: #f0f0f5;
+}
+
+.codex-milestone-mark {
+    color: rgba(240, 240, 245, 0.35);
+}
+
+.codex-milestone.done .codex-milestone-mark {
+    color: #ffcc00;
+}
+
+/* --- The grid -------------------------------------------------------------------------------- */
+
+.codex-grid {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    /* auto-fill, so 212 cells reflow rather than scrolling sideways at any window width. */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 6px;
+}
+
+.codex-cell {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 8px;
+    border: 1px solid var(--glass-border);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 0.75rem;
+    min-width: 0;
+}
+
+.codex-cell.unknown {
+    color: rgba(240, 240, 245, 0.28);
+    border-style: dashed;
+}
+
+.codex-cell.played {
+    border-color: rgba(0, 255, 204, 0.45);
+}
+
+.codex-cell-index {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    color: rgba(240, 240, 245, 0.35);
+}
+
+.codex-cell-name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.codex-cell-flag {
+    flex: 0 0 auto;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #00ffcc;
+}
+
+.codex-cell-note {
+    flex: 0 0 auto;
+    font-size: 0.6rem;
+    color: rgba(240, 240, 245, 0.35);
+}
+
+/* --- The list (firmware, statuses) ----------------------------------------------------------- */
+
+.codex-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+}
+
+.codex-row {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    gap: 12px;
+    align-items: baseline;
+    padding: 5px 8px;
+    border-left: 2px solid var(--glass-border);
+    font-size: 0.78rem;
+}
+
+.codex-row.unknown {
+    color: rgba(240, 240, 245, 0.3);
+    border-left-style: dashed;
+}
+
+.codex-row.found {
+    border-left-color: var(--accent-primary);
+}
+
+.codex-row-name {
+    font-weight: 600;
+}
+
+.codex-row-desc {
+    color: rgba(240, 240, 245, 0.7);
+    line-height: 1.5;
+}
+
+@media (max-width: 620px) {
+    .codex-bar-row {
+        grid-template-columns: 1fr 70px;
+    }
+
+    .codex-bar-track {
+        grid-column: 1 / -1;
+    }
+
+    .codex-row {
+        grid-template-columns: 1fr;
+    }
+}

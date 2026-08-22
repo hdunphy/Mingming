@@ -70,10 +70,11 @@ function makeRanch(overrides: Partial<IRanchState> = {}): IRanchState {
             { id: 'mm2', definitionId: 'fenrir', activeOS: 'fenrir_v1', attackIV: 3, defenseIV: 31, hpIV: 0 },
         ],
         blueprints: { kraken: 2, fenrir: 1 },
-        codex: { seen: ['prog_a'], played: ['prog_a'] },
+        codex: { seen: ['prog_a'], played: ['prog_a'] , species: [], assembled: [], os: [] },
         gymsCleared: ['gym_water'],
         highestTierCleared: 1,
         seenTips: [],
+        codexMilestones: [],
         ...overrides,
     };
 }
@@ -280,13 +281,14 @@ describe('malformed persistent currency FAILS rather than emptying itself', () =
         expect(loaded.ranch).toEqual({
             roster: [],
             blueprints: {},
-            codex: { seen: [], played: [] },
+            codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
             gymsCleared: [],
             highestTierCleared: 0,
             // Ticket 24's added field, filled by its `.default([])` — which is the whole reason it
             // needed no version bump: a v4 save written before tips existed is a player who has
             // seen none.
             seenTips: [],
+            codexMilestones: [],
         });
     });
 });

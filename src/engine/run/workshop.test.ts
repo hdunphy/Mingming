@@ -81,7 +81,7 @@ function visited(node: IRegionNode, visit: number): IRegionNode {
 const NODE = visited(WORKSHOPS[0], 1);
 
 function makeRanch(blueprints: Record<string, number>, roster: IRanchMember[] = [rosterMember('mm1', 'kraken', 'kraken_v1')]): IRanchState {
-    return { roster, blueprints, codex: { seen: [], played: [] }, gymsCleared: [], highestTierCleared: 0, seenTips: [] };
+    return { roster, blueprints, codex: { seen: [], played: [] , species: [], assembled: [], os: [] }, gymsCleared: [], highestTierCleared: 0, seenTips: [], codexMilestones: [] };
 }
 
 /** Every price the marketplace actually offers, so "a card" means a card the player could buy. */

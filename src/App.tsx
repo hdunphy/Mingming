@@ -15,6 +15,7 @@ import AudioControls from './ui/components/AudioControls'
 import SettingsScreen from './ui/screens/SettingsScreen'
 import { openSettings } from './ui/store/uiSlice'
 import { applySettings, loadSettings } from './ui/settings/settings'
+import { useCodexRecorder } from './ui/hooks/useCodexRecorder'
 
 // The single import edge between the game and the debug toolkit. `import.meta.env.DEV` is
 // statically replaced by `false` in a production build, the ternary folds to `null`, and the
@@ -98,6 +99,16 @@ function App() {
   useEffect(() => {
     applySettings(loadSettings());
   }, []);
+
+  /*
+   * TICKET 31: the codex's in-battle recorder, mounted once for the life of the app.
+   *
+   * Here rather than in `BattleArena` on purpose. The bus is a module singleton and a battle can
+   * begin and end without this component re-rendering, so subscribing per fight would leave a
+   * window between mounts in which a resolved play is not recorded. See `useCodexRecorder` for why
+   * it listens to the event bus rather than the action tap.
+   */
+  useCodexRecorder();
 
   const prevInBattle = useRef(isInBattle);
   // Remember that the current battle belongs to a gauntlet: completeGauntlet()

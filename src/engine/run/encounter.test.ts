@@ -412,10 +412,11 @@ describe('full heal between nodes', () => {
     const ranch: IRanchState = {
         roster: [ranchMember(KRAKEN), ranchMember(FENRIR)],
         blueprints: {},
-        codex: { seen: [], played: [] },
+        codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: 0,
         seenTips: [],
+        codexMilestones: [],
     };
 
     it('starts every node’s battle at full HP with no statuses, however the last one went', () => {
