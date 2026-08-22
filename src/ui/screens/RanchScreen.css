@@ -280,3 +280,64 @@
 
 .ranch-relic-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.25rem; }
 .ranch-relic-desc { font-size: 0.75rem; opacity: 0.72; line-height: 1.5; }
+
+/* --- Run start (ticket 09) --- */
+
+.ranch-offer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.6rem;
+}
+
+.ranch-offer {
+    text-align: left;
+    background: rgba(0, 0, 0, 0.3);
+    color: inherit;
+    font-family: inherit;
+    border: 1px solid rgba(122, 92, 255, 0.3);
+    border-radius: 6px;
+    padding: 0.8rem;
+    cursor: pointer;
+}
+
+.ranch-offer:hover { border-color: #7a5cff; background: rgba(122, 92, 255, 0.12); }
+.ranch-offer-name { font-weight: 700; font-size: 1rem; }
+.ranch-offer-meta { font-size: 0.72rem; opacity: 0.6; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+.ranch-offer-route {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.ranch-offer-route li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+}
+
+.ranch-offer-step {
+    display: inline-grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    border: 1px solid rgba(122, 92, 255, 0.5);
+    font-size: 0.62rem;
+    opacity: 0.8;
+}
+
+.ranch-offer-element { margin-left: auto; opacity: 0.55; font-size: 0.7rem; }
+
+/* --- Run shell --- */
+
+.ranch-run-meta {
+    flex: 1 1 20rem;
+    font-size: 0.75rem;
+    opacity: 0.65;
+    line-height: 1.5;
+}

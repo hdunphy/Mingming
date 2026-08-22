@@ -23,6 +23,7 @@ import type { IPlayerSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
 import battleReducer from '../store/battleSlice';
 import gameReducer from '../store/gameSlice';
+import runReducer from '../store/runSlice';
 
 const member = (id: string, definitionId: string, activeOS?: string): IMingmingState => ({
     id,
@@ -34,15 +35,15 @@ const member = (id: string, definitionId: string, activeOS?: string): IMingmingS
     ...(activeOS === undefined ? {} : { activeOS }),
 });
 
-function render(game: Partial<IPlayerSave>): string {
+function render(game: Partial<IPlayerSave>, section: 'expedition' | 'roster' | 'assembly' | 'vault' = 'roster'): string {
     const store = configureStore({
-        reducer: { battle: battleReducer, game: gameReducer },
+        reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
         preloadedState: { game: { ...createDefaultSave(), ...game } },
         middleware: (getDefault) => getDefault({ serializableCheck: false }),
     });
     return renderToStaticMarkup(
         <Provider store={store}>
-            <RanchScreen />
+            <RanchScreen initialSection={section} />
         </Provider>,
     );
 }

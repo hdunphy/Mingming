@@ -94,6 +94,20 @@ export interface IMingmingDefinition {
    * `getDeckForOS(definitionId, osId)` rather than indexing directly.
    */
   readonly decks: Record<string, string[]>;
+  /**
+   * Ticket 09: which five cards of a species' deck a run actually STARTS with,
+   * keyed by firmware id exactly as `decks` is.
+   *
+   * Ticket 08 ruled that a run does not hand the player the whole tuned deck. A member
+   * joins with 5 `startKit` cards plus 3 generics; a recruit joins with 3 plus 1. The
+   * tuned deck stays the design target the run builds back toward, so these tags name
+   * WHICH five of it survive the cut rather than describing a separate list — every id
+   * here must appear in that same species+OS `decks` entry, copy counts included.
+   *
+   * Optional because only the six launch species (`LAUNCH_SPECIES`) are tagged today;
+   * the other ten get their tags when their decks ship.
+   */
+  readonly startKits?: Record<string, ReadonlyArray<string>>;
   readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
   /**

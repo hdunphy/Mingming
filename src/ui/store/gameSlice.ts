@@ -7,7 +7,7 @@ import type {
     IRewardBundle,
     IGauntletState
 } from '../../engine/gameTypes';
-import { createDefaultSave, createStarterSave, DECK_SIZE, deckGrantKey, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
+import { createDefaultSave, DECK_SIZE, deckGrantKey, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { legalParty } from '../../engine/party';
@@ -254,10 +254,6 @@ const gameSlice = createSlice({
             (state.unlockedSectors as string[]).push(action.payload);
         },
 
-        startNewGauntlet: (_state, action: PayloadAction<'kraken' | 'fenrir' | 'ratatoskr'>) => {
-            return createStarterSave(action.payload);
-        },
-
         // --- OS Management ---
         updateMingmingOS: (state, action: PayloadAction<{ id: string, activeOS: string }>) => {
             const { id, activeOS } = action.payload;
@@ -352,7 +348,6 @@ export const {
     startGauntlet,
     completeGauntlet,
     unlockSector,
-    startNewGauntlet,
     updateMingmingOS,
     swapOS,
     resetSave,

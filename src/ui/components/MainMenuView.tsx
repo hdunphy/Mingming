@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
-import { startNewGauntlet } from '../store/gameSlice';
+import { addBlueprint } from '../store/gameSlice';
 
 const StarterCard: React.FC<{
     id: 'kraken' | 'fenrir' | 'ratatoskr';
@@ -85,6 +85,10 @@ const MainMenuView: React.FC = () => {
                     GAUNTLET
                 </h1>
                 <p style={{ color: '#555', marginTop: '10px', fontSize: '1.1rem' }}>CHOOSE YOUR STARTER PROGRAM</p>
+                <p style={{ color: '#444', marginTop: '6px', fontSize: '0.8rem', maxWidth: '46ch' }}>
+                    You are granted its blueprint. Assemble it at the ranch — that is how every mingming
+                    you will ever own comes into existence.
+                </p>
             </motion.div>
 
             <motion.div
@@ -98,21 +102,21 @@ const MainMenuView: React.FC = () => {
                     name="KRAKEN"
                     element="Water"
                     description="Versatile and sustainable. Focuses on card draw and status manipulation."
-                    onSelect={() => dispatch(startNewGauntlet('kraken'))}
+                    onSelect={() => dispatch(addBlueprint('kraken'))}
                 />
                 <StarterCard
                     id="fenrir"
                     name="FENRIR"
                     element="Fire"
                     description="Aggressive and high-impact. Focuses on status upgrades and overwhelming power."
-                    onSelect={() => dispatch(startNewGauntlet('fenrir'))}
+                    onSelect={() => dispatch(addBlueprint('fenrir'))}
                 />
                 <StarterCard
                     id="ratatoskr"
                     name="RATATOSKR"
                     element="Nature"
                     description="Fast and relentless. Low-energy agro attacks combined with massive card draw loops."
-                    onSelect={() => dispatch(startNewGauntlet('ratatoskr'))}
+                    onSelect={() => dispatch(addBlueprint('ratatoskr'))}
                 />
             </motion.div>
 

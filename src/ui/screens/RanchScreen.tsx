@@ -51,12 +51,14 @@ import { assembleMingming, setActiveParty } from '../store/gameSlice';
 import type { RootState } from '../store/store';
 import FirmwareTerminal from '../components/FirmwareTerminal';
 import { TypeChartPanel } from '../components/TypeChart';
+import RunStart from './RunStart';
 import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
 
-type Section = 'roster' | 'assembly' | 'vault';
+type Section = 'expedition' | 'roster' | 'assembly' | 'vault';
 
 const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: string }> = [
+    { id: 'expedition', label: 'Expedition', icon: '🗺' },
     { id: 'roster', label: 'Roster', icon: '🤖' },
     { id: 'assembly', label: 'Assembly', icon: '🔬' },
     { id: 'vault', label: 'Vault', icon: '💎' },
@@ -67,11 +69,21 @@ const BLOCK_TEXT: Record<PartyBlock, string> = {
     'duplicate-species': 'Already fielding this species',
 };
 
-export default function RanchScreen(): ReactNode {
+export interface RanchScreenProps {
+    /**
+     * Which section to open on. Defaults to Expedition, because starting a run is the thing the
+     * player came here to do — the roster and the assembly bay are what you visit *between* runs.
+     * A prop rather than a hardcoded constant so tests can render one section directly:
+     * `renderToStaticMarkup` cannot click a tab.
+     */
+    readonly initialSection?: Section;
+}
+
+export default function RanchScreen({ initialSection = 'expedition' }: RanchScreenProps = {}): ReactNode {
     const dispatch = useDispatch();
     const { roster, activeParty, blueprints, relics } = useSelector((s: RootState) => s.game);
 
-    const [section, setSection] = useState<Section>('roster');
+    const [section, setSection] = useState<Section>(initialSection);
     const [showFirmware, setShowFirmware] = useState(false);
 
     const party = useMemo(
@@ -112,6 +124,7 @@ export default function RanchScreen(): ReactNode {
                 </nav>
             </header>
 
+            {section === 'expedition' && <RunStart />}
             {section === 'roster' && (
                 <RosterSection
                     roster={roster}

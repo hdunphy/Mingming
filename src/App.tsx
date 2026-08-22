@@ -8,10 +8,12 @@ import HubScreen from './ui/screens/HubScreen'
 import MainMenuView from './ui/components/MainMenuView'
 import SectorTerminal from './ui/screens/SectorTerminal'
 
+import RunScreen from './ui/screens/RunScreen'
 import { loadGameState } from './engine/SaveSystem'
 import { applyRanchState } from './engine/save/ranchProjection'
 import { createDefaultSave } from './engine/gameTypes'
 import { loadSave } from './ui/store/gameSlice'
+import { setRun } from './ui/store/runSlice'
 import type { RootState } from './ui/store/store'
 import { initAudio, playSfx } from './ui/audio/AudioEngine'
 import AudioControls from './ui/components/AudioControls'
@@ -61,11 +63,15 @@ function App() {
   const rosterSize = useSelector((state: RootState) => state.game.roster.length);
   const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
   const gauntlet = useSelector((state: RootState) => state.game.gauntlet);
+  const hasRun = useSelector((state: RootState) => state.run.run !== null);
 
-  // Ticket 23: load reads save v4's two keys and reconciles them. Only the ranch half has a home
-  // in the store today — the run half waits for tickets 09–15 — so a discarded run is logged and
-  // dropped rather than dispatched. `loadGameState` already guarantees a discarded run never costs
-  // the ranch.
+  // Ticket 23 reads save v4's two keys and reconciles them; ticket 09 gives the run half a home.
+  // A discarded run is reported and dropped — `loadGameState` guarantees it never costs the ranch,
+  // which is the entire reason the two keys are separate.
+  //
+  // Ordering matters: the ranch is dispatched first, because the run's `partyIds` point into the
+  // roster and a run installed against an empty roster would render a party of nothing for one
+  // frame.
   useEffect(() => {
     const result = loadGameState();
     if (result.discarded) {
@@ -73,6 +79,9 @@ function App() {
     }
     if (result.ranch) {
       dispatch(loadSave(applyRanchState(createDefaultSave(), result.ranch)));
+    }
+    if (result.run) {
+      dispatch(setRun(result.run));
     }
   }, [dispatch]);
 
@@ -117,6 +126,13 @@ function App() {
 
   if (rosterSize === 0) {
     return <>{debugLayer}<MainMenuView /></>;
+  }
+
+  // TICKET 09: a run in progress outranks the ranch. There is no tab for it — you are either at
+  // the ranch or in a run, and the only ways out are finishing it or abandoning it. Ticket 10
+  // replaces `RunScreen`'s body with the real region map.
+  if (hasRun) {
+    return <>{debugLayer}<RunScreen /></>;
   }
 
   return (

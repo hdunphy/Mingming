@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20). **State: 55 tickets, 10 closed (01, 02, 03, 04, 26, 06, 21, 07+08 by Henry, 23, 20). Save v4 is live and the ranch is rebuilt: one screen, one currency (blueprints as counts), species clause enforced. Critical path from here: 09 -> 10 -> 11/12 -> 18 -> 19. **09 (run start) is next** — it deletes `engine/save/ranchProjection.ts`, deletes the dev-only legacy Hub/Sectors/Deck tabs, and removes `addToRoster`'s base-deck grant. Also open and agent-runnable: 22 (3v3 game-side), 36 (settings — it inherits the wipe button, currently unreachable), 55 (lint). Blocked on deck-archetypes 109: 16, 17, 40. Suite green at 77 files / 939 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09). **State: 55 tickets, 11 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09). A RUN EXISTS: seeded region graph, gym offers, party pick, 8-card start deck, and it survives an app close. Critical path: 10 -> 11 -> 12 -> 18 -> 19. **10 (region map screen) is next.** Ticket 11 has grown — it now owns the battle-path migration off `IPlayerSave`, deleting `ranchProjection`, `addToRoster`'s base-deck grant, and the DEV-only legacy Hub/Sectors/Deck tabs. Also agent-runnable: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. Suite green at 82 files / 1045 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,17 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Run start (ticket 09) — **a run exists, and it survives closing the app**
+
+- **`engine/run/` is new**: `regionGraph.ts` (the TS port of ticket 07's Python prototype, ruled parameters in one exported `REGION_PARAMS`), `gyms.ts` (`GYM_REGISTRY` + `offerGyms`), `createRun.ts` (`createRun`, `startDeckFor`, and `recruitDeckFor` for ticket 14). All seeded through `SeedStream`; no `Math.random`, and **no `Date.now()` — `startedAt` is injected**, because an engine module that reads the clock cannot be tested deterministically.
+- **The second autosave arm landed.** `store.ts` now watches `game` and `run` separately, so the two-key split is real rather than nominal: travelling a node does not rewrite the ranch, and `clearRun` REMOVES the run key rather than writing a null envelope. `runSlice.test.ts` asserts both directions.
+- **Start deck = 5 `startKit` + 3 `water_slap`.** Henry ratified the 12 tag sets in `e2ec61f`; the generic was left as my call and the answer is reuse, not a new `basic_strike` — adding a card changes `ProgramRegistry`, which changes `registryHash`, which invalidates every stored snapshot in `playtest-results/`.
+- **THREE THINGS FOR HENRY, all in the ticket's resolution.** (1) Ticket 07's node mix and its one-market-one-workshop guarantee are mutually exclusive at these biome widths; I made the guarantee win and measured the cost (markets/workshops ~13% vs the ruled 8%; shortest path 8.19 fights vs the prototype's 6.7 — the lever is the event weight). (2) "Gym element last" + "three different openings" makes the opening a derangement of 3, of which there are exactly **two**, so the offer screen has only two possible shapes. (3) `kraken_v2` starts with five doubles out of eight cards.
+- **SCOPE MOVED TO TICKET 11, deliberately.** 09's own note said it would delete `ranchProjection` and move the six run-scoped fields. It does not. Those are the same job as moving `createBattleState` off `IPlayerSave` — and `createBattleState` is what the **whole balance harness and scenario system** call. Ticket 11 has been amended to own: the field move, the projection deletion, `addToRoster`'s base-deck grant, the DEV-only legacy tabs, the node trigger, and ticket 08's per-depth `kitFraction` for enemy decks.
+- `MainMenuView`'s starter pick now grants a **blueprint** instead of a whole save; `startNewGauntlet` is deleted. The ranch is the single path.
+- `RunScreen` is a shell with a plain neighbour list where the map goes. **Ticket 10 drops `RegionMap` into it** — the placeholder says so in as many words so nobody mistakes it for the finished screen.
+- Suite **1002 → 1045**; `tsc -b` clean; build green.
 
 ### 2026-08-22 — Ranch-minimal (ticket 20) — **one screen, one currency, and the species clause is finally real**
 

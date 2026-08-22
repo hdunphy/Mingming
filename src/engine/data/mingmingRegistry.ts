@@ -20,6 +20,14 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             "fenrir_v1": ["ember_mend", "blood_rite", "blood_rite", "berserk_rush", "berserk_rush", "battle_rhythm", "crimson_draw", "ragnarok_edge", "ragnarok_edge"],
             "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
         },
+        // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
+        // v1 keeps the consume cycle whole - both `blood_rite` copies, because one copy is a coin
+        // flip and two is an engine - and leaves the `ragnarok_edge` finishers to be earned back.
+        // v2 keeps the Burn ignition (`ignite` x2) and one payoff rather than the 3e top end.
+        startKits: {
+            "fenrir_v1": ["blood_rite", "blood_rite", "berserk_rush", "battle_rhythm", "crimson_draw"],
+            "fenrir_v2": ["ignite", "ignite", "molten_core", "slag_strike", "pyre_sacrifice"]
+        },
         moves: [
             {
                 id: 'fenrir_bite',
@@ -77,6 +85,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         decks: {
             "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "surge_protection", "undertow"],
             "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection", "water_slap", "water_slap"]
+        },
+        // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
+        // v1 leads with `undertow` and one `whirlpool_v2` so the ink engine has fuel from turn
+        // one; `pressure_point` x2 is the damage the OS is actually paying for.
+        // v2 is the ramp half - `capacitor` x2 into a single 3e payoff - and `surge_protection`
+        // x2 comes along because the ramp is what keeps the unit alive long enough to cash it.
+        startKits: {
+            "kraken_v1": ["undertow", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream"],
+            "kraken_v2": ["capacitor", "capacitor", "surge_protection", "surge_protection", "hydro_blast"]
         },
         moves: [
             {
@@ -199,6 +216,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             // every subsequent hit), so the lost nuke copy partially returns as fuel.
             "skoll_v2": ["strength_burst", "fury_strike", "fury_strike", "all_in", "desperate_strike", "reckless_charge", "overdrive", "glass_cannon", "water_slap"]
         },
+        // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
+        // Both kits keep `fury_strike` x2 because it is the 1e card that FEEDS each OS, and a
+        // single copy on a 3.5-turn clock is a card the run may never see.
+        // v1 keeps one `sun_devourer` as the consume payoff; v2 keeps `strength_burst` to light
+        // the core and `glass_cannon` to cash it, leaving `all_in`'s self-Burn risk to be drafted.
+        startKits: {
+            "skoll_v1": ["fury_strike", "fury_strike", "brute_force", "battle_rhythm", "sun_devourer"],
+            "skoll_v2": ["fury_strike", "fury_strike", "reckless_charge", "strength_burst", "glass_cannon"]
+        },
         moves: [
             {
                 id: 'skoll_bite',
@@ -248,6 +274,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         decks: {
             "jormungandr_v1": ["undertow", "undertow", "blind_spot", "corrosive_leak", "surge_protection", "serpents_coil", "serpents_coil", "ink_stream", "ink_stream"],
             "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "water_slap", "water_slap", "toxic_surge", "contagion"]
+        },
+        // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
+        // v1 keeps `undertow` x2 - the loop counts Water cards drawn, so the draw half has to
+        // arrive doubled or `ink_stream` is a dead clock - plus one counter from each side.
+        // v2 keeps the amplifier pair whole (`corrosive_bolt` x2, `venom_fang` x2) and one
+        // payoff; `contagion` doubles a pile that does not exist yet at run start.
+        startKits: {
+            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "serpents_coil", "ink_stream"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "toxic_surge"]
         },
         moves: [
             {
@@ -426,6 +461,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             "ratatoskr_v1": ["forage", "forage", "water_slap", "water_slap", "healing_mist", "shrug_off", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
             "ratatoskr_v2": ["pollen_cloud", "pollen_cloud", "water_slap", "water_slap", "nagging_bite", "nagging_bite", "crippling_vine", "slander", "echo_chamber_v2"]
         },
+        // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
+        // Both kits lead with the 0-cost fuel doubled, because these decks win on card VOLUME
+        // and a single copy of the fuel starves the OS proc that the whole species is built on.
+        // v1 keeps `echo_chamber_v2` (each 0-cost is then worth two procs) over the `seed_bomb_v2`
+        // payoff; v2 keeps `crippling_vine` and leaves `slander` to be drafted onto a real pile.
+        startKits: {
+            "ratatoskr_v1": ["forage", "forage", "healing_mist", "nettle_sting", "echo_chamber_v2"],
+            "ratatoskr_v2": ["pollen_cloud", "pollen_cloud", "nagging_bite", "nagging_bite", "crippling_vine"]
+        },
         moves: [
             {
                 id: 'rata_nut',
@@ -480,6 +524,16 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         decks: {
             "huldra_v1": ["growth", "growth", "soothe", "water_slap", "iron_bark", "iron_bark", "thorn_tithe", "thorn_tithe", "hexbloom"],
             "huldra_v2": ["sap_vigor", "sap_vigor", "water_slap", "nettle_sting", "nettle_sting", "heartwood", "thornguard", "thornguard", "blightbloom"]
+        },
+        // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
+        // v1 keeps `growth` x2 so the mirror hook has statuses to mirror from turn one, plus
+        // `thorn_tithe` and `hexbloom` to cash the pile - the buff half without the payoff is
+        // the weakest opening in the roster and this deck is already the weakest deck.
+        // v2 keeps the shield wall whole (`sap_vigor` x2, `thornguard` x2) and `heartwood`,
+        // which earns its slot on shield UPTIME rather than on mitigation.
+        startKits: {
+            "huldra_v1": ["growth", "growth", "iron_bark", "thorn_tithe", "hexbloom"],
+            "huldra_v2": ["sap_vigor", "sap_vigor", "thornguard", "thornguard", "heartwood"]
         },
         moves: [
             {
@@ -951,6 +1005,34 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
  */
 export const PLAYABLE_SPECIES: ReadonlyArray<string> =
     Object.keys(MingmingRegistry).filter(id => !MingmingRegistry[id].isControl);
+
+/**
+ * Ticket 05: the Early Access roster - 6 species / 12 decks, two each of Fire, Water and
+ * Nature. Three elements taken in pairs is a PURE counter cycle: every species has something
+ * it beats and something that beats it, with no odd element sitting outside the triangle.
+ *
+ * The other ten species stay in `MingmingRegistry` because the balance harness and the deck
+ * passes need them; they are simply not what ships. Anything scoped to launch - `startKits`
+ * coverage, the EA content audit - must enumerate through here. This constant lived only in
+ * the ticket-05 doc until now, which is why every consumer was hand-listing the six ids.
+ */
+export const LAUNCH_SPECIES: ReadonlyArray<string> = ['fenrir', 'skoll', 'kraken', 'jormungandr', 'ratatoskr', 'huldra'];
+
+/**
+ * Ticket 09: the generic filler card ticket 08 left unnamed - the 3 cards a member and the
+ * 1 a recruit bring alongside their `startKit`.
+ *
+ * It is `water_slap` and not a new `basic_strike` because `water_slap` already IS the card
+ * ticket 08 describes: element 'None' (so no species gains STAB from it), named "Tackle",
+ * 0-cost, 12 power, with a description that states the design out loud - "A plain, reliable
+ * hit. Neutral programs gain no STAB - priced at 12 power to compensate." It is already the
+ * filler in 9 of the 12 launch decks, so players meet it as the generic either way.
+ *
+ * Minting a new card would duplicate a shipped one AND add a `ProgramRegistry` entry, which
+ * moves `registryHash` and invalidates every stored battle snapshot in `playtest-results/`.
+ * Reuse beats churn: the id is misleading, but a rename is a separate, cheaper ticket.
+ */
+export const GENERIC_HIT = 'water_slap';
 
 /**
  * Ticket 13: per-OS starting decks. Resolves a species' deck for a firmware id,

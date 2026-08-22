@@ -1,8 +1,8 @@
 # Run start: pick your starter, pick one of three gyms, seed the run (ticket 09)
 
 - Type: wayfinder:task
-- Status: open
-- Assignee: 
+- Status: closed
+- Assignee: agent
 - Blocked by: [06](06-run-data-model.md), [07](07-region-graph.md), [08](08-start-kit-rule.md)
 - Phase: Vertical Slice
 
@@ -18,7 +18,98 @@ A new player can boot, assemble a starter, start a run, and land on the region m
 
 ## Resolution
 
-_(open)_
+**Closed 2026-08-22.** A run exists: you pick a gym, pick a party, and get a seeded region, a start
+deck and a position that survives closing the app. Suite **1002 → 1045**, `tsc -b` clean, build green.
+
+### What landed
+
+| File | What it is |
+| --- | --- |
+| `engine/run/regionGraph.ts` | The TS port of ticket 07's Python prototype. 3 biomes x 5 layers, ruled parameters in one exported `REGION_PARAMS`. |
+| `engine/run/gyms.ts` | `GYM_REGISTRY` (3 placeholder leaders — **ticket 28 authors them**) and `offerGyms(seed)`. |
+| `engine/run/createRun.ts` | `createRun` + the ticket-08 start-deck rule; also `recruitDeckFor` for ticket 14. |
+| `ui/store/runSlice.ts` | `IRunState | null`. Every reducer replaces rather than mutates — `IRunState` is deeply readonly and immer's draft type is right to refuse. |
+| `ui/screens/RunStart.tsx` | Gym offers → party. `ui/screens/RunScreen.tsx` is the run shell. |
+| `mingmingRegistry.ts` | The 12 ratified `startKits`, plus `LAUNCH_SPECIES` and `GENERIC_HIT`. |
+
+`store.ts` now has **two autosave arms**, each firing on its own slice's identity. That is what makes
+the two-key split real rather than nominal: travelling a node does not rewrite the ranch, assembling
+a mingming does not rewrite the run, and `runSlice.test.ts` asserts both directions plus the
+key-removal on `clearRun`.
+
+### The generic is `water_slap` (your call to me, answered)
+
+It is already `element: "None"`, named "Tackle", 0-cost, 12 power, and its own description reads *"A
+plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate."* It is
+exactly the card ticket 08 describes and it already appears in 9 of the 12 launch decks. Minting a
+`basic_strike` would duplicate a shipped card **and** change `ProgramRegistry`, which changes
+`registryHash` and invalidates every stored battle snapshot in `playtest-results/`. Reuse beats churn.
+
+---
+
+## Three things that need your eye
+
+### 1. The mix and the market/workshop guarantee contradict each other
+
+Ticket 07's table says marketplace 8% / workshop 8% **and** "exactly one market and one workshop
+guaranteed per biome". Both cannot hold. A biome has 6–9 middle nodes, so a filler pool that can
+also roll a marketplace produces doubles regularly — the Python prototype has exactly this bug.
+
+I made **the guarantee win** and dropped both kinds from the filler pool, because a biome with two
+workshops and a biome with none are both worse than a biome with one, and your own test list names
+"exactly one per biome" as a port requirement. Measured cost over 200 seeds: realised mix is **wild
+52 / elite 12 / marketplace 9.5 / workshop 9.5 / event 8.4** against the ruled 60/14/10/8/8. Markets
+and workshops run ~13% *within a biome's middle nodes* versus the ruled 8%. `REGION_PARAMS` keeps
+your numbers verbatim rather than being quietly rewritten to what the generator emits.
+
+Fight envelope over the same 200 seeds: **shortest 8.19 mean (6–11), longest 14.88 mean (11–18)**,
+against the prototype's 6.7 / 14.6. The long end matches; the short end is ~1.5 fights higher because
+the prototype's `int(weight * 20)` pool quantisation distorted your percentages and I used them
+literally. If 6.7 was the number you liked, **the lever is the event weight, not the graph shape.**
+
+### 2. The offer screen has only two possible shapes
+
+Rule: the gym's element is the LAST biome (my reading — you fight the leader in its own region, and
+no ticket says it in so many words). Combined with your guarantee that the three offers open on three
+different biomes, the opening element becomes a *derangement* of three items — and there are exactly
+two of those. So an offer screen is always either "each gym opens on what it beats" or "each gym opens
+on what beats it", and the middle biome is then fully determined.
+
+That is less variety than the screen looks like it has. It is correct under both rules, but if you
+wanted three visibly different routes each time, one of the two rules has to give.
+
+### 3. `kraken_v2`'s start deck reads as very repetitive
+
+`capacitor, capacitor, surge_protection, surge_protection, hydro_blast` + 3x `water_slap` — five of
+eight cards are doubles, and the generic happens to be the same card `kraken_v2`'s tuned deck already
+uses as filler. Correct per the ratified tags; just worth seeing before playtest.
+
+---
+
+## Scope I moved, and why
+
+**`engine/save/ranchProjection.ts` is NOT deleted, and the legacy dev-only tabs are still there.**
+This ticket's note said it would do both. It should not, and the reason is concrete: those two jobs
+are the same job as moving `createBattleState` off `IPlayerSave`, and `createBattleState` is what the
+**entire balance harness and scenario system** call. Deleting the projection here means rewriting the
+battle path, which is **ticket 11**'s deliverable, and dragging 11 and 12 into 09 would have produced
+one unreviewable commit instead of three.
+
+So the split is: 09 makes a run **exist and persist**; **ticket 11** moves the battle path onto run
+state and takes the projection, the `game`-slice run fields, `addToRoster`'s base-deck grant and the
+legacy Hub/Sectors/Deck tabs with it. Ticket 11 has been amended to say so.
+
+## Also worth knowing
+
+- **`startNewGauntlet` is deleted.** `MainMenuView`'s starter pick now grants a **blueprint** and
+  routes the player to the ranch to assemble it — "the ranch is the single path", per this ticket.
+- Travel moves `currentNodeId` and increments `visited`. It does **not** trigger the node: ticket 07
+  rules that entering a node triggers it again *always*, and ticket 11 owns the trigger. `visited` is
+  a count precisely so a second visit rolls a second encounter rather than replaying a cached one.
+- The offer screen is rolled once per visit and held in component state — not persisted, and not
+  re-rolled per render, so a player cannot scrub for a favourable set by navigating away and back.
+- `startedAt` is injected into `createRun` rather than read from the clock. An engine module that
+  calls `Date.now()` cannot be tested deterministically, and this layer already bans `Math.random`.
 
 ## Amendments from tickets 07/08 (Henry, 2026-08-21)
 
