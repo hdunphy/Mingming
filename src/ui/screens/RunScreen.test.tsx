@@ -99,8 +99,24 @@ describe('RunScreen — a node that fired says so', () => {
         expect(render(standingOn('workshop'))).not.toContain('Reroll');
     });
 
-    it('names ticket 14 for a workshop', () => {
-        expect(render(standingOn('workshop'))).toContain('ticket 14');
+    it('opens the workshop on a workshop instead of an apology (ticket 14)', () => {
+        // Until ticket 14 this node printed "nothing here yet (ticket 14)". It has a bench now, so
+        // the placeholder has to be GONE rather than merely accompanied — a screen that says both is
+        // a screen nobody updated.
+        const markup = render(standingOn('workshop'));
+
+        expect(markup).not.toContain('nothing here yet');
+        expect(markup).not.toContain('ticket 14');
+        expect(markup).toContain('Workshop');
+        expect(markup).toContain('Assemble');
+        // The one thing this node must say that no other node can: the party grows here and only
+        // here (ticket 06), with the count beside it.
+        expect(markup).toContain('party: 1/3');
+        expect(markup).toContain('only place the party grows');
+    });
+
+    it('does NOT open the workshop on any other kind of node', () => {
+        expect(render(standingOn('marketplace'))).not.toContain('Reflash firmware');
     });
 
     it('says nothing of the kind on a fight node', () => {

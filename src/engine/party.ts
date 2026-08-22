@@ -69,9 +69,14 @@ export function partyBlockFor(
  * rather than the primary UI.
  *
  * **No production caller since ticket 11**, which deleted `setActiveParty` and the save-time
- * projection that were its two users. It is kept rather than deleted because the *next* thing that
- * builds a party from a list of ids needs exactly this — ticket 14's workshop node grows the party
- * 1 → 2 → 3 mid-run, and it is the only rule that says what happens to an illegal addition. Its
+ * projection that were its two users.
+ *
+ * Ticket 14 was expected to be the caller that brought it back — the workshop node grows the party
+ * 1 → 2 → 3 mid-run — and it turned out to want `partyBlockFor` instead. That is worth recording
+ * rather than quietly fixing the prediction: the workshop adds **one candidate at a time and has to
+ * explain a refusal on screen**, which is the question `partyBlockFor` answers; `legalParty`'s
+ * trim-a-whole-list shape answers a question nobody is asking yet. It stays for the same reason as
+ * before — the next thing that builds a party *from a list of ids* needs exactly this — and its
  * behaviour is pinned by `party.test.ts` so it cannot rot quietly while it waits.
  */
 export function legalParty(

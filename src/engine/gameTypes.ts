@@ -38,7 +38,7 @@ export interface IOwnedProgram {
  * So the only thing worth storing is *how many of this species you hold*. The `name` was
  * `${definition.name} Blueprint` — derivable — and `compileCost` was a flat 100 scrap that ticket
  * 20 deletes outright: **assembly costs a blueprint at the ranch, full stop.** (A blueprint PLUS
- * scrap is the *workshop* price, mid-run, and ticket 14 owns that number.)
+ * scrap is the *workshop* price, mid-run; ticket 14 set that number at `WORKSHOP_ASSEMBLY_SCRAP`.)
  */
 export type BlueprintCounts = Readonly<Record<string, number>>;
 

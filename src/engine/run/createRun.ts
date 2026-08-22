@@ -135,8 +135,10 @@ export function startDeckFor(member: IMingmingState, stream: SeedStream): IRunCa
 
 /**
  * The 4 cards a mid-run recruit brings: the first 3 kit cards + 1 generic. Not called by
- * `createRun` — the workshop node (ticket 14) is its caller — but it lives here because it is the
- * same ruling, and splitting the two halves of ticket 08 across two files is how they drift apart.
+ * `createRun` — `engine/run/workshop.ts`'s `planRecruit` (ticket 14) is its caller — but it lives
+ * here because it is the same ruling, and splitting the two halves of ticket 08 across two files is
+ * how they drift apart. The workshop calls this rather than re-deriving the 3 + 1 for exactly that
+ * reason.
  */
 export function recruitDeckFor(member: IMingmingState, stream: SeedStream): IRunCard[] {
     const ids = [

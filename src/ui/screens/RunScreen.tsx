@@ -23,7 +23,7 @@
  *    re-rolls the identical fight from the identical seed — ticket 23's resume contract extended to
  *    encounters, for free, because nothing about the fight was ever held in a component.
  *
- * # THE MARKETPLACE IS A PANEL, NOT A ROUTE (ticket 13)
+ * # THE MARKETPLACE IS A PANEL, NOT A ROUTE (ticket 13), AND SO IS THE WORKSHOP (ticket 14)
  *
  * Standing on a market renders `MarketplaceNode` inside this screen, with the map still underneath
  * it. That is a deliberate difference from the fight path, which swaps the whole screen for
@@ -31,7 +31,11 @@
  * standing, and ticket 07 makes leaving it a matter of walking to a neighbour on the map that is
  * already on screen. There is no "leave the shop" button because there is nothing to leave.
  *
- * The two remaining non-fight kinds do nothing yet and say so on screen. A node that fired and
+ * `WorkshopNode` takes the same shape for the same reasons, plus one of its own: the workshop writes
+ * the **ranch** as well as the run (an assembled individual joins the permanent roster), so it is
+ * handed `ranch` alongside `run` where the market needs only the party.
+ *
+ * The one remaining non-fight kind does nothing yet and says so on screen. A node that fired and
  * produced no visible change is indistinguishable from a node that failed to fire.
  */
 
@@ -43,6 +47,7 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
 import { RUN_ENEMY_MODE, isFightNode, rollEncounter } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
+import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
@@ -52,6 +57,7 @@ import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
 import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
+import WorkshopNode from './WorkshopNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 
 /**
@@ -61,12 +67,12 @@ import { NODE_ICON, NODE_LABEL } from './regionLayout';
  * checkable: standing on a workshop and reading "ticket 14" tells you the trigger fired and which
  * ticket owes you the rest. A silent node would look exactly like a broken one.
  *
- * **`marketplace` left this table in ticket 13** — it has a screen now, so it is no longer pending.
- * The entry is removed rather than pointed at the landed ticket, because the table's meaning is
- * "nothing happens here", and a kind that renders a shop would be a false entry in it.
+ * **`marketplace` left this table in ticket 13 and `workshop` in ticket 14** — both have screens
+ * now, so neither is pending. The entries are removed rather than pointed at the landed tickets,
+ * because the table's meaning is "nothing happens here", and a kind that renders a shop or a bench
+ * would be a false entry in it.
  */
 const PENDING_NODE_TICKET: Partial<Record<NodeKind, number>> = {
-    workshop: 14,
     event: 30,
 };
 
@@ -228,6 +234,19 @@ export default function RunScreen(): ReactNode {
                   */}
                 {isMarketNode(current.kind) && (
                     <MarketplaceNode run={run} node={current} party={marketParty} />
+                )}
+
+                {/*
+                  * The workshop reads the same visit-incremented node — the individual it offers is
+                  * rolled from it, exactly as a market's stock is (ticket 07 / `nodeSeed`), so a
+                  * resumed run is standing in the same workshop it left.
+                  *
+                  * It gets the whole `ranch` rather than the mapped party, because an assembly spends
+                  * a blueprint and writes the roster: this is the one node that changes the half of
+                  * the save that outlives the run.
+                  */}
+                {isWorkshopNode(current.kind) && (
+                    <WorkshopNode run={run} node={current} ranch={ranch} />
                 )}
 
                 <RegionMap

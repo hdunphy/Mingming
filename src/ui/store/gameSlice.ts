@@ -107,12 +107,19 @@ const gameSlice = createSlice({
          * The player-facing assembly path (ticket 20). **Costs exactly one blueprint of the
          * species and no scrap** — `economy-session.md` and `vision.md` agree once you split the
          * places apart: a blueprint at the ranch, a blueprint PLUS scrap at a mid-run workshop
-         * (ticket 14 owns that price). Scrap is run-scoped, so a ranch that charged it would be
-         * charging a currency the player cannot bring home.
+         * (ticket 14 set that price at `WORKSHOP_ASSEMBLY_SCRAP`). Scrap is run-scoped, so a ranch
+         * that charged it would be charging a currency the player cannot bring home.
          *
          * Atomic on purpose; silent no-op with no blueprint. The caller builds the individual (it
          * owns the RNG for the stat roll), which is also what makes re-assembly the re-roll: same
          * species, new individual, one more blueprint.
+         *
+         * **Ticket 14 gave it a second caller, and the reducer did not have to change.** A mid-run
+         * recruit is this action plus `runSlice.recruitIntoParty`, dispatched in that order — the
+         * ranch half first, so that dying in between leaves the player holding an assembled
+         * individual rather than a run whose party names a member the roster does not have. See
+         * `recruitIntoParty` for the argument; the reason it works is that this reducer is already
+         * atomic in the currency it spends.
          */
         assembleMingming: (state, action: PayloadAction<IRanchMember>) => {
             const counts = state.blueprints as Record<string, number>;

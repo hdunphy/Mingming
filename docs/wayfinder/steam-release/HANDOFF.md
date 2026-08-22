@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10, 11, 12, 13). **State: 55 tickets, 15 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12, 13). The run loop runs and the marketplace works. **Next: 14 (workshop), then 15 (macros), 18, 19.** Ticket 18 has grown (it rebuilds the gauntlet chain ticket 11 deleted). Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **A pile of proposed economy numbers awaits Henry — tickets 12 and 13 both open with an AWAITING HENRY block.** Suite green at 89 files / 1163 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10, 11, 12, 13, 14). **State: 55 tickets, 16 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12, 13, 14). The run loop runs end to end bar the gauntlet: offers -> party -> region -> fight -> rewards -> market -> workshop. **Next: 15 (macros), then 18 (gauntlet, grown — it rebuilds the chain ticket 11 deleted), 19 (run end).** Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **Economy numbers awaiting Henry are in tickets 12, 13 and 14, each under an AWAITING HENRY / proposal heading.** Suite green at 92 files / 1235 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,16 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Workshop node (ticket 14) — **the run's three sinks now quote against each other**
+
+- **The number this ticket owns: `WORKSHOP_ASSEMBLY_SCRAP = 75`**, derived rather than picked. 450 income ÷ 3 guaranteed markets = 150 a visit; ÷ 2 recruits (the ruled 1→2→3) = 75. Deliberately the same sentence ticket 13 wrote about removal, so the sinks are comparable: **of the three market visits a run earns, one buys the team, one strips the filler, one buys cards.** One recruit ≈ 1.6 cards' worth of shop (median rewardable card = 48, computed from the registry and asserted).
+- **Reflash at 40 is flagged as a READING.** Ticket 06's ruling names *assembly* and is silent on reflash. Narrow = free; wide takes the ruling's mechanism (a mid-run transaction spends run currency so it competes with the market) and notes that a reflash re-aims both `rewardCardPool` and `rollMarketStock` for the rest of the run. **Set the constant to 0 to read it narrowly** — the price is a payload, never a literal.
+- **Removal is same-as-market**, re-exported rather than re-declared. Cheaper here would falsify ticket 13's derivation without retuning it (everyone would do all five at workshops) and make the market's button a decoy. Its real job is a floor: a blueprint drops from ~20% of wilds, so most workshops are walked into empty-handed.
+- **The dispatch-ordering argument is a TEST, not a comment.** Assembly writes both slices and no reducer can, so it is two dispatches; both orders were executed against the real store and handed to `reconcileLoadedState`. Ranch-first: blueprint spent, individual on the roster, run resumes — that is the ranch transaction exactly. Run-first: `partyIds` names a member the roster lacks, so reconcile is *obliged* to discard, and forty minutes goes instead of 75 scrap.
+- **The recruit's stat roll comes from `nodeSeed(run, node, 'workshop')`**, not a fresh roll — the workshop is a node's contents, so ticket 07's re-roll rule and ticket 23's resume both apply. Never previewed, so it is a detour rather than a scum button.
+- `party.ts`'s note predicted this ticket would be `legalParty`'s first caller; it used `partyBlockFor` instead, so the note now records the correction. **`legalParty` still has no production caller.**
+- Suite **1163 → 1235**.
 
 ### 2026-08-22 — Marketplace node (ticket 13) — **the economy has numbers, and "power dies at the surface" has a test**
 

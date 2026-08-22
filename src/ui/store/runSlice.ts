@@ -36,9 +36,21 @@
  * transaction: see the block comment above `buyMarketCard` for ticket 20's atomicity argument, which
  * is the whole reason the affordability check is in here and not only in the screen.
  *
+ * # WHAT TICKET 14 ADDED
+ *
+ * `recruitIntoParty` — the run half of a mid-run recruit. It is the only reducer in the file that
+ * grows `partyIds`, because ticket 06 rules the party grows **at a workshop and only there**, and it
+ * is the only one that spends scrap and adds cards *and* changes the party in one action, because
+ * all three are one transaction.
+ *
+ * **It is half of a two-slice write, and the other half is `gameSlice.assembleMingming`.** No
+ * reducer can touch two slices, so ticket 11's reward claim split its dispatch and this does the
+ * same; the block comment above `recruitIntoParty` argues the ordering, which is the part that has
+ * to be right.
+ *
  * # WHAT IS DELIBERATELY NOT HERE YET
  *
- * Rewards beyond the economy reducers, and the gauntlet: tickets 14 through 19. **Gauntlet progress
+ * Rewards beyond the economy reducers, and the gauntlet: tickets 15 through 19. **Gauntlet progress
  * in particular is untouched** — `IRunState.gauntlet` is carried and persisted, but nothing here
  * advances it, because ticket 18 owns the gauntlet refit and half-moving it would leave two
  * partial implementations to reconcile. Every later ticket adds reducers here rather than reaching
@@ -50,6 +62,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { isFightNode } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
+import { PARTY_SIZE } from '../../engine/party';
 import type { IRegionNode, IRunCard, IRunState, RunOutcome } from '../../engine/runTypes';
 
 export interface RunSliceState {
@@ -312,6 +325,86 @@ const runSlice = createSlice({
             return { run: { ...run, scrap: run.scrap - price, nodes } };
         },
 
+        // --- The workshop's run half (ticket 14) ---
+
+        /**
+         * A recruit joins the party: **scrap is spent, `partyIds` grows by one, and the recruit's
+         * kit merges into the shared deck**, in one action.
+         *
+         * # THIS IS HALF A TRANSACTION, AND THE OTHER HALF IS ON THE RANCH
+         *
+         * A mid-run assembly writes both slices: the blueprint is spent and the individual is added
+         * to `ranch.roster` (`gameSlice.assembleMingming`, itself atomic), and everything above
+         * happens here. No reducer can write two slices, so — exactly as ticket 11's reward claim
+         * did — the dispatch is split, and the only decision left is **which half goes first**.
+         *
+         * **THE RANCH GOES FIRST.** Work out what each ordering leaves behind if the app dies in
+         * between:
+         *
+         * - **Ranch first, then this.** The intermediate state is: a blueprint spent, an individual
+         *   on the roster, no scrap taken, the party unchanged. That is *the ranch transaction,
+         *   exactly* — the trade `RanchScreen`'s assembly bay makes for free. The player keeps the
+         *   individual permanently and can field it at the start of the next run. Nothing is
+         *   inconsistent and nothing needs repairing; they simply did not get it into *this* party,
+         *   and were not charged for that.
+         * - **This first, then the ranch.** The intermediate state is: scrap spent, cards in the
+         *   deck owned by nobody, and a `partyIds` entry naming a roster member that does not exist.
+         *   That is not a shortfall, it is a **torn save**: `reconcileLoadedState` is *required* to
+         *   discard it (`party-references-missing-member`), so the player loses the whole run —
+         *   forty minutes — rather than 75 scrap.
+         *
+         * A lost blueprint is a loss; a member with no blueprint behind it is a duplicate the game
+         * cannot describe. Ranch-first pays the first and makes the second unrepresentable, so the
+         * ordering is not a preference, it is the one that fails least badly. `WorkshopNode` also
+         * **verifies the ranch half committed before dispatching this one** — the single cross-slice
+         * check no reducer can make, made in the only place that can see both.
+         *
+         * # WHAT THIS REDUCER CAN AND CANNOT ENFORCE
+         *
+         * Ticket 20's argument stands: a check that lives only in a component is a check that races,
+         * so everything the *run* can see is checked here rather than only at the button —
+         * affordability, the party ceiling, a party id already held, and a card instance id already
+         * in the deck. Refusals are silent and leave the run **byte-identical**, the slice's standing
+         * convention.
+         *
+         * What it cannot check is the **species clause**, because species live on the roster and the
+         * roster is the other slice. That law is enforced where it can be: `workshop.planRecruit`
+         * refuses before either dispatch (so an illegal recruit produces no action at all), and
+         * `reconcileLoadedState` refuses again at load. Duplicate *ids* — the one form of it visible
+         * from here — are refused below.
+         */
+        recruitIntoParty: (
+            state,
+            action: PayloadAction<{ memberId: string; cards: ReadonlyArray<IRunCard>; price: number }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { memberId, cards, price } = action.payload;
+
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            // `vision.md`'s 3v3 ceiling, and the reason the run half has to know about it at all: a
+            // fourth member would be refused by nothing else until the next load.
+            if (run.partyIds.length >= PARTY_SIZE) return { run };
+            // The double-click guard. `planRecruit` mints a member id deterministically from the
+            // node seed, so a second click computes the SAME id — and this refuses it, rather than
+            // paying twice for one recruit.
+            if (run.partyIds.includes(memberId)) return { run };
+            // Two deck cards sharing an instance id would both vanish on the first `removeRunCard`,
+            // the same correctness guard `buyMarketCard` makes for the same reason.
+            const held = new Set(run.deck.map((card) => card.instanceId));
+            if (cards.some((card) => held.has(card.instanceId))) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    partyIds: [...run.partyIds, memberId],
+                    deck: [...run.deck, ...cards],
+                },
+            };
+        },
+
         /**
          * Win a driver — the party-wide passive an elite pays out (`macros-and-drivers.md`). Was
          * `gameSlice.addRelic`; the rename is ticket 16's vocabulary, and the move is ticket 06's
@@ -345,6 +438,7 @@ export const {
     sellRunCard,
     removeRunCardForScrap,
     rerollMarketStock,
+    recruitIntoParty,
     addDriver,
 } = runSlice.actions;
 
