@@ -315,6 +315,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         // The X in an X-cost card, read by the ENERGY_SPENT* scalings while this card
         // resolves. Recorded for every card so the scalings never see a stale value.
         lastEnergySpent: finalCost,
+        // TICKET 111: the card is in the discard from this line on, so mark it as the one
+        // resolving - `drawCards` holds it out of any reshuffle until resolution finishes.
+        resolvingCardInstanceId: card.id,
         lastStatusConsumed: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
@@ -523,7 +526,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     finalState = {
         ...finalState,
         [activePartyKey]: activePartyAfter,
-        lastProgramPlayed: card.dataId
+        lastProgramPlayed: card.dataId,
+        // Resolution is over: the card rejoins the reshuffle pool like any other discard.
+        resolvingCardInstanceId: null
     };
 
     return finalState;
