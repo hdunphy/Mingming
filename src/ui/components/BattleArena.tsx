@@ -9,10 +9,10 @@ import BattleStage from './BattleStage';
 import MacroRack from './MacroRack';
 import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
-import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { isValidCardTarget, targetVerdict } from '../utils/targeting';
 import { getBestAction } from '../../engine/ai/TacticalAI';
-import { battleReducer, canFireMacro } from '../../engine/battleReducer';
+import { canFireMacro } from '../../engine/battleReducer';
 import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
@@ -205,28 +205,140 @@ const BattleArena: React.FC = () => {
         }
     }, [battleState, selectedSourceId, dispatch]);
 
-    // Hotkeys implementation
+    /*
+     * TICKET 22 — KEYBOARD PARITY.
+     *
+     * The Done-when is that a 3v3 fight is *"fully playable by mouse and by keyboard"*, and before
+     * this ticket it was not close. W/E/R picked a caster and 1-9 picked a card, but **there was no
+     * key that picked an ENEMY and no key that committed a play** — the only route from "card
+     * selected" to "card cast" was a pointer drop on a unit. A keyboard player could arrange the
+     * whole fight and never take a swing.
+     *
+     * What was added, and why these keys:
+     *
+     * - **A / S / D** target enemy 1/2/3. Physically the row under W/E/R, so the two parties sit on
+     *   the keyboard the way they sit on the screen. Dead members are skipped, exactly as W/E/R
+     *   already skipped dead casters.
+     * - **Shift+W / E / R** target an ALLY, for the ally-facing cards that A/S/D cannot reach.
+     * - **Tab / Shift+Tab** cycle living enemies, for when there are more of them than letters and
+     *   because Tab is what a player will try first. `preventDefault` is deliberate: focus traversal
+     *   through a battle screen with no focusable controls does nothing useful, and losing target
+     *   cycling to it would be the worse trade.
+     * - **Enter** commits. It routes through the SAME `targetVerdict` the drop handler uses, so a
+     *   refusal is identical whichever hand the player is playing with, and it buzzes rather than
+     *   failing silently.
+     * - **Z / X / C** fire macro slots 1/2/3, mirroring the rack's own numbering.
+     *
+     * Text fields are exempted at the top. The debug overlay mounts real inputs over this screen and
+     * every letter here would otherwise be swallowed mid-word.
+     */
+    // The macro handler closes over `run` and `gauntlet` and is rebuilt every render. These refs
+    // keep the key listener subscribed once instead of tearing it down and re-adding it each frame.
+    // They are filled by an effect beside `handleFireMacroClick` rather than assigned during render:
+    // a render-phase ref write is unsafe under concurrent rendering, and it is what the
+    // `react-hooks/refs` rule is for.
+    const fireMacroRef = useRef<(slot: number, macroId: string) => void>(() => undefined);
+    const macrosRef = useRef<ReadonlyArray<string | null>>([]);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!battleState || battleState.activeSide !== 'PLAYER') return;
 
+            const el = e.target as HTMLElement | null;
+            if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+
+            const hand = battleState.playerDeck.hand;
+            const aliveEnemies = battleState.enemyParty.filter(en => en.currentHp > 0);
+
             // 1-9: Select Card
             if (e.key >= '1' && e.key <= '9') {
                 const index = parseInt(e.key) - 1;
-                const hand = battleState.playerDeck.hand;
                 if (hand[index]) {
                     dispatch(selectCard(hand[index].id));
                 }
             }
 
-            // W, E, R: Select Player Units (skip dead units)
-            const selectAliveUnit = (index: number) => {
+            /*
+             * W / E / R pick the CASTER; Shift+W / Shift+E / Shift+R pick that same ally as the
+             * TARGET.
+             *
+             * The shifted half closes a hole the plain keys leave: A/S/D reach enemies and a `Self`
+             * card auto-lands on its caster, but an ally-facing card aimed at a DIFFERENT party
+             * member — a Single card carrying a HEAL, which `isValidCardTarget`'s carve-out
+             * explicitly allows — had no keyboard route to its target at all. That is a whole class
+             * of card playable only with a mouse, and in a 3v3 fight it is the class that exists
+             * because there are now allies worth healing.
+             */
+            const pickAlly = (index: number) => {
                 const unit = battleState.playerParty[index];
-                if (unit && unit.currentHp > 0) dispatch(selectSource(unit.id));
+                if (!unit || unit.currentHp <= 0) { playSfx('uiError'); return; }
+                dispatch(e.shiftKey ? selectTarget(unit.id) : selectSource(unit.id));
             };
-            if (e.key.toLowerCase() === 'w') selectAliveUnit(0);
-            if (e.key.toLowerCase() === 'e') selectAliveUnit(1);
-            if (e.key.toLowerCase() === 'r') selectAliveUnit(2);
+            if (e.key.toLowerCase() === 'w') pickAlly(0);
+            if (e.key.toLowerCase() === 'e') pickAlly(1);
+            if (e.key.toLowerCase() === 'r') pickAlly(2);
+
+            // A, S, D: pick the enemy in that slot, if it is still standing.
+            const targetEnemySlot = (index: number) => {
+                const unit = battleState.enemyParty[index];
+                if (unit && unit.currentHp > 0) dispatch(selectTarget(unit.id));
+                else playSfx('uiError');
+            };
+            if (e.key.toLowerCase() === 'a') targetEnemySlot(0);
+            if (e.key.toLowerCase() === 's') targetEnemySlot(1);
+            if (e.key.toLowerCase() === 'd') targetEnemySlot(2);
+
+            // Tab / Shift+Tab: cycle living enemies.
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                if (aliveEnemies.length > 0) {
+                    const at = aliveEnemies.findIndex(en => en.id === selectedTargetId);
+                    const step = e.shiftKey ? -1 : 1;
+                    const next = (at + step + aliveEnemies.length) % aliveEnemies.length;
+                    dispatch(selectTarget(aliveEnemies[at === -1 ? 0 : next].id));
+                }
+            }
+
+            // Z, X, C: fire macro slots 1-3, the same three the rack draws.
+            const macroKeys = ['z', 'x', 'c'];
+            const macroSlot = macroKeys.indexOf(e.key.toLowerCase());
+            if (macroSlot !== -1) {
+                const macroId = macrosRef.current[macroSlot];
+                if (macroId) fireMacroRef.current(macroSlot, macroId);
+                else playSfx('uiError');
+            }
+
+            /*
+             * Enter: cast the selected card, from the selected caster, at the selected target.
+             *
+             * A `Self` card resolves onto its caster whatever the player last picked — the reducer's
+             * rule, and the same defaulting `handleEntityPointerUp` applies — so it needs no target
+             * at all and stays castable from the keyboard with nothing highlighted.
+             */
+            if (e.key === 'Enter') {
+                const card = selectedCardId ? hand.find(c => c.id === selectedCardId) : undefined;
+                const caster = selectedSourceId
+                    ? battleState.playerParty.find(p => p.id === selectedSourceId)
+                    : undefined;
+                if (!card || !caster) { playSfx('uiError'); return; }
+
+                const data = GetProgramData(card.dataId);
+                const targetId = data.target === 'Self' ? caster.id : selectedTargetId;
+                const target = targetId
+                    ? battleState.playerParty.find(p => p.id === targetId)
+                        ?? battleState.enemyParty.find(en => en.id === targetId)
+                    : undefined;
+                if (!target) { playSfx('uiError'); return; }
+
+                const isEnemyTarget = battleState.enemyParty.some(en => en.id === target.id);
+                if (!targetVerdict(data, target, isEnemyTarget, caster).ok) { playSfx('uiError'); return; }
+
+                dispatch(playProgram({ sourceId: caster.id, targetId: target.id, programId: card.id }));
+                dispatch(selectCard(null));
+                setDragPoint(null);
+                setOriginPoint(null);
+                setIsTargeting(false);
+            }
 
             // Space: End Turn
             if (e.key === ' ') {
@@ -265,7 +377,7 @@ const BattleArena: React.FC = () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [battleState, dispatch, selectedSourceId]);
+    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId]);
 
     useEffect(() => {
         if (battleState?.activeSide !== prevSideRef.current) {
@@ -389,6 +501,19 @@ const BattleArena: React.FC = () => {
         dispatch(consumeMacro(slot));
         dispatch(selectCard(null));
     };
+    /*
+     * Ticket 22: Z/X/C fire the rack from the keyboard, through this same handler rather than a
+     * second copy of the two-slice write — the ordering argument on `consumeMacro` should hold
+     * exactly once, not once per input device.
+     *
+     * Refreshed in an effect with no dependency array, which is the "latest value" ref idiom: it
+     * runs after every commit, so the listener always calls the handler built from the current
+     * `run`, and no ref is written while React is rendering.
+     */
+    useEffect(() => {
+        fireMacroRef.current = handleFireMacroClick;
+        macrosRef.current = run?.macros ?? [];
+    });
 
     const handlePlay = (cardId: string, targetId: string) => {
         if (!battleState || !selectedSourceId) return;
@@ -710,16 +835,10 @@ const BattleArena: React.FC = () => {
     };
 
     // ── Shared targeting logic ──
-    // One source of truth for "can this card land on this unit", used by BOTH
-    // the sidebar HUD cards and the center-stage spotlights.
-    const isValidCardTarget = (cardData: ReturnType<typeof GetProgramData>, isEnemy: boolean) => {
-        const targetType = cardData.target;
-        return (
-            (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
-            (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
-            (!isEnemy && cardData.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'))
-        );
-    };
+    // TICKET 22 moved the predicate to `ui/utils/targeting.ts`, unchanged. It is no longer used only
+    // by the two drop surfaces in this file: the HUD cards and the stage now ASK it, before the
+    // player commits, so they can mark a unit and say why it is refused. A rule three components
+    // each re-implement is a rule that will disagree with the reducer on one of them.
 
     /** Drop a dragged/selected card on this unit (sidebar card or stage spotlight). */
     const handleEntityPointerUp = (entity: IBattleEntity, isEnemy: boolean) => {
@@ -939,6 +1058,7 @@ const BattleArena: React.FC = () => {
                     battleState={battleState}
                     selectedSourceId={selectedSourceId}
                     selectedTargetId={selectedTargetId}
+                    selectedCardId={selectedCardId}
                     hoveredEntityId={hoveredEntityId}
                     isTargeting={isTargeting}
                     unitFx={vfx.unitFx}

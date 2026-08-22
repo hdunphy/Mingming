@@ -49,6 +49,17 @@ const battleSlice = createSlice({
                 state.battle = battleReducer(state.battle, { type: 'END_TURN' }) as any;
             }
         },
+        /**
+         * **NOTHING DISPATCHES THIS — unwired pending a ruling, and deliberately so.**
+         *
+         * Ticket 22 (3v3 game-side completion) audited every player-facing path in a fight and found
+         * this one has no caller: no component, no hotkey, no card. The reducer half is real and
+         * tested, but the 3v3 ruling never mentions party Energy transfer, so the ticket rules that
+         * Henry decides keep-or-cut and that **no UI may be built for it until he does**. Wiring a
+         * button to it would be the mistake; so would deleting it. It stays exactly as it is.
+         *
+         * See the docblock on `BattleAction`'s `TRANSFER_ENERGY` member in `battleReducer.ts`.
+         */
         transferEnergy: (state, action: PayloadAction<{ sourceId: string; targetId: string }>) => {
             if (state.battle) {
                 state.battle = battleReducer(state.battle, {

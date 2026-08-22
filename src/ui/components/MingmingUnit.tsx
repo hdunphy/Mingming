@@ -8,6 +8,7 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { computeDamagePreview, type DamagePreview } from '../utils/damagePreview';
+import { targetVerdict } from '../utils/targeting';
 import { readableTextOn, badgeTextShadow, getElementAccent } from '../utils/contrastText';
 import { formatMultiplier } from './ElementMatchupTooltip';
 import { prefersReducedMotion } from '../utils/motionPrefs';
@@ -100,6 +101,41 @@ interface MingmingUnitProps {
     /** Event-driven combat FX (floats, hit flash, pulses, lunge) from useBattleVfx. */
     fx?: UnitFx;
 }
+
+/**
+ * HOW MANY ENERGY PIPS FIT ON A HUD CARD — ticket 22, and it is arithmetic rather than taste.
+ *
+ * The ticket asks for per-member energy to stay legible with **six entities on a 1280×800 frame**,
+ * and to "build the arithmetic into the CSS rather than eyeballing it". Here is the arithmetic that
+ * produced this number, in the units the stylesheet actually uses:
+ *
+ *   `.hud-card`   is 300px wide, of which `.hud-sidebar` takes a fixed 80px.
+ *   `.hud-body`   has 12px of horizontal padding each side  →  300 − 80 − 24 = **196px** of content.
+ *   `.hud-bar-row` spends 16px on the `E` label + a 6px gap →  174px left.
+ *   `.hud-energy-row` spends an 8px gap + the 40px numeric readout (`3 / 3 EP`, which stays visible
+ *                    whatever happens to the pips, because it is the un-hidden number).
+ *
+ *   That leaves **126px** for the pips themselves. At the row's 0.6rem font size a pip is 1.6em =
+ *   15.36px and a gap is 0.34em = 3.26px, so N pips cost N×15.36 + (N−1)×3.26: six cost 108.6px and
+ *   **seven cost 127.1px**. Six is the ceiling, by a pixel, and that is a measured edge rather than
+ *   a round number someone liked.
+ *
+ * Six is comfortably above what the game produces: species Energy runs 1–3, one relic adds +1, so a
+ * normal maximum is 4. Only `Energized` carryover (which pushes `currentEnergy` past `maxEnergy`)
+ * can exceed it. Past the ceiling the row switches to the COMPACT form — the continuous bar it used
+ * before this ticket — rather than wrapping to a second line. Wrapping was the other candidate and
+ * it loses on the vertical budget, which is the tighter one:
+ *
+ *   `.stage-area` gets 800 − 265 (`.console-area`) = **535px**.
+ *   A party column spends 100px of `padding-top` + 3 × 115px cards + 2 × 30px gaps = **505px**.
+ *
+ * 30px of slack for the whole column. A wrapped energy row costs about 10px per card, so three
+ * wrapped members would spend all of it and a fourth pixel of anything would push the column off the
+ * frame. A compact form costs nothing and keeps every card exactly 115px, which is what makes the
+ * six-entity layout provable instead of hopeful. Ticket 37 owns the general Steam Deck pass; this is
+ * only the energy row.
+ */
+export const ENERGY_PIP_BUDGET = 6;
 
 /** Ticket 90: human labels for the post-damage scalings the preview now shows. */
 const SCALING_LABEL: Record<string, string> = {
@@ -209,8 +245,37 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     const energyBasePercent = overEnergy
         ? (entity.maxEnergy / entity.currentEnergy) * 100
         : (entity.currentEnergy / entity.maxEnergy) * 100;
+    // Ticket 22: pips, not a proportional bar. Six entities each spending Energy independently is
+    // the state a 3v3 turn is planned against, and "roughly two-thirds of a 6px bar" is not a number
+    // a player can plan with — a countable pip is. `ENERGY_PIP_BUDGET` carries the fit arithmetic.
+    // The track has to cover the OVERFLOW too, or an Energized 4/3 would render as a full 3.
+    const energyPipCount = Math.max(entity.maxEnergy, entity.currentEnergy);
+    const energyIsCompact = energyPipCount > ENERGY_PIP_BUDGET;
     const elKey = entity.primaryElement.toLowerCase();
     const accent = ELEMENT_COLORS[elKey] ?? ELEMENT_COLORS.none;
+
+    /*
+     * TICKET 22 — TARGET VALIDITY IS VISIBLE BEFORE THE PLAYER COMMITS.
+     *
+     * With one unit a side the only illegal drop was "that card does not go there", and the player
+     * found out by dropping it. With six entities on screen the question is asked six ways at once,
+     * so the answer has to be on the units rather than in the outcome. `targetVerdict` is the same
+     * predicate `BattleArena` drops against (see `utils/targeting.ts`), and its refusals are
+     * sentences — the convention tickets 13, 14 and 20 set, and the one `MacroRack` states outright:
+     * a silently inert control is indistinguishable from a bug.
+     */
+    // Looked up via the hand rather than by id straight into the registry: `GetProgramData('')`
+    // warns and traces, and a selection can outlive the card that was played out of it.
+    const selectedCard = selectedCardId
+        ? battleState.playerDeck.hand.find(c => c.id === selectedCardId)
+        : undefined;
+    const selectedCardData = selectedCard ? GetProgramData(selectedCard.dataId) : null;
+    const caster = selectedSourceId
+        ? battleState.playerParty.find(p => p.id === selectedSourceId) ?? null
+        : null;
+    const verdict = selectedCardData
+        ? targetVerdict(selectedCardData, entity, isEnemy, caster)
+        : null;
 
     // Intent Prediction Logic
     let predictedDamage = 0;
@@ -249,8 +314,11 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 
     return (
         <motion.div
-            className={`hud-card ${isSelected ? 'hud-selected' : ''} ${isTargeted ? 'hud-targeted' : ''} ${isDead ? 'hud-dead' : ''} ${deathGlitch ? 'hud-death-glitch' : ''}`}
+            className={`hud-card ${isSelected ? 'hud-selected' : ''} ${isTargeted ? 'hud-targeted' : ''} ${isDead ? 'hud-dead' : ''} ${deathGlitch ? 'hud-death-glitch' : ''}${verdict ? (verdict.ok ? ' hud-target-legal' : ' hud-target-illegal') : ''}`}
             data-side={isEnemy ? 'enemy' : 'player'}
+            // The refusal rides the frame itself so it is reachable by hovering the unit the player
+            // is already pointing at, rather than only from wherever the card happens to be.
+            title={verdict?.reason ?? undefined}
             animate={controls}
             whileHover={{ scale: 1.05 }}
             onClick={onClick}
@@ -261,6 +329,16 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                 flexDirection: isEnemy ? 'row-reverse' : 'row',
             }}
         >
+            {/*
+              * The visible half of the verdict. A ✓ marks a unit this card can actually land on;
+              * a refusal prints its own sentence, which is the clause ticket 22 borrows from 13/14/20
+              * — "make the invalid case SAY WHY rather than being inert".
+              */}
+            {verdict && (
+                verdict.ok
+                    ? <div className="hud-target-flag legal" data-testid={`target-ok-${entity.id}`}>✓ TARGET</div>
+                    : <div className="hud-target-flag illegal" data-testid={`target-no-${entity.id}`}>{verdict.reason}</div>
+            )}
             {/* ── Sidebar: Art + Level ── */}
             <div className="hud-sidebar" style={{ background: `linear-gradient(180deg, ${accent}55 0%, ${accent}22 100%)` }}>
                 {entity.artReference ? (
@@ -526,30 +604,53 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     </div>
                 )}
 
-                {/* Energy Row */}
+                {/* Energy Row — pips up to ENERGY_PIP_BUDGET, the compact bar past it */}
                 <div className="hud-bar-row">
                     <span className="hud-bar-label">E</span>
                     <div className="hud-energy-row">
-                        <div className="hud-energy-track">
-                            <motion.div
-                                className="hud-energy-fill"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${energyBasePercent}%` }}
-                                style={{ backgroundColor: ENERGY_COLOR }}
-                            />
-                            {overEnergy && (
+                        {energyIsCompact ? (
+                            <div className="hud-energy-track" data-testid={`energy-bar-${entity.id}`}>
                                 <motion.div
                                     className="hud-energy-fill"
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${100 - energyBasePercent}%` }}
-                                    style={{
-                                        left: `${energyBasePercent}%`,
-                                        backgroundColor: OVERFLOW_COLOR,
-                                        boxShadow: `0 0 10px ${OVERFLOW_COLOR}`
-                                    }}
+                                    animate={{ width: `${energyBasePercent}%` }}
+                                    style={{ backgroundColor: ENERGY_COLOR }}
                                 />
-                            )}
-                        </div>
+                                {overEnergy && (
+                                    <motion.div
+                                        className="hud-energy-fill"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${100 - energyBasePercent}%` }}
+                                        style={{
+                                            left: `${energyBasePercent}%`,
+                                            backgroundColor: OVERFLOW_COLOR,
+                                            boxShadow: `0 0 10px ${OVERFLOW_COLOR}`
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        ) : (
+                            <div
+                                className="hud-energy-pips"
+                                data-testid={`energy-pips-${entity.id}`}
+                                role="img"
+                                aria-label={`${entity.name} energy ${entity.currentEnergy} of ${entity.maxEnergy}`}
+                            >
+                                {Array.from({ length: energyPipCount }).map((_, i) => {
+                                    const filled = i < entity.currentEnergy;
+                                    // A pip past maxEnergy is Energized carryover, and it is worth
+                                    // a distinct colour rather than a longer gold run: it is the
+                                    // one Energy a player can lose by ending the turn.
+                                    const isOverflow = i >= entity.maxEnergy;
+                                    return (
+                                        <span
+                                            key={i}
+                                            className={`hud-energy-pip${filled ? '' : ' empty'}${filled && isOverflow ? ' overflow' : ''}`}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        )}
                         <span className="hud-energy-text" style={{ color: ENERGY_COLOR }}>
                             <span style={overEnergy ? {
                                 color: OVERFLOW_COLOR,

@@ -58,6 +58,66 @@ function currentHpOf(state: IBattleState, id: string): number {
     return e?.currentHp ?? 0;
 }
 
+/** What one simulated cast did: the resulting throwaway state and the HP the target's pool moved. */
+export interface SimulatedPlay {
+    /** The state the reducer produced. Discarded by every caller; never dispatched. */
+    readonly after: IBattleState;
+    /** Signed pool delta at the measured target: negative is damage taken, positive is HP gained. */
+    readonly delta: number;
+}
+
+/**
+ * **THE ONE SIMULATION.** Play `cardId` from `sourceId` at `targetId` on a throwaway copy of the
+ * state and report what the target's HP-plus-shield pool did.
+ *
+ * TICKET 22 lifted this out of `computeDamagePreview` rather than writing a second one beside it.
+ * The hand now has to read a heal in true HP as well as an attack in true damage (see
+ * `handPreview.ts`), and the failure mode of "a second measurement helper" is precisely the drift
+ * ticket 104 paid 52 mismatches to learn about. So there is exactly one place that casts a card
+ * into a discarded state and exactly one place that measures the pool; the callers differ only in
+ * which SIGN of the delta they are interested in and which chips they hang off it.
+ *
+ * Returns null when there is nothing to measure: no source/card/target, a dead participant, a
+ * SELF-side constraint the caster fails, or a reducer that refused the play outright.
+ */
+export function simulatePlay(
+    state: IBattleState | null | undefined,
+    sourceId: string | null | undefined,
+    cardId: string | null | undefined,
+    targetId: string
+): SimulatedPlay | null {
+    if (!state || !sourceId || !cardId) return null;
+
+    const card = state.playerDeck.hand.find(c => c.id === cardId);
+    if (!card) return null;
+
+    const source = state.playerParty.find(p => p.id === sourceId);
+    if (!source || source.currentHp <= 0) return null;
+
+    const target =
+        state.playerParty.find(e => e.id === targetId) ||
+        state.enemyParty.find(e => e.id === targetId);
+    if (!target || target.currentHp <= 0) return null;
+
+    // Source-side playability: energy (BASE constraint) plus any other SELF constraints. Kept as a
+    // cheap gate in front of the simulation - the reducer would refuse anyway, but a hover should
+    // not pay for a whole card resolution to learn that.
+    const data = GetProgramData(card.dataId);
+    const selfConstraintsOk = (data.constraints || [])
+        .filter(c => c.target === 'SELF')
+        .every(c => getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }));
+    if (!selfConstraintsOk) return null;
+
+    const before = pool(state, targetId);
+    const after = globalBattleEventBus.runMuted(() => battleReducer(state, {
+        type: 'PLAY_PROGRAM',
+        payload: { sourceId, targetId, programId: cardId },
+    }));
+    if (after === state) return null;          // the reducer refused the play
+
+    return { after, delta: pool(after, targetId) - before };
+}
+
 /**
  * The on-hover damage preview.
  *
@@ -96,34 +156,25 @@ export function computeDamagePreview(
     if (!card) return NO_PREVIEW;
 
     const source = state.playerParty.find(p => p.id === sourceId);
-    if (!source || source.currentHp <= 0) return NO_PREVIEW;
+    if (!source) return NO_PREVIEW;
 
     const target =
         state.playerParty.find(e => e.id === targetId) ||
         state.enemyParty.find(e => e.id === targetId);
-    if (!target || target.currentHp <= 0) return NO_PREVIEW;
+    if (!target) return NO_PREVIEW;
 
     const data = GetProgramData(card.dataId);
-
-    // Source-side playability: energy (BASE constraint) plus any other SELF constraints. Kept as a
-    // cheap gate in front of the simulation - the reducer would refuse anyway, but a hover should
-    // not pay for a whole card resolution to learn that.
-    const selfConstraintsOk = (data.constraints || [])
-        .filter(c => c.target === 'SELF')
-        .every(c => getConstraintBehavior(c.type).validate(c, { source, cost: card.currentCost }));
-    if (!selfConstraintsOk) return NO_PREVIEW;
 
     const attackActions = (data.actions ?? []).filter(a => a.type === 'ATTACK');
     if (attackActions.length === 0) return NO_PREVIEW;
 
-    // THE NUMBER. Everything below this is chips that explain it.
-    const before = pool(state, targetId);
-    const after = globalBattleEventBus.runMuted(() => battleReducer(state, {
-        type: 'PLAY_PROGRAM',
-        payload: { sourceId, targetId, programId: cardId },
-    }));
-    if (after === state) return NO_PREVIEW;          // the reducer refused the play
-    const damage = before - pool(after, targetId);
+    // THE NUMBER. Everything below this is chips that explain it. The cast itself, the guards in
+    // front of it and the pool measurement all live in `simulatePlay` since ticket 22, so the hand's
+    // heal preview measures the identical way rather than approximately the same way.
+    const sim = simulatePlay(state, sourceId, cardId, targetId);
+    if (!sim) return NO_PREVIEW;
+    const { after, delta } = sim;
+    const damage = -delta;
     if (damage <= 0) return NO_PREVIEW;              // pure buff, or the attack was aimed at SELF
 
     // The explanatory chips, derived analytically off the FIRST attack action. They are LABELS,

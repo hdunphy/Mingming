@@ -47,6 +47,18 @@ export type BattleAction =
      * from here; the screen fires both, and only after `canFireMacro` says the shot will land.
      */
     | { type: 'FIRE_MACRO'; payload: { macroId: string; sourceId: string; targetId: string } }
+    /**
+     * **UNWIRED, PENDING A RULING — do not build UI for this.**
+     *
+     * Ticket 22 (3v3 game-side completion) found that this action is fully implemented and tested
+     * (`handleTransferEnergy` below; `Kernel.test.ts`, `battleReducer.test.ts`) and that
+     * `battleSlice.transferEnergy` forwards it faithfully — but that **nothing in the game dispatches
+     * either one**, and the 3v3 ruling never mentions party Energy transfer at all.
+     *
+     * The ticket is explicit that Henry decides keep-or-cut and that no UI may be built for it until
+     * he has, so 22 left the whole path exactly as it found it rather than wiring it up or deleting
+     * it. It is not rotting — the tests exercise it — it simply has no way in from a fight.
+     */
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
     | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string } }

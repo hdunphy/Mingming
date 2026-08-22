@@ -5,6 +5,8 @@ import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
 import { getElementAccent } from '../utils/contrastText';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+import { GetProgramData } from '../../engine/data/programRegistry';
+import { targetVerdict } from '../utils/targeting';
 
 /**
  * BattleStage — the Pokémon-style center stage of the battle screen.
@@ -159,6 +161,13 @@ interface BattleStageProps {
     battleState: IBattleState;
     selectedSourceId: string | null;
     selectedTargetId: string | null;
+    /**
+     * Ticket 22: the spotlights are drop surfaces too, so they owe the player the same
+     * before-you-commit verdict the sidebar HUD cards give. Passed in rather than read from the
+     * store because this component is deliberately store-free (see BattleStage.test-less design —
+     * every input is a prop, which is what lets `BattleArena` own all the targeting policy).
+     */
+    selectedCardId?: string | null;
     /** Hovered entity while drag-targeting (mirrors the sidebar hover state). */
     hoveredEntityId: string | null;
     isTargeting: boolean;
@@ -172,6 +181,7 @@ const BattleStage: React.FC<BattleStageProps> = ({
     battleState,
     selectedSourceId,
     selectedTargetId,
+    selectedCardId,
     hoveredEntityId,
     isTargeting,
     unitFx,
@@ -202,17 +212,35 @@ const BattleStage: React.FC<BattleStageProps> = ({
     const enemyAccent = getElementAccent(enemy.primaryElement);
     const enemyIsTargeted = selectedTargetId === enemy.id;
 
+    // Ticket 22: the same verdict, from the same predicate, that the sidebar cards draw. Both
+    // spotlights get one, because either can be dropped on and either can refuse.
+    const selectedCard = selectedCardId
+        ? battleState.playerDeck.hand.find(c => c.id === selectedCardId)
+        : undefined;
+    const selectedCardData = selectedCard ? GetProgramData(selectedCard.dataId) : null;
+    const caster = selectedSourceId
+        ? battleState.playerParty.find(p => p.id === selectedSourceId) ?? null
+        : null;
+    const playerVerdict = selectedCardData ? targetVerdict(selectedCardData, player, false, caster) : null;
+    const enemyVerdict = selectedCardData ? targetVerdict(selectedCardData, enemy, true, caster) : null;
+
     const swapTransition = { duration: reduced ? 0 : SWAP_DURATION, ease: 'easeOut' as const };
 
     return (
         <div className="battle-stage" data-testid="battle-stage">
             {/* ── LEFT SPOTLIGHT: selected player unit (back-sprite position) ── */}
             <div
-                className="stage-spot stage-spot-player"
+                className={`stage-spot stage-spot-player ${playerVerdict ? (playerVerdict.ok ? 'stage-spot-legal' : 'stage-spot-illegal') : ''}`}
                 data-testid="stage-spot-player"
+                title={playerVerdict?.reason ?? undefined}
                 onClick={() => onEntityClick(player, false)}
                 onPointerUp={() => onEntityPointerUp(player, false)}
             >
+                {playerVerdict && (
+                    <div className={`stage-target-flag ${playerVerdict.ok ? 'legal' : 'illegal'}`}>
+                        {playerVerdict.ok ? '✓ TARGET' : playerVerdict.reason}
+                    </div>
+                )}
                 <div
                     className="stage-platform"
                     style={{
@@ -255,13 +283,19 @@ const BattleStage: React.FC<BattleStageProps> = ({
 
             {/* ── RIGHT SPOTLIGHT: focus enemy (front-sprite position) ── */}
             <div
-                className={`stage-spot stage-spot-enemy ${enemyIsTargeted ? 'stage-spot-targeted' : ''}`}
+                className={`stage-spot stage-spot-enemy ${enemyIsTargeted ? 'stage-spot-targeted' : ''} ${enemyVerdict ? (enemyVerdict.ok ? 'stage-spot-legal' : 'stage-spot-illegal') : ''}`}
                 data-testid="stage-spot-enemy"
+                title={enemyVerdict?.reason ?? undefined}
                 onClick={() => onEntityClick(enemy, true)}
                 onPointerUp={() => onEntityPointerUp(enemy, true)}
                 onMouseEnter={() => { if (isTargeting) onEnemyHoverChange(enemy.id); }}
                 onMouseLeave={() => { if (hoveredEntityId === enemy.id) onEnemyHoverChange(null); }}
             >
+                {enemyVerdict && (
+                    <div className={`stage-target-flag ${enemyVerdict.ok ? 'legal' : 'illegal'}`}>
+                        {enemyVerdict.ok ? '✓ TARGET' : enemyVerdict.reason}
+                    </div>
+                )}
                 {enemy.currentIntent && enemy.currentHp > 0 && (
                     <motion.div
                         key={`${enemy.id}-${enemy.currentIntent.name}`}

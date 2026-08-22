@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19). **State: 55 tickets, 19 closed. THE TEN-TICKET CRITICAL PATH IS COMPLETE — a run goes offers -> party -> region -> nodes -> market -> workshop -> macros -> three-fight gauntlet -> summary -> ranch, and survives an app close at every step. **Next agent-runnable: 22 (3v3 game-side), 24 (onboarding), 36 (settings), 55 (lint).** 25 (VS playtest) needs Henry to play it. Blocked on deck-archetypes 109: 16, 17, 40. **HENRY'S QUEUE: proposed numbers and flagged readings in tickets 12, 13, 14, 15, 18 and 19 — the loudest is 18's, the gym paying 3x what ticket 12 sized it for.** Suite green at 103 files / 1436 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22). **State: 55 tickets, 20 closed. The critical path is complete and 3v3 is finished player-side. **Next agent-runnable: 24 (onboarding), 36 (settings), 55 (lint).** 25 needs Henry to play it. Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22; loudest is 18's gym paying 3x. Suite green at 107 files / 1480 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,18 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — 3v3 game-side (ticket 22) — **and the standing law turns out to be broken in the data**
+
+- **READ THIS: 142 of the 216 card descriptions print their power figure.** `fire_punch_v2` reads "30 power."; `scorch` reads "25 power. Apply 3 Burn." The power-dies-at-the-surface law is broken on the card face, in the data.
+- **And ticket 13's identical assertion passed over it.** `ProgramCard` renders a description only inside a **hover portal**, which `renderToStaticMarkup` never produces — so "no /power/i in the markup" was true of the markup and false of the screen. The battle hand renders descriptions unconditionally, which is the only reason it surfaced. **Anyone writing a power-leak test should render the hover state, not the card.**
+- **Not fixed here, deliberately.** Rewriting 142 cards' copy is a content pass with balance-communication consequences (for some cards that string is the only place the scaling is explained, and `drawScaling.test.ts` asserts against two), it is Henry's call how each reads, and it belongs to **deck-archetypes**. Filed as a request on the map's scope-boundary line.
+- `formatAction` was *also* printing `action.power` — the leak `MacroRack.test.tsx` names by file and function as the likeliest break. Gone.
+- **Previews are caster-aware, always-on, and name their subject.** Reuses ticket 15's cast-and-measure; `simulatePlay` lifted out of `computeDamagePreview` so heal figures use the identical helper. Memoised on `(state, caster, target, card)` in a WeakMap keyed by **state identity** — the state is immutable and replaced wholesale, so staleness and cache invalidation are the same event.
+- **Six-entity energy fits 1280x800, with the sum in the CSS.** 126px of pip budget; six pips = 108.6px, seven = 127.1px. Six is the ceiling **by one pixel**. Compacts to a bar past six rather than wrapping, because wrapping would spend the whole 30px of vertical slack. `Energized` carryover gets its own cyan pip — a state the old bar clamped away.
+- **Keyboard: there was no key that picked an enemy and no key that committed a play.** A keyboard player could arrange an entire fight and never take a swing. A/S/D, Shift+W/E/R, Tab, Enter, Z/X/C added, with a legend. Still mouse-only: the drag gesture (function fully covered) and `BattleReport`'s reward/driver pickers, which are `<div onClick>` — ticket 12/16 territory and ticket 38 will want them.
+- `TRANSFER_ENERGY` left unwired as the ticket instructs; cutting it is ~60 lines and 3 test cases with no callers to migrate.
+- Suite **1436 → 1480**.
 
 ### 2026-08-22 — Run end (ticket 19) — **the loop is closed**
 

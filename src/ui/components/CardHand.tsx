@@ -1,28 +1,49 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
-import { selectCard, playProgram, endTurn } from '../store/battleSlice';
+import { selectCard, endTurn } from '../store/battleSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import type { IBattleState } from '../../engine/types';
-import { validateSingleConstraint, getEffectiveCardCost } from '../../engine/battleReducer';
+import { getEffectiveCardCost } from '../../engine/battleReducer';
 import { executeCostCalculated } from '../../engine/resolutionEngine';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { isUnaffordableCost, blockedCostReason } from '../../engine/core/CustomFirmware';
-import { computeDamagePreview } from '../utils/damagePreview';
+import { computeHandPreviews, pickPreviewTarget } from '../utils/handPreview';
+import { describeLegalTargets } from '../utils/targeting';
+import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
+import { formatMultiplier } from './ElementMatchupTooltip';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx } from '../audio/AudioEngine';
 
-// Helper to format an action for display
+/**
+ * One line per action, in the player's terms.
+ *
+ * # `power` NEVER — TICKET 22 CLOSED THE LAST LEAK
+ *
+ * Standing law (map § Notes), tested on the marketplace by ticket 13 and on the macro rack by ticket
+ * 15: *"previews show true damage everywhere, power remains the pricing currency."* This helper was
+ * the counter-example both of those tickets cite by name — `MacroRack`'s own docblock warns that
+ * *"the cheapest way to break it here would be a well-meant reuse of `CardHand.formatAction`, which
+ * prints `action.power` straight out of the data."* It printed `⚔️ 18 Fire dmg` and `💚 Heal 12`.
+ *
+ * That was already wrong at 1v1. At 3v3 it is worse than wrong: `power` is a property of the CARD,
+ * and the HP that moves is a property of the (caster, card, target) triple, so the same "18" sat in
+ * front of three units who would each produce a different number from it. The tooltip now names the
+ * SHAPE of each action and the card face carries the true figure for the selected caster — see
+ * `handPreview.ts`. `CardHand.test.tsx` asserts the rendered hand contains no "power" at all.
+ */
 const formatAction = (action: any): string => {
     switch (action.type) {
-        case 'ATTACK':
-            return `⚔️ ${action.power} ${action.element || ''} dmg`;
+        case 'ATTACK': {
+            const hits = Math.max(1, action.count ?? 1);
+            if (action.target === 'SELF') return `⚔️ Recoil onto the caster${hits > 1 ? ` ×${hits}` : ''}`;
+            return `⚔️ Damage${hits > 1 ? ` ×${hits} hits` : ''}`;
+        }
         case 'HEAL':
-            return `💚 Heal ${action.power}`;
+            return '💚 Restores HP';
         case 'APPLY_STATUS':
             return `✦ ${action.status} ×${action.stacks || 1}`;
         case 'DRAW':
@@ -62,9 +83,9 @@ const CardHand: React.FC<{
     const battleState = useSelector((state: RootState) => state.battle.battle);
     const hand = battleState?.playerDeck.hand || [];
     const playerParty = battleState?.playerParty || [];
-    const enemyParty = battleState?.enemyParty || [];
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
+    const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const isOurTurn = battleState?.activeSide === 'PLAYER';
     const drawPileCount = battleState?.playerDeck.drawpile.length || 0;
     const discardPileCount = battleState?.playerDeck.discard.length || 0;
@@ -72,6 +93,30 @@ const CardHand: React.FC<{
     // Tracks whether the pointerdown that precedes a click just selected this card,
     // so the click handler doesn't immediately toggle the selection back off.
     const justSelectedRef = useRef(false);
+
+    /*
+     * TICKET 22 — THE HAND RE-READS FOR THE SELECTED CASTER.
+     *
+     * Everything below this line is (caster, target)-scoped rather than card-scoped, which is the
+     * whole of the ticket's preview-parity clause: in 3v3 the deck and the hand are shared, so a
+     * card's true damage is not a fact about the card. It changes with whose Attack stat and whose
+     * elements are behind it, and switching caster with W/E/R must therefore repaint every number in
+     * the fan, not just the one under the pointer.
+     *
+     * The simulations are memoised on `(state, caster, target, card)` inside `handPreview.ts`; the
+     * `useMemo` here only stops the map being rebuilt on hover-driven re-renders. The cost argument
+     * for both is spelled out in that file's header.
+     */
+    const previewTarget = useMemo(
+        () => pickPreviewTarget(battleState, hoveredEntityId, selectedTargetId),
+        [battleState, hoveredEntityId, selectedTargetId],
+    );
+    const previews = useMemo(
+        () => computeHandPreviews(battleState, selectedSourceId, previewTarget),
+        [battleState, selectedSourceId, previewTarget],
+    );
+    const caster = playerParty.find(u => u.id === selectedSourceId);
+    const draw = describeDraw(battleState);
 
     return (
         <div className="hand-container">
@@ -86,7 +131,7 @@ const CardHand: React.FC<{
                         const rotation = centerOffset * 5;
                         const arcDip = Math.abs(centerOffset) * 12;
 
-                        const source = playerParty.find(u => u.id === selectedSourceId);
+                        const source = caster;
                         // The cost the selected unit would ACTUALLY pay — includes primed
                         // discounts like Gullinbursti's UNSTOPPABLE_MASS (nextProgramModifier).
                         // Ticket 36: run onCostCalculated too, exactly as the reducer does.
@@ -121,28 +166,21 @@ const CardHand: React.FC<{
                             const osLabel = sourceOS.name.replace(/_OS$/, '').replace(/_/g, ' ');
                             constraints.push(`${osLabel}: card limit reached (${sourceOS.maxCardsPerTurn}/turn)`);
                         }
+                        // Ticket 22: "no caster picked" is now a stated reason rather than a silent
+                        // grey, matching the convention tickets 13/14/20 set for every other refusal.
+                        if (!source) constraints.push('Pick a caster first — W, E or R, or click one of your units.');
+                        else if (source.currentHp <= 0) constraints.push(`${source.name} is terminated and cannot cast.`);
                         const isUnplayable = !source || source.currentHp <= 0 || constraints.length > 0;
 
-                        // ×1.5 STAB signal: the selected source's primary/secondary element
-                        // matches this card's element. None is excluded — every unit carries a
-                        // 'None' secondary, so it is not a differential signal. Absence of glow
-                        // is the signal for unmatched cards (never dimmed).
-                        const isStabMatch = !!source && data.element !== 'None' &&
-                            (source.primaryElement === data.element || source.secondaryElement === data.element);
+                        // ×1.5 STAB signal and the true numbers both come from the caster-scoped
+                        // preview now, so the glow and the figure can never disagree about who is
+                        // casting. Absence of glow is the signal for unmatched cards (never dimmed).
+                        const preview = previews.get(card.id);
+                        const isStabMatch = !!preview?.stab;
                         const stabAccent = isStabMatch ? getElementAccent(data.element) : null;
-
-                        // Damage Preview on Card logic
-                        // TICKET 105: this was a THIRD implementation of the damage preview - it
-                        // called `calculateDamage` on the card's first ATTACK action, which is the
-                        // exact shape ticket 104 replaced on the unit face. So the number on the CARD
-                        // and the number on the TARGET disagreed on every card 104 fixed: multi-hit,
-                        // consume-scaling, conditional branches, firmware bonuses. Same helper now, so
-                        // there is one preview in the game and `previewParity.test.ts` covers it.
-                        let cardPreviewDamage = 0;
-                        if (isSelected && hoveredEntityId && battleState) {
-                            cardPreviewDamage = computeDamagePreview(
-                                battleState, source?.id, card.id, hoveredEntityId).damage;
-                        }
+                        const trueDamage = preview?.damage ?? 0;
+                        const trueHealing = preview?.healing ?? 0;
+                        const effectiveness = preview?.effectiveness ?? 1;
 
                         return (
                             <motion.div
@@ -157,6 +195,15 @@ const CardHand: React.FC<{
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.2 }}
                                 className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
+                                /*
+                                 * Ticket 22: the refusal also rides the card frame, not only the
+                                 * hover tooltip below. The tooltip needs a deliberate hover on a
+                                 * card the player has already written off as "greyed out", which is
+                                 * the one interaction they will not perform — so the reason it is
+                                 * greyed out was, in practice, invisible. Same convention as
+                                 * `MacroRack`'s disabled slots: never inert without a sentence.
+                                 */
+                                title={constraints.length > 0 ? constraints.join(' · ') : undefined}
                                 onClick={() => {
                                     // If the preceding pointerdown just selected this card,
                                     // skip the toggle so a single click leaves it selected.
@@ -224,22 +271,58 @@ const CardHand: React.FC<{
                                 {/* Description */}
                                 <div className="card-description">
                                     {data.description}
-                                    {cardPreviewDamage > 0 && (
-                                        <motion.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            style={{ color: '#ff4444', fontWeight: 'bold', marginTop: '10px', fontSize: '0.8rem' }}
-                                        >
-                                            PREVIEW: {cardPreviewDamage} DMG
-                                        </motion.div>
-                                    )}
                                 </div>
+
+                                {/*
+                                  * THE TRUE READOUT — ticket 22.
+                                  *
+                                  * Always on, not hover-gated. The previous build only computed a
+                                  * number while a card was selected AND an entity was hovered, which
+                                  * meant the hand was blank at the exact moment the player was
+                                  * choosing between cards. It also names WHO the number is measured
+                                  * against, because a figure quoted against an enemy the player did
+                                  * not pick is a hidden assumption even when the number is right.
+                                  */}
+                                {(trueDamage > 0 || trueHealing > 0) && (
+                                    <div className={`card-true-readout ${preview?.lethal ? 'lethal' : ''}`}>
+                                        <span className="card-true-number">
+                                            {trueDamage > 0 ? `${trueDamage} DMG` : `+${trueHealing} HP`}
+                                        </span>
+                                        {preview?.measuredOn && (
+                                            <span className="card-true-target">
+                                                {trueDamage > 0 ? 'vs' : 'to'} {preview.measuredOn}
+                                            </span>
+                                        )}
+                                        {preview && preview.hitCount > 1 && (
+                                            <span className="card-true-chip">×{preview.hitCount} HITS</span>
+                                        )}
+                                        {effectiveness > 1 && (
+                                            <span className="card-true-chip super">
+                                                SUPER ×{formatMultiplier(effectiveness)}
+                                            </span>
+                                        )}
+                                        {effectiveness < 1 && (
+                                            <span className="card-true-chip weak">
+                                                RESISTED ×{formatMultiplier(effectiveness)}
+                                            </span>
+                                        )}
+                                        {preview?.lethal && <span className="card-true-chip lethal">LETHAL</span>}
+                                    </div>
+                                )}
 
                                 {/* Keyword + applied-status chips */}
                                 <CardKeywordChips data={data} />
 
-                                {/* Target type */}
-                                <div className="card-target">{data.target}</div>
+                                {/*
+                                  * Ticket 22: this printed the raw `TargetType` enum ("Single"),
+                                  * which is a word out of the schema rather than a statement about
+                                  * where the card may land. `describeLegalTargets` derives the
+                                  * phrase from the very predicate the drop handler validates
+                                  * against, so the legend cannot promise a target the game refuses.
+                                  */}
+                                <div className="card-target" title={`Legal targets: ${describeLegalTargets(data)}`}>
+                                    {describeLegalTargets(data)}
+                                </div>
 
                                 {/* Hover tooltip: actions & constraints */}
                                 <AnimatePresence>
@@ -265,6 +348,10 @@ const CardHand: React.FC<{
                                                     <div key={i} className="tooltip-action">{formatAction(action)}</div>
                                                 ))}
                                             </div>
+                                            <div className="tooltip-section">
+                                                <div className="tooltip-label">Targets</div>
+                                                <div className="tooltip-action">{describeLegalTargets(data)}</div>
+                                            </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -275,10 +362,44 @@ const CardHand: React.FC<{
             </div>
 
             <div className="hand-footer">
-                <div className="pile-indicator draw-pile">
+                {/*
+                  * THE DRAW TOOLTIP — ticket 22.
+                  *
+                  * Hung on the draw pile because that is where the player already looks to ask "how
+                  * many am I getting". It prints the arithmetic for THIS party rather than the
+                  * formula, because `sum(cardDraw) − (N − 1)` is the expression ticket 08's
+                  * start-deck ruling was derived from and "7" with no working shown is precisely the
+                  * number a player cannot plan a third party member around. See `drawFormula.ts`.
+                  */}
+                <div
+                    className="pile-indicator draw-pile"
+                    title={drawTooltipLines(draw).join('\n')}
+                >
                     <span className="pile-icon">🃏</span>
                     <span className="pile-count">{drawPileCount}</span>
                     <span className="pile-label">DRAW</span>
+                    <span className="pile-formula">+{draw.total}/turn</span>
+                </div>
+                <div className="hand-console-center">
+                    {/*
+                      * WHOSE NUMBERS THESE ARE. With one caster this was implicit and safe to leave
+                      * unsaid; with three it is the single most load-bearing piece of state on the
+                      * screen, because every figure in the fan above is quoted for this unit.
+                      */}
+                    <div className="hand-caster-banner" data-testid="hand-caster-banner">
+                        {caster
+                            ? <>READING FOR <strong>{caster.name.toUpperCase()}</strong></>
+                            : <>NO CASTER — PRESS W / E / R</>}
+                    </div>
+                    {/*
+                      * Ticket 22's Done-when is that the fight is playable by keyboard as well as
+                      * mouse. A keyboard path nobody can discover is not a keyboard path, and a
+                      * fight has no options screen to hide a key list behind, so the map lives on
+                      * the console beside the hand it drives.
+                      */}
+                    <div className="hand-hotkeys">
+                        1-9 CARD · W/E/R CASTER · ⇧W/E/R ALLY · A/S/D ENEMY · TAB CYCLE · ENTER CAST · Z/X/C MACRO · SPACE END · ESC CLEAR
+                    </div>
                 </div>
                 <div className="battle-controls">
                     <button
@@ -300,4 +421,3 @@ const CardHand: React.FC<{
 };
 
 export default CardHand;
-
