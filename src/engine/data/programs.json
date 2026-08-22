@@ -5483,12 +5483,11 @@
     "ascension": {
         "id": "ascension",
         "name": "Ascension",
-        "description": "50 power. Gain 2 Strengthened and 2 Sharp. Exhaust.",
+        "description": "50 power. Gain 2 Strengthened and 2 Sharp.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
-        "exhaust": true,
         "baseCost": 2,
         "constraints": [
             "not_stunned",
