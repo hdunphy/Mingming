@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10, 11, 12). **State: 55 tickets, 14 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12). THE FIGHT-AND-GROW BEAT IS IN: offers -> party -> region -> walk -> fight -> rewards -> back to the map, persisted. Critical path: 18 -> 19. **Next agent-runnable: 13 (marketplace) or 14 (workshop), then 18/19.** Ticket 18 has grown (it rebuilds the gauntlet chain ticket 11 deleted). Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **A pile of proposed economy numbers is waiting on Henry — see tickets 12 and 09.** Suite green at 86 files / 1107 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10, 11, 12, 13). **State: 55 tickets, 15 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12, 13). The run loop runs and the marketplace works. **Next: 14 (workshop), then 15 (macros), 18, 19.** Ticket 18 has grown (it rebuilds the gauntlet chain ticket 11 deleted). Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **A pile of proposed economy numbers awaits Henry — tickets 12 and 13 both open with an AWAITING HENRY block.** Suite green at 89 files / 1163 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,16 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Marketplace node (ticket 13) — **the economy has numbers, and "power dies at the surface" has a test**
+
+- Buy / sell / remove / reroll, as a panel on `RunScreen` (not a route — the map stays visible, so there is no "leave the shop" button to get stuck behind).
+- **Every number derived from ticket 12's anchor and flagged as a proposal.** 450 scrap ÷ 3 markets = ~150 per visit. Stock 5 + 1 off-pool wildcard; cards 24/40/64/96 by rarity, +8 per energy; sell 0.4x; reroll 20; **removal 30**, which is Henry's stated target done as arithmetic (3 start generics + 1 per recruit on a 1→2→3 party = 5; 150 / 5 = 30). **The test computes that from the constants**, so retuning `START_GENERICS` or the visit count fails the test rather than quietly falsifying the comment.
+- **The standing law finally has a test.** `cardPrice` is a pure function of (rarity, energy): two cards identical but for `power` price identically, and the rendered markup contains no `/power/i`. That second assertion cost us card descriptions on the offer row — several of them say the number out loud (`water_slap`: "priced at 12 power to compensate").
+- `sell < buy` for all 216 registry cards **by construction** — sell is derived from buy, so it is arithmetic rather than vigilance.
+- **Two things `IRunState` had no field for, solved without touching the ratified type.** Sold-out is derived: offer `IRunCard`s are minted inside `rollMarketStock` from the node seed, so an offer is sold exactly when its instance id is already in the deck (survives a resume for free, and the duplicate-id refusal is also a correctness guard — two deck cards sharing an id would both vanish on one removal). And the reroll is a **paid re-entry** — it increments the node's `visited`, which buys precisely what walking away and back already buys.
+- `nodeSeed(run, node, purpose)` extracted; `encounterSeed` calls it and the derived string is **byte-identical**, pinned by a test, so no stored encounter changed.
+- Suite **1107 → 1163**.
 
 ### 2026-08-22 — Rewards refit (ticket 12) — **every economy number is now one table, and all of them want Henry**
 

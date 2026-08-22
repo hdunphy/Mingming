@@ -1,0 +1,283 @@
+/**
+ * The marketplace — ticket 13 (steam-release map).
+ *
+ * # WHAT THE PLAYER IS LOOKING AT
+ *
+ * Three verbs over one currency. **Buy** a card out of a stock rolled from the party's own pool
+ * (plus one off-pool stranger), **sell** a specific card out of the run deck, and **pay to remove**
+ * one — the sink `economy-session.md` asks for, and by Henry's 2026-08-21 amendment the answer to
+ * the generic filler that three start-deck slots and every recruit keep adding.
+ *
+ * Everything about *what things cost* and *what is in the stock* lives in
+ * `engine/run/marketplace.ts`. This file renders it and dispatches. That split is the same one
+ * `RegionMap` keeps with `regionLayout`, and it is why the prices can be ratified by Henry without
+ * anyone opening a `.tsx` file.
+ *
+ * # THE FOUR THINGS THIS SCREEN HAS TO SHOW, NOT JUST OBEY
+ *
+ * 1. **The deck count, with the target stated.** Ticket 13's Done-when says so in as many words:
+ *    *"the deck count is visible so the 20-25 target is legible"*. A number alone is not legible —
+ *    28 is only meaningful next to the 20-25 a good 3v3 deck wants (`economy-session.md`, bite two)
+ *    — so the target is printed beside it and the screen says which side of it you are on. That
+ *    sentence is what turns the removal price from a tax into a decision.
+ * 2. **Why a button is dead.** A card you cannot afford is disabled *and says what it is short of*.
+ *    Ticket 20 set that precedent (`RunStart`'s party picker prints "Already fielding this species"
+ *    rather than ignoring the click), and a silently inert button is indistinguishable from a bug to
+ *    whoever is holding the controller.
+ * 3. **Scrap, always.** It is the only currency on the screen and every button changes it.
+ * 4. **`power` NEVER.** Standing law (map § Notes): power dies at the surface. The offer rows print
+ *    name, element, rarity and **energy cost** — the two inputs the price is actually keyed on — and
+ *    not the card's description, because the descriptions are written for the balance pass and some
+ *    of them quote the internal number out loud (`water_slap`: *"priced at 12 power to
+ *    compensate"*). `MarketplaceNode.test.tsx` asserts the rendered markup contains no "power" at
+ *    all, which is a test that would catch a well-meant "show the card text" patch.
+ *
+ * # KEYBOARD
+ *
+ * Every affordance is a real `<button>`, the same choice `RegionMap`'s travel list makes and for the
+ * same reason: ticket 38 (accessibility) should inherit screens that already work without a mouse
+ * rather than screens that need retrofitting.
+ */
+
+import { useMemo } from 'react';
+import type { ReactNode } from 'react';
+import { useDispatch } from 'react-redux';
+
+import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
+import type { IRewardPartyMember } from '../../engine/RewardSystem';
+import {
+    REMOVAL_PRICE,
+    REROLL_PRICE,
+    cardPrice,
+    isOfferSold,
+    rollMarketStock,
+    sellPrice,
+    type IMarketOffer,
+} from '../../engine/run/marketplace';
+import { numericBaseCost } from '../../engine/types';
+import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
+import { playSfx } from '../audio/AudioEngine';
+import { buyMarketCard, removeRunCardForScrap, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import './MarketplaceNode.css';
+
+/**
+ * `economy-session.md`, bite two: *"the run BUILDS toward the ~20-25 cards a good 3v3 deck wants."*
+ * The band is the whole reason a removal price exists, so it is printed rather than implied.
+ */
+export const DECK_TARGET_MIN = 20;
+export const DECK_TARGET_MAX = 25;
+
+interface CardLine {
+    readonly name: string;
+    readonly element: string;
+    readonly rarity: string;
+    readonly cost: number;
+}
+
+/**
+ * What a card shows on this screen. Deliberately four fields: the two the price is keyed on (rarity,
+ * energy cost) plus the two that identify it (name, element). No description, and no `power` — see
+ * the header.
+ */
+function lineFor(dataId: string): CardLine {
+    const data = ProgramRegistry[dataId];
+    return {
+        name: data?.name ?? dataId,
+        element: data?.element ?? 'None',
+        rarity: (data?.rarity as string) ?? 'Common',
+        cost: numericBaseCost(data?.baseCost ?? 0),
+    };
+}
+
+export interface MarketplaceNodeProps {
+    readonly run: IRunState;
+    /** The market being stood in, already visit-incremented by `runSlice.enterNode`. */
+    readonly node: IRegionNode;
+    /** The party as it is right now — it decides the pool, exactly as it decides a reward pick. */
+    readonly party: ReadonlyArray<IRewardPartyMember>;
+}
+
+export default function MarketplaceNode({ run, node, party }: MarketplaceNodeProps): ReactNode {
+    const dispatch = useDispatch();
+
+    // Rolled from (run seed, node id, visit count) — never held in component state. A remount, an
+    // app close or a resume therefore shows the same stock, and the *only* thing that changes it is
+    // a new visit: walking back in, or paying `REROLL_PRICE` for the same increment.
+    const stock = useMemo(() => rollMarketStock({ run, node, party }), [run, node, party]);
+
+    const deckSize = run.deck.length;
+    const scrap = run.scrap;
+
+    const buy = (offer: IMarketOffer): void => {
+        dispatch(buyMarketCard({ card: offer.card, price: offer.price }));
+        playSfx('rewardClaim');
+    };
+
+    const sell = (card: IRunCard): void => {
+        dispatch(sellRunCard({ instanceId: card.instanceId, price: sellPrice(card.dataId) }));
+        playSfx('uiClick');
+    };
+
+    const scrapCard = (card: IRunCard): void => {
+        dispatch(removeRunCardForScrap({ instanceId: card.instanceId, price: REMOVAL_PRICE }));
+        playSfx('uiClick');
+    };
+
+    const reroll = (): void => {
+        dispatch(rerollMarketStock({ nodeId: node.id, price: REROLL_PRICE }));
+        playSfx('uiClick');
+    };
+
+    /** The shortfall, in the words the player needs: what they are short, not that they are short. */
+    const shortBy = (price: number): number => Math.max(0, price - scrap);
+
+    return (
+        <section className="mk">
+            <header className="mk-head">
+                <h2 className="mk-title">🛒 Marketplace</h2>
+                <div className="mk-balance">
+                    <span className="mk-scrap" aria-label="Scrap held">{scrap} scrap</span>
+                    <span className="mk-deck">
+                        deck: {deckSize} cards
+                        <span className="mk-deck-target"> · target {DECK_TARGET_MIN}–{DECK_TARGET_MAX}</span>
+                    </span>
+                </div>
+                <p className="mk-note">
+                    {deckSize < DECK_TARGET_MIN
+                        ? `A good 3v3 deck wants ${DECK_TARGET_MIN}–${DECK_TARGET_MAX} cards — ${DECK_TARGET_MIN - deckSize} short. Buy.`
+                        : deckSize > DECK_TARGET_MAX
+                            ? `A good 3v3 deck wants ${DECK_TARGET_MIN}–${DECK_TARGET_MAX} cards — ${deckSize - DECK_TARGET_MAX} over. Sell or remove.`
+                            : `On target: a good 3v3 deck wants ${DECK_TARGET_MIN}–${DECK_TARGET_MAX} cards.`}
+                    {' '}Scrap is run-scoped and dies with the run — spend it.
+                </p>
+            </header>
+
+            {/* --- Stock --- */}
+
+            <div className="mk-section-head">
+                <h3>Stock</h3>
+                <button
+                    type="button"
+                    className="mk-button subtle"
+                    onClick={reroll}
+                    disabled={scrap < REROLL_PRICE}
+                >
+                    {scrap < REROLL_PRICE
+                        ? `Reroll (${REROLL_PRICE}) — ${shortBy(REROLL_PRICE)} scrap short`
+                        : `Reroll stock — ${REROLL_PRICE} scrap`}
+                </button>
+            </div>
+            <p className="mk-note">
+                Visit {stock.visit}. The stock is drawn from your party&apos;s own card pools — the
+                same rule the post-fight pick uses — plus one <strong>off-pool</strong> slot, so a
+                one-species team is not offered the same list all run. Walking back in later, or
+                paying for a reroll, rolls a fresh stock.
+            </p>
+
+            <ul className="mk-stock">
+                {stock.offers.map((offer) => {
+                    const line = lineFor(offer.card.dataId);
+                    const sold = isOfferSold(run.deck, offer);
+                    const short = shortBy(offer.price);
+                    return (
+                        <li key={offer.card.instanceId} className={`mk-offer ${offer.wildcard ? 'wild' : ''}`}>
+                            <div className="mk-offer-card">
+                                <span className="mk-card-name">{line.name}</span>
+                                <span className="mk-card-meta">
+                                    {line.element} · {line.rarity} · {line.cost}⚡
+                                </span>
+                                {offer.wildcard && <span className="mk-tag">off-pool</span>}
+                            </div>
+                            <button
+                                type="button"
+                                className="mk-button"
+                                onClick={() => buy(offer)}
+                                disabled={sold || short > 0}
+                            >
+                                {sold
+                                    ? 'Bought'
+                                    : short > 0
+                                        ? `${offer.price} scrap — ${short} short`
+                                        : `Buy — ${offer.price} scrap`}
+                            </button>
+                        </li>
+                    );
+                })}
+                {stock.offers.length === 0 && <li className="mk-empty">The stall is bare.</li>}
+            </ul>
+
+            {/*
+              * MACROS IN STOCK — TICKET 15.
+              *
+              * `macros-and-drivers.md`: 3 slots, single-use, fired free on your turn, priced at FULL
+              * 1-energy-card value (rares 1.5x). Ticket 13's brief: "Macros appear in stock once
+              * ticket 15 lands." They are a separate stock list rather than more rows in the one
+              * above, because they are bought into `IRunState.macros` (a fixed 3-slot tuple) and not
+              * into the deck — a buy button that filled a slot would be a different reducer, a
+              * different sold-out rule and a different empty state. The slot is marked rather than
+              * omitted for the same reason `RunScreen` names the ticket behind an empty node: a
+              * feature nobody can see is indistinguishable from a feature nobody built.
+              */}
+            <div className="mk-pending">
+                <h3>Macros</h3>
+                <p className="mk-note">
+                    Macro stock arrives with ticket 15 — three single-use slots, bought here, fired
+                    free on your turn. The card stock above is unaffected by it.
+                </p>
+            </div>
+
+            {/* --- The deck: sell and remove --- */}
+
+            <div className="mk-section-head">
+                <h3>Your deck ({deckSize})</h3>
+            </div>
+            <p className="mk-note">
+                Selling pays a fraction of the buy price; <strong>removal costs {REMOVAL_PRICE} scrap
+                and pays nothing</strong> — it buys you a thinner deck, which is the point. The
+                generic <em>Tackle</em> filler every member and recruit brings is what removal is
+                for.
+            </p>
+
+            <ul className="mk-deck-list">
+                {run.deck.map((card) => {
+                    const line = lineFor(card.dataId);
+                    const sellFor = sellPrice(card.dataId);
+                    const shortForRemoval = shortBy(REMOVAL_PRICE);
+                    return (
+                        <li key={card.instanceId} className={`mk-deck-row ${card.dataId === GENERIC_HIT ? 'generic' : ''}`}>
+                            <div className="mk-offer-card">
+                                <span className="mk-card-name">{line.name}</span>
+                                <span className="mk-card-meta">
+                                    {line.element} · {line.rarity} · {line.cost}⚡
+                                </span>
+                                {card.dataId === GENERIC_HIT && <span className="mk-tag">generic filler</span>}
+                            </div>
+                            <div className="mk-row-actions">
+                                <button
+                                    type="button"
+                                    className="mk-button subtle"
+                                    onClick={() => sell(card)}
+                                    title={`Buys back at ${cardPrice(card.dataId)} scrap`}
+                                >
+                                    Sell — +{sellFor}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="mk-button danger"
+                                    onClick={() => scrapCard(card)}
+                                    disabled={shortForRemoval > 0}
+                                >
+                                    {shortForRemoval > 0
+                                        ? `Remove (${REMOVAL_PRICE}) — ${shortForRemoval} short`
+                                        : `Remove — ${REMOVAL_PRICE} scrap`}
+                                </button>
+                            </div>
+                        </li>
+                    );
+                })}
+                {deckSize === 0 && <li className="mk-empty">No cards. Nothing to sell, nothing to strip.</li>}
+            </ul>
+        </section>
+    );
+}

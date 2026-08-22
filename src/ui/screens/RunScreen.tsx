@@ -23,8 +23,16 @@
  *    re-rolls the identical fight from the identical seed — ticket 23's resume contract extended to
  *    encounters, for free, because nothing about the fight was ever held in a component.
  *
- * The three non-fight kinds do nothing yet and say so on screen. A node that fired and produced no
- * visible change is indistinguishable from a node that failed to fire.
+ * # THE MARKETPLACE IS A PANEL, NOT A ROUTE (ticket 13)
+ *
+ * Standing on a market renders `MarketplaceNode` inside this screen, with the map still underneath
+ * it. That is a deliberate difference from the fight path, which swaps the whole screen for
+ * `BattleArena`: a market is not a mode you are trapped in, it is a thing at the place you are
+ * standing, and ticket 07 makes leaving it a matter of walking to a neighbour on the map that is
+ * already on screen. There is no "leave the shop" button because there is nothing to leave.
+ *
+ * The two remaining non-fight kinds do nothing yet and say so on screen. A node that fired and
+ * produced no visible change is indistinguishable from a node that failed to fire.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -34,6 +42,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
 import { RUN_ENEMY_MODE, isFightNode, rollEncounter } from '../../engine/run/encounter';
+import { isMarketNode } from '../../engine/run/marketplace';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
@@ -41,18 +50,22 @@ import { startBattle } from '../store/battleSlice';
 import { clearRun, enterNode } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
+import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 
 /**
- * The three kinds that have no handler yet, and the ticket that gives them one.
+ * The kinds that have no handler yet, and the ticket that gives them one.
  *
  * Named rather than lumped into one "coming soon" because the point of showing this at all is to be
  * checkable: standing on a workshop and reading "ticket 14" tells you the trigger fired and which
  * ticket owes you the rest. A silent node would look exactly like a broken one.
+ *
+ * **`marketplace` left this table in ticket 13** — it has a screen now, so it is no longer pending.
+ * The entry is removed rather than pointed at the landed ticket, because the table's meaning is
+ * "nothing happens here", and a kind that renders a shop would be a false entry in it.
  */
 const PENDING_NODE_TICKET: Partial<Record<NodeKind, number>> = {
-    marketplace: 13,
     workshop: 14,
     event: 30,
 };
@@ -65,6 +78,21 @@ export default function RunScreen(): ReactNode {
 
     const byId = useMemo(() => new Map((run?.nodes ?? []).map((n) => [n.id, n])), [run]);
     const current = run ? byId.get(run.currentNodeId) : undefined;
+
+    /**
+     * The party, for anything that needs to know what species are on the team — today the
+     * marketplace's stock pool (ticket 13), which draws by the same rule as a reward pick.
+     *
+     * Memoised because it is a fresh array every render otherwise, and `MarketplaceNode` keys its
+     * stock roll on it: a new array identity every render would re-roll a deterministic stock over
+     * and over for nothing. Declared above the early return, as hooks must be.
+     */
+    const marketParty = useMemo(
+        () => (run?.partyIds ?? [])
+            .map((id) => roster.find((m) => m.id === id))
+            .filter((m): m is (typeof roster)[number] => m !== undefined),
+        [run, roster],
+    );
 
     /**
      * Fire the encounter the run's phase is asking for.
@@ -187,6 +215,19 @@ export default function RunScreen(): ReactNode {
                         here yet (ticket {pendingTicket}). Entering it counted as a visit, so walking
                         back in later will roll it fresh.
                     </p>
+                )}
+
+                {/*
+                  * The market's stock is rolled from the node the player is standing on, which
+                  * `enterNode` has already visit-incremented — the same count `rollEncounter` reads,
+                  * and the reason a re-entered market is a genuinely different stall.
+                  *
+                  * The party is passed as roster members: `IRewardPartyMember` needs only
+                  * `definitionId` + `activeOS`, which `IRanchMember` already satisfies structurally,
+                  * so there is nothing to map and no second shape of "the party" to keep in step.
+                  */}
+                {isMarketNode(current.kind) && (
+                    <MarketplaceNode run={run} node={current} party={marketParty} />
                 )}
 
                 <RegionMap

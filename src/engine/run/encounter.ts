@@ -40,6 +40,7 @@ import { initializeBattleEntity } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
 import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
+import { nodeSeed } from './nodeSeed';
 
 // ---------------------------------------------------------------------------------------------
 // Which nodes are a fight
@@ -201,7 +202,7 @@ export function kitFractionFor(node: IRegionNode): IKitFraction {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * The seed a node's contents are rolled from: **run seed + node id + visit count**.
+ * The seed a fight's contents are rolled from: **run seed + node id + visit count**.
  *
  * All three parts are load-bearing. The run seed makes a whole run replayable from one string
  * (ticket 23's resume contract). The node id keeps two nodes entered at the same moment from
@@ -213,9 +214,14 @@ export function kitFractionFor(node: IRegionNode): IKitFraction {
  * `node` must already be visit-incremented — the count that identifies *this* entry is the one
  * after the increment. `runSlice.enterNode` does the increment, and the caller reads the node back
  * out of the updated run.
+ *
+ * **The derivation itself moved to `nodeSeed.ts` under ticket 13**, which added a second thing a
+ * node can contain (a marketplace's stock) that has to re-roll on re-entry by the same rule. The
+ * string is unchanged — this is `nodeSeed(run, node, 'encounter')` — so every fight that has ever
+ * been rolled from a stored run still rolls identically.
  */
 export function encounterSeed(run: IRunState, node: IRegionNode): string {
-    return new SeedStream(run.seed).fork(`encounter:${node.id}:${node.visited}`);
+    return nodeSeed(run, node, 'encounter');
 }
 
 // ---------------------------------------------------------------------------------------------

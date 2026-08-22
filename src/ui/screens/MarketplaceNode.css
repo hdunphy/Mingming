@@ -1,0 +1,142 @@
+/*
+ * Marketplace — ticket 13.
+ *
+ * Co-located with the component, prefixed `mk-`, following `RegionMap.css`'s precedent: the 2500-line
+ * global sheet is the thing these prefixes exist to stay out of, and a screen whose styles travel
+ * with it is a screen ticket 34's art pass can restyle in one file.
+ *
+ * Both lists are single-column grids that wrap on their own, and every row's price sits in a button
+ * rather than in a column of its own, so the 1280x800 Steam Deck frame (ticket 37) narrows the rows
+ * instead of clipping the prices off the right-hand edge.
+ */
+
+.mk {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid rgba(122, 92, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.22);
+    padding: 0.7rem 0.8rem;
+}
+
+/* --- Header: scrap and the deck count --- */
+
+.mk-head { display: flex; flex-direction: column; gap: 0.35rem; }
+.mk-title { margin: 0; font-size: 1rem; letter-spacing: 0.04em; }
+
+.mk-balance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    align-items: baseline;
+    font-family: monospace;
+}
+
+.mk-scrap { font-size: 1.05rem; font-weight: 700; color: #ffcc66; }
+.mk-deck { font-size: 0.9rem; color: #9ee7c0; }
+/* The target is the half of the deck count that makes the count mean anything (ticket 13's
+ * Done-when), so it is dimmed but never hidden. */
+.mk-deck-target { opacity: 0.75; font-weight: 400; }
+
+.mk-note { margin: 0; font-size: 0.74rem; opacity: 0.75; line-height: 1.45; }
+
+.mk-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.mk-section-head h3 { margin: 0; font-size: 0.82rem; letter-spacing: 0.06em; }
+
+/* --- Rows --- */
+
+.mk-stock,
+.mk-deck-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+/* The deck can run past 30 cards late in a run; it scrolls inside itself rather than pushing the
+ * stock off the top of the screen. */
+.mk-deck-list { max-height: 22rem; overflow-y: auto; }
+
+.mk-offer,
+.mk-deck-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    border: 1px solid rgba(122, 92, 255, 0.22);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.35rem 0.5rem;
+}
+
+.mk-offer.wild { border-color: rgba(255, 204, 102, 0.5); }
+.mk-deck-row.generic { border-left: 3px solid rgba(160, 150, 210, 0.55); }
+
+.mk-offer-card { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.45rem; min-width: 0; }
+.mk-card-name { font-weight: 700; font-size: 0.84rem; }
+.mk-card-meta { font: 0.72rem/1.3 monospace; opacity: 0.72; }
+
+.mk-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 204, 102, 0.55);
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    color: #ffcc66;
+}
+
+.mk-deck-row.generic .mk-tag { border-color: rgba(160, 150, 210, 0.55); color: #b9b2e0; }
+
+.mk-row-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+/* --- Buttons --- */
+
+.mk-button {
+    background: rgba(122, 92, 255, 0.18);
+    color: inherit;
+    font: 0.74rem/1.3 monospace;
+    border: 1px solid rgba(122, 92, 255, 0.45);
+    border-radius: 5px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.mk-button:hover:not(:disabled) { border-color: #7a5cff; background: rgba(122, 92, 255, 0.3); }
+.mk-button:focus-visible { outline: 2px solid #6ee7a8; outline-offset: 2px; }
+
+/*
+ * A disabled button still has to be READABLE, because its label is where the refusal is explained
+ * ("18 short"). The ranch's precedent (ticket 20) is that a blocked affordance says why; fading it
+ * to invisibility would keep the discipline and lose the point of it.
+ */
+.mk-button:disabled { cursor: not-allowed; opacity: 0.55; border-style: dashed; }
+
+.mk-button.subtle { background: rgba(0, 0, 0, 0.3); border-color: rgba(160, 150, 210, 0.35); }
+.mk-button.danger { border-color: rgba(232, 115, 74, 0.5); background: rgba(232, 115, 74, 0.12); }
+.mk-button.danger:hover:not(:disabled) { border-color: #e8734a; background: rgba(232, 115, 74, 0.25); }
+
+/* --- Placeholders --- */
+
+.mk-empty { font-size: 0.76rem; opacity: 0.6; padding: 0.3rem 0.1rem; }
+
+.mk-pending {
+    border: 1px dashed rgba(160, 150, 210, 0.35);
+    border-radius: 5px;
+    padding: 0.45rem 0.6rem;
+    margin-top: 0.4rem;
+}
+
+.mk-pending h3 { margin: 0 0 0.25rem; font-size: 0.8rem; letter-spacing: 0.06em; opacity: 0.85; }

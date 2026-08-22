@@ -29,9 +29,16 @@
  * the entry rule is the one piece of ticket 07 that has to be provably right: `enterNode` is where
  * "entering a node triggers it again, always" either happens or quietly does not.
  *
+ * # WHAT TICKET 13 ADDED
+ *
+ * The marketplace's three verbs — buy, sell, paid removal — plus the paid re-roll. They are four
+ * reducers rather than compositions of `spendRunScrap` + `addRunCards` because each is one
+ * transaction: see the block comment above `buyMarketCard` for ticket 20's atomicity argument, which
+ * is the whole reason the affordability check is in here and not only in the screen.
+ *
  * # WHAT IS DELIBERATELY NOT HERE YET
  *
- * Rewards beyond the economy reducers, and the gauntlet: tickets 13 through 19. **Gauntlet progress
+ * Rewards beyond the economy reducers, and the gauntlet: tickets 14 through 19. **Gauntlet progress
  * in particular is untouched** — `IRunState.gauntlet` is carried and persisted, but nothing here
  * advances it, because ticket 18 owns the gauntlet refit and half-moving it would leave two
  * partial implementations to reconcile. Every later ticket adds reducers here rather than reaching
@@ -42,6 +49,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { isFightNode } from '../../engine/run/encounter';
+import { isMarketNode } from '../../engine/run/marketplace';
 import type { IRegionNode, IRunCard, IRunState, RunOutcome } from '../../engine/runTypes';
 
 export interface RunSliceState {
@@ -199,6 +207,111 @@ const runSlice = createSlice({
             return { run: { ...run, deck } };
         },
 
+        // --- The marketplace's three verbs, plus the reroll (ticket 13) ---
+        //
+        // **Each one is a single action, and that is the whole point of them being here.** Ticket
+        // 20's atomicity argument: a check that lives only in a component is a check that races.
+        // Buying is "scrap goes down AND a card arrives" — dispatched as `spendRunScrap` followed by
+        // `addRunCards` it is two states, and the one in between (paid, nothing bought) is a state
+        // no rule describes and any interleaved dispatch, remount or autosave can observe. The
+        // affordability test therefore lives in the same reducer as the mutation it guards, and the
+        // screen's own check is a courtesy to the player rather than the enforcement.
+        //
+        // All four keep the slice's silent-no-op-on-invalid convention: a reducer has no error
+        // channel, so an unaffordable purchase changes nothing at all.
+
+        /**
+         * Buy a card from a market's stock. Refused — silently, entirely — when the price is not a
+         * non-negative integer, when the run cannot afford it, or when the deck **already holds a
+         * card with this instance id**.
+         *
+         * That last clause is what makes a stock a stock. `rollMarketStock` mints each offer's
+         * instance id deterministically from the run seed, so "already bought" is derivable from the
+         * deck and survives an app close without `IRunState` growing a field (ticket 06's shape is
+         * ratified; ticket 13 does not touch it). It is also a correctness guard rather than only an
+         * economy one: two deck cards sharing an instance id would both disappear on the first
+         * `removeRunCard`, and `sellRunCard`'s "one specific instance" promise would be a lie.
+         */
+        buyMarketCard: (state, action: PayloadAction<{ card: IRunCard; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { card, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            if (run.deck.some((held) => held.instanceId === card.instanceId)) return { run };
+            return { run: { ...run, scrap: run.scrap - price, deck: [...run.deck, card] } };
+        },
+
+        /**
+         * Sell one card out of the run deck.
+         *
+         * **By `instanceId`, never by `dataId`.** A deck routinely holds several copies of one card
+         * — the tuned lists run doubles and `startDeckFor` deals three identical generics — and
+         * "sell a `water_slap`" would leave the player unable to say *which* one, which matters the
+         * moment `ownerId` means anything (it is the departure bookkeeping `runTypes.ts` describes).
+         * Selling a card that is not in the deck is a no-op and pays nothing, so a double-dispatched
+         * click cannot mint scrap.
+         */
+        sellRunCard: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { instanceId, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0) return { run };
+            const deck = run.deck.filter((card) => card.instanceId !== instanceId);
+            if (deck.length === run.deck.length) return { run };
+            return { run: { ...run, scrap: run.scrap + price, deck } };
+        },
+
+        /**
+         * Pay to remove one card — `economy-session.md`'s designer-added sink, and by Henry's
+         * 2026-08-21 amendment the answer to the generic filler.
+         *
+         * Distinct from `removeRunCard` (which is free and has no price to check) because this one
+         * has to be atomic with the payment: charging for a removal that did not happen, or removing
+         * for free, are both reachable if the two halves are two dispatches. A card that is not in
+         * the deck costs nothing.
+         */
+        removeRunCardForScrap: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { instanceId, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            const deck = run.deck.filter((card) => card.instanceId !== instanceId);
+            if (deck.length === run.deck.length) return { run };
+            return { run: { ...run, scrap: run.scrap - price, deck } };
+        },
+
+        /**
+         * Pay to re-roll a market's stock.
+         *
+         * **Implemented as a paid re-entry: it increments the node's `visited` count.** The stock is
+         * a pure function of (run seed, node id, visit count) exactly as an encounter is (ticket 07),
+         * so bumping the count is not a trick — it buys precisely what walking away and walking back
+         * would buy, minus the wilds re-fought on the way. Henry's amendment blesses the walk
+         * (*"revisiting a market is allowed... stock re-rolls per visit"*); this is the same thing
+         * priced in scrap, and it needs no field that `IRunState` does not already have.
+         *
+         * **Gated on the node actually being a marketplace**, which is the one place this slice
+         * checks a node's kind before mutating it. A stray dispatch naming a wild would otherwise
+         * increment *that* node's visit count and silently re-roll a fight the player is standing in.
+         */
+        rerollMarketStock: (state, action: PayloadAction<{ nodeId: string; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { nodeId, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+
+            const target = run.nodes.find((node) => node.id === nodeId);
+            if (!target || !isMarketNode(target.kind)) return { run };
+
+            const nodes: IRegionNode[] = run.nodes.map((node) => (
+                node.id === target.id ? { ...node, visited: node.visited + 1 } : node
+            ));
+            return { run: { ...run, scrap: run.scrap - price, nodes } };
+        },
+
         /**
          * Win a driver — the party-wide passive an elite pays out (`macros-and-drivers.md`). Was
          * `gameSlice.addRelic`; the rename is ticket 16's vocabulary, and the move is ticket 06's
@@ -228,6 +341,10 @@ export const {
     spendRunScrap,
     addRunCards,
     removeRunCard,
+    buyMarketCard,
+    sellRunCard,
+    removeRunCardForScrap,
+    rerollMarketStock,
     addDriver,
 } = runSlice.actions;
 

@@ -79,13 +79,24 @@ function standingOn(kind: NodeKind, over: Partial<IRunState> = {}): IRunState {
 }
 
 describe('RunScreen — a node that fired says so', () => {
-    it('names the ticket that owes a marketplace its contents', () => {
-        // Tickets 13, 14 and 30 own the three non-fight kinds. Until they land, the screen has to
-        // be legible about the difference between "nothing happens here yet" and "nothing happened".
+    it('opens the shop on a marketplace instead of an apology (ticket 13)', () => {
+        // Until ticket 13 this node printed "nothing here yet (ticket 13)". It now has all three
+        // verbs, so the placeholder has to be gone rather than merely accompanied — a screen that
+        // says both is a screen nobody updated.
         const markup = render(standingOn('marketplace'));
 
-        expect(markup).toContain('nothing here yet (ticket 13)');
+        expect(markup).not.toContain('nothing here yet');
         expect(markup).toContain('Marketplace');
+        expect(markup).toContain('Stock');
+        // The Done-when: the deck count is on screen with its target beside it.
+        expect(markup).toContain('deck:');
+        expect(markup).toContain('target 20');
+    });
+
+    it('does NOT open the shop on any other kind of node', () => {
+        // The marketplace is a panel on the run screen rather than a route, so the guard that keeps
+        // it off a workshop is one `isMarketNode` call and worth pinning.
+        expect(render(standingOn('workshop'))).not.toContain('Reroll');
     });
 
     it('names ticket 14 for a workshop', () => {

@@ -213,8 +213,14 @@ function getPoolForElement(element: Element): string[] {
     return (elementalPool.length > 0 ? elementalPool : nonTokenPool).map(p => p.id);
 }
 
-/** A card is never offered as a reward if it is an internal token. */
-function isRewardable(dataId: string): boolean {
+/**
+ * A card is never offered as a reward if it is an internal token.
+ *
+ * **Exported since ticket 13.** The marketplace's off-pool wild-card slot draws from everything
+ * `rewardCardPool` did *not* return, which means it needs the same "is this a real card" rule — and
+ * a second copy of it would be one `isToken` flag away from putting a generated token on sale.
+ */
+export function isRewardable(dataId: string): boolean {
     const data = ProgramRegistry[dataId];
     return !!data && !data.isToken && (data.rarity as string) !== 'Token';
 }
@@ -576,6 +582,15 @@ export function rollDraftRounds(
  * instead of inventing a second one — and so it is calibrated in the same pass as
  * `SCRAP_PER_ENEMY` above, since selling an Epic for 100 when a whole elite pays ~66 would make
  * selling the dominant income.
+ *
+ * **TICKET 13 FOUND IT AND DID NOT ADOPT IT, ON PURPOSE.** `engine/run/marketplace.ts` derives the
+ * sell price from the *buy* price by a single multiplier rather than from an independent table,
+ * because the one law selling must obey — **sell < buy for every card, or the market is an infinite
+ * scrap loop** — is structural under a multiplier and merely a coincidence under two hand-kept
+ * tables. This list is exactly the shape that could cross: it is unaware of energy cost, so its
+ * flat `Rare: 50` would out-pay a cheap Rare's buy price the moment anyone retuned either half.
+ * `getScrapYield` still has no callers; ticket 13 proposes deleting it once Henry ratifies the
+ * marketplace numbers, and leaves it standing until then rather than deleting a thing under review.
  */
 const SCRAP_YIELDS: Record<string, number> = {
     'Common': 10,
