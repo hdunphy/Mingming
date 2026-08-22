@@ -42,13 +42,14 @@ import App from './App';
 import battleReducer from './ui/store/battleSlice';
 import gameReducer, { createEmptyRanch } from './ui/store/gameSlice';
 import runReducer from './ui/store/runSlice';
+import uiReducer from './ui/store/uiSlice';
 import { createSparseBattleState } from './debug/scenarios/scenarioTestSupport';
 
 function render(battle: ReturnType<typeof createSparseBattleState> | null): string {
     const store = configureStore({
         // Ticket 09 added the `run` slice; `App` reads `state.run.run` to decide whether the
         // player is at the ranch or in a run, so a store without it renders undefined.
-        reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
+        reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
         preloadedState: {
             game: createEmptyRanch(),
             battle: {

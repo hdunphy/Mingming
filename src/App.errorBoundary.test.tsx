@@ -30,6 +30,7 @@ import ErrorBoundary from './ui/components/ErrorBoundary';
 import battleReducer, { setBattleState } from './ui/store/battleSlice';
 import gameReducer from './ui/store/gameSlice';
 import runReducer from './ui/store/runSlice';
+import uiReducer from './ui/store/uiSlice';
 import { createSparseBattleState } from './debug/scenarios/scenarioTestSupport';
 
 declare global {
@@ -44,7 +45,7 @@ function makeStore() {
     return configureStore({
         // Ticket 09 added the `run` slice; `App` reads `state.run.run` to decide whether the
         // player is at the ranch or in a run, so a store without it renders undefined.
-        reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
+        reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
         middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
     });
 }

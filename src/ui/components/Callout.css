@@ -125,9 +125,15 @@
     to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* Three states since ticket 36 — see the note in index.css beside `hud-death-fade`. */
 @media (prefers-reduced-motion: reduce) {
-    .callout-enter,
-    .callout-battle.callout-enter {
+    :root:not([data-reduced-motion]) .callout-enter,
+    :root:not([data-reduced-motion]) .callout-battle.callout-enter {
         animation: none;
     }
+}
+
+:root[data-reduced-motion="on"] .callout-enter,
+:root[data-reduced-motion="on"] .callout-battle.callout-enter {
+    animation: none;
 }

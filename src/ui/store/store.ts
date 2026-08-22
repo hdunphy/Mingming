@@ -3,6 +3,7 @@ import type { Middleware } from '@reduxjs/toolkit';
 import battleReducer from './battleSlice';
 import gameReducer from './gameSlice';
 import runReducer from './runSlice';
+import uiReducer from './uiSlice';
 import { saveRanch, saveRun } from '../../engine/SaveSystem';
 import { reportSaveResult } from './saveHealth';
 
@@ -32,7 +33,10 @@ export const store = configureStore({
     reducer: {
         battle: battleReducer,
         game: gameReducer,
-        run: runReducer
+        run: runReducer,
+        // Ticket 36. Session-only: what is layered over the game. Nothing here is persisted, and
+        // the autosave subscription below deliberately does not read it.
+        ui: uiReducer
     },
     // Adding middleware to ignore non-serializable objects (like BattleEventBus in state if added later)
     middleware: (getDefaultMiddleware) =>

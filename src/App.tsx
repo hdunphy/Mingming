@@ -12,6 +12,9 @@ import { setRun } from './ui/store/runSlice'
 import type { RootState } from './ui/store/store'
 import { initAudio, playSfx } from './ui/audio/AudioEngine'
 import AudioControls from './ui/components/AudioControls'
+import SettingsScreen from './ui/screens/SettingsScreen'
+import { openSettings } from './ui/store/uiSlice'
+import { applySettings, loadSettings } from './ui/settings/settings'
 
 // The single import edge between the game and the debug toolkit. `import.meta.env.DEV` is
 // statically replaced by `false` in a production build, the ternary folds to `null`, and the
@@ -54,6 +57,8 @@ function App() {
   // advancing it; all this needs to know is whether the battle on screen belongs to one.
   const gauntlet = useSelector((state: RootState) => state.run.run?.gauntlet ?? null);
   const hasRun = useSelector((state: RootState) => state.run.run !== null);
+  // Ticket 36. Session-only shell state — see `uiSlice` for why one boolean earned a slice.
+  const settingsOpen = useSelector((state: RootState) => state.ui.settingsOpen);
 
   // Ticket 23 reads save v4's two keys and reconciles them; ticket 09 gives the run half a home.
   // A discarded run is reported and dropped — `loadGameState` guarantees it never costs the ranch,
@@ -81,6 +86,17 @@ function App() {
   // (browser autoplay policy: the AudioContext resumes on first input).
   useEffect(() => {
     initAudio();
+  }, []);
+
+  /*
+   * TICKET 36: the stored settings reach the document exactly once, at boot.
+   *
+   * Root font size and the reduced-motion attribute are both properties of `<html>`, which no
+   * component owns, so there is nowhere else this could live. It runs before anything the player
+   * can see because a text scale applied one frame late is a visible jump.
+   */
+  useEffect(() => {
+    applySettings(loadSettings());
   }, []);
 
   const prevInBattle = useRef(isInBattle);
@@ -112,19 +128,26 @@ function App() {
   // could have made that untrue mid-battle — the defeat path used to call `deleteSave()` while the
   // overlay was still up. It does not any more: a defeat ends the run (`endRun('defeat')`) and
   // touches nothing on the ranch, so the roster this branch reads is never emptied under it.
+  /*
+   * The settings overlay rides above every branch, `debugLayer`'s pattern and for the same reason:
+   * it is layered over whatever is on screen rather than replacing it. In a fight that IS the pause
+   * — the battle stays mounted and untouched, and nothing here dispatches at the battle reducer.
+   */
+  const settingsLayer = settingsOpen ? <SettingsScreen /> : null;
+
   if (isInBattle) {
-    return <>{debugLayer}<BattleArena /></>;
+    return <>{debugLayer}<BattleArena />{settingsLayer}</>;
   }
 
   if (rosterSize === 0) {
-    return <>{debugLayer}<MainMenuView /></>;
+    return <>{debugLayer}<MainMenuView />{settingsLayer}</>;
   }
 
   // TICKET 09: a run in progress outranks the ranch. There is no tab for it — you are either at
   // the ranch or in a run, and the only ways out are finishing it or abandoning it. Ticket 10
   // replaces `RunScreen`'s body with the real region map.
   if (hasRun) {
-    return <>{debugLayer}<RunScreen /></>;
+    return <>{debugLayer}<RunScreen />{settingsLayer}</>;
   }
 
   return (
@@ -144,6 +167,20 @@ function App() {
           </button>
         ))}
         <AudioControls />
+        {/*
+          * TICKET 36. The ticket says the settings screen is "reachable from the main menu", and
+          * there is no main menu — `MainMenuView` is the first-run starter picker. The nav bar is
+          * the shell every non-fight screen actually has, so this is where it goes; inside a fight
+          * the entry point is Escape.
+          */}
+        <button
+          type="button"
+          className="nav-tab nav-settings"
+          onClick={() => { playSfx('uiClick'); dispatch(openSettings()); }}
+        >
+          <span className="nav-icon">⚙</span>
+          <span className="nav-label">Settings</span>
+        </button>
       </nav>
 
       {/* Screen Content */}
@@ -156,6 +193,7 @@ function App() {
         )}
       </div>
     </main>
+    {settingsLayer}
     </>
   );
 }

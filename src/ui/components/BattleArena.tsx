@@ -9,6 +9,17 @@ import BattleStage from './BattleStage';
 import MacroRack from './MacroRack';
 import Callout from './Callout';
 import { nextBattleTip } from '../../engine/tips';
+import {
+    CARD_KEY_MAX,
+    CARD_KEY_MIN,
+    CASTER_KEYS,
+    CAST_KEY,
+    CLEAR_KEY,
+    CYCLE_KEY,
+    END_TURN_KEY,
+    ENEMY_KEYS,
+    MACRO_KEYS,
+} from '../keybinds';
 import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -19,6 +30,7 @@ import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
+import { openSettings } from '../store/uiSlice';
 import {
     addDriver,
     addRunCards,
@@ -254,8 +266,9 @@ const BattleArena: React.FC = () => {
             const hand = battleState.playerDeck.hand;
             const aliveEnemies = battleState.enemyParty.filter(en => en.currentHp > 0);
 
-            // 1-9: Select Card
-            if (e.key >= '1' && e.key <= '9') {
+            // 1-9: Select Card. The digit IS the hand index, which is why cards are the one
+            // binding `keybinds.ts` exports as a range rather than a list.
+            if (e.key >= CARD_KEY_MIN && e.key <= CARD_KEY_MAX) {
                 const index = parseInt(e.key) - 1;
                 if (hand[index]) {
                     dispatch(selectCard(hand[index].id));
@@ -278,9 +291,8 @@ const BattleArena: React.FC = () => {
                 if (!unit || unit.currentHp <= 0) { playSfx('uiError'); return; }
                 dispatch(e.shiftKey ? selectTarget(unit.id) : selectSource(unit.id));
             };
-            if (e.key.toLowerCase() === 'w') pickAlly(0);
-            if (e.key.toLowerCase() === 'e') pickAlly(1);
-            if (e.key.toLowerCase() === 'r') pickAlly(2);
+            const casterSlot = CASTER_KEYS.indexOf(e.key.toLowerCase() as typeof CASTER_KEYS[number]);
+            if (casterSlot !== -1) pickAlly(casterSlot);
 
             // A, S, D: pick the enemy in that slot, if it is still standing.
             const targetEnemySlot = (index: number) => {
@@ -288,12 +300,11 @@ const BattleArena: React.FC = () => {
                 if (unit && unit.currentHp > 0) dispatch(selectTarget(unit.id));
                 else playSfx('uiError');
             };
-            if (e.key.toLowerCase() === 'a') targetEnemySlot(0);
-            if (e.key.toLowerCase() === 's') targetEnemySlot(1);
-            if (e.key.toLowerCase() === 'd') targetEnemySlot(2);
+            const enemySlot = ENEMY_KEYS.indexOf(e.key.toLowerCase() as typeof ENEMY_KEYS[number]);
+            if (enemySlot !== -1) targetEnemySlot(enemySlot);
 
             // Tab / Shift+Tab: cycle living enemies.
-            if (e.key === 'Tab') {
+            if (e.key === CYCLE_KEY) {
                 e.preventDefault();
                 if (aliveEnemies.length > 0) {
                     const at = aliveEnemies.findIndex(en => en.id === selectedTargetId);
@@ -304,8 +315,7 @@ const BattleArena: React.FC = () => {
             }
 
             // Z, X, C: fire macro slots 1-3, the same three the rack draws.
-            const macroKeys = ['z', 'x', 'c'];
-            const macroSlot = macroKeys.indexOf(e.key.toLowerCase());
+            const macroSlot = MACRO_KEYS.indexOf(e.key.toLowerCase() as typeof MACRO_KEYS[number]);
             if (macroSlot !== -1) {
                 const macroId = macrosRef.current[macroSlot];
                 if (macroId) fireMacroRef.current(macroSlot, macroId);
@@ -319,7 +329,7 @@ const BattleArena: React.FC = () => {
              * rule, and the same defaulting `handleEntityPointerUp` applies — so it needs no target
              * at all and stays castable from the keyboard with nothing highlighted.
              */
-            if (e.key === 'Enter') {
+            if (e.key === CAST_KEY) {
                 const card = selectedCardId ? hand.find(c => c.id === selectedCardId) : undefined;
                 const caster = selectedSourceId
                     ? battleState.playerParty.find(p => p.id === selectedSourceId)
@@ -345,13 +355,30 @@ const BattleArena: React.FC = () => {
             }
 
             // Space: End Turn
-            if (e.key === ' ') {
+            if (e.key === END_TURN_KEY) {
                 e.preventDefault();
                 dispatch(endTurn());
             }
 
-            // Esc: Clear selections
-            if (e.key === 'Escape') {
+            /*
+             * Esc: clear the selection — or, with nothing selected, open settings (ticket 36).
+             *
+             * Two jobs on one key, sequenced rather than rebound. Ticket 36's Done-when is "Esc in
+             * battle pauses to settings"; ticket 22's Esc is the only way to back out of a
+             * half-built play. Clearing first is the right precedence because it is the *reversible*
+             * one — press Esc twice and you get settings anyway, whereas an Esc that always opened
+             * settings would leave a keyboard player with no way to drop a selected card.
+             *
+             * Nothing here reaches the battle reducer: the overlay is `state.ui`, and the fight is
+             * left exactly as it was. That is the "without breaking the reducer" half of the gate.
+             */
+            if (e.key === CLEAR_KEY) {
+                const hasSelection =
+                    selectedCardId !== null || selectedSourceId !== null || selectedTargetId !== null;
+                if (!hasSelection) {
+                    dispatch(openSettings());
+                    return;
+                }
                 dispatch(selectCard(null));
                 dispatch(selectSource(null));
                 dispatch(selectTarget(null));

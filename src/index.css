@@ -1995,24 +1995,42 @@ body {
 }
 
 /* Reduced motion: glitch degrades to a simple opacity pulse */
+/*
+ * REDUCED MOTION — three states since ticket 36, not two.
+ *
+ * `system` (no attribute): the media query decides, exactly as before the settings screen existed.
+ * `on`: the player asked for less motion even though the OS did not — the same rules, applied by
+ *   attribute instead of by query.
+ * `off`: the player asked for motion even though the OS says reduce — so the media query must NOT
+ *   fire, which is why every block below is scoped to `:root:not([data-reduced-motion])`.
+ *
+ * The JS half of the same decision is `motionPrefs.prefersReducedMotion()`, and both are set in one
+ * call by `settings.applySettings` so they cannot come apart.
+ *
+ * `hud-death-fade` is hoisted out of the query it used to live inside: two blocks now reference it.
+ */
+@keyframes hud-death-fade {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hud-card.hud-death-glitch {
+  :root:not([data-reduced-motion]) .hud-card.hud-death-glitch {
     animation: hud-death-fade 0.45s ease-out both;
   }
+}
 
-  @keyframes hud-death-fade {
-    0% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0.35;
-    }
-
-    100% {
-      opacity: 1;
-    }
-  }
+:root[data-reduced-motion="on"] .hud-card.hud-death-glitch {
+  animation: hud-death-fade 0.45s ease-out both;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2180,11 +2198,17 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .choice-group-pending,
-  .report-continue-btn.armed,
-  .blueprint-flash {
+  :root:not([data-reduced-motion]) .choice-group-pending,
+  :root:not([data-reduced-motion]) .report-continue-btn.armed,
+  :root:not([data-reduced-motion]) .blueprint-flash {
     animation: none;
   }
+}
+
+:root[data-reduced-motion="on"] .choice-group-pending,
+:root[data-reduced-motion="on"] .report-continue-btn.armed,
+:root[data-reduced-motion="on"] .blueprint-flash {
+  animation: none;
 }
 
 /* === Type Chart (shared elemental matchup matrix) === */
@@ -2326,8 +2350,10 @@ body {
     50% { box-shadow: 0 0 12px rgba(46, 229, 132, 1); }
 }
 @media (prefers-reduced-motion: reduce) {
-    .card-cost.card-cost-discounted { animation: none; }
+    :root:not([data-reduced-motion]) .card-cost.card-cost-discounted { animation: none; }
 }
+
+:root[data-reduced-motion="on"] .card-cost.card-cost-discounted { animation: none; }
 
 /* ═══════════════════════════════════════════════════
    Battle Stage — Pokémon-style center spotlights
@@ -2459,9 +2485,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage-death-glitch {
+  :root:not([data-reduced-motion]) .stage-death-glitch {
     animation: hud-death-fade 0.45s ease-out both;
   }
+}
+
+:root[data-reduced-motion="on"] .stage-death-glitch {
+  animation: hud-death-fade 0.45s ease-out both;
 }
 
 /* Stage floats read larger than the HUD-card ones */

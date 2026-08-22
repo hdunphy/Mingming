@@ -12,6 +12,7 @@ import { isUnaffordableCost, blockedCostReason } from '../../engine/core/CustomF
 import { computeHandPreviews, pickPreviewTarget } from '../utils/handPreview';
 import { describeLegalTargets } from '../utils/targeting';
 import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
+import { keybindLegend } from '../keybinds';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { formatMultiplier } from './ElementMatchupTooltip';
@@ -393,12 +394,17 @@ const CardHand: React.FC<{
                     </div>
                     {/*
                       * Ticket 22's Done-when is that the fight is playable by keyboard as well as
-                      * mouse. A keyboard path nobody can discover is not a keyboard path, and a
-                      * fight has no options screen to hide a key list behind, so the map lives on
-                      * the console beside the hand it drives.
+                      * mouse. A keyboard path nobody can discover is not a keyboard path, so the map
+                      * lives on the console beside the hand it drives.
+                      *
+                      * It used to be a hardcoded string, and the comment here used to justify that
+                      * with "a fight has no options screen to hide a key list behind". Ticket 36
+                      * built that screen, so this line and the settings table are now generated from
+                      * one `KEYBINDS` array — three hand-written copies of the same fact was the
+                      * point at which drift stopped being hypothetical.
                       */}
                     <div className="hand-hotkeys">
-                        1-9 CARD · W/E/R CASTER · ⇧W/E/R ALLY · A/S/D ENEMY · TAB CYCLE · ENTER CAST · Z/X/C MACRO · SPACE END · ESC CLEAR
+                        {keybindLegend()}
                     </div>
                 </div>
                 <div className="battle-controls">
