@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10, 11, 12, 13, 14). **State: 55 tickets, 16 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12, 13, 14). The run loop runs end to end bar the gauntlet: offers -> party -> region -> fight -> rewards -> market -> workshop. **Next: 15 (macros), then 18 (gauntlet, grown — it rebuilds the chain ticket 11 deleted), 19 (run end).** Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **Economy numbers awaiting Henry are in tickets 12, 13 and 14, each under an AWAITING HENRY / proposal heading.** Suite green at 92 files / 1235 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15). **State: 55 tickets, 17 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10, 11, 12, 13, 14, 15). The run loop runs end to end except the gauntlet. **Next: 18 (gauntlet refit — GROWN, it rebuilds the chain ticket 11 deleted AND owns Revive's carry-over), then 19 (run end).** Also open: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **Proposed numbers awaiting Henry are in tickets 12, 13, 14 and 15.** Suite green at 97 files / 1323 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,17 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Macros (ticket 15) — **thirteen of them, and the one action the vocabulary could not express**
+
+- **The design doc says "The 11" and then names twelve** (7 commons + 5 rares). The list is what was designed, so all twelve ship; with ticket 07's map-reveal that is **13 registry entries**. Nothing was cut to make the prose arithmetic true.
+- **The `Recharge` trap the ticket warned about is avoided and proved.** `processPreTurn` SETS `currentEnergy` — the thing that bit three OSes. The `ENERGY` action's mutation is `max(0, current + amount)`, an add on the live value, and the test drives it past `maxEnergy` (4 of 3), which no SET can produce.
+- **`REVIVE` is the one thing the action vocabulary could not express.** Every resolution loop skips a target at `currentHp <= 0` — correct for all 216 cards, and exactly what a revive must not do. `HEAL` could not be pressed into service: it would hand the ability to every heal card the day that guard was relaxed. Added as an ordinary `ActionType` + executor, with `handleFireMacro` the only site that lets a target past the alive-check. **`registryHash` is unchanged** (it hashes the three registries, not the action enum), so no stored snapshot moved.
+- **Two readings flagged.** A macro does **not** count as a card play — `CARDS_PLAYED` scalers are deliberately uncapped (ticket 74) because they reward playing out of your deck, and a bought consumable that inflated them would be a purchasable multiplier; leaving `lastProgramPlayed` alone is also what makes Echo's "replay your last **card**" literally true. And pricing reads as two flat tiers (32/48) rather than rarity-priced-then-x1.5, which charges rares for rarity twice and lands one at 108 — most of a market visit.
+- **The map-reveal needed no new field.** It writes `reveal:biome:N` into `IRunState.modifiers` and `regionLayout`'s fog rule gained a third clause. Refuses a second survey of the same biome rather than burning a consumable for nothing.
+- **Echo has no stale-target problem**: `lastProgramPlayed` is a bare dataId with no target, so the player re-aims every time; aiming at a corpse is refused with the slot intact, and Echo with nothing played is refused rather than spent on a log line.
+- **Ticket 18 inherits three Revive questions**, written into 15's resolution: write the revive back into `IGauntletProgress` (out of `downedMemberIds`, into `persistedHp`) or the next fight re-downs them; decide whether 50% is right across three unhealed fights; decide whether a downed member can be revived *between* fights.
+- Suite **1235 → 1323**.
 
 ### 2026-08-22 — Workshop node (ticket 14) — **the run's three sinks now quote against each other**
 

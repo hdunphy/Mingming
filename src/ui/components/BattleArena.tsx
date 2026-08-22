@@ -6,16 +6,18 @@ import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import BattleStage from './BattleStage';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent } from '../store/battleSlice';
+import MacroRack from './MacroRack';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
 import type { IBattleEntity } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getBestAction } from '../../engine/ai/TacticalAI';
-import { battleReducer } from '../../engine/battleReducer';
+import { battleReducer, canFireMacro } from '../../engine/battleReducer';
+import { getMacro } from '../../engine/data/macroRegistry';
 import { rollDropTable } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
-import { addDriver, addRunCards, addRunScrap, endRun, resolveEncounter } from '../store/runSlice';
+import { addDriver, addRunCards, addRunScrap, consumeMacro, endRun, resolveEncounter } from '../store/runSlice';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
@@ -309,6 +311,37 @@ const BattleArena: React.FC = () => {
 
         return () => { cancelled = true; };
     }, [battleState, dispatch, triggerLunge]);
+
+    /**
+     * Fire a macro out of the rack — **the two-slice write, in the ruled order.**
+     *
+     * `battleSlice.fireMacro` resolves it and `runSlice.consumeMacro` spends the slot, because no
+     * reducer can write two slices (the same split ticket 11's reward claim and ticket 14's recruit
+     * both make). The battle half goes first, and `consumeMacro`'s own comment carries the argument
+     * for why: a crash between the two dispatches leaves a macro that fired and a slot still full,
+     * which is strictly better than a slot spent on a shot that never happened.
+     *
+     * `canFireMacro` is checked here as well as inside the reducer. That is not belt-and-braces for
+     * its own sake: the reducer's refusal is silent (every refusal in this engine is), so without
+     * this check a blocked shot would still reach `consumeMacro` and destroy the consumable. The
+     * rack's button is disabled off the same predicate, so this is the third and last gate.
+     */
+    const handleFireMacroClick = (slot: number, macroId: string) => {
+        if (!battleState || !run) return;
+        const macro = getMacro(macroId);
+        if (!macro) return;
+        // Mirrors MacroRack's defaulting: an ally-facing macro with nobody picked lands on the
+        // firing unit. Kept in step by both reading `macro.targeting` rather than by agreement.
+        const targetId = macro.targeting === 'ALLY'
+            ? (selectedTargetId ?? selectedSourceId ?? '')
+            : (selectedTargetId ?? '');
+        const payload = { macroId, sourceId: selectedSourceId ?? '', targetId };
+        if (canFireMacro(battleState, payload) !== null) return;
+
+        dispatch(fireMacro(payload));
+        dispatch(consumeMacro(slot));
+        dispatch(selectCard(null));
+    };
 
     const handlePlay = (cardId: string, targetId: string) => {
         if (!battleState || !selectedSourceId) return;
@@ -828,6 +861,24 @@ const BattleArena: React.FC = () => {
                     setOriginPoint(null);
                 }}
             >
+              <div className="console-row">
+                {/*
+                  * THE MACRO RACK — ticket 15. Beside the hand, not in it: a macro is not a card
+                  * (see `handleFireMacro`'s note on the counters it deliberately does not touch), so
+                  * it must not sit in the fan where it would read as one.
+                  *
+                  * Rendered only inside a run. A debug scenario has no `IRunState` and therefore no
+                  * rack, which is correct rather than a gap — macros are a run-scoped consumable.
+                  */}
+                {run && (
+                    <MacroRack
+                        macros={run.macros}
+                        battleState={battleState}
+                        selectedSourceId={selectedSourceId}
+                        selectedTargetId={selectedTargetId}
+                        onFire={handleFireMacroClick}
+                    />
+                )}
                 <CardHand
                     hoveredEntityId={hoveredEntityId}
                     onTargetingStart={(point) => {
@@ -841,6 +892,7 @@ const BattleArena: React.FC = () => {
                         setHoveredEntityId(null);
                     }}
                 />
+              </div>
             </div>
         </div>
     );

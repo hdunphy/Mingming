@@ -20,8 +20,21 @@
  * - **Fog hides the KIND, never the node.** The graph's shape is public — you can see that a fork
  *   exists three layers ahead, you just cannot see what is on it. That is what "types visible,
  *   contents hidden" becomes one step further out, and it is what makes routing a decision.
+ *
+ * # THE THIRD CLAUSE — A SURVEYED BIOME (ticket 15)
+ *
+ * Ticket 07's amendment adds a MAP-REVEAL consumable, and Henry's ask behind it is *"items and
+ * events that reveal more of the map"* under one-layer visibility. So the fog now has one more way
+ * to lift: **a biome the run has surveyed is revealed whole**, however far ahead of the player it
+ * is. It is passed in as a list of biome indices rather than read out of the run here, because this
+ * module is a pure function of the node set and must stay callable without a run — `RunScreen`
+ * derives the list from `IRunState.modifiers` through `macroRegistry.revealedBiomesFrom`.
+ *
+ * The parameter is optional and defaults to empty, so every existing caller and every existing test
+ * describes the unsurveyed map exactly as before: the reveal can only ever *add* revealed nodes.
  */
 
+import { revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 
 // ---------------------------------------------------------------------------------------------
@@ -103,13 +116,26 @@ export function columnOf(node: IRegionNode): number {
 /** How far ahead of the player's column a node's kind is visible. Ticket 07: one layer. */
 export const VISIBILITY_LAYERS = 1;
 
+/**
+ * Re-exported so a screen holding an `IRunState` can turn `modifiers` into the argument below
+ * without importing the macro registry itself. One import for "everything the map needs to draw",
+ * which is the same reason `FIGHT_KINDS` is re-exported above.
+ */
+export { revealedBiomesFrom };
+
 export function layoutRegion(
     nodes: ReadonlyArray<IRegionNode>,
     currentNodeId: string,
+    /**
+     * Biome indices the run has surveyed with a map-reveal macro (ticket 15). Empty by default, so
+     * an omitted argument is exactly the pre-ticket-15 fog.
+     */
+    revealedBiomes: ReadonlyArray<number> = [],
 ): RegionLayout {
     const current = nodes.find((n) => n.id === currentNodeId);
     const playerColumn = current ? columnOf(current) : 0;
     const reachableIds = new Set(current?.edges ?? []);
+    const surveyed = new Set(revealedBiomes);
 
     // Group by column, then order within it. Pockets sort last so a dead-end hangs off the bottom of
     // its layer rather than pushing the main route around — the route should read as a spine.
@@ -137,7 +163,13 @@ export function layoutRegion(
                 column,
                 row,
                 rowsInColumn: ordered.length,
-                revealed: node.visited > 0 || column <= playerColumn + VISIBILITY_LAYERS,
+                revealed: node.visited > 0
+                    || column <= playerColumn + VISIBILITY_LAYERS
+                    // Ticket 15's survey. Whole-biome rather than one-node, because "reveals the
+                    // current biome's node types" is what the amendment says and because a
+                    // per-node reveal would need a per-node record in `modifiers`, which is a list
+                    // of run-wide facts and not a place to keep fifteen booleans.
+                    || surveyed.has(node.biomeIndex),
                 reachable: reachableIds.has(node.id),
                 isCurrent: node.id === currentNodeId,
             });

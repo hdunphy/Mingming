@@ -51,14 +51,18 @@ import {
     REROLL_PRICE,
     cardPrice,
     isOfferSold,
+    rollMacroStock,
     rollMarketStock,
     sellPrice,
+    type IMacroOffer,
     type IMarketOffer,
 } from '../../engine/run/marketplace';
+import { getMacro, macroRackBlockFor } from '../../engine/data/macroRegistry';
 import { numericBaseCost } from '../../engine/types';
+import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
-import { buyMarketCard, removeRunCardForScrap, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { buyMacro, buyMarketCard, removeRunCardForScrap, rerollMarketStock, sellRunCard } from '../store/runSlice';
 import './MarketplaceNode.css';
 
 /**
@@ -105,12 +109,21 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
     // app close or a resume therefore shows the same stock, and the *only* thing that changes it is
     // a new visit: walking back in, or paying `REROLL_PRICE` for the same increment.
     const stock = useMemo(() => rollMarketStock({ run, node, party }), [run, node, party]);
+    // Rolled off its own fork of the same node seed (`market-macros`), so the macro shelf re-rolls
+    // per visit exactly as the card shelf does and neither can shift the other.
+    const macroStock = useMemo(() => rollMacroStock({ run, node, party }), [run, node, party]);
 
     const deckSize = run.deck.length;
     const scrap = run.scrap;
+    const macrosHeld = run.macros.filter((slot) => slot !== null).length;
 
     const buy = (offer: IMarketOffer): void => {
         dispatch(buyMarketCard({ card: offer.card, price: offer.price }));
+        playSfx('rewardClaim');
+    };
+
+    const purchaseMacro = (offer: IMacroOffer): void => {
+        dispatch(buyMacro({ macroId: offer.macroId, price: offer.price }));
         playSfx('rewardClaim');
     };
 
@@ -208,24 +221,64 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
             </ul>
 
             {/*
-              * MACROS IN STOCK — TICKET 15.
+              * MACROS IN STOCK — TICKET 15, filling the slot ticket 13 marked.
               *
               * `macros-and-drivers.md`: 3 slots, single-use, fired free on your turn, priced at FULL
-              * 1-energy-card value (rares 1.5x). Ticket 13's brief: "Macros appear in stock once
-              * ticket 15 lands." They are a separate stock list rather than more rows in the one
-              * above, because they are bought into `IRunState.macros` (a fixed 3-slot tuple) and not
-              * into the deck — a buy button that filled a slot would be a different reducer, a
-              * different sold-out rule and a different empty state. The slot is marked rather than
-              * omitted for the same reason `RunScreen` names the ticket behind an empty node: a
-              * feature nobody can see is indistinguishable from a feature nobody built.
+              * 1-energy-card value (rares 1.5x). They are a separate stock list rather than more
+              * rows in the one above, exactly as ticket 13 predicted: they are bought into
+              * `IRunState.macros` (a fixed 3-slot tuple) and not into the deck, so it is a different
+              * reducer, a different refusal and a different empty state.
+              *
+              * **The refusal is the part with a rule behind it.** Ticket 15: *"a full rack must
+              * refuse a purchase with a reason, not silently drop it."* `macroRackBlockFor` is that
+              * reason, produced by the engine and printed on the dead button — a reducer has no
+              * error channel, so this is the only place it can be said. `power` never appears here
+              * either: a macro row prints its name, its rarity and its own description, and its
+              * descriptions are written for the player (`macroRegistry.ts` header).
               */}
-            <div className="mk-pending">
+            <div className="mk-section-head">
                 <h3>Macros</h3>
-                <p className="mk-note">
-                    Macro stock arrives with ticket 15 — three single-use slots, bought here, fired
-                    free on your turn. The card stock above is unaffected by it.
-                </p>
+                <span className="mk-deck">
+                    rack: {macrosHeld}/{MACRO_SLOTS} slots
+                </span>
             </div>
+            <p className="mk-note">
+                Three slots, <strong>single use</strong>, fired free on your turn — the map survey
+                fires from the map instead. A macro is not a card and never enters your deck.
+            </p>
+
+            <ul className="mk-stock">
+                {macroStock.map((offer) => {
+                    const macro = getMacro(offer.macroId)!;
+                    const block = macroRackBlockFor(run.macros, offer.macroId);
+                    const short = shortBy(offer.price);
+                    const label = block === 'rack-full'
+                        ? 'Rack full — fire one or leave it'
+                        : short > 0
+                            ? `${offer.price} scrap — ${short} short`
+                            : `Buy — ${offer.price} scrap`;
+                    return (
+                        <li key={offer.macroId} className={`mk-offer ${macro.rarity === 'Rare' ? 'wild' : ''}`}>
+                            <div className="mk-offer-card">
+                                <span className="mk-card-name">{macro.name}</span>
+                                <span className="mk-card-meta">
+                                    Macro · {macro.rarity} · {macro.description}
+                                </span>
+                                {macro.rarity === 'Rare' && <span className="mk-tag">rare</span>}
+                            </div>
+                            <button
+                                type="button"
+                                className="mk-button"
+                                onClick={() => purchaseMacro(offer)}
+                                disabled={block !== null || short > 0}
+                            >
+                                {label}
+                            </button>
+                        </li>
+                    );
+                })}
+                {macroStock.length === 0 && <li className="mk-empty">No macros this visit.</li>}
+            </ul>
 
             {/* --- The deck: sell and remove --- */}
 

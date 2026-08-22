@@ -31,6 +31,19 @@ const battleSlice = createSlice({
                 }) as any;
             }
         },
+        /**
+         * Ticket 15: fire a macro. The battle half only — spending the slot is `runSlice.consumeMacro`
+         * (no reducer can write two slices), and `BattleArena` dispatches both after
+         * `canFireMacro` has said the shot will land.
+         */
+        fireMacro: (state, action: PayloadAction<{ macroId: string; sourceId: string; targetId: string }>) => {
+            if (state.battle) {
+                state.battle = battleReducer(state.battle, {
+                    type: 'FIRE_MACRO',
+                    payload: action.payload
+                }) as any;
+            }
+        },
         endTurn: (state) => {
             if (state.battle) {
                 state.battle = battleReducer(state.battle, { type: 'END_TURN' }) as any;
@@ -87,6 +100,7 @@ const battleSlice = createSlice({
 
 export const {
     playProgram,
+    fireMacro,
     endTurn,
     transferEnergy,
     executeIntent,

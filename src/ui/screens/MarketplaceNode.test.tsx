@@ -26,9 +26,11 @@ import MarketplaceNode, { DECK_TARGET_MAX, DECK_TARGET_MIN } from './Marketplace
 import runReducer from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
-import { REMOVAL_PRICE, REROLL_PRICE, rollMarketStock } from '../../engine/run/marketplace';
+import { REMOVAL_PRICE, REROLL_PRICE, macroPrice, rollMacroStock, rollMarketStock } from '../../engine/run/marketplace';
+import { MacroRegistry } from '../../engine/data/macroRegistry';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import type { IMingmingState } from '../../engine/types';
+import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRunState } from '../../engine/runTypes';
 
 const PARTY: IMingmingState[] = [
@@ -160,8 +162,36 @@ describe('MarketplaceNode', () => {
             .toBe(run.deck.filter((c) => c.dataId === GENERIC_HIT).length);
     });
 
-    it('leaves a marked slot for macros, naming ticket 15', () => {
-        expect(render(makeRun(400))).toContain('ticket 15');
+    /**
+     * TICKET 15 RETIRED THE PLACEHOLDER THIS TEST USED TO PIN.
+     *
+     * Ticket 13 left a marked slot here and this case asserted the marker said "ticket 15" — a test
+     * whose whole job was to fail the day the feature arrived. It has arrived, so the case now
+     * asserts the real shelf: the rolled stock, at the ruled prices, with a real button each.
+     * `marketplace.macros.test.ts` owns the prices themselves; what is checked here is that the
+     * screen prints the same number the reducer will charge.
+     */
+    it('stocks macros at the ruled price, one real button each', () => {
+        const run = makeRun(400);
+        const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
+        const macros = rollMacroStock({ run, node, party: RANCH_PARTY });
+        const markup = render(run);
+
+        expect(macros.length).toBeGreaterThan(0);
+        for (const offer of macros) {
+            expect(markup).toContain(MacroRegistry[offer.macroId].name);
+            expect(markup).toContain(`Buy — ${offer.price} scrap`);
+            expect(offer.price).toBe(macroPrice(offer.macroId));
+        }
+        expect(markup).toContain(`rack: 0/${MACRO_SLOTS} slots`);
+    });
+
+    it('refuses a macro purchase with a REASON when the rack is full', () => {
+        // Ticket 15: "a full rack must refuse a purchase with a reason, not silently drop it." The
+        // reducer's refusal is silent by the slice's convention, so the sentence has to be here.
+        const run = makeRun(400, { macros: ['surge', 'mend', 'kindle'] });
+        const markup = render(run);
+        expect(markup).toContain('Rack full');
     });
 
     it('says which visit this stock belongs to, so a re-roll is legible as a re-entry', () => {

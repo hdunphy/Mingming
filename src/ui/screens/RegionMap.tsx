@@ -73,17 +73,28 @@ export interface RegionMapProps {
     readonly currentNodeId: string;
     readonly biomeNames: ReadonlyArray<string>;
     readonly biomeElements: ReadonlyArray<string>;
+    /**
+     * Biome indices a map-reveal macro has surveyed (ticket 15). Optional, and empty by default, so
+     * a caller that has no run behind it draws the ordinary one-layer fog.
+     */
+    readonly revealedBiomes?: ReadonlyArray<number>;
     readonly onTravel: (node: IRegionNode) => void;
 }
+
+const NO_REVEALS: ReadonlyArray<number> = [];
 
 export default function RegionMap({
     nodes,
     currentNodeId,
     biomeNames,
     biomeElements,
+    revealedBiomes = NO_REVEALS,
     onTravel,
 }: RegionMapProps): ReactNode {
-    const layout = useMemo(() => layoutRegion(nodes, currentNodeId), [nodes, currentNodeId]);
+    const layout = useMemo(
+        () => layoutRegion(nodes, currentNodeId, revealedBiomes),
+        [nodes, currentNodeId, revealedBiomes],
+    );
 
     const width = PAD_X * 2 + (layout.columnCount - 1) * COL_W;
     const height = PAD_Y * 2 + layout.maxRows * ROW_H;
@@ -193,6 +204,10 @@ export default function RegionMap({
                 <span>You are here: <strong>{current ? describe(current) : '—'}</strong></span>
                 <span className="rm-legend-fog">
                     · fogged nodes show their shape, not their kind — visibility is one layer ahead
+                    {/* Ticket 15: a survey is a permanent change to what the map shows, so the
+                        legend that explains the fog has to stop lying about it once one is spent. */}
+                    {revealedBiomes.length > 0
+                        && `, except biome${revealedBiomes.length > 1 ? 's' : ''} ${revealedBiomes.map((b) => b + 1).join(', ')} — surveyed`}
                 </span>
             </div>
 

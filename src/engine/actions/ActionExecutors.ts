@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData, Element } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, StatusType } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
 import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -883,6 +883,61 @@ export class ShiftStanceExecutor extends ActionExecutor<ShiftStanceActionData> {
     }
 }
 
+/**
+ * REVIVE — ticket 15. Brings a unit at 0 HP back at a percentage of its max HP.
+ *
+ * The one thing in the engine that deliberately acts on a dead unit, and it is written so that it
+ * can only ever do that: a target with HP left is refused outright, so this can never be smuggled in
+ * as a percentage heal. `battleReducer.handleFireMacro` is what lets the target through its
+ * alive-check, and it does so only for this action type.
+ *
+ * **It does not run `checkDefeat` in reverse, because there is nothing to run.** `checkDefeat` fires
+ * `onUnitFainted` and clears the unit's daemons; the daemons are gone for good (a revived unit
+ * re-installs them like anyone else) and no hook phase exists for un-fainting. Death is derived from
+ * `currentHp <= 0` everywhere in the engine — there is no `isDead` flag to clear — so restoring HP
+ * IS the revival, and the unit is a legal target, a legal caster and a legal hook owner again the
+ * moment this returns.
+ *
+ * Statuses are deliberately left alone: whatever killed them (a Burn, a Poison) is still on them, so
+ * a revive into a burning board is a real decision rather than a full cleanse in disguise. Energy is
+ * left alone too — the unit gets its refill at the next `processPreTurn` like everyone else, so
+ * reviving does not hand the player a fresh caster mid-turn.
+ */
+export class ReviveExecutor extends ActionExecutor<ReviveActionData> {
+    execute(state: IBattleState, _sourceId: string, targetId: string, actionData: ReviveActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        if (!target) return state;
+        // Only the downed. A revive on a living unit is a bug at the call site, not a small heal.
+        if (target.currentHp > 0) return state;
+
+        const percent = Math.max(1, Math.min(100, actionData.percent ?? 0));
+        // At least 1 HP: a percentage that floors to zero would "revive" a unit into still being
+        // dead, which is the worst possible outcome for a rare, single-use rescue.
+        const restored = Math.max(1, Math.floor(target.maxHp * percent / 100));
+
+        const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+            party.map(e => (e.id === targetId ? { ...e, currentHp: restored, tempHp: 0 } : e));
+
+        let newState: IBattleState = {
+            ...state,
+            playerParty: updateParty(state.playerParty),
+            enemyParty: updateParty(state.enemyParty)
+        };
+        newState = addLog(newState, `  ✨ ${target.name} is revived at ${restored}/${target.maxHp} HP!`);
+
+        globalBattleEventBus.emit({
+            type: 'HEAL',
+            targetId,
+            amount: restored,
+            sourceId: _sourceId,
+            timestamp: Date.now()
+        });
+
+        return newState;
+    }
+}
+
 // Registry to route ActionType to Executors
 export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'ATTACK': new AttackExecutor(),
@@ -903,5 +958,6 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor(),
     'REDIRECT_TARGET': new RedirectTargetExecutor(),
     'FORCE_DISCARD': new ForceDiscardExecutor(),
-    'SHIFT_STANCE': new ShiftStanceExecutor()
+    'SHIFT_STANCE': new ShiftStanceExecutor(),
+    'REVIVE': new ReviveExecutor()
 };

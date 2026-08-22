@@ -265,7 +265,7 @@ export function numericBaseCost(baseCost: number | 'X'): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE' | 'REVIVE';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -310,6 +310,30 @@ export interface StatusActionData extends ProgramAction {
 export interface HealActionData extends ProgramAction {
   readonly type: 'HEAL';
   readonly power: number;
+}
+
+/**
+ * Ticket 15 — the ONE action the macro set could not express with what was already here.
+ *
+ * Every resolution loop in the engine skips a target at 0 HP (`battleReducer`'s action loop,
+ * `handleExecuteIntent`, `resolveProgramFree`), which is correct for all 216 cards and is exactly
+ * what a revive must not do. HEAL cannot be pressed into service either: a heal on a downed unit
+ * would restore HP without ever being *about* the downing, and it would be reachable by accident
+ * from any existing heal card the day the loop guard was relaxed.
+ *
+ * So this is a distinct verb, and it is a verb the engine can only apply deliberately. It is a
+ * PERCENTAGE of max HP rather than a `power` figure because a revive is a rescue rather than a heal
+ * curve — the caller wants "back on their feet at half", not "back on their feet at whatever the
+ * calibration says 30 is worth today. Denominating it in power would also make it silently better
+ * on a big frame than a small one, which is the wrong way round for a safety net.
+ *
+ * `economy-session.md` rules the outcome ("Gauntlet death: revivable, never gone-for-gauntlet") and
+ * defers the shape; `macroRegistry.REVIVE_PERCENT_MAX_HP` carries the number and the argument.
+ */
+export interface ReviveActionData extends ProgramAction {
+  readonly type: 'REVIVE';
+  /** Percentage of the target's max HP to come back on. Clamped to 1..100 by the executor. */
+  readonly percent: number;
 }
 
 export interface DrawActionData extends ProgramAction {

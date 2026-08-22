@@ -39,6 +39,7 @@
  */
 
 import { SeedStream } from '../core/SeedStream';
+import { MACRO_IDS, MacroRegistry } from '../data/macroRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
 import { isRewardable, rewardCardPool, type IRewardPartyMember } from '../RewardSystem';
 import { numericBaseCost } from '../types';
@@ -245,6 +246,50 @@ export function cardPrice(dataId: string): number {
     return base + ENERGY_PRICE_STEP * numericBaseCost(data.baseCost);
 }
 
+// =================================================================================================
+// Macro prices — ticket 15
+// =================================================================================================
+
+/**
+ * **The reference card a macro is priced as: a ONE-ENERGY COMMON.**
+ *
+ * `macros-and-drivers.md`, RULED: *"Pricing RULED: full 1e-card value, rares 1.5x. Marketplace price
+ * follows ticket 13's table."* Both halves are obeyed literally: the base is what
+ * `cardPrice` charges for a Common card printed at 1 Energy — `CARD_PRICE_BY_RARITY.Common +
+ * ENERGY_PRICE_STEP × 1` = **32** — and it is *derived* from that table rather than copied out of
+ * it, so a Henry tuning pass on the rarity base or the energy step moves the macros with the cards.
+ *
+ * **The reading that was rejected, and why.** One could read "full 1e-card value" as "the 1-Energy
+ * price of a card of the MACRO's own rarity", which would put a rare macro at
+ * `CARD_PRICE_BY_RARITY.Rare + 8 = 72` and then multiply *that* by 1.5. But the ruling states two
+ * things, not one: a value, and a multiplier for rares. Under the rejected reading the multiplier is
+ * redundant with the rarity base and rares get charged for their rarity twice (108 scrap — nearly a
+ * whole market visit for one consumable). The two-tier reading is the one in which every clause of
+ * the sentence does work: **32 for a standard macro, 48 for a rare.**
+ *
+ * The resulting shape is the intended one. A standard macro costs the same as an ordinary card, so
+ * "a card or a macro" is a real choice at every stall; a rare macro costs 1.5 cards, so Revive is a
+ * considered purchase and never a reflex.
+ */
+export const MACRO_REFERENCE_ENERGY = 1;
+
+/** **RULED** — a rare macro costs one and a half times a standard one. `macros-and-drivers.md`. */
+export const MACRO_RARE_MULTIPLIER = 1.5;
+
+/**
+ * What a macro costs. Keyed on the macro's rarity tier and nothing else — there is no `power` here
+ * for the same reason there is none in `cardPrice` (see the module header), and no per-macro price
+ * table, because a table is a place for twelve numbers to drift out of the one ruling that governs
+ * them.
+ *
+ * An unknown id prices as a standard macro rather than throwing: a price is asked for by a render.
+ */
+export function macroPrice(macroId: string): number {
+    const base = CARD_PRICE_BY_RARITY.Common + ENERGY_PRICE_STEP * MACRO_REFERENCE_ENERGY;
+    const macro = MacroRegistry[macroId];
+    return macro?.rarity === 'Rare' ? Math.floor(base * MACRO_RARE_MULTIPLIER) : base;
+}
+
 /**
  * What a card sells for. **Strictly less than `cardPrice` for every card, by construction.**
  *
@@ -382,6 +427,56 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
     }));
 
     return { offers, seed, visit: node.visited };
+}
+
+// =================================================================================================
+// The macro stock — ticket 15
+// =================================================================================================
+
+/**
+ * **PROPOSAL — two macros on offer per visit.**
+ *
+ * Ticket 13 left a marked slot for this and named the rule: macros are bought here. Two is set
+ * against the rack, not against the wallet: the rack is **three slots** (`MACRO_SLOTS`) and a run
+ * sees three markets, so two per stall means the player can fill the rack in a run without any one
+ * stall handing them the whole thing. One per stall would make the rack a function of how many
+ * markets you happened to route through; four would let the first market fill it and make the other
+ * two stalls' macro rows dead rows.
+ *
+ * At 32–48 scrap against a ~150-scrap visit (see `MARKET_VISITS_PER_RUN`), two macros is also
+ * roughly one card's worth of the budget — which is the trade the slot is supposed to present.
+ */
+export const MACRO_STOCK_SIZE = 2;
+
+/** One macro on sale. */
+export interface IMacroOffer {
+    readonly macroId: string;
+    /** `macroPrice(macroId)`, carried so a render never re-derives a price the reducer checks. */
+    readonly price: number;
+}
+
+/**
+ * Roll a market's macro stock. Pure, and deterministic in (`run.seed`, `node.id`, `node.visited`).
+ *
+ * **Its own fork, `market-macros`.** Same discipline as the pool/wildcard/id split above: adding or
+ * removing macro slots must not shift which CARDS a stall offers, and vice versa. Without the split,
+ * shipping this ticket would silently re-roll every card stock in every saved run.
+ *
+ * **There is no "sold out" here, and that is not an omission.** A card offer is an `IRunCard` with a
+ * minted instance id, so "already bought" is derivable from the deck; a macro is a bare id in a
+ * three-slot tuple, and two Surges in two slots is a legal and sensible rack. So macros are
+ * *fungible* — the brake on buying them is the rack's three slots and the price, not the stall. The
+ * map-reveal is excluded from the roll for a different reason: it is not a battle consumable and
+ * ticket 07's amendment ties it to events and items rather than to the shop shelf... except that the
+ * amendment prices it "like the others", so it IS shelved. It is in.
+ */
+export function rollMacroStock(input: MarketStockInput): ReadonlyArray<IMacroOffer> {
+    const { run, node } = input;
+    const seed = nodeSeed(run, node, 'market');
+    const macroStream = new SeedStream(new SeedStream(seed).fork('market-macros'));
+
+    return drawDistinct([...MACRO_IDS], MACRO_STOCK_SIZE, macroStream)
+        .map((macroId) => ({ macroId, price: macroPrice(macroId) }));
 }
 
 /**

@@ -16,6 +16,7 @@ import { type HookContext } from './core/Hooks';
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
+import { getMacro, type IMacroDefinition } from './data/macroRegistry';
 import { numericBaseCost } from './types';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
@@ -39,6 +40,13 @@ const GetBaseCost = (dataId: string): number => {
 
 export type BattleAction =
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
+    /**
+     * Ticket 15 — MACROS. A `PLAY_PROGRAM`-shaped action with no card, no hand and no Energy:
+     * `macros-and-drivers.md` rules macros "single-use, **fired free on your turn**". The slot it
+     * came out of is emptied by `runSlice.consumeMacro`, which is run state and cannot be reached
+     * from here; the screen fires both, and only after `canFireMacro` says the shot will land.
+     */
+    | { type: 'FIRE_MACRO'; payload: { macroId: string; sourceId: string; targetId: string } }
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
     | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string } }
@@ -71,6 +79,9 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
     switch (action.type) {
         case 'PLAY_PROGRAM':
             return handlePlayProgram(state, action.payload);
+
+        case 'FIRE_MACRO':
+            return handleFireMacro(state, action.payload);
 
         case 'TRANSFER_ENERGY':
             return handleTransferEnergy(state, action.payload);
@@ -525,6 +536,216 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         [activePartyKey]: activePartyAfter,
         lastProgramPlayed: card.dataId
     };
+
+    return finalState;
+}
+
+// =================================================================================================
+// MACROS — ticket 15
+// =================================================================================================
+
+/**
+ * Why a macro cannot be fired right now. `null` means it can.
+ *
+ * Exported because **both** the rack UI and the reducer need it and they must not disagree: the
+ * screen greys the slot and prints the reason, and only fires when this is `null`. That matters more
+ * for a macro than for a card, because firing is a two-slice operation — the battle resolves it and
+ * `runSlice.consumeMacro` spends the slot — and a slot spent on a shot the reducer refused would be
+ * a consumable destroyed for nothing. There is no way for one reducer to guarantee that, so the
+ * guarantee is this shared predicate plus the reducer's own independent refusal below.
+ */
+export type MacroFireBlock =
+    | 'wrong-phase'
+    | 'not-your-turn'
+    | 'battle-over'
+    | 'unknown-macro'
+    | 'map-only'
+    | 'no-source'
+    | 'bad-target'
+    | 'nothing-to-echo';
+
+/**
+ * Where a macro's actions land, given the macro's declared targeting and the player's pick.
+ * `undefined` means the pick is not a legal target for this macro.
+ */
+function resolveMacroTargetId(
+    state: IBattleState,
+    macro: IMacroDefinition,
+    sourceId: string,
+    targetId: string,
+): string | undefined {
+    switch (macro.targeting) {
+        case 'SELF':
+            // The chosen pick is ignored outright rather than validated: a SELF macro is about the
+            // unit firing it, and letting a stray targetId through would make Recharge silently
+            // energise whoever the player last clicked.
+            return sourceId;
+        case 'ENEMY': {
+            const enemy = state.enemyParty.find(e => e.id === targetId);
+            return enemy && enemy.currentHp > 0 ? enemy.id : undefined;
+        }
+        case 'ALLY': {
+            const ally = state.playerParty.find(e => e.id === targetId);
+            return ally && ally.currentHp > 0 ? ally.id : undefined;
+        }
+        case 'DOWNED_ALLY': {
+            // The one inversion in the engine: this target is legal precisely because it is at 0 HP.
+            const downed = state.playerParty.find(e => e.id === targetId);
+            return downed && downed.currentHp <= 0 ? downed.id : undefined;
+        }
+        case 'MAP':
+        default:
+            return undefined;
+    }
+}
+
+export function canFireMacro(
+    state: IBattleState,
+    payload: { macroId: string; sourceId: string; targetId: string },
+): MacroFireBlock | null {
+    const { macroId, sourceId, targetId } = payload;
+
+    const macro = getMacro(macroId);
+    if (!macro) return 'unknown-macro';
+    // The map-reveal is a run-state effect and has no battle behaviour at all. Refusing it here
+    // rather than letting it resolve to nothing is what stops a mis-wired rack from eating the slot.
+    if (macro.targeting === 'MAP') return 'map-only';
+
+    if (state.phase !== 'ACTION') return 'wrong-phase';
+    // Macros are the PLAYER's resource. Nothing gives the enemy a rack, and gating on the active
+    // side is what keeps "fired free on your turn" literally true.
+    if (state.activeSide !== 'PLAYER') return 'not-your-turn';
+
+    const battleOver = (state.playerParty.length > 0 && state.playerParty.every(p => p.currentHp <= 0))
+        || (state.enemyParty.length > 0 && state.enemyParty.every(e => e.currentHp <= 0));
+    if (battleOver) return 'battle-over';
+
+    const source = state.playerParty.find(e => e.id === sourceId);
+    if (!source || source.currentHp <= 0) return 'no-source';
+
+    if (resolveMacroTargetId(state, macro, sourceId, targetId) === undefined) return 'bad-target';
+
+    // Echo with nothing behind it. `lastProgramPlayed` is null until the first card of the battle
+    // resolves, and `PlayLastCardExecutor` would otherwise log "no program was played previously"
+    // and return — a rare consumable spent on a log line.
+    if (macro.actions.some(a => a.type === 'PLAY_LAST_CARD') && !state.lastProgramPlayed) {
+        return 'nothing-to-echo';
+    }
+
+    return null;
+}
+
+/**
+ * Fire a macro. **Free, single-use, and not a card play.**
+ *
+ * # WHAT THIS DELIBERATELY DOES NOT TOUCH, AND WHY
+ *
+ * Ticket 15 asks for a reading on this and no ruling exists, so here is the reading, in one place:
+ * **a macro is NOT a card play.** Nothing below increments any of the counters a card play moves.
+ *
+ * - **`cardsPlayedThisTurn`** — the `CARDS_PLAYED` damage scaler reads it (`stampede`,
+ *   `momentum_crash`), and ticket 74 rules that family deliberately uncapped because it rewards
+ *   playing smart *out of your deck*. A free off-deck consumable that inflated it would be a
+ *   multiplier you can buy, which is a different game. It is also what the HUD's "CARDS PLAYED"
+ *   readout means, and that readout is how Henry pilots a momentum deck.
+ * - **`playsThisTurn`** — the per-unit OS card limit (YMIR v2's GLACIAL_PACE_OS: two cards a turn).
+ *   A macro is not one of your two cards, so it neither counts against the limit nor is refused by
+ *   it. The alternative would make the Glacial Pace player's macros strictly worse than everyone
+ *   else's for no stated reason.
+ * - **`lastProgramPlayed`** — left pointing at the last *card*, which is what makes Echo's ruled
+ *   text ("replay your last card") true. Firing Surge and then Echo replays the card before Surge,
+ *   not Surge; firing Echo twice replays the same card twice.
+ * - **`elementPlays`** and **`lastEnergySpent`** — a macro has no element and pays no Energy, so
+ *   writing either would be recording a fiction for the scalers that read them.
+ * - **`nextProgramModifier`** — a macro neither benefits from a primed buff nor spends it. Free Exec
+ *   priming a charge that the next macro immediately ate would make the rare macro unusable next to
+ *   any other macro.
+ *
+ * # WHICH HOOK PHASES RUN
+ *
+ * `onModifierPhase` and `onPostDamage` per hit — the damage plumbing every source in the game runs
+ * through, including enemy intents. `onActionStart` / `onActionEnd` do **not**: they are the
+ * per-PROGRAM phases (hel_v2 flips her stance on `onActionEnd`, UNDERWORLD_GATEWAY charges blood on
+ * `onActionStart`), and firing them for a macro would make a consumable trigger "when you cast a
+ * card" firmware. `handleExecuteIntent` already sets that precedent for a non-card action source and
+ * this follows it exactly.
+ */
+function handleFireMacro(
+    state: IBattleState,
+    payload: { macroId: string; sourceId: string; targetId: string },
+): IBattleState {
+    if (canFireMacro(state, payload) !== null) return state;
+
+    const { macroId, sourceId } = payload;
+    const macro = getMacro(macroId)!;
+    const macroTargetId = resolveMacroTargetId(state, macro, sourceId, payload.targetId)!;
+
+    const sourceEntity = state.playerParty.find(e => e.id === sourceId)!;
+    const targetEntity = state.playerParty.find(e => e.id === macroTargetId)
+        || state.enemyParty.find(e => e.id === macroTargetId);
+
+    // A macro is not a program, but the executors and hooks all take one. This stand-in carries the
+    // macro's identity into the log and the hook context without pretending to be a real card: it is
+    // never in a hand, never in a pile, and `lastProgramPlayed` is never set to it.
+    const macroProgram: ProgramData = {
+        id: macro.id,
+        name: macro.name,
+        description: macro.description,
+        element: 'None',
+        target: 'Single',
+        category: 'Skill',
+        rarity: macro.rarity,
+        baseCost: 0,
+        constraints: [],
+        actions: macro.actions,
+    };
+
+    // `lastStatusConsumed` is reset exactly as the card path resets it, so a macro that replays a
+    // consume-scaled card (Echo) reads that card's own consume count and never a stale one.
+    let finalState: IBattleState = applyMutations({ ...state, lastStatusConsumed: 0 }, [{
+        type: 'LOG',
+        targetId: '',
+        payload: `⚡ ${sourceEntity.name} fires ${macro.name}${targetEntity && targetEntity.id !== sourceId ? ` → ${targetEntity.name}` : ''}`
+    }]);
+
+    const context: HookContext = {
+        source: sourceEntity,
+        target: targetEntity,
+        program: macroProgram,
+        state: finalState,
+        triggerDepth: 0
+    };
+
+    for (const action of macro.actions) {
+        // SELF-declared actions land on the firing unit whatever the macro is aimed at, the same
+        // rule `handlePlayProgram` applies to a card's SELF actions.
+        const tId = (action.target === 'SELF' || action.target === 'Self') ? sourceId : macroTargetId;
+        const currentTarget = finalState.playerParty.find(e => e.id === tId)
+            || finalState.enemyParty.find(e => e.id === tId);
+        if (!currentTarget) continue;
+        // THE ONE PLACE THE ENGINE LETS AN ACTION REACH A DOWNED UNIT, and it is narrowed to the one
+        // action type that exists to do it. Everything else keeps the standard alive-check, so a
+        // multi-action revive macro could not sneak a damage action onto a corpse.
+        if (currentTarget.currentHp <= 0 && action.type !== 'REVIVE') continue;
+
+        const latestSource = finalState.playerParty.find(e => e.id === sourceId);
+        if (!latestSource || latestSource.currentHp <= 0) break;
+
+        const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
+        const { state: afterMod, isCancelled } = executeResolutionStack('onModifierPhase', hitContext);
+        if (isCancelled) continue;
+        finalState = afterMod;
+
+        const executor = ActionExecutorRegistry[action.type];
+        if (executor) {
+            finalState = executor.execute(finalState, sourceId, tId, action as any, macroProgram, hitContext);
+        } else {
+            console.warn(`[BattleReducer] No executor found for macro action type: ${action.type}`);
+        }
+
+        const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
+        finalState = afterPost;
+    }
 
     return finalState;
 }

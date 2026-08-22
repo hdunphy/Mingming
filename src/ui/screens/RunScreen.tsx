@@ -51,8 +51,9 @@ import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
+import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import { startBattle } from '../store/battleSlice';
-import { clearRun, enterNode } from '../store/runSlice';
+import { clearRun, enterNode, fireMapReveal } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
 import MarketplaceNode from './MarketplaceNode';
@@ -99,6 +100,15 @@ export default function RunScreen(): ReactNode {
             .filter((m): m is (typeof roster)[number] => m !== undefined),
         [run, roster],
     );
+
+    /**
+     * Which biomes a map-reveal macro has surveyed (ticket 15).
+     *
+     * Memoised for `marketParty`'s reason and one more: `RegionMap` keys its layout `useMemo` on
+     * this array, so a fresh identity every render would re-lay-out the whole graph on every render
+     * for nothing. Declared above the early return, as hooks must be.
+     */
+    const revealedBiomes = useMemo(() => revealedBiomesFrom(run?.modifiers ?? []), [run]);
 
     /**
      * Fire the encounter the run's phase is asking for.
@@ -249,11 +259,66 @@ export default function RunScreen(): ReactNode {
                     <WorkshopNode run={run} node={current} ranch={ranch} />
                 )}
 
+                {/*
+                  * THE MACRO RACK, ON THE MAP — ticket 15.
+                  *
+                  * Battle macros are fired from `BattleArena`'s rack; what belongs *here* is the one
+                  * macro that has no battle behaviour at all. Ticket 07's amendment: a map-reveal
+                  * consumable, *"reveals the current biome's node types"*. `canFireMacro` refuses it
+                  * inside a battle on purpose, so this button is its only firing path.
+                  *
+                  * The rest of the rack is still listed rather than hidden, because a consumable the
+                  * player cannot see is a consumable they forget they bought — the same argument
+                  * behind naming the pending node's ticket above.
+                  */}
+                <h2 className="ranch-subhead">Macros</h2>
+                <div className="ranch-roster-grid">
+                    {run.macros.map((macroId, slot) => {
+                        const macro = getMacro(macroId);
+                        if (!macro) {
+                            return (
+                                <div key={slot} className="ranch-card">
+                                    <div className="ranch-card-name">Slot {slot + 1}</div>
+                                    <div className="ranch-card-species">empty</div>
+                                </div>
+                            );
+                        }
+                        const isMap = macro.targeting === 'MAP';
+                        const alreadySurveyed = isMap && isBiomeRevealed(run, current.biomeIndex);
+                        return (
+                            <div key={slot} className="ranch-card">
+                                <div className="ranch-card-name">{macro.name}</div>
+                                <div className="ranch-card-species">{macro.description}</div>
+                                {isMap && (
+                                    <button
+                                        type="button"
+                                        className="ranch-button"
+                                        disabled={alreadySurveyed}
+                                        onClick={() => {
+                                            dispatch(fireMapReveal(slot));
+                                            playSfx('rewardClaim');
+                                        }}
+                                    >
+                                        {alreadySurveyed
+                                            ? 'This biome is already surveyed'
+                                            : `Survey ${biome?.name ?? 'this biome'}`}
+                                    </button>
+                                )}
+                                {!isMap && <div className="ranch-card-species">Fires in battle.</div>}
+                            </div>
+                        );
+                    })}
+                </div>
+
                 <RegionMap
                     nodes={run.nodes}
                     currentNodeId={run.currentNodeId}
                     biomeNames={run.biomes.map((b) => b.name)}
                     biomeElements={run.biomes.map((b) => b.elements[0])}
+                    // Ticket 15: the fog's third clause. Derived here rather than inside the map,
+                    // because `regionLayout` is a pure function of the node set and knows nothing
+                    // about a run — see its header.
+                    revealedBiomes={revealedBiomes}
                     onTravel={travel}
                 />
 

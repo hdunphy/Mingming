@@ -1,0 +1,95 @@
+/*
+ * The macro rack — ticket 15. Three slots in a narrow column to the LEFT of the card fan.
+ *
+ * `.console-row` is the wrapper that turns `.console-area` (a column) into a row so the rack sits
+ * BESIDE the hand rather than above it. The rack is a fixed narrow column and the hand takes the
+ * rest, so the card fan keeps the full-width arc it was tuned for minus one gutter — which is what
+ * keeps the 1280x800 Steam Deck frame (ticket 37) readable rather than merely fitting.
+ */
+
+.console-row {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.console-row > .hand-container {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.macro-rack {
+    flex: 0 0 132px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 8px;
+    box-sizing: border-box;
+    border-right: 1px solid var(--glass-border, rgba(255, 255, 255, 0.18));
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.macro-rack-head,
+.macro-rack-foot {
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #8a837b;
+    text-align: center;
+}
+
+.macro-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.04);
+    color: #e8e4dc;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.macro-slot.rare {
+    border-color: rgba(255, 204, 0, 0.45);
+}
+
+.macro-slot.empty {
+    border-style: dashed;
+    opacity: 0.5;
+    cursor: default;
+}
+
+.macro-slot.blocked,
+.macro-slot:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.macro-slot-index {
+    font-size: 0.5rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #8a837b;
+}
+
+.macro-slot-name {
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.macro-slot-line,
+.macro-slot-empty {
+    font-size: 0.58rem;
+    color: #00e5ff;
+    line-height: 1.2;
+}
+
+.macro-slot-empty {
+    color: #8a837b;
+}

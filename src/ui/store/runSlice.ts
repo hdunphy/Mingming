@@ -62,8 +62,32 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { isFightNode } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
+import {
+    biomeRevealModifier,
+    firstFreeMacroSlot,
+    getMacro,
+    isBiomeRevealed,
+    macroRackBlockFor,
+} from '../../engine/data/macroRegistry';
 import { PARTY_SIZE } from '../../engine/party';
-import type { IRegionNode, IRunCard, IRunState, RunOutcome } from '../../engine/runTypes';
+import { MACRO_SLOTS } from '../../engine/runTypes';
+import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome } from '../../engine/runTypes';
+
+/**
+ * Rebuild the three-slot macro rack with one slot changed.
+ *
+ * `MacroSlots` is a ratified fixed-length tuple, so `macros.map(...)` produces a plain array the
+ * type refuses — and casting it back would be overruling the type rather than satisfying it. Writing
+ * the rebuild once, here, is what keeps every macro reducer below honest about the rack's shape:
+ * change `MACRO_SLOTS` and this is the single line that has to change with it.
+ */
+function withMacroSlot(macros: MacroSlots, slot: number, value: string | null): MacroSlots {
+    return [
+        slot === 0 ? value : macros[0],
+        slot === 1 ? value : macros[1],
+        slot === 2 ? value : macros[2],
+    ];
+}
 
 export interface RunSliceState {
     /** Null means no run in progress — the player is at the ranch. */
@@ -405,6 +429,125 @@ const runSlice = createSlice({
             };
         },
 
+        // --- Macros (ticket 15) ---
+        //
+        // Three fixed slots, single use. `IRunState.macros` is a ratified fixed-length tuple
+        // (`MacroSlots`), so every reducer here REBUILDS it as a three-element literal rather than
+        // mapping over it — `Array.prototype.map` returns a `(string | null)[]`, which is not
+        // assignable to the tuple, and a cast would be the type system being overruled rather than
+        // satisfied. `withMacroSlot` below is that rebuild, written once.
+        //
+        // All four keep the slice's silent-no-op-on-invalid convention. The *reason* a purchase was
+        // refused is not produced here — a reducer has no error channel — it comes from
+        // `macroRegistry.macroRackBlockFor`, which the screen calls before it dispatches and prints
+        // on the dead button. Ticket 15: "a full rack must refuse a purchase with a reason, not
+        // silently drop it."
+
+        /**
+         * Buy a macro into the first free slot: **scrap goes down and the slot fills, in one
+         * action.** Ticket 20's atomicity argument, the same one behind `buyMarketCard`.
+         *
+         * Refused entirely when the price is not a non-negative integer, when the run cannot afford
+         * it, when the id names no macro, or when **the rack is full**. A full rack refusing is the
+         * clause with a rule behind it: three slots is the ruled rack size, and a fourth purchase
+         * that silently vanished would take the player's scrap for nothing.
+         *
+         * Note what is deliberately NOT refused: **buying a macro you already hold.** Macros are
+         * consumables, not relics — two Surges in two slots is a legal and often correct rack — so
+         * there is no dedupe here, unlike `addDriver` where a second copy is a no-op by design.
+         */
+        buyMacro: (state, action: PayloadAction<{ macroId: string; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { macroId, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            if (macroRackBlockFor(run.macros, macroId) !== null) return { run };
+            const slot = firstFreeMacroSlot(run.macros);
+            return { run: { ...run, scrap: run.scrap - price, macros: withMacroSlot(run.macros, slot, macroId) } };
+        },
+
+        /**
+         * Take a macro for free — an event reward, a drop, a debug grant. Same rack rules, no price.
+         *
+         * Separate from `buyMacro` rather than `buyMacro({ price: 0 })` because the two have
+         * different failure modes worth telling apart in a reducer log, and because a free grant
+         * must not be silently refusable by an affordability check that can never fire.
+         */
+        grantMacro: (state, action: PayloadAction<string>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const macroId = action.payload;
+            if (macroRackBlockFor(run.macros, macroId) !== null) return { run };
+            return { run: { ...run, macros: withMacroSlot(run.macros, firstFreeMacroSlot(run.macros), macroId) } };
+        },
+
+        /**
+         * Spend a slot. **This is what "single-use" means**, and it is a separate dispatch from the
+         * battle resolving the macro because no reducer can write two slices — the same split ticket
+         * 11's reward claim and ticket 14's recruit both make.
+         *
+         * **The battle half goes FIRST.** Work out what each ordering leaves behind if the app dies
+         * between them: consume-first loses the macro and never fires it; fire-first fires it and
+         * leaves the slot full, which the player could fire again. The second is strictly better —
+         * the run save is written on a state change either way, and a duplicated macro costs 32
+         * scrap of value where a lost one costs the player something they paid for and never got.
+         * `BattleArena` also checks `canFireMacro` before either dispatch, so the window is a crash
+         * between two synchronous dispatches rather than a real race.
+         *
+         * An empty slot, or an index outside 0..2, is a no-op.
+         */
+        consumeMacro: (state, action: PayloadAction<number>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const slot = action.payload;
+            if (!Number.isInteger(slot) || slot < 0 || slot >= MACRO_SLOTS) return { run };
+            if (run.macros[slot] === null) return { run };
+            return { run: { ...run, macros: withMacroSlot(run.macros, slot, null) } };
+        },
+
+        /**
+         * Fire the map-reveal: **the biome you are standing in is surveyed and the slot is spent**,
+         * in one action.
+         *
+         * Ticket 07's amendment, and Henry's *"items and events that reveal more of the map"* under
+         * one-layer visibility. This is the only macro that fires outside a battle, which is why it
+         * is a `runSlice` reducer and not a `battleReducer` action — `canFireMacro` refuses it there
+         * on purpose.
+         *
+         * **The reveal is recorded in `modifiers`, not in a new field.** `runTypes.ts` is ratified
+         * and this ticket may not widen it; `modifiers` is already a persisted string array whose
+         * documented job is "facts about this run that change how it plays", and a permanently
+         * lifted fog is one. `macroRegistry.biomeRevealModifier` owns the string shape and
+         * `regionLayout` reads it back. See that module for the argument in full.
+         *
+         * Refused when the slot does not hold the map-reveal (so a mis-click cannot burn a Revive on
+         * the map screen) and when the biome is **already surveyed** — a second Ping Sweep on the
+         * same biome would spend a consumable for no change at all, and the screen greys it out for
+         * the same reason.
+         */
+        fireMapReveal: (state, action: PayloadAction<number>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const slot = action.payload;
+            if (!Number.isInteger(slot) || slot < 0 || slot >= MACRO_SLOTS) return { run };
+
+            const macro = getMacro(run.macros[slot]);
+            if (!macro || macro.targeting !== 'MAP') return { run };
+
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            if (!here) return { run };
+            if (isBiomeRevealed(run, here.biomeIndex)) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    macros: withMacroSlot(run.macros, slot, null),
+                    modifiers: [...run.modifiers, biomeRevealModifier(here.biomeIndex)],
+                },
+            };
+        },
+
         /**
          * Win a driver — the party-wide passive an elite pays out (`macros-and-drivers.md`). Was
          * `gameSlice.addRelic`; the rename is ticket 16's vocabulary, and the move is ticket 06's
@@ -439,6 +582,10 @@ export const {
     removeRunCardForScrap,
     rerollMarketStock,
     recruitIntoParty,
+    buyMacro,
+    grantMacro,
+    consumeMacro,
+    fireMapReveal,
     addDriver,
 } = runSlice.actions;
 
