@@ -25,6 +25,7 @@ import {
     consumeMacro,
     endRun,
     finishGauntlet,
+    recordBankedBlueprint,
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
@@ -551,17 +552,31 @@ const BattleArena: React.FC = () => {
         // meaningful and `addBlueprint` stacks the count (ticket 20).
         for (const speciesId of rewardBundle.blueprints) {
             dispatch(addBlueprint(speciesId));
+            // TICKET 19: and a receipt in the run's own ledger, beside the payment.
+            //
+            // The summary has to be able to say WHICH blueprints this run produced, and the ranch
+            // cannot answer that — `IRanchState.blueprints` is a running count with no provenance,
+            // and diffing it would need a run-start snapshot nothing stores. `recordBankedBlueprint`
+            // writes the species into `IRunState.modifiers` (see its docblock for why that field),
+            // so the record dies with the run while the blueprint it describes stays at the ranch.
+            //
+            // Dispatched second because the credit is the half that must not be lost: a crash
+            // between the two costs a line on a summary screen, never a blueprint. A battle with no
+            // run behind it (a debug scenario) no-ops on this and still banks, which is correct —
+            // there is no run to write a ledger into.
+            dispatch(recordBankedBlueprint(speciesId));
         }
     }, [rewardBundle, battleState, dispatch]);
 
     /**
      * Defeat: the run is over.
      *
-     * **PLACEHOLDER — ticket 19 owns the run-end screen** and replaces the two dispatches below with
-     * whatever it needs on the way out. What is here is the honest minimum: mark the run ended with
-     * its outcome (`endRun` keeps the corpse rather than clearing it, because ticket 19 has to read
-     * it) and drop the battle, which routes back through `App` to `RunScreen`'s ended panel and from
-     * there to the ranch.
+     * Two dispatches and no more, and that is the finished shape rather than a placeholder. `endRun`
+     * marks the run ended with its outcome and **keeps it** — ticket 11 split it from `clearRun` for
+     * exactly this reason, because ticket 19's summary has to read the corpse — and dropping the
+     * battle routes back through `App` to `RunScreen`, which renders `RunSummary`. Everything a
+     * defeat does to the ranch happens in one place, on the way out of that screen
+     * (`ui/store/runTeardown.ts`), which is what keeps this ending from drifting from the other two.
      *
      * No `deleteSave()`, no `resetSave()`, no `window.location.reload()`. All three were here and
      * all three are wrong now — see the note where the wipe effect used to be. A battle outside a
@@ -658,10 +673,26 @@ const BattleArena: React.FC = () => {
         }
 
         if (run && lastGauntletFight) {
+            /*
+             * TICKET 19: THE UNLOCK IS DISPATCHED HERE **AND** AT TEARDOWN, ON PURPOSE.
+             *
+             * `runTeardown.teardownRun` dispatches these same two actions when the player leaves the
+             * summary, so that one function is the complete description of what each ending does to
+             * the ranch — which is the only way "defeat and abandon unlock nothing" can be checked
+             * in one place rather than re-derived from three call sites.
+             *
+             * They stay here as well because of ticket 12's argument, applied to the clear itself: a
+             * player who beats the leader and then loses the app to a crash on the summary screen
+             * has beaten the leader. Banking it at the moment it happens is what makes that true,
+             * and the ranch autosaves on the very next tick.
+             *
+             * The double dispatch is free because both reducers are idempotent by construction:
+             * `markGymCleared` ignores a gym it already holds, and `recordTierCleared` is monotonic.
+             */
             dispatch(markGymCleared(run.gymId));
             dispatch(recordTierCleared(run.tier));
             // Ordered after `finishGauntlet`, which sets the phase back to 'map': the run is over,
-            // not back on the map, and `endRun` is what says so.
+            // not back on the map, and `endRun` is what says so. `RunSummary` reads it from there.
             dispatch(endRun('victory'));
         }
 

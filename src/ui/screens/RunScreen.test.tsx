@@ -214,29 +214,75 @@ describe('RunScreen — the gauntlet takes the screen', () => {
     });
 });
 
+/**
+ * THE RUN END — ticket 19.
+ *
+ * `runTeardown.test.ts` proves what *leaving* this screen does to the ranch and `runSummary.test.ts`
+ * proves the arithmetic. What is left, and is a different failure, is whether **all three endings
+ * reach the summary at all** and whether the placeholder ticket 11 left is gone rather than merely
+ * accompanied — a screen that shows both is a screen nobody updated.
+ */
 describe('RunScreen — the run is over', () => {
-    const ended = (outcome: RunOutcome): IRunState => standingOn('wild', { phase: 'ended', outcome });
+    const ended = (outcome: RunOutcome, over: Partial<IRunState> = {}): IRunState =>
+        standingOn('wild', { phase: 'ended', outcome, ...over });
 
-    it('offers an honest way back to the ranch after a defeat', () => {
-        const markup = render(ended('defeat'));
+    for (const outcome of ['victory', 'defeat', 'abandoned'] as const) {
+        it(`routes a ${outcome} to the summary, with one way out`, () => {
+            const markup = render(ended(outcome));
 
-        expect(markup).toContain('Run over');
-        expect(markup).toContain('Return to the ranch');
-        // Ticket 11 removed the `deleteSave()` this screen's predecessor promised. The promise had
-        // to go with it: a defeat costs the run and never the ranch.
-        expect(markup).not.toMatch(/DATA WIPED/i);
-        expect(markup).toContain('untouched');
+            expect(markup).toContain('Return to the ranch');
+            expect(markup).toContain('Banked at the ranch');
+            expect(markup).not.toContain('The full run summary is ticket 19');
+        });
+    }
+
+    it('names each ending in its own words', () => {
+        expect(render(ended('victory'))).toContain('Gym cleared');
+        expect(render(ended('defeat'))).toContain('Run over');
+        expect(render(ended('abandoned'))).toContain('Run abandoned');
     });
 
-    it('says the gym was cleared after a victory, and points at ticket 19', () => {
-        const markup = render(ended('victory'));
+    it('never repeats the wipe the defeat screen used to promise', () => {
+        // Ticket 11 removed the `deleteSave()` this screen's predecessor promised. The promise had
+        // to go with it: a defeat costs the run and never the ranch.
+        const markup = render(ended('defeat'));
+        expect(markup).not.toMatch(/DATA WIPED/i);
+        expect(markup).toContain('separate save');
+    });
 
-        expect(markup).toContain('Gym cleared');
-        expect(markup).toContain('ticket 19');
+    it('says the blueprints were banked as they dropped, not by this screen', () => {
+        // The point of that sentence: a player who reads "you earned 3 blueprints" and then loses
+        // them to a crash here would be right to be angry, and they cannot be, because ticket 12
+        // paid them at drop time. Only the screen can tell them so.
+        expect(render(ended('defeat'))).toContain('banked as they dropped, not now');
     });
 
     it('does not draw the map or the abandon button once the run has ended', () => {
         const markup = render(ended('defeat'));
         expect(markup).not.toContain('Abandon run');
+        expect(markup).not.toContain('rm-canvas');
+    });
+});
+
+describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
+    it('shows the first step on the map', () => {
+        // `window.confirm` is gone (ticket 19): a native modal in a game that draws its own UI,
+        // unstyleable, unreachable by gamepad (ticket 38), and untestable. The first step is what
+        // stands between one stray click and forty minutes.
+        const markup = render(standingOn('marketplace'));
+        expect(markup).toContain('Abandon run');
+        // The second step's wording appears only after that click, so a confirm that ships both
+        // states at once is not a confirm.
+        expect(markup).not.toContain('the run is lost');
+    });
+
+    it('keeps the way out available inside the gauntlet too', () => {
+        // Quitting is always allowed; the gauntlet being a node you cannot walk *out of* is a
+        // different thing from a run you cannot quit.
+        const markup = render(standingOn('gym', {
+            phase: 'gauntlet',
+            gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
+        }));
+        expect(markup).toContain('Abandon run');
     });
 });

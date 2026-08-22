@@ -17,6 +17,7 @@ import gameReducer, {
     removeFromRoster,
     addBlueprint,
     markGymCleared,
+    recordCodexSeen,
     recordTierCleared,
     loadSave,
     resetSave,
@@ -137,6 +138,32 @@ describe('gameSlice', () => {
     });
 
     // --- Save/Load ---
+    // --- Codex (ticket 19's honest minimum; ticket 31 owns the rest) ---
+    describe('codex', () => {
+        it('adds card dataIds to `seen`, deduping against what is already there', () => {
+            // The codex is an achievement log: a duplicate would make a completion count wrong, and
+            // the law lives in the reducer rather than at the call site because ticket 31 adds more
+            // call sites and a law enforced per caller is a law that lapses at the next one.
+            let state = gameReducer(initial, recordCodexSeen(['fire_poke', 'water_slap']));
+            state = gameReducer(state, recordCodexSeen(['water_slap', 'gale_cut']));
+
+            expect(state.codex.seen).toEqual(['fire_poke', 'water_slap', 'gale_cut']);
+        });
+
+        it('only ever adds — nothing already logged can be removed by a later merge', () => {
+            let state = gameReducer(initial, recordCodexSeen(['fire_poke']));
+            state = gameReducer(state, recordCodexSeen([]));
+            expect(state.codex.seen).toEqual(['fire_poke']);
+        });
+
+        it('leaves `played` alone — the seen/played split is ticket 31’s', () => {
+            // `played` means "actually cast", which needs an in-battle hook ticket 19 is not the
+            // place for. Writing the deck into it would be a claim the game cannot support.
+            const state = gameReducer(initial, recordCodexSeen(['fire_poke']));
+            expect(state.codex.played).toEqual([]);
+        });
+    });
+
     describe('save/load', () => {
         it('loads a ranch verbatim', () => {
             // Ticket 11: no projection, no merge. What `loadGameState` returns is what the slice

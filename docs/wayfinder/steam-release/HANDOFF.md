@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18). **State: 55 tickets, 18 closed. THE WHOLE RUN LOOP EXISTS: offers -> party -> region -> nodes -> market -> workshop -> macros -> three-fight gauntlet. **Next: 19 (run end) closes the loop back to the ranch.** Also open: 22, 24, 25, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. **HENRY'S QUEUE IS GETTING LONG — proposed numbers and flagged readings in tickets 12, 13, 14, 15 and 18. The loudest is ticket 18's: the gym pays 3x what ticket 12 sized it for, because those rates were set when the gym was one fight.** Suite green at 99 files / 1380 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19). **State: 55 tickets, 19 closed. THE TEN-TICKET CRITICAL PATH IS COMPLETE — a run goes offers -> party -> region -> nodes -> market -> workshop -> macros -> three-fight gauntlet -> summary -> ranch, and survives an app close at every step. **Next agent-runnable: 22 (3v3 game-side), 24 (onboarding), 36 (settings), 55 (lint).** 25 (VS playtest) needs Henry to play it. Blocked on deck-archetypes 109: 16, 17, 40. **HENRY'S QUEUE: proposed numbers and flagged readings in tickets 12, 13, 14, 15, 18 and 19 — the loudest is 18's, the gym paying 3x what ticket 12 sized it for.** Suite green at 103 files / 1436 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,17 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Run end (ticket 19) — **the loop is closed**
+
+- **One `teardownRun` for all three endings** (victory, defeat, abandon), because three separately-written endings drift. It is the *complete* description of what an ending does to the ranch, which is how "defeat and abandon unlock nothing" became checkable in one place. The victory unlock is dispatched twice on purpose — `BattleArena` banks it when it happens (ticket 12's argument) and teardown does it again; both reducers are idempotent and a test runs teardown twice.
+- **The ranch surviving a defeat now has a test.** That is how ticket 11's save-wipe bug stays fixed.
+- **Two things the summary could not honestly report, so it does not.** "Scrap spent" is not derivable — `IRunState.scrap` is one balance with two writers and no totals — so the screen shows the closing balance and says so in those words, with a test asserting the phrase "scrap spent" never appears. And the deck's starting size is not exact once a mid-run recruit joins with 4; what *is* exact is `IRunCard.ownerId` (the ratified type reserves `null` for bought/drafted/granted), so it reports picked vs kit and they sum.
+- **The summary reports, it does not pay.** Blueprints bank at drop (ticket 12). To say so on screen without giving the ranch a provenance field, the run keeps a `banked:blueprint:<id>` ledger in `IRunState.modifiers` — ticket 15's map-reveal precedent — with the ranch credit still going first, so a crash between the two costs a line on a screen, never a blueprint.
+- **Codex: the honest minimum.** Teardown merges the run's card dataIds into `codex.seen`, deduped. The seen/played distinction is **ticket 31's** — `played` needs an in-battle hook — and this records only what the run *held*, so a card bought and later sold is not in it.
+- **Run clock is local-only, behind the storage adapter** (`mingming_run_telemetry`, never a slot key), zod-validated, bounded at 50 entries trimmed from the front. Written on summary **mount** so the duration is the run and not the reading time; idempotent on `seed@startedAt`, which covers StrictMode and an app reopened on the summary.
+- **`window.confirm` is gone** — abandon is an inline two-step. The summary is not the confirmation: by the time it renders the run has already ended and there is no way back to the map, so something still has to stand between one stray click and forty minutes, and it should not be an unstyleable, gamepad-unreachable native modal.
+- Suite **1380 → 1436**.
 
 ### 2026-08-22 — Gym gauntlet refit (ticket 18) — **the exam exists, and the gym now overpays 3x**
 

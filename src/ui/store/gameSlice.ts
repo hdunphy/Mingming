@@ -33,6 +33,13 @@
  *   `IRunState.gauntlet`. See `runSlice.ts` for the reducers.
  * - `unlockedSectors` → `gymsCleared`, the ranch field that already meant this.
  *
+ * # WHAT TICKET 19 ADDED
+ *
+ * `recordCodexSeen` — the first thing in the codebase ever to write `IRanchState.codex`. It is the
+ * honest minimum and says so at the reducer: run teardown merges the run's card dataIds into
+ * `seen`, deduped, and the **seen/played distinction stays ticket 31's**, because `played` needs an
+ * in-battle hook that does not belong to a run-end screen.
+ *
  * # THE NO-OP CONVENTION
  *
  * Every reducer that can fail a precondition **returns silently** rather than throwing: a reducer
@@ -130,6 +137,40 @@ const gameSlice = createSlice({
             (state.roster as IRanchMember[]).push(action.payload);
         },
 
+        // --- Codex ---
+        /**
+         * Merge card dataIds into `codex.seen` — ticket 19's run teardown, and **the honest
+         * minimum**.
+         *
+         * `economy-session.md`: *"Card collection = a CODEX (seen/played cards logged; completion
+         * pays cosmetics or blueprints) — collection as achievement layer, ZERO power attached."*
+         * Nothing wrote `IRanchState.codex` before this ticket; teardown is the natural first
+         * writer, because a run's deck is the only complete list of cards the player actually had
+         * in their hands, and it is about to be thrown away.
+         *
+         * **The seen/played distinction is ticket 31's, not this ticket's.** `played` means "cast in
+         * a battle", which needs a hook inside the combat path firing per resolved program — that is
+         * a change to the battle reducer, and a run-end screen is the wrong place to make it. Ticket
+         * 31 owns the codex properly (seen/played, completion payouts); this records only what the
+         * run *held*, which is a strict subset of "seen" and therefore cannot be wrong in a way 31
+         * has to undo.
+         *
+         * **Only adds, never removes, and dedupes.** The codex is an achievement log: an entry that
+         * could disappear would make "completion" a moving target, and a duplicate would make a
+         * completion count wrong in the other direction. Both laws are enforced here rather than at
+         * the caller, because there will be more callers (ticket 31 adds at least one) and a law
+         * enforced per call site is a law that lapses at the next one.
+         */
+        recordCodexSeen: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            const seen = state.codex.seen as string[];
+            const held = new Set(seen);
+            for (const dataId of action.payload) {
+                if (dataId === '' || held.has(dataId)) continue;
+                held.add(dataId);
+                seen.push(dataId);
+            }
+        },
+
         // --- Gym and tier progress ---
         /**
          * Record a gym clear. `gymsCleared` is what run start reads to decide which leaders and
@@ -212,6 +253,7 @@ export const {
     removeFromRoster,
     addBlueprint,
     assembleMingming,
+    recordCodexSeen,
     markGymCleared,
     recordTierCleared,
     updateMingmingOS,

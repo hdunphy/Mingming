@@ -342,6 +342,11 @@
     line-height: 1.5;
 }
 
+/* Abandon's two-step confirm (ticket 19). The second step puts two buttons where there was one, and
+   they have to travel together — otherwise the header's flex gap pushes "Keep going" away from the
+   thing it is the escape from, which is the one arrangement worse than no confirm at all. */
+.ranch-run-abandon { display: inline-flex; gap: 0.4rem; flex-wrap: wrap; }
+
 /* The run frame lets the map use the full width — a 15-column region is wider than the ranch's
    reading measure, and clamping it would just move the scrollbar somewhere less useful. */
 .ranch-section-wide { max-width: none; }

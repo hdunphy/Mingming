@@ -21,6 +21,7 @@ import runReducer, {
     clearRun,
     endRun,
     enterNode,
+    recordBankedBlueprint,
     removeRunCard,
     resolveEncounter,
     setRun,
@@ -28,6 +29,7 @@ import runReducer, {
     startRun,
     type RunSliceState,
 } from './runSlice';
+import { bankedBlueprintsFrom } from '../../engine/run/runSummary';
 import gameReducer, { addBlueprint, createEmptyRanch } from './gameSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
@@ -96,6 +98,29 @@ describe('runSlice', () => {
 
     it('endRun on no run is a no-op rather than a crash', () => {
         expect(runReducer({ run: null }, endRun('victory')).run).toBeNull();
+    });
+
+    // --- The blueprint ledger (ticket 19) ---
+
+    it('recordBankedBlueprint writes a receipt into modifiers, keeping duplicates', () => {
+        // A receipt, not a payment: ticket 12 already credited the ranch when the blueprint dropped.
+        // This is the only record of WHICH blueprints came from this run, and duplicates are
+        // meaningful because a blueprint is consumable currency (`addBlueprint` stacks the count).
+        let state: RunSliceState = { run: makeRun() };
+        state = runReducer(state, recordBankedBlueprint('kraken'));
+        state = runReducer(state, recordBankedBlueprint('kraken'));
+
+        expect(bankedBlueprintsFrom(state.run!.modifiers)).toEqual(['kraken', 'kraken']);
+    });
+
+    it('recordBankedBlueprint sits beside an existing modifier, and no-ops outside a run', () => {
+        // `modifiers` already carries ticket 15's map-reveals; a ledger entry must join them rather
+        // than replace them, and a debug battle with no run has nothing to write a ledger into.
+        const withReveal: RunSliceState = { run: { ...makeRun(), modifiers: ['reveal:biome:0'] } };
+        const state = runReducer(withReveal, recordBankedBlueprint('fenrir'));
+        expect(state.run!.modifiers).toEqual(['reveal:biome:0', 'banked:blueprint:fenrir']);
+
+        expect(runReducer({ run: null }, recordBankedBlueprint('fenrir')).run).toBeNull();
     });
 });
 

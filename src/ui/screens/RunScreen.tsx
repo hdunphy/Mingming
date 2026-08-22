@@ -45,9 +45,17 @@
  *
  * The one remaining non-fight kind does nothing yet and says so on screen. A node that fired and
  * produced no visible change is indistinguishable from a node that failed to fire.
+ *
+ * # THE RUN ENDS IN ONE PLACE (ticket 19)
+ *
+ * `phase: 'ended'` renders `RunSummary`, whatever ended it. Ticket 11's placeholder panel is gone,
+ * and so is abandon's private exit: **abandoning now dispatches `endRun('abandoned')`** and arrives
+ * at the same screen a defeat and a gym clear do. That is the ticket's central instruction — three
+ * endings that unwind separately are three endings that drift — and it is why nothing in this file
+ * touches the ranch on the way out any more. `ui/store/runTeardown.ts` is the only thing that does.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -61,12 +69,13 @@ import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import { startBattle } from '../store/battleSlice';
-import { beginGauntlet, clearRun, enterNode, fireMapReveal } from '../store/runSlice';
+import { beginGauntlet, endRun, enterNode, fireMapReveal } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
 import GauntletNode from './GauntletNode';
 import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
+import RunSummary from './RunSummary';
 import WorkshopNode from './WorkshopNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 
@@ -91,6 +100,15 @@ export default function RunScreen(): ReactNode {
     const run = useSelector((s: RootState) => s.run.run);
     const ranch = useSelector((s: RootState) => s.game);
     const roster = ranch.roster;
+
+    /**
+     * Whether the abandon button is showing its second step (ticket 19). Component state rather
+     * than run state on purpose: this is a half-pressed button, not a fact about the run, and
+     * writing it into `IRunState` would persist a UI hesitation into the save file.
+     *
+     * Declared above the early return, as hooks must be.
+     */
+    const [confirmingAbandon, setConfirmingAbandon] = useState(false);
 
     const byId = useMemo(() => new Map((run?.nodes ?? []).map((n) => [n.id, n])), [run]);
     const current = run ? byId.get(run.currentNodeId) : undefined;
@@ -188,49 +206,73 @@ export default function RunScreen(): ReactNode {
         playSfx('uiClick');
     };
 
+    /**
+     * Abandon — **ticket 19 routed it through the same teardown as the other two endings.**
+     *
+     * It used to be `clearRun()` behind a `window.confirm`, which was two problems. The first is the
+     * one the ticket names: a third way out of a run that unwinds by itself is a third way out that
+     * drifts from the other two — it skipped the codex merge, and it would have skipped anything a
+     * later ticket adds to teardown. It now does exactly what a defeat does: `endRun('abandoned')`,
+     * which marks the run ended without clearing it, and the summary takes over from there.
+     *
+     * # AND THE CONFIRM
+     *
+     * `window.confirm` is gone, replaced by a two-step inline confirm. The ticket asks whether a
+     * confirm is still right when the summary is the confirmation, and the answer is that **the
+     * summary is not a confirmation** — by the time it renders the run has already ended, and there
+     * is no button on it that puts you back on the map. So something still has to stand between one
+     * stray click and forty minutes.
+     *
+     * What that something should not be is `window.confirm`: it is a native modal in a game that
+     * draws its own UI, it blocks the whole renderer, it cannot be styled or reached by a gamepad
+     * (ticket 38), and it cannot be tested. The two-step below is the same protection expressed as
+     * ordinary buttons — the second one names the consequence, and "Keep going" is right beside it.
+     */
     const abandon = (): void => {
-        if (!window.confirm('Abandon this run? The run is lost. Your roster and blueprints are not.')) return;
-        dispatch(clearRun());
+        setConfirmingAbandon(false);
+        dispatch(endRun('abandoned'));
         playSfx('uiError');
     };
 
     /**
-     * The run is over — **PLACEHOLDER, ticket 19 replaces this whole panel.**
+     * The abandon control, in whichever of its two states it is in. Rendered in both the map header
+     * and the gauntlet header, which is why it is a local function rather than duplicated markup:
+     * quitting a run is always allowed, and the two headers must offer the identical affordance.
+     */
+    const abandonControl = (): ReactNode => (confirmingAbandon ? (
+        <span className="ranch-run-abandon">
+            <button type="button" className="ranch-button subtle" onClick={abandon}>
+                Abandon — the run is lost
+            </button>
+            <button
+                type="button"
+                className="ranch-button subtle"
+                onClick={() => { setConfirmingAbandon(false); playSfx('uiClick'); }}
+            >
+                Keep going
+            </button>
+        </span>
+    ) : (
+        <button
+            type="button"
+            className="ranch-button subtle"
+            onClick={() => { setConfirmingAbandon(true); playSfx('uiClick'); }}
+        >
+            Abandon run
+        </button>
+    ));
+
+    /**
+     * The run is over — victory, defeat or abandon, all three land here.
      *
-     * Ticket 19 owns the run-end screen: what you banked, what you kept, how far you got, and the
-     * offer to go again. Until it lands, an ended run must still be *leavable*, and it must say
-     * something true. The two sentences below are the whole of it: the run is over, and the ranch —
-     * the only irreplaceable half of the save (`runTypes.ts`) — is untouched. Saying so out loud
-     * matters because the defeat screen used to lie about it: it printed "DATA WIPED" and then
-     * wiped the save to match, which was correct when a save *was* the run and is catastrophic now
-     * that it is the ranch.
+     * Ticket 11 left a placeholder panel that said the run was over and that the ranch was intact,
+     * and pointed at this ticket for the rest. `RunSummary` is the rest: what the run cost, what it
+     * banked, how long it took, and the one path back to the ranch. The outcome only changes the
+     * words — the teardown behind that button is identical for all three, which is the whole reason
+     * they share a screen.
      */
     if (run.phase === 'ended') {
-        const won = run.outcome === 'victory';
-        return (
-            <div className="ranch-screen">
-                <header className="ranch-header">
-                    <h1>{won ? '🏛 Gym cleared' : '💀 Run over'}</h1>
-                </header>
-                <section className="ranch-section">
-                    <p className="ranch-note">
-                        {won
-                            ? `You beat ${gym?.name ?? run.gymId}. The clear is recorded at the ranch.`
-                            : `Your party fell in ${biome?.name ?? 'the region'}.`}
-                        {' '}Fights resolved: {run.fightsResolved}. Your roster, blueprints and codex
-                        are untouched — a run never costs you those.
-                    </p>
-                    <p className="ranch-note">The full run summary is ticket 19.</p>
-                    <button
-                        type="button"
-                        className="ranch-button"
-                        onClick={() => { dispatch(clearRun()); playSfx('uiClick'); }}
-                    >
-                        Return to the ranch
-                    </button>
-                </section>
-            </div>
-        );
+        return <RunSummary run={run} />;
     }
 
     /**
@@ -251,7 +293,7 @@ export default function RunScreen(): ReactNode {
                         Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
                         {' '}{run.fightsResolved} fights · {run.scrap} scrap
                     </div>
-                    <button type="button" className="ranch-button subtle" onClick={abandon}>Abandon run</button>
+                    {abandonControl()}
                 </header>
 
                 <section className="ranch-section ranch-section-wide">

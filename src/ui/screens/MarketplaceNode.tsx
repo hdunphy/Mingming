@@ -57,6 +57,7 @@ import {
     type IMacroOffer,
     type IMarketOffer,
 } from '../../engine/run/marketplace';
+import { DECK_TARGET_MAX, DECK_TARGET_MIN } from '../../engine/run/runSummary';
 import { getMacro, macroRackBlockFor } from '../../engine/data/macroRegistry';
 import { numericBaseCost } from '../../engine/types';
 import { MACRO_SLOTS } from '../../engine/runTypes';
@@ -68,9 +69,13 @@ import './MarketplaceNode.css';
 /**
  * `economy-session.md`, bite two: *"the run BUILDS toward the ~20-25 cards a good 3v3 deck wants."*
  * The band is the whole reason a removal price exists, so it is printed rather than implied.
+ *
+ * **Ticket 19 moved the two numbers into `engine/run/runSummary.ts` and left this re-export.** The
+ * run summary quotes the same target — it is the one screen where the player finally learns what
+ * the deck-building track was *for* — and an engine module may not import a screen. Re-exported
+ * rather than repointed at every call site, so the shop's own readers and tests keep their import.
  */
-export const DECK_TARGET_MIN = 20;
-export const DECK_TARGET_MAX = 25;
+export { DECK_TARGET_MAX, DECK_TARGET_MIN } from '../../engine/run/runSummary';
 
 interface CardLine {
     readonly name: string;

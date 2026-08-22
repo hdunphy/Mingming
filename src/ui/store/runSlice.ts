@@ -56,10 +56,17 @@
  * gauntlet a full heal is true by construction, because there is nowhere else in `IRunState` to put
  * an HP number (`encounter.test.ts` asserts exactly that, and ticket 11's own note says why).
  *
+ * # WHAT TICKET 19 ADDED
+ *
+ * `recordBankedBlueprint` — one line in a ledger, and nothing else. The run end needed to be able to
+ * say *which* blueprints came from this run, and the ranch cannot answer that (its counts have no
+ * provenance). Everything else ticket 19 does happens outside a reducer, because it spans both
+ * slices and storage: see `ui/store/runTeardown.ts`, which is the single path all three endings take.
+ *
  * # WHAT IS DELIBERATELY NOT HERE YET
  *
- * Rewards beyond the economy reducers, and the run-end screen: ticket 19. Every later ticket adds
- * reducers here rather than reaching into `IRunState` from a component.
+ * Events (ticket 30) and the codex proper (ticket 31). Every later ticket adds reducers here rather
+ * than reaching into `IRunState` from a component.
  */
 
 import { createSlice } from '@reduxjs/toolkit';
@@ -76,6 +83,7 @@ import {
     macroRackBlockFor,
 } from '../../engine/data/macroRegistry';
 import { PARTY_SIZE } from '../../engine/party';
+import { blueprintBankedModifier } from '../../engine/run/runSummary';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome } from '../../engine/runTypes';
 
@@ -794,6 +802,39 @@ const runSlice = createSlice({
             if (run.drivers.includes(action.payload)) return { run };
             return { run: { ...run, drivers: [...run.drivers, action.payload] } };
         },
+
+        // --- The run's blueprint ledger (ticket 19) ---
+
+        /**
+         * Note that this run banked a blueprint. **A receipt, not a payment.**
+         *
+         * Ticket 12 credits the ranch the instant a blueprint drops (`BattleArena`'s banking
+         * effect), so that a dead run — or an app closed on the reward screen — still pays forward.
+         * This is dispatched beside that credit and does one thing: write the species into the run's
+         * own ledger so ticket 19's summary can say *which* blueprints this run produced. The ranch
+         * cannot answer that on its own — `IRanchState.blueprints` is a running count with no
+         * provenance, and diffing it would need a run-start snapshot nothing stores.
+         *
+         * **The ledger lives in `modifiers`** (`engine/run/runSummary.blueprintBankedModifier`), for
+         * the reason ticket 15's map-reveal lives there: `runTypes.ts` is ratified with no migration
+         * path, `modifiers` is an already-persisted string array documented as facts about this run,
+         * and a `blueprintsBanked` field would be a save-shape change this ticket may not make.
+         *
+         * **No dedupe, unlike `addDriver`.** Blueprints are consumable currency and `addBlueprint`
+         * stacks the count (ticket 20), so a second kraken blueprint is a second line. Collapsing
+         * them would make the summary under-report a run in exactly the direction that annoys a
+         * player — telling them they earned less than the ranch actually received.
+         *
+         * The ordering against `addBlueprint` does not matter and is worth saying so: the ranch
+         * credit is the one that must not be lost, and this receipt describes a payment that has
+         * already happened either way. A crash between the two costs a line on a summary screen.
+         */
+        recordBankedBlueprint: (state, action: PayloadAction<string>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            if (action.payload === '') return { run };
+            return { run: { ...run, modifiers: [...run.modifiers, blueprintBankedModifier(action.payload)] } };
+        },
     },
 });
 
@@ -822,6 +863,7 @@ export const {
     reviveGauntletMember,
     finishGauntlet,
     addDriver,
+    recordBankedBlueprint,
 } = runSlice.actions;
 
 export default runSlice.reducer;
