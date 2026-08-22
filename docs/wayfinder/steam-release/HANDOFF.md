@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09). **State: 55 tickets, 11 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09). A RUN EXISTS: seeded region graph, gym offers, party pick, 8-card start deck, and it survives an app close. Critical path: 10 -> 11 -> 12 -> 18 -> 19. **10 (region map screen) is next.** Ticket 11 has grown — it now owns the battle-path migration off `IPlayerSave`, deleting `ranchProjection`, `addToRoster`'s base-deck grant, and the DEV-only legacy Hub/Sectors/Deck tabs. Also agent-runnable: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. Suite green at 82 files / 1045 tests.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-22 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09, 10). **State: 55 tickets, 12 closed (01-04, 26, 06, 21, 07+08 by Henry, 23, 20, 09, 10). A run exists AND is walkable: seeded region graph, gym offers, party pick, 8-card start deck, rendered map with fog and visit counts, and it all survives an app close. Critical path: 11 -> 12 -> 18 -> 19. **11 (encounter flow) is next and has grown** — it owns the battle-path migration off `IPlayerSave`, deleting `ranchProjection`, `addToRoster`'s base-deck grant, the DEV-only legacy Hub/Sectors/Deck tabs, the node trigger, and ticket 08's per-depth `kitFraction`. Also agent-runnable: 22, 36, 55. Blocked on deck-archetypes 109: 16, 17, 40. Suite green at 84 files / 1064 tests.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,15 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-22 — Region map screen (ticket 10) — **the graph is drawn, and the fog rule grew two clauses**
+
+- **Layout is a pure module** (`ui/screens/regionLayout.ts`), not part of the component. Ticket 06 removed `x`/`y` from `IRegionNode` deliberately — position is derivable from `(biomeIndex, layer)` and storing pixels would freeze a UI decision into the save — so layout is a pure function, testable without a DOM, and ticket 34 can re-lay-out the map without touching a save. Column is `biomeIndex * 5 + layer`; pockets sort last in their column so the main route reads as a spine.
+- **Fog needed two clauses the ruling implies but does not state.** (1) Anywhere you have already stood stays revealed — fog that forgets where you walked is amnesia, and it would break the backtracking ticket 07 explicitly allows. (2) Fog hides the KIND, never the node: the graph's shape is public so routing is a decision. There is a test that **the gym icon is not on screen on turn one**, which is the specific leak an "always show the destination" convenience would open.
+- **Visited nodes show a COUNT, never a grey-out.** Entering a node triggers it again always, and farming is fine; a map that showed a cleared wild as spent would say the opposite. Test asserts the markup contains no "cleared"/"spent"/"exhausted".
+- **Accessibility is two renderings of one thing:** the SVG is `aria-hidden` and a real `<nav>` of buttons underneath is the control. Hand-rolling focus and roles onto an SVG `<g>` narrates badly however much work you put in; a button list is correct by construction. **Ticket 38 inherits a keyboard-operable screen rather than a retrofit**, and ticket 34 can restyle the picture without touching it.
+- **Steam Deck:** `viewBox` units scrolling in an `overflow-x` container. A 15-column region is honestly wider than 1280px and panning beats shrinking nodes below readable. Ticket 37 gets a window, not a squash.
+- Suite **1045 → 1064**; `tsc -b` clean; build green; new files lint-clean.
 
 ### 2026-08-22 — Run start (ticket 09) — **a run exists, and it survives closing the app**
 

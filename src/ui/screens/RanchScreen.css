@@ -341,3 +341,7 @@
     opacity: 0.65;
     line-height: 1.5;
 }
+
+/* The run frame lets the map use the full width — a 15-column region is wider than the ranch's
+   reading measure, and clamping it would just move the scrollbar somewhere less useful. */
+.ranch-section-wide { max-width: none; }

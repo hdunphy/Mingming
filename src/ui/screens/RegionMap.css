@@ -1,0 +1,136 @@
+/*
+ * Region map — ticket 10.
+ *
+ * The picture is drawn in `viewBox` units and scrolls inside `.rm-canvas`, so a narrow frame is a
+ * smaller window onto the same map rather than a squashed one. That matters specifically for the
+ * Steam Deck's 1280x800 (ticket 37): a 15-column region is genuinely wider than that frame, and the
+ * honest answer is to pan it, not to shrink nodes below a readable size.
+ *
+ * Everything is prefixed `rm-` so it cannot collide with the 2500-line global sheet.
+ */
+
+.rm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+/* --- Biome strip --- */
+
+.rm-biome-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+}
+
+.rm-biome {
+    border: 1px solid;
+    border-radius: 5px;
+    border-left-width: 4px;
+    padding: 0.35rem 0.6rem;
+    opacity: 0.45;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.rm-biome.here { opacity: 1; background: rgba(255, 255, 255, 0.04); }
+.rm-biome-name { font-weight: 700; font-size: 0.82rem; }
+.rm-biome-element { font-size: 0.7rem; opacity: 0.7; margin-left: auto; }
+
+/* --- The picture --- */
+
+.rm-canvas {
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid rgba(122, 92, 255, 0.25);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.rm-canvas svg { display: block; max-width: none; }
+
+.rm-edge {
+    stroke: rgba(160, 150, 210, 0.35);
+    stroke-width: 2;
+}
+
+.rm-node-disc {
+    fill: #191430;
+    stroke: rgba(160, 150, 210, 0.5);
+    stroke-width: 2;
+}
+
+.rm-node-icon {
+    font-size: 19px;
+    fill: #e6e0ff;
+    /* The glyphs are emoji; keep them from inheriting a monospace metric that clips them. */
+    font-family: system-ui, 'Segoe UI Emoji', sans-serif;
+}
+
+.rm-node-visits {
+    font-size: 11px;
+    fill: #ffcc66;
+    font-family: monospace;
+}
+
+.rm-node.fogged .rm-node-disc { fill: #0e0b18; stroke: rgba(160, 150, 210, 0.22); }
+.rm-node.fogged .rm-node-icon { fill: rgba(230, 224, 255, 0.35); }
+.rm-node.pocket .rm-node-disc { stroke-dasharray: 4 3; }
+
+.rm-node.reachable { cursor: pointer; }
+.rm-node.reachable .rm-node-disc { stroke: #7a5cff; stroke-width: 3; }
+.rm-node.reachable:hover .rm-node-disc { fill: #241c46; }
+
+.rm-node.current .rm-node-disc {
+    stroke: #6ee7a8;
+    stroke-width: 4;
+    fill: #12291f;
+}
+
+/* --- Legend and travel --- */
+
+.rm-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    font-size: 0.74rem;
+    opacity: 0.75;
+}
+
+.rm-legend-fog { opacity: 0.7; }
+
+.rm-travel-head {
+    margin: 0.4rem 0 0.3rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+}
+
+.rm-travel-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 0.4rem;
+}
+
+.rm-travel-button {
+    width: 100%;
+    text-align: left;
+    background: rgba(0, 0, 0, 0.3);
+    color: inherit;
+    font: 0.76rem/1.4 monospace;
+    border: 1px solid rgba(122, 92, 255, 0.35);
+    border-radius: 5px;
+    padding: 0.45rem 0.6rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rm-travel-button:hover { border-color: #7a5cff; background: rgba(122, 92, 255, 0.15); }
+.rm-travel-button:focus-visible { outline: 2px solid #6ee7a8; outline-offset: 2px; }
+.rm-travel-icon { font-size: 1rem; }
+.rm-travel-empty { font-size: 0.76rem; opacity: 0.6; }
