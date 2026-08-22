@@ -4,13 +4,13 @@ import type {
     IPlayerSave,
     IOwnedProgram,
     IActiveDeck,
-    IBlueprint,
     IRewardBundle,
     IGauntletState
 } from '../../engine/gameTypes';
-import { createDefaultSave, createStarterSave, DECK_SIZE, deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
+import { createDefaultSave, createStarterSave, DECK_SIZE, deckGrantKey, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
+import { legalParty } from '../../engine/party';
 
 const initialState: IPlayerSave = createDefaultSave();
 
@@ -19,6 +19,16 @@ const gameSlice = createSlice({
     initialState,
     reducers: {
         // --- Roster ---
+        /**
+         * Bare add, no cost. **Not the player-facing path any more** — ticket 20 routes assembly
+         * through `assembleMingming`, which spends the blueprint. This one survives for the debug
+         * toolkit and for tests that need a roster member without an economy.
+         *
+         * It still grants the species' starting kit into `cardInventory`, which is legacy
+         * pre-run-loop behaviour: cards are run-scoped now, and ticket 09 grants the start kit at
+         * run start from ticket 08's `startKit` tags. Kept only so the debug scenario launcher's
+         * "saved deck" mode has something to work with until then.
+         */
         addToRoster: (state, action: PayloadAction<IMingmingState>) => {
             (state.roster as IMingmingState[]).push(action.payload);
 
@@ -47,11 +57,20 @@ const gameSlice = createSlice({
         },
 
         // --- Active Party (max 3) ---
+        /**
+         * Ticket 20: this is the **first place the species clause is enforced in the ranch.**
+         *
+         * "No duplicate species per team" is a standing law (map § Notes) that until now lived only
+         * as a comment in `debug/balance/teamComps.ts` calling it an open question, and as a
+         * load-time check in `reconcileLoadedState` that could only discard a run *after* the fact.
+         * Neither stopped a player assembling two krakens in the roster screen. This does.
+         *
+         * The rule itself lives in `engine/party.ts` so this reducer, the load path
+         * (`save/ranchProjection.ts`) and the ranch screen cannot drift apart on what a legal party
+         * is — three hand-written copies of one law is how a law rots.
+         */
         setActiveParty: (state, action: PayloadAction<string[]>) => {
-            const ids = action.payload.slice(0, 3);
-            // Validate all IDs exist in roster
-            const rosterIds = new Set(state.roster.map(m => m.id));
-            state.activeParty = ids.filter(id => rosterIds.has(id));
+            state.activeParty = legalParty(action.payload, state.roster);
         },
 
         // --- Card Inventory ---
@@ -132,14 +151,38 @@ const gameSlice = createSlice({
         },
 
         // --- Blueprints ---
-        addBlueprint: (state, action: PayloadAction<IBlueprint>) => {
-            // Don't add duplicates
-            const exists = state.blueprints.some(
-                b => b.architectureId === action.payload.architectureId
-            );
-            if (!exists) {
-                (state.blueprints as IBlueprint[]).push(action.payload);
-            }
+        /**
+         * Ticket 20: **stacks, never dedupes.** v3 refused a second blueprint of a species you
+         * already had, which made sense when a blueprint was a permanent "you may build this"
+         * permission. It is currency now — a second one is a second assembly.
+         */
+        addBlueprint: (state, action: PayloadAction<string>) => {
+            const counts = state.blueprints as Record<string, number>;
+            counts[action.payload] = (counts[action.payload] ?? 0) + 1;
+        },
+
+        /**
+         * The player-facing assembly path (ticket 20). **Costs exactly one blueprint of the
+         * species and no scrap** — the flat 100-scrap `compileCost` is deleted, because
+         * `economy-session.md` and `vision.md` agree once you split the places apart: a blueprint
+         * at the ranch, a blueprint PLUS scrap at a mid-run workshop (ticket 14 owns that price).
+         *
+         * Atomic on purpose. The old flow was `dispatch(spendScrap(cost))` then
+         * `dispatch(addToRoster(mm))`, two reducers with an affordability check that lived only in
+         * the component — so anything that got between them produced a free unit. Here the spend
+         * and the roster push cannot come apart.
+         *
+         * Silent no-op with no blueprint, matching `spendScrap`'s convention. The caller builds the
+         * instance (it owns the RNG for the stat roll), which is also what makes re-assembly the
+         * re-roll: same species, new individual, one more blueprint.
+         */
+        assembleMingming: (state, action: PayloadAction<IMingmingState>) => {
+            const counts = state.blueprints as Record<string, number>;
+            const held = counts[action.payload.definitionId] ?? 0;
+            if (held < 1) return;
+            counts[action.payload.definitionId] = held - 1;
+            if (counts[action.payload.definitionId] === 0) delete counts[action.payload.definitionId];
+            (state.roster as IMingmingState[]).push(action.payload);
         },
 
         // --- Heal Party ---
@@ -158,12 +201,10 @@ const gameSlice = createSlice({
             const bundle = action.payload;
             state.scrapCount += bundle.scraps;
 
-            // Blueprints
-            for (const bp of bundle.blueprints) {
-                const exists = state.blueprints.some(b => b.architectureId === bp.architectureId);
-                if (!exists) {
-                    (state.blueprints as IBlueprint[]).push(bp);
-                }
+            // Blueprints (ticket 20: species ids, and they stack)
+            const counts = state.blueprints as Record<string, number>;
+            for (const speciesId of bundle.blueprints) {
+                counts[speciesId] = (counts[speciesId] ?? 0) + 1;
             }
 
             // Cards (Guaranteed or Chosen)
@@ -226,12 +267,20 @@ const gameSlice = createSlice({
             }
         },
         /**
-         * Ticket 15: player-facing firmware swap. Costs 1 blueprint of the species
-         * (SPENT) + OS_SWAP_SCRAP_COST scrap; the first swap to an OS lets the player
-         * pick up to OS_SWAP_PICK_COUNT cards from that OS's starting kit (once ever
-         * per species+OS - repeat swaps grant nothing). Silent no-op when any cost
-         * or validation fails, matching spendScrap's convention. Debug tools keep
-         * using the bare updateMingmingOS above.
+         * Player-facing firmware reflash (ticket 15, re-priced by ticket 20).
+         *
+         * **Costs exactly one blueprint of the species. No scrap** — `OS_SWAP_SCRAP_COST` is
+         * deleted along with assembly's, because ticket 20 takes scrap out of the ranch entirely:
+         * scrap is run-scoped, so a ranch that charges it is charging a currency the player cannot
+         * carry home. `vision.md`: "Reflashing an individual's OS also costs a blueprint."
+         *
+         * The first swap to an OS still grants a pick of up to `OS_SWAP_PICK_COUNT` cards from that
+         * OS's kit, once ever per species+OS. That grant is **legacy** — cards are run-scoped now
+         * and ticket 09 hands out the start kit at run start instead — but removing it here would
+         * silently shrink the pre-run-loop build's only card source, so it goes when 09 replaces it.
+         *
+         * Silent no-op when any cost or validation fails, matching `spendScrap`'s convention. Debug
+         * tools keep using the bare `updateMingmingOS` above.
          */
         swapOS: (state, action: PayloadAction<{ id: string; targetOS: string; pickedCardIds?: string[] }>) => {
             const { id, targetOS, pickedCardIds } = action.payload;
@@ -241,13 +290,13 @@ const gameSlice = createSlice({
             if (!definition || !definition.availableOS.includes(targetOS)) return;
             if (mm.activeOS === targetOS) return;
 
-            const blueprintIdx = state.blueprints.findIndex(b => b.architectureId === mm.definitionId);
-            if (blueprintIdx === -1) return;
-            if (state.scrapCount < OS_SWAP_SCRAP_COST) return;
+            const counts = state.blueprints as Record<string, number>;
+            const held = counts[mm.definitionId] ?? 0;
+            if (held < 1) return;
 
-            // Spend: the species blueprint is consumed, plus scrap.
-            (state.blueprints as IBlueprint[]).splice(blueprintIdx, 1);
-            state.scrapCount -= OS_SWAP_SCRAP_COST;
+            // Spend: one blueprint of the species, and nothing else.
+            counts[mm.definitionId] = held - 1;
+            if (counts[mm.definitionId] === 0) delete counts[mm.definitionId];
             mm.activeOS = targetOS;
 
             // First swap to this OS: grant the picked cards (validated against the
@@ -295,6 +344,7 @@ export const {
     addScrap,
     spendScrap,
     addBlueprint,
+    assembleMingming,
     healParty,
     loadSave,
     applyRewardBundle,

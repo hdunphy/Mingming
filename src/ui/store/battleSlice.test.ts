@@ -20,7 +20,7 @@ const SAVE: IPlayerSave = {
     cardInventory: [],
     activeDeck: null,
     scrapCount: 0,
-    blueprints: [],
+    blueprints: {},
     relics: [],
     gauntlet: null,
     unlockedSectors: ['Fire'],

@@ -1,0 +1,282 @@
+/*
+ * Ranch screen — ticket 20.
+ *
+ * Co-located with the component, following `DeckTerminal.css`'s precedent rather than adding to the
+ * 2500-line global `index.css`. Every rule here is prefixed `ranch-` so it cannot collide with the
+ * global sheet, and nothing here reaches outside this screen.
+ *
+ * Sized in relative units and `auto-fill` grids on purpose: ticket 37 has to make the whole game
+ * survive the Steam Deck's 1280x800 frame, and a screen built at fixed pixel widths is work that
+ * ticket has to undo.
+ */
+
+.ranch-screen {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem 1.25rem 2rem;
+    color: #e6e0ff;
+    font-family: monospace;
+}
+
+.ranch-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem 1.5rem;
+    border-bottom: 1px solid rgba(122, 92, 255, 0.35);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.ranch-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    letter-spacing: 0.08em;
+}
+
+.ranch-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.ranch-nav-tab {
+    background: rgba(0, 0, 0, 0.35);
+    color: #b9aeff;
+    border: 1px solid rgba(122, 92, 255, 0.35);
+    border-radius: 4px;
+    padding: 0.35rem 0.8rem;
+    font: 600 0.8rem/1.4 monospace;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+}
+
+.ranch-nav-tab:hover { border-color: #7a5cff; }
+
+.ranch-nav-tab.active {
+    background: rgba(122, 92, 255, 0.22);
+    border-color: #7a5cff;
+    color: #fff;
+}
+
+.ranch-section { max-width: 78rem; }
+
+.ranch-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.ranch-section h2,
+.ranch-subhead {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+}
+
+.ranch-subhead { margin: 1.75rem 0 0.5rem; }
+
+.ranch-note {
+    margin: 0.5rem 0 1rem;
+    max-width: 62ch;
+    opacity: 0.62;
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.ranch-empty {
+    border: 1px dashed rgba(122, 92, 255, 0.35);
+    border-radius: 6px;
+    padding: 1rem;
+    opacity: 0.7;
+    font-size: 0.8rem;
+}
+
+.ranch-button {
+    background: rgba(122, 92, 255, 0.2);
+    color: #e6e0ff;
+    border: 1px solid #7a5cff;
+    border-radius: 4px;
+    padding: 0.4rem 0.9rem;
+    font: 600 0.78rem/1.4 monospace;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+}
+
+.ranch-button:hover:not(:disabled) { background: rgba(122, 92, 255, 0.34); }
+.ranch-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.ranch-button.subtle { background: transparent; border-color: rgba(122, 92, 255, 0.35); }
+
+/* --- Party slots --- */
+
+.ranch-party-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.6rem;
+}
+
+.ranch-slot {
+    border: 1px solid rgba(122, 92, 255, 0.35);
+    border-radius: 6px;
+    padding: 0.7rem;
+    min-height: 5.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: center;
+}
+
+.ranch-slot.filled { border-color: #7a5cff; background: rgba(122, 92, 255, 0.12); cursor: pointer; }
+.ranch-slot.empty { border-style: dashed; opacity: 0.55; }
+.ranch-slot-name { font-weight: 700; font-size: 0.9rem; }
+.ranch-slot-action,
+.ranch-slot-empty { font-size: 0.7rem; opacity: 0.6; }
+
+/* --- Stat roll --- */
+
+.ranch-ivs {
+    display: flex;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+    opacity: 0.85;
+}
+
+/* --- Roster grid --- */
+
+.ranch-roster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.6rem;
+}
+
+.ranch-card {
+    text-align: left;
+    background: rgba(0, 0, 0, 0.3);
+    color: inherit;
+    font-family: inherit;
+    border: 1px solid rgba(122, 92, 255, 0.3);
+    border-radius: 6px;
+    padding: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    cursor: pointer;
+}
+
+.ranch-card:hover { border-color: #7a5cff; }
+.ranch-card.active { border-color: #6ee7a8; background: rgba(110, 231, 168, 0.1); }
+.ranch-card.blocked { opacity: 0.5; cursor: not-allowed; }
+.ranch-card-name { font-weight: 700; font-size: 0.9rem; }
+.ranch-card-species { font-size: 0.7rem; opacity: 0.55; letter-spacing: 0.05em; }
+
+.ranch-card-os {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.7rem;
+    opacity: 0.75;
+    border-top: 1px solid rgba(122, 92, 255, 0.22);
+    padding-top: 0.35rem;
+    margin-top: 0.15rem;
+}
+
+.ranch-card-badge { font-size: 0.68rem; color: #6ee7a8; letter-spacing: 0.08em; }
+.ranch-card-block { font-size: 0.68rem; color: #ffcc66; }
+
+/* --- Assembly --- */
+
+.ranch-blueprint-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.6rem;
+}
+
+.ranch-blueprint {
+    border: 1px solid rgba(122, 92, 255, 0.3);
+    border-radius: 6px;
+    padding: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.ranch-blueprint-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.ranch-blueprint-name { font-weight: 700; font-size: 0.9rem; }
+.ranch-blueprint-count { color: #6ee7a8; font-weight: 700; }
+.ranch-blueprint-element { font-size: 0.7rem; opacity: 0.55; letter-spacing: 0.06em; }
+
+.ranch-built {
+    margin-top: 1rem;
+    border: 1px solid #6ee7a8;
+    border-left-width: 4px;
+    border-radius: 6px;
+    padding: 0.8rem;
+    background: rgba(110, 231, 168, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.ranch-built-title { font-weight: 700; color: #6ee7a8; }
+.ranch-built .ranch-note { margin: 0; }
+
+/* --- Modal --- */
+
+.ranch-modal-backdrop { background: rgba(0, 0, 0, 0.72); padding: 1rem; }
+
+.ranch-modal {
+    width: min(34rem, 100%);
+    max-height: 85vh;
+    overflow-y: auto;
+    background: #14101f;
+    border: 1px solid #7a5cff;
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+}
+
+.ranch-modal h3 { margin: 0 0 0.25rem; font-size: 1rem; letter-spacing: 0.05em; }
+
+.ranch-os-options { display: flex; flex-direction: column; gap: 0.45rem; }
+
+.ranch-os-option {
+    text-align: left;
+    background: rgba(0, 0, 0, 0.35);
+    color: inherit;
+    font-family: inherit;
+    border: 1px solid rgba(122, 92, 255, 0.3);
+    border-radius: 5px;
+    padding: 0.55rem 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    cursor: pointer;
+}
+
+.ranch-os-option span { font-size: 0.72rem; opacity: 0.7; }
+.ranch-os-option.selected { border-color: #7a5cff; background: rgba(122, 92, 255, 0.18); }
+
+.ranch-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+/* --- Vault --- */
+
+.ranch-relic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.6rem;
+}
+
+.ranch-relic {
+    border: 1px solid rgba(122, 92, 255, 0.3);
+    border-radius: 6px;
+    padding: 0.7rem;
+}
+
+.ranch-relic-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.25rem; }
+.ranch-relic-desc { font-size: 0.75rem; opacity: 0.72; line-height: 1.5; }

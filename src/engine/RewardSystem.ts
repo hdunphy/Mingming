@@ -5,7 +5,7 @@
 
 import { PRNG } from './core/PRNG';
 import { ProgramRegistry } from './data/programRegistry';
-import type { IRewardBundle, IBlueprint, IOwnedProgram, ICardChoice } from './gameTypes';
+import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
 import type { IBattleEntity, Element, Rarity } from './types';
 
@@ -90,7 +90,7 @@ function rollForEntity(
     entity: IBattleEntity,
     rosterSize: number,
     prng: PRNG
-): { scraps: number; blueprint: IBlueprint | null; cardChoice: ICardChoice; nextSeed: number } {
+): { scraps: number; blueprint: string | null; cardChoice: ICardChoice; nextSeed: number } {
     // 1. Roll scrap yield: 5-15 default
     const scrapRoll = prng.nextInt(5, 15);
     let currentSeed = scrapRoll.nextSeed;
@@ -100,13 +100,10 @@ function rollForEntity(
     const bpRoll = new PRNG(currentSeed).next();
     currentSeed = bpRoll.nextSeed;
 
-    const blueprint = bpRoll.value < bpRate
-        ? {
-            architectureId: entity.definitionId,
-            name: `${entity.name} Blueprint`,
-            compileCost: 100
-        }
-        : null;
+    // Ticket 20: a blueprint drop is a SPECIES ID and nothing else. It used to be an object
+    // carrying a display name and a flat 100-scrap `compileCost`; both are gone — the name is
+    // derivable from the registry, and ranch assembly no longer costs scrap at all.
+    const blueprint = bpRoll.value < bpRate ? entity.definitionId : null;
 
     // 3. Roll the "Choice" array (pick 1 of SALVAGE_CHOICES_PER_FOE)
     const pool = getPoolForElement(entity.primaryElement);
@@ -138,7 +135,7 @@ export function rollDropTable(
     seed: string
 ): IRewardBundle {
     let totalScraps = 0;
-    const allBlueprints: IBlueprint[] = [];
+    const allBlueprints: string[] = [];
     const allCardChoices: ICardChoice[] = [];
     let currentSeed = seed;
 

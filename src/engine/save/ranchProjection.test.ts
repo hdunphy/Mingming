@@ -38,17 +38,16 @@ describe('toRanchState', () => {
         expect(RanchStateSchema.safeParse(ranch).success).toBe(true);
     });
 
-    it('counts blueprints instead of listing them', () => {
-        const ranch = toRanchState(slice({
-            blueprints: [
-                { architectureId: 'kraken', name: 'Kraken Blueprint', compileCost: 100 },
-                { architectureId: 'kraken', name: 'Kraken Blueprint', compileCost: 100 },
-                { architectureId: 'fenrir', name: 'Fenrir Blueprint', compileCost: 100 },
-            ],
-        }));
-        // Consumable currency, so two kraken blueprints are TWO, not one deduplicated entry —
-        // v3's dedup-on-architectureId was the exact opposite of what spending them requires.
+    it('carries blueprint counts across as-is, and copies rather than aliases them', () => {
+        const before = slice({ blueprints: { kraken: 2, fenrir: 1 } });
+        const ranch = toRanchState(before);
+        // Ticket 20 moved the slice to counts too, so this half of the projection is the
+        // identity — the lossy dedup-on-architectureId edge it used to have is gone. What is
+        // still worth asserting is that it hands over a fresh object: the ranch state is about
+        // to be serialized, and sharing the slice's map would let a later `addBlueprint` mutate
+        // what is being written.
         expect(ranch.blueprints).toEqual({ kraken: 2, fenrir: 1 });
+        expect(ranch.blueprints).not.toBe(before.blueprints);
     });
 
     it('resolves an absent activeOS the same way the roster grant does', () => {
@@ -78,7 +77,7 @@ describe('applyRanchState', () => {
         const before = slice({
             roster: [member('mm1', 'kraken', 'kraken_v2'), member('mm2', 'fenrir', 'fenrir_v1')],
             activeParty: ['mm1'],
-            blueprints: [{ architectureId: 'kraken', name: 'Kraken Blueprint', compileCost: 100 }],
+            blueprints: { kraken: 1 },
             unlockedSectors: [...createDefaultSave().unlockedSectors, 'Dark'],
         });
 
@@ -86,11 +85,15 @@ describe('applyRanchState', () => {
 
         expect(after.roster.map((m) => [m.id, m.definitionId, m.activeOS, m.attackIV, m.hpIV]))
             .toEqual(before.roster.map((m) => [m.id, m.definitionId, m.activeOS ?? 'kraken_v2', m.attackIV, m.hpIV]));
-        expect(after.blueprints.map((b) => b.architectureId)).toEqual(['kraken']);
+        expect(after.blueprints).toEqual({ kraken: 1 });
         expect(after.unlockedSectors).toContain('Dark');
     });
 
-    it('re-synthesizes blueprint name and cost, which are registry data and not player data', () => {
+    it('restores the stack, not one entry per species', () => {
+        // This used to assert that `name` and `compileCost` were re-synthesized from the
+        // registry on the way back in. Ticket 20 deleted both fields — the name was derivable
+        // and the flat 100-scrap cost is gone, assembly costs a blueprint — so the only thing
+        // left to get right is the count itself, and holding two must not come back as one.
         const after = applyRanchState(createDefaultSave(), {
             roster: [],
             blueprints: { kraken: 2 },
@@ -99,9 +102,7 @@ describe('applyRanchState', () => {
             highestTierCleared: 0,
         });
 
-        expect(after.blueprints).toHaveLength(2);
-        expect(after.blueprints[0].compileCost).toBe(100);
-        expect(after.blueprints[0].name).toContain('Blueprint');
+        expect(after.blueprints).toEqual({ kraken: 2 });
     });
 
     it('DELIBERATELY does not restore run-scoped state (ticket 06)', () => {

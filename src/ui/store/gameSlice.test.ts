@@ -18,13 +18,18 @@ import gameReducer, {
     resetSave,
     applyRewardBundle
 } from './gameSlice';
-import type { IPlayerSave, IOwnedProgram, IActiveDeck, IBlueprint, IRewardBundle } from '../../engine/gameTypes';
+import type { IPlayerSave, IOwnedProgram, IActiveDeck, IRewardBundle } from '../../engine/gameTypes';
 import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 
-function makeMingming(id: string): IMingmingState {
-    return { id, definitionId: 'def_fire', attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
+/**
+ * `definitionId` is a parameter because ticket 20 made species load-bearing for party selection:
+ * `setActiveParty` now keeps only the first member of each species, so a test that wants more
+ * than one party member has to build more than one species.
+ */
+function makeMingming(id: string, definitionId: string = 'def_fire'): IMingmingState {
+    return { id, definitionId, attackIV: 5, defenseIV: 5, hpIV: 5, blueprintsCollected: 0 };
 }
 
 function makeCard(instanceId: string, dataId: string = 'flamethrower'): IOwnedProgram {
@@ -33,10 +38,6 @@ function makeCard(instanceId: string, dataId: string = 'flamethrower'): IOwnedPr
 
 function makeDeck(id: string, cards: string[] = []): IActiveDeck {
     return { id, name: 'Test Deck', cards };
-}
-
-function makeBlueprint(archId: string): IBlueprint {
-    return { architectureId: archId, name: `BP-${archId}`, compileCost: 100 };
 }
 
 describe('gameSlice', () => {
@@ -60,8 +61,10 @@ describe('gameSlice', () => {
         });
 
         it('removes from active party when removed from roster', () => {
-            let state = gameReducer(initial, addToRoster(makeMingming('mm1')));
-            state = gameReducer(state, addToRoster(makeMingming('mm2')));
+            // Two species, not two of one: ticket 20's species clause would drop the second
+            // member before this test got as far as the removal it is actually about.
+            let state = gameReducer(initial, addToRoster(makeMingming('mm1', 'def_fire')));
+            state = gameReducer(state, addToRoster(makeMingming('mm2', 'def_water')));
             state = gameReducer(state, setActiveParty(['mm1', 'mm2']));
             expect(state.activeParty).toHaveLength(2);
             state = gameReducer(state, removeFromRoster('mm1'));
@@ -114,19 +117,35 @@ describe('gameSlice', () => {
     // --- Active Party ---
     describe('activeParty', () => {
         it('sets active party up to 3', () => {
-            let state = gameReducer(initial, addToRoster(makeMingming('a')));
-            state = gameReducer(state, addToRoster(makeMingming('b')));
-            state = gameReducer(state, addToRoster(makeMingming('c')));
-            state = gameReducer(state, addToRoster(makeMingming('d')));
+            // Four distinct species, so the cap is the only thing that can trim this payload —
+            // with four of one species ticket 20's clause would cut it to 1 and the cap would
+            // never be exercised.
+            let state = gameReducer(initial, addToRoster(makeMingming('a', 'def_fire')));
+            state = gameReducer(state, addToRoster(makeMingming('b', 'def_water')));
+            state = gameReducer(state, addToRoster(makeMingming('c', 'def_nature')));
+            state = gameReducer(state, addToRoster(makeMingming('d', 'def_dark')));
             state = gameReducer(state, setActiveParty(['a', 'b', 'c', 'd']));
             // Should cap at 3
             expect(state.activeParty).toHaveLength(3);
+            expect(state.activeParty).toEqual(['a', 'b', 'c']);
         });
 
         it('filters out IDs not in roster', () => {
             let state = gameReducer(initial, addToRoster(makeMingming('a')));
             state = gameReducer(state, setActiveParty(['a', 'ghost']));
             expect(state.activeParty).toEqual(['a']);
+        });
+
+        it('keeps the first member of a species and drops later duplicates (ticket 20 species clause)', () => {
+            // The 3v3 species clause was documented law with no enforcement anywhere in the
+            // ranch until ticket 20 put it here. Dropping the later duplicates rather than
+            // rejecting the whole payload is deliberate: the roster screen gates on the same
+            // rule first, so a rejection would leave it nothing to report.
+            let state = gameReducer(initial, addToRoster(makeMingming('fire1', 'def_fire')));
+            state = gameReducer(state, addToRoster(makeMingming('fire2', 'def_fire')));
+            state = gameReducer(state, addToRoster(makeMingming('water1', 'def_water')));
+            state = gameReducer(state, setActiveParty(['fire1', 'fire2', 'water1']));
+            expect(state.activeParty).toEqual(['fire1', 'water1']);
         });
     });
 
@@ -269,17 +288,26 @@ describe('gameSlice', () => {
 
     // --- Blueprints ---
     describe('blueprints', () => {
-        it('adds a blueprint', () => {
-            const bp = makeBlueprint('arch_fire');
-            const state = gameReducer(initial, addBlueprint(bp));
-            expect(state.blueprints).toHaveLength(1);
+        it('adds a blueprint as a count of one', () => {
+            const state = gameReducer(initial, addBlueprint('arch_fire'));
+            expect(state.blueprints).toEqual({ arch_fire: 1 });
         });
 
-        it('rejects duplicate blueprint', () => {
-            const bp = makeBlueprint('arch_fire');
-            let state = gameReducer(initial, addBlueprint(bp));
-            state = gameReducer(state, addBlueprint(bp));
-            expect(state.blueprints).toHaveLength(1);
+        it('stacks a second blueprint of the same species instead of rejecting it', () => {
+            // Ticket 20 inverted this: v3 refused the duplicate, because a blueprint was a
+            // permanent "you may build this" permission you could only hold one of. Blueprints
+            // are consumable currency now — one is spent per assembly and per OS reflash — so a
+            // second one is a second assembly, not a no-op.
+            let state = gameReducer(initial, addBlueprint('arch_fire'));
+            state = gameReducer(state, addBlueprint('arch_fire'));
+            expect(state.blueprints).toEqual({ arch_fire: 2 });
+        });
+
+        it('counts each species separately', () => {
+            let state = gameReducer(initial, addBlueprint('arch_fire'));
+            state = gameReducer(state, addBlueprint('arch_water'));
+            state = gameReducer(state, addBlueprint('arch_fire'));
+            expect(state.blueprints).toEqual({ arch_fire: 2, arch_water: 1 });
         });
     });
 
@@ -291,7 +319,9 @@ describe('gameSlice', () => {
 
             const bundle: IRewardBundle = {
                 scraps: 42,
-                blueprints: [makeBlueprint('arch_fire')],
+                // Ticket 20: a bundle carries species ids, and two of the same id are two
+                // blueprints — the drop table can pay out a stack in one battle.
+                blueprints: ['arch_fire', 'arch_fire', 'arch_water'],
                 cards: [makeCard('rc1')],
                 cardChoices: [],
                 totalXP: 500 // even a non-zero value must not be applied to the roster
@@ -299,7 +329,7 @@ describe('gameSlice', () => {
             state = gameReducer(state, applyRewardBundle(bundle));
 
             expect(state.scrapCount).toBe(42);
-            expect(state.blueprints).toHaveLength(1);
+            expect(state.blueprints).toEqual({ arch_fire: 2, arch_water: 1 });
             expect(state.cardInventory).toHaveLength(1);
         });
 

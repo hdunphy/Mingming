@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import gameReducer, { swapOS, addToRoster } from './gameSlice';
-import { createDefaultSave, deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
+import { createDefaultSave, deckGrantKey, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 import { getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { PlayerSaveSchema } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
@@ -31,34 +31,49 @@ const baseState = (): IPlayerSave => {
         ...s,
         scrapCount: 100,
         roster: [member('m1', 'kraken', 'kraken_v1')],
-        blueprints: [{ architectureId: 'kraken', name: 'Kraken Blueprint', compileCost: 50 }],
+        blueprints: { kraken: 1 },
         baseDecksGranted: [deckGrantKey('kraken', 'kraken_v1')]
     } as IPlayerSave;
 };
 
 describe('Ticket 15 - swapOS', () => {
-    it('spends the species blueprint + scrap, sets the OS, grants the picks, records the key', () => {
+    it('spends one species blueprint and no scrap, sets the OS, grants the picks, records the key', () => {
         const picks = getDeckForOS('kraken', 'kraken_v2').slice(0, 2);
         const after = gameReducer(baseState() as any, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: picks }));
         expect(after.roster[0].activeOS).toBe('kraken_v2');
-        expect(after.scrapCount).toBe(100 - OS_SWAP_SCRAP_COST);
-        expect(after.blueprints).toHaveLength(0); // SPENT
+        // Ticket 20 re-priced the reflash: one blueprint, and `OS_SWAP_SCRAP_COST` is deleted
+        // outright, because scrap is run-scoped and a ranch that charges it is charging a
+        // currency the player cannot carry home.
+        expect(after.scrapCount).toBe(100);
+        // The last blueprint of a species leaves no zero behind — an empty key would show the
+        // ranch screen a species it cannot actually assemble or reflash.
+        expect(after.blueprints).toEqual({});
         expect(after.cardInventory.map(c => c.dataId)).toEqual(picks);
         expect(after.baseDecksGranted).toContain(deckGrantKey('kraken', 'kraken_v2'));
         // The resulting state must survive the autosave schema.
         expect(() => PlayerSaveSchema.parse(after)).not.toThrow();
     });
 
-    it('is a no-op without a blueprint, and without enough scrap', () => {
-        const noBp = { ...baseState(), blueprints: [] } as IPlayerSave;
+    it('spends exactly one of a stack, leaving the rest', () => {
+        const stocked = { ...baseState(), blueprints: { kraken: 3, fenrir: 2 } } as IPlayerSave;
+        const after = gameReducer(stocked as any, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
+        expect(after.blueprints).toEqual({ kraken: 2, fenrir: 2 });
+    });
+
+    it('is a no-op when no blueprint of the species is held', () => {
+        // This replaces the old "not enough scrap" case: the scrap price is gone, so a held
+        // blueprint is the only thing that can now make a reflash unaffordable.
+        const noBp = { ...baseState(), blueprints: {} } as IPlayerSave;
         const after1 = gameReducer(noBp as any, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
         expect(after1.roster[0].activeOS).toBe('kraken_v1');
-        expect(after1.scrapCount).toBe(100);
+        expect(after1.cardInventory).toHaveLength(0);
+        expect(after1.baseDecksGranted).not.toContain(deckGrantKey('kraken', 'kraken_v2'));
 
-        const poor = { ...baseState(), scrapCount: OS_SWAP_SCRAP_COST - 1 } as IPlayerSave;
-        const after2 = gameReducer(poor as any, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
+        // A blueprint of some OTHER species does not pay for this one's reflash.
+        const wrongSpecies = { ...baseState(), blueprints: { fenrir: 5 } } as IPlayerSave;
+        const after2 = gameReducer(wrongSpecies as any, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
         expect(after2.roster[0].activeOS).toBe('kraken_v1');
-        expect(after2.blueprints).toHaveLength(1);
+        expect(after2.blueprints).toEqual({ fenrir: 5 });
     });
 
     it('caps picks at OS_SWAP_PICK_COUNT, rejects cards outside the kit, respects copy counts', () => {
@@ -76,12 +91,9 @@ describe('Ticket 15 - swapOS', () => {
     });
 
     it('the pick grant fires once ever per OS - a swap back and forth gives nothing new', () => {
+        // Three swaps, three blueprints — one per reflash (ticket 20).
         let s: any = baseState();
-        s = { ...s, blueprints: [
-            { architectureId: 'kraken', name: 'BP', compileCost: 50 },
-            { architectureId: 'kraken', name: 'BP', compileCost: 50 },
-            { architectureId: 'kraken', name: 'BP', compileCost: 50 }
-        ] };
+        s = { ...s, blueprints: { kraken: 3 } };
         s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: ['maelstrom'] }));
         expect(s.cardInventory).toHaveLength(1);
         s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v1', pickedCardIds: ['ink_stream'] }));

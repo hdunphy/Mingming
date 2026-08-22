@@ -36,7 +36,7 @@ import { z } from 'zod';
 
 import { MingmingRegistry } from '../engine/data/mingmingRegistry';
 import { createMingmingInstance, createOwnedProgram, PlayerSaveSchema } from '../engine/gameTypes';
-import type { IBlueprint, IOwnedProgram, IPlayerSave } from '../engine/gameTypes';
+import type { IOwnedProgram, IPlayerSave } from '../engine/gameTypes';
 import gameReducer, {
     addBlueprint,
     addCardsToInventory,
@@ -238,24 +238,21 @@ export function parseSaveFileText(text: string): SaveFileParse {
 //     is stored. `PlayerSaveSchema` types it as a bare `z.string()`, so membership in
 //     `availableOS` is a constraint only the caller can enforce — the panel offers a select.
 
-/** Compile cost `RewardSystem.ts:107` stamps on every blueprint it rolls. */
-export const BLUEPRINT_COMPILE_COST = 100;
-
 /** Grant (or drain, with a negative amount) scrap. A drain past zero is refused by the guard. */
 export function buildGrantScraps(amount: number): SaveEditAction {
     return addScrap(amount);
 }
 
-/** Grant a species blueprint. Returns null for an unknown definition id. */
+/**
+ * Grant a species blueprint. Returns null for an unknown definition id.
+ *
+ * Ticket 20: blueprints are counts, so this STACKS — granting twice gives you two, which is the
+ * point now that one is spent per assembly.
+ */
 export function buildGrantBlueprint(definitionId: string): SaveEditAction | null {
     const definition = MingmingRegistry[definitionId];
     if (!definition) return null;
-    const blueprint: IBlueprint = {
-        architectureId: definition.id,
-        name: `${definition.name} Blueprint`,
-        compileCost: BLUEPRINT_COMPILE_COST,
-    };
-    return addBlueprint(blueprint);
+    return addBlueprint(definition.id);
 }
 
 export function buildGrantRelic(relicId: string): SaveEditAction {

@@ -28,22 +28,33 @@ export interface IActiveDeck {
 export const DECK_SIZE = 40;
 export const MIN_DECK_SIZE = 8; // ticket 13: deck template allows 8-12 card starting decks
 
-// Ticket 15 (OS-swap rules): swapping firmware costs 1 blueprint (spent) + scrap,
-// and the FIRST swap to an OS grants a pick of its starting cards - once ever.
-// The pick count is deliberately a tunable constant (playtesting may raise it).
-export const OS_SWAP_SCRAP_COST = 25;
+/**
+ * Ticket 15 gave the first swap to an OS a one-time pick from that OS's starting kit. Ticket 20
+ * left the pick count in place but the grant itself is on its way out: cards are **run-scoped**
+ * now, so the ranch has no business handing them out. Ticket 09 grants the start kit at run start
+ * from ticket 08's `startKit` tags instead.
+ */
 export const OS_SWAP_PICK_COUNT = 2;
 
 /** baseDecksGranted key: which (species, OS) starting kits have been granted. */
 export const deckGrantKey = (definitionId: string, osId: string): string => `${definitionId}:${osId}`;
 
-// --- Blueprint ---
+// --- Blueprints ---
 
-export interface IBlueprint {
-    readonly architectureId: string; // Ref to IMingmingDefinition.id
-    readonly name: string;
-    readonly compileCost: number;     // Scrap cost to compile
-}
+/**
+ * **Counts per species, not objects** (ticket 20, from ticket 06's ratified ranch).
+ *
+ * v3 held `IBlueprint[]` deduplicated on `architectureId` — an object carrying a `name` and a
+ * `compileCost`, of which you could own at most one. That is the exact opposite of a consumable,
+ * and `vision.md` (Henry, 2026-08-19) rules blueprints consumable: one is SPENT to assemble a
+ * mingming, and reflashing an individual's OS spends one too.
+ *
+ * So the only thing worth storing is *how many of this species you hold*. The `name` was
+ * `${definition.name} Blueprint` — derivable — and `compileCost` was a flat 100 scrap that ticket
+ * 20 deletes outright: **assembly costs a blueprint at the ranch, full stop.** (A blueprint PLUS
+ * scrap is the *workshop* price, mid-run, and ticket 14 owns that number.)
+ */
+export type BlueprintCounts = Readonly<Record<string, number>>;
 
 export interface ICardChoice {
     readonly sourceEntityName: string;
@@ -54,7 +65,8 @@ export interface ICardChoice {
 
 export interface IRewardBundle {
     readonly scraps: number;
-    readonly blueprints: ReadonlyArray<IBlueprint>;
+    /** Species ids, one entry per blueprint dropped. Duplicates are meaningful — they stack. */
+    readonly blueprints: ReadonlyArray<string>;
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
     readonly totalXP: number;
@@ -117,7 +129,8 @@ export interface IPlayerSave {
     readonly cardInventory: ReadonlyArray<IOwnedProgram>;
     readonly activeDeck: IActiveDeck | null;
     readonly scrapCount: number;
-    readonly blueprints: ReadonlyArray<IBlueprint>;
+    /** Ticket 20: counts per species, because blueprints are spent. See `BlueprintCounts`. */
+    readonly blueprints: BlueprintCounts;
     readonly relics: ReadonlyArray<string>;
     readonly gauntlet: IGauntletState | null;
     readonly unlockedSectors: ReadonlyArray<string>;
@@ -160,11 +173,10 @@ const ActiveDeckSchema = z.object({
     cards: z.array(z.string()),
 });
 
-const BlueprintSchema = z.object({
-    architectureId: z.string(),
-    name: z.string(),
-    compileCost: z.number().int().min(0),
-});
+// Ticket 20: the same shape `RanchStateSchema` uses, for the same reason — a blueprint is a
+// number you spend, not an object you own. A negative or fractional count is a corrupt save and
+// must FAIL rather than be swallowed; see the `.default()` note above.
+const BlueprintCountsSchema = z.record(z.string(), z.number().int().min(0));
 
 const GauntletStateSchema = z.object({
     type: z.enum(['Gym', 'Sector']),
@@ -186,7 +198,7 @@ export const PlayerSaveSchema = z.object({
     cardInventory: z.array(OwnedProgramSchema),
     activeDeck: ActiveDeckSchema.nullable(),
     scrapCount: z.number().int().min(0),
-    blueprints: z.array(BlueprintSchema).default([]),
+    blueprints: BlueprintCountsSchema.default({}),
     relics: z.array(z.string()).default([]),
     gauntlet: GauntletStateSchema.nullable().default(null),
     unlockedSectors: z.array(z.string()).default([]),
@@ -203,7 +215,7 @@ export function createDefaultSave(): IPlayerSave {
         cardInventory: [],
         activeDeck: null,
         scrapCount: 0,
-        blueprints: [],
+        blueprints: {},
         relics: [],
         gauntlet: null,
         unlockedSectors: ['Fire', 'Water', 'Nature'],
@@ -266,7 +278,7 @@ export function createStarterSave(
             cards: starterCards.map(c => c.instanceId)
         },
         scrapCount: 50,
-        blueprints: [],
+        blueprints: {},
         relics: [],
         gauntlet: null,
         unlockedSectors: ['Fire', 'Water', 'Nature'],

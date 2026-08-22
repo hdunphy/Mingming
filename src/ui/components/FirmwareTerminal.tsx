@@ -6,20 +6,20 @@ import { swapOS } from '../store/gameSlice';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetMingmingData, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
-import type { IMingmingState } from '../../engine/types';
+import { deckGrantKey, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
 
 interface FirmwareTerminalProps {
     onClose: () => void;
 }
 
-// Ticket 15: swap = 1 species blueprint (SPENT) + scrap; first swap to an OS
-// grants a pick of its starting kit (once ever), chosen in the picker below.
-const OS_SWAP_COST = OS_SWAP_SCRAP_COST;
+// Ticket 15, re-priced by ticket 20: a reflash costs ONE species blueprint (SPENT) and no scrap
+// — the ranch has no scrap economy. The first swap to an OS still grants a pick of its starting
+// kit (once ever), chosen in the picker below; that grant is legacy and goes when ticket 09 hands
+// out the start kit at run start instead.
 
 export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
     const dispatch = useDispatch();
-    const { roster, scrapCount, blueprints, baseDecksGranted } = useSelector((s: RootState) => s.game);
+    const { roster, blueprints, baseDecksGranted } = useSelector((s: RootState) => s.game);
     const [selectedMmId, setSelectedMmId] = useState<string | null>(null);
     const [isFlashing, setIsFlashing] = useState(false);
     const [flashProgress, setFlashProgress] = useState(0);
@@ -32,12 +32,14 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
         roster.find(m => m.id === selectedMmId),
         [roster, selectedMmId]);
 
-    const hasBlueprint = useMemo(() =>
-        !!selectedMm && blueprints.some(b => b.architectureId === selectedMm.definitionId),
-        [blueprints, selectedMm]);
+    // Ticket 20: blueprints are COUNTS, and a reflash costs exactly one of them and no scrap.
+    // The ranch has no scrap economy at all now — scrap is run-scoped, so charging it here would be
+    // charging a currency the player cannot bring home.
+    const blueprintsHeld = selectedMm ? (blueprints[selectedMm.definitionId] ?? 0) : 0;
+    const hasBlueprint = blueprintsHeld > 0;
 
     const handleFlash = () => {
-        if (!selectedMm || !targetOS || scrapCount < OS_SWAP_COST || !hasBlueprint) return;
+        if (!selectedMm || !targetOS || !hasBlueprint) return;
 
         setIsFlashing(true);
         setFlashProgress(0);
@@ -61,9 +63,9 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
     useEffect(() => {
         if (flashProgress === 100 && isFlashing) {
             const timeout = setTimeout(() => {
-                // swapOS validates and spends blueprint + scrap itself (silent no-op
-                // on failure, matching the old spendScrap convention).
-                if (selectedMmId && targetOS && selectedMm && scrapCount >= OS_SWAP_COST && hasBlueprint) {
+                // swapOS validates and spends the blueprint itself (silent no-op on failure,
+                // matching the slice's spendScrap convention).
+                if (selectedMmId && targetOS && selectedMm && hasBlueprint) {
                     const key = deckGrantKey(selectedMm.definitionId, targetOS);
                     if (!baseDecksGranted.includes(key)) {
                         // First swap to this OS: open the kit picker; the swap is
@@ -84,7 +86,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
             }, 500);
             return () => clearTimeout(timeout);
         }
-    }, [flashProgress, isFlashing, selectedMmId, selectedMm, targetOS, scrapCount, hasBlueprint, baseDecksGranted, dispatch]);
+    }, [flashProgress, isFlashing, selectedMmId, selectedMm, targetOS, hasBlueprint, baseDecksGranted, dispatch]);
 
     const availableOSVersions = useMemo(() => {
         if (!selectedMm) return [];
@@ -189,14 +191,12 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
 
                                 <div className="flash-footer">
                                     <div className="flash-cost">
-                                        FLASH COST: <span className={scrapCount < OS_SWAP_COST ? 'insufficient' : ''}>{OS_SWAP_COST}⚙️</span>
-                                        {' + '}
-                                        <span className={!hasBlueprint ? 'insufficient' : ''}>1 BLUEPRINT</span>
-                                        <label>(CURRENT: {scrapCount}⚙️{hasBlueprint ? ', BLUEPRINT READY' : ', NO BLUEPRINT'})</label>
+                                        FLASH COST: <span className={!hasBlueprint ? 'insufficient' : ''}>1 BLUEPRINT</span>
+                                        <label>(HELD: {blueprintsHeld})</label>
                                     </div>
                                     <button
                                         className="flash-button"
-                                        disabled={!targetOS || scrapCount < OS_SWAP_COST || !hasBlueprint || isFlashing}
+                                        disabled={!targetOS || !hasBlueprint || isFlashing}
                                         onClick={handleFlash}
                                     >
                                         {isFlashing ? 'TRANSFERRING...' : 'START FLASH SEQUENCE'}

@@ -82,7 +82,7 @@ describe('boss relic OSes', () => {
             cardInventory: [],
             activeDeck: null,
             scrapCount: 0,
-            blueprints: [],
+            blueprints: {},
             relics: [],
             gauntlet: {
                 type: 'Gym',

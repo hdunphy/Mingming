@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
@@ -283,9 +284,9 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                     <div style={{ fontSize: '0.7rem', color: '#ff00ff', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
                                         New Blueprint Detected
                                     </div>
-                                    {bundle.blueprints.map((bp, i) => (
+                                    {bundle.blueprints.map((speciesId, i) => (
                                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{bp.name}</span>
+                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{GetMingmingData(speciesId).name} Blueprint</span>
                                             <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>ACQUIRED</span>
                                         </div>
                                     ))}

@@ -82,8 +82,17 @@ describe('v1 verbs each produce a schema-valid save', () => {
     it('grant blueprint (not "unlock species" — there is no species flag)', () => {
         const before = baseline();
         const after = expectAllowed(before, buildGrantBlueprint('fenrir'));
-        expect(after.blueprints.map((b) => b.architectureId)).toContain('fenrir');
-        expect(after.blueprints[0].compileCost).toBeGreaterThanOrEqual(0);
+        expect(after.blueprints.fenrir).toBe((before.blueprints.fenrir ?? 0) + 1);
+    });
+
+    it('grant blueprint twice stacks, because the verb grants spendable currency', () => {
+        // Ticket 20: the verb used to be a one-shot "unlock" whose second use did nothing. A
+        // blueprint is spent per assembly and per OS reflash now, so granting twice has to hand
+        // the debug user two of them or the panel cannot set up a two-assembly scenario.
+        const before = baseline();
+        const once = expectAllowed(before, buildGrantBlueprint('fenrir'));
+        const twice = expectAllowed(once, buildGrantBlueprint('fenrir'));
+        expect(twice.blueprints.fenrir).toBe((before.blueprints.fenrir ?? 0) + 2);
     });
 
     it('grant blueprint refuses an unknown species by returning no action at all', () => {
@@ -268,15 +277,18 @@ describe('parseSaveFileText', () => {
         if (result.ok) {
             expect(result.defaulted).toBe(true);
             expect(result.save.unlockedSectors).toEqual([]);
-            expect(result.save.blueprints).toEqual([]);
+            // Ticket 20: the fill is an empty COUNT MAP, not an empty list.
+            expect(result.save.blueprints).toEqual({});
         }
     });
 
     it('rejects a malformed field instead of silently emptying it', () => {
         // The `.catch([])` -> `.default([])` swap (ticket 23). Under `.catch` this parsed clean
-        // with an EMPTY blueprint list, and the next autosave wrote that emptiness over the good
+        // with an EMPTY blueprint map, and the next autosave wrote that emptiness over the good
         // save. Blueprints are the only persistent currency in the game; that is data loss.
-        const corrupt = { ...baseline(), blueprints: [{ architectureId: 'kraken' }] };
+        // Ticket 20 changed what "malformed" looks like: a negative count rather than a
+        // half-written blueprint object, since a count is all that is stored now.
+        const corrupt = { ...baseline(), blueprints: { kraken: -1 } };
         expect(parseSaveFileText(JSON.stringify(corrupt)).ok).toBe(false);
     });
 

@@ -2,13 +2,11 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import './App.css'
 import { useDispatch, useSelector } from 'react-redux'
 import BattleArena from './ui/components/BattleArena'
+import RanchScreen from './ui/screens/RanchScreen'
 import DeckTerminal from './ui/screens/DeckTerminal'
-import RosterTerminal from './ui/screens/RosterTerminal'
-import SynthesisLab from './ui/screens/SynthesisLab'
 import HubScreen from './ui/screens/HubScreen'
 import MainMenuView from './ui/components/MainMenuView'
 import SectorTerminal from './ui/screens/SectorTerminal'
-import RelicTerminal from './ui/screens/RelicTerminal'
 
 import { loadGameState } from './engine/SaveSystem'
 import { applyRanchState } from './engine/save/ranchProjection'
@@ -32,22 +30,33 @@ const debugLayer = DebugRoot ? (
   </Suspense>
 ) : null;
 
-type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'debug';
+type Tab = 'ranch' | 'hub' | 'terminal' | 'deck' | 'debug';
+
+/**
+ * TICKET 20: **the ranch is the only player-facing tab.** Roster, Lab and Relics folded into it;
+ * the deck builder is gone from the ranch entirely, because cards are run-scoped and the team is
+ * the deck.
+ *
+ * `hub`, `terminal` and `deck` survive as DEV-ONLY tabs and are marked "legacy". They are the
+ * pre-roguelike run entry, and they are the only thing the debug scenario launcher's saved-deck
+ * mode has to work against until the run loop exists. **Tickets 09 and 10 delete all three** —
+ * `RegionMap` replaces `SectorTerminal` as the run's hub, and run start replaces QUICK DEPLOY.
+ */
+const LEGACY_TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'hub', label: 'Hub (legacy)', icon: '🏠' },
+  { id: 'terminal', label: 'Sectors (legacy)', icon: '📟' },
+  { id: 'deck', label: 'Deck (legacy)', icon: '🃏' },
+];
 
 const debugTab: { id: Tab; label: string; icon: string } = { id: 'debug', label: 'Debug', icon: '🐞' };
 
 const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
-  { id: 'hub', label: 'Hub', icon: '🏠' },
-  { id: 'terminal', label: 'Terminal', icon: '📟' },
-  { id: 'deck', label: 'Deck', icon: '🃏' },
-  { id: 'roster', label: 'Roster', icon: '🤖' },
-  { id: 'lab', label: 'Lab', icon: '🔬' },
-  { id: 'relic', label: 'Relics', icon: '💎' },
-  ...(import.meta.env.DEV ? [debugTab] : []),
+  { id: 'ranch', label: 'Ranch', icon: '🏡' },
+  ...(import.meta.env.DEV ? [...LEGACY_TABS, debugTab] : []),
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('hub');
+  const [activeTab, setActiveTab] = useState<Tab>('ranch');
   const dispatch = useDispatch();
   const rosterSize = useSelector((state: RootState) => state.game.roster.length);
   const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
@@ -84,7 +93,7 @@ function App() {
     }
     if (prevInBattle.current && !isInBattle) {
       if (gauntlet || wasGauntletBattle.current) {
-        setActiveTab('hub');
+        setActiveTab('ranch');
       }
       wasGauntletBattle.current = false;
     }
@@ -131,12 +140,10 @@ function App() {
 
       {/* Screen Content */}
       <div className="screen-content">
+        {activeTab === 'ranch' && <RanchScreen />}
         {activeTab === 'hub' && <HubScreen />}
         {activeTab === 'terminal' && <SectorTerminal />}
         {activeTab === 'deck' && <DeckTerminal />}
-        {activeTab === 'roster' && <RosterTerminal />}
-        {activeTab === 'lab' && <SynthesisLab />}
-        {activeTab === 'relic' && <RelicTerminal />}
         {activeTab === 'debug' && DebugRoot && (
           <Suspense fallback={null}>
             <DebugRoot mode="docked" />
