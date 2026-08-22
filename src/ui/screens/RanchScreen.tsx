@@ -1,5 +1,5 @@
 /**
- * The ranch — ticket 20 (steam-release map).
+ * The ranch — ticket 20 (steam-release map), retargeted by ticket 11.
  *
  * # WHAT THIS REPLACES, AND WHY IT IS ONE SCREEN
  *
@@ -25,16 +25,23 @@
  *    Assembly section says so in as many words rather than leaving the player to infer it.
  *
  * 3. **No duplicate species in a party.** A standing law (map § Notes) that until ticket 20 lived
- *    only as a comment in `debug/balance/teamComps.ts` calling it an open question. `setActiveParty`
- *    enforces it now; this screen shows *why* a card is unavailable rather than ignoring the click,
- *    because a silently-dropped dispatch is indistinguishable from a bug.
+ *    only as a comment in `debug/balance/teamComps.ts` calling it an open question. Ticket 11 moved
+ *    the enforcement to where the party is now actually chosen — `RunStart`, via
+ *    `engine/party.ts`'s `partyBlockFor` — because the ranch no longer holds a party at all.
+ *
+ * # WHAT TICKET 11 TOOK OUT OF THE ROSTER SECTION
+ *
+ * **Party management.** `IRanchState` has no `activeParty`, and that is the ruling rather than an
+ * omission: the party is picked at run start (`IRunState.partyIds`), from the roster, for that run
+ * only. A persistent ranch party would be a second, staler answer to the same question — and the
+ * one the player last touched before a run would silently lose to whatever they picked in the
+ * launch screen. So the Roster section is a list plus the firmware terminal, and the slot grid went
+ * with the concept.
  *
  * # WHAT IS DELIBERATELY NOT HERE
  *
  * No deck builder (cards are run-scoped — the team is the deck), no scrap counter, no XP bar
  * (ticket 21 deleted levelling outright; the stat roll is the whole of an individual's identity).
- * `DeckTerminal`, `HubScreen` and `SectorTerminal` survive as DEV-only tabs so the debug scenario
- * launcher keeps working; tickets 09 and 10 delete them when the run loop replaces what they do.
  */
 
 import { useMemo, useState } from 'react';
@@ -44,10 +51,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GetMingmingData, MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
-import { createMingmingInstance } from '../../engine/gameTypes';
-import { PARTY_SIZE, partyBlockFor, type PartyBlock } from '../../engine/party';
-import type { IMingmingState } from '../../engine/types';
-import { assembleMingming, setActiveParty } from '../store/gameSlice';
+import { createRanchMember } from '../../engine/gameTypes';
+import type { IRanchMember } from '../../engine/runTypes';
+import { assembleMingming } from '../store/gameSlice';
 import type { RootState } from '../store/store';
 import FirmwareTerminal from '../components/FirmwareTerminal';
 import { TypeChartPanel } from '../components/TypeChart';
@@ -57,17 +63,15 @@ import './RanchScreen.css';
 
 type Section = 'expedition' | 'roster' | 'assembly' | 'vault';
 
+/** Stable empty array, so the `no run in progress` selector does not re-render on every dispatch. */
+const EMPTY_DRIVERS: ReadonlyArray<string> = [];
+
 const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: string }> = [
     { id: 'expedition', label: 'Expedition', icon: '🗺' },
     { id: 'roster', label: 'Roster', icon: '🤖' },
     { id: 'assembly', label: 'Assembly', icon: '🔬' },
     { id: 'vault', label: 'Vault', icon: '💎' },
 ];
-
-const BLOCK_TEXT: Record<PartyBlock, string> = {
-    'party-full': 'Party is full',
-    'duplicate-species': 'Already fielding this species',
-};
 
 export interface RanchScreenProps {
     /**
@@ -80,30 +84,13 @@ export interface RanchScreenProps {
 }
 
 export default function RanchScreen({ initialSection = 'expedition' }: RanchScreenProps = {}): ReactNode {
-    const dispatch = useDispatch();
-    const { roster, activeParty, blueprints, relics } = useSelector((s: RootState) => s.game);
+    const { roster, blueprints } = useSelector((s: RootState) => s.game);
+    // Ticket 11: drivers are run-scoped (`IRunState.drivers`). The Vault shows the run's, when
+    // there is one — see `VaultSection` for why it is still here at all.
+    const drivers = useSelector((s: RootState) => s.run.run?.drivers ?? EMPTY_DRIVERS);
 
     const [section, setSection] = useState<Section>(initialSection);
     const [showFirmware, setShowFirmware] = useState(false);
-
-    const party = useMemo(
-        () => activeParty.map((id) => roster.find((m) => m.id === id)).filter((m): m is IMingmingState => !!m),
-        [activeParty, roster],
-    );
-
-    const toggleParty = (member: IMingmingState): void => {
-        if (activeParty.includes(member.id)) {
-            dispatch(setActiveParty(activeParty.filter((id) => id !== member.id)));
-            playSfx('uiClick');
-            return;
-        }
-        if (partyBlockFor(member, party) !== null) {
-            playSfx('uiError');
-            return;
-        }
-        dispatch(setActiveParty([...activeParty, member.id]));
-        playSfx('uiClick');
-    };
 
     return (
         <div className="ranch-screen">
@@ -128,14 +115,11 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
             {section === 'roster' && (
                 <RosterSection
                     roster={roster}
-                    party={party}
-                    activeParty={activeParty}
-                    onToggle={toggleParty}
                     onOpenFirmware={() => setShowFirmware(true)}
                 />
             )}
             {section === 'assembly' && <AssemblySection blueprints={blueprints} />}
-            {section === 'vault' && <VaultSection relics={relics} />}
+            {section === 'vault' && <VaultSection drivers={drivers} />}
 
             {showFirmware && <FirmwareTerminal onClose={() => setShowFirmware(false)} />}
         </div>
@@ -146,87 +130,43 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
 
 function RosterSection({
     roster,
-    party,
-    activeParty,
-    onToggle,
     onOpenFirmware,
 }: {
-    roster: ReadonlyArray<IMingmingState>;
-    party: ReadonlyArray<IMingmingState>;
-    activeParty: ReadonlyArray<string>;
-    onToggle: (member: IMingmingState) => void;
+    roster: ReadonlyArray<IRanchMember>;
     onOpenFirmware: () => void;
 }): ReactNode {
-    const activeSet = new Set(activeParty);
-
     return (
         <section className="ranch-section">
             <div className="ranch-section-head">
-                <h2>Active party {party.length} / {PARTY_SIZE}</h2>
+                <h2>Roster ({roster.length})</h2>
                 <button type="button" className="ranch-button" onClick={onOpenFirmware}>
                     💾 Firmware terminal
                 </button>
             </div>
             <p className="ranch-note">
-                One member per species — a party of three is three different species. The team is the deck:
-                each member brings its own start kit when a run begins.
+                Everything you have ever assembled lives here, and none of it is committed to anything.
+                <strong> The party is chosen at run start</strong> — up to three, one per species — so this
+                list is your collection rather than a loadout. The team is the deck: each member brings its
+                own start kit when a run begins.
             </p>
 
-            <div className="ranch-party-grid">
-                {Array.from({ length: PARTY_SIZE }, (_, slot) => {
-                    const member = party[slot];
-                    return (
-                        <div
-                            key={slot}
-                            className={`ranch-slot ${member ? 'filled' : 'empty'}`}
-                            onClick={() => member && onToggle(member)}
-                        >
-                            {member ? (
-                                <>
-                                    <div className="ranch-slot-name">{member.nickname ?? GetMingmingData(member.definitionId).name}</div>
-                                    <StatRoll member={member} />
-                                    <div className="ranch-slot-action">Click to remove</div>
-                                </>
-                            ) : (
-                                <div className="ranch-slot-empty">Empty slot</div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            <h2 className="ranch-subhead">Roster ({roster.length})</h2>
             {roster.length === 0 && (
                 <div className="ranch-empty">
                     No mingmings yet. Spend a blueprint in <strong>Assembly</strong> to build one.
                 </div>
             )}
             <div className="ranch-roster-grid">
-                {roster.map((member) => {
-                    const isActive = activeSet.has(member.id);
-                    const block = isActive ? null : partyBlockFor(member, party);
-                    return (
-                        <button
-                            key={member.id}
-                            type="button"
-                            className={`ranch-card ${isActive ? 'active' : ''} ${block ? 'blocked' : ''}`}
-                            onClick={() => onToggle(member)}
-                            aria-pressed={isActive}
-                        >
-                            <div className="ranch-card-name">{member.nickname ?? GetMingmingData(member.definitionId).name}</div>
-                            <div className="ranch-card-species">{GetMingmingData(member.definitionId).name}</div>
-                            <StatRoll member={member} />
-                            {member.activeOS && (
-                                <div className="ranch-card-os">
-                                    <strong>{getOSBehavior(member.activeOS)?.name ?? member.activeOS}</strong>
-                                    <span>{getOSBehavior(member.activeOS)?.description}</span>
-                                </div>
-                            )}
-                            {isActive && <div className="ranch-card-badge">In party</div>}
-                            {block && <div className="ranch-card-block">{BLOCK_TEXT[block]}</div>}
-                        </button>
-                    );
-                })}
+                {roster.map((member) => (
+                    <div key={member.id} className="ranch-card">
+                        <div className="ranch-card-name">{member.nickname ?? GetMingmingData(member.definitionId).name}</div>
+                        <div className="ranch-card-species">{GetMingmingData(member.definitionId).name}</div>
+                        <StatRoll member={member} />
+                        <div className="ranch-card-os">
+                            <strong>{getOSBehavior(member.activeOS)?.name ?? member.activeOS}</strong>
+                            <span>{getOSBehavior(member.activeOS)?.description}</span>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             <TypeChartPanel />
@@ -238,7 +178,7 @@ function RosterSection({
  * The individual's stat roll — the ONLY thing that distinguishes two members of a species now that
  * ticket 21 has deleted levelling. There is deliberately no XP bar to replace.
  */
-function StatRoll({ member }: { member: IMingmingState }): ReactNode {
+function StatRoll({ member }: { member: IRanchMember }): ReactNode {
     return (
         <div className="ranch-ivs" title="Stat roll — fixed at assembly, 0-31 each">
             <span>⚔ {member.attackIV}</span>
@@ -253,7 +193,7 @@ function StatRoll({ member }: { member: IMingmingState }): ReactNode {
 function AssemblySection({ blueprints }: { blueprints: Readonly<Record<string, number>> }): ReactNode {
     const dispatch = useDispatch();
     const [pending, setPending] = useState<{ speciesId: string; osId: string } | null>(null);
-    const [built, setBuilt] = useState<IMingmingState | null>(null);
+    const [built, setBuilt] = useState<IRanchMember | null>(null);
 
     // Sorted so the list does not reshuffle as counts change — a species dropping to zero should
     // vanish from its place, not resort everything around it.
@@ -269,7 +209,7 @@ function AssemblySection({ blueprints }: { blueprints: Readonly<Record<string, n
         if (!pending) return;
         // The component mints the individual because it owns the RNG for the stat roll; the reducer
         // spends the blueprint and pushes in one step, so the two cannot come apart.
-        const member: IMingmingState = { ...createMingmingInstance(pending.speciesId), activeOS: pending.osId };
+        const member: IRanchMember = createRanchMember(pending.speciesId, pending.osId);
         dispatch(assembleMingming(member));
         playSfx('rewardClaim');
         setBuilt(member);
@@ -400,26 +340,31 @@ function OsPicker({
 
 // --- Vault -------------------------------------------------------------------------------------
 
-function VaultSection({ relics }: { relics: ReadonlyArray<string> }): ReactNode {
+function VaultSection({ drivers }: { drivers: ReadonlyArray<string> }): ReactNode {
     return (
         <section className="ranch-section">
             <div className="ranch-section-head">
                 <h2>Vault</h2>
             </div>
             <p className="ranch-note">
-                Relics found in past runs. Ticket 16 replaces these with <em>Drivers</em> — party-wide
-                passives that live on the run, not the ranch — so this section is a holding pen, not a
-                loadout.
+                Drivers held by the run in progress — party-wide passives won from elites. Ticket 11 moved
+                them to <code>IRunState.drivers</code>, which is where ticket 06 rules they belong: a
+                driver dies with the run that won it, so there is nothing here to carry into the next one.
+                This section is a readout, not a loadout, and ticket 16 gives drivers their own surface.
             </p>
-            {relics.length === 0 && <div className="ranch-empty">Nothing recovered yet.</div>}
+            {drivers.length === 0 && (
+                <div className="ranch-empty">
+                    Nothing installed. Drivers are won from elites inside a run and are lost when it ends.
+                </div>
+            )}
             <div className="ranch-relic-grid">
-                {relics.map((relicId) => {
-                    // Indexed, not `GetRelic`, which throws on an unknown id. A save carrying a relic
+                {drivers.map((driverId) => {
+                    // Indexed, not `GetRelic`, which throws on an unknown id. A run carrying a driver
                     // that has since been renamed must not take the whole screen down with it.
-                    const relic = RelicRegistry[relicId];
+                    const relic = RelicRegistry[driverId];
                     if (!relic) return null;
                     return (
-                        <div key={relicId} className="ranch-relic">
+                        <div key={driverId} className="ranch-relic">
                             <div className="ranch-relic-name">{relic.name}</div>
                             <div className="ranch-relic-desc">{relic.description}</div>
                         </div>

@@ -3,10 +3,16 @@
  *
  * The panel itself can only be rendered to static markup (no `@testing-library/react` in the
  * repo, `node` test environment), so everything that matters about the launcher is proved
- * here instead: the draft -> `ComposedSetup` projection, deck resolution off the real save
+ * here instead: the draft -> `ComposedSetup` projection, deck resolution off the real run
  * shape, the `Mirror my save party` preset, the CARDS-mode warning, the destination slot the
  * launch banner names, and the full compose -> `buildScenarioState` -> `dispatch` path
  * against a real store.
+ *
+ * TICKET 11 MOVED TWO OF THE SUBJECTS. "Saved deck" mode reads `IRunState.deck` rather than
+ * `IPlayerSave.activeDeck`, so its instance-id resolution tests are gone with the indirection —
+ * an `IRunCard` carries its own `dataId` and there is nothing left to fail to resolve. And the
+ * empty-slot seeding writes only the roster: cards and drivers are run-scoped, so a scratch slot
+ * with no run has nowhere to put them, which retires the "seeds a coherent deck" test below.
  */
 
 import { configureStore } from '@reduxjs/toolkit';
@@ -31,11 +37,11 @@ vi.stubGlobal('localStorage', {
 });
 
 import { createSlot, renameSlot, setActiveSlotId } from '../../engine/SaveSlots';
-import { createDefaultSave } from '../../engine/gameTypes';
-import type { IPlayerSave } from '../../engine/gameTypes';
-import { createBattleState } from '../../engine/data/battleFactories';
+import { createRun } from '../../engine/run/createRun';
+import { offerGyms } from '../../engine/run/gyms';
+import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
 import battleReducer from '../../ui/store/battleSlice';
-import gameReducer from '../../ui/store/gameSlice';
+import gameReducer, { createEmptyRanch } from '../../ui/store/gameSlice';
 import { validateSave } from '../saveEdit';
 import {
     baseDeckFor,
@@ -61,20 +67,29 @@ import {
 import { loadScenario, saveScenario } from './scenarioIO';
 import type { ComposedScenario } from './scenarioSchema';
 
-function makeSave(overrides: Partial<IPlayerSave> = {}): IPlayerSave {
-    return { ...createDefaultSave(), ...overrides };
+function makeSave(overrides: Partial<IRanchState> = {}): IRanchState {
+    return { ...createEmptyRanch(), ...overrides };
 }
 
-function rosterMember(id: string, definitionId: string) {
+function rosterMember(id: string, definitionId: string): IRanchMember {
     return {
         id,
         definitionId,
-        blueprintsCollected: 0,
         attackIV: 7,
         defenseIV: 11,
         hpIV: 13,
         activeOS: `${definitionId}_v2`,
     };
+}
+
+/** A real run, built the way the game builds one, so "the run's deck" means the run's deck. */
+function makeRun(party: ReadonlyArray<IRanchMember> = [rosterMember('r1', 'kraken')]): IRunState {
+    return createRun({
+        seed: 'compose-test-run',
+        offer: offerGyms('compose-test-offer')[0],
+        party: party.map((m) => ({ ...m, blueprintsCollected: 0 })),
+        startedAt: 1_700_000_000_000,
+    });
 }
 
 /** A minimal launchable draft: one player unit, one enemy, base decks. */
@@ -95,7 +110,7 @@ function makeStore() {
 }
 
 /** Both slices — the seeding path writes `game` as well as `battle`. */
-function makeFullStore(save: IPlayerSave = createDefaultSave()) {
+function makeFullStore(save: IRanchState = createEmptyRanch()) {
     return configureStore({
         reducer: { battle: battleReducer, game: gameReducer },
         preloadedState: { game: save },
@@ -121,48 +136,82 @@ describe('registry-backed pickers', () => {
 describe('deck resolution', () => {
     it('base mode pools the party species base decks', () => {
         const draft = { ...createDraft(), party: [createUnit('fenrir'), createUnit('kraken')] };
-        const resolved = resolveDeck(draft, makeSave());
+        const resolved = resolveDeck(draft, null);
 
         expect(resolved.cards).toEqual(baseDeckFor(draft.party));
         expect(resolved.cards.length).toBe(17); // fenrir 9 + kraken 8 (ticket 28)
         expect(resolved.source).toContain('base decks');
     });
 
-    it('saved mode resolves instance ids through cardInventory, as the real battle path does', () => {
-        const save = makeSave({
-            cardInventory: [
-                { instanceId: 'i1', dataId: 'ignite' },
-                { instanceId: 'i2', dataId: 'scorch' },
-            ],
-            activeDeck: { id: 'd1', name: 'Burn Control', cards: ['i1', 'i2', 'i-gone'] },
-        });
+    it('saved mode reads the RUN deck, as dataIds — no inventory lookup left to fail', () => {
+        // Ticket 11: the old test proved `activeDeck.cards` resolved through `cardInventory` the
+        // same way `createBattleState` did, and counted the entries that resolved to nothing. An
+        // `IRunCard` carries its `dataId`, so both the join and its failure mode are gone.
+        const run = makeRun();
+        const expected = run.deck.map((c) => c.dataId);
 
-        expect(savedDeck(save)).toEqual({ name: 'Burn Control', cards: ['ignite', 'scorch'], missing: 1 });
+        expect(savedDeck(run)).toEqual({ name: 'run deck', cards: expected });
 
-        const resolved = resolveDeck({ ...createDraft(), deckMode: 'saved' }, save);
-        expect(resolved.cards).toEqual(['ignite', 'scorch']);
-        expect(resolved.source).toContain('Burn Control');
-        expect(resolved.issues[0]).toContain('not in cardInventory');
+        const resolved = resolveDeck({ ...createDraft(), deckMode: 'saved' }, run);
+        expect(resolved.cards).toEqual(expected);
+        expect(resolved.cards).toHaveLength(8); // ticket 08: 5 kit + 3 generics for one member
+        expect(resolved.source).toContain('run deck');
+        expect(resolved.issues).toEqual([]);
     });
 
-    it('saved mode says so, loudly, when the save has no deck', () => {
-        const resolved = resolveDeck({ ...createDraft(), deckMode: 'saved' }, makeSave());
+    it('saved mode says so, loudly, when there is no run in progress', () => {
+        // It used to point at DeckTerminal. That screen is gone, so pointing at it would be
+        // pointing at nothing — the honest instruction is "start a run, or use base decks".
+        const resolved = resolveDeck({ ...createDraft(), deckMode: 'saved' }, null);
         expect(resolved.cards).toEqual([]);
-        expect(resolved.issues[0]).toContain('DeckTerminal');
+        expect(resolved.source).toContain('no run in progress');
+        expect(resolved.issues[0]).toContain('No run in progress');
+        expect(resolved.issues[0]).not.toContain('DeckTerminal');
     });
 
     it('loaded mode carries a file deck through untouched', () => {
         const resolved = resolveDeck(
             { ...createDraft(), deckMode: 'loaded', loadedDeck: ['a', 'b', 'a'] },
-            makeSave(),
+            null,
         );
         expect(resolved.cards).toEqual(['a', 'b', 'a']);
     });
 });
 
+describe('mirrorSaveParty', () => {
+    it('mirrors the RUN party when there is one', () => {
+        const member = rosterMember('r1', 'kraken');
+        const ranch = makeSave({ roster: [member, rosterMember('r2', 'fenrir')] });
+        const run = makeRun([member]);
+
+        const units = mirrorSaveParty(ranch, run);
+
+        expect(units.map((u) => u.definitionId)).toEqual(['kraken']);
+        expect(units[0].activeOS).toBe('kraken_v2');
+        expect(units[0].attackIV).toBe(7);
+    });
+
+    it('falls back to the head of the ranch roster when there is no run', () => {
+        // There is no persistent party to mirror any more, so "no run" is the ordinary case here
+        // rather than the edge one.
+        const ranch = makeSave({
+            roster: ['kraken', 'fenrir', 'ratatoskr', 'huldra'].map((sp, i) => rosterMember(`r${i}`, sp)),
+        });
+
+        const units = mirrorSaveParty(ranch, null);
+
+        expect(units).toHaveLength(3); // MAX_PARTY
+        expect(units.map((u) => u.definitionId)).toEqual(['kraken', 'fenrir', 'ratatoskr']);
+    });
+
+    it('is empty for an empty ranch', () => {
+        expect(mirrorSaveParty(createEmptyRanch(), null)).toEqual([]);
+    });
+});
+
 describe('toComposedSetup', () => {
     it('omits optional fields that are unset rather than writing nulls', () => {
-        const setup = toComposedSetup(playableDraft(), makeSave());
+        const setup = toComposedSetup(playableDraft(), null);
         const member = setup.player.party[0];
 
         expect(member).not.toHaveProperty('currentHp');
@@ -192,7 +241,7 @@ describe('toComposedSetup', () => {
         };
         draft.enemies[0] = { ...draft.enemies[0], maxHpOverride: 500, deck: ['ignite'] };
 
-        const setup = toComposedSetup(draft, makeSave());
+        const setup = toComposedSetup(draft, null);
 
         expect(setup.player.party[0].currentHp).toBe(12);
         expect(setup.player.party[0].statusEffects).toHaveLength(1);
@@ -204,8 +253,8 @@ describe('toComposedSetup', () => {
 
     it('shows a placeholder seed while the field is blank, and honours an override', () => {
         const draft = { ...playableDraft(), seed: '' };
-        expect(toComposedSetup(draft, makeSave()).seed).toBe(UNROLLED_SEED);
-        expect(toComposedSetup(draft, makeSave(), 'pinned').seed).toBe('pinned');
+        expect(toComposedSetup(draft, null).seed).toBe(UNROLLED_SEED);
+        expect(toComposedSetup(draft, null, 'pinned').seed).toBe('pinned');
     });
 
     it('round-trips a loaded setup without rewriting it', () => {
@@ -215,10 +264,10 @@ describe('toComposedSetup', () => {
                 relics: ['heatsink'],
                 enemies: [{ ...createEnemyUnit(), deck: ['ignite', 'scorch'], maxHpOverride: 90 }],
             },
-            makeSave(),
+            null,
         );
 
-        const rehydrated = toComposedSetup(draftFromSetup(original, 'reloaded'), makeSave());
+        const rehydrated = toComposedSetup(draftFromSetup(original, 'reloaded'), null);
 
         expect(rehydrated).toEqual(original);
     });
@@ -233,7 +282,7 @@ describe('file round trip', () => {
             enemyMode: 'CARDS',
             enemies: [{ ...createEnemyUnit(), deck: ['ignite', 'ignite'], maxHpOverride: 240 }],
         };
-        const setup = toComposedSetup(draft, makeSave());
+        const setup = toComposedSetup(draft, null);
 
         const saved = saveScenario({ kind: 'composed', name: draft.name, setup });
         expect(saved.success).toBe(true);
@@ -244,7 +293,7 @@ describe('file round trip', () => {
         expect(loaded.registryHashMismatch).toBe(false);
 
         const reloaded = loaded.scenario as ComposedScenario;
-        expect(toComposedSetup(draftFromSetup(reloaded.setup, reloaded.name), makeSave())).toEqual(setup);
+        expect(toComposedSetup(draftFromSetup(reloaded.setup, reloaded.name), null)).toEqual(setup);
     });
 });
 
@@ -291,7 +340,7 @@ describe('destinationSlot', () => {
 describe('launchScenario — compose, materialize, dispatch', () => {
     it('puts a real battle in the store from a composed draft', () => {
         const store = makeStore();
-        const setup = toComposedSetup(playableDraft(), makeSave());
+        const setup = toComposedSetup(playableDraft(), null);
 
         const result = launchScenario(setup, store.dispatch);
 
@@ -310,7 +359,7 @@ describe('launchScenario — compose, materialize, dispatch', () => {
 
     it('rolls a seed when the field was blank and reports the one it used', () => {
         const store = makeStore();
-        const setup = toComposedSetup({ ...playableDraft(), seed: '' }, makeSave());
+        const setup = toComposedSetup({ ...playableDraft(), seed: '' }, null);
 
         const result = launchScenario(setup, store.dispatch);
 
@@ -321,7 +370,7 @@ describe('launchScenario — compose, materialize, dispatch', () => {
     });
 
     it('is deterministic: same setup, same seed, same state', () => {
-        const setup = toComposedSetup(playableDraft(), makeSave());
+        const setup = toComposedSetup(playableDraft(), null);
         const a = makeStore();
         const b = makeStore();
 
@@ -333,7 +382,7 @@ describe('launchScenario — compose, materialize, dispatch', () => {
 
     it('reports the materializer error and dispatches nothing when the setup is unplayable', () => {
         const store = makeStore();
-        const setup = toComposedSetup({ ...playableDraft(), enemies: [] }, makeSave());
+        const setup = toComposedSetup({ ...playableDraft(), enemies: [] }, null);
 
         const result = launchScenario(setup, store.dispatch);
 
@@ -344,7 +393,7 @@ describe('launchScenario — compose, materialize, dispatch', () => {
 });
 
 describe('launchScenario — seeding an empty slot', () => {
-    /** A launchable two-unit setup with a relic, so every seeded field has something in it. */
+    /** A launchable two-unit setup with a relic, so every field the launcher carries has content. */
     function seedableSetup() {
         return toComposedSetup(
             {
@@ -352,11 +401,11 @@ describe('launchScenario — seeding an empty slot', () => {
                 party: [createUnit('fenrir'), createUnit('kraken')],
                 relics: ['heatsink'],
             },
-            makeSave(),
+            null,
         );
     }
 
-    it('seeds an empty roster with the battle party — ids included, so XP syncs back', () => {
+    it('seeds an empty roster with the battle party, ids included', () => {
         const store = makeFullStore();
         const setup = seedableSetup();
 
@@ -367,28 +416,49 @@ describe('launchScenario — seeding an empty slot', () => {
         expect(result.seedIssues).toBeUndefined();
 
         const battle = store.getState().battle.battle!;
-        const save = store.getState().game;
+        const ranch = store.getState().game;
 
-        // THE REGRESSION THAT MATTERS: the composed save's roster ids ARE the battle's ids.
-        expect(save.roster.map((m) => m.id)).toEqual(battle.playerParty.map((e) => e.id));
-        expect(save.activeParty).toEqual(battle.playerParty.map((e) => e.id));
-        expect(save.roster.map((m) => m.definitionId)).toEqual(['fenrir', 'kraken']);
-        expect(save.roster[0].activeOS).toBe(battle.playerParty[0].activeOS);
-        expect(save.relics).toEqual(['heatsink']);
+        // THE REGRESSION THAT MATTERS: the seeded roster's ids ARE the battle's ids, so the
+        // individuals on the field and the individuals in the ranch are the same individuals.
+        expect(ranch.roster.map((m) => m.id)).toEqual(battle.playerParty.map((e) => e.id));
+        expect(ranch.roster.map((m) => m.definitionId)).toEqual(['fenrir', 'kraken']);
+        expect(ranch.roster[0].activeOS).toBe(battle.playerParty[0].activeOS);
 
-        // Roster members are save shape, not battle shape.
-        expect(save.roster[0]).not.toHaveProperty('maxHp');
-        expect(save.roster[0]).not.toHaveProperty('currentHp');
-        expect(save.roster[0]).not.toHaveProperty('statusEffects');
+        // Roster members are RANCH shape: no combat half, and no `blueprintsCollected` either —
+        // ticket 20 made blueprints a ranch-level count, so the per-individual tally is not a
+        // ranch field at all.
+        expect(ranch.roster[0]).not.toHaveProperty('maxHp');
+        expect(ranch.roster[0]).not.toHaveProperty('currentHp');
+        expect(ranch.roster[0]).not.toHaveProperty('statusEffects');
+        expect(ranch.roster[0]).not.toHaveProperty('blueprintsCollected');
+    });
+
+    it('seeds NOTHING run-scoped — the deck and the drivers stay out of the ranch', () => {
+        // Ticket 11: the old version wrote the scenario deck into `cardInventory` + `activeDeck`
+        // and unioned its relics into the save. A ranch holds neither, and a scratch slot has no
+        // run to hold them instead. The battle already got both, directly out of `ComposedSetup`.
+        const store = makeFullStore();
+        const setup = seedableSetup();
+
+        launchScenario(setup, store.dispatch, store.getState().game);
+
+        const ranch = store.getState().game;
+        expect(Object.keys(ranch).sort()).toEqual(
+            ['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster'],
+        );
+        expect(ranch.blueprints).toEqual({});
+        expect(ranch.gymsCleared).toEqual([]);
+        // ...and the battle itself did get the deck.
+        const battle = store.getState().battle.battle!;
+        expect(battle.playerDeck.drawpile.length + battle.playerDeck.hand.length)
+            .toBe(setup.player.deck.length);
     });
 
     it('leaves a populated roster alone — a slot branched from a real run is untouched', () => {
         const populated = makeSave({
             roster: [rosterMember('r1', 'kraken')],
-            activeParty: ['r1'],
-            cardInventory: [{ instanceId: 'i1', dataId: 'ignite' }],
-            activeDeck: { id: 'd1', name: 'Real Deck', cards: ['i1'] },
-            relics: ['expansion_slot'],
+            blueprints: { kraken: 2 },
+            gymsCleared: ['gym_emberfall'],
         });
         const store = makeFullStore(populated);
 
@@ -401,7 +471,7 @@ describe('launchScenario — seeding an empty slot', () => {
         expect(store.getState().battle.battle).not.toBeNull();
     });
 
-    it('does not touch the save at all when no save is passed', () => {
+    it('does not touch the ranch at all when no ranch is passed', () => {
         const store = makeFullStore();
         const before = store.getState().game;
 
@@ -412,38 +482,10 @@ describe('launchScenario — seeding an empty slot', () => {
         expect(store.getState().battle.battle).not.toBeNull();
     });
 
-    it('produces a save that passes PlayerSaveSchema', () => {
+    it('produces a ranch that passes RanchStateSchema', () => {
         const store = makeFullStore();
         launchScenario(seedableSetup(), store.dispatch, store.getState().game);
 
         expect(validateSave(store.getState().game)).toEqual({ valid: true, issues: [] });
-    });
-
-    it('seeds a coherent deck: the next battle from that save actually has those cards', () => {
-        const store = makeFullStore();
-        const setup = seedableSetup();
-        launchScenario(setup, store.dispatch, store.getState().game);
-
-        const save = store.getState().game;
-        expect(setup.player.deck.length).toBe(17); // fenrir 9 + kraken 8 (ticket 28)
-
-        // activeDeck holds cardInventory *instance* ids; the inventory maps them to dataIds.
-        const inventory = new Map(save.cardInventory.map((c) => [c.instanceId, c.dataId]));
-        expect(save.activeDeck).not.toBeNull();
-        expect(save.activeDeck!.cards.every((id) => inventory.has(id))).toBe(true);
-        expect(save.activeDeck!.cards.map((id) => inventory.get(id))).toEqual(setup.player.deck);
-
-        // The real creation path, from the seeded save: the scenario deck is what gets dealt.
-        // (An empty/incoherent activeDeck would silently fall back to the archetype deck, whose
-        // contents differ from every species base deck.)
-        const next = createBattleState(save, ['draugr'], undefined, { seed: 'next-battle' });
-        const dealt = [...next.playerDeck.drawpile, ...next.playerDeck.hand].map((c) => c.dataId);
-        expect(dealt.length).toBe(setup.player.deck.length);
-        expect([...dealt].sort()).toEqual([...setup.player.deck].sort());
-
-        // And the party carries over by id, which is what "continue into the next battle" means.
-        expect(next.playerParty.map((e) => e.id)).toEqual(
-            store.getState().battle.battle!.playerParty.map((e) => e.id),
-        );
     });
 });

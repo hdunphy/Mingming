@@ -1,5 +1,4 @@
 import type { IBattleEntity, ProgramEntity, IBattleState, IMingmingState, IDeckState } from '../types';
-import type { IPlayerSave } from '../gameTypes';
 import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
@@ -67,8 +66,54 @@ export interface BattleOptions {
     readonly enemyMode?: EnemyCombatMode;
 }
 
+/**
+ * Everything a battle needs from outside itself — ticket 11.
+ *
+ * This replaces the `save: IPlayerSave` parameter `createBattleState` used to take, and the change
+ * is not cosmetic. The old signature meant the battle factory read the *whole* save shape and
+ * picked its branch out of it (`activeParty`, `roster`, `relics`, `gauntlet`, `activeDeck.cards`,
+ * `cardInventory`) — six fields of a twelve-field blob, chosen by rules only this function knew.
+ * With the ranch/run split there is no single object that holds all six any more, and inventing one
+ * would have re-created `IPlayerSave` under a new name. So the caller resolves the questions
+ * instead, and what arrives here is answers: a party, a deck, some drivers, some carried HP.
+ *
+ * `engine/run/battleSetup.ts` builds one of these from `(IRanchState, IRunState)`. The debug
+ * scenario path bypasses this function entirely (`debug/scenarios/buildScenarioState.ts`).
+ */
+export interface IBattleSetup {
+    /** The party, already resolved and ordered. */
+    readonly party: ReadonlyArray<IMingmingState>;
+    /** The deck as dataIds. The instance-id indirection is gone — a run deck holds dataIds. */
+    readonly deck: ReadonlyArray<string>;
+    /** Was `relics`. Applied to the player side and copied to `IBattleState.activeRelics`. */
+    readonly drivers: ReadonlyArray<string>;
+    /** HP carried between gauntlet fights, by member id. Empty outside a gauntlet. */
+    readonly persistedHp: Readonly<Record<string, number>>;
+    /** Set only inside a gym gauntlet — it selects the enemy tier. */
+    readonly gauntlet: { readonly element: Element; readonly fightIndex: number } | null;
+    /**
+     * A pre-rolled enemy side — ticket 11, part 2. Set for every fight started from a region node;
+     * absent everywhere else.
+     *
+     * **Why the enemies arrive built rather than being generated here.** A run encounter is decided
+     * by the node's kind, the biome's element, the biome's *depth* and the node's visit count
+     * (`engine/run/encounter.ts`), and only the second of those four is anything this function could
+     * be handed as a parameter. Threading the other three in would have meant teaching the battle
+     * factory what a region graph is, which is the same mistake `IBattleSetup` exists to undo. So
+     * the run rolls its own encounter and passes the answer, exactly as it passes its party and its
+     * deck.
+     *
+     * Structurally typed rather than importing `IRunEncounter`, so the engine's lowest layer keeps
+     * no import edge to the run loop.
+     */
+    readonly encounter?: {
+        readonly enemyParty: ReadonlyArray<IBattleEntity>;
+        readonly enemyDeckIds: ReadonlyArray<string>;
+    } | null;
+}
+
 export function createBattleState(
-    save: IPlayerSave,
+    setup: IBattleSetup,
     enemyIds: string[],
     sectorElement?: Element,
     options?: BattleOptions
@@ -80,28 +125,25 @@ export function createBattleState(
     // the creation path.
     const battleSeed: string = options?.seed ?? rollSeed();
     const rng = new SeedStream(battleSeed);
-    const playerPartyMembers = save.activeParty
-        .map(id => save.roster.find(m => m.id === id))
-        .filter(Boolean) as IMingmingState[];
+    const playerPartyMembers = setup.party;
 
-    if (playerPartyMembers.length === 0) throw new Error("No active Mingming found in save!");
+    if (playerPartyMembers.length === 0) throw new Error("No party members in the battle setup!");
 
     const playerParty = playerPartyMembers.map(mm => {
         let entity = initializeBattleEntity(mm, GetMingmingData(mm.definitionId));
 
-        // Milestone 8.3: Gauntlet Persistence
-        if (save.gauntlet) {
-            const persistentState = save.gauntlet.persistedStats[mm.id];
-            if (persistentState) {
-                entity = {
-                    ...entity,
-                    currentHp: persistentState.hp
-                };
-            }
+        // Milestone 8.3: Gauntlet Persistence. `persistedHp` is empty outside a gauntlet
+        // (`IGauntletProgress.persistedHp`), so this needs no gauntlet check of its own.
+        const carriedHp = setup.persistedHp[mm.id];
+        if (carriedHp !== undefined) {
+            entity = {
+                ...entity,
+                currentHp: carriedHp
+            };
         }
 
-        // Milestone 8.4: Relic Application
-        save.relics.forEach(relicId => {
+        // Milestone 8.4: Driver (was: relic) application
+        setup.drivers.forEach(relicId => {
             const relic = GetRelic(relicId);
             if (relic.effect === 'ENERGY_CAP_BONUS') {
                 entity = {
@@ -133,9 +175,17 @@ export function createBattleState(
     let enemyParty: IBattleEntity[] = [];
     let enemyDeckIds: string[] = [];
 
-    if (save.gauntlet && save.gauntlet.type === 'Gym') {
-        const battleIndex = save.gauntlet.currentBattleIndex;
-        const gymElement = save.gauntlet.element as Element;
+    // Ticket 11: a region node brings its own enemies. This branch is first because it is the only
+    // one with the full picture — the node's kind, depth and visit count all went into the roll —
+    // so anything below it would be second-guessing an answer that has already been given.
+    if (setup.encounter) {
+        enemyParty = [...setup.encounter.enemyParty];
+        enemyDeckIds = [...setup.encounter.enemyDeckIds];
+    // Ticket 11: `IGauntletProgress` carries no `type`. A gauntlet in a run is always the gym's —
+    // `GYM_REGISTRY[run.gymId]` is what a run is aimed at, and v3's 'Sector' arm had no caller.
+    } else if (setup.gauntlet) {
+        const battleIndex = setup.gauntlet.fightIndex;
+        const gymElement = setup.gauntlet.element;
 
         // Multi-Element Synergy
         const synergyMap: Record<string, Element[]> = {
@@ -229,14 +279,26 @@ export function createBattleState(
 
     // Epic 2/22/2026: Disable OS on enemies as they use intents now.
     // Exception: gym tier-3 bosses keep their boss_relic_* OS (design decision).
-    enemyParty = enemyParty.map(e => ({
-        ...e,
-        activeOS: e.activeOS?.startsWith('boss_relic_') ? e.activeOS : undefined
-    }));
+    //
+    // Ticket 11: a pre-rolled run encounter is exempt, because for it the OS is not an oversight to
+    // be cleaned up but half of ticket 08's ruled kit fraction — a biome-0 enemy runs no firmware
+    // and a biome-1 enemy runs its own, and `engine/run/encounter.ts` has already said which. A
+    // blanket strip here would silently delete that rule and make every depth field the same enemy.
+    if (!setup.encounter) {
+        enemyParty = enemyParty.map(e => ({
+            ...e,
+            activeOS: e.activeOS?.startsWith('boss_relic_') ? e.activeOS : undefined
+        }));
+    }
 
     // --- SHARED DECK INITIALIZATION ---
 
-    // Updated Player Deck Logic: Archetype pick from starter
+    // The archetype fallback below is a pre-run-loop leftover: it invents a deck for a party that
+    // arrived without one. **Ticket 12 should delete it.** A run always has a deck now — `createRun`
+    // mints 8 cards per starting member from ticket 08's `startKit` tags and the run builds from
+    // there — so the only callers that can still hit this branch are tests and debug paths that
+    // hand over an empty `setup.deck`. Removing it today would turn those into throws in the same
+    // commit that moves the shape, which is one change too many.
     const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
         const lists = {
             FENRIR: {
@@ -261,11 +323,10 @@ export function createBattleState(
     const playerArchetype = playerParty[0].definitionId.toUpperCase() as any;
 
     let playerDeckIds: string[] = [];
-    if (save.activeDeck && save.activeDeck.cards.length > 0) {
-        playerDeckIds = save.activeDeck.cards.map(instanceId => {
-            const card = save.cardInventory.find(c => c.instanceId === instanceId);
-            return card ? card.dataId : null;
-        }).filter(Boolean) as string[];
+    if (setup.deck.length > 0) {
+        // Already dataIds — the run deck holds them directly, so the instance-id lookup that used
+        // to resolve `activeDeck.cards` against `cardInventory` has nothing left to do.
+        playerDeckIds = [...setup.deck];
     } else {
         playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
     }
@@ -293,7 +354,7 @@ export function createBattleState(
     // A battle with no enemies is unwinnable-by-definition and renders a ghost
     // arena (empty enemy column, instant hollow victory). Fail loudly instead.
     if (enemyParty.length === 0) {
-        throw new Error(`[createBattleState] No enemies generated (gauntlet: ${JSON.stringify(save.gauntlet)}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
+        throw new Error(`[createBattleState] No enemies generated (gauntlet: ${JSON.stringify(setup.gauntlet)}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
     }
 
     // Move users get no drawpile/hand at all; card users get a dealt hand.
@@ -339,7 +400,7 @@ export function createBattleState(
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         },
         counters: {},
-        activeRelics: save.relics || [],
+        activeRelics: [...setup.drivers],
         enemyMode
     };
 }

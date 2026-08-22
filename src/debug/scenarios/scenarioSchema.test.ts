@@ -106,7 +106,7 @@ describe('ScenarioSchema - composed', () => {
         expect(ScenarioSchema.safeParse(scenario).success).toBe(true);
     });
 
-    it('caps the party at 3, mirroring PlayerSaveSchema.activeParty', () => {
+    it('caps the party at 3, mirroring PARTY_SIZE / RunStateSchema.partyIds', () => {
         const ok = composedScenario();
         ok.setup.player.party = partyOf(3);
         expect(ScenarioSchema.safeParse(ok).success).toBe(true);

@@ -1,0 +1,134 @@
+/**
+ * The run shell, rendered — ticket 11, part 2.
+ *
+ * `encounter.test.ts` covers what is in a node and `runSlice.test.ts` covers what entering one does
+ * to the run. What is left, and is a different failure, is whether the screen **says** any of it. A
+ * node that fired and drew nothing is indistinguishable from a node that failed to fire, and a
+ * defeat screen that still promised to wipe the save would be a lie the code no longer tells.
+ *
+ * Rendered to static markup, the shape the panel tests established: the repo has no
+ * `@testing-library/react`, and `renderToStaticMarkup` runs no effects — which is why the battle
+ * trigger itself is asserted through the reducer rather than through a click here.
+ */
+
+import { configureStore } from '@reduxjs/toolkit';
+import { describe, expect, it } from 'vitest';
+import { Provider } from 'react-redux';
+import { renderToStaticMarkup } from 'react-dom/server';
+
+import RunScreen from './RunScreen';
+import battleReducer from '../store/battleSlice';
+import gameReducer, { createEmptyRanch } from '../store/gameSlice';
+import runReducer from '../store/runSlice';
+import { createRun } from '../../engine/run/createRun';
+import { offerGyms } from '../../engine/run/gyms';
+import type { IRanchMember, IRunState, NodeKind, RunOutcome } from '../../engine/runTypes';
+import type { IMingmingState } from '../../engine/types';
+
+const MEMBER: IMingmingState = {
+    id: 'mm1',
+    definitionId: 'kraken',
+    activeOS: 'kraken_v1',
+    blueprintsCollected: 0,
+    attackIV: 10,
+    defenseIV: 10,
+    hpIV: 10,
+};
+
+const ROSTER: IRanchMember[] = [{
+    id: MEMBER.id,
+    definitionId: MEMBER.definitionId,
+    activeOS: 'kraken_v1',
+    attackIV: 10,
+    defenseIV: 10,
+    hpIV: 10,
+}];
+
+const BASE = createRun({
+    seed: 'run-screen-seed',
+    offer: offerGyms('offer-seed')[0],
+    party: [MEMBER],
+    startedAt: 1_700_000_000_000,
+});
+
+function render(run: IRunState): string {
+    const store = configureStore({
+        reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
+        preloadedState: {
+            game: { ...createEmptyRanch(), roster: ROSTER },
+            run: { run },
+        },
+        middleware: (getDefault) => getDefault({ serializableCheck: false }),
+    });
+    return renderToStaticMarkup(
+        <Provider store={store}>
+            <RunScreen />
+        </Provider>,
+    );
+}
+
+/** Stand the player on the first node of a given kind, as `enterNode` would leave them. */
+function standingOn(kind: NodeKind, over: Partial<IRunState> = {}): IRunState {
+    const target = BASE.nodes.find((n) => n.kind === kind && n.id !== BASE.currentNodeId)!;
+    return {
+        ...BASE,
+        currentNodeId: target.id,
+        nodes: BASE.nodes.map((n) => (n.id === target.id ? { ...n, visited: n.visited + 1 } : n)),
+        ...over,
+    };
+}
+
+describe('RunScreen — a node that fired says so', () => {
+    it('names the ticket that owes a marketplace its contents', () => {
+        // Tickets 13, 14 and 30 own the three non-fight kinds. Until they land, the screen has to
+        // be legible about the difference between "nothing happens here yet" and "nothing happened".
+        const markup = render(standingOn('marketplace'));
+
+        expect(markup).toContain('nothing here yet (ticket 13)');
+        expect(markup).toContain('Marketplace');
+    });
+
+    it('names ticket 14 for a workshop', () => {
+        expect(render(standingOn('workshop'))).toContain('ticket 14');
+    });
+
+    it('says nothing of the kind on a fight node', () => {
+        // A wild's contents are not pending — they are a battle, and `App` swaps this screen for
+        // `BattleArena` while it runs.
+        const markup = render(standingOn('wild'));
+        expect(markup).not.toContain('nothing here yet');
+    });
+
+    it('shows the map, the party and the run’s seed while on the map', () => {
+        const markup = render(standingOn('marketplace'));
+        expect(markup).toContain('run-screen-seed');
+        expect(markup).toContain('fights');
+    });
+});
+
+describe('RunScreen — the run is over', () => {
+    const ended = (outcome: RunOutcome): IRunState => standingOn('wild', { phase: 'ended', outcome });
+
+    it('offers an honest way back to the ranch after a defeat', () => {
+        const markup = render(ended('defeat'));
+
+        expect(markup).toContain('Run over');
+        expect(markup).toContain('Return to the ranch');
+        // Ticket 11 removed the `deleteSave()` this screen's predecessor promised. The promise had
+        // to go with it: a defeat costs the run and never the ranch.
+        expect(markup).not.toMatch(/DATA WIPED/i);
+        expect(markup).toContain('untouched');
+    });
+
+    it('says the gym was cleared after a victory, and points at ticket 19', () => {
+        const markup = render(ended('victory'));
+
+        expect(markup).toContain('Gym cleared');
+        expect(markup).toContain('ticket 19');
+    });
+
+    it('does not draw the map or the abandon button once the run has ended', () => {
+        const markup = render(ended('defeat'));
+        expect(markup).not.toContain('Abandon run');
+    });
+});

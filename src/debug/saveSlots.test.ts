@@ -27,10 +27,8 @@ import {
 } from '../engine/SaveSlots';
 import { saveRanch } from '../engine/SaveSystem';
 import { resetSaveStorage, setSaveStorage, type ISaveStorage } from '../engine/save/storage';
-import { toRanchState } from '../engine/save/ranchProjection';
-import { createDefaultSave } from '../engine/gameTypes';
+import { createEmptyRanch, markGymCleared, resetSave } from '../ui/store/gameSlice';
 import { setBattleState } from '../ui/store/battleSlice';
-import { resetSave, unlockSector } from '../ui/store/gameSlice';
 import { store } from '../ui/store/store';
 import { createSlotOp, deleteSlotOp, readSlotSave, switchToSlot } from './saveSlots';
 
@@ -57,10 +55,15 @@ const dispatch = store.dispatch as unknown as (action: { type: string; payload?:
 /** Only identity is read from the battle here, exactly as in `actionTape.test.ts`. */
 const fakeBattle = (sessionId: string) => ({ sessionId }) as unknown as IBattleState;
 
-/** Seed the ACTIVE slot with a ranch carrying `marker` as a cleared gym. */
+/**
+ * Seed the ACTIVE slot with a ranch carrying `marker` as a cleared gym.
+ *
+ * Ticket 11: the marker used to be an `unlockedSectors` entry projected into `gymsCleared`. It is
+ * written directly now — the slice IS the ranch — which is why the three-default filter below is
+ * gone: `gymsCleared` has no defaults to subtract.
+ */
 function seed(marker: string): void {
-    const base = createDefaultSave();
-    saveRanch(toRanchState({ ...base, unlockedSectors: [...base.unlockedSectors, marker] }));
+    saveRanch({ ...createEmptyRanch(), gymsCleared: [marker] });
 }
 
 /** The marker stored in a slot, or null when the slot is empty. */
@@ -71,8 +74,7 @@ function storedMarker(slotId: string): string | null {
 
 /** The marker the store currently holds. */
 function liveMarker(): string | null {
-    const base = createDefaultSave().unlockedSectors;
-    return store.getState().game.unlockedSectors.find((s) => !base.includes(s)) ?? null;
+    return store.getState().game.gymsCleared[0] ?? null;
 }
 
 beforeEach(() => {
@@ -115,7 +117,7 @@ describe('switchToSlot', () => {
 
     it('resets the store for an empty slot rather than carrying the old save in', () => {
         seed('Alpha');
-        store.dispatch(unlockSector('Gamma'));
+        store.dispatch(markGymCleared('Gamma'));
         const scratch = createSlot('scratch')!;
 
         switchToSlot(scratch.id, dispatch);
@@ -128,7 +130,7 @@ describe('switchToSlot', () => {
         const scratch = createSlot('scratch')!;
 
         switchToSlot(scratch.id, dispatch);
-        store.dispatch(unlockSector('Delta'));
+        store.dispatch(markGymCleared('Delta'));
 
         expect(storedMarker(FIRST_SLOT_ID)).toBe('Alpha');
         expect(storedMarker(scratch.id)).toBe('Delta');
@@ -139,7 +141,7 @@ describe('switchToSlot', () => {
         const scratch = createSlot('scratch')!;
 
         switchToSlot(scratch.id, dispatch);
-        store.dispatch(unlockSector('Delta'));
+        store.dispatch(markGymCleared('Delta'));
         switchToSlot(FIRST_SLOT_ID, dispatch);
 
         expect(liveMarker()).toBe('Alpha');
@@ -208,7 +210,7 @@ describe('deleteSlotOp', () => {
         seed('Alpha');
         const scratch = createSlot('scratch')!;
         switchToSlot(scratch.id, dispatch);
-        store.dispatch(unlockSector('Delta'));
+        store.dispatch(markGymCleared('Delta'));
         store.dispatch(setBattleState(fakeBattle('scratch-battle')));
 
         const result = deleteSlotOp(scratch.id, dispatch);

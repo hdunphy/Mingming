@@ -6,7 +6,7 @@ import { getOSBehavior } from './firmwareRegistry';
 import { getHook } from '../core/HookRegistry';
 import { HookFactory } from '../core/HookFactory';
 import { createBattleState } from './battleFactories';
-import type { IPlayerSave } from '../gameTypes';
+import type { IBattleSetup } from './battleFactories';
 
 // Force both registration paths before asserting anything.
 initDaemonHooks();
@@ -65,9 +65,8 @@ describe('boss relic OSes', () => {
     });
 
     it('a gym tier-3 boss retains its boss_relic OS through createBattleState', () => {
-        const save: IPlayerSave = {
-            version: 2,
-            roster: [
+        const setup: IBattleSetup = {
+            party: [
                 {
                     id: 'mm1',
                     definitionId: 'fenrir',
@@ -78,24 +77,14 @@ describe('boss relic OSes', () => {
                     defenseIV: 10
                 }
             ],
-            activeParty: ['mm1'],
-            cardInventory: [],
-            activeDeck: null,
-            scrapCount: 0,
-            blueprints: {},
-            relics: [],
-            gauntlet: {
-                type: 'Gym',
-                element: 'Fire',
-                currentBattleIndex: 2, // Tier 3: Gym Leader
-                totalBattles: 3,
-                persistedStats: {}
-            },
-            unlockedSectors: ['Fire', 'Water', 'Nature'],
-            baseDecksGranted: []
+            deck: [],
+            drivers: [],
+            persistedHp: {},
+            // Tier 3: the gym leader fight.
+            gauntlet: { element: 'Fire', fightIndex: 2 }
         };
 
-        const state = createBattleState(save, []);
+        const state = createBattleState(setup, []);
 
         expect(state.enemyParty).toHaveLength(3);
         const boss = state.enemyParty.find(e => e.activeOS?.startsWith('boss_relic_'));

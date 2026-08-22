@@ -56,8 +56,16 @@ export const NODE_LABEL: Record<NodeKind, string> = {
     gym: 'Gym',
 };
 
-/** Which kinds are a fight. Drives the element badge — a fight is where the biome's element bites. */
-export const FIGHT_KINDS: ReadonlyArray<NodeKind> = ['wild', 'elite', 'alpha', 'ambush', 'gym'];
+/**
+ * Which kinds are a fight. Drives the element badge — a fight is where the biome's element bites.
+ *
+ * Ticket 11 moved the list itself into `engine/run/encounter.ts`, where the node trigger and the
+ * encounter sizing both read it, and left this re-export so the map keeps importing all its
+ * presentation constants from one place. A badge drawn from a second copy of the list would go
+ * stale the day a ninth kind is added — and stale *silently*, since the map would simply stop
+ * labelling a node that fights.
+ */
+export { FIGHT_KINDS } from '../../engine/run/encounter';
 
 // ---------------------------------------------------------------------------------------------
 // Layout

@@ -1,5 +1,5 @@
 /**
- * Ticket 20 — the ranch's three rulings, at the reducer level.
+ * Ticket 20 — the ranch's rulings, at the reducer level; retargeted by ticket 11.
  *
  * These are separated from `gameSlice.test.ts` because they are not "does this reducer do its
  * thing" tests: each one pins a *design ruling* that the code is the only remaining record of, and
@@ -9,7 +9,16 @@
  *      affordability check living in a component. Anything between them produced a free unit.
  *   2. **Blueprints stack.** v3 deduplicated them, which is coherent for a permission and incoherent
  *      for currency.
- *   3. **No duplicate species in a party.** A standing law that no code enforced until now.
+ *
+ * The third ruling this file used to cover — **no duplicate species in a party** — moved with the
+ * party itself. `IRanchState` has no `activeParty` (ticket 11), so `setActiveParty` is gone and the
+ * clause is tested where the rule actually lives: `engine/party.test.ts`.
+ *
+ * The scrap assertions below are gone for the same reason and are worth naming, because they were
+ * load-bearing: several of these tests checked that a ranch transaction left `scrapCount`
+ * untouched, which is exactly the kind of stray `-=` a blueprint-only assertion would miss. A ranch
+ * cannot touch scrap at all now — the field is not there — so the type system makes the assertion
+ * the tests were making.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -18,39 +27,35 @@ import gameReducer, {
     addBlueprint,
     addToRoster,
     assembleMingming,
-    setActiveParty,
+    createEmptyRanch,
     swapOS,
 } from './gameSlice';
-import { createDefaultSave } from '../../engine/gameTypes';
-import type { IPlayerSave } from '../../engine/gameTypes';
-import type { IMingmingState } from '../../engine/types';
+import type { IRanchMember, IRanchState } from '../../engine/runTypes';
 
-const member = (id: string, definitionId: string, activeOS?: string): IMingmingState => ({
+const member = (id: string, definitionId: string, activeOS?: string): IRanchMember => ({
     id,
     definitionId,
-    blueprintsCollected: 0,
     attackIV: 10,
     defenseIV: 10,
     hpIV: 10,
-    ...(activeOS === undefined ? {} : { activeOS }),
+    activeOS: activeOS ?? `${definitionId}_v1`,
 });
 
-const save = (overrides: Partial<IPlayerSave> = {}): IPlayerSave => ({ ...createDefaultSave(), ...overrides });
+const save = (overrides: Partial<IRanchState> = {}): IRanchState => ({ ...createEmptyRanch(), ...overrides });
 
 // --- 1. Assembly ---------------------------------------------------------------------------
 
 describe('assembleMingming — one blueprint, atomically', () => {
     it('spends exactly one blueprint and adds the individual', () => {
-        const before = save({ blueprints: { kraken: 2 }, scrapCount: 500 });
+        const before = save({ blueprints: { kraken: 2 } });
 
         const after = gameReducer(before, assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
 
         expect(after.blueprints).toEqual({ kraken: 1 });
         expect(after.roster.map((m) => m.id)).toEqual(['mm1']);
-        // Ticket 20 deleted the flat 100-scrap `compileCost`. Scrap is run-scoped; the ranch must
-        // not touch it, and a test that only checked the blueprint would not have caught a stray
-        // `state.scrapCount -=` left behind.
-        expect(after.scrapCount).toBe(500);
+        // Ticket 20 deleted the flat 100-scrap `compileCost`, and ticket 11 deleted the field it
+        // was charged against. The ranch touches nothing but the blueprint and the roster.
+        expect(after).toEqual({ ...before, blueprints: { kraken: 1 }, roster: [member('mm1', 'kraken', 'kraken_v1')] });
     });
 
     it('removes the species key entirely at zero rather than leaving a 0', () => {
@@ -73,13 +78,16 @@ describe('assembleMingming — one blueprint, atomically', () => {
     });
 
     it('grants no cards — the start kit is a RUN thing now', () => {
-        // `addToRoster` still grants the species' base deck, deliberately, so the debug scenario
-        // launcher has a deck to read until ticket 09. The player-facing path must not: cards are
-        // run-scoped, and ticket 08 rules that a run starts from `startKit` tags instead.
-        const after = gameReducer(save({ blueprints: { kraken: 1 } }), assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
+        // Ticket 11 finished this: `addToRoster`'s base-deck grant is gone too, so neither the
+        // player-facing path nor the debug one hands out cards. A ranch has nowhere to put them —
+        // the deck is `IRunState.deck`, minted at run start from ticket 08's `startKit` tags.
+        const before = save({ blueprints: { kraken: 1 } });
+        const after = gameReducer(before, assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
 
-        expect(after.cardInventory).toEqual([]);
-        expect(after.baseDecksGranted).toEqual([]);
+        expect(Object.keys(after).sort()).toEqual(
+            ['blueprints', 'codex', 'gymsCleared', 'highestTierCleared', 'roster'],
+        );
+        expect(after.codex).toEqual({ seen: [], played: [] });
     });
 
     it('re-assembly is the re-roll: two blueprints, two distinct individuals of one species', () => {
@@ -106,64 +114,37 @@ describe('blueprints are currency, not permissions', () => {
         expect(state.blueprints).toEqual({ kraken: 2, fenrir: 1 });
     });
 
-    it('a reflash costs one blueprint and no scrap', () => {
+    it('a reflash costs one blueprint and nothing else', () => {
         const before = save({
             roster: [member('mm1', 'kraken', 'kraken_v1')],
             blueprints: { kraken: 2 },
-            scrapCount: 500,
         });
 
         const after = gameReducer(before, swapOS({ id: 'mm1', targetOS: 'kraken_v2' }));
 
         expect(after.roster[0].activeOS).toBe('kraken_v2');
         expect(after.blueprints).toEqual({ kraken: 1 });
-        expect(after.scrapCount).toBe(500);
     });
 
-    it('refuses a reflash with no blueprint, however much scrap is lying around', () => {
+    it('refuses a reflash with no blueprint of that species', () => {
         const before = save({
             roster: [member('mm1', 'kraken', 'kraken_v1')],
             blueprints: {},
-            scrapCount: 9999,
         });
 
         const after = gameReducer(before, swapOS({ id: 'mm1', targetOS: 'kraken_v2' }));
 
         expect(after.roster[0].activeOS).toBe('kraken_v1');
-        expect(after.scrapCount).toBe(9999);
     });
 });
 
-// --- 3. The species clause ------------------------------------------------------------------
+// --- 3. What the species clause does NOT constrain ------------------------------------------
 
-describe('setActiveParty enforces the species clause', () => {
-    const roster = [
-        member('a1', 'kraken'),
-        member('a2', 'kraken'),
-        member('b1', 'fenrir'),
-        member('c1', 'ratatoskr'),
-        member('d1', 'huldra'),
-    ];
-
-    it('keeps the first of a species and drops the later duplicate', () => {
-        const after = gameReducer(save({ roster }), setActiveParty(['a1', 'a2', 'b1']));
-        expect(after.activeParty).toEqual(['a1', 'b1']);
-    });
-
-    it('still caps at three and still rejects ids that are not in the roster', () => {
-        const after = gameReducer(save({ roster }), setActiveParty(['a1', 'b1', 'ghost', 'c1', 'd1']));
-        expect(after.activeParty).toEqual(['a1', 'b1', 'c1']);
-    });
-
-    it('lets a duplicate in once the first one is out — the clause is about the party, not the roster', () => {
-        let state = gameReducer(save({ roster }), setActiveParty(['a1', 'b1']));
-        state = gameReducer(state, setActiveParty(['a2', 'b1']));
-        expect(state.activeParty).toEqual(['a2', 'b1']);
-    });
-
-    it('does not stop the ROSTER holding two of a species', () => {
-        // Re-assembly is the re-roll, so a collection full of krakens is the intended end state.
-        // Only fielding them together is illegal.
+describe('the roster is a collection, not a loadout', () => {
+    it('holds two of a species happily', () => {
+        // Re-assembly is the re-roll ("two krakens are not the same kraken"), so a collection full
+        // of one species is the intended end state. Only *fielding* them together is illegal, and
+        // that rule now lives entirely in `engine/party.ts` — see `party.test.ts`.
         let state = save({ blueprints: { kraken: 2 } });
         state = gameReducer(state, addToRoster(member('mm1', 'kraken')));
         state = gameReducer(state, addToRoster(member('mm2', 'kraken')));

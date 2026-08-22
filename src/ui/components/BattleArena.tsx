@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
-import { store, type RootState } from '../store/store';
+import { type RootState } from '../store/store';
 import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import BattleStage from './BattleStage';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, startBattle } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent } from '../store/battleSlice';
 import type { IBattleEntity, Element } from '../../engine/types';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -14,8 +14,10 @@ import { getBestAction } from '../../engine/ai/TacticalAI';
 import { battleReducer } from '../../engine/battleReducer';
 import { rollDropTable, rollDraftRounds } from '../../engine/RewardSystem';
 import BattleReport from './BattleReport';
-import { applyRewardBundle as applyRewardAction, resetSave, updateGauntlet, completeGauntlet, addRelic } from '../store/gameSlice';
-import { deleteSave } from '../../engine/SaveSystem';
+import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
+import { addDriver, addRunCards, addRunScrap, endRun, resolveEncounter } from '../store/runSlice';
+import { GYM_REGISTRY } from '../../engine/run/gyms';
+import type { IRunCard } from '../../engine/runTypes';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
@@ -58,7 +60,7 @@ const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     </motion.div>
 );
 
-const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => void, onDefeatReset?: () => void }> = ({ result, onShowReport, onDefeatReset }) => {
+const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => void, onDefeat?: () => void }> = ({ result, onShowReport, onDefeat }) => {
     // Entrance beat: the headline slams in from oversized + blurred (a digital
     // "lock-on"), then the actions fade up. Reduced motion: simple fade only.
     const reduced = prefersReducedMotion();
@@ -102,7 +104,11 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => vo
                     transition={{ delay: 0.45, duration: 0.3 }}
                     style={{ color: '#ff8888', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}
                 >
-                    RUN TERMINATED. DATA WIPED.
+                    {/* Ticket 11: this said "RUN TERMINATED. DATA WIPED." and the code underneath
+                        it made that true by calling deleteSave(). Both are gone. A defeat costs the
+                        run and only the run — the ranch is a separate save key precisely so that a
+                        lost fight can never reach a blueprint. */}
+                    RUN TERMINATED. YOUR RANCH IS INTACT.
                 </motion.p>
             )}
             <motion.div
@@ -120,11 +126,11 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => vo
                     </button>
                 ) : (
                     <button
-                        onClick={() => { playSfx('uiClick'); (onDefeatReset || (() => window.location.reload()))(); }}
+                        onClick={() => { playSfx('uiClick'); (onDefeat || (() => window.location.reload()))(); }}
                         className="action-button"
                         style={{ marginTop: '40px' }}
                     >
-                        {result === 'LOSS' ? 'RESTART RUN' : 'RETURN TO BASE'}
+                        {result === 'LOSS' ? 'RETURN TO THE RANCH' : 'RETURN TO BASE'}
                     </button>
                 )}
             </motion.div>
@@ -138,7 +144,12 @@ const BattleArena: React.FC = () => {
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
-    const save = useSelector((state: RootState) => state.game);
+    // TICKET 11: a battle's context is the RUN, not the ranch. The gauntlet, the drivers and the
+    // scrap the fight pays out are all `IRunState` fields now; the only thing the ranch still
+    // receives from a won fight is blueprints, which are the one persistent currency.
+    const run = useSelector((state: RootState) => state.run.run);
+    const gauntlet = run?.gauntlet ?? null;
+    const drivers = run?.drivers;
 
     const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
     const [showTurnBanner, setShowTurnBanner] = useState(false);
@@ -321,12 +332,15 @@ const BattleArena: React.FC = () => {
     // so the defeat overlay never renders and the save is never wiped.
     const isDefeat = !isVictory && (battleState?.playerParty.every(p => p.currentHp <= 0) ?? false);
 
-    // Epic 3.5: Wipe save on defeat (never on victory)
-    useEffect(() => {
-        if (isDefeat && !isVictory) {
-            deleteSave();
-        }
-    }, [isDefeat, isVictory]);
+    // TICKET 11 DELETED THE SAVE WIPE THAT USED TO LIVE HERE.
+    //
+    // The old effect called `deleteSave()` the moment the player's last unit fell. That was
+    // defensible when a save WAS the run — losing meant starting over, so there was nothing in the
+    // file worth keeping. It is catastrophic now: ticket 06 split the save in two and the persistent
+    // half is the **ranch** — assembled individuals with unrepeatable stat rolls, blueprint counts,
+    // the codex. `deleteSave()` on a lost wild fight would have deleted all of it.
+    //
+    // What a defeat costs is the run, and only the run. See `handleDefeat` below.
 
     const rosterSize = useSelector((state: RootState) => state.game.roster.length);
 
@@ -370,10 +384,10 @@ const BattleArena: React.FC = () => {
         if (isVictory && !rewardBundle && battleState) {
             let bundle = rollDropTable(battleState.enemyParty, rosterSize, battleState.seed);
 
-            // Check for Gauntlet completion to add Relic choices
-            if (save.gauntlet && save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
-                const allRelics = Object.keys(RelicRegistry);
-                const available = allRelics.filter(r => !save.relics.includes(r));
+            // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
+            if (gauntlet && gauntlet.fightIndex >= gauntlet.totalFights - 1) {
+                const held = new Set(drivers ?? []);
+                const available = Object.keys(RelicRegistry).filter(r => !held.has(r));
 
                 if (available.length > 0) {
                     const prng = new PRNG(Date.now().toString());
@@ -381,17 +395,22 @@ const BattleArena: React.FC = () => {
                     bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
                 }
 
-                // GYM CLEAR: the single pick-1-of-3 upgrades into a 3-round
-                // sequential mini-draft weighted toward the gym's element.
-                // cardChoices are replaced (not stacked) — scrap/blueprints
-                // and everything else the bundle grants stay unchanged.
-                if (save.gauntlet.type === 'Gym') {
+                // GYM CLEAR: the single pick-1-of-3 upgrades into a 3-round sequential mini-draft
+                // weighted toward the gym's element. cardChoices are replaced (not stacked) —
+                // scrap/blueprints and everything else the bundle grants stay unchanged.
+                //
+                // Ticket 11: the element comes from `GYM_REGISTRY[run.gymId]`. `IGauntletProgress`
+                // deliberately carries neither `type` nor `element` (ticket 06) — in a run the
+                // gauntlet is always the chosen gym's, so a second copy of its element could only
+                // ever drift from the first.
+                const gym = run ? GYM_REGISTRY[run.gymId] : undefined;
+                if (gym) {
                     bundle = {
                         ...bundle,
                         cardChoices: [],
                         draftRounds: rollDraftRounds(
                             `${battleState.seed}-gym-draft`,
-                            save.gauntlet.element as Element
+                            gym.element as Element
                         )
                     };
                 }
@@ -399,53 +418,99 @@ const BattleArena: React.FC = () => {
 
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState?.enemyParty, battleState?.seed, rewardBundle, rosterSize, save.gauntlet, save.relics]);
+    }, [isVictory, battleState, rewardBundle, rosterSize, gauntlet, drivers, run]);
 
-    const handleDefeatReset = () => {
-        deleteSave();
-        dispatch(resetSave());
-        window.location.reload();
+    /**
+     * Defeat: the run is over.
+     *
+     * **PLACEHOLDER — ticket 19 owns the run-end screen** and replaces the two dispatches below with
+     * whatever it needs on the way out. What is here is the honest minimum: mark the run ended with
+     * its outcome (`endRun` keeps the corpse rather than clearing it, because ticket 19 has to read
+     * it) and drop the battle, which routes back through `App` to `RunScreen`'s ended panel and from
+     * there to the ranch.
+     *
+     * No `deleteSave()`, no `resetSave()`, no `window.location.reload()`. All three were here and
+     * all three are wrong now — see the note where the wipe effect used to be. A battle outside a
+     * run (a debug scenario) has nothing to end, so it simply closes.
+     */
+    const handleDefeat = () => {
+        if (run) dispatch(endRun('defeat'));
+        dispatch(setBattleState(null as any));
     };
 
+    /**
+     * Claim the rewards and leave the battle.
+     *
+     * TICKET 11 SPLIT THIS ACROSS THE TWO SLICES, along the line ticket 06 drew. **Blueprints go to
+     * the ranch** — they are the only persistent currency, and one is spent per assembly. **Scrap,
+     * cards and drivers go to the run**, because `economy-session.md`'s anti-mudflation rule says a
+     * run may not fund the next one. There is no `applyRewardBundle` any more: a single reducer
+     * could not write both slices, and splitting it is what makes the destination of each reward
+     * legible at the call site.
+     *
+     * Cards become `IRunCard`s with `ownerId: null` — `runTypes.ts` reserves that for cards that
+     * were bought, drafted or granted rather than brought by a member, which is exactly what a
+     * reward card is.
+     *
+     * **TICKET 11 PART 2 ADDED THE WAY BACK TO THE MAP.** A won fight now resolves the node it was
+     * fought on: `resolveEncounter` puts the run's phase back to `'map'` and adds one to
+     * `fightsResolved`, and clearing the battle in the same batch drops the player back on
+     * `RunScreen` standing where they fought. Phase and battle are cleared together on purpose —
+     * `RunScreen`'s trigger effect keys off `phase === 'encounter'`, so leaving the phase behind
+     * would re-fire the fight the instant the arena closed.
+     *
+     * **Winning on the GYM node ends the run.** That is the run's victory condition
+     * (`exploration-map.md`: the gym is the only way a run is won), and it is recognised by the node
+     * the player is standing on rather than by `gauntlet`, because **the gauntlet refit is ticket
+     * 18** — until it lands, the gym node is a single battle and `IRunState.gauntlet` stays null
+     * through the whole run. The durable half is recorded either way: `markGymCleared` and
+     * `recordTierCleared` write to the ranch, which is what run start reads. Ticket 18 replaces the
+     * node check with real gauntlet progress and ticket 19 replaces what the player sees next.
+     *
+     * **THE GAUNTLET IS NOT ADVANCED HERE, DELIBERATELY.** The old flow dispatched `updateGauntlet`
+     * (bump the index, stash the party's HP) and then re-entered `startBattle` for the next fight.
+     * `IGauntletProgress` is run state now and **ticket 18 owns the gauntlet refit**, so `runSlice`
+     * has no reducer that advances it — and chaining without one would replay fight one forever,
+     * which is worse than not chaining. What survives is the durable half: winning the last fight
+     * records the gym clear and the tier on the ranch, which is what run start reads.
+     */
     const handleContinue = (chosenCards: IOwnedProgram[], chosenRelic?: string) => {
-        if (battleState) {
-            // Ticket 21: `syncPartyStats` used to write level and XP back to the roster here.
-            // With leveling removed it had nothing left to persist and was deleted; a battle no
-            // longer mutates the roster at all.
-
-            if (save.gauntlet) {
-                const persistedStats: Record<string, { hp: number }> = {};
-                battleState.playerParty.forEach(p => {
-                    persistedStats[p.id] = { hp: p.currentHp };
-                });
-                dispatch(updateGauntlet({ persistedStats }));
-            }
-        }
         if (rewardBundle) {
-            const finalBundle: IRewardBundle = {
-                ...rewardBundle,
-                cards: chosenCards
-            };
-            dispatch(applyRewardAction(finalBundle));
+            // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints.
+            for (const speciesId of rewardBundle.blueprints) {
+                dispatch(addBlueprint(speciesId));
+            }
+            if (rewardBundle.scraps > 0) {
+                dispatch(addRunScrap(rewardBundle.scraps));
+            }
+            if (chosenCards.length > 0) {
+                const runCards: IRunCard[] = chosenCards.map(card => ({
+                    instanceId: card.instanceId,
+                    dataId: card.dataId,
+                    ownerId: null,
+                }));
+                dispatch(addRunCards(runCards));
+            }
             if (chosenRelic) {
-                dispatch(addRelic(chosenRelic));
+                dispatch(addDriver(chosenRelic));
             }
         }
 
-        if (save.gauntlet) {
-            if (save.gauntlet.currentBattleIndex >= save.gauntlet.totalBattles - 1) {
-                dispatch(completeGauntlet());
-                dispatch(setBattleState(null as any));
-            } else {
-                const updatedSave = (store.getState() as RootState).game;
-                dispatch(startBattle({ save: updatedSave, enemyIds: [] }));
+        // Back to the map, and one more fight on the tally. A no-op outside a run, which is what a
+        // debug scenario's victory is.
+        dispatch(resolveEncounter());
 
-                setRewardBundle(null);
-                setShowReport(false);
-            }
-        } else {
-            dispatch(setBattleState(null as any));
+        const node = run?.nodes.find(n => n.id === run.currentNodeId) ?? null;
+        const clearedGym = node?.kind === 'gym' || (gauntlet !== null && gauntlet.fightIndex >= gauntlet.totalFights - 1);
+        if (run && clearedGym) {
+            dispatch(markGymCleared(run.gymId));
+            dispatch(recordTierCleared(run.tier));
+            // Ordered after `resolveEncounter`, which sets the phase back to 'map': the run is over,
+            // not back on the map, and `endRun` is what says so.
+            dispatch(endRun('victory'));
         }
+
+        dispatch(setBattleState(null as any));
     };
 
     if (!battleState) return <div className="battle-screen">Loading Battle...</div>;
@@ -574,7 +639,7 @@ const BattleArena: React.FC = () => {
             <AudioControls floating />
 
             {/* Breach progress: small truthful indicator of which breach battle this is */}
-            {save.gauntlet && (
+            {gauntlet && (
                 <div
                     style={{
                         position: 'fixed',
@@ -593,7 +658,7 @@ const BattleArena: React.FC = () => {
                         letterSpacing: '3px'
                     }}
                 >
-                    BREACH — BATTLE {Math.min(save.gauntlet.currentBattleIndex + 1, save.gauntlet.totalBattles)}/{save.gauntlet.totalBattles}
+                    BREACH — BATTLE {Math.min(gauntlet.fightIndex + 1, gauntlet.totalFights)}/{gauntlet.totalFights}
                 </div>
             )}
 
@@ -639,7 +704,7 @@ const BattleArena: React.FC = () => {
                     <WinLossOverlay
                         key="loss-overlay"
                         result="LOSS"
-                        onDefeatReset={handleDefeatReset}
+                        onDefeat={handleDefeat}
                     />
                 )}
                 {isVictory && showReport && rewardBundle && (

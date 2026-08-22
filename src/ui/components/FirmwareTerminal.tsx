@@ -4,30 +4,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import { swapOS } from '../store/gameSlice';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import { GetMingmingData, getDeckForOS } from '../../engine/data/mingmingRegistry';
-import { GetProgramData } from '../../engine/data/programRegistry';
-import { deckGrantKey, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 
 interface FirmwareTerminalProps {
     onClose: () => void;
 }
 
-// Ticket 15, re-priced by ticket 20: a reflash costs ONE species blueprint (SPENT) and no scrap
-// — the ranch has no scrap economy. The first swap to an OS still grants a pick of its starting
-// kit (once ever), chosen in the picker below; that grant is legacy and goes when ticket 09 hands
-// out the start kit at run start instead.
+// Ticket 15, re-priced by ticket 20, trimmed by ticket 11: a reflash costs ONE species blueprint
+// (SPENT) and grants NOTHING. The first swap to an OS used to hand over a pick of two cards from
+// that OS's starting kit; cards are run-scoped now (`IRunState.deck`) and ticket 08's `startKit`
+// tags supply the start deck at run start, so a ranch that dealt cards was dealing a resource the
+// player cannot bring home. The kit picker went with `baseDecksGranted`.
 
 export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
     const dispatch = useDispatch();
-    const { roster, blueprints, baseDecksGranted } = useSelector((s: RootState) => s.game);
+    const { roster, blueprints } = useSelector((s: RootState) => s.game);
     const [selectedMmId, setSelectedMmId] = useState<string | null>(null);
     const [isFlashing, setIsFlashing] = useState(false);
     const [flashProgress, setFlashProgress] = useState(0);
     const [targetOS, setTargetOS] = useState<string | null>(null);
-    // Pick-2 session: set when a completed flash needs the first-swap card picks.
-    const [pickSession, setPickSession] = useState<{ mmId: string; osId: string; kit: string[] } | null>(null);
-    const [pickedIndices, setPickedIndices] = useState<number[]>([]);
-
     const selectedMm = useMemo(() =>
         roster.find(m => m.id === selectedMmId),
         [roster, selectedMmId]);
@@ -64,21 +59,9 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
         if (flashProgress === 100 && isFlashing) {
             const timeout = setTimeout(() => {
                 // swapOS validates and spends the blueprint itself (silent no-op on failure,
-                // matching the slice's spendScrap convention).
+                // matching the slice's no-op-on-invalid convention).
                 if (selectedMmId && targetOS && selectedMm && hasBlueprint) {
-                    const key = deckGrantKey(selectedMm.definitionId, targetOS);
-                    if (!baseDecksGranted.includes(key)) {
-                        // First swap to this OS: open the kit picker; the swap is
-                        // dispatched with the picks on confirm.
-                        setPickSession({
-                            mmId: selectedMmId,
-                            osId: targetOS,
-                            kit: getDeckForOS(selectedMm.definitionId, targetOS)
-                        });
-                        setPickedIndices([]);
-                    } else {
-                        dispatch(swapOS({ id: selectedMmId, targetOS }));
-                    }
+                    dispatch(swapOS({ id: selectedMmId, targetOS }));
                 }
                 setIsFlashing(false);
                 setFlashProgress(0);
@@ -86,7 +69,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
             }, 500);
             return () => clearTimeout(timeout);
         }
-    }, [flashProgress, isFlashing, selectedMmId, selectedMm, targetOS, hasBlueprint, baseDecksGranted, dispatch]);
+    }, [flashProgress, isFlashing, selectedMmId, selectedMm, targetOS, hasBlueprint, dispatch]);
 
     const availableOSVersions = useMemo(() => {
         if (!selectedMm) return [];
@@ -96,23 +79,6 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
             version: `v${i + 1}.0`
         }));
     }, [selectedMm]);
-
-    const confirmPicks = () => {
-        if (!pickSession) return;
-        dispatch(swapOS({
-            id: pickSession.mmId,
-            targetOS: pickSession.osId,
-            pickedCardIds: pickedIndices.map(i => pickSession.kit[i])
-        }));
-        setPickSession(null);
-        setPickedIndices([]);
-    };
-
-    const togglePick = (index: number) => {
-        setPickedIndices(prev => prev.includes(index)
-            ? prev.filter(i => i !== index)
-            : prev.length < OS_SWAP_PICK_COUNT ? [...prev, index] : prev);
-    };
 
     return (
         <div className="firmware-terminal-overlay">
@@ -134,7 +100,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                     onClick={() => !isFlashing && setSelectedMmId(mm.id)}
                                 >
                                     <span className="unit-name">{mm.nickname ?? mm.definitionId}</span>
-                                    <span className="unit-os-tag">{mm.activeOS?.split('_').pop()?.toUpperCase() ?? 'NONE'}</span>
+                                    <span className="unit-os-tag">{mm.activeOS.split('_').pop()?.toUpperCase() ?? 'NONE'}</span>
                                 </div>
                             ))}
                         </div>
@@ -154,7 +120,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                     <div className="diag-grid">
                                         <div className="diag-item">
                                             <label>CURRENT KERNEL:</label>
-                                            <span>{getOSBehavior(selectedMm.activeOS || '')?.name ?? 'GENERIC_CORE'}</span>
+                                            <span>{getOSBehavior(selectedMm.activeOS)?.name ?? 'GENERIC_CORE'}</span>
                                         </div>
                                         <div className="diag-item">
                                             <label>SECTOR STATUS:</label>
@@ -235,40 +201,6 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                {/* Ticket 15: first-swap kit picker */}
-                {pickSession && (
-                    <div className="flash-progress-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div className="progress-content" style={{ maxWidth: 560 }}>
-                            <h3>KERNEL KIT UNPACKED</h3>
-                            <p>Select up to {OS_SWAP_PICK_COUNT} programs from the {getOSBehavior(pickSession.osId)?.name ?? pickSession.osId} starting kit (one-time offer):</p>
-                            <div style={{ display: 'grid', gap: 6, margin: '12px 0', maxHeight: 260, overflowY: 'auto' }}>
-                                {pickSession.kit.map((dataId, i) => {
-                                    const program = GetProgramData(dataId);
-                                    const picked = pickedIndices.includes(i);
-                                    return (
-                                        <button
-                                            key={`${dataId}-${i}`}
-                                            onClick={() => togglePick(i)}
-                                            style={{
-                                                textAlign: 'left', padding: '6px 10px', cursor: 'pointer',
-                                                border: picked ? '1px solid #00ff00' : '1px solid #555',
-                                                background: picked ? 'rgba(0,255,0,0.12)' : 'transparent', color: 'inherit'
-                                            }}
-                                        >
-                                            <strong>{picked ? '[x] ' : '[ ] '}{program.name}</strong> ({program.baseCost}e) — {program.description}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                <button className="flash-button" onClick={confirmPicks}>
-                                    CONFIRM ({pickedIndices.length}/{OS_SWAP_PICK_COUNT})
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
             <div className="scanline"></div>
         </div>

@@ -13,6 +13,12 @@
  * load path that rehydrates one, and the screen that has to explain a refusal to the player. Three
  * hand-written copies of one rule is how a rule rots, so it lives here once and they all call it.
  *
+ * **Ticket 11 removed one of those three callers and did not replace it.** `IRanchState` has no
+ * `activeParty`, so `gameSlice.setActiveParty` is gone; a party is now assembled at run start
+ * (`RunStart`, via `partyBlockFor`) and checked again at load (`reconcileLoadedState`, which spells
+ * the two laws out itself because it also has to decide *what to discard* when they fail). That
+ * leaves `legalParty` with no production caller today — see its own note for why it stays.
+ *
  * # THE RULE
  *
  * A party is at most `PARTY_SIZE` members, each of which exists in the roster, and no two of which
@@ -61,6 +67,12 @@ export function partyBlockFor(
  * report what went wrong (it cannot throw, and the store has no error channel), and the screens
  * check `partyBlockFor` before dispatching anyway — so trimming is the honest last line of defence
  * rather than the primary UI.
+ *
+ * **No production caller since ticket 11**, which deleted `setActiveParty` and the save-time
+ * projection that were its two users. It is kept rather than deleted because the *next* thing that
+ * builds a party from a list of ids needs exactly this — ticket 14's workshop node grows the party
+ * 1 → 2 → 3 mid-run, and it is the only rule that says what happens to an illegal addition. Its
+ * behaviour is pinned by `party.test.ts` so it cannot rot quietly while it waits.
  */
 export function legalParty(
     ids: ReadonlyArray<string>,

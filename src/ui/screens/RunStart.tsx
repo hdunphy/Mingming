@@ -30,9 +30,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { rollSeed } from '../../engine/core/SeedStream';
 import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
+import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms, type IGymOffer } from '../../engine/run/gyms';
-import type { IMingmingState } from '../../engine/types';
+import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
@@ -58,7 +59,7 @@ export default function RunStart(): ReactNode {
     const [partyIds, setPartyIds] = useState<string[]>([]);
 
     const party = useMemo(
-        () => partyIds.map((id) => roster.find((m) => m.id === id)).filter((m): m is IMingmingState => !!m),
+        () => partyIds.map((id) => roster.find((m) => m.id === id)).filter((m): m is IRanchMember => !!m),
         [partyIds, roster],
     );
 
@@ -86,7 +87,10 @@ export default function RunStart(): ReactNode {
         dispatch(startRun(createRun({
             seed: rollSeed(),
             offer: chosen,
-            party,
+            // Ticket 11: the roster holds `IRanchMember`s. `toMingmingState` adds the one field
+            // combat's shape still demands — `blueprintsCollected`, which is vestigial; see its
+            // doc comment.
+            party: party.map(toMingmingState),
             startedAt: Date.now(),
         })));
         playSfx('breach');

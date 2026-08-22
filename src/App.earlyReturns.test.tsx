@@ -2,7 +2,7 @@
  * Regression: a scenario launched into a fresh save slot was created but never rendered.
  *
  * `App` had `rosterSize === 0 -> MainMenuView` ahead of `isInBattle -> BattleArena`. A new save
- * slot starts from `createDefaultSave()`, whose roster is empty, so launching a composed scenario
+ * slot starts from an empty ranch, whose roster is empty, so launching a composed scenario
  * from the debug launcher set `state.battle.battle` correctly and then rendered the main menu on
  * top of it. From the outside, Launch "did nothing".
  *
@@ -39,9 +39,8 @@ vi.stubGlobal('localStorage', {
 });
 
 import App from './App';
-import { createDefaultSave } from './engine/gameTypes';
 import battleReducer from './ui/store/battleSlice';
-import gameReducer from './ui/store/gameSlice';
+import gameReducer, { createEmptyRanch } from './ui/store/gameSlice';
 import runReducer from './ui/store/runSlice';
 import { createSparseBattleState } from './debug/scenarios/scenarioTestSupport';
 
@@ -51,7 +50,7 @@ function render(battle: ReturnType<typeof createSparseBattleState> | null): stri
         // player is at the ranch or in a run, so a store without it renders undefined.
         reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
         preloadedState: {
-            game: createDefaultSave(),
+            game: createEmptyRanch(),
             battle: {
                 battle,
                 selectedSourceId: null,

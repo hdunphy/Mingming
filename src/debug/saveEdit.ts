@@ -1,21 +1,30 @@
 /**
- * Save/run editor — the dry-run guard.
+ * Ranch editor — the dry-run guard.
  *
  * WHY THIS MODULE EXISTS
  *
- * `src/ui/store/store.ts:20-31` autosaves on *every* game-state change by calling
- * `saveGame`, which validates against `PlayerSaveSchema` (`SaveSystem.ts:58-70`). A save
- * that fails validation is not written — the failure surfaces as a `console.error` and
- * nothing else. Progress silently stops persisting and the player finds out on the next
- * reload, having lost everything since the wedge.
+ * `src/ui/store/store.ts` autosaves on *every* game-state change by calling `saveRanch`, which
+ * validates against `RanchStateSchema` (`runTypes.ts`). A ranch that fails validation is not
+ * written — the failure surfaces as a `console.error` and a `saveHealth` report and nothing else.
+ * Progress silently stops persisting and the player finds out on the next reload, having lost
+ * everything since the wedge.
  *
- * A debug editor is the single most likely source of such a save, so every mutation it
- * performs goes through `prepareEdit`/`commitEdit` here: the prospective save is computed
- * *without dispatching* and validated first. Validating after the dispatch would be racing
- * the very subscription this guards — by the time the check ran, the bad state would
- * already be live and the autosave already failed.
+ * A debug editor is the single most likely source of such a state, so every mutation it performs
+ * goes through `prepareEdit`/`commitEdit` here: the prospective ranch is computed *without
+ * dispatching* and validated first. Validating after the dispatch would be racing the very
+ * subscription this guards — by the time the check ran, the bad state would already be live and the
+ * autosave already failed.
  *
- * HOW THE PROSPECTIVE SAVE IS COMPUTED WITHOUT DISPATCHING
+ * TICKET 11 CHANGED WHAT IS BEING VALIDATED, WHICH IS THE POINT OF THE FILE
+ *
+ * The check used to be `PlayerSaveSchema` — the pre-roguelike slice shape, which was *not* the
+ * thing being persisted; `save/ranchProjection.ts` translated on the way out, so the dry run and
+ * the autosave were validating two different objects against two different schemas. It now runs
+ * exactly the schema the autosave runs, against exactly the object the autosave writes. The verbs
+ * that granted run-scoped things (scrap, cards, relics, sector unlocks) went with the fields —
+ * a ranch cannot hold them, so there was nothing left for those buttons to write.
+ *
+ * HOW THE PROSPECTIVE RANCH IS COMPUTED WITHOUT DISPATCHING
  *
  * `gameSlice`'s reducer is a pure function of (state, action). `projectSave` calls it
  * directly — `gameReducer(current, action)` — outside any store. Immer's copy-on-write
@@ -23,11 +32,9 @@
  * The *same* action object is then handed to `dispatch`, so the store recomputes exactly
  * the state that was validated.
  *
- * One deliberate caveat: two `gameSlice` reducers mint ids internally
- * (`addToRoster`'s base-deck grant and `addCardsToDeck` call `crypto.randomUUID()`), so the
- * projected save and the dispatched save differ in those id *values*. `PlayerSaveSchema`
- * treats them as opaque `z.string()`, so validity is identical — which is all this dry run
- * claims. Nothing else in the slice is non-deterministic.
+ * The dry run is now *exact*, where before it was only exact up to id values: the two reducers
+ * that minted ids internally with `crypto.randomUUID()` were `addToRoster`'s base-deck grant and
+ * `addCardsToDeck`, and ticket 11 deleted both. Nothing in the slice is non-deterministic any more.
  *
  * Everything here is React-free and store-free on purpose, so it is testable headlessly.
  */
@@ -35,18 +42,13 @@
 import { z } from 'zod';
 
 import { MingmingRegistry } from '../engine/data/mingmingRegistry';
-import { createMingmingInstance, createOwnedProgram, PlayerSaveSchema } from '../engine/gameTypes';
-import type { IOwnedProgram, IPlayerSave } from '../engine/gameTypes';
+import { createRanchMember } from '../engine/gameTypes';
+import { RanchStateSchema, type IRanchState } from '../engine/runTypes';
 import gameReducer, {
     addBlueprint,
-    addCardsToInventory,
-    addRelic,
-    addScrap,
     addToRoster,
-    healParty,
     loadSave,
     resetSave,
-    unlockSector,
     updateMingmingOS,
 } from '../ui/store/gameSlice';
 
@@ -85,12 +87,13 @@ export function formatIssues(error: unknown): string[] {
 }
 
 /**
- * Run the exact check the autosave runs. Used both to vet a prospective save and to report
- * whether the *current* save is already wedged.
+ * Run the exact check the autosave runs — `RanchStateSchema`, the inner half of what `saveRanch`
+ * parses. Used both to vet a prospective ranch and to report whether the *current* one is already
+ * wedged.
  */
 export function validateSave(candidate: unknown): SaveValidation {
     try {
-        PlayerSaveSchema.parse(candidate);
+        RanchStateSchema.parse(candidate);
         return { valid: true, issues: [] };
     } catch (err) {
         return { valid: false, issues: formatIssues(err) };
@@ -105,7 +108,7 @@ export function validateSave(candidate: unknown): SaveValidation {
  * Pure: no store, no dispatch, no subscribers, no autosave. `current` is not mutated.
  * May throw if the reducer itself throws on a malformed payload — `prepareEdit` catches that.
  */
-export function projectSave(current: IPlayerSave, action: SaveEditAction): IPlayerSave {
+export function projectSave(current: IRanchState, action: SaveEditAction): IRanchState {
     // gameReducer is typed against redux's UnknownAction; SaveEditAction satisfies it structurally.
     return gameReducer(current, action);
 }
@@ -115,7 +118,7 @@ export type PreparedEdit =
           readonly ok: true;
           readonly action: SaveEditAction;
           /** The save the store will hold after dispatch. Already schema-valid. */
-          readonly prospective: IPlayerSave;
+          readonly prospective: IRanchState;
           /** False when the reducer was a no-op (duplicate relic, already-unlocked sector, ...). */
           readonly changed: boolean;
       }
@@ -130,8 +133,8 @@ export type PreparedEdit =
  *
  * Callers must treat `ok: false` as "do not dispatch this action"; `commitEdit` enforces that.
  */
-export function prepareEdit(current: IPlayerSave, action: SaveEditAction): PreparedEdit {
-    let prospective: IPlayerSave;
+export function prepareEdit(current: IRanchState, action: SaveEditAction): PreparedEdit {
+    let prospective: IRanchState;
     try {
         prospective = projectSave(current, action);
     } catch (err) {
@@ -152,7 +155,7 @@ export function prepareEdit(current: IPlayerSave, action: SaveEditAction): Prepa
  * `dispatch` is called exactly once, and only on `ok: true`.
  */
 export function commitEdit(
-    current: IPlayerSave,
+    current: IRanchState,
     action: SaveEditAction,
     dispatch: (action: SaveEditAction) => void,
 ): PreparedEdit {
@@ -164,9 +167,9 @@ export function commitEdit(
 // --- Comparison / persistence check ---
 
 /**
- * Key-order-independent JSON. `PlayerSaveSchema.parse` rebuilds objects in *schema* key order,
- * so a save round-tripped through `loadGame` will not stringify identically to the live state
- * even when nothing changed. Sorting keys makes the comparison mean what it looks like.
+ * Key-order-independent JSON. `RanchStateSchema.parse` rebuilds objects in *schema* key order,
+ * so a ranch round-tripped through `loadGameState` will not stringify identically to the live
+ * state even when nothing changed. Sorting keys makes the comparison mean what it looks like.
  */
 export function stableStringify(value: unknown): string {
     if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
@@ -187,14 +190,14 @@ export function savesAreIdentical(a: unknown, b: unknown): boolean {
 export type SaveFileParse =
     | {
         readonly ok: true;
-        readonly save: IPlayerSave;
+        readonly save: IRanchState;
         /**
          * True when validation filled in fields the file did not carry, so the panel can say
          * "loaded, with defaults applied" rather than implying a byte-for-byte restore.
          *
          * This used to mean "an older save shape was upgraded". Ticket 23 deleted the upgrade
          * chain — save v4 is the floor and there is no migration — so the only difference a parse
-         * can now introduce is `PlayerSaveSchema`'s `.default()` fills.
+         * can now introduce is `RanchStateSchema`'s `.default()` fills.
          */
         readonly defaulted: boolean;
     }
@@ -202,8 +205,12 @@ export type SaveFileParse =
 
 /**
  * Read path for "replace save from file": JSON.parse -> validate. **Validate, never migrate**
- * (ticket 23) — a file that does not describe a legal save is rejected with its issues rather than
+ * (ticket 23) — a file that does not describe a legal ranch is rejected with its issues rather than
  * silently reshaped into one.
+ *
+ * Ticket 11: the file is a bare `IRanchState`, not an envelope and not a whole game state. The run
+ * has no import path here on purpose — a hand-edited run is the half the design is happy to throw
+ * away, and `reconcileLoadedState` would discard a mismatched one anyway.
  */
 export function parseSaveFileText(text: string): SaveFileParse {
     let raw: unknown;
@@ -216,7 +223,7 @@ export function parseSaveFileText(text: string): SaveFileParse {
     const validation = validateSave(raw);
     if (!validation.valid) return { ok: false, issues: validation.issues };
 
-    const parsed = PlayerSaveSchema.parse(raw) as IPlayerSave;
+    const parsed = RanchStateSchema.parse(raw) as IRanchState;
     return {
         ok: true,
         save: parsed,
@@ -226,22 +233,26 @@ export function parseSaveFileText(text: string): SaveFileParse {
 
 // --- Verb builders ---
 //
-// Each returns the action a real game capability would dispatch — existing `gameSlice`
-// actions wherever one exists, so the edit inherits the game's own logic (e.g. `addToRoster`
-// also grants the species base deck). `loadSave` is used only for wholesale wipe/replace.
+// Each returns the action a real game capability would dispatch — existing `gameSlice` actions
+// wherever one exists, so the edit inherits the game's own logic.
 //
-// Naming is deliberately literal about what the save can represent:
+// TICKET 11 DELETED FOUR VERBS, AND THE REASON IS THE SAME EACH TIME: **the ranch cannot hold what
+// they granted.** `grant scraps`, `grant cards` and `grant relic` wrote `scrapCount`,
+// `cardInventory` and `relics`, all three of which are `IRunState` fields now; `unlock sector`
+// wrote `unlockedSectors`, whose successor `gymsCleared` means "gyms you beat" rather than "places
+// you may go", so granting one would be claiming a clear that never happened. `heal party` went
+// too — it was an explicit no-op placeholder, and the one HP the save carries is
+// `IGauntletProgress.persistedHp`, which is ticket 18's. Their run-side replacements live on
+// `runSlice` (`addRunScrap`, `addRunCards`, `addDriver`) and want a run editor, which is a
+// different panel than this one.
+//
+// Naming is deliberately literal about what the ranch can represent:
 //   * "grant blueprint" — NOT "unlock species". There is no species flag; availability is
-//     derived from `blueprints` (`gameTypes.ts:30-34`).
+//     derived from `blueprints` counts.
 //   * "set activeOS" — NOT "unlock OS". There is no OS flag either; the candidate list is the
-//     definition's static `availableOS` (`types.ts:79`) and only the per-instance `activeOS`
-//     is stored. `PlayerSaveSchema` types it as a bare `z.string()`, so membership in
-//     `availableOS` is a constraint only the caller can enforce — the panel offers a select.
-
-/** Grant (or drain, with a negative amount) scrap. A drain past zero is refused by the guard. */
-export function buildGrantScraps(amount: number): SaveEditAction {
-    return addScrap(amount);
-}
+//     definition's static `availableOS` (`types.ts`) and only the per-instance `activeOS` is
+//     stored. `RanchMemberSchema` types it as a bare `z.string()`, so membership in `availableOS`
+//     is a constraint only the caller can enforce — the panel offers a select.
 
 /**
  * Grant a species blueprint. Returns null for an unknown definition id.
@@ -255,54 +266,26 @@ export function buildGrantBlueprint(definitionId: string): SaveEditAction | null
     return addBlueprint(definition.id);
 }
 
-export function buildGrantRelic(relicId: string): SaveEditAction {
-    return addRelic(relicId);
-}
-
-/** Grant `count` fresh copies of a card into the inventory (not the deck). */
-export function buildGrantCards(dataId: string, count: number): SaveEditAction {
-    const cards: IOwnedProgram[] = [];
-    const total = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
-    for (let i = 0; i < total; i++) cards.push(createOwnedProgram(dataId));
-    return addCardsToInventory(cards);
-}
-
 /**
- * Add a rostered instance. Goes through `addToRoster` rather than a hand-built save write so
- * the first synthesis of a species also grants its base deck (`gameSlice.ts:27-36`).
+ * Add a rostered individual, free. Goes through `addToRoster` rather than a hand-built state write
+ * so the debug path and the game path stay one path — note that ticket 11 removed that reducer's
+ * base-deck grant, so this now adds a member and nothing else.
  */
 export function buildAddToRoster(definitionId: string): SaveEditAction | null {
     if (!MingmingRegistry[definitionId]) return null;
-    return addToRoster(createMingmingInstance(definitionId));
+    return addToRoster(createRanchMember(definitionId));
 }
 
 export function buildSetActiveOS(mingmingId: string, activeOS: string): SaveEditAction {
     return updateMingmingOS({ id: mingmingId, activeOS });
 }
 
-/**
- * Heal the party.
- *
- * Honest label: `healParty` is a no-op on the save (`gameSlice.ts:170-176`). Roster HP is not
- * persisted — HP lives on `IBattleEntity` and is restored when a battle is entered. The one
- * HP the save *does* carry is `gauntlet.persistedStats`, and no existing action resets it
- * without also advancing `currentBattleIndex` (`updateGauntlet` only increments), so a
- * mid-gauntlet heal is out of reach without new production code. The panel says so.
- */
-export function buildHealParty(): SaveEditAction {
-    return healParty();
-}
-
-export function buildUnlockSector(element: string): SaveEditAction {
-    return unlockSector(element);
-}
-
-/** Wipe to `createDefaultSave()`. */
+/** Wipe to an empty ranch (`createEmptyRanch()`). */
 export function buildWipeSave(): SaveEditAction {
     return resetSave();
 }
 
-/** Wholesale replace. Only ever called with a save that already passed `parseSaveFileText`. */
-export function buildReplaceSave(save: IPlayerSave): SaveEditAction {
-    return loadSave(save);
+/** Wholesale replace. Only ever called with a ranch that already passed `parseSaveFileText`. */
+export function buildReplaceSave(ranch: IRanchState): SaveEditAction {
+    return loadSave(ranch);
 }

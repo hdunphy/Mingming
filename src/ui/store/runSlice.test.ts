@@ -14,17 +14,28 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import runReducer, { clearRun, endRun, setRun, startRun } from './runSlice';
-import gameReducer, { addBlueprint } from './gameSlice';
+import runReducer, {
+    addDriver,
+    addRunCards,
+    addRunScrap,
+    clearRun,
+    endRun,
+    enterNode,
+    removeRunCard,
+    resolveEncounter,
+    setRun,
+    spendRunScrap,
+    startRun,
+    type RunSliceState,
+} from './runSlice';
+import gameReducer, { addBlueprint, createEmptyRanch } from './gameSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { loadGameState, saveRanch, saveRun } from '../../engine/SaveSystem';
 import { getActiveRanchKey, getActiveRunKey } from '../../engine/SaveSlots';
-import { toRanchState } from '../../engine/save/ranchProjection';
 import { resetSaveStorage, setSaveStorage, type ISaveStorage } from '../../engine/save/storage';
-import { createDefaultSave } from '../../engine/gameTypes';
 import type { IMingmingState } from '../../engine/types';
-import type { IRunState } from '../../engine/runTypes';
+import type { IRanchMember, IRegionNode, IRunCard, IRunState, NodeKind } from '../../engine/runTypes';
 
 class MemoryStorage implements ISaveStorage {
     readonly map = new Map<string, string>();
@@ -48,6 +59,11 @@ const member = (id: string, definitionId: string, activeOS: string): IMingmingSt
 });
 
 const PARTY = [member('mm1', 'kraken', 'kraken_v1')];
+
+/** The same individual as an `IRanchMember` — the roster's shape since ticket 11. */
+const RANCH_PARTY: IRanchMember[] = PARTY.map(({ id, definitionId, attackIV, defenseIV, hpIV }) => ({
+    id, definitionId, activeOS: 'kraken_v1', attackIV, defenseIV, hpIV,
+}));
 
 function makeRun(seed = 'run-seed-1'): IRunState {
     return createRun({ seed, offer: offerGyms('offer-seed')[0], party: PARTY, startedAt: 1_700_000_000_000 });
@@ -83,6 +99,204 @@ describe('runSlice', () => {
     });
 });
 
+// ---------------------------------------------------------------------------------------------
+// The run-scoped economy (ticket 11)
+// ---------------------------------------------------------------------------------------------
+//
+// These assertions came from `gameSlice.test.ts`, where they were written against `addScrap`,
+// `spendScrap` and the card-inventory reducers. The behaviour they pin is unchanged — add, spend
+// only what you can afford, never go negative — but the field moved: scrap and cards are
+// `IRunState`, because `economy-session.md`'s anti-mudflation rule says a run may not fund the
+// next one.
+
+describe('run-scoped scrap', () => {
+    it('adds scrap', () => {
+        const state = runReducer({ run: makeRun() }, addRunScrap(50));
+        expect(state.run?.scrap).toBe(50);
+    });
+
+    it('spends scrap if sufficient', () => {
+        let state = runReducer({ run: makeRun() }, addRunScrap(100));
+        state = runReducer(state, spendRunScrap(30));
+        expect(state.run?.scrap).toBe(70);
+    });
+
+    it('does not spend scrap if insufficient', () => {
+        let state = runReducer({ run: makeRun() }, addRunScrap(10));
+        state = runReducer(state, spendRunScrap(50));
+        expect(state.run?.scrap).toBe(10);
+    });
+
+    it('refuses a negative or fractional amount rather than writing an unsavable run', () => {
+        // `RunStateSchema` types `scrap` as a non-negative int, so a fractional credit would fail
+        // the run's own autosave — silently, on the next dispatch.
+        let state = runReducer({ run: makeRun() }, addRunScrap(-5));
+        expect(state.run?.scrap).toBe(0);
+        state = runReducer(state, addRunScrap(2.5));
+        expect(state.run?.scrap).toBe(0);
+    });
+
+    it('is a no-op with no run in progress', () => {
+        expect(runReducer({ run: null }, addRunScrap(10)).run).toBeNull();
+        expect(runReducer({ run: null }, spendRunScrap(10)).run).toBeNull();
+    });
+});
+
+describe('the run deck', () => {
+    const card = (instanceId: string, dataId = 'flamethrower'): IRunCard => ({
+        instanceId, dataId, ownerId: null,
+    });
+
+    it('adds cards to the shared deck', () => {
+        const before = makeRun();
+        const state = runReducer({ run: before }, addRunCards([card('c1'), card('c2')]));
+        expect(state.run?.deck).toHaveLength(before.deck.length + 2);
+        expect(state.run?.deck.slice(-2).map((c) => c.instanceId)).toEqual(['c1', 'c2']);
+    });
+
+    it('removes a card by instance id', () => {
+        let state = runReducer({ run: makeRun() }, addRunCards([card('c1'), card('c2')]));
+        const before = state.run!.deck.length;
+        state = runReducer(state, removeRunCard('c1'));
+        expect(state.run?.deck).toHaveLength(before - 1);
+        expect(state.run?.deck.some((c) => c.instanceId === 'c1')).toBe(false);
+    });
+
+    it('removing an id that is not in the deck changes nothing', () => {
+        const start = { run: makeRun() };
+        const state = runReducer(start, removeRunCard('ghost'));
+        expect(state.run).toBe(start.run);
+    });
+
+    it('carries the dataId directly — there is no inventory to resolve against', () => {
+        // The whole reason `IRunCard` exists: the old `activeDeck.cards` held `cardInventory`
+        // instance ids, and a deck entry naming a card the inventory had lost resolved to nothing.
+        const state = runReducer({ run: makeRun() }, addRunCards([card('c1', 'ink_stream')]));
+        expect(state.run?.deck.at(-1)?.dataId).toBe('ink_stream');
+    });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Travel and the node trigger (ticket 11, part 2)
+// ---------------------------------------------------------------------------------------------
+//
+// Ticket 07, RULED: "Entering a node triggers it again, always... contents are rolled at node entry
+// from the node's seed + visit count so re-entry re-rolls honestly." `enterNode` is where that is
+// either true or quietly not — the failure mode is a reducer that moves the player and forgets one
+// of the other two halves, which looks exactly like working software until the second visit.
+
+describe('entering a node', () => {
+    const nodeOfKind = (run: IRunState, kind: NodeKind): IRegionNode =>
+        run.nodes.find((n) => n.kind === kind && n.id !== run.currentNodeId)!;
+
+    it('walks, counts the visit, and puts the run into an encounter on a fight node', () => {
+        const run = makeRun();
+        const target = nodeOfKind(run, 'wild');
+
+        const state = runReducer({ run }, enterNode(target.id));
+
+        expect(state.run?.currentNodeId).toBe(target.id);
+        expect(state.run?.nodes.find((n) => n.id === target.id)?.visited).toBe(target.visited + 1);
+        expect(state.run?.phase).toBe('encounter');
+    });
+
+    it('counts every entry, so a re-entry rolls from a higher count', () => {
+        const run = makeRun();
+        const target = nodeOfKind(run, 'wild');
+        const other = run.nodes.find((n) => n.id !== target.id && n.id !== run.currentNodeId)!;
+
+        let state = runReducer({ run }, enterNode(target.id));
+        state = runReducer(state, enterNode(other.id));
+        state = runReducer(state, enterNode(target.id));
+
+        // Two entries, two counts. `encounterSeed` reads this number, which is the whole reason
+        // `visited` is a count and not a flag.
+        expect(state.run?.nodes.find((n) => n.id === target.id)?.visited).toBe(target.visited + 2);
+    });
+
+    it('leaves the phase on the map for a marketplace or a workshop', () => {
+        // Tickets 13, 14 and 30 own the three non-fight kinds. Entering still counts as a visit —
+        // the node fired, it just has nothing to do yet — and the run must not sit in
+        // `phase: 'encounter'` waiting for a battle nobody is going to start.
+        const run = makeRun();
+        for (const kind of ['marketplace', 'workshop'] as NodeKind[]) {
+            const target = nodeOfKind(run, kind);
+            const state = runReducer({ run }, enterNode(target.id));
+            expect(state.run?.phase).toBe('map');
+            expect(state.run?.nodes.find((n) => n.id === target.id)?.visited).toBe(target.visited + 1);
+        }
+    });
+
+    it('touches nothing else about the run', () => {
+        const run = makeRun();
+        const target = nodeOfKind(run, 'wild');
+        const state = runReducer({ run }, enterNode(target.id));
+
+        expect(state.run?.deck).toEqual(run.deck);
+        expect(state.run?.scrap).toBe(run.scrap);
+        expect(state.run?.fightsResolved).toBe(run.fightsResolved);
+        // Only the destination's count moved.
+        const changed = state.run!.nodes.filter((n, i) => n.visited !== run.nodes[i].visited);
+        expect(changed.map((n) => n.id)).toEqual([target.id]);
+    });
+
+    it('is a no-op for an id that names no node, and with no run at all', () => {
+        const start = { run: makeRun() };
+        expect(runReducer(start, enterNode('nowhere')).run).toBe(start.run);
+        expect(runReducer({ run: null }, enterNode('b0l0n0')).run).toBeNull();
+    });
+});
+
+describe('resolving an encounter', () => {
+    const firstWild = (run: IRunState): IRegionNode =>
+        run.nodes.find((n) => n.kind === 'wild' && n.id !== run.currentNodeId)!;
+
+    it('returns to the map and counts the fight', () => {
+        const run = makeRun();
+        let state = runReducer({ run }, enterNode(firstWild(run).id));
+        state = runReducer(state, resolveEncounter());
+
+        expect(state.run?.phase).toBe('map');
+        expect(state.run?.fightsResolved).toBe(1);
+    });
+
+    it('counts a farmed re-fight too', () => {
+        // "Wilds re-fight (full rewards — farming is fine)", so this counts fights, not nodes —
+        // ticket 25 reads it to find out whether the 35-45 minute run holds.
+        const run = makeRun();
+        const target = firstWild(run);
+        let state: RunSliceState = { run };
+        for (let i = 0; i < 3; i += 1) {
+            state = runReducer(state, enterNode(target.id));
+            state = runReducer(state, resolveEncounter());
+        }
+        expect(state.run?.fightsResolved).toBe(3);
+    });
+
+    it('is a no-op with no run in progress', () => {
+        expect(runReducer({ run: null }, resolveEncounter()).run).toBeNull();
+    });
+});
+
+describe('drivers', () => {
+    it('adds a driver', () => {
+        const state = runReducer({ run: makeRun() }, addDriver('relic_a'));
+        expect(state.run?.drivers).toEqual(['relic_a']);
+    });
+
+    it('dedupes — a driver is a passive, not currency', () => {
+        // `createBattleState` applies the list once per entry, so a duplicate would silently
+        // double the bonus.
+        let state = runReducer({ run: makeRun() }, addDriver('relic_a'));
+        state = runReducer(state, addDriver('relic_a'));
+        expect(state.run?.drivers).toEqual(['relic_a']);
+    });
+
+    it('is a no-op with no run in progress', () => {
+        expect(runReducer({ run: null }, addDriver('relic_a')).run).toBeNull();
+    });
+});
+
 describe('an app close mid-run resumes at the same node with the same seed', () => {
     it('round-trips a run through storage', () => {
         const run = makeRun();
@@ -96,7 +310,7 @@ describe('an app close mid-run resumes at the same node with the same seed', () 
             nodes: run.nodes.map((n) => (n.id === target.id ? { ...n, visited: n.visited + 1 } : n)),
         };
 
-        saveRanch(toRanchState({ ...createDefaultSave(), roster: PARTY }));
+        saveRanch({ ...createEmptyRanch(), roster: RANCH_PARTY });
         expect(saveRun(walked).success).toBe(true);
 
         const loaded = loadGameState();
@@ -134,7 +348,7 @@ describe('the two autosave arms are genuinely independent', () => {
         let prevRun = store.getState().run.run;
         store.subscribe(() => {
             const state = store.getState();
-            if (state.game !== prevGame) { saveRanch(toRanchState(state.game)); prevGame = state.game; }
+            if (state.game !== prevGame) { saveRanch(state.game); prevGame = state.game; }
             if (state.run.run !== prevRun) { saveRun(state.run.run); prevRun = state.run.run; }
         });
     }

@@ -3,15 +3,10 @@ import './App.css'
 import { useDispatch, useSelector } from 'react-redux'
 import BattleArena from './ui/components/BattleArena'
 import RanchScreen from './ui/screens/RanchScreen'
-import DeckTerminal from './ui/screens/DeckTerminal'
-import HubScreen from './ui/screens/HubScreen'
 import MainMenuView from './ui/components/MainMenuView'
-import SectorTerminal from './ui/screens/SectorTerminal'
 
 import RunScreen from './ui/screens/RunScreen'
 import { loadGameState } from './engine/SaveSystem'
-import { applyRanchState } from './engine/save/ranchProjection'
-import { createDefaultSave } from './engine/gameTypes'
 import { loadSave } from './ui/store/gameSlice'
 import { setRun } from './ui/store/runSlice'
 import type { RootState } from './ui/store/store'
@@ -32,29 +27,22 @@ const debugLayer = DebugRoot ? (
   </Suspense>
 ) : null;
 
-type Tab = 'ranch' | 'hub' | 'terminal' | 'deck' | 'debug';
-
 /**
- * TICKET 20: **the ranch is the only player-facing tab.** Roster, Lab and Relics folded into it;
- * the deck builder is gone from the ranch entirely, because cards are run-scoped and the team is
- * the deck.
+ * TICKET 11: **there are exactly two places to be — the ranch, or a run.**
  *
- * `hub`, `terminal` and `deck` survive as DEV-ONLY tabs and are marked "legacy". They are the
- * pre-roguelike run entry, and they are the only thing the debug scenario launcher's saved-deck
- * mode has to work against until the run loop exists. **Tickets 09 and 10 delete all three** —
- * `RegionMap` replaces `SectorTerminal` as the run's hub, and run start replaces QUICK DEPLOY.
+ * Ticket 20 folded Roster, Lab and Relics into `RanchScreen` and demoted Hub, Sectors and Deck to
+ * DEV-only "legacy" tabs, because they were still the only way to start a fight. They are gone now:
+ * run start replaced QUICK DEPLOY (ticket 09), `RegionMap` replaced the sector list (ticket 10), and
+ * this ticket replaced the sector battle with the node trigger. The deck builder went with them —
+ * cards are run-scoped and the team is the deck, so there is nothing at the ranch to build.
  */
-const LEGACY_TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'hub', label: 'Hub (legacy)', icon: '🏠' },
-  { id: 'terminal', label: 'Sectors (legacy)', icon: '📟' },
-  { id: 'deck', label: 'Deck (legacy)', icon: '🃏' },
-];
+type Tab = 'ranch' | 'debug';
 
 const debugTab: { id: Tab; label: string; icon: string } = { id: 'debug', label: 'Debug', icon: '🐞' };
 
 const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
   { id: 'ranch', label: 'Ranch', icon: '🏡' },
-  ...(import.meta.env.DEV ? [...LEGACY_TABS, debugTab] : []),
+  ...(import.meta.env.DEV ? [debugTab] : []),
 ];
 
 function App() {
@@ -62,7 +50,9 @@ function App() {
   const dispatch = useDispatch();
   const rosterSize = useSelector((state: RootState) => state.game.roster.length);
   const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
-  const gauntlet = useSelector((state: RootState) => state.game.gauntlet);
+  // Ticket 11: the gauntlet is run state (`IRunState.gauntlet`), not ranch state. Ticket 18 owns
+  // advancing it; all this needs to know is whether the battle on screen belongs to one.
+  const gauntlet = useSelector((state: RootState) => state.run.run?.gauntlet ?? null);
   const hasRun = useSelector((state: RootState) => state.run.run !== null);
 
   // Ticket 23 reads save v4's two keys and reconciles them; ticket 09 gives the run half a home.
@@ -77,8 +67,10 @@ function App() {
     if (result.discarded) {
       console.warn(`[Load] In-progress run discarded: ${result.discarded}. Your ranch is intact.`);
     }
+    // Ticket 11: `loadSave` takes the ranch verbatim. There is no projection step any more — the
+    // slice's shape and the stored shape are the same type.
     if (result.ranch) {
-      dispatch(loadSave(applyRanchState(createDefaultSave(), result.ranch)));
+      dispatch(loadSave(result.ranch));
     }
     if (result.run) {
       dispatch(setRun(result.run));
@@ -116,10 +108,10 @@ function App() {
   // normal case there rather than an edge one.
   //
   // Safe in ordinary play: createBattleState throws on an empty party, so no battle can exist
-  // alongside an empty roster except by debug injection. The defeat path only deletes the *stored*
-  // save while the overlay is up — state.game.roster stays populated — and both wipe paths
-  // (BattleArena's handleDefeatReset, HubScreen's handleRestart) call window.location.reload()
-  // immediately after resetSave(), so there is no frame where this order shows the wrong screen.
+  // alongside an empty roster except by debug injection. Ticket 11 removed the last thing that
+  // could have made that untrue mid-battle — the defeat path used to call `deleteSave()` while the
+  // overlay was still up. It does not any more: a defeat ends the run (`endRun('defeat')`) and
+  // touches nothing on the ranch, so the roster this branch reads is never emptied under it.
   if (isInBattle) {
     return <>{debugLayer}<BattleArena /></>;
   }
@@ -157,9 +149,6 @@ function App() {
       {/* Screen Content */}
       <div className="screen-content">
         {activeTab === 'ranch' && <RanchScreen />}
-        {activeTab === 'hub' && <HubScreen />}
-        {activeTab === 'terminal' && <SectorTerminal />}
-        {activeTab === 'deck' && <DeckTerminal />}
         {activeTab === 'debug' && DebugRoot && (
           <Suspense fallback={null}>
             <DebugRoot mode="docked" />

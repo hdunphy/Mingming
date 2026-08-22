@@ -2,9 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { IBattleState } from '../../engine/types';
 import { createBattleState } from '../../engine/data/battleFactories';
-import type { BattleOptions } from '../../engine/data/battleFactories';
+import type { BattleOptions, IBattleSetup } from '../../engine/data/battleFactories';
 import { battleReducer } from '../../engine/battleReducer';
-import type { IPlayerSave } from '../../engine/gameTypes';
 
 export interface BattleUIState {
     battle: IBattleState | null;
@@ -65,11 +64,16 @@ const battleSlice = createSlice({
         setBattleState: (state, action: PayloadAction<IBattleState | null>) => {
             state.battle = action.payload as any;
         },
-        startBattle: (state, action: PayloadAction<{ save: IPlayerSave; enemyIds: string[]; sectorElement?: any; options?: BattleOptions }>) => {
+        /**
+         * Ticket 11: the payload carries an `IBattleSetup`, not a save. The caller resolves the
+         * run's party against the ranch roster (`engine/run/battleSetup.ts`) before dispatching, so
+         * the battle slice never has to know which slice a fighter came out of.
+         */
+        startBattle: (state, action: PayloadAction<{ setup: IBattleSetup; enemyIds: string[]; sectorElement?: any; options?: BattleOptions }>) => {
             // options carries seed + enemyMode; dropping it here made
             // enemyMode: 'CARDS' and seeded battles unreachable from the UI.
             state.battle = createBattleState(
-                action.payload.save,
+                action.payload.setup,
                 action.payload.enemyIds,
                 action.payload.sectorElement,
                 action.payload.options

@@ -4,7 +4,6 @@ import battleReducer from './battleSlice';
 import gameReducer from './gameSlice';
 import runReducer from './runSlice';
 import { saveRanch, saveRun } from '../../engine/SaveSystem';
-import { toRanchState } from '../../engine/save/ranchProjection';
 import { reportSaveResult } from './saveHealth';
 
 /**
@@ -65,14 +64,16 @@ export const store = configureStore({
 // about — it is the irreplaceable half — while a failed run write costs at most the current run and
 // would otherwise fill the banner with noise on every step of the map. It still logs.
 //
-// `toRanchState` is the temporary projection from the pre-roguelike slice shape; ticket 11 deletes
-// it when the battle path moves onto run state. See `engine/save/ranchProjection.ts`.
+// TICKET 11: `state.game` IS an `IRanchState`, so it goes to `saveRanch` unchanged. There used to
+// be a `toRanchState` projection here, translating the pre-roguelike slice blob into the v4 ranch;
+// with the slice moved onto the ratified shape there is nothing left to translate, and the class of
+// bug where the projection and the slice drift apart cannot happen any more.
 let prevGameState = store.getState().game;
 let prevRunState = store.getState().run.run;
 store.subscribe(() => {
     const state = store.getState();
     if (state.game !== prevGameState) {
-        const result = saveRanch(toRanchState(state.game));
+        const result = saveRanch(state.game);
         if (!result.success) {
             console.error('[AutoSave] FAILED — progress is NOT being saved:', result.error);
         }

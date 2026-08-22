@@ -1,28 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { createBattleState } from './battleFactories';
+import type { IBattleSetup } from './battleFactories';
 import { GetMingmingData } from './mingmingRegistry';
-import { createDefaultSave, createMingmingInstance } from '../gameTypes';
-import type { IPlayerSave } from '../gameTypes';
+import { createMingmingInstance } from '../gameTypes';
+import type { Element } from '../types';
 
-const makeGymSave = (element: string, battleIndex: number = 2): IPlayerSave => {
-    const member = createMingmingInstance('fenrir');
-    return {
-        ...createDefaultSave(),
-        roster: [member],
-        activeParty: [member.id],
-        gauntlet: {
-            type: 'Gym',
-            element,
-            currentBattleIndex: battleIndex,
-            totalBattles: 3,
-            persistedStats: {}
-        }
-    };
-};
+/**
+ * Ticket 11: `createBattleState` takes an `IBattleSetup`, not a save. The gauntlet's element is the
+ * gym's — `IGauntletProgress` carries no element of its own — and `buildBattleSetup` is what reads
+ * it out of `GYM_REGISTRY`. This fixture states it directly, which is what the parameter is for.
+ */
+const makeGymSetup = (element: Element, fightIndex: number = 2): IBattleSetup => ({
+    party: [createMingmingInstance('fenrir')],
+    deck: [],
+    drivers: [],
+    persistedHp: {},
+    gauntlet: { element, fightIndex },
+});
 
 describe('createBattleState — tier-3 breach wardens match the sector element', () => {
     it('a Light gym gauntlet at battleIndex 2 spawns Light-species wardens', () => {
-        const state = createBattleState(makeGymSave('Light'), []);
+        const state = createBattleState(makeGymSetup('Light'), []);
 
         expect(state.enemyParty).toHaveLength(3);
         const [guard1, boss, guard2] = state.enemyParty;
@@ -43,7 +41,7 @@ describe('createBattleState — tier-3 breach wardens match the sector element',
     });
 
     it('a Fire breach still yields Fire species wardens', () => {
-        const state = createBattleState(makeGymSave('Fire'), []);
+        const state = createBattleState(makeGymSetup('Fire'), []);
         const boss = state.enemyParty[1];
 
         expect(boss.nickname).toBe('Fire Sector Warden');

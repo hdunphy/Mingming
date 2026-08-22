@@ -3,10 +3,12 @@
  *
  * Before this, a single render throw anywhere in the tree unmounted the whole app and left a
  * white screen. On the web that reads as "the game is broken"; on Steam it reads as a refund.
- * Worse, the only recovery a player could invent was a page reload, and the two places the app
- * *does* reload (`BattleArena.handleDefeatReset`, `HubScreen.handleRestart`) reload immediately
- * after deliberately wiping the save — so "reload to fix it" is muscle memory pointing at a
- * data-loss button.
+ * Worse, the only recovery a player could invent was a page reload, and at the time the app's own
+ * reloads (`BattleArena`'s defeat button, `HubScreen.handleRestart`) fired immediately after
+ * deliberately wiping the save — so "reload to fix it" was muscle memory pointing at a data-loss
+ * button. **Ticket 11 removed the defeat wipe**: a lost fight ends the run and leaves the ranch
+ * alone, and the button says so. The argument below is unchanged either way — a crash is not a
+ * defeat, and the boundary should never be the thing that decides a run is over.
  *
  * The screen therefore leads with the fact that matters — **the save is safe** — and offers the
  * two non-destructive exits: back to the ranch (clears the live battle, keeps the save) and a

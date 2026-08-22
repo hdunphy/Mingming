@@ -1,34 +1,44 @@
 import { describe, it, expect } from 'vitest';
 import { createBattleState, createMockEntity, instantiateDeck } from './battleFactories';
-import type { BattleOptions } from './battleFactories';
+import type { BattleOptions, IBattleSetup } from './battleFactories';
 import { generateEncounter } from './EncounterGenerator';
+import { getDeckForOS } from './mingmingRegistry';
 import { SeedStream, rollSeed } from '../core/SeedStream';
-import { createStarterSave, createMingmingInstance, createOwnedProgram } from '../gameTypes';
-import type { IPlayerSave } from '../gameTypes';
-import { PlayerSaveSchema } from '../gameTypes';
+import { createMingmingInstance, createOwnedProgram, createRanchMember } from '../gameTypes';
+import { RanchMemberSchema } from '../runTypes';
+import { toMingmingState } from '../run/battleSetup';
 
 /**
  * Ticket 09 "done when": same seed + same inputs => deep-equal IBattleState.
  *
- * 09 had to use a fixed save literal here, because createStarterSave() rolled
+ * 09 had to use a fixed save literal here, because the starter-save factory rolled
  * crypto.randomUUID() ids and Math.random() IVs - the save was an *input* that
  * differed between calls, and determinism of creation cannot paper over that.
- * Ticket 22 seeded the save factories, so the input is now generated from a
- * seed like everything else. That is the stronger proof, and the fixed literal
- * is gone.
+ * Ticket 22 seeded the factories, so the input is now generated from a seed like
+ * everything else. That is the stronger proof, and the fixed literal is gone.
+ *
+ * Ticket 11 replaced the save with an `IBattleSetup`, which is the same argument carried further:
+ * the input is now *only* the fields the battle actually reads, built here from the seeded ranch
+ * factory, so a change to some unrelated corner of the save shape can no longer perturb a
+ * determinism test.
  */
 const SAVE_SEED = 'ticket-22-save-seed';
-const SEEDED_SAVE: IPlayerSave = createStarterSave('fenrir', SAVE_SEED);
 
-const gymSave = (currentBattleIndex: number): IPlayerSave => ({
+function seededSetup(seed: string = SAVE_SEED): IBattleSetup {
+    return {
+        party: [toMingmingState(createRanchMember('fenrir', 'fenrir_v1', new SeedStream(seed)))],
+        deck: getDeckForOS('fenrir', 'fenrir_v1'),
+        drivers: [],
+        persistedHp: {},
+        gauntlet: null,
+    };
+}
+
+const SEEDED_SAVE: IBattleSetup = seededSetup();
+
+const gymSave = (fightIndex: number): IBattleSetup => ({
     ...SEEDED_SAVE,
-    gauntlet: {
-        type: 'Gym',
-        element: 'Fire',
-        currentBattleIndex,
-        totalBattles: 3,
-        persistedStats: {}
-    }
+    gauntlet: { element: 'Fire', fightIndex },
 });
 
 const SEED: BattleOptions = { seed: 'ticket-09-seed' };
@@ -137,26 +147,34 @@ describe('SeedStream', () => {
     });
 });
 
-describe('save factories are deterministic under a threaded seed (ticket 22)', () => {
-    it('same seed => deep-equal IPlayerSave', () => {
-        expect(createStarterSave('fenrir', SAVE_SEED)).toEqual(createStarterSave('fenrir', SAVE_SEED));
-        expect(createStarterSave('kraken', SAVE_SEED)).toEqual(createStarterSave('kraken', SAVE_SEED));
+describe('ranch factories are deterministic under a threaded seed (ticket 22)', () => {
+    // Ticket 11 deleted `createStarterSave` — a starter *save* is not a thing any more, because
+    // starting is now "spend a blueprint at the ranch, then pick a party at run start". What
+    // survives is the property those tests were really about: every factory that mints persistent
+    // identity replays exactly from its seed. The subject moved from the save to `createRanchMember`.
+    it('same seed => deep-equal IRanchMember', () => {
+        expect(createRanchMember('fenrir', 'fenrir_v1', new SeedStream(SAVE_SEED)))
+            .toEqual(createRanchMember('fenrir', 'fenrir_v1', new SeedStream(SAVE_SEED)));
+        expect(createRanchMember('kraken', 'kraken_v1', new SeedStream(SAVE_SEED)))
+            .toEqual(createRanchMember('kraken', 'kraken_v1', new SeedStream(SAVE_SEED)));
     });
 
-    it('a different seed produces a different save', () => {
-        expect(createStarterSave('fenrir', 'seed-a')).not.toEqual(createStarterSave('fenrir', 'seed-b'));
+    it('a different seed produces a different individual', () => {
+        expect(createRanchMember('fenrir', 'fenrir_v1', new SeedStream('seed-a')))
+            .not.toEqual(createRanchMember('fenrir', 'fenrir_v1', new SeedStream('seed-b')));
     });
 
     it('no seed still works, and rolls a fresh one per call', () => {
-        const a = createStarterSave('fenrir');
-        const b = createStarterSave('fenrir');
-        expect(a.roster).toHaveLength(1);
-        expect(a.cardInventory).toHaveLength(a.activeDeck!.cards.length);
+        const a = createRanchMember('fenrir');
+        const b = createRanchMember('fenrir');
+        expect(a.definitionId).toBe('fenrir');
+        // `activeOS` is required on IRanchMember and defaults to the species' first OS.
+        expect(a.activeOS).toBe('fenrir_v1');
         expect(a).not.toEqual(b);
     });
 
-    it('the generated save validates against PlayerSaveSchema (IVs stay in 0-31)', () => {
-        expect(PlayerSaveSchema.safeParse(createStarterSave('fenrir', SAVE_SEED)).success).toBe(true);
+    it('the generated member validates against RanchMemberSchema (IVs stay in 0-31)', () => {
+        expect(RanchMemberSchema.safeParse(createRanchMember('fenrir', 'fenrir_v1', new SeedStream(SAVE_SEED))).success).toBe(true);
         for (let i = 0; i < 200; i++) {
             const mm = createMingmingInstance('fenrir', new SeedStream('iv_' + i));
             for (const iv of [mm.attackIV, mm.defenseIV, mm.hpIV]) {
@@ -165,12 +183,6 @@ describe('save factories are deterministic under a threaded seed (ticket 22)', (
                 expect(iv).toBeLessThanOrEqual(31);
             }
         }
-    });
-
-    it('card instance ids are unique within a generated save', () => {
-        const ids = createStarterSave('kraken', SAVE_SEED).cardInventory.map(c => c.instanceId);
-        expect(ids.length).toBeGreaterThan(0);
-        expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('createMingmingInstance and createOwnedProgram replay from a shared stream', () => {

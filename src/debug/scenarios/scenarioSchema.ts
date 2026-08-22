@@ -6,9 +6,8 @@
  *   - `composed`  — a battle-start setup the launcher/sims can build a battle from.
  *   - `snapshot`  — a full mid-battle `IBattleState`, normalized per §3.
  *
- * Validation mirrors `src/engine/SaveSystem.ts`: `parse -> migrate -> validate`, with
- * IV bounds (int 0..31) and the max-3 party cap copied from `MingmingInstanceSchema` /
- * `PlayerSaveSchema`.
+ * Validation mirrors `src/engine/SaveSystem.ts`, with IV bounds (int 0..31) and the max-3 party
+ * cap copied from `RanchMemberSchema` / `engine/party.ts`'s `PARTY_SIZE`.
  *
  * Nothing outside `src/debug/` may import this module.
  */
@@ -202,7 +201,7 @@ export const ComposedSetupSchema = z.object({
     /** Explicit in files; no undefined-means-MOVES on disk. */
     enemyMode: z.enum(['MOVES', 'CARDS']),
     player: z.object({
-        /** Max 3, mirroring `PlayerSaveSchema.activeParty` (SaveSystem.ts:61). */
+        /** Max 3, mirroring `engine/party.ts`'s `PARTY_SIZE` and `RunStateSchema.partyIds`. */
         party: z.array(PartyMemberSetupSchema).max(3),
         deck: z.array(z.string()),
         relics: z.array(z.string()),

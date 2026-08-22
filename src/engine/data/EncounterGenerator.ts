@@ -48,8 +48,14 @@ export function generateEncounter(options: IEncounterOptions): IGeneratedEncount
     // WHICH species, deck and OS it fields. The ±2 PRNG draw is deleted rather than ignored,
     // because a dead draw would silently shift every downstream roll in this seeded stream.
 
-    // Randomize Party Size
-    const { value: partySize } = prng.nextInt(1, playerParty.length);
+    // Ticket 11: the enemy party MIRRORS the player's. This used to be `prng.nextInt(1,
+    // playerParty.length)`, which meant a three-member team spent a third of its fights against a
+    // lone enemy — variance in name only, and the reason the pre-run game's difficulty read as
+    // random rather than designed. A run's encounters are sized by `engine/run/encounter.ts`
+    // (symmetric, with ticket 07's ambush and alpha exceptions); this generator keeps the same
+    // default for the callers it still has. The draw is DELETED rather than ignored, because a dead
+    // draw would silently shift every roll below it in this seeded stream.
+    const partySize = playerParty.length;
 
     // 3. Filter Mingmings by Element (shared with the UI's sector intel list)
     const eligibleMingmingIds = getSectorSpecies(sectorElement).map(def => def.id);

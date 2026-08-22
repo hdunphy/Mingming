@@ -3,11 +3,10 @@
  *
  * WHY THIS PANEL IS THE POINT OF THE WHOLE TICKET
  *
- * Injecting a debug battle is safe. *Ending* one is not: `BattleArena` dispatches
- * `syncPartyStats`, `applyRewardBundle`, `addRelic` and the gauntlet actions into `gameSlice`,
- * and `src/ui/store/store.ts:43-54` autosaves every game-state change straight to localStorage.
- * `syncPartyStats` matches roster members by id and the scenario launcher's primary preset
- * reuses real roster ids, so a fabricated debug level lands on a real mingming. Slots are the
+ * Injecting a debug battle is safe. *Ending* one is not: `BattleArena` dispatches the reward
+ * actions into `gameSlice` and `runSlice`, and `src/ui/store/store.ts` autosaves every ranch
+ * change straight to localStorage. The scenario launcher's primary preset reuses real roster ids,
+ * so a fabricated debug battle pays its blueprints and gym clears into a real ranch. Slots are the
  * containment: switch to a scratch slot, break whatever you like, switch back.
  *
  * Every mutation here goes through `../saveSlots`, which vets a slot's payload against save v4's
@@ -35,7 +34,6 @@ import {
     type SaveSlot,
 } from '../../engine/SaveSlots';
 import { loadGameState } from '../../engine/SaveSystem';
-import { toRanchState } from '../../engine/save/ranchProjection';
 import type { RootState } from '../../ui/store/store';
 import { savesAreIdentical, validateSave } from '../saveEdit';
 import { createSlotOp, deleteSlotOp, readSlotSave, switchToSlot, type SlotOpResult } from '../saveSlots';
@@ -137,12 +135,15 @@ function describeSlot(slotId: string): { tone: string; text: string } {
     const read = readSlotSave(slotId);
     if (read.kind === 'empty') return { tone: WARN, text: 'empty — switching here starts a fresh run' };
     if (read.kind === 'invalid') return { tone: BAD, text: `INVALID: ${read.issues.join(' · ')}` };
-    const save = read.save;
+    // Ticket 11: a slot holds a ranch, so this line reads the four things a ranch actually has.
+    // Scrap, relics and gauntlet progress are run state and were never in these bytes.
+    const ranch = read.save;
+    const blueprints = Object.values(ranch.blueprints).reduce((sum, n) => sum + n, 0);
     return {
         tone: OK,
-        text: `roster ${save.roster.length} · scrap ${save.scrapCount} · relics ${save.relics.length} · ${
-            save.gauntlet ? `gauntlet ${save.gauntlet.element}` : 'no gauntlet'
-        }`,
+        text: `roster ${ranch.roster.length} · blueprints ${blueprints} · gyms ${
+            ranch.gymsCleared.length
+        } · tier ${ranch.highestTierCleared}`,
     };
 }
 
@@ -166,9 +167,8 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
     const activeId = getActiveSlotId();
 
     // Same readout the save editor shows: is what is on disk in this slot what the store holds?
-    // It matters here because "Copy current save" duplicates the *stored* bytes. Compared as
-    // ranches (ticket 23) — the slice's run-scoped half is never written, so comparing whole
-    // slices would report a permanent, meaningless drift.
+    // It matters here because "Copy current save" duplicates the *stored* bytes. Since ticket 11
+    // the live slice and the stored ranch are the same shape, so this is a straight comparison.
     const persisted = ((): { ranch: unknown; error?: string } => {
         try {
             return loadGameState();
@@ -177,7 +177,7 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
         }
     })();
     const liveValid = validateSave(save);
-    const inSync = persisted.ranch !== null && savesAreIdentical(persisted.ranch, toRanchState(save));
+    const inSync = persisted.ranch !== null && savesAreIdentical(persisted.ranch, save);
 
     const report = (verb: string, op: SlotOpResult): void => {
         bumpRevision();
@@ -217,7 +217,7 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
             {'\n'}
             keys {slotRanchKey(activeId)} + {slotRunKey(activeId)} — every autosave, defeat wipe and hub
             restart hits these keys and nothing else.
-            {!liveValid.valid && `\nlive state fails PlayerSaveSchema, so this slot is NOT persisting.`}
+            {!liveValid.valid && `\nlive state fails RanchStateSchema, so this slot is NOT persisting.`}
             {liveValid.valid && !inSync && `\nstored copy is behind the live state — the last autosave did not land.`}
         </div>
     );
@@ -355,9 +355,8 @@ export default function SaveSlotsPanel({ presentation }: DebugPanelProps): React
                 {slotList}
                 <div style={noteStyle}>
                     Switching clears any live battle *before* the active pointer moves. Otherwise a debug
-                    battle started in one slot could end after the switch and write its levels, HP and
-                    rewards into the other one — syncPartyStats matches roster members by id, and debug
-                    scenarios reuse real ids.
+                    battle started in one slot could end after the switch and write its blueprints and
+                    gym clears into the other one.
                 </div>
             </section>
 

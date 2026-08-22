@@ -31,14 +31,12 @@ import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegist
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { getActiveSlotId, listSlots } from '../../engine/SaveSlots';
-import { SeedStream, rollSeed } from '../../engine/core/SeedStream';
-import { createOwnedProgram } from '../../engine/gameTypes';
-import type { IOwnedProgram, IPlayerSave } from '../../engine/gameTypes';
+import { rollSeed } from '../../engine/core/SeedStream';
+import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
 import type {
     EnemyCombatMode,
     IBattleEntity,
     IBattleState,
-    IMingmingState,
     IMove,
     StatusEffectInstance,
     StatusType,
@@ -54,10 +52,10 @@ import type {
     PartyMemberSetup,
 } from './scenarioSchema';
 
-/** Mirrors `PlayerSaveSchema.activeParty` / `ComposedSetupSchema.player.party`. */
+/** Mirrors `engine/party.ts`'s `PARTY_SIZE` / `ComposedSetupSchema.player.party`. */
 export const MAX_PARTY = 3;
 
-/** `base` = each unit's species deck, `saved` = the save's deck, `loaded` = came from a file. */
+/** `base` = each unit's species deck, `saved` = the RUN's deck, `loaded` = came from a file. */
 export type DeckMode = 'base' | 'saved' | 'loaded';
 
 /**
@@ -201,23 +199,28 @@ export function applySpecies(unit: LauncherUnit, definitionId: string): Launcher
  * `Mirror my save party` — the primary player-column action (ticket 04's resolution: "the
  * default way to start, not a convenience tucked away").
  *
- * Reads `activeParty` and falls back to the head of the roster, matching what the real
- * battle path puts on the field. Levels, IVs and `activeOS` are copied verbatim, so the
- * mirrored party is the run's actual party and not an idealized one.
+ * TICKET 11: THERE IS NO PERSISTENT PARTY TO MIRROR ANY MORE. `IRanchState` holds a roster and
+ * nothing that says which of it is deployed — the party is `IRunState.partyIds`, chosen at run
+ * start. So this mirrors **the run's party when a run is in progress**, which is the literal
+ * answer to "who am I currently fighting with", and falls back to the head of the ranch roster
+ * otherwise, which is the same fallback it always had for an empty party.
+ *
+ * IVs and `activeOS` are copied verbatim, so the mirrored party is the real one and not an
+ * idealized one.
  */
-export function mirrorSaveParty(save: IPlayerSave): LauncherUnit[] {
-    const byId = new Map(save.roster.map((member) => [member.id, member]));
-    const chosen = save.activeParty
+export function mirrorSaveParty(ranch: IRanchState, run: IRunState | null): LauncherUnit[] {
+    const byId = new Map(ranch.roster.map((member) => [member.id, member]));
+    const chosen = (run?.partyIds ?? [])
         .map((id) => byId.get(id))
-        .filter((member): member is NonNullable<typeof member> => member !== undefined);
-    const source = (chosen.length > 0 ? chosen : save.roster).slice(0, MAX_PARTY);
+        .filter((member): member is IRanchMember => member !== undefined);
+    const source = (chosen.length > 0 ? chosen : ranch.roster).slice(0, MAX_PARTY);
 
     return source.map((member) => ({
         ...createUnit(member.definitionId),
         attackIV: member.attackIV,
         defenseIV: member.defenseIV,
         hpIV: member.hpIV,
-        activeOS: member.activeOS ?? osOptions(member.definitionId)[0] ?? '',
+        activeOS: member.activeOS || osOptions(member.definitionId)[0] || '',
     }));
 }
 
@@ -225,34 +228,25 @@ export function mirrorSaveParty(save: IPlayerSave): LauncherUnit[] {
 
 export interface SavedDeck {
     name: string;
-    /** Program *data* ids, already resolved out of `cardInventory`. */
+    /** Program *data* ids. A run deck holds them directly — see below. */
     cards: string[];
-    /** Instance ids in the deck that are not in `cardInventory` — dropped from `cards`. */
-    missing: number;
 }
 
 /**
- * The save's deck, resolved instance-id -> dataId exactly as `createBattleState` does
- * (`battleFactories.ts:264-271`).
+ * The RUN's deck (ticket 11).
  *
- * `IPlayerSave` holds a single `activeDeck`, not a library of named decks, so "saved deck"
- * is a one-entry list. `DeckTerminal` is where its contents come from; the launcher only
- * reads it.
+ * This used to read `IPlayerSave.activeDeck`, a list of `cardInventory` instance ids that had to be
+ * resolved back to dataIds exactly the way `createBattleState` did — and a deck entry naming a card
+ * that was no longer in the inventory was a real, countable failure mode, which is what the old
+ * `missing` field reported. `IRunCard` carries its `dataId`, so both the indirection and the
+ * failure mode are gone: there is nothing left to fail to resolve.
+ *
+ * Null when there is no run. The deck is run state now, so "no run" is the honest answer rather
+ * than an empty deck.
  */
-export function savedDeck(save: IPlayerSave): SavedDeck | null {
-    const deck = save.activeDeck;
-    if (!deck) return null;
-
-    const inventory = new Map(save.cardInventory.map((card) => [card.instanceId, card.dataId]));
-    const cards: string[] = [];
-    let missing = 0;
-    for (const instanceId of deck.cards) {
-        const dataId = inventory.get(instanceId);
-        if (dataId === undefined) missing += 1;
-        else cards.push(dataId);
-    }
-
-    return { name: deck.name, cards, missing };
+export function savedDeck(run: IRunState | null): SavedDeck | null {
+    if (!run) return null;
+    return { name: 'run deck', cards: run.deck.map((card) => card.dataId) };
 }
 
 /** Union of the party's per-OS starting decks — one shared pool, per schema v1 (ticket 13). */
@@ -268,7 +262,7 @@ export interface ResolvedDeck {
     issues: string[];
 }
 
-export function resolveDeck(draft: LauncherDraft, save: IPlayerSave | null): ResolvedDeck {
+export function resolveDeck(draft: LauncherDraft, run: IRunState | null): ResolvedDeck {
     if (draft.deckMode === 'loaded') {
         return {
             cards: [...draft.loadedDeck],
@@ -278,24 +272,25 @@ export function resolveDeck(draft: LauncherDraft, save: IPlayerSave | null): Res
     }
 
     if (draft.deckMode === 'saved') {
-        const deck = save ? savedDeck(save) : null;
+        const deck = savedDeck(run);
         if (!deck) {
+            // Ticket 11 deleted `DeckTerminal` along with the persistent deck, so pointing the
+            // reader at it would be pointing at nothing. The deck comes from a run now, and the
+            // only two ways to get one are to start a run or to stop asking for its deck.
             return {
                 cards: [],
-                source: 'saved deck — none in the active save',
+                source: 'saved deck — no run in progress',
                 issues: [
-                    'The active save has no deck. Build one in DeckTerminal, or switch to base decks.',
+                    'No run in progress — start one from the ranch, or switch to base decks.',
                 ],
             };
         }
         return {
             cards: deck.cards,
-            source: `saved deck "${deck.name}" — ${deck.cards.length} cards`,
+            source: `run deck — ${deck.cards.length} cards`,
             issues:
-                deck.missing > 0
-                    ? [
-                          `${deck.missing} card(s) in "${deck.name}" are not in cardInventory and were dropped.`,
-                      ]
+                deck.cards.length === 0
+                    ? ['The run in progress has an empty deck.']
                     : [],
         };
     }
@@ -346,7 +341,7 @@ export const UNROLLED_SEED = '‹rolled on launch›';
  */
 export function toComposedSetup(
     draft: LauncherDraft,
-    save: IPlayerSave | null,
+    run: IRunState | null,
     seedOverride?: string,
 ): ComposedSetup {
     return {
@@ -354,7 +349,7 @@ export function toComposedSetup(
         enemyMode: draft.enemyMode,
         player: {
             party: draft.party.map(toMemberSetup),
-            deck: resolveDeck(draft, save).cards,
+            deck: resolveDeck(draft, run).cards,
             relics: [...draft.relics],
         },
         enemies: draft.enemies.map(toEnemySetup),
@@ -429,11 +424,10 @@ export interface DestinationSlot {
  * Which save a battle launched from here will write into when it ends.
  *
  * THIS IS THE SAFETY AFFORDANCE, NOT DECORATION. Injecting a battle is harmless; *ending*
- * one is not. `BattleArena` dispatches `syncPartyStats`, `applyRewardBundle` and `addRelic`
- * into `gameSlice` on the way out, and `src/ui/store/store.ts` autosaves every game-state
- * change into the active slot. `syncPartyStats` matches roster members by id, and
- * `Mirror my save party` reuses the real party's species and levels — so a scenario composed
- * while the real save is active can hand a fabricated level to a real mingming with no undo.
+ * one is not. `BattleArena` dispatches `addBlueprint`, `markGymCleared` and `recordTierCleared`
+ * into `gameSlice` on the way out, and `src/ui/store/store.ts` autosaves every ranch change into
+ * the active slot. So a scenario composed while the real save is active can pay blueprints and gym
+ * clears into it with no undo.
  *
  * Reads storage at call time (localStorage is not reactive), so switching slots in the Slots
  * panel and coming back shows the new one.
@@ -453,91 +447,60 @@ export function destinationSlot(): DestinationSlot {
 /**
  * WHY A SCENARIO SEEDS THE SLOT IT LAUNCHES INTO
  *
- * A fresh slot starts from `createDefaultSave()`, whose `roster` is `[]`. Ending a scenario
- * battle there returns to `App.tsx`, which falls through to `MainMenuView` — the starter
- * picker — and that view renders no nav bar, so the docked Debug tab is unreachable until the
- * slot has a roster. Worse, `syncPartyStats` had nothing to write into: the battle's XP and
- * levels went nowhere.
+ * A fresh slot starts from an empty ranch, whose `roster` is `[]`. Ending a scenario battle there
+ * returns to `App.tsx`, which falls through to `MainMenuView` — the starter picker — and that view
+ * renders no nav bar, so the docked Debug tab is unreachable until the slot has a roster.
  *
- * Seeding the empty slot from the battle turns the scratch slot into a real, continuable save:
- * finish the battle, land in the hub with those mingmings, launch the next one.
+ * Seeding the empty slot from the battle turns the scratch slot into a real, continuable ranch:
+ * finish the battle, land at the ranch with those mingmings, launch the next one.
  *
- * THE IDS MUST BE THE BATTLE'S IDS. `gameSlice`'s `syncPartyStats` (`gameSlice.ts:245`)
- * matches roster members to battle entities *by id*, and `buildScenarioState` mints entity
- * ids off its own `SeedStream`. A roster seeded from `ComposedSetup` instead — which carries
- * no ids at all — would look right and silently drop every level and XP gain on the way out.
- * So the roster is derived from the materialized `playerParty` and nothing else.
+ * THE IDS ARE THE BATTLE'S IDS. `buildScenarioState` mints entity ids off its own `SeedStream`, and
+ * a roster seeded from `ComposedSetup` instead — which carries no ids at all — would name
+ * individuals that nothing in the battle refers to. So the roster is derived from the materialized
+ * `playerParty` and nothing else.
+ *
+ * TICKET 11: **ONLY THE ROSTER IS SEEDED NOW.** The old version also wrote the scenario's deck into
+ * `cardInventory` + `activeDeck` and unioned its relics into the save. A ranch holds neither: cards
+ * are `IRunState.deck` and relics are `IRunState.drivers`, and a scratch slot has no run. Seeding
+ * them somewhere would mean inventing a run around a debug battle, which is a bigger claim than the
+ * launcher is entitled to make — the battle already got the deck and the drivers directly, out of
+ * `ComposedSetup`, which is where the launcher's authority actually lies.
  */
 
 /**
- * Roster projection of a battle entity.
+ * Ranch projection of a battle entity.
  *
- * `IBattleEntity extends IMingmingState`, so the persistent fields are already there; this
- * picks exactly them and drops the derived/transient combat half (maxHp, currentHp, energy,
- * statuses, daemons, intents), none of which the save is allowed to carry.
+ * `IBattleEntity extends IMingmingState`, so the identity fields are already there; this picks
+ * exactly the ones `IRanchMember` keeps and drops both the derived/transient combat half (maxHp,
+ * currentHp, energy, statuses, daemons, intents) and `blueprintsCollected`, which the ranch does
+ * not carry — blueprints are a ranch-level count now (ticket 20), not a per-individual tally.
+ *
+ * `activeOS` is required on `IRanchMember` and optional on the entity, so an entity with none
+ * resolves to the species' first OS — the same fallback every other subsystem uses.
  */
-function toRosterMember(entity: IBattleEntity): IMingmingState {
+function toRosterMember(entity: IBattleEntity): IRanchMember {
     return {
         id: entity.id,
         definitionId: entity.definitionId,
-        blueprintsCollected: entity.blueprintsCollected,
+        activeOS: entity.activeOS ?? osOptions(entity.definitionId)[0] ?? `${entity.definitionId}_v1`,
         attackIV: entity.attackIV,
         defenseIV: entity.defenseIV,
         hpIV: entity.hpIV,
         ...(entity.nickname !== undefined ? { nickname: entity.nickname } : {}),
-        ...(entity.activeOS !== undefined ? { activeOS: entity.activeOS } : {}),
     };
 }
 
-/** Id and name the seeded deck is written under, so a hub-side deck is recognisable as ours. */
-export const SEEDED_DECK_ID = 'scenario-seeded-deck';
-export const SEEDED_DECK_NAME = 'Scenario Deck';
-
 /**
- * The save a scratch slot should hold once this battle exists in it. Pure — computes, does
- * not dispatch, and is validated before anything is dispatched (see `launchScenario`).
- *
- * `roster` / `activeParty` come from `state.playerParty` (ids included, see above).
- *
- * The deck comes from `setup.player.deck`, which is *dataIds* — the output of `resolveDeck`.
- * `IPlayerSave` stores a deck as `activeDeck.cards`, a list of `cardInventory` *instance*
- * ids (`gameTypes.ts:20-24`), and `createBattleState` resolves one to the other exactly the
- * way `savedDeck` above does (`battleFactories.ts:264-271`). So each dataId is minted into a
- * fresh `IOwnedProgram` and the deck references those instance ids; anything else produces an
- * `activeDeck` whose entries resolve to nothing and a next battle with no cards.
- *
- * Instance ids are minted off a `SeedStream` seeded with the scenario seed rather than
- * `crypto.randomUUID()`, keeping the whole launch path deterministic.
- *
- * Non-destructive where it can be: existing inventory is appended to rather than replaced,
- * relics are unioned, and an existing `activeDeck` is only replaced when the scenario actually
- * resolved cards. `baseDecksGranted` is deliberately left alone — the scenario deck is not the
- * species grant, and claiming it was would silently rob a later real synthesis of its base deck.
+ * The ranch a scratch slot should hold once this battle exists in it. Pure — computes, does not
+ * dispatch, and is validated before anything is dispatched (see `launchScenario`).
  */
 export function seedSaveFromBattle(
-    save: IPlayerSave,
-    setup: ComposedSetup,
+    ranch: IRanchState,
     state: IBattleState,
-): IPlayerSave {
-    const rng = new SeedStream(setup.seed);
-    const roster = state.playerParty.map(toRosterMember);
-    const granted: IOwnedProgram[] = setup.player.deck.map((dataId) => createOwnedProgram(dataId, rng));
-
+): IRanchState {
     return {
-        ...save,
-        roster,
-        // `PlayerSaveSchema.activeParty` is capped at 3; a scenario file could carry more.
-        activeParty: roster.slice(0, MAX_PARTY).map((member) => member.id),
-        cardInventory: [...save.cardInventory, ...granted],
-        activeDeck:
-            granted.length > 0
-                ? {
-                      id: SEEDED_DECK_ID,
-                      name: SEEDED_DECK_NAME,
-                      cards: granted.map((card) => card.instanceId),
-                  }
-                : save.activeDeck,
-        relics: [...new Set([...save.relics, ...setup.player.relics])],
+        ...ranch,
+        roster: state.playerParty.map(toRosterMember),
     };
 }
 
@@ -549,11 +512,11 @@ export interface LaunchResult {
     seed?: string;
     state?: IBattleState;
     error?: string;
-    /** True when an empty active save was seeded from this battle's party and deck. */
+    /** True when an empty active ranch was seeded with this battle's party. */
     seeded?: boolean;
     /**
      * Why the seed was refused. The battle still launched: an unseeded battle is merely
-     * inconvenient, a schema-invalid save wedges every autosave from that point on.
+     * inconvenient, a schema-invalid ranch wedges every autosave from that point on.
      */
     seedIssues?: ReadonlyArray<string>;
 }
@@ -575,21 +538,21 @@ export type LaunchDispatch = (action: ReturnType<typeof setBattleState> | SaveEd
  * A blank seed is rolled here, once, and reported back so the panel can pin it in the field:
  * a scenario you cannot re-run with the same seed is not a repro.
  *
- * `save` is the *active slot's* save. Pass it to get the empty-slot seeding described above;
+ * `ranch` is the *active slot's* ranch. Pass it to get the empty-slot seeding described above;
  * omit it (or pass null) and this is launch and nothing else. Seeding happens only when
- * `save.roster` is empty — a slot branched from a real run with `Copy current save` keeps its
+ * `ranch.roster` is empty — a slot branched from a real run with `Copy current save` keeps its
  * own roster, untouched. That conditional is the entire safety property here.
  *
  * The seed is dispatched *before* the battle, and only after `prepareEdit` has validated the
- * prospective save against `PlayerSaveSchema` without dispatching (`saveEdit.ts`, audit gap
- * #18: a schema-invalid save fails the autosave with nothing but a `console.error`). Same
- * ordering discipline as `switchToSlot`: get the save into its final shape while no battle
+ * prospective ranch against `RanchStateSchema` without dispatching (`saveEdit.ts`, audit gap
+ * #18: a schema-invalid ranch fails the autosave with nothing but a `console.error`). Same
+ * ordering discipline as `switchToSlot`: get the ranch into its final shape while no battle
  * exists that could end into it.
  */
 export function launchScenario(
     setup: ComposedSetup,
     dispatch: LaunchDispatch,
-    save?: IPlayerSave | null,
+    ranch?: IRanchState | null,
 ): LaunchResult {
     const seed = setup.seed === UNROLLED_SEED || setup.seed.trim() === '' ? rollSeed() : setup.seed;
     const resolved: ComposedSetup = { ...setup, seed };
@@ -604,8 +567,8 @@ export function launchScenario(
     let seeded = false;
     let seedIssues: ReadonlyArray<string> | undefined;
 
-    if (save && save.roster.length === 0) {
-        const prepared = prepareEdit(save, loadSave(seedSaveFromBattle(save, resolved, state)));
+    if (ranch && ranch.roster.length === 0) {
+        const prepared = prepareEdit(ranch, loadSave(seedSaveFromBattle(ranch, state)));
         if (prepared.ok) {
             dispatch(prepared.action);
             seeded = true;
@@ -614,8 +577,8 @@ export function launchScenario(
             // The panel says so too, but the panel closes on launch — and this is exactly the
             // class of failure that otherwise only ever shows up as lost progress.
             console.warn(
-                '[launchScenario] Refused to seed the empty save — it would not pass ' +
-                    `PlayerSaveSchema:\n${prepared.issues.join('\n')}`,
+                '[launchScenario] Refused to seed the empty ranch — it would not pass ' +
+                    `RanchStateSchema:\n${prepared.issues.join('\n')}`,
             );
         }
     }

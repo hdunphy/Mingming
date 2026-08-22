@@ -74,8 +74,13 @@ const warnedMissingKits = new Set<string>();
  * tuned deck is the honest approximation: it is the same list the tags are chosen *from*, just
  * without anyone having chosen. The `console.warn` is what keeps that from being mistaken for a
  * ruled kit when someone reads a playtest log.
+ *
+ * **Exported since ticket 11.** `engine/run/encounter.ts` fields enemies under the same ruling
+ * (ticket 08's kit fraction: a biome-1 enemy holds "the species' `startKit`"), and it has to be the
+ * *same* five cards the player would get from that species, chosen by the same tags and the same
+ * untagged fallback. A second implementation would drift the moment a kit was retagged.
  */
-function kitIdsFor(member: IMingmingState, size: number): string[] {
+export function startKitIdsFor(member: IMingmingState, size: number): string[] {
     const definition = GetMingmingData(member.definitionId);
     const os = member.activeOS ?? definition.availableOS[0];
     const tagged = definition.startKits?.[os];
@@ -122,7 +127,7 @@ function mintCards(member: IMingmingState, dataIds: ReadonlyArray<string>, strea
  */
 export function startDeckFor(member: IMingmingState, stream: SeedStream): IRunCard[] {
     const ids = [
-        ...kitIdsFor(member, START_KIT_SIZE),
+        ...startKitIdsFor(member, START_KIT_SIZE),
         ...Array.from({ length: START_GENERICS }, () => GENERIC_HIT),
     ];
     return mintCards(member, ids, stream);
@@ -135,7 +140,7 @@ export function startDeckFor(member: IMingmingState, stream: SeedStream): IRunCa
  */
 export function recruitDeckFor(member: IMingmingState, stream: SeedStream): IRunCard[] {
     const ids = [
-        ...kitIdsFor(member, RECRUIT_KIT_SIZE),
+        ...startKitIdsFor(member, RECRUIT_KIT_SIZE),
         ...Array.from({ length: RECRUIT_GENERICS }, () => GENERIC_HIT),
     ];
     return mintCards(member, ids, stream);

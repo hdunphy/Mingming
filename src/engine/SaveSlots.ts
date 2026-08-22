@@ -5,12 +5,12 @@
  *
  * WHY THIS MODULE EXISTS
  *
- * Ending a battle is a write to the real save. `BattleArena` dispatches `syncPartyStats`,
- * `applyRewardBundle`, `addRelic` and the gauntlet actions into `gameSlice`, and
+ * Ending a battle is a write to the real save. `BattleArena` dispatches `addBlueprint`,
+ * `markGymCleared` and `recordTierCleared` into `gameSlice` (ticket 11 split the reward claim
+ * across the two slices — the run takes the scrap, cards and drivers), and
  * `src/ui/store/store.ts`'s subscription autosaves every `state.game` change straight to storage.
- * `syncPartyStats` matches roster members *by id*, and a fabricated debug battle can reuse
- * real roster ids — so a debug run that is allowed to end lands its levels, HP and rewards on
- * the player's actual mingmings. There is no undo.
+ * A fabricated debug battle can reuse real roster ids — so a debug run that is allowed to end
+ * lands its blueprints and gym clears on the player's actual ranch. There is no undo.
  *
  * Slots are the containment: debug work happens in a slot the operator picked, and the real
  * save sits in a different key that nothing in that session writes.

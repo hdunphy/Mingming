@@ -5,13 +5,11 @@
  *
  * WHY THIS DOES NOT CALL `createBattleState`
  * ------------------------------------------
- * `createBattleState` picks one of four mutually exclusive branches from the *save* shape
- * (gym tier 1/2/3, sector, fixed). Only the last honours `enemyIds`, and it force-overrides
- * every enemy's level to `Math.max(...playerParty.level)` (battleFactories.ts, the "Fallback
- * or fixed encounters" branch) - precisely the thing a scenario must not do, since per-enemy
- * level is one of the audit gaps `ComposedSetup` exists to close. The other three branches
- * generate their enemies procedurally and ignore the list entirely. So the party is built
- * here, directly, from `initializeBattleEntity`.
+ * `createBattleState` picks one of four mutually exclusive branches from its input (gym tier
+ * 1/2/3, sector, fixed). Only the last honours `enemyIds`; the other three generate their enemies
+ * procedurally and ignore the list entirely, and the fixed branch builds each enemy from a species
+ * id with no room for the per-enemy overrides `ComposedSetup` exists to express. So the party is
+ * built here, directly, from `initializeBattleEntity`.
  *
  * Everything downstream of party construction *is* shared with the real creation path -
  * `instantiateDeck`, `drawCards`, `generateIntents`, and the same field-for-field battle
@@ -32,15 +30,15 @@
  * store. Callers take the returned state and inject it however the debug gating
  * architecture decides.
  *
- * `setup.gauntlet` is deliberately untouched: `IBattleState` has no gauntlet field (it
- * lives on the save / `gameSlice`), and the one way it reaches battle creation - patching
- * `currentHp` from `persistedStats` - is already expressed directly as per-member
- * `currentHp` here. It is run context for the injection layer to restore, not battle state.
+ * `setup.gauntlet` is deliberately untouched: `IBattleState` has no gauntlet field (it lives on
+ * the run - `IRunState.gauntlet`, ticket 11), and the one way it reaches battle creation - patching
+ * `currentHp` from the carried HP - is already expressed directly as per-member `currentHp` here.
+ * It is run context for the injection layer to restore, not battle state.
  *
- * No `IPlayerSave` shim turned out to be needed: nothing on the direct-build path takes
+ * No `IBattleSetup` shim turned out to be needed either: nothing on the direct-build path takes
  * one. `initializeBattleEntity` takes an instance + definition, `instantiateDeck` takes
  * dataIds, `drawCards` takes a deck. Only `createBattleState` - the function being
- * bypassed - wants a save.
+ * bypassed - wants the assembled setup.
  */
 
 import type {
