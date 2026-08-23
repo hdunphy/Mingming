@@ -91,6 +91,12 @@ export const REGION_PARAMS = {
     /** "1 dead-end side node per biome." */
     pocketsPerBiome: 1,
     /**
+     * Ticket 24: the layer of BIOME 0 whose nodes are forced to `wild`, so a run's first step out of
+     * the entry is always a fight. Slay the Spire's model, ruled 2026-08-23. Only biome 0 — biomes 1
+     * and 2 open on a fought entry node already, and their layer 1 is ordinary map.
+     */
+    scriptedOpeningLayer: 1,
+    /**
      * Rolled uniformly from this list, so `wild` lands half the time: a pocket is usually a farming
      * detour and occasionally the alpha (guards a guaranteed blueprint) or the ambush (their 3 vs
      * your 2). Duplicating `wild` rather than writing weights keeps this identical to the
@@ -267,10 +273,28 @@ export function generateRegionGraph(seed: string): RegionGraph {
         // The guarantees go in first and the remainder is drawn from the weighted pool, then the
         // whole list is shuffled onto the nodes. There are at least 3 x 2 = 6 middle nodes per
         // biome, so the two guaranteed kinds always fit.
+        /*
+         * TICKET 24, re-ruled 2026-08-23: **biome 0's layer 1 is always a fight.**
+         *
+         * Henry: *"it's fine to script the first encounter to an easy fight like slay the spire"* —
+         * and in Slay the Spire the first room of an act is always combat. Without this the opening
+         * step could be a marketplace with no scrap to spend, or (worse) the biome-0 elite, which
+         * takes the FULL tuned deck at any depth: a brand-new player with one mingming and eight
+         * cards against a complete per-OS list.
+         *
+         * The guarantee still fits: it displaces 2-3 nodes out of a biome's 6-9 middles, and the
+         * market and workshop are placed first into what is left, across layers 2-3.
+         */
+        const scripted = biomeIndex === 0
+            ? middles.filter((node) => node.layer === REGION_PARAMS.scriptedOpeningLayer)
+            : [];
+        for (const node of scripted) node.kind = 'wild';
+
+        const rollable = middles.filter((node) => !scripted.includes(node));
         const kinds: NodeKind[] = [...REGION_PARAMS.guaranteedMiddleKinds];
-        while (kinds.length < middles.length) kinds.push(pick(stream, pool));
+        while (kinds.length < rollable.length) kinds.push(pick(stream, pool));
         const assigned = stream.shuffle(kinds);
-        middles.forEach((node, i) => { node.kind = assigned[i]; });
+        rollable.forEach((node, i) => { node.kind = assigned[i]; });
 
         // --- The pocket ---------------------------------------------------------------------------
         // A dead end hanging off a middle node, sharing its host's layer because it is beside the

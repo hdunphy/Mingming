@@ -12,7 +12,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
     ALL_TIP_IDS,
-    FIRST_BATTLE_TIP_ID,
     RANCH_BLUEPRINT_TIP,
     TIP_REGISTRY,
     nextBattleTip,
@@ -108,10 +107,10 @@ describe('the tip registry', () => {
         }
     });
 
-    it('names the first battle tip as the onboarding proxy', () => {
-        // `RunStart` reads exactly this id to decide whether a run is an onboarding run. If the
-        // battle list is ever reordered, this is the assertion that says so out loud.
-        expect(FIRST_BATTLE_TIP_ID).toBe('battle:energy');
+    it('opens the fight sequence on energy, and names the one ranch tip', () => {
+        // The order is the turn's order and the first entry is the only unconditional one, so a
+        // reorder is a behaviour change rather than a cosmetic one.
+        expect([...TIP_REGISTRY.keys()][0]).toBe('battle:energy');
         expect(RANCH_BLUEPRINT_TIP.id).toBe('ranch:blueprints');
     });
 });

@@ -49,14 +49,6 @@ export const RECRUIT_KIT_SIZE = 3;
 export const RECRUIT_GENERICS = 1;
 
 /**
- * The run modifier that marks a first-ever run (ticket 24). Read by `rollEncounter`, written here.
- *
- * Lives in this module rather than `encounter.ts` so that the two places that care — the one that
- * sets it and the one that reads it — share a constant instead of two spellings of a magic string.
- */
-export const ONBOARDING_MODIFIER = 'onboarding';
-
-/**
  * Species already warned about for missing `startKits`, so a three-member debug party of untagged
  * species does not print the same line three times per run.
  */
@@ -167,15 +159,6 @@ export interface CreateRunInput {
     readonly party: ReadonlyArray<IMingmingState>;
     /** Epoch ms, injected by the caller. See the header note on why this is not read here. */
     readonly startedAt: number;
-    /**
-     * Ticket 24: this is a player the game has not taught a fight to yet, so the run's FIRST fight
-     * is softened (`ONBOARDING_MODIFIER`, read by `rollEncounter`).
-     *
-     * The caller decides it, from `IRanchState.seenTips` — `RunStart` passes
-     * `!seenTips.includes('battle:energy')`. Keeping the ranch out of `createRun` keeps this a pure
-     * function of its input, which is what makes a run reproducible from a stored seed.
-     */
-    readonly onboarding?: boolean;
 }
 
 /**
@@ -228,11 +211,13 @@ export function createRun(input: CreateRunInput): IRunState {
         macros,
         // Drivers are party-wide passives won from elites; there are none before the first fight.
         drivers: [],
-        // Opt-in ascension-shaped run modifiers. Empty for the vertical slice — apart from ticket
-        // 24's onboarding flag, which is a modifier for the reason `reveal:biome:N` (ticket 15) and
-        // `banked:blueprint:<id>` (ticket 19) are: it is run-scoped, it is a string, and it has to
-        // survive a save/load round trip without a schema change.
-        modifiers: input.onboarding === true ? [ONBOARDING_MODIFIER] : [],
+        // Opt-in ascension-shaped run modifiers. Empty for the vertical slice.
+        //
+        // Ticket 24 briefly put an `onboarding` flag here, gating an easier first fight on whether
+        // the player had seen the tips. Henry retired it (2026-08-23): the opening fight is easy in
+        // EVERY run, Slay the Spire's model, so there is nothing per-player to carry and nothing to
+        // couple to "Skip tips". See `isOpeningFight`.
+        modifiers: [],
 
         // The run opens standing on the entry node with the map up. `generateRegionGraph` marks
         // that node `visited: 1` so the "entering a node triggers it" rule does not fire a fight

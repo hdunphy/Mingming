@@ -39,7 +39,7 @@ import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmin
 import { initializeBattleEntity } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
-import { ONBOARDING_MODIFIER, START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
+import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
 
 // ---------------------------------------------------------------------------------------------
@@ -209,62 +209,55 @@ export function kitFractionFor(node: IRegionNode): IKitFraction {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The first fight of a first run (ticket 24)
+// The opening fight (ticket 24, re-ruled by Henry 2026-08-23)
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Is this the fight ticket 24's callouts are teaching in?
+ * Is this the run's opening fight — the scripted easy one?
  *
- * # WHAT THE TICKET ASKED FOR, AND WHAT IS ACTUALLY BUILDABLE
+ * # THE RULING
  *
- * Ticket 24 asks for *"a scripted FIRST FIGHT (the `Epic8` 'Initiation' idea)"*. Epic8's Initiation
- * is a **scripted counter**: "this opponent's element is always the weakness of the player's chosen
- * starter". That cannot be built without breaking something ruled later and harder — the biome's
- * element **is** the promise the map makes (`encounterSpeciesPool`, ticket 07/05), and the biome
- * was chosen by the player two screens ago on the gym offer. An opponent whose element is picked to
- * counter the player is an opponent the map lied about. Epic8 also predates `vision.md` wholesale:
- * it puts the Initiation in a Training Hub that no longer exists.
+ * > *"it's fine to script the first encounter to an easy fight like slay the spire"* — Henry,
+ * > 2026-08-23.
  *
- * **So this is not scripted content. It is a floor on the first fight**, and the floor is made of
- * rules that already exist:
+ * Slay the Spire draws Act 1's opening encounters from a separate easy pool **every run**, not only
+ * on a player's first. That is the model, and adopting it wholesale is what makes this three lines
+ * instead of a feature:
+ *
+ * - the gate is `fightsResolved === 0` and nothing else — no flag, no modifier, no save field;
+ * - it is **not** coupled to the tutorial. Ticket 24's first version keyed it off `seenTips`, which
+ *   meant pressing "Skip tips" silently made your first fight harder. Henry rejected that
+ *   explicitly, and the coupling is gone rather than patched.
+ *
+ * # WHAT THE SCRIPT ACTUALLY IS
+ *
+ * A floor made of rules that already exist, not authored content:
  *
  * - the enemy deck is pinned to `KIT_FRACTION_BY_BIOME[0]` — the same eight cards the player is
  *   holding, no firmware — rather than whatever the node's depth or kind would give it;
  * - the enemy party is pinned to **one** body.
  *
- * Neither is a hidden coefficient, which is what `vision.md`'s "never bigger numbers" forbids in
- * the other direction: difficulty is still a deck, and a player who reads the enemy's hand sees
- * exactly the same eight cards as their own.
+ * Everything else is untouched: same seed, same species pool, same IVs. Where the node was already
+ * gentle the softened roll and the ordinary roll are byte-identical, and a test asserts exactly
+ * that, so this can never quietly become a second difficulty curve. Difficulty is still a deck —
+ * `vision.md`'s "never bigger numbers" holds in both directions.
  *
- * # WHY IT NEEDS TO EXIST AT ALL
+ * **What it is NOT is Epic8's "Initiation".** That design picks the opponent's element to *counter*
+ * the player's starter, and ticket 07 made it unbuildable: the biome's element is the promise the
+ * map makes (`encounterSpeciesPool`), and the player chose that biome two screens earlier on the gym
+ * offer. An opponent whose element is chosen to punish them is an opponent the map lied about.
  *
- * Because the first node the player steps on is **not** guaranteed to be a gentle wild.
- * `generateRegionGraph` assigns biome-0 layer-1 kinds from the shuffled `[marketplace, workshop,
- * ...weighted pool]` list, and that pool contains `elite`. An elite takes `FULL_KIT_FRACTION`
- * regardless of depth (see `kitFractionFor`), so a brand-new player holding 8 cards with one
- * mingming can have their first ever fight against a full tuned per-OS deck. An `ambush` there is
- * two enemies against their one. Either is a run ended by the map roll before the tutorial finished
- * its sentence.
+ * # WHY IT IS NEEDED AT ALL
  *
- * # ONCE, AND ONLY EVER ONCE
- *
- * The gate is `fightsResolved === 0` **and** the run carrying `ONBOARDING_MODIFIER`, which
- * `RunStart` only sets when the ranch has not seen the battle tips yet. So:
- *
- * - it is the first fight of the run, not every run's first fight — the second run is the real game;
- * - **"Skip tips" turns it off too**, because skipping marks the battle tips seen and the next run
- *   is therefore not an onboarding run. A player who says they do not need to be taught is not
- *   quietly handed an easier first fight anyway. That is a consequence of tying both halves of this
- *   ticket to one piece of state, and it is the right one.
- *
- * **FLAGGED FOR HENRY.** Whether the first fight should be softened at all is a design call, not an
- * implementation one — the alternative reading is that a roguelike's first fight is allowed to be
- * whatever the seed says it is, and losing it teaches that too. Deleting this function and the two
- * `onboarding ?` expressions in `rollEncounter` reverts it completely; nothing else reads the
- * modifier.
+ * Because without it the opening fight is whatever the map roll says. `generateRegionGraph` used to
+ * assign biome-0 layer-1 kinds from a pool containing `elite`, and an elite takes `FULL_KIT_FRACTION`
+ * regardless of depth — so a brand-new player with one mingming and eight cards could meet a complete
+ * tuned per-OS deck as their first fight ever. An `ambush` there is two enemies against their one.
+ * The generator now pins that layer to `wild` (the other half of the Slay the Spire model: the first
+ * room is always a fight), and this pins what is *in* it.
  */
-export function isOnboardingFight(run: IRunState): boolean {
-    return run.fightsResolved === 0 && run.modifiers.includes(ONBOARDING_MODIFIER);
+export function isOpeningFight(run: IRunState): boolean {
+    return run.fightsResolved === 0;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -394,13 +387,13 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
     const roster = new SeedStream(new SeedStream(seed).fork('enemy-roster'));
     const decks = new SeedStream(new SeedStream(seed).fork('enemy-deck'));
 
-    // Ticket 24. The first fight of a first-ever run is the one the player is being taught in, so
-    // it is pinned to the gentlest row of ticket 08's table and to a single body — see
-    // `isOnboardingFight` for why this is a floor on the fight rather than a rewrite of it.
-    const onboarding = isOnboardingFight(run);
-    const fraction = onboarding ? KIT_FRACTION_BY_BIOME[0] : kitFractionFor(node);
+    // Ticket 24: every run's opening fight is the scripted easy one (Slay the Spire's model, ruled
+    // 2026-08-23) — pinned to the gentlest row of ticket 08's table and to a single body. See
+    // `isOpeningFight` for why this is a floor on the fight rather than a rewrite of it.
+    const opening = isOpeningFight(run);
+    const fraction = opening ? KIT_FRACTION_BY_BIOME[0] : kitFractionFor(node);
     const pool = encounterSpeciesPool(run, node);
-    const size = onboarding ? 1 : enemyPartySize(node.kind, party.length);
+    const size = opening ? 1 : enemyPartySize(node.kind, party.length);
 
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];

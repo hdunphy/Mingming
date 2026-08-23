@@ -26,18 +26,12 @@ import {
     encounterSeed,
     enemyPartySize,
     isFightNode,
-    isOnboardingFight,
+    isOpeningFight,
     kitFractionFor,
     rollEncounter,
 } from './encounter';
 import { buildBattleSetup, toMingmingState } from './battleSetup';
-import {
-    ONBOARDING_MODIFIER,
-    START_GENERICS,
-    START_KIT_SIZE,
-    createRun,
-    startKitIdsFor,
-} from './createRun';
+import { START_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
 import { GYM_REGISTRY, type IGymOffer } from './gyms';
 import { createBattleState } from '../data/battleFactories';
 import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
@@ -80,7 +74,11 @@ function makeRun(elements: ReadonlyArray<string>, seed = 'encounter-test-seed'):
         gym: GYM_REGISTRY.gym_emberfall,
         biomes: elements.map((element, index) => biome(element, index)),
     };
-    return createRun({ seed, offer, party: [KRAKEN], startedAt: 0 });
+    // `fightsResolved: 1` — an ORDINARY mid-run state, which is what every suite in this file
+    // except the opening-fight block is about. Since 2026-08-23 a run's *first* fight is scripted
+    // easy (`isOpeningFight`), so a fresh `createRun` would put every assertion below into the
+    // floor case and measure the tutorial instead of the rule it is testing.
+    return { ...createRun({ seed, offer, party: [KRAKEN], startedAt: 0 }), fightsResolved: 1 };
 }
 
 /** A node, positioned by hand — the graph's own nodes are a different test's subject (ticket 07). */
@@ -478,29 +476,36 @@ describe('full heal between nodes', () => {
 // Ticket 24 — the first fight of a first run
 // ---------------------------------------------------------------------------------------------
 
-describe('ticket 24: the onboarding fight is a floor, and it applies exactly once', () => {
+describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u2019s model)', () => {
     // `KRAKEN` is already an `IMingmingState` — the party a run is created with, not a ranch row.
     const party = [KRAKEN];
 
-    function onboardingRun(elements: ReadonlyArray<string>, seed = 'onboarding-seed'): IRunState {
-        const offer: IGymOffer = {
-            gym: GYM_REGISTRY.gym_emberfall,
-            biomes: elements.map((element, index) => biome(element, index)),
-        };
-        return createRun({ seed, offer, party: [KRAKEN], startedAt: 0, onboarding: true });
-    }
+    /** A genuinely fresh run — `fightsResolved: 0`, unlike the file's shared `makeRun`. */
+    const onboardingRun = (elements: ReadonlyArray<string>, seed = 'onboarding-seed'): IRunState =>
+        ({ ...makeRun(elements, seed), fightsResolved: 0 });
 
-    it('createRun only carries the modifier when the caller asks for it', () => {
-        expect(makeRun(['Fire', 'Water', 'Nature']).modifiers).toEqual([]);
-        expect(onboardingRun(['Fire', 'Water', 'Nature']).modifiers).toEqual([ONBOARDING_MODIFIER]);
+    it('carries no modifier at all — the gate is the fight count, not a flag', () => {
+        // Henry retired ticket 24's `onboarding` modifier on 2026-08-23. It keyed the easy fight off
+        // `seenTips`, which meant pressing "Skip tips" silently made your first fight harder.
+        const fresh = createRun({
+            seed: 'no-modifier',
+            offer: { gym: GYM_REGISTRY.gym_emberfall, biomes: [biome('Fire', 0), biome('Water', 1), biome('Nature', 2)] },
+            party: [KRAKEN],
+            startedAt: 0,
+        });
+        expect(fresh.modifiers).toEqual([]);
+        expect(fresh.fightsResolved).toBe(0);
+        expect(isOpeningFight(fresh)).toBe(true);
     });
 
-    it('is the FIRST fight of the run and nothing after it', () => {
+    it('is the first fight of EVERY run, and nothing after it', () => {
         const run = onboardingRun(['Fire', 'Water', 'Nature']);
-        expect(isOnboardingFight(run)).toBe(true);
-        expect(isOnboardingFight({ ...run, fightsResolved: 1 })).toBe(false);
-        // And never in an ordinary run, whatever the fight count.
-        expect(isOnboardingFight(makeRun(['Fire', 'Water', 'Nature']))).toBe(false);
+        expect(isOpeningFight(run)).toBe(true);
+        expect(isOpeningFight({ ...run, fightsResolved: 1 })).toBe(false);
+        // A second run gets its own opening fight — that is the Slay the Spire model, not a
+        // once-per-save tutorial affordance. (`makeRun` is deliberately mid-run, so this asks the
+        // question of a fresh one.)
+        expect(isOpeningFight(onboardingRun(['Fire', 'Water', 'Nature'], 'a-later-run'))).toBe(true);
     });
 
     it('pins an elite first fight to one body holding the biome-0 eight', () => {

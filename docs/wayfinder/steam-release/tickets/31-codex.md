@@ -14,6 +14,23 @@ The collection-as-achievement layer with ZERO power attached: species seen/assem
 
 Codex screen on the ranch, milestones fire once, data persists in save v4.
 
+## RULED 2026-08-23: the payouts wait for cosmetics
+
+Henry chose **option (c)** of the three put to him — not "pay nothing", and not blueprints. The
+codex will pay **cosmetics**, once cosmetics exist.
+
+That leaves this ticket open on a dependency rather than on a decision, which is a better place to
+be: nothing here needs designing, and the machinery is already built and firing. **There is no
+cosmetics ticket on this map** — the art tickets (32 art direction, 33 species art, 34 UI art pass)
+are about the game's own look, not about unlockable player-facing cosmetics — so the honest next
+step is that a cosmetics system gets a ticket, and this one lists it as `Blocked by`. Wiring the
+payout after that is a field per milestone row plus one dispatch in `useCodexRecorder`.
+
+Rejected on the way, with reasons, so they are not re-proposed: **blueprints** (they are the only
+persistent currency, so a codex paying them pays power — the one thing `economy-session.md` forbids
+it — and ten milestones at even one each is most of a run's income), and **pay nothing** (the stars
+already read as though they should do something).
+
 ## Progress — built 2026-08-22, payouts still open
 
 **The codex exists, records itself, and shows what you have met.** Suite **1549 -> 1574**, `tsc -b`

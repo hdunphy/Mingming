@@ -135,3 +135,30 @@ never gets it.
   gained the field. Those three are the guard that made this a five-minute change instead of a
   silent one — they are worth keeping.
 
+### RE-RULED 2026-08-23: the opening fight is scripted in EVERY run, and Skip tips no longer touches it
+
+Two corrections from Henry, and the second one simplifies the first out of existence.
+
+**"skip tips doesn't fix the first fight."** The flagged reading above tied the softened fight to
+`seenTips`, so pressing *Skip tips* silently made your opening encounter harder. That coupling is
+gone — not patched.
+
+**"it's fine to script the first encounter to an easy fight like slay the spire."** Slay the Spire
+draws Act 1's opening encounters from a separate easy pool **every run**, not only a player's first,
+and adopting that wholesale is what removes the machinery:
+
+- `ONBOARDING_MODIFIER`, `createRun`'s `onboarding` input and `tips.FIRST_BATTLE_TIP_ID` are all
+  **deleted**. No flag, no modifier, no save field, no coupling.
+- `isOnboardingFight` becomes **`isOpeningFight(run)` = `run.fightsResolved === 0`**. Three lines.
+- The floor itself is unchanged: one enemy, holding `KIT_FRACTION_BY_BIOME[0]`, everything else
+  identical — same seed, same species pool, same IVs.
+
+**And the other half of the Slay the Spire model landed too: the first *step* is now always a
+fight.** `generateRegionGraph` pins biome 0's layer 1 to `wild` (`REGION_PARAMS.scriptedOpeningLayer`),
+so the opening move out of the entry can no longer be a marketplace you have no scrap for — or the
+biome-0 elite, which is the finding this ticket reported. Pockets are untouched: a pocket shares its
+host's layer and can still be an alpha, but it hangs off a middle node rather than the entry, so it
+can never be the first step. The test asserts over the entry's neighbours for exactly that reason.
+
+The market/workshop guarantee survives the pin (it displaces 2-3 of a biome's 6-9 middles, and the
+two guaranteed kinds are placed first into what is left) and a test now pins that too.

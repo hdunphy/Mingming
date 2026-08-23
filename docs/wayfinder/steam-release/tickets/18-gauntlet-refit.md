@@ -140,3 +140,24 @@ suite's header names, caught at the smallest sample the harness can run.
 harness cannot give the two fights' worth of spent HP a real gauntlet arrives on. But 95.8% is a
 number for ticket 25's playtest to read against, and for ticket 28 to hold in view when it authors
 the leaders these placeholders stand in for. 1 seed is the floor; a tuning pass should buy more.
+
+### RULED 2026-08-23: the 3x payout stays, and the playtest decides
+
+Henry: *"leave it for now. we will need to play test."*
+
+So the loudest open item on this ticket is closed as a **deliberate hold**, not an oversight. The
+numbers, restated so nobody re-derives them: drops and scrap are paid **per defeated enemy**, at
+rates set when a gym was ONE fight of three bodies. Three fights of three is therefore exactly 3x
+what was designed.
+
+| | per gauntlet |
+|---|---|
+| as the rates were sized (1 fight x 3 enemies) | 1.5 blueprints, ~75 scrap |
+| as it pays today (3 fights x 3 enemies) | **4.5 blueprints, ~225 scrap** |
+
+For scale: an ordinary wild pays 0.6 blueprints, so the gym is worth about seven and a half of them
+and roughly doubles a run's blueprint income on its own. **Ticket 25 reads this against what players
+actually do** — whether a won run leaves you flush is exactly the kind of thing a scoresheet answers
+and arithmetic does not. If it needs cutting afterwards the options are unchanged: divide the gym
+row by three, or replace per-enemy drops with one authored end-of-gauntlet award (which is what
+`RewardSystem`'s own comment predicted this ticket would want).

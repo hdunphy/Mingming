@@ -161,15 +161,12 @@ export const ALL_TIP_IDS: ReadonlyArray<TipId> = [...TIP_REGISTRY.keys()];
 /** The one ranch tip, by name, so `RanchScreen` does not index a list by number. */
 export const RANCH_BLUEPRINT_TIP: Tip = RANCH_TIPS[0];
 
-/**
- * The tip whose presence in `seenTips` means "this player has been taught a fight".
- *
- * `RunStart` reads it to decide `createRun`'s `onboarding` flag. It is the FIRST battle tip
- * specifically because that is the only one with no condition on it — every other tip waits for a
- * moment (a STAB card in hand, a non-neutral matchup) that a given fight may never produce, so
- * "seen" for any of those would be a claim about the fight rather than about the player.
+/*
+ * `FIRST_BATTLE_TIP_ID` lived here until 2026-08-23. `RunStart` read it to decide whether a run got
+ * an easier first fight, which coupled the difficulty of your opening encounter to whether you had
+ * pressed "Skip tips". Henry cut the coupling: every run's opening fight is easy now
+ * (`encounter.isOpeningFight`), so nothing outside this module needs to ask what the tips know.
  */
-export const FIRST_BATTLE_TIP_ID: TipId = BATTLE_TIPS[0].id;
 
 // ---------------------------------------------------------------------------------------------
 // Moments

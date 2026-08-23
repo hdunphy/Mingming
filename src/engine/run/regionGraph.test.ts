@@ -370,3 +370,44 @@ describe('generateRegionGraph — fight envelope over 200 seeds', () => {
         for (let i = 0; i < mins.length; i += 1) expect(maxes[i]).toBeGreaterThanOrEqual(mins[i]);
     });
 });
+
+describe('ticket 24: biome 0 opens on a fight', () => {
+    it('makes every first step out of the entry a wild, on every seed', () => {
+        // Henry, 2026-08-23: "it's fine to script the first encounter to an easy fight like slay the
+        // spire" — and in Slay the Spire the first room of an act is always combat. Before this the
+        // opening step could be a marketplace with no scrap to spend, or the biome-0 ELITE, which
+        // takes the full tuned per-OS deck at any depth (`encounter.kitFractionFor`): a complete
+        // tuned list against a brand-new player holding eight cards.
+        //
+        // Asserted over the entry's NEIGHBOURS rather than over layer 1, because that is the real
+        // property. A biome-0 pocket shares its host's layer, so it can be a layer-1 `alpha` — but a
+        // pocket hangs off a middle node, never off the entry, so it can never be the first step.
+        for (const seed of ['opening-a', 'opening-b', 'opening-c', 'opening-d', 'opening-e']) {
+            const graph = generateRegionGraph(seed);
+            const entry = graph.nodes.find((n) => n.id === graph.entryNodeId)!;
+            expect(entry.edges.length).toBeGreaterThan(0);
+            for (const id of entry.edges) {
+                const step = graph.nodes.find((n) => n.id === id)!;
+                expect(step.kind).toBe('wild');
+                expect(step.pocket).toBe(false);
+            }
+        }
+    });
+
+    it('leaves biomes 1 and 2 alone, and keeps the market/workshop guarantee', () => {
+        // The pin displaces 2-3 of biome 0's 6-9 middle nodes; the two guaranteed kinds are placed
+        // first into what is left, so the guarantee has to survive it. Biomes 1 and 2 already open on
+        // an entry node you genuinely fight, so they need no pin and must not get one.
+        for (const seed of ['guarantee-a', 'guarantee-b', 'guarantee-c']) {
+            const graph = generateRegionGraph(seed);
+            for (let biome = 0; biome < 3; biome += 1) {
+                const middles = graph.nodes.filter(
+                    (n) => n.biomeIndex === biome && n.layer >= 1 && n.layer <= 3 && !n.pocket,
+                );
+                expect(middles.filter((n) => n.kind === 'marketplace')).toHaveLength(1);
+                expect(middles.filter((n) => n.kind === 'workshop')).toHaveLength(1);
+            }
+        }
+    });
+});
+
