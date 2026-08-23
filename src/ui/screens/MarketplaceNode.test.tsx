@@ -11,7 +11,13 @@
  *   a silently inert control is indistinguishable from a bug;
  * - **`power` must not appear at all** (standing law, map § Notes). The cheapest way to break that is
  *   not a price — it is a well-meant "show the card text" patch, since several card descriptions
- *   quote the internal number out loud (`water_slap`: "priced at 12 power to compensate").
+ *   quote the internal number out loud (`water_slap`: "priced at 12 power to compensate");
+ * - **and, since ticket 57, "sell" must not appear either.** Henry ruled (ticket 56) that cards
+ *   cannot be sold — removal is a pure sink, the market takes scrap and never gives it. That is a
+ *   *design ruling*, and a screen that merely happens to have no sell button today obeys it without
+ *   pinning it, so `offers no way at all to sell a card` asserts the absence directly. It is the same
+ *   shape of test as the `power` one above and it exists for the same reason: the cheap way to break
+ *   the rule is a well-meant patch, not a deliberate decision.
  *
  * Rendered to static markup, the shape the panel tests established: the repo has no
  * `@testing-library/react`, and `renderToStaticMarkup` runs no effects.
@@ -94,7 +100,9 @@ describe('MarketplaceNode', () => {
         const bloated = render({ ...run, deck: [...run.deck, ...Array.from({ length: 20 }, (_, i) => ({
             instanceId: `extra_${i}`, dataId: GENERIC_HIT, ownerId: null,
         })) ] });
-        expect(bloated).toContain('over. Sell or remove.');
+        // Ticket 57: this line used to read "over. Sell or remove." Removal is the only way down
+        // since Henry's ticket-56 ruling, so the advice names the one verb that exists.
+        expect(bloated).toContain('over. Pay to remove.');
     });
 
     it('never prints the word “power” anywhere on the surface', () => {
@@ -144,13 +152,44 @@ describe('MarketplaceNode', () => {
         expect(markup).not.toContain(`Buy — ${bought.price} scrap`);
     });
 
-    it('lists every deck card with a sell price and a removal price', () => {
+    it('lists every deck card with a removal price', () => {
+        // Ticket 57 dropped this case's companion assertion — one `Sell — +N` per row. Henry ruled
+        // cards cannot be sold (ticket 56), so a deck row now offers exactly one action, and the
+        // count below is the whole of it.
         const run = makeRun(400);
         const markup = render(run);
 
         expect(markup).toContain(`Your deck (${run.deck.length})`);
-        expect(markup.match(/Sell — \+/g)?.length).toBe(run.deck.length);
         expect(markup.match(new RegExp(`Remove — ${REMOVAL_PRICE} scrap`, 'g'))?.length).toBe(run.deck.length);
+    });
+
+    it('offers no way at all to sell a card — removal is a pure sink', () => {
+        // HENRY, TICKET 56: "Cards cannot be sold — removal is a pure sink." Ticket 57 removed the
+        // sell button, its price and its copy; this pins the ruling rather than trusting the screen
+        // to keep obeying it, exactly as the `power` case above pins the surface law.
+        //
+        // Asserted as an absence over the whole markup, not as "the button is gone": a sell control
+        // could come back as a differently-worded button, a buy-back price in a row, or an "over
+        // target — sell some" nudge in the advice line, and any of those is the same broken rule. The
+        // states are the ones where a sell affordance would plausibly be reintroduced — a normal
+        // shop, a player with no scrap (where "you could always sell something" is the tempting
+        // patch), a deck well over target, and an empty deck.
+        const rich = makeRun(400);
+        const broke = makeRun(0);
+        const bloated = makeRun(400);
+
+        const markups = [
+            render(rich),
+            render(broke),
+            render({ ...bloated, deck: [...bloated.deck, ...Array.from({ length: 20 }, (_, i) => ({
+                instanceId: `extra_${i}`, dataId: GENERIC_HIT, ownerId: null,
+            })) ] }),
+            render(makeRun(400, { deck: [] })),
+        ];
+
+        for (const markup of markups) {
+            expect(markup).not.toMatch(/sell/i);
+        }
     });
 
     it('tags the generic filler, because it is what removal is for', () => {

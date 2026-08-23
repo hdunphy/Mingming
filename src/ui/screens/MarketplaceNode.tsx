@@ -3,10 +3,17 @@
  *
  * # WHAT THE PLAYER IS LOOKING AT
  *
- * Three verbs over one currency. **Buy** a card out of a stock rolled from the party's own pool
- * (plus one off-pool stranger), **sell** a specific card out of the run deck, and **pay to remove**
- * one — the sink `economy-session.md` asks for, and by Henry's 2026-08-21 amendment the answer to
- * the generic filler that three start-deck slots and every recruit keep adding.
+ * Two verbs over one currency. **Buy** a card out of a stock rolled from the party's own pool (plus
+ * one off-pool stranger), and **pay to remove** one — the sink `economy-session.md` asks for, and by
+ * Henry's 2026-08-21 amendment the answer to the generic filler that three start-deck slots and
+ * every recruit keep adding.
+ *
+ * **Ticket 13 shipped a third verb — sell a specific card back — and ticket 57 removed it.** Henry
+ * ruled (ticket 56) that cards cannot be sold: removal is a *pure sink*, so the market takes scrap
+ * and never gives it. That amends `economy-session.md`'s "selling cards" income line, so this screen
+ * offers no control, no price and no copy that turns a deck card back into scrap —
+ * `MarketplaceNode.test.tsx` asserts the rendered markup contains no "sell" at all, which pins the
+ * ruling rather than trusting this file to keep obeying it.
  *
  * Everything about *what things cost* and *what is in the stock* lives in
  * `engine/run/marketplace.ts`. This file renders it and dispatches. That split is the same one
@@ -49,21 +56,22 @@ import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import {
     REMOVAL_PRICE,
     REROLL_PRICE,
-    cardPrice,
     isOfferSold,
     rollMacroStock,
     rollMarketStock,
-    sellPrice,
     type IMacroOffer,
     type IMarketOffer,
 } from '../../engine/run/marketplace';
+// Ticket 57: `sellPrice` was imported here (and `cardPrice`, only to print the buy-back a sell was
+// measured against). Henry ruled cards cannot be sold (ticket 56) — removal is a pure sink, so there
+// is no sell price to show and this screen must not reach for one.
 import { DECK_TARGET_MAX, DECK_TARGET_MIN } from '../../engine/run/runSummary';
 import { getMacro, macroRackBlockFor } from '../../engine/data/macroRegistry';
 import { numericBaseCost } from '../../engine/types';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
-import { buyMacro, buyMarketCard, removeRunCardForScrap, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { buyMacro, buyMarketCard, removeRunCardForScrap, rerollMarketStock } from '../store/runSlice';
 import './MarketplaceNode.css';
 
 /**
@@ -132,10 +140,8 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
         playSfx('rewardClaim');
     };
 
-    const sell = (card: IRunCard): void => {
-        dispatch(sellRunCard({ instanceId: card.instanceId, price: sellPrice(card.dataId) }));
-        playSfx('uiClick');
-    };
+    // Ticket 57: a `sell` handler dispatching `sellRunCard` stood here. Henry ruled cards cannot be
+    // sold (ticket 56) — removal is the only card sink, so the market takes scrap and never gives it.
 
     const scrapCard = (card: IRunCard): void => {
         dispatch(removeRunCardForScrap({ instanceId: card.instanceId, price: REMOVAL_PRICE }));
@@ -165,7 +171,9 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
                     {deckSize < DECK_TARGET_MIN
                         ? `A good 3v3 deck wants ${DECK_TARGET_MIN}–${DECK_TARGET_MAX} cards — ${DECK_TARGET_MIN - deckSize} short. Buy.`
                         : deckSize > DECK_TARGET_MAX
-                            ? `A good 3v3 deck wants ${DECK_TARGET_MIN}–${DECK_TARGET_MAX} cards — ${deckSize - DECK_TARGET_MAX} over. Sell or remove.`
+                            // Ticket 57: this branch used to read "Sell or remove." Removal is the
+                            // only way down now (Henry, ticket 56), so it names the one that exists.
+                            ? `A good 3v3 deck wants ${DECK_TARGET_MIN}–${DECK_TARGET_MAX} cards — ${deckSize - DECK_TARGET_MAX} over. Pay to remove.`
                             : `On target: a good 3v3 deck wants ${DECK_TARGET_MIN}–${DECK_TARGET_MAX} cards.`}
                     {' '}Scrap is run-scoped and dies with the run — spend it.
                 </p>
@@ -285,22 +293,29 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
                 {macroStock.length === 0 && <li className="mk-empty">No macros this visit.</li>}
             </ul>
 
-            {/* --- The deck: sell and remove --- */}
+            {/*
+              * --- The deck: removal, and nothing else ---
+              *
+              * Ticket 57: this list carried a sell button per row, priced by `sellPrice`. Henry ruled
+              * (ticket 56) that cards cannot be sold — removal is a pure sink — so a row now offers
+              * exactly one action, and a deck card is a one-way door: scrap goes in, nothing comes
+              * back out. The copy below states that outright rather than leaving the player hunting
+              * for the buy-back that used to be here.
+              */}
 
             <div className="mk-section-head">
                 <h3>Your deck ({deckSize})</h3>
             </div>
             <p className="mk-note">
-                Selling pays a fraction of the buy price; <strong>removal costs {REMOVAL_PRICE} scrap
-                and pays nothing</strong> — it buys you a thinner deck, which is the point. The
-                generic <em>Tackle</em> filler every member and recruit brings is what removal is
+                <strong>Removal costs {REMOVAL_PRICE} scrap and pays nothing back</strong> — it buys
+                you a thinner deck, which is the point, and it is the only way a card leaves the deck.
+                The generic <em>Tackle</em> filler every member and recruit brings is what removal is
                 for.
             </p>
 
             <ul className="mk-deck-list">
                 {run.deck.map((card) => {
                     const line = lineFor(card.dataId);
-                    const sellFor = sellPrice(card.dataId);
                     const shortForRemoval = shortBy(REMOVAL_PRICE);
                     return (
                         <li key={card.instanceId} className={`mk-deck-row ${card.dataId === GENERIC_HIT ? 'generic' : ''}`}>
@@ -312,14 +327,6 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
                                 {card.dataId === GENERIC_HIT && <span className="mk-tag">generic filler</span>}
                             </div>
                             <div className="mk-row-actions">
-                                <button
-                                    type="button"
-                                    className="mk-button subtle"
-                                    onClick={() => sell(card)}
-                                    title={`Buys back at ${cardPrice(card.dataId)} scrap`}
-                                >
-                                    Sell — +{sellFor}
-                                </button>
                                 <button
                                     type="button"
                                     className="mk-button danger"
@@ -334,7 +341,7 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
                         </li>
                     );
                 })}
-                {deckSize === 0 && <li className="mk-empty">No cards. Nothing to sell, nothing to strip.</li>}
+                {deckSize === 0 && <li className="mk-empty">No cards. Nothing to strip.</li>}
             </ul>
         </section>
     );

@@ -15,9 +15,9 @@
  * 1. **Assembly costs ONE BLUEPRINT and no scrap.** `vision.md` says "spend SCRAP to assemble";
  *    `economy-session.md` says "assembly (ranch AND workshop) costs blueprints only". Henry's
  *    ticket-06 ruling makes both true of the place each was describing: **a blueprint at the ranch,
- *    a blueprint PLUS scrap at a mid-run workshop** (ticket 14 set that price at
- *    `WORKSHOP_ASSEMBLY_SCRAP` — 75, one market visit's scrap shared between the run's two
- *    recruits). So the ranch has no
+ *    a blueprint PLUS scrap at a mid-run workshop** (ticket 14 proposed that price and ticket 56
+ *    ruled it: `WORKSHOP_ASSEMBLY_SCRAP` — 25, about two and a half won wilds, roughly a quarter of
+ *    a run's scrap across the two recruits). So the ranch has no
  *    scrap economy at all — the flat 100-scrap `compileCost` and the deconstruct-cards-for-scrap
  *    panel are both gone, the latter because cards are run-scoped and there are none here to melt.
  *

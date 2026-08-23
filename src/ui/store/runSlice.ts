@@ -31,10 +31,15 @@
  *
  * # WHAT TICKET 13 ADDED
  *
- * The marketplace's three verbs — buy, sell, paid removal — plus the paid re-roll. They are four
- * reducers rather than compositions of `spendRunScrap` + `addRunCards` because each is one
- * transaction: see the block comment above `buyMarketCard` for ticket 20's atomicity argument, which
- * is the whole reason the affordability check is in here and not only in the screen.
+ * The marketplace's verbs — buy and paid removal — plus the paid re-roll. They are three reducers
+ * rather than compositions of `spendRunScrap` + `addRunCards` because each is one transaction: see
+ * the block comment above `buyMarketCard` for ticket 20's atomicity argument, which is the whole
+ * reason the affordability check is in here and not only in the screen.
+ *
+ * **Ticket 13 shipped a fourth verb, `sellRunCard`, and ticket 57 deleted it.** Henry ruled (ticket
+ * 56) that cards cannot be sold — removal is a *pure sink*, so the market takes scrap and never
+ * gives it. That amends `economy-session.md`'s "selling cards" income line: there is no card-shaped
+ * way to turn deck size back into scrap, and nothing in this slice should grow one again.
  *
  * # WHAT TICKET 14 ADDED
  *
@@ -258,7 +263,7 @@ const runSlice = createSlice({
             return { run: { ...run, deck } };
         },
 
-        // --- The marketplace's three verbs, plus the reroll (ticket 13) ---
+        // --- The marketplace's verbs, plus the reroll (ticket 13; ticket 57 cut selling) ---
         //
         // **Each one is a single action, and that is the whole point of them being here.** Ticket
         // 20's atomicity argument: a check that lives only in a component is a check that races.
@@ -268,7 +273,7 @@ const runSlice = createSlice({
         // affordability test therefore lives in the same reducer as the mutation it guards, and the
         // screen's own check is a courtesy to the player rather than the enforcement.
         //
-        // All four keep the slice's silent-no-op-on-invalid convention: a reducer has no error
+        // All three keep the slice's silent-no-op-on-invalid convention: a reducer has no error
         // channel, so an unaffordable purchase changes nothing at all.
 
         /**
@@ -281,7 +286,7 @@ const runSlice = createSlice({
          * deck and survives an app close without `IRunState` growing a field (ticket 06's shape is
          * ratified; ticket 13 does not touch it). It is also a correctness guard rather than only an
          * economy one: two deck cards sharing an instance id would both disappear on the first
-         * `removeRunCard`, and `sellRunCard`'s "one specific instance" promise would be a lie.
+         * `removeRunCard`, and the sink's "one specific instance" promise would be a lie.
          */
         buyMarketCard: (state, action: PayloadAction<{ card: IRunCard; price: number }>): RunSliceState => {
             const run = state.run as IRunState | null;
@@ -293,25 +298,12 @@ const runSlice = createSlice({
             return { run: { ...run, scrap: run.scrap - price, deck: [...run.deck, card] } };
         },
 
-        /**
-         * Sell one card out of the run deck.
-         *
-         * **By `instanceId`, never by `dataId`.** A deck routinely holds several copies of one card
-         * — the tuned lists run doubles and `startDeckFor` deals three identical generics — and
-         * "sell a `water_slap`" would leave the player unable to say *which* one, which matters the
-         * moment `ownerId` means anything (it is the departure bookkeeping `runTypes.ts` describes).
-         * Selling a card that is not in the deck is a no-op and pays nothing, so a double-dispatched
-         * click cannot mint scrap.
-         */
-        sellRunCard: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
-            const run = state.run as IRunState | null;
-            if (!run) return { run: null };
-            const { instanceId, price } = action.payload;
-            if (!Number.isInteger(price) || price < 0) return { run };
-            const deck = run.deck.filter((card) => card.instanceId !== instanceId);
-            if (deck.length === run.deck.length) return { run };
-            return { run: { ...run, scrap: run.scrap + price, deck } };
-        },
+        // Ticket 57: `sellRunCard` is gone. Henry ruled cards cannot be sold (ticket 56) — removal is
+        // the only card sink, so the market takes scrap and never gives it. It was the one reducer in
+        // this file that *added* scrap in exchange for a card, and re-adding it would put a card-shaped
+        // income line back into a run economy that is now sink-only. The "one specific instance, keyed
+        // on `instanceId` and never `dataId`" argument it carried did not die with it: it moved to
+        // `removeRunCardForScrap` below, which is the sink that inherited the problem.
 
         /**
          * Pay to remove one card — `economy-session.md`'s designer-added sink, and by Henry's
@@ -321,6 +313,14 @@ const runSlice = createSlice({
          * has to be atomic with the payment: charging for a removal that did not happen, or removing
          * for free, are both reachable if the two halves are two dispatches. A card that is not in
          * the deck costs nothing.
+         *
+         * **By `instanceId`, never by `dataId`** — the argument ticket 57 inherited from the deleted
+         * `sellRunCard`. A deck routinely holds several copies of one card (the tuned lists run
+         * doubles and `startDeckFor` deals three identical generics), so "remove a `water_slap`"
+         * would leave the player unable to say *which* one, which matters the moment `ownerId` means
+         * anything (it is the departure bookkeeping `runTypes.ts` describes). Since ticket 56 this is
+         * the *only* verb that takes a card out of a run deck for scrap, so it is the only place that
+         * promise can be kept.
          */
         removeRunCardForScrap: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
             const run = state.run as IRunState | null;
@@ -850,7 +850,8 @@ export const {
     addRunCards,
     removeRunCard,
     buyMarketCard,
-    sellRunCard,
+    // Ticket 57: `sellRunCard` was exported here. Henry ruled cards cannot be sold (ticket 56) —
+    // removal is a pure sink, so nothing downstream may dispatch a card back into scrap.
     removeRunCardForScrap,
     rerollMarketStock,
     recruitIntoParty,

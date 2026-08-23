@@ -16,7 +16,10 @@ import { describe, it, expect } from 'vitest';
 import {
     BLUEPRINT_DROP_RATE,
     SALVAGE_CHOICES_PER_FOE,
-    SCRAP_PER_ENEMY,
+    BASE_WIN_SCRAP,
+    ELITE_WIN_SCRAP,
+    SCRAP_PER_EXTRA_ENEMY,
+    scrapForWin,
     getScrapYield,
     rewardCardPool,
     rollDraftRounds,
@@ -200,51 +203,81 @@ describe('RewardSystem', () => {
 
             expect(duo.scraps).toBeGreaterThan(solo.scraps);
             expect(trio.scraps).toBeGreaterThan(duo.scraps);
-            expect(trio.scraps).toBeGreaterThanOrEqual(2 * solo.scraps - SCRAP_PER_ENEMY.wild.max);
+            // Ticket 57 made the step exact rather than statistical: `10 + 5 per extra body`.
+            expect(solo.scraps).toBe(BASE_WIN_SCRAP);
+            expect(duo.scraps).toBe(BASE_WIN_SCRAP + SCRAP_PER_EXTRA_ENEMY);
+            expect(trio.scraps).toBe(BASE_WIN_SCRAP + 2 * SCRAP_PER_EXTRA_ENEMY);
         });
 
-        it('stays inside the band for its kind, times the body count', () => {
-            for (const kind of ['wild', 'ambush', 'elite', 'alpha', 'gym'] as const) {
-                const band = SCRAP_PER_ENEMY[kind];
-                for (let n = 1; n <= 3; n++) {
-                    for (let i = 0; i < 20; i++) {
-                        const bundle = rollDropTable({
-                            defeated: deadParty(n),
-                            nodeKind: kind,
-                            party: FENRIR_V1,
-                            seed: `band-${kind}-${n}-${i}`,
-                        });
-                        expect(bundle.scraps).toBeGreaterThanOrEqual(n * band.min);
-                        expect(bundle.scraps).toBeLessThanOrEqual(n * band.max);
-                    }
-                }
+        it('pays per FIGHT and flat, not per body and rolled — ticket 56/57', () => {
+            // The shape change, asserted directly. Ticket 12 rolled a band per corpse (a 3v3 wild
+            // paid 8-14 three times, ~450-500 a run); Henry replaced that scale wholesale. Scrap is
+            // now a number the player can predict before swinging, which is what makes a shop price
+            // a plan rather than a hope.
+            for (let i = 0; i < 25; i++) {
+                const bundle = rollDropTable({
+                    defeated: deadParty(3),
+                    nodeKind: 'wild',
+                    party: FENRIR_V1,
+                    seed: `flat-${i}`,
+                });
+                expect(bundle.scraps).toBe(20);
             }
+        });
+
+        it('matches the ruled table at every size and kind', () => {
+            expect(scrapForWin('wild', 1)).toBe(10);
+            expect(scrapForWin('wild', 2)).toBe(15);
+            expect(scrapForWin('wild', 3)).toBe(20);
+            // An elite is flat, and independent of how many bodies it fields.
+            expect(scrapForWin('elite', 1)).toBe(ELITE_WIN_SCRAP);
+            expect(scrapForWin('elite', 3)).toBe(ELITE_WIN_SCRAP);
+            // An ambush is a wild with one more body, so it scales by the same rule.
+            expect(scrapForWin('ambush', 4)).toBe(25);
+            // Non-fight kinds pay nothing, and neither does a fight nobody won.
+            expect(scrapForWin('marketplace', 3)).toBe(0);
+            expect(scrapForWin('wild', 0)).toBe(0);
         });
 
         it('pays an elite strictly more than a wild of the same size', () => {
-            // The bands do not overlap (wild tops out at 14, an elite starts at 18), so this is a
-            // per-seed guarantee rather than a statistical one — the elite is the biome's exam.
-            for (let i = 0; i < 50; i++) {
-                const wild = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: `vs-${i}` });
-                const elite = rollDropTable({ defeated: deadParty(3), nodeKind: 'elite', party: FENRIR_V1, seed: `vs-${i}` });
-                expect(elite.scraps).toBeGreaterThan(wild.scraps);
-            }
+            const wild = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: 'vs' });
+            const elite = rollDropTable({ defeated: deadParty(3), nodeKind: 'elite', party: FENRIR_V1, seed: 'vs' });
+            expect(elite.scraps).toBeGreaterThan(wild.scraps);
         });
 
-        it('pays an ambush more than a wild on average (the extra body, and the extra risk)', () => {
-            const mean = (kind: 'wild' | 'ambush') => {
-                let total = 0;
-                for (let i = 0; i < 200; i++) {
-                    total += rollDropTable({
-                        defeated: deadParty(3),
-                        nodeKind: kind,
-                        party: FENRIR_V1,
-                        seed: `mean-${i}`,
-                    }).scraps;
-                }
-                return total / 200;
-            };
-            expect(mean('ambush')).toBeGreaterThan(mean('wild'));
+        it('MEASURES one run\u2019s income, and it lands ABOVE ticket 56\u2019s ~150-180 estimate', () => {
+            /*
+             * Ticket 57's Done-when asks for this arithmetic re-measured. It does not come out where
+             * ticket 56 estimated, and the honest thing is to pin what the ruled table actually pays
+             * rather than assert a band it does not hit.
+             *
+             * The run modelled is `exploration-map.md`'s: 8-10 fights plus the gauntlet, with the
+             * party growing 1 -> 2 -> 3 through the two workshops, so the early fights are genuinely
+             * smaller (enemy count mirrors party size — `encounter.enemyPartySize`).
+             */
+            const wilds = 3 * scrapForWin('wild', 1) + 3 * scrapForWin('wild', 2) + 2 * scrapForWin('wild', 3);
+            const elites = 3 * scrapForWin('elite', 3);
+            const pocket = scrapForWin('alpha', 1);
+            const gauntlet = 3 * scrapForWin('gym', 3);
+
+            // 30 + 45 + 40 = 115 from wilds, 90 from the three biome exits, 10 from a pocket alpha.
+            expect(wilds).toBe(115);
+            expect(elites).toBe(90);
+            expect(pocket).toBe(10);
+            expect(gauntlet).toBe(60);
+
+            // SPENDABLE income is what a shop price should be sized against, and the gauntlet's is
+            // not spendable — the run ends when it does, and there is no shop after it.
+            expect(wilds + elites + pocket).toBe(215);
+            expect(wilds + elites + pocket + gauntlet).toBe(275);
+
+            /*
+             * 215 against an estimate of 150-180. The gap is the three elites: at a flat 30 they are
+             * 90 of it, more than the eight wilds put together. Whether that is wrong depends on
+             * what ticket 56 was picturing, which is Henry's to say — ticket 57's resolution reports
+             * it rather than quietly retuning a ruled number.
+             */
+            expect(elites).toBeGreaterThan(wilds - elites);
         });
 
         it('pays nothing on a kind that is not a fight', () => {

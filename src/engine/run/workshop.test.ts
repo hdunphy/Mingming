@@ -4,17 +4,19 @@
  * Six claims, each of which can be false without anything crashing, which is what makes them worth
  * a test rather than a comment:
  *
- * - **The assembly price hits its stated target.** *"Growing the party 1 → 2 → 3 costs roughly one
- *   market visit's scrap"* is a number with a derivation, and the derivation is checked here against
- *   the constants it was derived from — so retuning `PARTY_SIZE` or `MARKET_VISITS_PER_RUN` fails the
- *   test rather than quietly falsifying the comment. Ticket 13 established that discipline for
- *   removal; this is the same shape.
- * - **The three prices stay in their ruled order.** Removal < reflash < recruit is the whole of what
- *   makes the sink the cheap button and the body the dear one; any retune that crosses two of them
- *   changes the design rather than the balance.
+ * - **The assembly price stays inside the bounds its docblock claims.** Ticket 56 RULED 25 and 15,
+ *   so these are no longer derivations that produce a number — they are bounds the ruled number is
+ *   checked against, computed from `scrapForWin`'s income table rather than from a restatement of
+ *   it. Retuning `PARTY_SIZE`, `MARKET_VISITS_PER_RUN` or the income constants fails the test rather
+ *   than quietly falsifying the comment. Ticket 13 established that discipline for removal; this is
+ *   the same shape, pointed at a ruling instead of a proposal.
+ * - **The ruled order is reflash < removal < recruit**, and it is the *inverse* of ticket 14's
+ *   proposed order on its first two terms. That inversion is the substantive thing ticket 56 changed
+ *   about this file's design, so it is asserted rather than assumed — see the reflash block for why
+ *   losing "the sink is the cheapest button" is coherent.
  * - **Removal is ONE price, not one per counter.** `WORKSHOP_REMOVAL_PRICE` is ticket 13's constant,
- *   and a second literal that happened to equal 30 today would drift the first time either was
- *   touched.
+ *   re-exported; that is exactly why ticket 56's move of the removal price needed no edit in
+ *   `workshop.ts`, and why a second literal here would have drifted.
  * - **The species clause is enforced before anything is spent.** A standing law (map § Notes) that
  *   no reducer can check, because species live on the ranch and the party lives on the run.
  * - **A recruit is ticket 08's ruled 3 + 1, not this file's opinion of it.** `recruitDeckFor` is the
@@ -38,13 +40,13 @@ import {
     workshopBlockFor,
     workshopSpecies,
 } from './workshop';
-import { MARKET_VISITS_PER_RUN, REMOVAL_PRICE, cardPrice } from './marketplace';
+import { CARD_PRICE_BY_ENERGY, MARKET_VISITS_PER_RUN, REMOVAL_PRICE, cardPrice } from './marketplace';
 import { RECRUIT_GENERICS, RECRUIT_KIT_SIZE, createRun, recruitDeckFor } from './createRun';
 import { toMingmingState } from './battleSetup';
 import { nodeSeed } from './nodeSeed';
 import { offerGyms } from './gyms';
 import { PARTY_SIZE } from '../party';
-import { isRewardable } from '../RewardSystem';
+import { BASE_WIN_SCRAP, ELITE_WIN_SCRAP, SCRAP_PER_EXTRA_ENEMY, isRewardable, scrapForWin } from '../RewardSystem';
 import { SeedStream } from '../core/SeedStream';
 import { GENERIC_HIT } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
@@ -89,58 +91,111 @@ const OFFERABLE_PRICES = Object.keys(ProgramRegistry).filter(isRewardable).map(c
 const MEDIAN_CARD_PRICE = OFFERABLE_PRICES[Math.floor(OFFERABLE_PRICES.length / 2)];
 
 // ---------------------------------------------------------------------------------------------
-// The assembly price's stated target
+// The assembly price's bounds, against the income table that replaced ticket 12's
 // ---------------------------------------------------------------------------------------------
 
-describe('the recruit price is derived, not chosen', () => {
-    /** Ticket 12's measured anchor: a full 8-10 fight run with a 3-member party. */
-    const RUN_SCRAP_LOW = 450;
-    const RUN_SCRAP_HIGH = 500;
+/**
+ * What a solo party takes off one wild. The single most load-bearing number in this file's
+ * affordability argument: the biome-1 workshop is reached solo, and `enemyPartySize` makes an
+ * ordinary wild symmetric with your team, so this is the rate the first recruit is saved up at.
+ */
+const SOLO_WILD_SCRAP = scrapForWin('wild', 1);
 
+/**
+ * The run total `WORKSHOP_ASSEMBLY_SCRAP`'s docblock derives, recomputed here from `scrapForWin`
+ * rather than restated as a literal: two elite biome exits, a three-fight gym, and about six wilds
+ * fought by a party that is growing from one body to three.
+ */
+const RUN_SCRAP = 2 * scrapForWin('elite', 1)
+    + 3 * scrapForWin('gym', PARTY_SIZE)
+    + 2 * (scrapForWin('wild', 1) + scrapForWin('wild', 2) + scrapForWin('wild', 3));
+
+describe('the recruit price is checked against the income, not derived from it', () => {
     it('puts a workshop in every biome, so a run sees as many workshops as markets', () => {
-        // The premise the whole derivation rests on: ticket 07 guarantees one of each per biome, so
+        // The premise the whole comparison rests on: ticket 07 guarantees one of each per biome, so
         // quoting a workshop price against a MARKET visit's scrap is comparing like with like.
         expect(WORKSHOPS.length).toBe(MARKET_VISITS_PER_RUN);
         expect(new Set(WORKSHOPS.map((n) => n.biomeIndex)).size).toBe(MARKET_VISITS_PER_RUN);
     });
 
-    it('takes two recruits to fill a party, which is what the price is divided against', () => {
+    it('takes two recruits to fill a party, which is what the price is multiplied by', () => {
         // Not an estimate — the party starts solo and ends at PARTY_SIZE, and it grows here only.
         expect(RECRUITS_PER_RUN).toBe(PARTY_SIZE - 1);
         expect(RECRUITS_PER_RUN).toBe(2);
     });
 
-    it('costs one market visit’s scrap to grow the party 1 → 2 → 3', () => {
-        const visitScrapLow = RUN_SCRAP_LOW / MARKET_VISITS_PER_RUN;   // 150
-        const visitScrapHigh = RUN_SCRAP_HIGH / MARKET_VISITS_PER_RUN; // ~167
-        const growTheTeam = WORKSHOP_ASSEMBLY_SCRAP * RECRUITS_PER_RUN;
-
-        expect(growTheTeam).toBe(150);
-        expect(WORKSHOP_ASSEMBLY_SCRAP).toBe(visitScrapLow / RECRUITS_PER_RUN);
-        // "Roughly one visit's scrap" — between 85% and 115% of a visit at both ends of ticket 12's
-        // measured band, the same tolerance ticket 13 holds its removal price to.
-        expect(growTheTeam / visitScrapLow).toBeGreaterThanOrEqual(0.85);
-        expect(growTheTeam / visitScrapLow).toBeLessThanOrEqual(1.15);
-        expect(growTheTeam / visitScrapHigh).toBeGreaterThanOrEqual(0.85);
+    it('quotes ticket 56’s income table, so a retune of it lands here first', () => {
+        // The four numbers the docblock's table is built out of. Asserted so that moving the income
+        // breaks this file rather than silently leaving its arithmetic describing a dead scale —
+        // which is exactly what ticket 12's 450-500 anchor did until ticket 57 came through.
+        expect(BASE_WIN_SCRAP).toBe(10);
+        expect(SCRAP_PER_EXTRA_ENEMY).toBe(5);
+        expect(ELITE_WIN_SCRAP).toBe(30);
+        expect(scrapForWin('wild', 1)).toBe(10);
+        expect(scrapForWin('wild', PARTY_SIZE)).toBe(20);
+        // 60 from the two elite exits + 60 from the gym + 90 from the wilds.
+        expect(RUN_SCRAP).toBe(210);
     });
 
-    it('costs roughly one and a half cards’ worth of market, so recruiting competes with the shop', () => {
+    it('grows the party 1 → 2 → 3 for about five sevenths of a market visit', () => {
+        const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 70
+        const growTheTeam = WORKSHOP_ASSEMBLY_SCRAP * RECRUITS_PER_RUN;
+
+        expect(growTheTeam).toBe(50);
+        expect(visitScrap).toBe(70);
+        // Ticket 14 could say "exactly one visit"; the ruled number gives that tidiness up. What it
+        // must not do is drift to either edge — a whole visit each would make the market a window
+        // display, and half a visit for the pair would make the node a free power-up.
+        expect(growTheTeam / visitScrap).toBeGreaterThan(0.6);
+        expect(growTheTeam / visitScrap).toBeLessThan(0.85);
+        // A quarter of the run, where ticket 14's 75 was a third of a much larger one.
+        expect(growTheTeam / RUN_SCRAP).toBeLessThan(0.3);
+    });
+
+    it('costs one median card per recruit, so recruiting competes with the shop', () => {
         // Henry's stated design target for this node: mid-run recruiting must compete with the
-        // marketplace for the same currency. The unit that makes that legible is a card.
-        expect(MEDIAN_CARD_PRICE).toBe(48);
+        // marketplace for the same currency. The unit that makes that legible is still a card — but
+        // ticket 56 moved the card table as well as the income, so the unit itself changed size.
+        // The offerable registry now prices on energy alone (15/25/35/45) and clusters on the
+        // 1-energy rung, which puts the median at 25 where the rarity table put it at 48.
+        expect(MEDIAN_CARD_PRICE).toBe(25);
+        expect(MEDIAN_CARD_PRICE).toBe(CARD_PRICE_BY_ENERGY[1]);
+
+        // At the ruled numbers a recruit IS a median card, exactly — 25 against 25. That equality is
+        // two rulings landing on the same rung rather than a derivation, so what is asserted as a
+        // law is the band either side of it: at least one whole card, or the fee is spare change and
+        // the "route decision" is imaginary; under two, or the recruit stops being "a card you gave
+        // up" and becomes a shopping trip. (Ticket 14's 75 sat at ~1.5 cards on the old table; the
+        // old band here was 0.4-0.6 because that table's median was nearly twice the fee.)
+        expect(WORKSHOP_ASSEMBLY_SCRAP).toBe(MEDIAN_CARD_PRICE);
         const cardsForgone = WORKSHOP_ASSEMBLY_SCRAP / MEDIAN_CARD_PRICE;
-        expect(cardsForgone).toBeGreaterThan(1.4);
-        expect(cardsForgone).toBeLessThan(1.8);
-        // And across a run, the two recruits are three cards not bought.
-        expect(Math.round((WORKSHOP_ASSEMBLY_SCRAP * RECRUITS_PER_RUN) / MEDIAN_CARD_PRICE)).toBe(3);
+        expect(cardsForgone).toBeGreaterThanOrEqual(1);
+        expect(cardsForgone).toBeLessThan(2);
+
+        // And across a run, the two recruits are two median cards not bought — out of the eight a
+        // 210-scrap run could otherwise afford, which is the share that keeps the shop worth walking
+        // into after the party is full.
+        expect((WORKSHOP_ASSEMBLY_SCRAP * RECRUITS_PER_RUN) / MEDIAN_CARD_PRICE).toBe(2);
+        expect(Math.floor(RUN_SCRAP / MEDIAN_CARD_PRICE)).toBe(8);
+    });
+
+    it('is payable at the first workshop by the solo party that walks into it', () => {
+        // The failure ticket 14's 75 would have become the moment the income was cut. A solo party's
+        // wilds field one body, so the first recruit is saved up ten at a time: 25 is three won
+        // fights and an errand, where 75 would have been eight and a node walked past.
+        expect(SOLO_WILD_SCRAP).toBe(10);
+        expect(Math.ceil(WORKSHOP_ASSEMBLY_SCRAP / SOLO_WILD_SCRAP)).toBe(3);
+        expect(Math.ceil(75 / SOLO_WILD_SCRAP)).toBe(8);
     });
 
     it('is not a rounding error and not unaffordable — the two ways the ruling fails', () => {
-        // Below the cheapest sink it would be free in practice; at a whole market visit each the two
-        // recruits would eat 300 of 450 and the first workshop would be unpayable by a solo party.
-        expect(WORKSHOP_ASSEMBLY_SCRAP).toBeGreaterThan(REMOVAL_PRICE);
-        expect(WORKSHOP_ASSEMBLY_SCRAP).toBeGreaterThan(MEDIAN_CARD_PRICE);
-        expect(WORKSHOP_ASSEMBLY_SCRAP).toBeLessThan(RUN_SCRAP_LOW / MARKET_VISITS_PER_RUN);
+        // Dearer than the cheapest thing on the shelf, so declining a recruit still buys something.
+        // (Against REMOVAL_PRICE the claim is "dearer than one removal", which ticket 57's
+        // marketplace half lands by moving that constant to 20; it is not asserted here because
+        // this file must not encode a number another ticket owns.)
+        expect(WORKSHOP_ASSEMBLY_SCRAP).toBeGreaterThan(OFFERABLE_PRICES[0]);
+        // Under a whole market visit each, or the two recruits eat the marketplace.
+        expect(WORKSHOP_ASSEMBLY_SCRAP).toBeLessThan(RUN_SCRAP / MARKET_VISITS_PER_RUN);
         // Cheaper than the dearest single card on the shelf: the recruit is gated by a blueprint as
         // well, and pricing it above everything would make the double gate a wall.
         expect(WORKSHOP_ASSEMBLY_SCRAP).toBeLessThan(OFFERABLE_PRICES[OFFERABLE_PRICES.length - 1]);
@@ -148,27 +203,59 @@ describe('the recruit price is derived, not chosen', () => {
 });
 
 describe('the reflash price', () => {
-    it('is roughly half a recruit — no body, no cards', () => {
-        const halves = (WORKSHOP_REFLASH_SCRAP * 2) / WORKSHOP_ASSEMBLY_SCRAP;
-        expect(halves).toBeGreaterThanOrEqual(0.9);
-        expect(halves).toBeLessThanOrEqual(1.2);
+    it('is three fifths of a recruit — no body, no cards', () => {
+        const fraction = WORKSHOP_REFLASH_SCRAP / WORKSHOP_ASSEMBLY_SCRAP;
+        expect(fraction).toBeGreaterThanOrEqual(0.5);
+        expect(fraction).toBeLessThanOrEqual(0.75);
+        expect(WORKSHOP_REFLASH_SCRAP).toBeLessThan(WORKSHOP_ASSEMBLY_SCRAP);
     });
 
-    it('sits between the sink and the card it costs you', () => {
-        // Above removal, so the cheapest button in the workshop stays the sink rather than a
-        // power-up; below the median card, so a reflash never costs more than what you gave up.
-        expect(WORKSHOP_REFLASH_SCRAP).toBeGreaterThan(WORKSHOP_REMOVAL_PRICE);
+    it('sits on the income’s 5-scrap grid, not the market’s 8', () => {
+        // Ticket 14 rounded its proposed 40 onto ticket 13's 8-scrap energy step — a grid ticket 56
+        // deleted along with the rarity base it was added to. Ticket 56's prices are whole and half
+        // multiples of a won solo fight instead, which is the grid a workshop is actually paid in.
+        expect(WORKSHOP_REFLASH_SCRAP % SCRAP_PER_EXTRA_ENEMY).toBe(0);
+        expect(WORKSHOP_ASSEMBLY_SCRAP % SCRAP_PER_EXTRA_ENEMY).toBe(0);
+        expect(WORKSHOP_REFLASH_SCRAP).toBe(1.5 * SOLO_WILD_SCRAP);
+        expect(WORKSHOP_ASSEMBLY_SCRAP).toBe(2.5 * SOLO_WILD_SCRAP);
+    });
+
+    it('is now the CHEAPEST button at the workshop, inverting ticket 14’s ordering', () => {
+        // Ticket 14 held the reflash above removal so "the cheapest button stays the sink". Henry
+        // ruled the other way, and the reason it is coherent is that the two prices are not in the
+        // same currency: a removal costs scrap alone, a reflash costs scrap PLUS a blueprint, which
+        // drops from ~20% of wilds. This holds whichever value ticket 13's constant carries.
+        expect(WORKSHOP_REFLASH_SCRAP).toBeLessThan(WORKSHOP_REMOVAL_PRICE);
+    });
+
+    it('is under the card it costs you, and not a token at that', () => {
+        // The claim being protected is "a reflash never costs more than the card you gave up to buy
+        // it", and that survives ticket 56 — 15 against a median of 25. What does NOT survive is the
+        // margin: ticket 56 cut the card table as well as the income, so the shelf came down to meet
+        // this price instead of staying overhead, and the reflash is three fifths of a median card
+        // rather than a third of one. Under ticket 14's 40-against-48 it was true by a hair.
         expect(WORKSHOP_REFLASH_SCRAP).toBeLessThan(MEDIAN_CARD_PRICE);
-        expect(WORKSHOP_REFLASH_SCRAP).toBeLessThan(WORKSHOP_ASSEMBLY_SCRAP);
+        const cardFraction = WORKSHOP_REFLASH_SCRAP / MEDIAN_CARD_PRICE; // 0.6
+        // Both edges are the design, not the arithmetic: at a whole card the reflash would cost what
+        // it re-aims (and would outprice the recruit's own card-for-a-body trade), while under half
+        // a card it reads as a token at a scale where one won solo wild pays 10.
+        expect(cardFraction).toBeGreaterThan(0.5);
+        expect(cardFraction).toBeLessThan(1);
     });
 });
 
 describe('removal is one price, not one per counter', () => {
     it('charges exactly what a marketplace charges', () => {
-        // Ticket 13 derived 30 against a stated target ("stripping all generics costs roughly one
-        // market visit's scrap"). A second, cheaper workshop price would falsify that derivation
-        // without retuning it — the player would simply do every removal here.
+        // Ticket 13 derives its number against a stated target ("stripping all generics costs
+        // roughly one market visit's scrap"). A second, cheaper workshop price would falsify that
+        // derivation without retuning it — the player would simply do every removal here.
         expect(WORKSHOP_REMOVAL_PRICE).toBe(REMOVAL_PRICE);
+    });
+
+    it('needed no edit when ticket 56 moved the removal price', () => {
+        // The whole payoff of the re-export. WORKSHOP_REMOVAL_PRICE is not a number this file keeps
+        // in step with ticket 13's — it IS ticket 13's, so there is nothing here to fall behind.
+        expect(Object.is(WORKSHOP_REMOVAL_PRICE, REMOVAL_PRICE)).toBe(true);
     });
 });
 

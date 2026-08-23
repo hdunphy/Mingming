@@ -4,10 +4,11 @@
  * # WHAT A MARKET IS FOR
  *
  * Ticket 12 gave a run an income (`SCRAP_PER_ENEMY`) and nothing to spend it on. This module is the
- * other half: **buy a card, sell a card, pay to remove a card**, three verbs over one run-scoped
- * currency. `economy-session.md` calls removal *the designer-added sink* — the one price in the
- * game whose job is to consume scrap rather than to trade it — and Henry's amendment of 2026-08-21
- * says what it is a sink *for*:
+ * other half: **buy a card, pay to remove a card** — two verbs over one run-scoped currency, plus
+ * ticket 15's macro stall below. (Ticket 13 shipped a third verb, *sell a card*; Henry deleted it in
+ * ticket 56 — see the note beside `REMOVAL_PRICE`.) `economy-session.md` calls removal *the
+ * designer-added sink* — the one price in the game whose job is to consume scrap rather than to
+ * trade it — and Henry's amendment of 2026-08-21 says what it is a sink *for*:
  *
  * > the generic None-element filler (3 in the start deck, 1 per recruit) **is what removal is for**
  * > — price removal so stripping all generics over a run costs roughly one market visit's scrap.
@@ -15,24 +16,37 @@
  * > must not be farmable to zero**.
  *
  * Both halves of that amendment are implemented as laws with tests behind them, not as intentions:
- * the stock is a pure function of (run seed, node id, visit count) via `nodeSeed`, and `sellPrice`
- * is derived from `cardPrice` so that **sell < buy** cannot be broken by retuning one table.
+ * the stock is a pure function of (run seed, node id, visit count) via `nodeSeed`, and the no-farm
+ * half is now **structural rather than arithmetic** — ticket 13 held it with a `sell < buy` clamp,
+ * and since ticket 56 there is no way to turn a card back into scrap at all. `marketplace.test.ts`
+ * asserts that at the module's surface: a sell verb re-appearing here is the regression, whatever
+ * it would be priced at.
  *
  * # POWER DIES AT THE SURFACE
  *
  * A standing law (map § Notes): *"true numbers in UI; `power` is internal pricing only."* `power` is
  * a balance instrument — `debug/balance/powerscale.ts` scores cards with it — and a shop price
  * derived from it would publish that instrument as a player-facing quantity, one arithmetic step
- * from being reverse-engineered. So **prices are keyed on rarity and energy cost ONLY**: two things
- * already printed on the card. Nothing in this file reads an action's `power`, and
- * `marketplace.test.ts` proves it behaviourally — every card sharing a (rarity, cost) pair must
- * price identically, however hard they differ underneath.
+ * from being reverse-engineered. So **prices are keyed on printed energy cost ONLY** — one thing,
+ * printed on the card, and since ticket 56 not even rarity joins it (see `CARD_PRICE_BY_ENERGY`).
+ * Nothing in this file reads an action's `power`, and `marketplace.test.ts` proves both exclusions
+ * behaviourally: two cards of the same printed energy and *different* rarity must price identically
+ * (as must two of the same energy and wildly different power), and at registry scale every energy
+ * bucket is multi-rarity and single-priced.
  *
- * # EVERY NUMBER BELOW IS A PROPOSAL AWAITING HENRY
+ * # WHICH NUMBERS BELOW ARE RULED, AND WHICH ARE STILL PROPOSALS
  *
  * Ticket 13: *"Pricing: propose a table... Henry picks numbers. Stock size, reroll cost and removal
  * price are Henry numbers too."* They are gathered in one block under THE MARKETPLACE KNOB so that
- * ratifying them is editing one screenful, in the style of ticket 12's `SCRAP_PER_ENEMY`.
+ * ratifying them is editing one screenful, in the style of ticket 12's `SCRAP_PER_ENEMY`. Ticket 56
+ * ratified some of that screenful and left the rest open, so the block is no longer uniform:
+ *
+ * - **RULED** (Henry, ticket 56; applied by ticket 57): the card table `CARD_PRICE_BY_ENERGY`, and
+ *   `REMOVAL_PRICE` at 20. **RULED earlier** (`macros-and-drivers.md`, upheld in 56's
+ *   reconciliation): `MACRO_PRICE_STANDARD` / `MACRO_PRICE_RARE`.
+ * - **STILL PROPOSALS**, each flagged at its own declaration: `MARKET_STOCK_SIZE`,
+ *   `MARKET_WILDCARD_SLOTS`, `MACRO_STOCK_SIZE` — and `REROLL_PRICE`, which ticket 57 *derived* from
+ *   the ruled card table rather than being handed a number for.
  *
  * Engine module: no React, no Redux, no `src/ui` or `src/debug` imports, no `Math.random()`, no
  * `Date.now()`.
@@ -43,30 +57,42 @@ import { MACRO_IDS, MacroRegistry } from '../data/macroRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
 import { isRewardable, rewardCardPool, type IRewardPartyMember } from '../RewardSystem';
 import { numericBaseCost } from '../types';
-import type { Element, Rarity } from '../types';
+import type { Element } from '../types';
 import type { IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
 import { nodeSeed } from './nodeSeed';
 
 // =================================================================================================
-// THE MARKETPLACE KNOB — every number here is a PROPOSAL awaiting Henry's ratification
+// THE MARKETPLACE KNOB — some of it RULED by Henry in ticket 56, the rest still a proposal
 // =================================================================================================
 
 /**
  * ## The anchor everything below is quoted against
  *
- * Ticket 12 measured the run: **a full 8-10 fight run with a three-member party lands around
- * 450-500 scrap** before anything is earned by selling. Ticket 07 puts **exactly one marketplace per
- * biome** and a run is three biomes, so a run sees **three markets** (more if the player backtracks,
- * which costs re-fought wilds and therefore pays for itself).
+ * **Ticket 12's "450-500 a run, ~150 a visit" is dead** — ticket 56 replaced the per-body income
+ * with `RewardSystem.scrapForWin`, which pays **10 plus 5 per enemy beyond the first** (1v1 10, 2v2
+ * 15, 3v3 20) and **30 flat for an elite**. The modelled run is the one `workshop.ts` derives and
+ * both test files recompute from `scrapForWin` rather than restate:
  *
- * **A market visit's scrap ≈ 450 / 3 = 150.** The upper anchor gives 500 / 3 ≈ 167; 150 is used
- * throughout as the conservative figure, because pricing to the optimistic end of a band is how a
- * shop ends up unaffordable for everyone who is not already winning. This one number is the divisor
- * behind the removal price, the stock size and the reroll cost, and if Henry moves the income bands
- * in `SCRAP_PER_ENEMY` it is the only thing that has to be recomputed here.
+ * | source | count | pays | total |
+ * |---|---|---|---|
+ * | biome exits that are elites | 2 | 30 | 60 |
+ * | the gym (three fights of three) | 1 | 3 × 20 | 60 |
+ * | wilds, on a party growing 1 → 2 → 3 | ~6 | 10 / 15 / 20 | 90 |
+ *
+ * — **about 210 scrap a run**, taken at the low end of ticket 12's 8-10 fight shape because pricing
+ * to the optimistic end of a band is how a shop ends up unaffordable for everyone who is not already
+ * winning. Ticket 07 puts **exactly one marketplace per biome** and a run is three biomes, so a run
+ * sees **three markets** (more if the player backtracks, which costs re-fought wilds and therefore
+ * pays for itself).
+ *
+ * **A market visit's scrap = 210 / 3 = 70.** This one number is the divisor behind the removal
+ * price, the stock sizes and the reroll cost, and if Henry retunes `BASE_WIN_SCRAP` /
+ * `SCRAP_PER_EXTRA_ENEMY` / `ELITE_WIN_SCRAP` it is the only thing that has to be recomputed here —
+ * `marketplace.test.ts` recomputes the 210 and the 70 from those constants, so a retune fails the
+ * test rather than quietly falsifying this table.
  *
  * Note what the anchor is NOT: it is not what the player is holding when they walk into market one.
- * Income accumulates across the run, so the first market is poorer than 150 and the third is richer.
+ * Income accumulates across the run, so the first market is poorer than 70 and the third is richer.
  * That skew is the intended shape — the first market is a choice between one card and one removal,
  * the third is a shopping trip — and it is why nothing below is priced so that the *first* visit can
  * clear the stock.
@@ -76,12 +102,18 @@ export const MARKET_VISITS_PER_RUN = 3;
 /**
  * **PROPOSAL — stock size: 5 cards from the party pool.**
  *
- * Derivation: a visit brings ~150 scrap and the median offer prices at 32-48 (see
- * `CARD_PRICE_BY_RARITY`), so a visit buys **three cards at most** and fewer if the player also
- * removes anything. A stock of 5 pool cards + 1 wild-card is therefore a stock the player can never
- * buy out — which is what makes it a *choice* rather than a queue — while still being small enough
- * to read at a glance on the Steam Deck's 1280x800 (ticket 37) without scrolling past the deck list
- * underneath it.
+ * Derivation, re-run against ticket 56's numbers: a visit brings **~70 scrap** and the shelf prices
+ * at 15/25/35/45 (`CARD_PRICE_BY_ENERGY`) with the offerable registry's **median at 25** — the
+ * 1-energy rung is where most printed cards sit. So a visit buys **two cards at most**: three only
+ * if all three come off the cheap rung (3 × 15 = 45), and fewer again if the player also removes
+ * anything (20). A stock of 5 pool cards + 1 wild-card is therefore **six offers against a purse
+ * that clears two of them** — a stock the player can never buy out, which is what makes it a
+ * *choice* rather than a queue — while still being small enough to read at a glance on the Steam
+ * Deck's 1280x800 (ticket 37) without scrolling past the deck list underneath it.
+ *
+ * The cut income made this ratio *stronger*, not weaker: ticket 13 sized 5 against a visit that
+ * could clear three rows of six, and a visit now clears two. Shrinking the stock to match would be
+ * the wrong correction — a shorter shelf at a poorer visit is two constraints doing one job.
  *
  * Smaller (3) makes the reroll mandatory rather than optional; larger (8+) makes every visit a
  * spreadsheet and drowns the wild-card slot, which is the one row with news in it.
@@ -106,144 +138,105 @@ export const MARKET_STOCK_SIZE = 5;
 export const MARKET_WILDCARD_SLOTS = 1;
 
 /**
- * **PROPOSAL — buy price = a rarity base plus 8 per point of energy.**
+ * WHAT A CARD COSTS — **RULED by Henry in ticket 56, applied by ticket 57.**
  *
- * Keyed on **rarity and energy cost only** — see the header on why `power` cannot appear here. Both
- * inputs are printed on the card, so the price is legible before it is paid: a player can look at a
- * card they have never seen and know roughly what it will cost.
+ * > *"Market buy: 0e 15 / 1e 25 / 2e 35 / 3e 45."*
  *
- * | rarity | base | typical printed cost | price |
- * |---|---|---|---|
- * | Common | 24 | 0-1 | **24-32** |
- * | Uncommon | 40 | 1-2 | **48-56** |
- * | Rare | 64 | 2-3 | **80-88** |
- * | Epic | 96 | 2-3 | **112-120** |
+ * # THIS REPLACED A RARITY BASE PLUS AN ENERGY STEP, AND THE MODEL CHANGED, NOT JUST THE NUMBERS
  *
- * The reasoning, in the order the numbers were chosen:
+ * Ticket 13 priced a card as `CARD_PRICE_BY_RARITY[rarity] + 8 x energy` — 24/40/64/96 by rarity,
+ * plus a step. Henry's table is **energy alone**: a 2-energy Common and a 2-energy Rare both cost 35.
  *
- * - **The Common floor (24) is set against the removal price (30).** Removal has to cost *more* than
- *   the cheapest card or the sink is free, and it has to cost *less* than a good card or nobody ever
- *   sharpens their deck. 24 / 30 / 48 puts removal exactly between "the cheapest thing here" and
- *   "the thing you came for".
- * - **The rarity curve is ~1.6x per step**, not the 2x of `SCRAP_YIELDS`. Rarity in this registry is
- *   a statement about how *specialised* a card is, not how strong (ticket 21 froze power scaling),
- *   so a Rare should be a considered purchase rather than a whole visit's income. At 1.6x a Rare is
- *   ~2.5 Commons; at 2x it would be 4, and the market would sell nothing but Commons at biome 1.
- * - **8 per energy point** is a third of a rarity step. Energy cost correlates with effect size but
- *   is not a quality ranking — a 0-cost Common is often the card a deck actually wants — so cost
- *   nudges the price rather than driving it. It exists mostly so that two Commons are not the same
- *   price when one of them is free to play.
- * - **Epic is priced although the registry ships none** (216 cards: Common/Uncommon/Rare/Token
- *   only). The record is total for the same reason ticket 12's tables list the non-fight node kinds
- *   at zero: a missing key returns `undefined`, and `undefined` arithmetic prices a card at `NaN`.
+ * That is a design statement, not a simplification. Rarity in this game is a *drop-rate* weight
+ * (`RewardSystem.RARITY_WEIGHTS`), not a power tier — the rev-3 curve prices power in **energy**
+ * (`50 x E - 10`, `docs/power_curve_spec.md`), so a shop that charged for rarity was charging twice
+ * for the same thing and charging it against the wrong axis. A stall now asks "how much of your turn
+ * does this cost", which is the question the card itself answers.
+ *
+ * Four rungs, 10 apart, on the 5-scrap grid the income sits on. Anything printed above 3 energy
+ * clamps to the top rung — `numericBaseCost` resolves X-cost cards to the shared 3-energy budget
+ * (ticket 22), so an X card is priced as the expensive card it plays as.
  */
-export const CARD_PRICE_BY_RARITY: Readonly<Record<Rarity, number>> = {
-    Common: 24,
-    Uncommon: 40,
-    Rare: 64,
-    Epic: 96,
-};
+export const CARD_PRICE_BY_ENERGY: ReadonlyArray<number> = [15, 25, 35, 45];
 
-/** **PROPOSAL** — added per point of printed energy cost. See `CARD_PRICE_BY_RARITY`. */
-export const ENERGY_PRICE_STEP = 8;
+/** Anything printed above this is priced as this. See `CARD_PRICE_BY_ENERGY`. */
+export const MAX_PRICED_ENERGY = CARD_PRICE_BY_ENERGY.length - 1;
+
+/*
+ * SELLING IS GONE — Henry, ticket 56, applied by ticket 57.
+ *
+ * > *"Cards cannot be sold"* — which amends `economy-session.md`'s "selling cards" income line.
+ * > **Removal is a pure sink.**
+ *
+ * `SELL_MULTIPLIER` (0.4) and `sellPrice` lived here, with a `Math.min(..., buy - 1)` clamp whose
+ * whole job was to make "sell < buy for every card" hold for any multiplier anyone could type — the
+ * no-farm law. The law is now structural: there is no way to turn a card back into scrap at all, so
+ * the market takes and never gives. `runSlice.sellRunCard` and the shop's sell control went with it.
+ */
 
 /**
- * **PROPOSAL — a card sells for 40% of what it costs, rounded down.**
+ * REMOVAL COSTS 20 SCRAP — **RULED by Henry in ticket 56** (*"card removal 20 (market and
+ * workshop)"*), replacing ticket 13's proposed 30.
  *
- * A multiplier and not a second table, because the law selling must obey is comparative:
- * **`sellPrice(x) < cardPrice(x)` for every card in the registry, or the market is an infinite scrap
- * loop.** That is Henry's *"prices must not be farmable to zero"* clause, and under a multiplier
- * below 1 it is arithmetic rather than vigilance. Two independently-tuned tables would satisfy it on
- * the day they were written and stop satisfying it the first time either half was retuned — which is
- * precisely what would have happened with `RewardSystem.getScrapYield`'s flat `Rare: 50`.
+ * The target ticket 13 derived 30 against still holds and is worth restating against the new
+ * income: *"stripping all generics over a run costs roughly one market visit's scrap."* A start deck
+ * carries `START_GENERICS` (3) generics per member, and a three-member party built through the run
+ * therefore accumulates up to 9 — but the two recruits arrive with 1 each (`RECRUIT_GENERICS`), so
+ * the realistic total is **5**: 3 from the starter, 1 per recruit.
  *
- * **Why 40% and not 50% or 25%:**
+ * 5 x 20 = **100 scrap**, against a run's **210** spendable (`RewardSystem.scrapForWin`, the table
+ * above `MARKET_VISITS_PER_RUN`) and a market visit's **70**. So stripping the deck clean costs about **one and a half market visits** — slightly
+ * dearer than ticket 13's target in relative terms, which is the right direction: under the new
+ * income everything costs a larger share of a smaller pot, and thinning is meant to compete with
+ * buying rather than be the obvious default.
  *
- * - A 60% haircut makes buy→sell round-tripping visibly stupid: churning the whole stock burns
- *   ~90 scrap for nothing, which is three removals.
- * - It still pays enough to be worth the click on the cards a run genuinely wants gone. The generic
- *   filler sells for 9, so **dumping all five generics returns 45 — about a third of what removing
- *   them costs.** Selling is the cheap, slow way to thin a deck and removal is the fast, expensive
- *   one, which is the trade the sink is supposed to present.
- * - At 50% a Rare bought at 80 returns 40, and a player who mis-clicks loses only 40 — cheap enough
- *   that buying becomes low-stakes. At 25% selling is not worth reading the list for.
+ * It is no longer the cheapest thing on the screen — a 0-energy card is 15 — and that is fine: a
+ * removal and a cheap card are different transactions, and the sink does not have to undercut the
+ * stock to be used. What DOES have to stay under the cheapest card is the reroll; see there.
  */
-export const SELL_MULTIPLIER = 0.4;
+export const REMOVAL_PRICE = 20;
 
 /**
- * **PROPOSAL — removal costs 30 scrap. THIS IS THE NUMBER WITH A STATED TARGET, so here is the
- * arithmetic in full.**
+ * A REROLL COSTS 10 SCRAP — and this is **the one number in the shop ticket 56 did not rule**, so
+ * the arithmetic is here in full and it is the first thing to argue with.
  *
- * Henry's amendment: *"price removal so stripping all generics over a run costs roughly one market
- * visit's scrap."*
+ * Ticket 13 priced it at 20 with a stated law: *"priced BELOW the cheapest card, because a reroll
+ * buys nothing but a new set of choices, so it must never be the most expensive thing on the
+ * screen — and close to it, so it is never free variance."* Under ticket 56's table the cheapest
+ * card is **15**, which makes the old 20 break its own rule: rerolling would cost more than buying.
  *
- * 1. **One market visit's scrap** = a run's income / markets per run = **450 / 3 = 150** (see
- *    `MARKET_VISITS_PER_RUN`; the 500 anchor gives 167).
- * 2. **Generics in a run.** `createRun`'s ruled start deck is 5 kit + `START_GENERICS` = **3
- *    generics**, and `recruitDeckFor` adds `RECRUIT_GENERICS` = **1 per recruit**. A run that grows
- *    1 → 2 → 3 members through workshop nodes (`vision.md`) therefore carries **3 + 1 + 1 = 5**
- *    generics by the end. (A party that starts at three carries nine, because `startDeckFor` runs
- *    per member — but that is the debug/launch-screen shape, not the ruled progression, and pricing
- *    to it would make removal free for the ordinary run.)
- * 3. **The price**: 150 / 5 = **30 scrap per removal.**
+ * Ticket 57's instruction is *"rescale, do not re-derive"*, so the ratio is what carries across:
+ * 20/24 of the cheapest card is 0.83, and 0.83 x 15 = 12.5, which lands on **10** once the
+ * deck-archetypes "numbers move in 5s" rule (`map` § Notes) rounds it. 10 is two thirds of the
+ * cheapest card and half of a removal — cheap enough to be a real option at a poor visit, dear
+ * enough that reroll-until-happy costs a card.
  *
- * Check both ends of the anchor: 5 × 30 = 150, which is 100% of a 450-scrap run's per-visit share
- * and 90% of a 500-scrap run's. "Roughly one market visit's scrap" holds at both.
- *
- * Two consequences worth reading before ratifying:
- *
- * - **You cannot strip them all at one market.** The first visit is poorer than 150, so the five
- *   removals spread across the three markets — one or two per visit, always competing with a card
- *   you also want. That is the sink working: it is a *run-long* commitment costing a visit's income,
- *   not a button you press once.
- * - **It is a flat price, not a rarity-keyed one.** Removal is a deck-size operation and the deck
- *   does not care what it is thinning; a rarity-keyed removal would also make removing your worst
- *   card cost the least, which pays the player for having drafted badly.
+ * **FLAGGED:** derived, not ruled. If it is wrong it is wrong by 5.
  */
-export const REMOVAL_PRICE = 30;
-
-/**
- * **PROPOSAL — a reroll costs 20 scrap, flat.**
- *
- * Priced *below* the cheapest card (24) on purpose: a reroll buys nothing but a new set of choices,
- * so it must never be the most expensive thing on the screen. Priced close to it for the opposite
- * reason — at 5 scrap the correct play would be to reroll until the stock is perfect, which is a
- * slot machine, and the market would stop being a choice under scarcity.
- *
- * **Self-limiting rather than escalating.** A 150-scrap visit affords 7 rerolls *and nothing else*,
- * so the greedy line pays for itself in cards not bought; an escalating within-visit price would be
- * the other way to stop it, and it needs a counter that `IRunState` has no field for (ticket 06's
- * shape, which this ticket must not change). Flagged for Henry: if playtesting shows reroll-spam, the
- * cheapest fix is raising this number, not adding state.
- *
- * **A reroll is implemented as a paid re-entry** — it increments the node's `visited` count, which is
- * exactly what walking away and walking back would do (ticket 07). So it cannot be farmed to zero:
- * it only ever spends scrap, and it buys the same thing the player could already have had for the
- * price of re-fighting the wilds in between.
- */
-export const REROLL_PRICE = 20;
+export const REROLL_PRICE = 10;
 
 // =================================================================================================
 // Prices
 // =================================================================================================
 
 /**
- * What a card costs to buy. **Reads `rarity` and `baseCost` and nothing else** — see the header on
- * why `power` may not appear in this function.
+ * What a card costs to buy. **Reads `baseCost` and nothing else** — not `rarity` since ticket 56,
+ * and never an action's `power`; see the header on why.
  *
- * An unknown id prices as a Common rather than throwing: a price is asked for by a render, and a
- * screen that crashes on a stale dataId is worse than one that shows a plausible number. `'X'` costs
- * resolve through `numericBaseCost` (the shared 3-energy static budget, ticket 22) rather than being
- * special-cased, so an X card is priced as the expensive card it plays as.
+ * An unknown id prices at the **cheapest rung** rather than throwing: a price is asked for by a
+ * render, and a screen that crashes on a stale dataId is worse than one that shows a plausible
+ * number. The cheap end is the deliberate direction to be wrong in — a phantom row the player can
+ * afford is a smaller lie than one they save up for. `'X'` costs resolve through `numericBaseCost`
+ * (the shared 3-energy static budget, ticket 22) rather than being special-cased, so an X card is
+ * priced as the expensive card it plays as.
  */
 export function cardPrice(dataId: string): number {
     const data = ProgramRegistry[dataId];
-    if (!data) return CARD_PRICE_BY_RARITY.Common;
-    // `Token` reaches this cast at runtime (the JSON has a rarity the `Rarity` union does not name)
-    // and is priced as Common. Tokens are never *offered* — `isRewardable` excludes them from both
-    // pools — so this is the degenerate branch, kept total rather than left to produce `NaN`.
-    const base = CARD_PRICE_BY_RARITY[data.rarity as Rarity] ?? CARD_PRICE_BY_RARITY.Common;
-    return base + ENERGY_PRICE_STEP * numericBaseCost(data.baseCost);
+    // An unknown id prices as the cheapest rung rather than throwing: a price is asked for by a
+    // render, and a shop row that crashes is worse than one that is wrong by 30 scrap.
+    if (!data) return CARD_PRICE_BY_ENERGY[0];
+    const energy = Math.min(Math.max(numericBaseCost(data.baseCost), 0), MAX_PRICED_ENERGY);
+    return CARD_PRICE_BY_ENERGY[energy];
 }
 
 // =================================================================================================
@@ -251,30 +244,33 @@ export function cardPrice(dataId: string): number {
 // =================================================================================================
 
 /**
- * **The reference card a macro is priced as: a ONE-ENERGY COMMON.**
+ * MACRO PRICES: **32 standard, 48 rare — and since ticket 57 they are LITERALS, not a derivation.**
  *
- * `macros-and-drivers.md`, RULED: *"Pricing RULED: full 1e-card value, rares 1.5x. Marketplace price
- * follows ticket 13's table."* Both halves are obeyed literally: the base is what
- * `cardPrice` charges for a Common card printed at 1 Energy — `CARD_PRICE_BY_RARITY.Common +
- * ENERGY_PRICE_STEP × 1` = **32** — and it is *derived* from that table rather than copied out of
- * it, so a Henry tuning pass on the rarity base or the energy step moves the macros with the cards.
+ * `macros-and-drivers.md`, RULED: *"Pricing RULED: full 1e-card value, rares 1.5x."* Ticket 13 obeyed
+ * that by *computing* it — `CARD_PRICE_BY_RARITY.Common + ENERGY_PRICE_STEP x 1` = 32 — so that a
+ * tuning pass on the card table moved the macros with it. That was the right shape at the time and
+ * it cannot survive ticket 56, which made a 1-energy card cost **25**.
  *
- * **The reading that was rejected, and why.** One could read "full 1e-card value" as "the 1-Energy
- * price of a card of the MACRO's own rarity", which would put a rare macro at
- * `CARD_PRICE_BY_RARITY.Rare + 8 = 72` and then multiply *that* by 1.5. But the ruling states two
- * things, not one: a value, and a multiplier for rares. Under the rejected reading the multiplier is
- * redundant with the rarity base and rares get charged for their rarity twice (108 scrap — nearly a
- * whole market visit for one consumable). The two-tier reading is the one in which every clause of
- * the sentence does work: **32 for a standard macro, 48 for a rare.**
+ * Henry ruled the collision explicitly in 56's reconciliation: *"Macro prices keep the older 'full
+ * 1e-card value' ruling — commons 32, rares 48 — superseding this ticket's 25/40."* So the two
+ * rulings genuinely disagree about what a 1-energy card is worth, and the macro numbers are the ones
+ * that stand. A derivation would now silently produce 25/37 and quietly overturn the ruling that
+ * won, which is exactly the failure a derived constant is supposed to prevent.
  *
- * The resulting shape is the intended one. A standard macro costs the same as an ordinary card, so
- * "a card or a macro" is a real choice at every stall; a rare macro costs 1.5 cards, so Revive is a
- * considered purchase and never a reflex.
+ * They are therefore written down, with this note, and the link to the card table is **cut on
+ * purpose**. Moving them is editing these two numbers.
+ *
+ * The resulting shape, stated truly against the four rungs: a standard macro costs **more than any
+ * card up to the 1-energy rung** (32 against 15 and 25) and **less than either dear rung** (35 at
+ * 2 energy, 45 at 3). It is the **rare macro alone, at 48, that outprices every card on the shelf.**
+ * So a standard macro is a considered purchase rather than something bought with spare change —
+ * nearly half of a 70-scrap visit — without being the dearest thing at the stall; and a rare is over
+ * two thirds of a visit, which is the "most of a visit" the ruling was reaching for.
  */
-export const MACRO_REFERENCE_ENERGY = 1;
+export const MACRO_PRICE_STANDARD = 32;
 
 /** **RULED** — a rare macro costs one and a half times a standard one. `macros-and-drivers.md`. */
-export const MACRO_RARE_MULTIPLIER = 1.5;
+export const MACRO_PRICE_RARE = 48;
 
 /**
  * What a macro costs. Keyed on the macro's rarity tier and nothing else — there is no `power` here
@@ -285,24 +281,12 @@ export const MACRO_RARE_MULTIPLIER = 1.5;
  * An unknown id prices as a standard macro rather than throwing: a price is asked for by a render.
  */
 export function macroPrice(macroId: string): number {
-    const base = CARD_PRICE_BY_RARITY.Common + ENERGY_PRICE_STEP * MACRO_REFERENCE_ENERGY;
     const macro = MacroRegistry[macroId];
-    return macro?.rarity === 'Rare' ? Math.floor(base * MACRO_RARE_MULTIPLIER) : base;
+    return macro?.rarity === 'Rare' ? MACRO_PRICE_RARE : MACRO_PRICE_STANDARD;
 }
 
-/**
- * What a card sells for. **Strictly less than `cardPrice` for every card, by construction.**
- *
- * The `Math.min(..., buy - 1)` is not decoration: `SELL_MULTIPLIER` is a knob Henry may move, and a
- * multiplier of 1 (or a future price of 1 scrap, where `floor(1 * 0.4)` is 0 and a "minimum 1" floor
- * would tie) would turn the market into a scrap fountain. Clamping below the buy price makes the
- * no-farm law hold for any multiplier anyone can type, which is the only version of the law that
- * survives a tuning pass.
- */
-export function sellPrice(dataId: string): number {
-    const buy = cardPrice(dataId);
-    return Math.max(0, Math.min(Math.floor(buy * SELL_MULTIPLIER), buy - 1));
-}
+/* `sellPrice` was here. Ticket 56 removed selling — see the note beside `REMOVAL_PRICE`. */
+
 
 // =================================================================================================
 // The stock
@@ -358,11 +342,21 @@ export interface MarketStockInput {
  *
  * **Uniform, and NOT rarity-weighted, unlike the reward pick.** `rollDropTable` weights its rolls
  * 50/30/15/5 because a reward is a gift and the weighting is the only thing stopping every fight
- * from paying an Epic. A shop already has that brake and it is called the price: a Rare costs 2.5
- * Commons (`CARD_PRICE_BY_RARITY`), so weighting the stock *as well* would tax rarity twice — the
- * player would rarely be offered the expensive card and could rarely afford it when they were. The
- * market's job is to let you buy the card you decided you wanted; the rarity gate belongs in the
- * price, where the player can see it and save up for it.
+ * from paying an Epic. The market's job is different: it is to let you buy the card you decided you
+ * wanted, out of the lists your own party actually runs, so every offerable id in the pool is drawn
+ * with the same probability whatever tier is printed on it. The brake here is the **purse** — six
+ * offers against a visit that clears two of them (see `MARKET_STOCK_SIZE`) — and the *energy* rung
+ * an expensive card sits on, not its scarcity.
+ *
+ * **FLAG FOR HENRY — since ticket 56 there is no rarity gate in this market at all, at either end.**
+ * Ticket 13's version of this comment argued the draw could stay uniform *because* the price gated
+ * rarity: "a Rare costs 2.5 Commons, so weighting the stock as well would tax rarity twice." Ticket
+ * 56 removed the rarity term from the price, and that premise went with it — a Rare and a Common
+ * printed at the same energy now cost **exactly the same** and are **equally likely to be stocked**.
+ * That is a real consequence of the ruling rather than a decision taken here, and it is left as the
+ * ruling leaves it. If a Rare is meant to feel rare at a stall, the gate has to be put back
+ * somewhere on purpose — a weighted draw in this function, a scarcity cap on the stock, or a rarity
+ * term returning to `cardPrice` — and which of those is Henry's call, not ticket 57's.
  */
 function drawDistinct(source: ReadonlyArray<string>, count: number, stream: SeedStream): string[] {
     const remaining = [...source];
@@ -443,8 +437,14 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
  * markets you happened to route through; four would let the first market fill it and make the other
  * two stalls' macro rows dead rows.
  *
- * At 32–48 scrap against a ~150-scrap visit (see `MARKET_VISITS_PER_RUN`), two macros is also
- * roughly one card's worth of the budget — which is the trade the slot is supposed to present.
+ * What the wallet says about that, re-derived against ticket 56's income: at 32–48 scrap a pair is
+ * **64–96 against a 70-scrap visit** (see `MARKET_VISITS_PER_RUN`) — **the whole trip, or more than
+ * it.** So two on the shelf is emphatically not "roughly one card's worth of the budget", as this
+ * comment claimed at the old 150-scrap anchor; a single standard macro is already about half a visit
+ * and the pair is all of it. The trade the row presents is therefore **a macro instead of the cards,
+ * not as well as them**, and the rack fills at roughly one macro per stall across the run's three
+ * markets. That is a sharper version of the reason for two rather than an argument against it: two
+ * is what makes the row a *choice between macros* while the purse keeps it from being a sweep.
  */
 export const MACRO_STOCK_SIZE = 2;
 
@@ -483,8 +483,11 @@ export function rollMacroStock(input: MarketStockInput): ReadonlyArray<IMacroOff
  * Has this offer already been bought? True exactly when its minted instance id is in the deck.
  *
  * Derived rather than stored, which is what lets a sold-out slot survive a resume without a new
- * field in the ratified run shape. Selling the card back un-sells the offer, and that is a loop that
- * loses 60% of the price every lap (`SELL_MULTIPLIER`) rather than a farm.
+ * field in the ratified run shape. Since ticket 56 there is no sell verb to hand the card back with,
+ * so a sold row un-sells only if that instance leaves the deck again — which at a stall means paying
+ * for a removal (`removeRunCardForScrap`) and buying the row a second time, `cardPrice` +
+ * `REMOVAL_PRICE` a lap. That is a drain, not a farm: every lap is scrap leaving the run and none
+ * entering, which is the no-farm law holding structurally rather than by a clamp.
  */
 export function isOfferSold(deck: ReadonlyArray<IRunCard>, offer: IMarketOffer): boolean {
     return deck.some((card) => card.instanceId === offer.card.instanceId);

@@ -35,6 +35,7 @@ import { ProgramRegistry } from './data/programRegistry';
 import { getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
+import { FIGHT_KINDS } from './run/encounter';
 import type { NodeKind } from './runTypes';
 import type { IBattleEntity, Element, Rarity } from './types';
 
@@ -129,53 +130,57 @@ export const BLUEPRINT_DROP_RATE: Readonly<Record<NodeKind, number>> = {
 // Scrap (ticket 12, piece 3)
 // ---------------------------------------------------------------------------------------------
 
-/** Inclusive scrap band rolled per defeated enemy. */
-export interface IScrapBand {
-    readonly min: number;
-    readonly max: number;
-}
+/**
+ * WHAT A WON FIGHT PAYS — **RULED by Henry in ticket 56, applied by ticket 57.**
+ *
+ * > *"win pays 10 + 5 per enemy beyond the first (1v1 10, 2v2 15, 3v3 20); elite win 30."*
+ *
+ * # THIS REPLACED A PER-ENEMY BAND, AND THE SHAPE CHANGE IS THE POINT
+ *
+ * Ticket 12 paid a rolled band **per defeated body** (wild 8-14, elite 18-26, ...), which put a full
+ * run around 450-500 scrap. Henry replaced that scale wholesale so the numbers stay small and
+ * legible, and the replacement is not just smaller — it is a different shape:
+ *
+ * - **Per FIGHT, not per body.** A 3v3 pays 20 once, not 8-14 three times.
+ * - **Flat, not rolled.** There is no band and no `prng` call. Scrap is now a number you can predict
+ *   before you swing, which is what makes a shop price a *plan* rather than a hope.
+ *
+ * A 3-member run lands around **150-180 scrap**, which ticket 56 sizes as three purchases + three
+ * removals + one workshop fee.
+ *
+ * # THE GYM IS NOT CUT HERE
+ *
+ * It rescales with everything else rather than being singled out. Ticket 18's *"the gym pays 3x what
+ * ticket 12 sized it for"* is a **ratio** — three fights instead of one — and Henry held it for the
+ * ticket 25 playtest on 2026-08-23 (*"leave it for now. we will need to play test"*). Under this
+ * table a three-fight gauntlet of three bodies pays 3 x 20 = 60 where a single 3v3 wild pays 20, so
+ * the 3x is exactly preserved and only the scale moved. Cutting it is still one row, later, if the
+ * playtest says so.
+ */
+
+/** A one-enemy win. `exploration-map.md`'s smallest fight, and the base every other size adds to. */
+export const BASE_WIN_SCRAP = 10;
+
+/** Added per enemy beyond the first, so 2v2 is 15 and 3v3 is 20. */
+export const SCRAP_PER_EXTRA_ENEMY = 5;
+
+/** An elite win, flat and independent of body count: *"the biome's exam"* (ticket 07). */
+export const ELITE_WIN_SCRAP = 30;
 
 /**
- * **THE SCRAP KNOB, per defeated enemy. Every band is a PROPOSAL awaiting Henry's ratification.**
+ * What one won fight pays, in scrap.
  *
- * Before this ticket every corpse in the game paid `nextInt(5, 15)` — a number from when scrap was
- * a persistent currency with nothing to buy. Scrap is run-scoped now (`economy-session.md`: earned
- * by winning and selling, spent on marketplace cards, macros and removal, reset with the run), so
- * these are run-economy numbers and the fight has to be legible in them.
- *
- * **Per enemy, so party size is already in the payout.** `enemyPartySize` makes the ordinary wild
- * symmetric with your team, which means a 3v3 wild pays three rolls and a solo wild pays one — the
- * ticket's "a 3v3 should pay meaningfully more than a solo one" needs no separate multiplier, it
- * needs the roll to stay per-body. `RewardSystem.test.ts` asserts that scaling.
- *
- * | kind | band | per fight at 3 bodies | why (all proposals) |
- * |---|---|---|---|
- * | `wild` | **8-14** | ~33 | the baseline everything else is quoted against; slightly tighter than the old 5-15 so the *kind* of node, not the dice, is what moves a payout |
- * | `ambush` | **10-16** | ~39 | ticket 07's *"their 3 vs your 2"*. Pays the extra enemy twice over — once by having one, and once by a higher band — because you cannot decline it and you fight it down a body |
- * | `elite` | **18-26** | ~66 | *"should pay like the biome's exam"*: a biome's unavoidable exit, fielding the full tuned deck (ticket 08's kit fraction). Roughly two wilds, so skipping wilds to rush the exit is a real route choice rather than a strict loss |
- * | `alpha` | **30-40** | ~35 (one body) | one overtuned enemy in a dead-end pocket. Has to beat the wild you could have fought instead *plus* the backtrack, or the pocket is never worth entering |
- * | `gym` | **20-30** | ~75 | provisional; ticket 18 owns the gauntlet. Scrap won in the final fight is nearly unspendable (the run ends), so this number only matters if 18 puts a shop between gauntlet fights |
- *
- * **TICKET 13 (MARKETPLACE) CALIBRATES AGAINST THESE AND MAY MOVE THEM.** The anchor a shop should
- * price against: a full 8-10 fight run with a 3-member party lands around **450-500 scrap** total
- * (six wilds ~200, three elites ~200, a pocket alpha ~35, the odd ambush ~40), before anything is
- * earned by selling cards. If ticket 13 finds that a card wants to cost 60 and a removal 25, it
- * should change **these bands**, in this table, rather than adding a coefficient at the shop —
- * doubling prices and doubling income are the same patch, and only one of them leaves the numbers
- * readable.
- *
- * Non-fight kinds are 0-0 for the same totality reason as `BLUEPRINT_DROP_RATE`.
+ * `defeatedCount` is bodies actually downed, so a fight that ends with an enemy still standing
+ * (impossible today — a battle ends when a side is wiped) could never pay for it. Non-fight kinds
+ * return 0 by the same totality argument `BLUEPRINT_DROP_RATE` makes: every `NodeKind` has an answer
+ * here, so a new kind cannot silently inherit a wild's payout.
  */
-export const SCRAP_PER_ENEMY: Readonly<Record<NodeKind, IScrapBand>> = {
-    wild: { min: 8, max: 14 },
-    ambush: { min: 10, max: 16 },
-    elite: { min: 18, max: 26 },
-    alpha: { min: 30, max: 40 },
-    gym: { min: 20, max: 30 },
-    marketplace: { min: 0, max: 0 },
-    workshop: { min: 0, max: 0 },
-    event: { min: 0, max: 0 },
-};
+export function scrapForWin(nodeKind: NodeKind, defeatedCount: number): number {
+    if (!FIGHT_KINDS.includes(nodeKind)) return 0;
+    if (defeatedCount <= 0) return 0;
+    if (nodeKind === 'elite') return ELITE_WIN_SCRAP;
+    return BASE_WIN_SCRAP + SCRAP_PER_EXTRA_ENEMY * (defeatedCount - 1);
+}
 
 // ---------------------------------------------------------------------------------------------
 // The pick pool (ticket 12, piece 4) — ONE FUNCTION, ONE RULE
@@ -354,18 +359,18 @@ function rollForEntity(
     pool: string[],
     prng: PRNG,
     ids: SeedStream,
-): { scraps: number; blueprint: string | null; cardChoice: ICardChoice; nextSeed: PrngSeed } {
-    // 1. Scrap, from the node-kind band.
-    const band = SCRAP_PER_ENEMY[nodeKind] ?? SCRAP_PER_ENEMY.wild;
-    const scrapRoll = prng.nextInt(band.min, band.max);
-    let currentSeed = scrapRoll.nextSeed;
-
-    // 2. Blueprint, at the node-kind rate. Rolled even at rate 0 and at rate 1 so the seed chain
+): { blueprint: string | null; cardChoice: ICardChoice; nextSeed: PrngSeed } {
+    // 1. Blueprint, at the node-kind rate. Rolled even at rate 0 and at rate 1 so the seed chain
     //    advances identically whatever the node is — an alpha and a wild consume the same number of
     //    draws, which is what keeps "the same enemies at two node kinds" comparable in tests.
+    //
+    //    Ticket 57: scrap used to be drawn here first, from a per-node band. It is paid **per
+    //    fight** now (`scrapForWin`) and it is **flat**, so there is no scrap draw at all and this
+    //    is the chain's first roll. One fewer draw per body — the sequence moved, which is a
+    //    reward-roll change and not a battle one.
     const bpRate = BLUEPRINT_DROP_RATE[nodeKind] ?? 0;
-    const bpRoll = new PRNG(currentSeed).next();
-    currentSeed = bpRoll.nextSeed;
+    const bpRoll = prng.next();
+    let currentSeed = bpRoll.nextSeed;
 
     // Ticket 20: a blueprint drop is a SPECIES ID and nothing else. It used to be an object
     // carrying a display name and a flat 100-scrap `compileCost`; both are gone — the name is
@@ -416,7 +421,7 @@ function rollForEntity(
         options
     };
 
-    return { scraps: scrapRoll.value, blueprint, cardChoice, nextSeed: currentSeed };
+    return { blueprint, cardChoice, nextSeed: currentSeed };
 }
 
 /**
@@ -465,7 +470,7 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
     // stream mints instance ids.
     const ids = new SeedStream(new SeedStream(seed).fork('reward-card-ids'));
 
-    let totalScraps = 0;
+    let defeatedCount = 0;
     const allBlueprints: string[] = [];
     const allCardChoices: ICardChoice[] = [];
     let currentSeed: string | number = seed;
@@ -476,7 +481,7 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
 
         const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids);
 
-        totalScraps += result.scraps;
+        defeatedCount += 1;
         if (result.blueprint) {
             allBlueprints.push(result.blueprint);
         }
@@ -485,7 +490,8 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
     }
 
     return {
-        scraps: totalScraps,
+        // Ticket 57: one payment for the fight, not a sum over corpses.
+        scraps: scrapForWin(nodeKind, defeatedCount),
         blueprints: allBlueprints,
         cards: [],
         cardChoices: allCardChoices,

@@ -11,10 +11,18 @@
  * - **Silent no-op on invalid**, the slice's standing convention. A refused action must leave the
  *   run *byte-identical*, not merely unpaid: a purchase that charged and delivered nothing, or
  *   delivered and charged nothing, are both reachable if the two halves are two dispatches.
- * - **Selling one specific instance.** A deck holds three identical generics; "sell a `water_slap`"
- *   is not an instruction anyone can carry out correctly.
+ * - **Removing one specific instance.** A deck holds three identical generics; "remove a
+ *   `water_slap`" is not an instruction anyone can carry out correctly, so the sink is keyed on
+ *   `instanceId` and the paid-removal case below proves the deck thins by exactly one.
  * - **Scrap is run-scoped and dies with the run** (ticket 06's anti-mudflation line) — the shop
  *   must not be a way to move value out of a run.
+ *
+ * **Ticket 57 deleted this file's `describe('selling')` block.** Henry ruled (ticket 56) that cards
+ * cannot be sold — removal is a pure sink, so the market takes scrap and never gives it, and there
+ * is no longer a marketplace action that *adds* scrap for a card to test. The three cases that went
+ * (one specific instance paid for, a ghost instance paying nothing, a double click not minting
+ * scrap) all guarded an income line that no longer exists; the instance-keying half of that survives
+ * against `removeRunCardForScrap`.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -26,7 +34,6 @@ import runReducer, {
     endRun,
     removeRunCardForScrap,
     rerollMarketStock,
-    sellRunCard,
     startRun,
     type RunSliceState,
 } from './runSlice';
@@ -36,7 +43,6 @@ import {
     REMOVAL_PRICE,
     REROLL_PRICE,
     rollMarketStock,
-    sellPrice,
 } from '../../engine/run/marketplace';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import type { IMingmingState } from '../../engine/types';
@@ -144,49 +150,17 @@ describe('buying', () => {
     });
 });
 
-describe('selling', () => {
-    it('removes ONE specific instance and pays for it', () => {
-        const run = atMarket(makeRun(0));
-        // The start deck holds three identical generics (ticket 08's ruled 5 kit + 3 filler), which
-        // is exactly the case a dataId-keyed sell cannot express.
-        const generics = run.deck.filter((c) => c.dataId === GENERIC_HIT);
-        expect(generics.length).toBe(3);
+// Ticket 57: `describe('selling')` stood here. Henry ruled cards cannot be sold (ticket 56) —
+// removal is the only card sink, so the market takes scrap and never gives it, and the reducer these
+// three cases exercised is gone from `runSlice.ts`. Nothing replaces them: there is no second sink
+// to move them to, only the one below.
 
-        const target = generics[1];
-        const price = sellPrice(target.dataId);
-        const after = runReducer(stateOf(run), sellRunCard({ instanceId: target.instanceId, price })).run!;
-
-        expect(after.scrap).toBe(price);
-        expect(after.deck.filter((c) => c.dataId === GENERIC_HIT).length).toBe(2);
-        expect(after.deck.some((c) => c.instanceId === target.instanceId)).toBe(false);
-        // The other two are untouched, in their original order.
-        expect(after.deck.filter((c) => c.dataId === GENERIC_HIT).map((c) => c.instanceId))
-            .toEqual([generics[0].instanceId, generics[2].instanceId]);
-    });
-
-    it('pays nothing for a card the deck does not hold', () => {
-        const run = atMarket(makeRun(40));
-        const after = runReducer(stateOf(run), sellRunCard({ instanceId: 'ghost', price: 99 })).run!;
-        expect(after).toEqual(run);
-    });
-
-    it('cannot be double-clicked into minting scrap', () => {
-        const run = atMarket(makeRun(0));
-        const target = run.deck[0];
-        const price = sellPrice(target.dataId);
-        const action = sellRunCard({ instanceId: target.instanceId, price });
-
-        const once = runReducer(stateOf(run), action);
-        const twice = runReducer(once, action);
-
-        expect(twice.run!.scrap).toBe(price);
-        expect(twice.run!.deck.length).toBe(run.deck.length - 1);
-    });
-});
-
-describe('paid removal — the sink', () => {
+describe('paid removal — the only card sink', () => {
     it('charges the removal price and thins the deck by one', () => {
         const run = atMarket(makeRun(100));
+        // The start deck holds three identical generics (ticket 08's ruled 5 kit + 3 filler), so
+        // "thins by exactly one" is also the instance-keying proof: a dataId-keyed sink would take
+        // all three. Ticket 57 left that argument here when selling — which used to carry it — went.
         const target = run.deck.find((c) => c.dataId === GENERIC_HIT)!;
 
         const after = runReducer(
