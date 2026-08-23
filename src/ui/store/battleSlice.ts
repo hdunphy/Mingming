@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
-import type { IBattleState } from '../../engine/types';
+import type { Draft, PayloadAction } from '@reduxjs/toolkit';
+import type { Element, IBattleState } from '../../engine/types';
 import { createBattleState } from '../../engine/data/battleFactories';
 import type { BattleOptions, IBattleSetup } from '../../engine/data/battleFactories';
 import { battleReducer } from '../../engine/battleReducer';
@@ -28,7 +28,7 @@ const battleSlice = createSlice({
                 state.battle = battleReducer(state.battle, {
                     type: 'PLAY_PROGRAM',
                     payload: action.payload
-                }) as any;
+                }) as Draft<IBattleState>;
             }
         },
         /**
@@ -41,12 +41,12 @@ const battleSlice = createSlice({
                 state.battle = battleReducer(state.battle, {
                     type: 'FIRE_MACRO',
                     payload: action.payload
-                }) as any;
+                }) as Draft<IBattleState>;
             }
         },
         endTurn: (state) => {
             if (state.battle) {
-                state.battle = battleReducer(state.battle, { type: 'END_TURN' }) as any;
+                state.battle = battleReducer(state.battle, { type: 'END_TURN' }) as Draft<IBattleState>;
             }
         },
         /**
@@ -65,7 +65,7 @@ const battleSlice = createSlice({
                 state.battle = battleReducer(state.battle, {
                     type: 'TRANSFER_ENERGY',
                     payload: action.payload
-                }) as any;
+                }) as Draft<IBattleState>;
             }
         },
         executeIntent: (state, action: PayloadAction<{ sourceId: string }>) => {
@@ -73,7 +73,7 @@ const battleSlice = createSlice({
                 state.battle = battleReducer(state.battle, {
                     type: 'EXECUTE_INTENT',
                     payload: action.payload
-                }) as any;
+                }) as Draft<IBattleState>;
             }
         },
         selectCard: (state, action: PayloadAction<string | null>) => {
@@ -86,14 +86,14 @@ const battleSlice = createSlice({
             state.selectedSourceId = action.payload;
         },
         setBattleState: (state, action: PayloadAction<IBattleState | null>) => {
-            state.battle = action.payload as any;
+            state.battle = action.payload as Draft<IBattleState> | null;
         },
         /**
          * Ticket 11: the payload carries an `IBattleSetup`, not a save. The caller resolves the
          * run's party against the ranch roster (`engine/run/battleSetup.ts`) before dispatching, so
          * the battle slice never has to know which slice a fighter came out of.
          */
-        startBattle: (state, action: PayloadAction<{ setup: IBattleSetup; enemyIds: string[]; sectorElement?: any; options?: BattleOptions }>) => {
+        startBattle: (state, action: PayloadAction<{ setup: IBattleSetup; enemyIds: string[]; sectorElement?: Element; options?: BattleOptions }>) => {
             // options carries seed + enemyMode; dropping it here made
             // enemyMode: 'CARDS' and seeded battles unreachable from the UI.
             state.battle = createBattleState(
@@ -101,7 +101,7 @@ const battleSlice = createSlice({
                 action.payload.enemyIds,
                 action.payload.sectorElement,
                 action.payload.options
-            ) as any;
+            ) as Draft<IBattleState>;
             state.selectedSourceId = null;
             state.selectedTargetId = null;
             state.selectedCardId = null;

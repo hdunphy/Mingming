@@ -15,10 +15,11 @@ name: CI
 # `npm run balance` is deliberately NOT here: 11 minutes on 2 cores. It stays manual until
 # deck-archetypes ticket 108 optimizes the pipeline (map § fog, "Nightly long-balance run").
 #
-# LINT IS ADVISORY FOR NOW (Henry, 2026-08-21). The tree fails `npm run lint` with 510 errors
-# that predate this workflow; blocking on them would have meant a 510-edit diff across the engine
-# inside a CI ticket. Ticket 55 owns the burndown and flips `continue-on-error` off at the end.
-# Everything else here is hard-blocking from day one.
+# LINT IS BLOCKING (since ticket 55 closed, 2026-08-23). It was advisory from 2026-08-21, when the
+# tree failed `npm run lint` with 510 pre-existing errors and blocking on them would have meant a
+# 510-edit diff across the engine inside a CI ticket. Ticket 55 burned them down to zero; the only
+# two survivors are `ProgramAction`'s index signature and `MutationRequest.payload`, each disabled
+# in place with the argument written beside it. Every gate here is hard-blocking.
 
 on:
   push:
@@ -63,19 +64,10 @@ jobs:
       - name: Tests
         run: npx vitest run
 
-      - name: Lint (advisory — ticket 55 owns the burndown)
-        id: lint
-        continue-on-error: true
+      # BLOCKING since ticket 55 closed (2026-08-23). The tree lints clean — 0 errors, 0 warnings —
+      # so a new one is a new one, and there is no debt for it to hide in.
+      - name: Lint
         run: npm run lint
-
-      - name: Note lint outcome in the run summary
-        if: always()
-        run: |
-          if [ "${{ steps.lint.outcome }}" = "success" ]; then
-            echo "✅ **Lint clean.** If this holds, ticket 55 can drop \`continue-on-error\` from the lint step." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "⚠️ **Lint failing — advisory, not blocking.** Pre-existing debt; see \`docs/wayfinder/steam-release/tickets/55-lint-burndown.md\`." >> "$GITHUB_STEP_SUMMARY"
-          fi
 
       # Ends in scripts/assert-no-debug.mjs — proves the debug toolkit is absent from dist/.
       - name: Build (includes the assert-no-debug release gate)

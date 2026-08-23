@@ -743,7 +743,7 @@ const BattleArena: React.FC = () => {
      */
     const handleDefeat = () => {
         if (run) dispatch(endRun('defeat'));
-        dispatch(setBattleState(null as any));
+        dispatch(setBattleState(null));
     };
 
     /**
@@ -855,7 +855,7 @@ const BattleArena: React.FC = () => {
             dispatch(endRun('victory'));
         }
 
-        dispatch(setBattleState(null as any));
+        dispatch(setBattleState(null));
     };
 
     if (!battleState) return <div className="battle-screen">Loading Battle...</div>;
@@ -1057,7 +1057,7 @@ const BattleArena: React.FC = () => {
                     <BattleReport
                         key="battle-report"
                         bundle={rewardBundle}
-                        winners={battleState.playerParty as any}
+                        winners={battleState.playerParty}
                         onContinue={handleContinue}
                     />
                 )}

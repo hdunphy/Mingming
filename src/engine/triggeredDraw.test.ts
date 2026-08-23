@@ -5,7 +5,7 @@ import { GetProgramData, ProgramRegistry } from './data/programRegistry';
 import CONSTRAINTS_LIB from './data/lib/constraints.json';
 import { buildScenarioState } from '../debug/scenarios/buildScenarioState';
 import { matchupScenario } from '../debug/balance/balanceScenarios';
-import type { IBattleState, ProgramConstraint } from './types';
+import type { IBattleState, ProgramAction, ProgramConstraint } from './types';
 
 /**
  * Ticket 68 — `surge_protection`'s refund fires only on a TRIGGERED draw.
@@ -57,14 +57,14 @@ describe('the triggered-draw counter', () => {
 
 describe('surge_protection is wired to the triggered check', () => {
     it('its refund INFLATES to the triggered type - not to whatever it was written inline as', () => {
-        const card: any = GetProgramData('surge_protection');
-        const refund = card.actions.find((a: any) => a.type === 'ENERGY');
+        const card = GetProgramData('surge_protection');
+        const refund = card.actions.find((a: ProgramAction) => a.type === 'ENERGY') as ProgramAction;
         expect(refund.conditionals?.[0]?.id).toBe('card_drawn_check');
         // This is the assertion that would have caught the original defect. The card used to
         // carry an inline `type: 'BASE'` alongside the id, and `inflateConstraint` spreads the
         // INLINE object last - so the override won and the "draw check" was really an energy
         // check against cost 0, i.e. always true. It had never been a draw condition at all.
-        expect(refund.conditionals[0].type).toBe('CARDS_DRAWN_TRIGGERED');
+        expect(refund.conditionals![0].type).toBe('CARDS_DRAWN_TRIGGERED');
         expect(card.description).toContain('card, OS or daemon');
     });
 
@@ -73,16 +73,18 @@ describe('surge_protection is wired to the triggered check', () => {
         // `id` silently replaces the library definition. One occurrence cost us a live condition
         // for an unknown number of tickets; this fails the moment a second appears.
         const offenders: string[] = [];
-        for (const [cardId, raw] of Object.entries(ProgramRegistry as Record<string, any>)) {
-            const lists = [
-                ...(raw.constraints ?? []).map((c: any) => ['card', c] as const),
-                ...(raw.actions ?? []).flatMap((a: any) =>
-                    [...(a.conditionals ?? []), ...(a.constraints ?? [])].map((c: any) => ['action', c] as const)),
+        // The JSON library is keyed by constraint id; only `.type` is read here.
+        const lib = CONSTRAINTS_LIB as Record<string, { type: string }>;
+        for (const [cardId, raw] of Object.entries(ProgramRegistry)) {
+            const lists: ReadonlyArray<readonly ['card' | 'action', ProgramConstraint]> = [
+                ...(raw.constraints ?? []).map((c: ProgramConstraint) => ['card', c] as const),
+                ...(raw.actions ?? []).flatMap((a: ProgramAction) =>
+                    [...(a.conditionals ?? []), ...(a.constraints ?? [])].map((c: ProgramConstraint) => ['action', c] as const)),
             ];
             for (const [where, c] of lists) {
-                if (c && typeof c === 'object' && c.id && (CONSTRAINTS_LIB as any)[c.id] && c.type
-                    && c.type !== (CONSTRAINTS_LIB as any)[c.id].type) {
-                    offenders.push(`${cardId} (${where}): id=${c.id} inline=${c.type} library=${(CONSTRAINTS_LIB as any)[c.id].type}`);
+                if (c && typeof c === 'object' && c.id && lib[c.id] && c.type
+                    && c.type !== lib[c.id].type) {
+                    offenders.push(`${cardId} (${where}): id=${c.id} inline=${c.type} library=${lib[c.id].type}`);
                 }
             }
         }

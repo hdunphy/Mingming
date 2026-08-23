@@ -29,7 +29,7 @@
  * function of (seed, defeated enemies, node kind, party) — card instance ids included.
  */
 
-import { PRNG } from './core/PRNG';
+import { PRNG, type PrngSeed } from './core/PRNG';
 import { SeedStream } from './core/SeedStream';
 import { ProgramRegistry } from './data/programRegistry';
 import { getDeckForOS } from './data/mingmingRegistry';
@@ -300,7 +300,14 @@ export function rewardCardPool(
 /**
  * Roll a card from a pool based on rarity weights.
  */
-function rollCardFromPool(poolIds: string[], prng: PRNG): { cardId: string; nextSeed: number } {
+/*
+ * TICKET 55: `nextSeed` was annotated `number` here and in `rollForEntity`, and it was WRONG — the
+ * PRNG these take is constructed from `currentSeed: string | number` (see `rollDropTable`), so the
+ * seed it hands back is whichever kind went in. The declaration only compiled because `PRNG` typed
+ * `nextSeed` as `any`; the proof it was wrong is three lines below the second one, where the caller
+ * calls `.toString()` on a value the signature claims is already a number.
+ */
+function rollCardFromPool(poolIds: string[], prng: PRNG): { cardId: string; nextSeed: PrngSeed } {
     // 1. Determine rarity tier
     const rarityRoll = prng.nextInt(1, 100);
     const currentSeed = rarityRoll.nextSeed;
@@ -347,7 +354,7 @@ function rollForEntity(
     pool: string[],
     prng: PRNG,
     ids: SeedStream,
-): { scraps: number; blueprint: string | null; cardChoice: ICardChoice; nextSeed: number } {
+): { scraps: number; blueprint: string | null; cardChoice: ICardChoice; nextSeed: PrngSeed } {
     // 1. Scrap, from the node-kind band.
     const band = SCRAP_PER_ENEMY[nodeKind] ?? SCRAP_PER_ENEMY.wild;
     const scrapRoll = prng.nextInt(band.min, band.max);

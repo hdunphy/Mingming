@@ -270,7 +270,12 @@ export function createBattleState(
     // there — so the only callers that can still hit this branch are tests and debug paths that
     // hand over an empty `setup.deck`. Removing it today would turn those into throws in the same
     // commit that moves the shape, which is one change too many.
-    const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
+    const FALLBACK_ARCHETYPES = ['FENRIR', 'KRAKEN', 'RATATOSKR'] as const;
+    type FallbackArchetype = typeof FALLBACK_ARCHETYPES[number];
+    const isFallbackArchetype = (id: string): id is FallbackArchetype =>
+        (FALLBACK_ARCHETYPES as readonly string[]).includes(id);
+
+    const getArchetypeDeck = (archetype: FallbackArchetype): string[] => {
         const lists = {
             FENRIR: {
                 daemon: 'core_overclock_daemon',
@@ -291,7 +296,7 @@ export function createBattleState(
         return [list.daemon, ...shuffled.slice(0, 9)];
     };
 
-    const playerArchetype = playerParty[0].definitionId.toUpperCase() as any;
+    const playerArchetype = playerParty[0].definitionId.toUpperCase();
 
     let playerDeckIds: string[] = [];
     if (setup.deck.length > 0) {
@@ -299,7 +304,7 @@ export function createBattleState(
         // to resolve `activeDeck.cards` against `cardInventory` has nothing left to do.
         playerDeckIds = [...setup.deck];
     } else {
-        playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
+        playerDeckIds = getArchetypeDeck(isFallbackArchetype(playerArchetype) ? playerArchetype : 'FENRIR');
     }
 
     const pDeckCardsRaw = instantiateDeck(playerDeckIds, rng);

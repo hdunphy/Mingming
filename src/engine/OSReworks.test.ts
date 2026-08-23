@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, StatusEffectInstance, StatusType } from './types';
 import { registerHook } from './core/Hooks';
 import { FIRMWARE_REGISTRY } from './data/firmwareRegistry';
 import { initDaemonHooks } from './data/daemonHooks';
@@ -9,11 +9,11 @@ import { TestProgramRegistry } from './data/testProgramRegistry';
 
 // Mock GetProgramData to use the test registry with real-registry fallback
 vi.mock('./data/programRegistry', async () => {
-    const actual = await vi.importActual('./data/programRegistry');
+    const actual = await vi.importActual<typeof import('./data/programRegistry')>('./data/programRegistry');
     return {
-        ...actual as any,
+        ...actual,
         GetProgramData: (id: string) => {
-            return TestProgramRegistry[id] || (actual as any).GetProgramData(id);
+            return TestProgramRegistry[id] || actual.GetProgramData(id);
         }
     };
 });
@@ -68,8 +68,10 @@ const card = (id: string, dataId: string, cost: number): ProgramEntity =>
 const play = (state: IBattleState, sourceId: string, targetId: string, programId: string): IBattleState =>
     battleReducer(state, { type: 'PLAY_PROGRAM', payload: { sourceId, targetId, programId } });
 
-const status = (id: string, type: string, stacks: number) =>
-    ({ id, type, stacks, duration: -1 } as any);
+// `duration` is not part of StatusEffectInstance; it is kept because the fixture has always
+// carried it, so the cast is what lets the extra field through.
+const status = (id: string, type: StatusType, stacks: number): StatusEffectInstance =>
+    ({ id, type, stacks, duration: -1 } as StatusEffectInstance);
 
 // Register OS + daemon hooks
 Object.values(FIRMWARE_REGISTRY).forEach(os => { os.hooks.forEach(h => registerHook(h)); });
@@ -80,7 +82,7 @@ initDaemonHooks();
 // ---------------------------------------------------------------------------
 
 describe('Ticket 12 - VALKYRIE v2 CRUSADER_KERNEL (distinct buff types, not stacks)', () => {
-    const dmgTo = (valkStatuses: any[]): number => {
+    const dmgTo = (valkStatuses: StatusEffectInstance[]): number => {
         const valk = makeUnit('v1', 'Valkyrie', { activeOS: 'valkyrie_v2', statusEffects: valkStatuses });
         let state = makeState([valk], [makeUnit('e1', 'Enemy')], [card('c1', 'smite', 1)]);
         state = play(state, 'v1', 'e1', 'c1');
@@ -169,7 +171,7 @@ describe('Ticket 12/39 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', 
 
 describe('Ticket 12 - DRAUGR v2 GRAVE_CHILL_OS rebuilt (works vs cards AND intents)', () => {
     it('an attacker with 2 distinct debuff types deals 20% less to Draugr (card play)', () => {
-        const dmgFrom = (attackerStatuses: any[]): number => {
+        const dmgFrom = (attackerStatuses: StatusEffectInstance[]): number => {
             const attacker = makeUnit('p1', 'Attacker', { statusEffects: attackerStatuses });
             const draugr = makeUnit('e1', 'Draugr', { activeOS: 'draugr_v2' });
             let state = makeState([attacker], [draugr], [card('c1', 'fire_punch_v2', 1)]);
@@ -184,7 +186,7 @@ describe('Ticket 12 - DRAUGR v2 GRAVE_CHILL_OS rebuilt (works vs cards AND inten
     });
 
     it('fires against INTENT attacks too (the old cost-tax never could)', () => {
-        const intentDmg = (enemyStatuses: any[]): number => {
+        const intentDmg = (enemyStatuses: StatusEffectInstance[]): number => {
             const draugr = makeUnit('p1', 'Draugr', { activeOS: 'draugr_v2' });
             const enemy = makeUnit('e1', 'Enemy', { statusEffects: enemyStatuses });
             let state = makeState([draugr], [enemy]);

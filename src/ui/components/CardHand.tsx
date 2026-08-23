@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
+import type { ProgramAction, ProgramConstraint } from '../../engine/types';
 import { selectCard, endTurn } from '../store/battleSlice';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getEffectiveCardCost } from '../../engine/battleReducer';
@@ -36,8 +37,11 @@ import { playSfx } from '../audio/AudioEngine';
  * SHAPE of each action and the card face carries the true figure for the selected caster — see
  * `handPreview.ts`. `CardHand.test.tsx` asserts the rendered hand contains no "power" at all.
  */
-const formatAction = (action: any): string => {
-    switch (action.type) {
+const formatAction = (action: ProgramAction): string => {
+    // Widened for the switch only: three of the cases below name action types that are not in
+    // `ActionType` but can still turn up in hand-authored JSON, and dropping them would change
+    // what those rows render.
+    switch (action.type as string) {
         case 'ATTACK': {
             const hits = Math.max(1, action.count ?? 1);
             if (action.target === 'SELF') return `⚔️ Recoil onto the caster${hits > 1 ? ` ×${hits}` : ''}`;
@@ -60,7 +64,7 @@ const formatAction = (action: any): string => {
     }
 };
 
-const formatConstraint = (c: any): string => {
+const formatConstraint = (c: ProgramConstraint): string => {
     switch (c.type) {
         case 'HAS_STATUS':
             return `Requires: ${c.target === 'SELF' ? 'Self' : 'Target'} has ${c.value}`;

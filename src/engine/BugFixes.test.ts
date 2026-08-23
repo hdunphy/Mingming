@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { battleReducer } from './battleReducer';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, StatusEffectInstance } from './types';
 import { StatusExecutor } from './actions/ActionExecutors';
 import type { HookContext } from './core/Hooks';
 
@@ -86,7 +86,9 @@ describe('Bug fix: STATUS consume + STATUS_CONSUMED heal scaling (Ash Reclamatio
             playerParty: [makeEntity({ id: 'p1', name: 'Hero', currentHp: 40 })],
             enemyParty: [makeEntity({
                 id: 'e1', name: 'Foe',
-                statusEffects: [{ id: 'st1', type: 'Burn', stacks: 3, duration: -1 } as any]
+                // `duration` is legacy fixture noise the engine never reads; kept verbatim so the
+                // fixture is unchanged, hence the assertion rather than a plain annotation.
+                statusEffects: [{ id: 'st1', type: 'Burn', stacks: 3, duration: -1 } as StatusEffectInstance]
             })]
         });
         state = withHand(state, [{ id: 'h1', dataId: 'ash_reclamation' }]);
@@ -106,12 +108,12 @@ describe('Bug fix: negative STATUS stacks decrement instead of wiping', () => {
         const state = makeState({
             enemyParty: [makeEntity({
                 id: 'e1', name: 'Foe',
-                statusEffects: [{ id: 'st1', type: 'Poison', stacks: 5, duration: -1 } as any]
+                statusEffects: [{ id: 'st1', type: 'Poison', stacks: 5, duration: -1 } as StatusEffectInstance]
             })]
         });
         const executor = new StatusExecutor();
         const context = { state, triggerDepth: 0 } as HookContext;
-        const next = executor.execute(state, 'p1', 'e1', { type: 'STATUS', status: 'Poison', stacks: -2, target: 'TARGET' } as any, undefined, context);
+        const next = executor.execute(state, 'p1', 'e1', { type: 'STATUS', status: 'Poison', stacks: -2, target: 'TARGET' }, undefined, context);
         const poison = next.enemyParty[0].statusEffects.find(s => s.type === 'Poison');
         expect(poison).toBeDefined();
         expect(poison!.stacks).toBe(3);
@@ -121,12 +123,12 @@ describe('Bug fix: negative STATUS stacks decrement instead of wiping', () => {
         const state = makeState({
             enemyParty: [makeEntity({
                 id: 'e1', name: 'Foe',
-                statusEffects: [{ id: 'st1', type: 'Poison', stacks: 2, duration: -1 } as any]
+                statusEffects: [{ id: 'st1', type: 'Poison', stacks: 2, duration: -1 } as StatusEffectInstance]
             })]
         });
         const executor = new StatusExecutor();
         const context = { state, triggerDepth: 0 } as HookContext;
-        const next = executor.execute(state, 'p1', 'e1', { type: 'STATUS', status: 'Poison', stacks: -2, target: 'TARGET' } as any, undefined, context);
+        const next = executor.execute(state, 'p1', 'e1', { type: 'STATUS', status: 'Poison', stacks: -2, target: 'TARGET' }, undefined, context);
         expect(next.enemyParty[0].statusEffects.find(s => s.type === 'Poison')).toBeUndefined();
     });
 });
@@ -140,7 +142,8 @@ describe('Bug fix: dying to two DoTs in one end-turn counts as ONE defeat', () =
                 statusEffects: [
                     { id: 'st1', type: 'Burn', stacks: 2, duration: -1 },
                     { id: 'st2', type: 'Poison', stacks: 2, duration: -1 }
-                ] as any
+                    // `duration` is legacy fixture noise no engine path reads; kept verbatim.
+                ] as unknown as StatusEffectInstance[]
             })]
         });
 
@@ -190,7 +193,7 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
         // Enemy side active, no intents left, but a full playable hand + energy.
         const state = makeState({
             activeSide: 'ENEMY',
-            enemyParty: [makeEntity({ id: 'e1', name: 'Ratatoskr', primaryElement: 'Nature', currentIntent: null } as any)],
+            enemyParty: [makeEntity({ id: 'e1', name: 'Ratatoskr', primaryElement: 'Nature', currentIntent: null })],
             enemyDeck: {
                 ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
                 hand: [
@@ -198,7 +201,7 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
                     { id: 'eh2', dataId: 'seed_bomb_v2', currentCost: 2, isPlayable: true }
                 ]
             }
-        } as any);
+        });
         const action = getBestAction(state);
         expect(action.type).toBe('END_TURN');
     });
@@ -210,8 +213,8 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
             enemyParty: [makeEntity({
                 id: 'e1', name: 'Ratatoskr', primaryElement: 'Nature',
                 currentIntent: { id: 'rata_nut', name: 'Acorn Throw', intentType: 'Attack', priority: 10, actions: [{ type: 'ATTACK', power: 8, target: 'Single' }] }
-            } as any)]
-        } as any);
+            })]
+        });
         const action = getBestAction(state);
         expect(action.type).toBe('EXECUTE_INTENT');
     });
@@ -224,7 +227,7 @@ describe('Bug fix: enemies only execute intents, never play cards', () => {
                 ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
                 hand: [{ id: 'h1', dataId: 'fury_strike', currentCost: 1, isPlayable: true }]
             }
-        } as any);
+        });
         const action = getBestAction(state);
         expect(action.type).toBe('PLAY_PROGRAM');
     });
@@ -247,7 +250,7 @@ describe('Bug fix: SHARP_STACKS card scaling actually scales (spike_launch)', ()
             ...base,
             playerParty: [makeEntity({
                 id: 'p1', name: 'Hero', primaryElement: 'Earth',
-                statusEffects: [{ id: 'sh', type: 'Sharp', stacks: 3 }] as any
+                statusEffects: [{ id: 'sh', type: 'Sharp', stacks: 3 }]
             })]
         }, [{ id: 'h1', dataId: 'spike_launch' }]);
         s2 = battleReducer(s2, { type: 'PLAY_PROGRAM', payload: { sourceId: 'p1', targetId: 'e1', programId: 'h1' } });

@@ -42,7 +42,7 @@ const BalanceTester: React.FC = () => {
         if (!batchReport || !sortConfig) return batchReport?.results || [];
 
         return [...batchReport.results].sort((a, b) => {
-            let valA: any, valB: any;
+            let valA: string | number, valB: string | number;
             switch (sortConfig.key) {
                 case 'attacker': valA = MingmingRegistry[a.sideA.attackerId].name; valB = MingmingRegistry[b.sideA.attackerId].name; break;
                 case 'target': valA = MingmingRegistry[a.sideA.targetId].name; valB = MingmingRegistry[b.sideA.targetId].name; break;
@@ -51,8 +51,11 @@ const BalanceTester: React.FC = () => {
                 default: return 0;
             }
 
-            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            // Name columns sort as strings, damage/ttk as numbers; `<`/`>` reject the union at
+            // type level, so the comparison goes through an erased cast and behaves as before.
+            const cmpA = valA as number, cmpB = valB as number;
+            if (cmpA < cmpB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (cmpA > cmpB) return sortConfig.direction === 'asc' ? 1 : -1;
             return 0;
         });
     }, [batchReport, sortConfig]);
@@ -61,7 +64,7 @@ const BalanceTester: React.FC = () => {
         if (!batchReport || !avgSortConfig) return batchReport?.attackerAverages || [];
 
         return [...batchReport.attackerAverages].sort((a, b) => {
-            let valA: any, valB: any;
+            let valA: string | number, valB: string | number;
             switch (avgSortConfig.key) {
                 case 'name': valA = MingmingRegistry[a.id].name; valB = MingmingRegistry[b.id].name; break;
                 case 'damage': valA = a.avgDamage; valB = b.avgDamage; break;
@@ -69,8 +72,10 @@ const BalanceTester: React.FC = () => {
                 default: return 0;
             }
 
-            if (valA < valB) return avgSortConfig.direction === 'asc' ? -1 : 1;
-            if (valA > valB) return avgSortConfig.direction === 'asc' ? 1 : -1;
+            // Same erased cast as `sortedMatchups` above - see the note there.
+            const cmpA = valA as number, cmpB = valB as number;
+            if (cmpA < cmpB) return avgSortConfig.direction === 'asc' ? -1 : 1;
+            if (cmpA > cmpB) return avgSortConfig.direction === 'asc' ? 1 : -1;
             return 0;
         });
     }, [batchReport, avgSortConfig]);
@@ -104,7 +109,7 @@ const BalanceTester: React.FC = () => {
         return config.direction === 'asc' ? '🔼' : '🔽';
     };
 
-    const downloadCSV = (filename: string, headers: string[], rows: any[][]) => {
+    const downloadCSV = (filename: string, headers: string[], rows: (string | number)[][]) => {
         const csvContent = [
             headers.join(','),
             ...rows.map(row => row.join(','))

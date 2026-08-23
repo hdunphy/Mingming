@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleEntity, IBattleState, IMove, StatusEffectInstance } from './types';
 import { globalBattleEventBus, type BattleEvent } from './events';
-import { registerHook, HookPriority } from './core/Hooks';
+import { registerHook, HookPriority, type HookContext } from './core/Hooks';
 
 /**
  * Coverage for the five general-purpose state actions added by
@@ -55,7 +55,7 @@ function registerCountingHook(id: string): PhaseCounts {
         onPostDamage: 0, onHeal: 0, onStatusApplied: 0, onStatusRemoved: 0,
         onUnitFainted: 0, onTurnStart: 0, onTurnEnd: 0, onCardDraw: 0, onActionStart: 0
     };
-    const count = (phase: string) => (context: any) => {
+    const count = (phase: string) => (context: HookContext) => {
         counts[phase] += 1;
         return { state: context.state };
     };
@@ -87,7 +87,9 @@ afterEach(() => {
     unsubscribe?.();
 });
 
-const eventsOfType = (type: string) => events.filter(e => e.type === type);
+/** Narrows to the concrete event member, so callers can read its payload without casting. */
+const eventsOfType = <T extends BattleEvent['type']>(type: T) =>
+    events.filter((e): e is Extract<BattleEvent, { type: T }> => e.type === type);
 
 describe('SET_VITALS', () => {
 
@@ -140,8 +142,8 @@ describe('SET_VITALS', () => {
 
         const damage = eventsOfType('DAMAGE_TAKEN');
         expect(damage).toHaveLength(1);
-        expect((damage[0] as any).amount).toBe(40);
-        expect((damage[0] as any).targetId).toBe('p1');
+        expect(damage[0].amount).toBe(40);
+        expect(damage[0].targetId).toBe('p1');
         expect(eventsOfType('HEAL')).toHaveLength(0);
     });
 
@@ -150,7 +152,7 @@ describe('SET_VITALS', () => {
         registerHook({
             id: 'test_vitals_source_attribution',
             priority: HookPriority.DEFENDER,
-            onPostDamage: (context: any) => {
+            onPostDamage: (context: HookContext) => {
                 seen.push({ source: context.source?.id, target: context.target?.id });
                 return { state: context.state };
             }
@@ -186,7 +188,7 @@ describe('SET_VITALS', () => {
 
         const heals = eventsOfType('HEAL');
         expect(heals).toHaveLength(1);
-        expect((heals[0] as any).amount).toBe(35);
+        expect(heals[0].amount).toBe(35);
         expect(eventsOfType('DAMAGE_TAKEN')).toHaveLength(0);
     });
 
@@ -264,8 +266,8 @@ describe('REMOVE_STATUS', () => {
 
         const removedEvents = eventsOfType('STATUS_REMOVED');
         expect(removedEvents).toHaveLength(1);
-        expect((removedEvents[0] as any).status).toBe('Burn');
-        expect((removedEvents[0] as any).targetId).toBe('p1');
+        expect(removedEvents[0].status).toBe('Burn');
+        expect(removedEvents[0].targetId).toBe('p1');
     });
 
     it('clears every status when no type is given, one event and one hook per instance', () => {
@@ -285,7 +287,7 @@ describe('REMOVE_STATUS', () => {
 
         expect(next.playerParty[0].statusEffects).toHaveLength(0);
         expect(counts.onStatusRemoved).toBe(2);
-        expect(eventsOfType('STATUS_REMOVED').map(e => (e as any).status).sort())
+        expect(eventsOfType('STATUS_REMOVED').map(e => e.status).sort())
             .toEqual(['Burn', 'Poison']);
         expect(counts.onStatusApplied).toBe(0);
     });
@@ -387,7 +389,7 @@ describe('SET_INTENT', () => {
 
     const move: IMove = {
         id: 'move_slam', name: 'Slam', intentType: 'Attack', priority: 1,
-        actions: [{ type: 'ATTACK', target: 'TARGET', power: 10 } as any]
+        actions: [{ type: 'ATTACK', target: 'TARGET', power: 10 }]
     };
 
     it('sets the telegraphed move and fires nothing', () => {
@@ -497,7 +499,7 @@ describe('Recursion safety: resolutionStackDepth terminates a hook cycle', () =>
         registerHook({
             id: 'test_heal_cycle',
             priority: HookPriority.DEFENDER,
-            onHeal: (context: any) => {
+            onHeal: (context: HookContext) => {
                 runs += 1;
                 // Safety valve: if the guard ever regressed this fails the assertion
                 // below rather than blowing the JS stack and killing the suite.

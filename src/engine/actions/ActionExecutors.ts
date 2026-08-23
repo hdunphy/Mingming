@@ -1,6 +1,6 @@
 import type { IBattleState, IBattleEntity, ProgramData, Element } from '../types';
 import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
-import type { HookContext } from '../core/Hooks';
+import type { HookAction, HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
  // Need to refactor checkDefeat or keep it in effectHandlers for now
 import { applyMutations, executeDraw, executeStatusDamageCalculated } from '../resolutionEngine';
@@ -15,11 +15,25 @@ function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
 }
 
+/** A writable view of a ProgramAction — every field of one, index signature included, is `readonly`. */
+type MutableProgramAction = { -readonly [K in keyof ProgramAction]: ProgramAction[K] };
+
+/**
+ * Every action shape an executor can be handed.
+ *
+ * Cards, macros and discard effects arrive as `ProgramAction`. Firmware hooks do NOT:
+ * `HookFactory.executeActions` routes a `HookAction` through this same registry, and a
+ * `HookAction` is not a `ProgramAction` (its `type` also covers 'LOG' | 'COUNTER' | 'DRAW' |
+ * 'MAX_ENERGY'). The registry's element type used to be `ActionExecutor<any>`, which hid that
+ * second caller completely.
+ */
+export type ExecutableAction = ProgramAction | HookAction;
+
 /**
  * Base abstract class for executing ProgramAction data.
  * Pure execution logic mapping state + pure-data -> new state.
  */
-export abstract class ActionExecutor<T extends ProgramAction> {
+export abstract class ActionExecutor<T extends ExecutableAction> {
     abstract execute(state: IBattleState, sourceId: string, targetId: string, actionData: T, program: ProgramData | undefined, context: HookContext): IBattleState;
 }
 
@@ -359,7 +373,7 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
         // (effectHandlers.handleHealEffect) that every heal funnels through.
         // Ticket 43: `healOverride` is gone - every card heal is power-based, so it scales with
         // level. A flat heal was overpowered on a level-5 frame and negligible on a level-50 one.
-        const baseHeal = calculateHeal(source as any, target, power);
+        const baseHeal = calculateHeal(source, target, power);
         // STATUS_CONSUMED scaling: heal per stack removed by a preceding
         // consume action in the same card (e.g. Ash Reclamation).
         const healAmount = actionData.scaling === 'STATUS_CONSUMED'
@@ -478,10 +492,10 @@ export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
 
                     if (owner) {
                         for (const effectAction of discardedData.discardEffect) {
-                            const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[effectAction.type];
+                            const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[effectAction.type];
                             if (executor) {
                                 // For discard effects, source and target are the owner of the deck
-                                newState = executor.execute(newState, targetId, targetId, effectAction as any, discardedData, _context);
+                                newState = executor.execute(newState, targetId, targetId, effectAction, discardedData, _context);
                             } else {
                                 console.warn(`[DiscardExecutor] No executor found for discard effect type: ${effectAction.type}`);
                             }
@@ -630,10 +644,10 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
                     continue;
                 }
 
-                const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[action.type];
+                const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[action.type];
                 if (executor) {
                     // For simplicity, we use the current target for the repeated actions
-                    finalState = executor.execute(finalState, sourceId, targetId, action as any, lastProgramData, _context);
+                    finalState = executor.execute(finalState, sourceId, targetId, action, lastProgramData, _context);
                 }
             }
         }
@@ -688,14 +702,18 @@ export function resolveProgramFree(
         const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
         if (!target || target.currentHp <= 0) continue;
 
+        // `resolved` is a fresh shallow copy, so mutating it is safe - but every field on a
+        // ProgramAction is declared readonly (the index signature included), hence the mutable
+        // view for the write. The read side goes through AttackActionData, which is what a
+        // `type === 'ATTACK'` action actually is.
         const resolved: ProgramAction = { ...action };
-        if (growth > 0 && resolved.type === 'ATTACK' && (resolved as any).power !== undefined) {
-            (resolved as any).power = (resolved as any).power + growth;
+        if (growth > 0 && resolved.type === 'ATTACK' && (resolved as AttackActionData).power !== undefined) {
+            (resolved as MutableProgramAction).power = (resolved as AttackActionData).power + growth;
         }
 
-        const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[resolved.type];
+        const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[resolved.type];
         if (executor) {
-            finalState = executor.execute(finalState, sourceId, tId, resolved as any, programData, { ...context, state: finalState });
+            finalState = executor.execute(finalState, sourceId, tId, resolved, programData, { ...context, state: finalState });
         }
     }
 
@@ -942,7 +960,7 @@ export class ReviveExecutor extends ActionExecutor<ReviveActionData> {
 }
 
 // Registry to route ActionType to Executors
-export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
+export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<ExecutableAction>> = {
     'ATTACK': new AttackExecutor(),
     'STATUS': new StatusExecutor(),
     'HEAL': new HealExecutor(),

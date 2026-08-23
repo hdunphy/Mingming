@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { DiscardActionData, IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
+import type { HookContext } from './core/Hooks';
 import { createMockEntity } from './data/battleFactories';
 import { battleReducer } from './battleReducer';
 
@@ -75,7 +76,8 @@ function stateWithHand(handDataIds: string[], seed = 'discard-seed', drawpileDat
 function discard(state: IBattleState, count: number): IBattleState {
     const selfId = state.playerParty[0].id;
     const executor = ActionExecutorRegistry['DISCARD'];
-    return executor.execute(state, selfId, selfId, { type: 'DISCARD', count } as any, undefined, {} as any);
+    // The DISCARD cost path reads neither the program nor the hook context, so an empty one is enough.
+    return executor.execute(state, selfId, selfId, { type: 'DISCARD', count } as DiscardActionData, undefined, {} as HookContext);
 }
 
 const HAND = ['water_slap', 'slipstream', 'tailwind', 'zephyr_strike', 'dust_devil'];

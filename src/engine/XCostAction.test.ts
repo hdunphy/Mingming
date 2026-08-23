@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, StatusEffectInstance } from './types';
 import { battleReducer, getEffectiveCardCost } from './battleReducer';
 import { GetProgramData } from './data/programRegistry';
 import { runOne } from '../debug/balance/runBatch';
@@ -107,10 +107,11 @@ describe('X-cost cards (ticket 22)', () => {
         const noBurn = stateWith([entity('c1', 'firestorm_talon', 0)], 2);
         expect(damageDealt(noBurn, play(noBurn, 'c1'))).toBe(0);
 
+        // Stack-count-only stand-ins: the scaling reads `stacks`, never the instance `id`.
         const burn2 = stateWith([entity('c1', 'firestorm_talon', 0)], 2,
-            { statusEffects: [{ type: 'Burn', stacks: 2 }] as any });
+            { statusEffects: [{ type: 'Burn', stacks: 2 }] as unknown as StatusEffectInstance[] });
         const burn4 = stateWith([entity('c1', 'firestorm_talon', 0)], 2,
-            { statusEffects: [{ type: 'Burn', stacks: 4 }] as any });
+            { statusEffects: [{ type: 'Burn', stacks: 4 }] as unknown as StatusEffectInstance[] });
 
         const d2 = damageDealt(burn2, play(burn2, 'c1'));
         const d4 = damageDealt(burn4, play(burn4, 'c1'));

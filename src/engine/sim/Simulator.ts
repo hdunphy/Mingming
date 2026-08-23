@@ -26,7 +26,7 @@
  */
 import { calculateDamage } from '../combatUtils';
 import { initializeBattleEntity } from '../types';
-import type { ProgramData, IBattleState } from '../types';
+import type { ProgramData, IBattleState, IMingmingState } from '../types';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 
 export interface SIM_TTK_Result {
@@ -57,12 +57,14 @@ export function simulate1v1(
 
     // Initialize as Persistent Instance. Ticket 21: no level — `initializeBattleEntity` builds
     // every unit at CALIBRATION_LEVEL, so there is no per-side level to pass in any more.
-    const instanceA = { id: 'A', definitionId: idA };
-    const instanceB = { id: 'B', definitionId: idB };
+    // Asserted rather than filled in: `initializeBattleEntity` defaults every IV to 0 and this
+    // model never reads `blueprintsCollected`, so the entities stay exactly what they were.
+    const instanceA = { id: 'A', definitionId: idA } as IMingmingState;
+    const instanceB = { id: 'B', definitionId: idB } as IMingmingState;
 
     // Initialize as Battle Entity
-    const entityA = initializeBattleEntity(instanceA as any, defA);
-    const entityB = initializeBattleEntity(instanceB as any, defB);
+    const entityA = initializeBattleEntity(instanceA, defA);
+    const entityB = initializeBattleEntity(instanceB, defB);
 
     // Mock State for calculateDamage
     const mockState: IBattleState = {

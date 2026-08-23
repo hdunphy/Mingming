@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { calculateDamage, calculateModifier, calculateHeal, getModifierBreakdown } from './combatUtils';
-import type { IBattleEntity, ProgramData, Element } from './types';
+import type { IBattleEntity, ProgramData, Element, IBattleState } from './types';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
@@ -150,7 +150,8 @@ describe('Combat Utils - Damage Formula', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 100, 100); // Water != None
         const target = createMockEntity('def', 'None', undefined, 100, 100);
         const program = createMockProgram('None'); // Neutral element
-        const state = { activeSide: 'PLAYER' } as any; // Mock state
+        // Partial state: calculateDamage only reads `activeSide` off it.
+        const state = { activeSide: 'PLAYER' } as unknown as IBattleState;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
         // Ticket 21 froze the level term: levelBase is CALIBRATION_LEVEL_DAMAGE_BASE = 8, not
@@ -165,7 +166,7 @@ describe('Combat Utils - Damage Formula', () => {
         const attacker = createMockEntity('att', 'Water', undefined, 100, 100);
         const target = createMockEntity('def', 'None', undefined, 100, 100);
         const program = createMockProgram('None');
-        const state = { activeSide: 'PLAYER' } as any;
+        const state = { activeSide: 'PLAYER' } as unknown as IBattleState;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
         // This case used to pin level 100 and expect 37. There is no level to raise any more, so
@@ -178,7 +179,7 @@ describe('Combat Utils - Damage Formula', () => {
         const attacker = createMockEntity('att', 'Fire', undefined, 100, 100);
         const target = createMockEntity('def', 'None', undefined, 100, 100); // Neutral target
         const program = createMockProgram('Fire');
-        const state = { activeSide: 'PLAYER' } as any;
+        const state = { activeSide: 'PLAYER' } as unknown as IBattleState;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
         // Same base as the case above (7.11 reduced) but modifier is 1.5 for STAB:
@@ -218,9 +219,10 @@ describe('Combat Utils - Heal Formula', () => {
 describe('STAB excludes None element (port-artifact fix)', () => {
     it("None-element cards never get STAB even though species carry secondaryElement 'None'", async () => {
         const { getModifierBreakdown } = await import('./combatUtils');
-        const attacker = { primaryElement: 'Fire', secondaryElement: 'None' } as any;
-        const target = { primaryElement: 'Water', secondaryElement: undefined } as any;
-        const noneCard = { element: 'None' } as any;
+        // Partial fixtures: getModifierBreakdown reads only the element fields below.
+        const attacker = { primaryElement: 'Fire', secondaryElement: 'None' } as unknown as IBattleEntity;
+        const target = { primaryElement: 'Water', secondaryElement: undefined } as unknown as IBattleEntity;
+        const noneCard = { element: 'None' } as unknown as ProgramData;
         const breakdown = getModifierBreakdown(attacker, target, noneCard);
         expect(breakdown.stab).toBe(false);
         expect(breakdown.modifier).toBe(1);

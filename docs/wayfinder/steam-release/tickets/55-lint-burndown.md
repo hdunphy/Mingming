@@ -1,7 +1,7 @@
 # Lint burndown: clear 510 pre-existing errors and make the lint gate blocking (ticket 55)
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: agent
 - Blocked by: [03](03-ci-gate.md)
 - Phase: Foundations
@@ -155,5 +155,85 @@ changing a public engine type, that is a deck-archetypes concern and this ticket
 **Step 5 (drop `continue-on-error` from CI) cannot land until step 4 does**, so lint stays advisory.
 
 ## Resolution
+
+**Closed 2026-08-23. The lint gate is BLOCKING.** 510 errors at ticket 03's commit, 452 at the start
+of this pass, **0 now** — with two documented exceptions, each disabled in place with the argument
+beside it. `npx tsc -b` clean, **1576 tests passing**, build green, `npm run lint` exits 0.
+
+Henry, asked whether to relax the rule inside test files: *"fix them all unless there is a reason not
+to."* So all 256 were fixed, tests included, and the two that were not are named below with reasons
+rather than hidden behind a rule change.
+
+### Steps 1-3
+
+Landed 2026-08-22 in their own commit; see the Progress section below for the detail. Summary: 452 →
+256, `no-unused-vars` / `prefer-const` / `react-refresh` / `react-hooks` all to zero, and three real
+findings — a duplicated cost-discount calculation in `battleReducer`, tooltips that rendered
+unpositioned on a newly mounted anchor, and a `const` leaking across every arm of a `switch`.
+
+### Step 4: 256 `no-explicit-any` → 2
+
+Worked in eight parallel passes over 40 files, each verified against its own tests before merging.
+The rules every pass followed, in order: **name the real type**; where a fixture is deliberately
+partial say so with `as unknown as X` rather than `any`; **never change a public engine type to make
+a caller compile** — stop and report instead.
+
+**Most of them were noise.** `'Poison' as any` where `'Poison'` is already a `StatusType`;
+`const action: any = { type: 'DISCARD', ... }` where `DiscardActionData` exists; seventeen reaches in
+`battleReducer` that were already legal through `ProgramAction`'s index signature; three casts in
+`BattleArena` that were vestigial. Deleting a cast was the fix more often than writing a type.
+
+**Six wrong annotations were found by typing around them**, which is the part worth keeping:
+
+1. **`PRNG.nextSeed` was `any` in four places, and the truth is two-valued** — `formatSeed` returns a
+   string for a string-seeded generator and a number for a number-seeded one, so that feeding the
+   seed back reproduces the sequence. Typing it as the bare union broke three call sites that assign
+   it into `IBattleState.seed` (a `string`). Rather than paper over those with `String(...)`, `PRNG`
+   is now **generic over its seed kind** — `new PRNG(state.seed)` yields `nextSeed: string`. The
+   invariant is proved instead of asserted.
+2. **`RewardSystem`'s `rollCardFromPool` and `rollForEntity` both declared `nextSeed: number` and
+   were wrong.** The PRNG they take is built from `currentSeed: string | number`. The proof was
+   already in the file: three lines below one of them, the caller calls `.toString()` on a value the
+   signature claims is a number. Corrected to `PrngSeed`.
+3. **`HookAction.element` resolved to the DOM's `Element`.** `HookTypes.ts` never imported the game's
+   `Element` union and `lib: ["DOM"]` is on, so the global won. Every hook that sets an element was
+   type-checked against the wrong thing, and the `(action as any).element` reaches in `HookFactory`
+   were hiding it. One import fixed it.
+4. **`HookAction['type']` was missing `'HP'`**, which `lib/hooks.json` uses and `HookFactory`
+   dispatches on — hence a comparison that needed a cast to compile at all. Added.
+5. **`battleReducer`'s `removedStatusQueue` was `{ status: string }`** where the only writer pushes a
+   `StatusType`. The widening was what forced a cast at the `onStatusRemoved` dispatch.
+6. **`EffectHandler`'s `payload: any` meant the handler registry checked nothing.** Replaced with a
+   keyed payload map, so all five call sites are checked against their real shapes.
+
+One deliberate widening went the other way: `ActionExecutor<T>`'s constraint became
+`T extends ProgramAction | HookAction`, because `HookFactory` routes a **`HookAction`** through the
+same registry and a `HookAction` is not a `ProgramAction` (its type union also carries `LOG`,
+`COUNTER`, `DRAW`, `MAX_ENERGY`). The old `ActionExecutor<any>` was hiding a genuinely second caller
+shape, not just being lazy.
+
+### The two that remain, and why
+
+Both are **public engine types**, and this ticket says in its own deliverable that a fix needing one
+is a deck-archetypes concern. They are disabled at the declaration, once each, with the full argument
+in the file:
+
+- **`ProgramAction`'s `readonly [key: string]: any`** (`types.ts`) — the card data model. Every
+  action variant extends this interface with its own fields, and ~200 reads across the engine, the
+  AI, the balance harness and the UI go through the signature before narrowing. `unknown` is the
+  correct type and would break all of them at once. The real fix is making `ProgramAction` a
+  discriminated union over `ActionType`, which is a change to **how cards are authored**.
+- **`MutationRequest.payload`** (`HookTypes.ts`) — the same problem one level down. Fourteen mutation
+  types carry genuinely different payloads (`{amount, isHeal, element}` for HP, `{key, operator,
+  amount}` for COUNTER, a whole event for EVENT). Worth doing at the same time as the first, and not
+  before.
+
+### Step 5: the gate
+
+`continue-on-error: true` and the "note lint outcome" summary step are gone from
+`.github/workflows/ci.yml`; the lint step is a plain blocking `npm run lint`, and the file's header
+now says why rather than describing debt that no longer exists. **A new lint error is now a new one
+— there is no backlog for it to hide in.**
+
 
 _(open)_

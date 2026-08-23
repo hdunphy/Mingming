@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import type { IBattleEntity, StatusType } from '../../engine/types';
+import type { IBattleEntity, ProgramData, StatusType } from '../../engine/types';
 import type { IBattleState } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -295,9 +295,11 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 
             entity.currentIntent.actions.forEach(act => {
                 if (act.type === 'ATTACK') {
-                    const dummyProgram = { element: (act as any).element } as any;
-                    const dmg = calculateDamage(entity, target, dummyProgram, (act as any).power, battleState);
-                    const hitCount = (act as any).count || 1;
+                    // A one-field stand-in: `calculateDamage` reads only `element` off the
+                    // program for the type-matchup multiplier, and an intent action is not a card.
+                    const dummyProgram = { element: act.element } as ProgramData;
+                    const dmg = calculateDamage(entity, target, dummyProgram, act.power, battleState);
+                    const hitCount = act.count || 1;
                     predictedDamage += Math.floor(dmg * hitCount);
                 }
             });
@@ -427,7 +429,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                     <div className="tooltip-body">
                                         {entity.currentIntent.actions.map((act, idx) => {
                                             if (act.type === 'ATTACK') return <div key={idx}>Deals {predictedDamage} damage.</div>;
-                                            if (act.type === 'STATUS') return <div key={idx}>Applies {act.stacks} {(act as any).status}.</div>;
+                                            if (act.type === 'STATUS') return <div key={idx}>Applies {act.stacks} {act.status}.</div>;
                                             if (act.type === 'HEAL') return <div key={idx}>Heals for {act.power}.</div>;
                                             return null;
                                         })}

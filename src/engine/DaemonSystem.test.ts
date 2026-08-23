@@ -1,16 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramData, ProgramEntity } from './types';
 import { globalBattleEventBus } from './events';
 import { initDaemonHooks } from './data/daemonHooks';
 
 initDaemonHooks();
-const TestProgramRegistry: Record<string, any> = {
+// Partial stand-ins for the real cards: only the fields the daemon paths under test read.
+const TestProgramRegistry: Record<string, ProgramData> = {
     'scratch': { id: 'scratch', name: 'Scratch', power: 40, element: 'None', category: 'Attack', target: 'Single', baseCost: 1, actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }] },
     'whirlpool': { id: 'whirlpool', name: 'Whirlpool', power: 30, element: 'Water', category: 'Attack', target: 'Single', baseCost: 2, actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }, { type: 'DRAW', amount: 1 }] },
     'recursion_daemon': { id: 'recursion_daemon', name: 'RECURSION_DAEMON', category: 'Daemon', hooks: ['recursion_daemon_hook'] },
     'thermal_overload': { id: 'thermal_overload', name: 'THERMAL_OVERLOAD', category: 'Daemon', hooks: ['thermal_overload_hook', 'thermal_overload_logic', 'thermal_overload_burn_boost'] }
-};
+} as unknown as Record<string, ProgramData>;
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
     const original = await importOriginal<typeof import('./data/programRegistry')>();
@@ -88,7 +89,7 @@ function createMockState(): IBattleState {
                 { id: 'h1', dataId: 'recursion_daemon', currentCost: 1, isPlayable: true },
                 { id: 'h2', dataId: 'thermal_overload', currentCost: 2, isPlayable: true },
                 { id: 'h3', dataId: 'scratch', currentCost: 1, isPlayable: true }
-            ] as ProgramEntity[],
+            ] as ReadonlyArray<ProgramEntity>,
             drawpile: [
                 { id: 'h4', dataId: 'scratch', currentCost: 1, isPlayable: true }
             ],
@@ -253,7 +254,7 @@ describe('Daemon System', () => {
                 hand: [
                     { id: 'h_daemon', dataId: 'echo_chamber_v2', currentCost: 2, isPlayable: true },
                     { id: 'h_0cost', dataId: 'water_slap', currentCost: 0, isPlayable: true }
-                ] as any
+                ] as ReadonlyArray<ProgramEntity>
             }
         };
 

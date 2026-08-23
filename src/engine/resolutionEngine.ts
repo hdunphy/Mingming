@@ -1,7 +1,7 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { numericBaseCost } from './types';
 import { globalBattleEventBus } from './events';
-import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
+import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, type EventHook, getHook } from './core/Hooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
 import { drawCards, discardCard, exhaustCard, returnCard, searchCard, HAND_SIZE_LIMIT } from './deckLogic';
@@ -215,7 +215,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
                 let deck = newState[deckKey];
 
-                const sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
+                const sourcePileStr: 'DISCARD' | 'EXHAUST' = mutation.payload.sourcePile || 'DISCARD';
                 const sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
                 // Ticket 32: optional cost predicate, then clamp to the space actually left in
                 // hand - RETURN previously ignored HAND_SIZE_LIMIT and silently dropped the
@@ -229,7 +229,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const toReturn = eligible.slice(0, Math.min(requested, headroom));
 
                 toReturn.forEach(c => {
-                    deck = returnCard(deck, c.id, sourcePileStr as any, mutation.payload.destinationPile || 'HAND');
+                    deck = returnCard(deck, c.id, sourcePileStr, mutation.payload.destinationPile || 'HAND');
                 });
                 newState = { ...newState, [deckKey]: deck };
                 break;
@@ -394,7 +394,9 @@ function executeResolutionStackInner(
 
     // 3. Execute Hooks
     for (const pair of hookPairs) {
-        const handler = pair.hook[phase] as any;
+        // `phase` is a plain keyof, so the indexed type is the union of every HookDefinition
+        // member; this branch only ever runs for the EventHook-shaped triggers.
+        const handler = pair.hook[phase] as EventHook | undefined;
         if (!handler) continue;
 
         const result: HookResult = handler({ ...initialContext, state: currentState }, pair.owner);

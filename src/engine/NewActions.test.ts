@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { IBattleState, ProgramEntity } from './types';
+import type {
+    IBattleState,
+    ProgramEntity,
+    GenerateCardActionData,
+    CleanseActionData,
+    DiscardActionData,
+    ExhaustActionData,
+    ReturnActionData,
+    SearchActionData
+} from './types';
+import type { HookContext } from './core/Hooks';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { createMockEntity } from './data/battleFactories';
 import { registerHook } from './core/HookRegistry';
@@ -52,6 +62,13 @@ function createInitialState(): IBattleState {
     };
 }
 
+/**
+ * Empty hook context. The executors under test never read it — they either ignore the
+ * parameter outright or forward it untouched to a nested executor — so an empty stub is
+ * exactly what these calls have always passed.
+ */
+const EMPTY_CONTEXT = {} as unknown as HookContext;
+
 describe('New Utility Actions', () => {
     let initialState: IBattleState;
 
@@ -60,9 +77,9 @@ describe('New Utility Actions', () => {
     });
 
     it('GENERATE_CARD should add the specified card to hand', () => {
-        const action: any = { type: 'GENERATE_CARD', dataId: 'feedback_token' };
+        const action: GenerateCardActionData = { type: 'GENERATE_CARD', dataId: 'feedback_token' };
         const executor = ActionExecutorRegistry['GENERATE_CARD'];
-        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.enemyParty[0].id, action, undefined, {} as any);
+        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.enemyParty[0].id, action, undefined, EMPTY_CONTEXT);
 
         const hand = state.playerDeck.hand;
         expect(hand.length).toBe(3);
@@ -73,21 +90,21 @@ describe('New Utility Actions', () => {
     it('CLEANSE should remove debuffs', () => {
         // Add poison and sleep to player
         const player = initialState.playerParty[0];
-        const state = {
+        const state: IBattleState = {
             ...initialState,
             playerParty: [{
                 ...player,
                 statusEffects: [
-                    { id: 's1', type: 'Poison' as any, stacks: 2 },
-                    { id: 's2', type: 'Asleep' as any, stacks: 1 },
-                    { id: 's3', type: 'Sharp' as any, stacks: 1 } // buff
+                    { id: 's1', type: 'Poison', stacks: 2 },
+                    { id: 's2', type: 'Asleep', stacks: 1 },
+                    { id: 's3', type: 'Sharp', stacks: 1 } // buff
                 ]
             }]
         };
 
-        const action: any = { type: 'CLEANSE' }; // General cleanse
+        const action: CleanseActionData = { type: 'CLEANSE' }; // General cleanse
         const executor = ActionExecutorRegistry['CLEANSE'];
-        const nextState = executor.execute(state, player.id, player.id, action, undefined, {} as any);
+        const nextState = executor.execute(state, player.id, player.id, action, undefined, EMPTY_CONTEXT);
 
         const updatedPlayer = nextState.playerParty[0];
         // Poison and Asleep should be gone, Sharp should remain
@@ -96,9 +113,9 @@ describe('New Utility Actions', () => {
     });
 
     it('DISCARD should move top N cards from hand to discard', () => {
-        const action: any = { type: 'DISCARD', amount: 1, isRandom: false };
+        const action: DiscardActionData = { type: 'DISCARD', amount: 1, isRandom: false };
         const executor = ActionExecutorRegistry['DISCARD'];
-        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, {} as any);
+        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, EMPTY_CONTEXT);
 
         expect(state.playerDeck.hand.length).toBe(1);
         expect(state.playerDeck.hand[0].dataId).toBe('defend'); // 'water_slap' got discarded
@@ -107,9 +124,9 @@ describe('New Utility Actions', () => {
     });
 
     it('EXHAUST should move cards from hand to exhaust', () => {
-        const action: any = { type: 'EXHAUST', amount: 1 };
+        const action: ExhaustActionData = { type: 'EXHAUST', amount: 1 };
         const executor = ActionExecutorRegistry['EXHAUST'];
-        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, {} as any);
+        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, EMPTY_CONTEXT);
 
         expect(state.playerDeck.hand.length).toBe(1);
         expect(state.playerDeck.exhaust.length).toBe(2);
@@ -117,9 +134,9 @@ describe('New Utility Actions', () => {
     });
 
     it('RETURN should move cards from specified pile to hand', () => {
-        const action: any = { type: 'RETURN', amount: 1, sourcePile: 'DISCARD', destinationPile: 'HAND' };
+        const action: ReturnActionData = { type: 'RETURN', amount: 1, sourcePile: 'DISCARD', destinationPile: 'HAND' };
         const executor = ActionExecutorRegistry['RETURN'];
-        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, {} as any);
+        const state = executor.execute(initialState, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, EMPTY_CONTEXT);
 
         // 'strike' was in discard
         expect(state.playerDeck.discard.length).toBe(0);
@@ -141,9 +158,9 @@ describe('New Utility Actions', () => {
             }
         };
 
-        const action: any = { type: 'SEARCH', amount: 1 };
+        const action: SearchActionData = { type: 'SEARCH', amount: 1 };
         const executor = ActionExecutorRegistry['SEARCH'];
-        const state = executor.execute(stateWithDrawpile, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, {} as any);
+        const state = executor.execute(stateWithDrawpile, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, EMPTY_CONTEXT);
 
         // Should draw 1 card since no criteria means any card
         expect(state.playerDeck.hand.length).toBe(3); // 2 original + 1 drawn
@@ -178,9 +195,9 @@ describe('New Utility Actions', () => {
         };
 
         // 3. Trigger DISCARD
-        const action: any = { type: 'DISCARD', amount: 1, isRandom: false };
+        const action: DiscardActionData = { type: 'DISCARD', amount: 1, isRandom: false };
         const executor = ActionExecutorRegistry['DISCARD'];
-        const nextState = executor.execute(stateWithTestCard, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, {} as any);
+        const nextState = executor.execute(stateWithTestCard, initialState.playerParty[0].id, initialState.playerParty[0].id, action, undefined, EMPTY_CONTEXT);
 
         // 4. Assert
         expect(nextState.playerDeck.hand.length).toBe(1);

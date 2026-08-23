@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
-import type { ProgramData, ProgramAction, ProgramConstraint } from '../../engine/types';
+import type { ActionType, ProgramData, ProgramAction, ProgramConstraint, ProgramConstraintType } from '../../engine/types';
+import type { HookLibrarySchema } from '../../engine/data/HookSchema';
 import { ELEMENTS, TARGET_TYPES, PROGRAM_CATEGORIES, RARITIES } from '../../engine/types';
 import actionsLib from '../../engine/data/lib/actions.json';
 import constraintsLib from '../../engine/data/lib/constraints.json';
 import hooksLib from '../../engine/data/lib/hooks.json';
 import './CardForm.css';
 
-const ACTIONS_LIB = actionsLib as Record<string, any>;
-const CONSTRAINTS_LIB = constraintsLib as Record<string, any>;
-const AVAILABLE_HOOKS = Object.values(hooksLib as Record<string, any>).flatMap(root => root.hooks?.map((h: any) => h.id) || []);
+// Only the keys of these two are read (they fill the "(Custom ...)" pickers), so the entry
+// shape is deliberately left opaque rather than restated here.
+const ACTIONS_LIB = actionsLib as Record<string, unknown>;
+const CONSTRAINTS_LIB = constraintsLib as Record<string, unknown>;
+/** The parsed shape of `hooks.json`, straight off the schema the engine validates it with. */
+type HookLibrary = ReturnType<typeof HookLibrarySchema.parse>;
+const AVAILABLE_HOOKS = Object.values(hooksLib as HookLibrary).flatMap(root => root.hooks?.map(h => h.id) || []);
 
 
 
@@ -35,8 +40,8 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
         artReference: ''
     });
 
-    const handleChange = (field: keyof ProgramData, value: any) => {
-        setCard(prev => ({ ...prev, [field]: value }));
+    const handleChange = (field: keyof ProgramData, value: unknown) => {
+        setCard(prev => ({ ...prev, [field]: value }) as Partial<ProgramData>);
     };
 
     const addAction = () => {
@@ -56,7 +61,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
     };
 
     const addConstraint = () => {
-        const newConstraints = [...(card.constraints || []), { type: 'BASE' as any, target: 'SELF', value: '' }];
+        const newConstraints = [...(card.constraints || []), { type: 'BASE', target: 'SELF', value: '' }];
         handleChange('constraints', newConstraints);
     };
 
@@ -231,7 +236,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
                                                     type="text"
                                                     placeholder="Type"
                                                     value={action.type}
-                                                    onChange={e => updateAction(i, { type: e.target.value as any })}
+                                                    onChange={e => updateAction(i, { type: e.target.value as ActionType })}
                                                 />
                                                 <input
                                                     type="number"
@@ -281,7 +286,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
                                         </div>
                                         {!c.id && (
                                             <div className="inline-fields">
-                                                <select value={c.type} onChange={e => updateConstraint(i, { type: e.target.value as any })}>
+                                                <select value={c.type} onChange={e => updateConstraint(i, { type: e.target.value as ProgramConstraintType })}>
                                                     <option value="HAS_STATUS">HAS_STATUS</option>
                                                     <option value="NOT_STATUS">NOT_STATUS</option>
                                                     <option value="HEALTH_THRESHOLD">HEALTH</option>

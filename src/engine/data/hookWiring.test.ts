@@ -11,7 +11,8 @@ import { createRun } from '../run/createRun';
 import { GAUNTLET_FIGHTS, rollGauntletFight } from '../run/gauntlet';
 import { GYM_REGISTRY } from '../run/gyms';
 import type { IBiome } from '../runTypes';
-import type { IMingmingState } from '../types';
+import type { IBattleEntity, IBattleState, IMingmingState, ProgramData, StatusEffectInstance } from '../types';
+import type { DataHookDefinition } from '../core/HookTypes';
 
 /** A run's three biomes at Early Access: one per launch element, mono (ticket 05). */
 const BIOMES: ReadonlyArray<IBiome> = [
@@ -132,7 +133,12 @@ describe('boss relic OSes', () => {
 });
 
 describe('data-driven condition translations', () => {
-    const makeEntity = (id: string, statusEffects: any[] = []): any => ({
+    /** Partial entity — the hooks under test read only id, hp, energy, statusEffects and daemons.
+     *  Status fixtures may omit `id`; nothing here looks a status effect up by instance id. */
+    const makeEntity = (
+        id: string,
+        statusEffects: ReadonlyArray<Partial<StatusEffectInstance>> = []
+    ): IBattleEntity => ({
         id,
         name: id,
         currentHp: 100,
@@ -141,15 +147,16 @@ describe('data-driven condition translations', () => {
         maxEnergy: 3,
         statusEffects,
         daemons: []
-    });
+    } as unknown as IBattleEntity);
 
-    const makeState = (playerParty: any[], enemyParty: any[]): any => ({
+    /** Partial battle state — the hooks under test read only the two parties, logs, counters and seed. */
+    const makeState = (playerParty: IBattleEntity[], enemyParty: IBattleEntity[]): IBattleState => ({
         playerParty,
         enemyParty,
         logs: [],
         counters: {},
         seed: '42'
-    });
+    } as unknown as IBattleState);
 
     it('draugr_v2_chill (onDamageCalculated, ticket 12 rebuild) reduces damage 20% only when the source has 2+ debuff types', () => {
         const hook = getHook('draugr_v2_chill');
@@ -177,15 +184,16 @@ describe('data-driven condition translations', () => {
         // it (third occurrence of that trap - BLOOD_SCENT ticket 39, PERMAFROST_WAKE ticket 48).
         // It now reads distinct TYPES at turn start, so a self-debuff card pays once per turn
         // rather than once per cast.
-        const hook = HookFactory.createHook((HOOKS_DATA as any).fafnir_v2.hooks[0]);
+        const hooksData = HOOKS_DATA as unknown as Record<string, { hooks: DataHookDefinition[] }>;
+        const hook = HookFactory.createHook(hooksData.fafnir_v2.hooks[0]);
         expect(hook!.onTurnStart).toBeDefined();
         expect(hook!.onStatusApplied).toBeUndefined();
 
         const clean = makeEntity('fafnir');
         const cleanState = makeState([makeEntity('p')], [clean]);
-        const noDebuffs = hook!.onTurnStart!({ state: cleanState, source: clean, target: clean, triggerDepth: 0 } as any, clean);
-        const afterClean = noDebuffs.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(afterClean.statusEffects.some((s: any) => s.type === 'Strengthened')).toBe(false);
+        const noDebuffs = hook!.onTurnStart!({ state: cleanState, source: clean, target: clean, triggerDepth: 0 }, clean);
+        const afterClean = noDebuffs.state.enemyParty.find(e => e.id === 'fafnir')!;
+        expect(afterClean.statusEffects.some(s => s.type === 'Strengthened')).toBe(false);
 
         // Two DISTINCT types, six stacks between them: the grant reads types, not stacks.
         const rotted = makeEntity('fafnir', [
@@ -193,12 +201,12 @@ describe('data-driven condition translations', () => {
             { id: 's2', type: 'Dazed', stacks: 2 },
         ]);
         const rottedState = makeState([makeEntity('p')], [rotted]);
-        const result = hook!.onTurnStart!({ state: rottedState, source: rotted, target: rotted, triggerDepth: 0 } as any, rotted);
-        const after = result.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(after.statusEffects.find((s: any) => s.type === 'Strengthened')?.stacks).toBe(4);
+        const result = hook!.onTurnStart!({ state: rottedState, source: rotted, target: rotted, triggerDepth: 0 }, rotted);
+        const after = result.state.enemyParty.find(e => e.id === 'fafnir')!;
+        expect(after.statusEffects.find(s => s.type === 'Strengthened')?.stacks).toBe(4);
         // ...and each of those debuffs sheds a stack, which is what stops it compounding forever.
-        expect(after.statusEffects.find((s: any) => s.type === 'Poison')?.stacks).toBe(3);
-        expect(after.statusEffects.find((s: any) => s.type === 'Dazed')?.stacks).toBe(1);
+        expect(after.statusEffects.find(s => s.type === 'Poison')?.stacks).toBe(3);
+        expect(after.statusEffects.find(s => s.type === 'Dazed')?.stacks).toBe(1);
     });
 
     it('hel_v2_underworld_toll taxes DARK cards with a printed cost, and only those (ticket 57)', () => {
@@ -213,15 +221,16 @@ describe('data-driven condition translations', () => {
         const hel = makeEntity('hel');
         const state = makeState([hel], [makeEntity('e')]);
 
-        const darkAttack: any = { id: 'atk', category: 'Attack', element: 'Dark', baseCost: 2, actions: [] };
+        // Partial cards — onActionStart reads only category, element and baseCost.
+        const darkAttack = { id: 'atk', category: 'Attack', element: 'Dark', baseCost: 2, actions: [] } as unknown as ProgramData;
         const attackResult = hook!.onActionStart!({ state, source: hel, program: darkAttack, triggerDepth: 0 }, hel);
         expect(attackResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(true);
 
-        const lightSkill: any = { id: 'spell', category: 'Skill', element: 'Light', baseCost: 2, actions: [] };
+        const lightSkill = { id: 'spell', category: 'Skill', element: 'Light', baseCost: 2, actions: [] } as unknown as ProgramData;
         const spellResult = hook!.onActionStart!({ state, source: hel, program: lightSkill, triggerDepth: 0 }, hel);
         expect(spellResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
 
-        const freebie: any = { id: 'free', category: 'Attack', element: 'Dark', baseCost: 0, actions: [] };
+        const freebie = { id: 'free', category: 'Attack', element: 'Dark', baseCost: 0, actions: [] } as unknown as ProgramData;
         const freeResult = hook!.onActionStart!({ state, source: hel, program: freebie, triggerDepth: 0 }, hel);
         expect(freeResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
     });
@@ -231,8 +240,8 @@ describe('data-driven condition translations', () => {
         const hel = makeEntity('hel');
         const state = makeState([hel], [makeEntity('e')]);
 
-        const bigSpell: any = { id: 'soul_tithe', category: 'Attack', element: 'Dark', baseCost: 3, actions: [] };
-        expect(hook!.onCostCalculated!(3, { state, source: hel, program: bigSpell, triggerDepth: 0 } as any, hel)).toBe(0);
+        const bigSpell = { id: 'soul_tithe', category: 'Attack', element: 'Dark', baseCost: 3, actions: [] } as unknown as ProgramData;
+        expect(hook!.onCostCalculated!(3, { state, source: hel, program: bigSpell, triggerDepth: 0 }, hel)).toBe(0);
     });
 
     it('RANDOM_ENEMY targeting advances the state seed (no repeated picks forever)', () => {
@@ -247,22 +256,28 @@ describe('data-driven condition translations', () => {
 
 describe('HookFactory condition safety', () => {
     it('a non-function condition (e.g. a JS-source string in JSON) never crashes the hook', () => {
-        const hook = HookFactory.createHook({
+        // `condition` is deliberately a STRING where a function belongs — exactly what a
+        // JS-source condition smuggled into hooks.json deserialises to.
+        const badDefinition = {
             id: 'test_bad_condition_hook',
             trigger: 'onTurnEnd',
             priority: 40,
-            condition: '(context) => context.doesNotExist.boom' as any,
+            condition: '(context) => context.doesNotExist.boom',
             do: []
-        } as any);
+        } as unknown as DataHookDefinition;
+        const hook = HookFactory.createHook(badDefinition);
 
-        const owner: any = { id: 'o1', name: 'Owner', currentHp: 10, maxHp: 10, currentEnergy: 0, statusEffects: [], daemons: [] };
-        const state: any = {
+        // Partial fixtures — the hook is a no-op, so only `owner.id` and the state's party lists matter.
+        const owner = {
+            id: 'o1', name: 'Owner', currentHp: 10, maxHp: 10, currentEnergy: 0, statusEffects: [], daemons: []
+        } as unknown as IBattleEntity;
+        const state = {
             playerParty: [owner],
             enemyParty: [],
             logs: [],
             counters: {},
             seed: '1'
-        };
+        } as unknown as IBattleState;
 
         expect(() => hook.onTurnEnd!({ state, triggerDepth: 0, source: owner }, owner)).not.toThrow();
     });

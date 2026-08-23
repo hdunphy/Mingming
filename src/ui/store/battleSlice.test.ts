@@ -28,7 +28,7 @@ const SETUP: IBattleSetup = {
     persistedHp: {}
 };
 
-const initial = battleReducer(undefined, { type: '@@INIT' } as any);
+const initial = battleReducer(undefined, { type: '@@INIT' });
 
 describe('battleSlice.startBattle forwards BattleOptions', () => {
     it('defaults to MOVES when no options are given', () => {

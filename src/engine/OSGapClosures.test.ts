@@ -1,21 +1,25 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
 import { applyMutations } from './resolutionEngine';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, ProgramData } from './types';
 import { StatusType } from './types';
 import { registerHook } from './core/Hooks';
 import { FIRMWARE_REGISTRY, getOSBehavior } from './data/firmwareRegistry';
 import { getHook } from './core/HookRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 import HOOKS_DATA from './data/lib/hooks.json';
+import type { DataHookDefinition, HookContext } from './core/HookTypes';
+
+/** hooks.json, keyed by firmware id — only these three fields are read below. */
+const HOOKS = HOOKS_DATA as unknown as Record<string, { name: string; description: string; hooks: DataHookDefinition[] }>;
 
 // Mock GetProgramData to use our test registry
 vi.mock('./data/programRegistry', async () => {
-    const actual = await vi.importActual('./data/programRegistry');
+    const actual = await vi.importActual<typeof import('./data/programRegistry')>('./data/programRegistry');
     return {
-        ...actual as any,
+        ...actual,
         GetProgramData: (id: string) => {
-            return TestProgramRegistry[id] || (actual as any).GetProgramData(id);
+            return TestProgramRegistry[id] || actual.GetProgramData(id);
         }
     };
 });
@@ -266,16 +270,16 @@ describe('Item 6 - HRAESVELGR v2 dead data removed', () => {
     // dispatch in `executeDraw` and valkyrie_v2's REBIRTH_CYCLE_OS is its first live consumer.
     // What replaces it is the claim that actually mattered: a hook on this trigger FIRES.
     it('onDeckShuffled is dispatched, and REBIRTH_CYCLE_OS is its consumer', () => {
-        const entry = (HOOKS_DATA as any).valkyrie_v2;
+        const entry = HOOKS.valkyrie_v2;
         expect(entry.name).toBe('REBIRTH_CYCLE_OS');
         // hooks[0] is the once-per-turn reset (see ticket 53 §7a); the payout is the one that
         // has to sit on the newly-live trigger.
-        expect(entry.hooks.some((h: any) => h.trigger === 'onDeckShuffled')).toBe(true);
+        expect(entry.hooks.some((h: DataHookDefinition) => h.trigger === 'onDeckShuffled')).toBe(true);
         expect(getHook('valk_v2_rebirth')?.onDeckShuffled).toBeTypeOf('function');
     });
 
     it('hraesvelgr_v2 keeps its description (UI copy) but has no data hooks', () => {
-        const entry = (HOOKS_DATA as any).hraesvelgr_v2;
+        const entry = HOOKS.hraesvelgr_v2;
         expect(entry.description).toBeTruthy();
         expect(entry.hooks).toEqual([]);
         // The working CustomFirmware implementation still registers.
@@ -540,17 +544,19 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
 describe('getEffectiveCardCost (shared reducer/UI helper)', () => {
     it('reflects a primed Attack-only discount and ignores it for other categories', async () => {
         const { getEffectiveCardCost, doesModifierApply } = await import('./battleReducer');
-        const source: any = {
+        // Partial fixtures: both helpers read only `nextProgramModifier` off the source and
+        // `category` / `baseCost` off the card.
+        const source = {
             nextProgramModifier: { costReduction: 1, appliesTo: 'Attack' }
-        };
-        const attackCard: any = { category: 'Attack' };
-        const skillCard: any = { category: 'Skill' };
+        } as unknown as IBattleEntity;
+        const attackCard = { category: 'Attack' } as unknown as ProgramData;
+        const skillCard = { category: 'Skill' } as unknown as ProgramData;
         expect(doesModifierApply(source, attackCard)).toBe(true);
         expect(getEffectiveCardCost(source, attackCard, 2)).toBe(1);
         expect(getEffectiveCardCost(source, attackCard, 0)).toBe(0);
         expect(doesModifierApply(source, skillCard)).toBe(false);
         expect(getEffectiveCardCost(source, skillCard, 2)).toBe(2);
-        expect(getEffectiveCardCost({ nextProgramModifier: undefined } as any, attackCard, 2)).toBe(2);
+        expect(getEffectiveCardCost({ nextProgramModifier: undefined } as unknown as IBattleEntity, attackCard, 2)).toBe(2);
     });
 });
 
@@ -623,7 +629,7 @@ describe("Ticket 07 - explicit 'ANY' source/target condition", () => {
         const owner = makeUnit('n1', 'Nidhoggr');
         const other = makeUnit('e1', 'Enemy');
         const state = makeState([owner], [other]);
-        const context: any = { state, target: other, source: other, triggerDepth: 0 };
+        const context: HookContext = { state, target: other, source: other, triggerDepth: 0 };
         expect(ConditionValidator.evaluateHookCondition({ target: 'ANY' }, context, owner)).toBe(true);
         expect(ConditionValidator.evaluateHookCondition({ source: 'ANY' }, context, owner)).toBe(true);
         expect(ConditionValidator.evaluateHookCondition({ target: 'SELF' }, context, owner)).toBe(false);

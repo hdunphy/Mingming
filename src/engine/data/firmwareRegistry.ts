@@ -1,4 +1,4 @@
-import { type HookDefinition } from '../core/HookTypes';
+import { type HookDefinition, type DataHookDefinition, type ModifierDataHookDefinition } from '../core/HookTypes';
 import { registerHook } from '../core/HookRegistry';
 import { HookFactory } from '../core/HookFactory';
 import HOOKS_DATA from './lib/hooks.json';
@@ -22,6 +22,16 @@ export interface OSDefinition {
     actsWhileAsleep?: boolean;
 }
 
+/** hooks.json, keyed by firmware id — only the fields read below. */
+type HookLibraryEntry = {
+    id?: string;
+    name?: string;
+    description?: string;
+    maxCardsPerTurn?: number;
+    actsWhileAsleep?: boolean;
+    hooks?: Array<DataHookDefinition | ModifierDataHookDefinition>;
+};
+
 export const FIRMWARE_REGISTRY: Record<string, OSDefinition> = {};
 let isInitialized = false;
 
@@ -30,12 +40,12 @@ function initFirmwareHooks() {
 
 
     // Validate JSON on boot
-    let validatedData: any = {};
+    let validatedData: Record<string, HookLibraryEntry> = {};
     try {
-        validatedData = HookLibrarySchema.parse(HOOKS_DATA);
+        validatedData = HookLibrarySchema.parse(HOOKS_DATA) as unknown as Record<string, HookLibraryEntry>;
     } catch (error) {
         console.error("Failed to parse hooks.json schema in firmwareRegistry:", error);
-        validatedData = HOOKS_DATA; // Fallback
+        validatedData = HOOKS_DATA as unknown as Record<string, HookLibraryEntry>; // Fallback
     }
 
     const firmwareKeys = Object.keys(validatedData).filter(key =>
@@ -47,7 +57,7 @@ function initFirmwareHooks() {
         let hooks: HookDefinition[] = [];
 
         if (data && data.hooks) {
-            hooks = data.hooks.map((h: any) => HookFactory.createHook(h));
+            hooks = data.hooks.map(h => HookFactory.createHook(h));
         }
 
         if (CustomFirmware[key]) {
@@ -63,7 +73,7 @@ function initFirmwareHooks() {
                 maxCardsPerTurn: data.maxCardsPerTurn,
                 actsWhileAsleep: data.actsWhileAsleep
             };
-            hooks.forEach((hook: any) => registerHook(hook));
+            hooks.forEach(hook => registerHook(hook));
         }
     });
 

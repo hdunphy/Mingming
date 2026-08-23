@@ -1,5 +1,6 @@
-import type { IBattleState, IBattleEntity, ProgramData } from './types';
+import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance, AttackActionData } from './types';
 import { StatusType } from './types';
+import type { HookContext } from './core/Hooks';
 import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
@@ -13,9 +14,31 @@ const HAND_SIZE_LIMIT = 9;
 
 import { executeResolutionStack, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 
-export type EffectHandler = (state: IBattleState, payload: any) => IBattleState;
+/**
+ * The payload each effect handler takes, keyed by the registry key that reaches it. Named
+ * here rather than inlined so the registry, the handlers and every caller are checked against
+ * one declaration - `EffectHandler` used to take `payload: any`, so nothing was.
+ */
+export type EffectPayloads = {
+    ATTACK: {
+        sourceId: string;
+        targetId: string;
+        power: number;
+        element: Element;
+        damageOverride?: number;
+        program?: ProgramData;
+        action?: AttackActionData;
+    };
+    HEAL: { sourceId: string; targetId: string; power: number; flatHeal?: number; healPower?: number };
+    APPLY_STATUS: { targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number };
+    GENERATE_CARD: { sourceId: string; dataId: string };
+    CLEANSE: { targetId: string; statusTarget?: StatusType };
+};
 
-export const effectHandlers: Record<string, EffectHandler> = {
+export type EffectHandler<K extends keyof EffectPayloads = keyof EffectPayloads> =
+    (state: IBattleState, payload: EffectPayloads[K]) => IBattleState;
+
+export const effectHandlers: { [K in keyof EffectPayloads]: EffectHandler<K> } = {
     'ATTACK': handleAttack,
     'HEAL': handleHealEffect,
     'APPLY_STATUS': handleApplyStatus,
@@ -23,7 +46,7 @@ export const effectHandlers: Record<string, EffectHandler> = {
     'CLEANSE': handleCleanse
 };
 
-function handleAttack(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; element: any; damageOverride?: number; program?: ProgramData; action?: any }): IBattleState {
+function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): IBattleState {
     const { sourceId, targetId, power, element, damageOverride } = payload;
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
@@ -149,13 +172,13 @@ function handleAttack(state: IBattleState, payload: { sourceId: string; targetId
     if (wakesUp) {
         const afterDamageTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
         if (afterDamageTarget) {
-            const context = {
+            const context: HookContext = {
                 target: afterDamageTarget,
                 statusApplied: 'Asleep', // Reusing this property for the status name in hooks
                 state: newState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
             newState = afterHook;
         }
     }
@@ -210,12 +233,12 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
 
     // Trigger onUnitFainted hook
     {
-        const context = {
+        const context: HookContext = {
             target: target,
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack('onUnitFainted', context as any);
+        const { state: afterHook } = executeResolutionStack('onUnitFainted', context);
         newState = afterHook;
     }
 
@@ -228,7 +251,7 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
  * reachable from card data any more - `healOverride` was removed from `HealActionData` because a
  * flat heal does not scale with level, so it was overpowered early and negligible late.
  */
-function handleHealEffect(state: IBattleState, payload: { sourceId: string; targetId: string; power: number; flatHeal?: number; healPower?: number }): IBattleState {
+function handleHealEffect(state: IBattleState, payload: EffectPayloads['HEAL']): IBattleState {
     const { sourceId, targetId, power, flatHeal, healPower } = payload;
     // ... find entities ...
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
@@ -246,13 +269,17 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
     // this line - card heals arrive via calculateHeal, engine flat heals as `flatHeal` -
     // so one call covers every heal in the game and cannot double-apply. This replaced the
     // old LightStance +50%, which was hardcoded twice and disagreed between the two paths.
-    const intendedHeal = flatHeal !== undefined ? flatHeal : calculateHeal(source as any, target, power);
+    //
+    // `source` is only undefined on the flatHeal path (guarded above), and that path never
+    // reaches calculateHeal - the ternary short-circuits first. The compiler cannot correlate
+    // the two, so the narrowing is asserted rather than inferred.
+    const intendedHeal = flatHeal !== undefined ? flatHeal : calculateHeal(source as IBattleEntity, target, power);
     const healAmount = applyHealModifiers(intendedHeal, {
         source: source,
         target: target,
         state: state,
         triggerDepth: 0
-    } as any);
+    });
     const newCurrentHp = Math.min(target.maxHp, target.currentHp + healAmount);
     const appliedHeal = newCurrentHp - target.currentHp;
     const overheal = Math.max(0, target.currentHp + healAmount - target.maxHp);
@@ -297,13 +324,13 @@ function handleHealEffect(state: IBattleState, payload: { sourceId: string; targ
 
     // Trigger onHeal hook
     {
-        const context = {
+        const context: HookContext = {
             source: source,
             target: newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId),
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack('onHeal', context as any);
+        const { state: afterHook } = executeResolutionStack('onHeal', context);
         newState = afterHook;
     }
 
@@ -322,7 +349,7 @@ const DUALITY_MAP: Partial<Record<StatusType, StatusType>> = {
     'Weakened': 'Strengthened',
 };
 
-function handleApplyStatus(state: IBattleState, payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number }): IBattleState {
+function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_STATUS']): IBattleState {
     const { targetId, status, stacks, sourceId, power } = payload;
     const behavior = getStatusBehavior(status);
     if (!behavior) {
@@ -444,14 +471,14 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
     {
         const postTarget = newState.playerParty.find(e => e.id === targetId) || newState.enemyParty.find(e => e.id === targetId);
         if (postTarget) {
-            const context = {
+            const context: HookContext = {
                 source: sourceEntity,
                 target: postTarget,
                 state: newState,
                 triggerDepth: 0,
                 statusApplied: status
             };
-            const { state: afterHook } = executeResolutionStack('onStatusApplied', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusApplied', context);
             newState = afterHook;
         }
     }
@@ -462,7 +489,7 @@ function handleApplyStatus(state: IBattleState, payload: { targetId: string; sta
 
 // Removing dead code `handleDraw` and `handleRemoveStatus`
 
-function handleCleanse(state: IBattleState, payload: { targetId: string; statusTarget?: StatusType }): IBattleState {
+function handleCleanse(state: IBattleState, payload: EffectPayloads['CLEANSE']): IBattleState {
     const { targetId, statusTarget } = payload;
     let newState = state;
 
@@ -470,7 +497,7 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
         return ['Poison', 'Burn', 'Weakened', 'Bleed', 'Dazed', 'Stunned', 'Asleep'].includes(status);
     };
 
-    const cleansedTracker: { entity: IBattleEntity, statuses: any[] }[] = [];
+    const cleansedTracker: { entity: IBattleEntity, statuses: StatusEffectInstance[] }[] = [];
 
     const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
         party.map(e => {
@@ -499,13 +526,13 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
         const afterCleanseEntity = newState.playerParty.find(e => e.id === entity.id) || newState.enemyParty.find(e => e.id === entity.id);
         if (!afterCleanseEntity) continue;
         for (const s of statuses) {
-            const context = {
+            const context: HookContext = {
                 target: afterCleanseEntity,
                 statusApplied: s.type, // Reusing this property for the status name in hooks
                 state: newState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
             newState = afterHook;
         }
     }
@@ -513,7 +540,7 @@ function handleCleanse(state: IBattleState, payload: { targetId: string; statusT
     return newState;
 }
 
-function handleGenerateCard(state: IBattleState, payload: { sourceId: string; dataId: string }): IBattleState {
+function handleGenerateCard(state: IBattleState, payload: EffectPayloads['GENERATE_CARD']): IBattleState {
     const { sourceId, dataId } = payload;
     const isPlayerSource = state.playerParty.some(e => e.id === sourceId);
     const deckKey = isPlayerSource ? 'playerDeck' : 'enemyDeck';

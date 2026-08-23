@@ -282,6 +282,25 @@ export interface ProgramAction {
   readonly conditionals?: ReadonlyArray<ProgramConstraint>;
   readonly target?: TargetType | string; // Often target is defined on Action or on Program
   readonly error?: string; // Validation error
+  /*
+   * THE ONE `any` TICKET 55 DID NOT REMOVE, AND THE REASON.
+   *
+   * This index signature is the card data model. `programs.json` is a flat structure and every
+   * action variant below (`AttackActionData`, `StatusActionData`, ...) extends this interface with
+   * its own fields, so the signature is what lets a `ProgramAction` be read as `action.power`,
+   * `action.stacks`, `action.status` before it has been narrowed to a variant. Roughly 200 reads
+   * across the engine, the AI, the balance harness and the UI go through it.
+   *
+   * `unknown` would be the correct type and would break every one of those reads at once. The real
+   * fix is to make `ProgramAction` a discriminated union over `ActionType` and delete the signature,
+   * which is a redesign of how cards are authored — **deck-archetypes' territory, not this map's**
+   * (ticket 55 says so in as many words: "if step 4 turns out to need a public engine type changed,
+   * that is a deck-archetypes concern... file it there and stop").
+   *
+   * So it is disabled here, once, with this note — rather than left to fail a gate that is now
+   * blocking, or "fixed" by a rewrite nobody ruled.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly [key: string]: any; // Flat structure for JSON
 }
 

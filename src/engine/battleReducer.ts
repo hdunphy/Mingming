@@ -420,7 +420,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             // DISCARD reads `count` as "how many cards leave the hand" (the ticket-21
             // self-discard cost), not as a repeat count - resolve it once and let the
             // executor move all N in a single seeded shuffle.
-            const hitCount = action.type === 'DISCARD' ? 1 : ((action as any).count || 1);
+            const hitCount: number = action.type === 'DISCARD' ? 1 : (action.count || 1);
 
             for (let i = 0; i < hitCount; i++) {
                 // Target Resolution (per hit)
@@ -471,29 +471,29 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     // Execution
                     const modifiedAction = { ...action };
                     if (growth > 0 && modifiedAction.type === 'ATTACK'
-                        && (modifiedAction as any).power !== undefined) {
-                        (modifiedAction as any).power = (modifiedAction as any).power + growth;
+                        && modifiedAction.power !== undefined) {
+                        modifiedAction.power = modifiedAction.power + growth;
                     }
                     if (modifier && modifierApplies) {
                         if (!powerBonusSpent && modifier.powerBonus && modifiedAction.type === 'ATTACK'
-                            && (modifiedAction as any).power !== undefined) {
-                            (modifiedAction as any).power = (modifiedAction as any).power + modifier.powerBonus;
+                            && modifiedAction.power !== undefined) {
+                            modifiedAction.power = modifiedAction.power + modifier.powerBonus;
                             powerBonusSpent = true;
                         }
-                        if ((modifiedAction as any).power !== undefined) {
-                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        if (modifiedAction.power !== undefined) {
+                            modifiedAction.power = Math.floor((modifiedAction.power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
-                        if (modifiedAction.type === 'STATUS' && (modifiedAction as any).stacks !== undefined) {
-                            (modifiedAction as any).stacks = Math.floor(((modifiedAction as any).stacks + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        if (modifiedAction.type === 'STATUS' && modifiedAction.stacks !== undefined) {
+                            modifiedAction.stacks = Math.floor((modifiedAction.stacks + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
-                        if (modifiedAction.type === 'HEAL' && (modifiedAction as any).power !== undefined) {
-                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        if (modifiedAction.type === 'HEAL' && modifiedAction.power !== undefined) {
+                            modifiedAction.power = Math.floor((modifiedAction.power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
                     }
 
                     const executor = ActionExecutorRegistry[modifiedAction.type];
                     if (executor) {
-                        finalState = executor.execute(finalState, sourceId, tId, modifiedAction as any, programData, hitContext);
+                        finalState = executor.execute(finalState, sourceId, tId, modifiedAction, programData, hitContext);
                     } else {
                         console.warn(`[BattleReducer] No executor found for action type: ${modifiedAction.type}`);
                     }
@@ -750,7 +750,7 @@ function handleFireMacro(
 
         const executor = ActionExecutorRegistry[action.type];
         if (executor) {
-            finalState = executor.execute(finalState, sourceId, tId, action as any, macroProgram, hitContext);
+            finalState = executor.execute(finalState, sourceId, tId, action, macroProgram, hitContext);
         } else {
             console.warn(`[BattleReducer] No executor found for macro action type: ${action.type}`);
         }
@@ -833,12 +833,12 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
     // 3. Action Execution loop
     let finalState = snapshot;
     for (const action of intent.actions) {
-        const hitCount = (action as any).count || 1;
+        const hitCount: number = action.count || 1;
 
         for (let i = 0; i < hitCount; i++) {
             // Target Selection Helper (Deterministic via lowest HP for single, Side/Self logic)
             let targetIds: string[] = [];
-            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp', 'StableOS', 'BarkShield'].includes((action as any).status));
+            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp', 'StableOS', 'BarkShield'].includes(action.status));
 
             if (action.target === 'SELF' || action.target === 'Self') {
                 targetIds = [sourceId];
@@ -894,7 +894,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 // Execution
                 const executor = ActionExecutorRegistry[action.type];
                 if (executor) {
-                    finalState = executor.execute(finalState, sourceId, tId, action as any, dummyProgram, hitContext);
+                    finalState = executor.execute(finalState, sourceId, tId, action, dummyProgram, hitContext);
                 } else {
                     console.warn(`[BattleReducer] No executor found for intent action type: ${action.type}`);
                 }
@@ -974,7 +974,10 @@ function processPostTurn(state: IBattleState): IBattleState {
     // Process each entity's status effects via behavior.endTurn()
     const statusLogs: string[] = [];
     const defeatedThisTurn: string[] = [];
-    const removedStatusQueue: { targetId: string, status: string }[] = [];
+    // `status` is a StatusType, not a bare string: every push below is a
+    // `StatusEffectInstance['type']`, and HookContext.statusApplied — which is what this
+    // queue feeds at the onStatusRemoved dispatch — is typed StatusType.
+    const removedStatusQueue: { targetId: string, status: StatusType }[] = [];
     const hpCrossingsThisTick: string[] = [];
 
     const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
@@ -1100,13 +1103,13 @@ function processPostTurn(state: IBattleState): IBattleState {
     for (const item of removedStatusQueue) {
         const afterTurnTarget = nextState.playerParty.find(e => e.id === item.targetId) || nextState.enemyParty.find(e => e.id === item.targetId);
         if (afterTurnTarget) {
-            const context = {
+            const context: HookContext = {
                 target: afterTurnTarget,
                 statusApplied: item.status,
                 state: nextState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
             nextState = afterHook;
         }
     }
@@ -1222,7 +1225,7 @@ function processPreTurn(state: IBattleState): IBattleState {
         : nextState.enemyParty;
     const finalPlayerParty = nextState.playerParty;
 
-    let newState = {
+    let newState: IBattleState = {
         ...nextState,
         turn: nextTurn,
         phase: 'ACTION',
@@ -1235,7 +1238,7 @@ function processPreTurn(state: IBattleState): IBattleState {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         }
-    } as any;
+    };
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
 
@@ -1405,13 +1408,13 @@ function handleRemoveStatus(
 
         const afterRemovalTarget = findBattleEntity(newState, entityId);
         if (!afterRemovalTarget) continue;
-        const context = {
+        const context: HookContext = {
             target: afterRemovalTarget,
             statusApplied: effect.type,
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
+        const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
         newState = afterHook;
     }
 
