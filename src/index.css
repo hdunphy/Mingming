@@ -2156,6 +2156,33 @@ body {
 /* Unresolved choice groups breathe until the player picks.
    Pulses box-shadow only — each group keeps its own (inline) border color,
    and the cyan glow matches the CONTINUE button's "needs input" accent. */
+/* Decline one card pick (ruling 4, 2026-08-24). Deliberately understated: skipping is a real play
+   — a lean deck is what makes a 20-scrap removal worth anything — but taking a card is still the
+   thing the screen is for, so the button never outshouts the three cards next to it. */
+.reward-skip-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reward-skip-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Once declined it becomes the undo, so it has to read as ON rather than as a second offer. */
+.reward-skip-btn.skipped {
+  border-color: rgba(0, 210, 255, 0.5);
+  color: #00d2ff;
+}
+
 .choice-group-pending {
   animation: choice-pending-pulse 1.8s ease-in-out infinite;
 }
@@ -2763,6 +2790,13 @@ body {
   color: #fff;
   background: rgba(239, 68, 68, 0.85);
   border-color: #ff6b6b;
+}
+
+/* How much of the number above a shield will eat (ruling 2, 2026-08-24). Bark green, matching
+   the ABSORBED float, so the chip on the card and the number over the unit read as one thing. */
+.card-true-chip.shielded {
+  color: #9ad9a0;
+  border-color: rgba(154, 217, 160, 0.6);
 }
 
 /* ── Console centre: whose numbers these are, and how to drive without a mouse ──

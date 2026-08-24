@@ -1,4 +1,4 @@
-import type { IBattleState, Element, AttackActionData } from '../../engine/types';
+import type { IBattleState, IDamageRecord, Element, AttackActionData } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getModifierBreakdown } from '../../engine/combatUtils';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
@@ -9,16 +9,25 @@ import { globalBattleEventBus } from '../../engine/events';
 /** Result of the on-hover damage preview, with the breakdown chips that explain the number. */
 export interface DamagePreview {
     /**
-     * TICKET 104: the HP the target will actually lose, measured by playing the card through the
-     * real reducer on a throwaway copy of the state. 0 means "no preview".
+     * **WHAT THE CARD HITS FOR**, totalled across every hit it lands on this target. 0 means "no
+     * preview".
      *
-     * DEFINITION, per the ticket's "pick one and document it": this is HP LOST, not raw damage,
-     * and it is the TOTAL across every hit the card lands on this target. A three-hit card shows
-     * one number; a lethal blow shows the target's remaining HP and sets `lethal`. Both halves of
-     * that choice are what make the number checkable - `previewParity.test.ts` asserts it against
-     * the executor for every attack card in the registry across five sampled battle states.
+     * DEFINITION CHANGED 2026-08-24 (Henry, playtest): this used to be *HP lost*, measured by
+     * diffing the target's HP pool after a simulated cast — so a lethal blow read as the target's
+     * remaining HP (*"if my target only has 5 HP left, all my cards show 5"*) and a hit fully eaten
+     * by BarkShield read as nothing at all. It is now the engine's own `raw` figure, read off
+     * `IBattleState.damageLedger`, which `handleAttack` writes at the one line where the number
+     * still exists — before the shield and before `Math.max(0, …)`.
+     *
+     * Still one calculation, still no re-derivation: the card is cast through the real reducer
+     * exactly as ticket 104 built it. The preview stopped *inferring* the number from the
+     * side effects and started *reading* what the engine recorded.
      */
     damage: number;
+    /** Of `damage`, how much a shield status ate. 0 when the target has no shield. */
+    absorbed: number;
+    /** Of `damage`, how much HP will actually be lost — after shields, after the floor at 0. */
+    hpDamage: number;
     /** True when the simulated play leaves the target at 0 HP. */
     lethal: boolean;
     /** How many ATTACK actions the card aims at a target - the "x3" chip on a multi-hit card. */
@@ -43,7 +52,7 @@ export interface DamagePreview {
 }
 
 const NO_PREVIEW: DamagePreview = {
-    damage: 0, lethal: false, hitCount: 0, stab: false, effectiveness: 1,
+    damage: 0, absorbed: 0, hpDamage: 0, lethal: false, hitCount: 0, stab: false, effectiveness: 1,
     element: 'None', sharpBonus: 0, scalingMultiplier: 1,
 };
 
@@ -58,12 +67,26 @@ function currentHpOf(state: IBattleState, id: string): number {
     return e?.currentHp ?? 0;
 }
 
-/** What one simulated cast did: the resulting throwaway state and the HP the target's pool moved. */
+/** What one simulated cast did: the resulting throwaway state, the pool delta, and the ledger. */
 export interface SimulatedPlay {
     /** The state the reducer produced. Discarded by every caller; never dispatched. */
     readonly after: IBattleState;
-    /** Signed pool delta at the measured target: negative is damage taken, positive is HP gained. */
+    /**
+     * Signed pool delta at the measured target: negative is damage taken, positive is HP gained.
+     *
+     * Still here, and still the right measure for a HEAL — healing has no shield to hide behind and
+     * no floor that lies (the cap at `maxHp` is a thing the player wants to see). Damage reads
+     * `hits` below instead; see `DamagePreview.damage` for why.
+     */
     readonly delta: number;
+    /**
+     * Every hit this cast landed **on the measured target**, as the engine recorded it.
+     *
+     * `handleAttack` appends to `IBattleState.damageLedger` and every committed action clears it
+     * first, so this is exactly the damage this one cast did — no diffing, no accumulation from
+     * earlier plays.
+     */
+    readonly hits: ReadonlyArray<IDamageRecord>;
 }
 
 /**
@@ -115,7 +138,11 @@ export function simulatePlay(
     }));
     if (after === state) return null;          // the reducer refused the play
 
-    return { after, delta: pool(after, targetId) - before };
+    return {
+        after,
+        delta: pool(after, targetId) - before,
+        hits: (after.damageLedger ?? []).filter((hit) => hit.targetId === targetId),
+    };
 }
 
 /**
@@ -173,8 +200,11 @@ export function computeDamagePreview(
     // heal preview measures the identical way rather than approximately the same way.
     const sim = simulatePlay(state, sourceId, cardId, targetId);
     if (!sim) return NO_PREVIEW;
-    const { after, delta } = sim;
-    const damage = -delta;
+    const { after, hits } = sim;
+    // Summed rather than taken from the last hit: `hits` is one record per ATTACK landed on this
+    // target, so a three-hit card reports one total and a card that hits twice through a shield
+    // reports both absorptions.
+    const damage = hits.reduce((total, hit) => total + hit.raw, 0);
     if (damage <= 0) return NO_PREVIEW;              // pure buff, or the attack was aimed at SELF
 
     // The explanatory chips, derived analytically off the FIRST attack action. They are LABELS,
@@ -200,6 +230,8 @@ export function computeDamagePreview(
 
     return {
         damage,
+        absorbed: hits.reduce((total, hit) => total + hit.absorbed, 0),
+        hpDamage: hits.reduce((total, hit) => total + hit.applied, 0),
         lethal: currentHpOf(after, targetId) <= 0,
         // `count` is the multi-hit field (`stone_flurry`: one ATTACK action with `count: 3`), so a
         // chip that counted actions alone would read "1" on the very cards the multi-hit chip

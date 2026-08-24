@@ -580,4 +580,60 @@ export interface IBattleState {
   readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;
   readonly counters: Record<string, number>;
+  /**
+   * What every hit of the CURRENT action actually did — see `IDamageRecord`.
+   *
+   * Cleared at the top of each committed action (`handlePlayProgram`, `handleFireMacro`,
+   * `handleExecuteIntent`, `handleEndTurn`) and appended to by `handleAttack`, so it always reads
+   * "what this one play did", never "what this battle did". Optional so existing state fixtures
+   * keep compiling; every read defaults to `[]`.
+   */
+  readonly damageLedger?: ReadonlyArray<IDamageRecord>;
+}
+
+/**
+ * ONE HIT, AS THE ENGINE ACTUALLY RESOLVED IT.
+ *
+ * # Why this exists
+ *
+ * Henry, 2026-08-24: *"we had so many bugs last time... so we need to share damage calculation
+ * functions, just be able to pull out from it before it gets `Math.max(0, damage)`. Just no bugs,
+ * it's really important to know the exact damage."*
+ *
+ * Before this, the card face's damage number was **measured** rather than reported: the preview
+ * cast the card into a throwaway state and diffed the target's HP pool. That could not drift from
+ * the engine — which is why it was built that way; ticket 104 paid 52 parity mismatches to learn
+ * the lesson — but it could only ever see what HP *moved*, and two things move HP less than the
+ * card hits for:
+ *
+ * - the floor in `effectHandlers.handleAttack`, `Math.max(0, currentHp - finalDamage)`, so a lethal
+ *   blow read as the target's remaining HP — 5 damage on a 5 HP target, whatever the card;
+ * - BarkShield, which absorbs inside `onPostDamage` *before* HP is touched, so a shielded hit read
+ *   as **no number at all**.
+ *
+ * The fix is not a second calculation to check against — that is the drift trap again. It is for
+ * the one place that applies damage to *write down what it did*, and for the preview, the floating
+ * numbers and anything else that needs it to read that record. There is still exactly one
+ * calculation; it now reports itself instead of being inferred from its side effects.
+ *
+ * # The three numbers
+ *
+ * `raw = absorbed + applied + overkill`, always. Each answers a different question:
+ * - `raw` — what the card hit for. This is the number on the card face.
+ * - `absorbed` — what a shield ate. The player needs it to know how much bark is left.
+ * - `applied` — what HP actually lost. This is the health bar's movement.
+ *
+ * Overkill is deliberately not a field: it is `raw - absorbed - applied`, and a stored number that
+ * can disagree with its own inputs is exactly the class of bug this record exists to end.
+ */
+export interface IDamageRecord {
+  readonly sourceId: string;
+  readonly targetId: string;
+  /** Post-multiplier damage, before shields and before the HP floor. The card's true output. */
+  readonly raw: number;
+  /** Eaten by a shield status — BarkShield, and anything else with an `onPostDamage`. */
+  readonly absorbed: number;
+  /** What HP actually lost, after shields and after the floor at 0. */
+  readonly applied: number;
+  readonly element: Element;
 }

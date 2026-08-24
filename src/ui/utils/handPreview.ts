@@ -47,8 +47,15 @@ import { computeDamagePreview, simulatePlay, type DamagePreview } from './damage
 /** One card's true numbers, as they stand for the selected caster against the preview target. */
 export interface HandCardPreview {
     readonly cardId: string;
-    /** TRUE HP the preview target loses. 0 when this card costs them nothing. */
+    /**
+     * What the card HITS FOR against the preview target. 0 when this card costs them nothing.
+     *
+     * Since 2026-08-24 this is the engine's raw figure rather than the HP that moves — see
+     * `DamagePreview.damage` for the argument. `absorbed` says how much of it a shield will eat.
+     */
     readonly damage: number;
+    /** Of `damage`, how much a shield absorbs before HP is touched. 0 against an unshielded target. */
+    readonly absorbed: number;
     /** TRUE HP the measured ally gains. 0 when this card restores nothing. */
     readonly healing: number;
     /** True when the simulated cast leaves the target at 0 HP. */
@@ -66,7 +73,7 @@ export interface HandCardPreview {
 }
 
 const EMPTY: Omit<HandCardPreview, 'cardId'> = {
-    damage: 0, healing: 0, lethal: false, hitCount: 0,
+    damage: 0, absorbed: 0, healing: 0, lethal: false, hitCount: 0,
     stab: false, effectiveness: 1, element: 'None', measuredOn: null,
 };
 
@@ -130,6 +137,7 @@ function previewOne(
         return {
             ...base,
             damage: p.damage,
+            absorbed: p.absorbed,
             lethal: p.lethal,
             hitCount: p.hitCount,
             // The card's own element decides STAB, but the MATCHUP is a fact about this target, so

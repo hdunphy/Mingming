@@ -301,6 +301,18 @@ const CardHand: React.FC<{
                                         {preview && preview.hitCount > 1 && (
                                             <span className="card-true-chip">×{preview.hitCount} HITS</span>
                                         )}
+                                        {/*
+                                          * Ruling 2 (Henry, 2026-08-24) at DECISION time rather than
+                                          * after the swing: the number above is what the card hits
+                                          * for, and against a shielded target most of it may never
+                                          * reach HP. Saying so here is what makes "how much bark do
+                                          * I take off" answerable before committing the card.
+                                          */}
+                                        {preview && preview.absorbed > 0 && (
+                                            <span className="card-true-chip shielded">
+                                                🛡 {preview.absorbed}
+                                            </span>
+                                        )}
                                         {effectiveness > 1 && (
                                             <span className="card-true-chip super">
                                                 SUPER ×{formatMultiplier(effectiveness)}

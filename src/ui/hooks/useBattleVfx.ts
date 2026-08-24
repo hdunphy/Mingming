@@ -159,10 +159,30 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             switch (event.type) {
                 case 'DAMAGE_TAKEN': {
                     const { targetId, amount, element } = event;
-                    if (amount <= 0) {
-                        // Fully shielded/absorbed hit — no flash, no shake, just the readout.
-                        pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
+                    /*
+                     * RULING 2 (Henry, 2026-08-24): *"I don't see damage indicators when going
+                     * against bark shield. I need to know how much bark I take off."*
+                     *
+                     * A shield absorbs inside `onPostDamage`, so `amount` is what got PAST it — a
+                     * fully absorbed hit used to render the word ABSORBED and no number, and a
+                     * partial one rendered only the HP half, with the bark chip invisible. The
+                     * shield portion now gets its own float, from `event.damage.absorbed`, which is
+                     * the same record the card face reads (`IDamageRecord`). Two numbers, because
+                     * they are two different resources coming off two different bars.
+                     */
+                    const absorbed = event.damage?.absorbed ?? 0;
+                    if (absorbed > 0) {
+                        pushFloat(targetId, 'absorbed', `-${absorbed} 🛡`, ABSORB_COLOR);
                         playSfx('absorbed');
+                    }
+                    if (amount <= 0) {
+                        // Nothing reached HP. The shield float above is the whole readout; the
+                        // wordy fallback is kept only for an absorption we could not quantify
+                        // (a hand-built event with no ledger, or a non-shield reduction to zero).
+                        if (absorbed <= 0) {
+                            pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
+                            playSfx('absorbed');
+                        }
                         return;
                     }
                     const target = findEntity(targetId);

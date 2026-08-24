@@ -1,4 +1,4 @@
-import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance, AttackActionData } from './types';
+import type { IBattleState, IBattleEntity, IDamageRecord, ProgramData, Element, StatusEffectInstance, AttackActionData } from './types';
 import { StatusType } from './types';
 import type { HookContext } from './core/Hooks';
 import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
@@ -98,6 +98,28 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
     // Apply Damage
     const newCurrentHp = Math.max(0, target.currentHp - finalDamage);
 
+    /*
+     * THE LEDGER (`IDamageRecord`) — written here because here is the only place that knows all
+     * three numbers at once, and they stop being recoverable one line later.
+     *
+     * `damage` is pre-shield and pre-floor; `finalDamage` is post-shield and pre-floor; the floor
+     * is the `Math.max` directly above. So this is the last statement in the engine at which
+     * "what the card hit for" still exists as a value — after it, only the HP delta survives, and
+     * the HP delta is what the preview used to read and what Henry saw lying to him.
+     *
+     * `absorbed` is derived from the two damage figures rather than returned by the shield
+     * behaviour: `onPostDamage` already reports its result as a reduced damage number, and asking
+     * every behaviour to *also* report how much it took would be a second source for one fact.
+     */
+    const damageRecord: IDamageRecord = {
+        sourceId,
+        targetId,
+        raw: damage,
+        absorbed: damage - finalDamage,
+        applied: target.currentHp - newCurrentHp,
+        element,
+    };
+
     // Ticket 48: Asleep loses ONE STACK per incoming attack instead of ending on the first point
     // of damage. It is applied at ASLEEP_INITIAL_STACKS (3), so it takes three attacks to break -
     // plus the natural 1/turn decay in `StatusBehaviors.ts`, which is unchanged. Both clocks run.
@@ -121,12 +143,14 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
         }
     }
 
-    // Emit Event
+    // Emit Event. `amount` stays post-shield/pre-floor so no existing listener changes meaning;
+    // the ledger rides along so the floating numbers can say what the shield took (ruling 2).
     globalBattleEventBus.emit({
         type: 'DAMAGE_TAKEN',
         targetId: target.id,
         amount: finalDamage,
         element: element,
+        damage: damageRecord,
         timestamp: Date.now()
     });
 
@@ -166,7 +190,8 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
     let newState: IBattleState = {
         ...state,
         playerParty: updateParty(state.playerParty),
-        enemyParty: updateParty(state.enemyParty)
+        enemyParty: updateParty(state.enemyParty),
+        damageLedger: [...(state.damageLedger ?? []), damageRecord]
     } as IBattleState;
 
     if (wakesUp) {
@@ -419,10 +444,35 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
             return { ...e, currentHp: newHp, statusEffects: finalEffects };
         });
 
+    /*
+     * IMMEDIATE STATUS DAMAGE IS DAMAGE, AND IT GOES IN THE LEDGER.
+     *
+     * A Burn overflow burst comes out of `behavior.onApply`, not out of `handleAttack`, so it never
+     * touched the ledger when the ledger was first written — and the parity suite caught it the
+     * same hour, on two cards, before this shipped (`sun_eaters_plunge` previewed 17 against 29
+     * actual). That is the whole reason the suite now asserts `ledger-adds-up` against the HP the
+     * pool really moved rather than trusting the ledger to be complete.
+     *
+     * `absorbed: 0` is a statement, not a placeholder: this path deliberately does not run
+     * `onPostDamage`, so no shield sees this damage and none can eat it.
+     */
+    const beforeHp = initialTarget.currentHp;
+    const immediateRecord: IDamageRecord | null = immediateDamage > 0 ? {
+        sourceId: sourceId ?? 'SYSTEM',
+        targetId,
+        raw: immediateDamage,
+        absorbed: 0,
+        applied: beforeHp - Math.max(0, beforeHp - immediateDamage),
+        element: 'None',
+    } : null;
+
     newState = {
         ...newState,
         playerParty: updateParty(newState.playerParty),
-        enemyParty: updateParty(newState.enemyParty)
+        enemyParty: updateParty(newState.enemyParty),
+        ...(immediateRecord
+            ? { damageLedger: [...(newState.damageLedger ?? []), immediateRecord] }
+            : {}),
     };
 
     // Threshold event (ticket 12): overflow/immediate damage (e.g. Burn overflow
@@ -457,12 +507,13 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
         });
     }
 
-    if (immediateDamage > 0) {
+    if (immediateRecord) {
         globalBattleEventBus.emit({
             type: 'DAMAGE_TAKEN',
             targetId: initialTarget.id,
             amount: immediateDamage,
             element: 'None',
+            damage: immediateRecord,
             timestamp: Date.now()
         });
     }

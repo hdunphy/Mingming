@@ -339,6 +339,11 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         // resolves. Recorded for every card so the scalings never see a stale value.
         lastEnergySpent: finalCost,
         lastStatusConsumed: 0,
+        // `damageLedger` is per-ACTION (see `IDamageRecord`). Cleared here rather than at the top
+        // of `battleReducer` on purpose: every refusal above returns `state` by identity, and
+        // `damagePreview.simulatePlay` uses `after === state` to detect a refused play. Clearing
+        // upstream of those guards would hand it a fresh object for a play that never happened.
+        damageLedger: [],
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
             ...(snapshot.elementPlays || {}),
@@ -714,7 +719,7 @@ function handleFireMacro(
 
     // `lastStatusConsumed` is reset exactly as the card path resets it, so a macro that replays a
     // consume-scaled card (Echo) reads that card's own consume count and never a stale one.
-    let finalState: IBattleState = applyMutations({ ...state, lastStatusConsumed: 0 }, [{
+    let finalState: IBattleState = applyMutations({ ...state, lastStatusConsumed: 0, damageLedger: [] }, [{
         type: 'LOG',
         targetId: '',
         payload: `⚡ ${sourceEntity.name} fires ${macro.name}${targetEntity && targetEntity.id !== sourceId ? ` → ${targetEntity.name}` : ''}`
@@ -803,9 +808,11 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
 
     const intent = sourceEntity.currentIntent;
 
-    // 1. Initial State Updates (clear the intent)
+    // 1. Initial State Updates (clear the intent). `damageLedger` is per-action — see the note in
+    // `handlePlayProgram` for why it is cleared past the refusal guards rather than above them.
     let snapshot: IBattleState = {
         ...state,
+        damageLedger: [],
         enemyParty: state.enemyParty.map((e, idx) => idx === sourceIndex ? { ...e, currentIntent: null } : e) as ReadonlyArray<IBattleEntity>
     };
 
@@ -940,7 +947,9 @@ function handleEndTurn(state: IBattleState): IBattleState {
     if (state.phase !== 'ACTION') return state;
 
     let newState = addLog(state, `--- ${state.activeSide} ends their turn ---`);
-    newState = { ...newState, phase: 'POST_TURN' as TurnPhase };
+    // Per-action ledger, and end of turn is an action: DoT ticks and end-of-turn hooks deal real
+    // damage and belong to this action, not to the card that happened to resolve before it.
+    newState = { ...newState, phase: 'POST_TURN' as TurnPhase, damageLedger: [] };
 
     // Execute Post-Turn Logic
     newState = processPostTurn(newState);
