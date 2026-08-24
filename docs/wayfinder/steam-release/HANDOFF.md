@@ -52,7 +52,7 @@ Henry: *"we should record/log everything I do in the playtest run."* Built and c
 - **A wiring test.** Every other case builds its own store, which leaves the likeliest failure uncovered: a middleware that works and is not in the chain. It fails when the `concat` is reverted.
 - The tests caught a live bug first: `game/swapOS` takes `{ id, targetOS }`, and the `REFLASHED` row was reading `{ memberId, osId }` — a reflash you can see happened and cannot identify.
 - **One number needs Henry:** `RUN_LOG_RUNS = 3` is a guess at "a playtest session is a handful of runs". A tester who plays five before exporting loses the first two. One line; the cost of raising it is quota shared with the ranch save.
-- Suite 1629 green across 123 files. Commit `<pending>`.
+- Suite 1629 green across 123 files. Commit `181a053`.
 
 ### 2026-08-24 — Henry played it. Eight items, six defects, six rulings (new ticket 59)
 
