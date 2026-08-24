@@ -53,6 +53,10 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('ranch');
   const dispatch = useDispatch();
   const rosterSize = useSelector((state: RootState) => state.game.roster.length);
+  // The starter picker's exit condition. See the branch below for why it is not `rosterSize === 0`.
+  const blueprintsHeld = useSelector((state: RootState) =>
+    Object.values(state.game.blueprints).reduce((total, count) => total + count, 0),
+  );
   const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
   // Ticket 11: the gauntlet is run state (`IRunState.gauntlet`), not ranch state. Ticket 18 owns
   // advancing it; all this needs to know is whether the battle on screen belongs to one.
@@ -155,7 +159,20 @@ function App() {
     return <>{debugLayer}<BattleArena />{settingsLayer}</>;
   }
 
-  if (rosterSize === 0) {
+  /*
+   * THE STARTER PICKER IS SHOWN TO A PLAYER WHO HAS NOTHING — not to a player with no roster.
+   *
+   * This branch read `rosterSize === 0` until 2026-08-24, and that was a soft-lock. `MainMenuView`
+   * grants a *blueprint* (`addBlueprint`), and a blueprint is not a roster member: only
+   * `assembleMingming`, in the ranch's Assembly bay, pushes to `roster`. So picking a starter left
+   * the condition true, the same screen re-rendered, and the click read as a dead button — while
+   * quietly stacking a blueprint every time it was pressed. The screen's own copy ("Assemble it at
+   * the ranch") described a route this branch made unreachable.
+   *
+   * Holding a blueprint is therefore the exit: it is exactly the state the picker exists to create.
+   * A wiped save (no roster, no blueprints) comes back here, which is right.
+   */
+  if (rosterSize === 0 && blueprintsHeld === 0) {
     return <>{debugLayer}<MainMenuView />{settingsLayer}</>;
   }
 
@@ -201,7 +218,14 @@ function App() {
 
       {/* Screen Content */}
       <div className="screen-content">
-        {activeTab === 'ranch' && <RanchScreen />}
+        {/*
+          * An empty roster opens on the Assembly bay rather than Expedition: the one thing the
+          * player can do with a blueprint and no mingming is spend it, and Expedition's only
+          * content in that state is a note telling them to go and do that.
+          */}
+        {activeTab === 'ranch' && (
+          <RanchScreen initialSection={rosterSize === 0 ? 'assembly' : undefined} />
+        )}
         {activeTab === 'debug' && DebugRoot && (
           <Suspense fallback={null}>
             <DebugRoot mode="docked" />
