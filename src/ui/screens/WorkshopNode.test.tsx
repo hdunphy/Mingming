@@ -31,7 +31,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import WorkshopNode, { type WorkshopPending } from './WorkshopNode';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
-import { createRun } from '../../engine/run/createRun';
+import { RECRUIT_KIT_SIZE, createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
@@ -39,7 +39,14 @@ import {
     WORKSHOP_REMOVAL_PRICE,
 } from '../../engine/run/workshop';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
+import { ProgramRegistry } from '../../engine/data/programRegistry';
 import type { IMingmingState } from '../../engine/types';
+
+/** `renderToStaticMarkup` escapes text; several descriptions carry apostrophes. See the twin in
+ *  `MarketplaceNode.test.tsx` — comparing raw strings silently skips exactly those cards. */
+const escapeHtml = (text: string): string =>
+    text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
 
 const KRAKEN: IMingmingState = {
@@ -100,10 +107,13 @@ describe('WorkshopNode — the header', () => {
         expect(markup).toContain('blueprint');
     });
 
-    it('says the recruit brings four cards — ticket 08’s ruled kit', () => {
+    it('says the recruit brings its whole kit and no filler — the 2026-08-24 ruling', () => {
+        // Was "four cards ... and one generic". Henry recruited Ratatoskr into a Fenrir run, got
+        // three of his five tagged cards plus a Tackle, and reported *"it felt really bad to play
+        // Rat without his kit"*. The screen has to quote the rule it is charging 25 scrap for.
         const markup = render(makeRun(140), makeRanch({}));
-        expect(markup).toContain('4 cards');
-        expect(markup).toContain('generic');
+        expect(markup).toContain(`${RECRUIT_KIT_SIZE}-card start kit`);
+        expect(markup).toContain('no filler');
     });
 
     it('counts a grown party honestly', () => {
@@ -245,10 +255,24 @@ describe('WorkshopNode — the firmware picker', () => {
 });
 
 describe('WorkshopNode — the standing laws', () => {
-    it('never prints the word “power” anywhere on the surface', () => {
-        // Standing law (map § Notes): power is an internal balance instrument. This is the test that
-        // catches a "show the card description" patch, not just a price mistake.
-        expect(render(makeRun(400), makeRanch({ fenrir: 1, kraken: 1 }))).not.toMatch(/power/i);
+    it('prints what every strippable card DOES, so the cut is a comparison', () => {
+        /*
+         * INVERTED 2026-08-24, exactly as `MarketplaceNode.test.tsx`'s twin was, and for the same
+         * two reasons: Henry's 2026-08-23 amendment to the standing law (power stays in card
+         * descriptions, or cards cannot be compared) and then the playtest report that the shops
+         * were unreadable without it. Removal is one sink at one price on two counters; the two
+         * counters must not show the player different things.
+         *
+         * The old assertion was `not.toMatch(/power/i)`, which the screen satisfied by printing no
+         * card text at all.
+         */
+        const markup = render(makeRun(400), makeRanch({ fenrir: 1, kraken: 1 }));
+        const run = makeRun(400);
+        for (const card of run.deck) {
+            const description = ProgramRegistry[card.dataId]?.description;
+            if (!description) continue;
+            expect(markup).toContain(escapeHtml(description));
+        }
     });
 
     it('makes every affordance a real <button>', () => {

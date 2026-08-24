@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest';
 import gameReducer, { addBlueprint, createEmptyRanch } from './gameSlice';
 import runReducer, { addRunCards, addRunScrap, endRun, startRun } from './runSlice';
 import { rewardCardPool, rollDropTable } from '../../engine/RewardSystem';
-import { createRun } from '../../engine/run/createRun';
+import { STARTING_SCRAP, createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import type { IOwnedProgram } from '../../engine/gameTypes';
 import type { IRunCard } from '../../engine/runTypes';
@@ -81,7 +81,10 @@ describe('claiming a reward bundle (ticket 12, piece 5)', () => {
 
         const deck = store.getState().run.run!.deck;
         expect(deck).toHaveLength(deckBefore + 2);
-        expect(store.getState().run.run!.scrap).toBe(bundle.scraps);
+        // The claim ADDS to what the run was already holding, and since 2026-08-24 a run is not
+        // holding nothing: it opens on `STARTING_SCRAP`. Written as the sum rather than as the new
+        // literal because the claim's job here is the addition, not either number.
+        expect(store.getState().run.run!.scrap).toBe(STARTING_SCRAP + bundle.scraps);
 
         const claimed = deck.slice(deckBefore);
         for (const [i, card] of claimed.entries()) {
@@ -201,6 +204,8 @@ describe('a blueprint reaches the ranch immediately (ticket 12, Done-when)', () 
         store.dispatch(addRunScrap(120));
 
         expect(Object.keys(store.getState().game)).not.toContain('scrap');
-        expect(store.getState().run.run!.scrap).toBe(120);
+        // The 120 lands on top of the run's opening `STARTING_SCRAP` grant, which is still purely
+        // run-scoped: a grant every run is not a carry, so nothing here reaches the ranch either.
+        expect(store.getState().run.run!.scrap).toBe(STARTING_SCRAP + 120);
     });
 });

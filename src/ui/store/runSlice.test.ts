@@ -31,7 +31,7 @@ import runReducer, {
 } from './runSlice';
 import { bankedBlueprintsFrom } from '../../engine/run/runSummary';
 import gameReducer, { addBlueprint, createEmptyRanch } from './gameSlice';
-import { createRun } from '../../engine/run/createRun';
+import { STARTING_SCRAP, createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { loadGameState, saveRanch, saveRun } from '../../engine/SaveSystem';
 import { getActiveRanchKey, getActiveRunKey } from '../../engine/SaveSlots';
@@ -135,30 +135,39 @@ describe('runSlice', () => {
 // next one.
 
 describe('run-scoped scrap', () => {
+    // `makeRun` is a real `createRun`, so these balances are no longer counted from zero: since
+    // Henry's 2026-08-24 grant a run OPENS holding `STARTING_SCRAP`. Every total below is therefore
+    // written as an offset from that constant rather than as a literal — what these four tests are
+    // about is the reducer's arithmetic (add, spend only what you can afford, reject junk), not the
+    // opening balance, which `createRun.test.ts` pins as a ruled number in its own right.
+
     it('adds scrap', () => {
         const state = runReducer({ run: makeRun() }, addRunScrap(50));
-        expect(state.run?.scrap).toBe(50);
+        expect(state.run?.scrap).toBe(STARTING_SCRAP + 50);
     });
 
     it('spends scrap if sufficient', () => {
         let state = runReducer({ run: makeRun() }, addRunScrap(100));
         state = runReducer(state, spendRunScrap(30));
-        expect(state.run?.scrap).toBe(70);
+        expect(state.run?.scrap).toBe(STARTING_SCRAP + 70);
     });
 
     it('does not spend scrap if insufficient', () => {
+        // Still genuinely insufficient with the opening grant counted in: 20 + 10 = 30, and 50 is
+        // more than 30. The whole 50 is refused rather than partially drawn.
         let state = runReducer({ run: makeRun() }, addRunScrap(10));
         state = runReducer(state, spendRunScrap(50));
-        expect(state.run?.scrap).toBe(10);
+        expect(state.run?.scrap).toBe(STARTING_SCRAP + 10);
     });
 
     it('refuses a negative or fractional amount rather than writing an unsavable run', () => {
         // `RunStateSchema` types `scrap` as a non-negative int, so a fractional credit would fail
-        // the run's own autosave — silently, on the next dispatch.
+        // the run's own autosave — silently, on the next dispatch. A refused credit leaves the
+        // balance exactly as the run opened, which is now the grant rather than zero.
         let state = runReducer({ run: makeRun() }, addRunScrap(-5));
-        expect(state.run?.scrap).toBe(0);
+        expect(state.run?.scrap).toBe(STARTING_SCRAP);
         state = runReducer(state, addRunScrap(2.5));
-        expect(state.run?.scrap).toBe(0);
+        expect(state.run?.scrap).toBe(STARTING_SCRAP);
     });
 
     it('is a no-op with no run in progress', () => {

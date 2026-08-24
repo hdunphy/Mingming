@@ -78,6 +78,19 @@ const CountUp: React.FC<{ value: number; delayMs?: number; durationMs?: number }
 const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
     void winners;
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
+    /**
+     * Which picks the player has DECLINED — ruling 4 (Henry, playtest 2026-08-24): *"you should be
+     * able to skip rewards"*, and, asked per-card or per-screen, *"skip per card"*.
+     *
+     * A separate map rather than a third value in `selections` because the three states are not
+     * one axis: a pick is unresolved, taken, or declined, and only the first blocks CONTINUE. The
+     * old screen had no third state at all, so a 3v3 win forced three cards into the deck — with
+     * one mandatory pick per defeated body and roughly eleven fights in a run, that is ~16 forced
+     * cards against `economy-session.md`'s 20-25 gate, on top of the 18 the party already brings.
+     * Card removal costs 20 and a run sees three markets. The deck was being diluted faster than
+     * anyone could clean it, which is most of *"it was too hard to build a good deck."*
+     */
+    const [skipped, setSkipped] = useState<Record<number, boolean>>({});
     const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
@@ -105,15 +118,28 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     }, [draftActive]);
 
     const totalChoices = bundle.cardChoices.length;
-    const selectedCount = Object.values(selections).filter(s => !!s).length;
-    const allCardsSelected = selectedCount === totalChoices;
+    /** A pick is RESOLVED when it has been taken or declined. Only unresolved picks block. */
+    const isResolved = (index: number): boolean => !!selections[index] || skipped[index] === true;
+    const allCardsResolved = bundle.cardChoices.every((_, index) => isResolved(index));
 
     const needsRelic = !!bundle.relicChoices && bundle.relicChoices.length > 0;
+    // The relic is still mandatory, and deliberately: there is at most one per run (the last
+    // gauntlet fight), it is a party-wide passive rather than a card in the deck, and it cannot
+    // dilute anything. Nothing in the playtest complained about it.
     const relicSelected = !needsRelic || selectedRelic !== null;
-    const canContinue = allCardsSelected && relicSelected;
+    const canContinue = allCardsResolved && relicSelected;
 
     const handleSelect = (choiceIndex: number, card: IOwnedProgram) => {
+        // Taking a card un-declines the pick, so a mis-click on SKIP is one click to undo.
         setSelections(prev => ({ ...prev, [choiceIndex]: card }));
+        setSkipped(prev => (prev[choiceIndex] ? { ...prev, [choiceIndex]: false } : prev));
+    };
+
+    /** Decline one pick. Toggles, so SKIP twice returns it to unresolved rather than trapping it. */
+    const handleSkip = (choiceIndex: number) => {
+        playSfx('uiClick');
+        setSkipped(prev => ({ ...prev, [choiceIndex]: !prev[choiceIndex] }));
+        setSelections(prev => (prev[choiceIndex] ? { ...prev, [choiceIndex]: null } : prev));
     };
 
     const handleFinalize = () => {
@@ -404,10 +430,26 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                             {bundle.cardChoices.map((choice, choiceIdx) => (
                                 <div
                                     key={choiceIdx}
-                                    className={selections[choiceIdx] ? undefined : 'choice-group-pending'}
-                                    style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(0, 210, 255, 0.15)' }}
+                                    className={isResolved(choiceIdx) ? undefined : 'choice-group-pending'}
+                                    style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(0, 210, 255, 0.15)', opacity: skipped[choiceIdx] ? 0.55 : 1 }}
                                 >
-                                    <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Source: {choice.sourceEntityName}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Source: {choice.sourceEntityName}</div>
+                                        {/*
+                                          * Ruling 4. Visually quiet — a skip is a legitimate play
+                                          * (a lean deck is the whole point of a removal costing 20)
+                                          * but it is not the default, so it does not compete with
+                                          * the cards for attention.
+                                          */}
+                                        <button
+                                            type="button"
+                                            className={`reward-skip-btn${skipped[choiceIdx] ? ' skipped' : ''}`}
+                                            onClick={() => handleSkip(choiceIdx)}
+                                            aria-pressed={skipped[choiceIdx] === true}
+                                        >
+                                            {skipped[choiceIdx] ? 'SKIPPED — TAKE ONE?' : 'SKIP'}
+                                        </button>
+                                    </div>
                                     <div className="reward-card-row">
                                         {choice.options.map((opt, optIdx) => {
                                             const data = GetProgramData(opt.dataId);

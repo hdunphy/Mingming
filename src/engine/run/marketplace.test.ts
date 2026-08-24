@@ -456,33 +456,54 @@ describe('removal is priced at Henry’s stated target', () => {
     /**
      * The generics a run accumulates: `START_GENERICS` in the opening deck, plus `RECRUIT_GENERICS`
      * for each of the two recruits a 1 → 2 → 3 party takes on (`vision.md`).
+     *
+     * **That second term is now zero** (Henry, 2026-08-24: recruits arrive 5 kit + 0 generic), so a
+     * run's generic count no longer grows with the party — it is fixed at the three the starter
+     * brought, whether the run ends solo or three-strong. The `RECRUIT_GENERICS` factor is kept in
+     * the expression rather than dropped: it is the term that would come back if a filler card were
+     * ever handed to recruits again, and this arithmetic should move on its own when it does.
      */
     const RECRUITS_PER_RUN = 2;
     const GENERICS_PER_RUN = START_GENERICS + RECRUIT_GENERICS * RECRUITS_PER_RUN;
 
-    it('counts five generics in a full run, which is what the price is divided against', () => {
-        expect(GENERICS_PER_RUN).toBe(5);
+    it('counts three generics in a full run, which is what the price is divided against', () => {
+        // Was five, when the two recruits each brought one of their own.
+        expect(GENERICS_PER_RUN).toBe(3);
+        expect(GENERICS_PER_RUN).toBe(START_GENERICS);
         expect(GENERIC_HIT).toBe('water_slap');
     });
 
     it('quotes the income table the derivation is written against', () => {
         // So that a retune of `scrapForWin` fails here rather than leaving the arithmetic below
         // describing a scale the game no longer pays out on.
-        expect(RUN_SCRAP).toBe(210);
-        expect(RUN_SCRAP / MARKET_VISITS_PER_RUN).toBe(70);
+        //
+        // 240, up from 210: the two elite biome exits pay 45 each rather than 30 (Henry,
+        // 2026-08-24), so 2 x 45 + 3 x 20 + 2 x (10 + 15 + 20) = 90 + 60 + 90. This is INCOME only.
+        // A run now also opens holding `createRun.STARTING_SCRAP`, and that grant lands before the
+        // first stall rather than being spread across the three, so it is deliberately not divided
+        // into a per-visit figure here — it makes the FIRST visit 20 richer, not every visit.
+        expect(RUN_SCRAP).toBe(240);
+        expect(RUN_SCRAP / MARKET_VISITS_PER_RUN).toBe(80);
     });
 
-    it('costs about one and a half market visits to strip them all', () => {
-        const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 70
-        const stripAll = REMOVAL_PRICE * GENERICS_PER_RUN;    // 100
+    it('costs about three quarters of one market visit to strip them all', () => {
+        const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 240 / 3 = 80
+        const stripAll = REMOVAL_PRICE * GENERICS_PER_RUN;    // 20 x 3 = 60
 
-        expect(stripAll).toBe(100);
-        // Ticket 13's target was "roughly one visit's scrap" at 30 against a 150-scrap visit. Under
-        // ticket 56's income the ruled 20 buys a dearer strip in relative terms, which the module
-        // argues is the right direction: thinning should compete with buying, not undercut it. The
-        // band is what "about one and a half" is allowed to mean before it is a different design.
-        expect(stripAll / visitScrap).toBeGreaterThan(1.25);
-        expect(stripAll / visitScrap).toBeLessThan(1.75);
+        expect(stripAll).toBe(60);
+        expect(visitScrap).toBe(80);
+        // Ticket 13's target was "roughly one visit's scrap" at 30 against a 150-scrap visit, and
+        // ticket 56's income briefly made the ruled 20 a DEARER strip in relative terms (100 against
+        // a 70-scrap visit, about one and a half visits). Henry's 2026-08-24 pass moved it back the
+        // other way, from both ends at once: a visit is richer (the elite raise, 70 -> 80) and there
+        // is less to strip (recruits stopped bringing a generic, so 5 generics -> 3, 100 -> 60). At
+        // 60/80 the whole strip is three quarters of a single visit — back inside ticket 13's
+        // "roughly one visit's scrap" target, from the expensive side rather than the cheap one, so
+        // thinning still competes with buying instead of undercutting it. The band is what "about
+        // three quarters" is allowed to mean: over half a visit, and still under a whole one.
+        expect(stripAll / visitScrap).toBe(0.75);
+        expect(stripAll / visitScrap).toBeGreaterThan(0.5);
+        expect(stripAll / visitScrap).toBeLessThan(1);
         // And never half the run: a sink you save the whole game for is not a choice at a stall.
         expect(stripAll / RUN_SCRAP).toBeLessThan(0.5);
     });

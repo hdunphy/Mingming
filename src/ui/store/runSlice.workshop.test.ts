@@ -6,7 +6,7 @@
  * because **an assembly writes both halves of the save**:
  *
  * - a blueprint is spent and an individual joins `ranch.roster` (`gameSlice.assembleMingming`);
- * - scrap is spent, `run.partyIds` grows and the recruit's four cards merge into `run.deck`
+ * - scrap is spent, `run.partyIds` grows and the recruit's five cards merge into `run.deck`
  *   (`runSlice.recruitIntoParty`).
  *
  * No reducer can do both. Ticket 11's reward claim hit the same wall and split its dispatch; this
@@ -36,7 +36,7 @@ import runReducer, {
     startRun,
     type RunSliceState,
 } from './runSlice';
-import { createRun } from '../../engine/run/createRun';
+import { RECRUIT_GENERICS, RECRUIT_KIT_SIZE, createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
@@ -128,13 +128,16 @@ describe('assembling at a workshop', () => {
         // Ranch: one blueprint gone, one individual gained.
         expect(game.blueprints).toEqual({ fenrir: 1 });
         expect(game.roster.map((m) => m.id)).toEqual(['mm1', member.id]);
-        // Run: scrap gone, party grown, four cards merged into the shared deck.
+        // Run: scrap gone, party grown, the recruit's whole deck merged into the shared one. Five
+        // cards since Henry's 2026-08-24 re-ruling (5 kit + 0 generics, up from 3 + 1) — derived
+        // from the constants because what this test is pinning is that ALL of the plan's cards
+        // arrive, not how many the ruling currently says there are.
         expect(run.run!.scrap).toBe(200 - WORKSHOP_ASSEMBLY_SCRAP);
         expect(run.run!.partyIds).toEqual(['mm1', member.id]);
-        expect(run.run!.deck).toHaveLength(deckBefore + 4);
+        expect(run.run!.deck).toHaveLength(deckBefore + RECRUIT_KIT_SIZE + RECRUIT_GENERICS);
     });
 
-    it('merges the recruit’s four cards into the SHARED deck, owned by the recruit', () => {
+    it('merges the recruit’s five cards into the SHARED deck, owned by the recruit', () => {
         const store = makeStore({ blueprints: { fenrir: 1 } });
         store.dispatch(startRun(makeRun(200)));
         const deckBefore = store.getState().run.run!.deck;
@@ -142,9 +145,13 @@ describe('assembling at a workshop', () => {
         const member = assembleAt(store, 'fenrir')!;
         const joined = store.getState().run.run!.deck.slice(deckBefore.length);
 
-        expect(joined).toHaveLength(4);
-        // Ticket 08's ruled recruit kit: 3 startKit + 1 generic.
-        expect(joined.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(1);
+        expect(joined).toHaveLength(5);
+        // The ruled recruit kit: 5 startKit and NO generic (Henry, 2026-08-24, re-ruling ticket
+        // 08's 3 + 1 — a recruit was arriving as a body wearing somebody else's deck). Pinned as a
+        // literal 0 as well as against the constant, because "the recruit brings no filler" is the
+        // half of the ruling that a well-meaning "pad the deck out" patch would quietly undo.
+        expect(joined.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(RECRUIT_GENERICS);
+        expect(joined.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
         for (const card of joined) expect(card.ownerId).toBe(member.id);
         // The starting member's cards are untouched, and one deck holds both members' cards — which
         // is what "the team is the deck" means (`economy-session.md`, bite two).
@@ -167,8 +174,11 @@ describe('assembling at a workshop', () => {
         const { game, run } = store.getState();
         expect(game.blueprints).toEqual({});
         expect(run.run!.scrap).toBe(400 - 2 * WORKSHOP_ASSEMBLY_SCRAP);
-        // 8 start cards + 4 + 4.
-        expect(run.run!.deck).toHaveLength(16);
+        // 8 start cards + 5 + 5 = 18, where the same run opened at 16 under the old 3 + 1 recruit.
+        // `economy-session.md`'s 20-25 gate is the number that watches this: a full three-member
+        // run now starts two cards closer to it, which the ruling accepts because the pressure on
+        // that gate is the reward pick (now skippable), not the recruit's kit.
+        expect(run.run!.deck).toHaveLength(18);
         expect(new Set(run.run!.partyIds).size).toBe(PARTY_SIZE);
     });
 

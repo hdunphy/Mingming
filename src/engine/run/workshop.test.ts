@@ -19,8 +19,9 @@
  *   `workshop.ts`, and why a second literal here would have drifted.
  * - **The species clause is enforced before anything is spent.** A standing law (map § Notes) that
  *   no reducer can check, because species live on the ranch and the party lives on the run.
- * - **A recruit is ticket 08's ruled 3 + 1, not this file's opinion of it.** `recruitDeckFor` is the
- *   ruling; a re-derivation here would be a second answer waiting to disagree.
+ * - **A recruit is the ruled 5 + 0 (ticket 08's 3 + 1, re-ruled by Henry on 2026-08-24), not this
+ *   file's opinion of it.** `recruitDeckFor` is the ruling; a re-derivation here would be a second
+ *   answer waiting to disagree — and it would have been a second answer to re-edit this week.
  * - **The individual is deterministic in the node's visit count.** The workshop is a node's
  *   contents, so ticket 07's re-roll rule and ticket 23's resume contract both apply to it.
  */
@@ -124,31 +125,40 @@ describe('the recruit price is checked against the income, not derived from it',
         expect(RECRUITS_PER_RUN).toBe(2);
     });
 
-    it('quotes ticket 56’s income table, so a retune of it lands here first', () => {
+    it('quotes the income table as it stands after the elite raise, so a retune lands here first', () => {
         // The four numbers the docblock's table is built out of. Asserted so that moving the income
         // breaks this file rather than silently leaving its arithmetic describing a dead scale —
-        // which is exactly what ticket 12's 450-500 anchor did until ticket 57 came through.
+        // which is exactly what ticket 12's 450-500 anchor did until ticket 57 came through, and
+        // exactly what ticket 56's own elite figure did the moment Henry raised it on 2026-08-24.
         expect(BASE_WIN_SCRAP).toBe(10);
         expect(SCRAP_PER_EXTRA_ENEMY).toBe(5);
-        expect(ELITE_WIN_SCRAP).toBe(30);
+        // 45, not ticket 56's 30: at 30 an elite paid only ten more than the 3v3 wild it is
+        // strictly harder than, which made the biome exit the worst-value fight on the map.
+        expect(ELITE_WIN_SCRAP).toBe(45);
         expect(scrapForWin('wild', 1)).toBe(10);
         expect(scrapForWin('wild', PARTY_SIZE)).toBe(20);
-        // 60 from the two elite exits + 60 from the gym + 90 from the wilds.
-        expect(RUN_SCRAP).toBe(210);
+        // 90 from the two elite exits + 60 from the gym + 90 from the wilds. Was 210; the whole
+        // +30 is the elites, since nothing else in the table moved.
+        expect(RUN_SCRAP).toBe(240);
     });
 
-    it('grows the party 1 → 2 → 3 for about five sevenths of a market visit', () => {
-        const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 70
+    it('grows the party 1 → 2 → 3 for about five eighths of a market visit', () => {
+        const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 240 / 3 = 80
         const growTheTeam = WORKSHOP_ASSEMBLY_SCRAP * RECRUITS_PER_RUN;
 
         expect(growTheTeam).toBe(50);
-        expect(visitScrap).toBe(70);
+        expect(visitScrap).toBe(80);
+        // Five eighths, where the same pair cost five sevenths before the elite raise: the fee did
+        // not move, the visit got 10 richer (70 -> 80). The drift is towards the cheap edge, which
+        // is worth watching but is not yet over it.
+        expect(growTheTeam / visitScrap).toBe(0.625);
         // Ticket 14 could say "exactly one visit"; the ruled number gives that tidiness up. What it
         // must not do is drift to either edge — a whole visit each would make the market a window
         // display, and half a visit for the pair would make the node a free power-up.
         expect(growTheTeam / visitScrap).toBeGreaterThan(0.6);
         expect(growTheTeam / visitScrap).toBeLessThan(0.85);
-        // A quarter of the run, where ticket 14's 75 was a third of a much larger one.
+        // A fifth of the run now rather than a quarter, where ticket 14's 75 was a third of a much
+        // larger one.
         expect(growTheTeam / RUN_SCRAP).toBeLessThan(0.3);
     });
 
@@ -172,11 +182,11 @@ describe('the recruit price is checked against the income, not derived from it',
         expect(cardsForgone).toBeGreaterThanOrEqual(1);
         expect(cardsForgone).toBeLessThan(2);
 
-        // And across a run, the two recruits are two median cards not bought — out of the eight a
-        // 210-scrap run could otherwise afford, which is the share that keeps the shop worth walking
-        // into after the party is full.
+        // And across a run, the two recruits are two median cards not bought — out of the nine a
+        // 240-scrap run could otherwise afford (eight, before the elite raise paid for a ninth),
+        // which is the share that keeps the shop worth walking into after the party is full.
         expect((WORKSHOP_ASSEMBLY_SCRAP * RECRUITS_PER_RUN) / MEDIAN_CARD_PRICE).toBe(2);
-        expect(Math.floor(RUN_SCRAP / MEDIAN_CARD_PRICE)).toBe(8);
+        expect(Math.floor(RUN_SCRAP / MEDIAN_CARD_PRICE)).toBe(9);
     });
 
     it('is payable at the first workshop by the solo party that walks into it', () => {
@@ -335,15 +345,20 @@ describe('assemblableSpecies', () => {
 describe('planRecruit', () => {
     const RANCH = makeRanch({ fenrir: 1 });
 
-    it('brings ticket 08’s ruled 3 kit + 1 generic, from recruitDeckFor and not re-derived', () => {
+    it('brings the ruled 5 kit + 0 generics, from recruitDeckFor and not re-derived', () => {
+        // Ticket 08 ruled 3 + 1; Henry re-ruled it to 5 + 0 on 2026-08-24, after a recruited
+        // Ratatoskr turned up holding the first three of his five tagged cards in a deck drawing
+        // 5-7 a turn: *"It felt really bad to play Rat without his kit."* The generic was what got
+        // cut, because it is the one card that is the same whoever brought it.
         const plan = planRecruit({ ranch: RANCH, run: RUN, node: NODE, speciesId: 'fenrir', osId: 'fenrir_v1' })!;
 
         expect(plan.cards).toHaveLength(RECRUIT_KIT_SIZE + RECRUIT_GENERICS);
-        expect(plan.cards).toHaveLength(4);
+        expect(plan.cards).toHaveLength(5);
         expect(plan.cards.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(RECRUIT_GENERICS);
+        expect(plan.cards.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
 
-        // The same four cards `createRun`'s own recruit rule produces for the same member and the
-        // same stream. A second derivation of "3 + 1" living here is the drift this asserts against.
+        // The same five cards `createRun`'s own recruit rule produces for the same member and the
+        // same stream. A second derivation of "5 + 0" living here is the drift this asserts against.
         const stream = new SeedStream(new SeedStream(nodeSeed(RUN, NODE, 'workshop')).fork('recruit-deck:fenrir'));
         expect(plan.cards).toEqual(recruitDeckFor(toMingmingState(plan.member), stream));
     });

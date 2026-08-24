@@ -245,7 +245,7 @@ describe('RewardSystem', () => {
             expect(elite.scraps).toBeGreaterThan(wild.scraps);
         });
 
-        it('MEASURES one run\u2019s income, and it lands ABOVE ticket 56\u2019s ~150-180 estimate', () => {
+        it('MEASURES one run\u2019s income at 260 spendable, further ABOVE ticket 56\u2019s ~150-180 estimate', () => {
             /*
              * Ticket 57's Done-when asks for this arithmetic re-measured. It does not come out where
              * ticket 56 estimated, and the honest thing is to pin what the ruled table actually pays
@@ -254,30 +254,39 @@ describe('RewardSystem', () => {
              * The run modelled is `exploration-map.md`'s: 8-10 fights plus the gauntlet, with the
              * party growing 1 -> 2 -> 3 through the two workshops, so the early fights are genuinely
              * smaller (enemy count mirrors party size — `encounter.enemyPartySize`).
+             *
+             * **Re-measured after Henry's 2026-08-24 elite raise** (`ELITE_WIN_SCRAP` 30 -> 45). That
+             * raise moved the run deliberately FURTHER from ticket 56's band rather than back into
+             * it: the same playtest had a removal (20) and a recruit (25) competing for a purse that
+             * covered neither in time, so the band this test reports is expected to keep drifting up.
              */
             const wilds = 3 * scrapForWin('wild', 1) + 3 * scrapForWin('wild', 2) + 2 * scrapForWin('wild', 3);
             const elites = 3 * scrapForWin('elite', 3);
             const pocket = scrapForWin('alpha', 1);
             const gauntlet = 3 * scrapForWin('gym', 3);
 
-            // 30 + 45 + 40 = 115 from wilds, 90 from the three biome exits, 10 from a pocket alpha.
+            // 30 + 45 + 40 = 115 from wilds, 3 x 45 = 135 from the three biome exits, 10 from a
+            // pocket alpha. The wilds did not move: the whole +45 over the old 215 is the elites.
             expect(wilds).toBe(115);
-            expect(elites).toBe(90);
+            expect(elites).toBe(135);
             expect(pocket).toBe(10);
             expect(gauntlet).toBe(60);
 
             // SPENDABLE income is what a shop price should be sized against, and the gauntlet's is
-            // not spendable — the run ends when it does, and there is no shop after it.
-            expect(wilds + elites + pocket).toBe(215);
-            expect(wilds + elites + pocket + gauntlet).toBe(275);
+            // not spendable — the run ends when it does, and there is no shop after it. A run also
+            // now OPENS holding `createRun.STARTING_SCRAP`, which is a grant rather than income and
+            // so is not counted here; the purse the shops actually see is 20 above this.
+            expect(wilds + elites + pocket).toBe(260);
+            expect(wilds + elites + pocket + gauntlet).toBe(320);
 
             /*
-             * 215 against an estimate of 150-180. The gap is the three elites: at a flat 30 they are
-             * 90 of it, more than the eight wilds put together. Whether that is wrong depends on
-             * what ticket 56 was picturing, which is Henry's to say — ticket 57's resolution reports
-             * it rather than quietly retuning a ruled number.
+             * 260 against an estimate of 150-180. The gap is the three elites: at a flat 45 they are
+             * 135 of it, and — only since the raise — genuinely more than all eight wilds put
+             * together, which is what the old 30 was always described as being and never was
+             * (90 < 115). Whether that is wrong depends on what ticket 56 was picturing, which is
+             * Henry's to say — this file reports it rather than quietly retuning a ruled number.
              */
-            expect(elites).toBeGreaterThan(wilds - elites);
+            expect(elites).toBeGreaterThan(wilds);
         });
 
         it('pays nothing on a kind that is not a fight', () => {

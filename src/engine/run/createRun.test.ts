@@ -20,6 +20,7 @@ import {
     RECRUIT_KIT_SIZE,
     START_GENERICS,
     START_KIT_SIZE,
+    STARTING_SCRAP,
     createRun,
     recruitDeckFor,
     startDeckFor,
@@ -137,15 +138,30 @@ describe('startDeckFor', () => {
 });
 
 describe('recruitDeckFor', () => {
-    it('is 4 cards: the FIRST three kit cards + 1 generic', () => {
+    it('is 5 cards: the recruit’s WHOLE ruled kit, and no generic at all', () => {
+        /*
+         * **Was 3 kit + 1 generic; Henry re-ruled it to 5 + 0 on 2026-08-24** after recruiting
+         * Ratatoskr into a Fenrir run and getting only the first three of his tagged five —
+         * `startKitIdsFor` slices from the front — in a 12-card deck drawing 5-7 a turn: *"It felt
+         * really bad to play Rat without his kit."* The generic was the card cut to make room,
+         * because `GENERIC_HIT` is the one card in the deck that is the same whoever brought it,
+         * and a recruit's problem was never deck SIZE (4 to 5 barely moves the count) — it was that
+         * only three cards said anything about the species you just paid a blueprint and 25 scrap
+         * for. So the "FIRST three" slice is gone: a recruit's five and a starter's five are now
+         * the same five cards.
+         */
         const deck = recruitDeckFor(HULDRA, new SeedStream(SEED));
         expect(deck).toHaveLength(RECRUIT_KIT_SIZE + RECRUIT_GENERICS);
-        expect(deck).toHaveLength(4);
+        expect(deck).toHaveLength(5);
         expect(deck.map((c) => c.dataId)).toEqual([
             ...ratifiedKit('huldra', 'huldra_v1').slice(0, RECRUIT_KIT_SIZE),
-            GENERIC_HIT,
         ]);
-        expect(deck.map((c) => c.dataId)).toEqual(['growth', 'growth', 'iron_bark', GENERIC_HIT]);
+        expect(deck.map((c) => c.dataId)).toEqual(['growth', 'growth', 'iron_bark', 'thorn_tithe', 'hexbloom']);
+        // The whole tagged kit, so the slice is no longer a slice — nothing is left behind.
+        expect(deck.map((c) => c.dataId)).toEqual([...ratifiedKit('huldra', 'huldra_v1')]);
+        // Stated as its own assertion because `RECRUIT_GENERICS = 0` is the half of the ruling a
+        // future "give recruits a filler card back" patch would undo without touching the kit size.
+        expect(deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
     });
 
     it('stamps the recruit as owner', () => {
@@ -220,9 +236,23 @@ describe('createRun', () => {
         expect(new Set(run.deck.map((c) => c.instanceId)).size).toBe(24);
     });
 
-    it('starts with no scrap, no macros, no drivers and no modifiers', () => {
+    it('starts with the ruled 20 opening scrap, and no macros, no drivers and no modifiers', () => {
+        /*
+         * **Was 0; Henry granted 20 on 2026-08-24.** Ticket 09's zero had the right argument —
+         * *"carrying any in would make the first marketplace a function of the previous run"* — but
+         * that argument is about CARRYING, and a fixed grant carries nothing: it is the same 20
+         * after a win and after a wipe, so no run can bank into the next one and the anti-mudflation
+         * rule is untouched. What the 0 cost was measured in the same playtest: early fights pay
+         * 10-15, a recruit is 25 and a removal 20, and the first shop lands 1-3 fights in, so the
+         * opening shop was a shop you walked past.
+         *
+         * Pinned as a LITERAL as well as against the constant, because 20 is itself the ruling —
+         * *not* 25, which would silently BE a free recruit and take the first workshop's choice away
+         * again. Asserting only `STARTING_SCRAP` would let that retune through green.
+         */
         const run = createRun(soloInput());
-        expect(run.scrap).toBe(0);
+        expect(run.scrap).toBe(STARTING_SCRAP);
+        expect(run.scrap).toBe(20);
         expect(run.macros).toHaveLength(MACRO_SLOTS);
         expect(run.macros.every((slot) => slot === null)).toBe(true);
         expect(run.drivers).toEqual([]);

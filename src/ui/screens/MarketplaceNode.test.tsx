@@ -9,9 +9,12 @@
  *   bare number is not legible — the target has to be on screen next to it;
  * - a button the player cannot press has to say what it is short of (ticket 20's precedent), because
  *   a silently inert control is indistinguishable from a bug;
- * - **`power` must not appear at all** (standing law, map § Notes). The cheapest way to break that is
- *   not a price — it is a well-meant "show the card text" patch, since several card descriptions
- *   quote the internal number out loud (`water_slap`: "priced at 12 power to compensate");
+ * - **every stocked card must print what it does.** This clause was the exact opposite until
+ *   2026-08-24 — "`power` must not appear at all", which the screen satisfied by showing no card
+ *   text whatsoever. Henry amended the standing law on 2026-08-23 (power stays in card descriptions,
+ *   because otherwise cards cannot be compared) and then filed the missing text as a playtest bug.
+ *   The assertion is inverted rather than dropped, and it is stricter: a partial or hover-only
+ *   implementation fails it;
  * - **and, since ticket 57, "sell" must not appear either.** Henry ruled (ticket 56) that cards
  *   cannot be sold — removal is a pure sink, the market takes scrap and never gives it. That is a
  *   *design ruling*, and a screen that merely happens to have no sell button today obeys it without
@@ -34,10 +37,20 @@ import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { REMOVAL_PRICE, REROLL_PRICE, macroPrice, rollMacroStock, rollMarketStock } from '../../engine/run/marketplace';
 import { MacroRegistry } from '../../engine/data/macroRegistry';
+import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import type { IMingmingState } from '../../engine/types';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRunState } from '../../engine/runTypes';
+
+/**
+ * `renderToStaticMarkup` escapes text, and several card descriptions carry apostrophes and
+ * ampersands. Comparing raw registry strings against the markup without this passes for most cards
+ * and silently skips exactly the ones with punctuation.
+ */
+const escapeHtml = (text: string): string =>
+    text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 
 const PARTY: IMingmingState[] = [
     { id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10 },
@@ -105,10 +118,32 @@ describe('MarketplaceNode', () => {
         expect(bloated).toContain('over. Pay to remove.');
     });
 
-    it('never prints the word “power” anywhere on the surface', () => {
-        // Standing law (map § Notes): power is an internal balance instrument. This is the test that
-        // catches a "show the card description" patch, not just a price mistake.
-        expect(render(makeRun(400))).not.toMatch(/power/i);
+    it('prints what every stocked card DOES, not just what it costs', () => {
+        /*
+         * THIS TEST USED TO ASSERT THE OPPOSITE, and the reversal is Henry's.
+         *
+         * It read: *"never prints the word 'power' anywhere on the surface — power is an internal
+         * balance instrument. This is the test that catches a 'show the card description' patch,
+         * not just a price mistake."* It did its job: the screen shipped with no card text, and 142
+         * of 216 descriptions quote a power figure, so printing them would have failed it.
+         *
+         * Then Henry amended the standing law (2026-08-23): *"we need power in the card
+         * descriptions otherwise you can't compare cards in the deck builder."* Power dies at the
+         * surface still governs the FIGHT, where a preview must show true numbers rather than
+         * printed ones — see `damagePreview.ts`. A shop is a comparison screen, and withholding the
+         * rules text there is what the 2026-08-24 playtest reported as a bug: *"I don't like the
+         * marketplace UI. You can't see the card descriptions."*
+         *
+         * So the assertion is inverted rather than deleted, and it is stronger: every stocked card
+         * must print its own text, which a partial or hover-only implementation would fail.
+         */
+        const run = makeRun(400);
+        const markup = render(run);
+        for (const offer of stockFor(run).offers) {
+            const description = ProgramRegistry[offer.card.dataId]?.description;
+            if (!description) continue;
+            expect(markup).toContain(escapeHtml(description));
+        }
     });
 
     it('offers the rolled stock, one real button per card, with the off-pool slot marked', () => {

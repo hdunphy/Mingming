@@ -55,6 +55,7 @@ import { GetMingmingData, GENERIC_HIT } from '../../engine/data/mingmingRegistry
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { PARTY_SIZE } from '../../engine/party';
+import { RECRUIT_KIT_SIZE } from '../../engine/run/createRun';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
     WORKSHOP_REFLASH_SCRAP,
@@ -194,8 +195,8 @@ export default function WorkshopNode({ run, node, ranch, initialPending }: Works
                     <strong>This is the only place the party grows.</strong> A blueprint <em>and</em>{' '}
                     {WORKSHOP_ASSEMBLY_SCRAP} scrap assembles a mingming straight into the team — the ranch
                     charges the blueprint alone, the road charges both, so recruiting competes with the
-                    marketplace for the same purse. The recruit joins with <strong>4 cards</strong>: three
-                    from its start kit and one generic.
+                    marketplace for the same purse. The recruit joins with its{' '}
+                    <strong>whole {RECRUIT_KIT_SIZE}-card start kit</strong>, and no filler.
                 </p>
             </header>
 
@@ -354,14 +355,21 @@ export default function WorkshopNode({ run, node, ranch, initialPending }: Works
                             <div className="ws-row-card">
                                 <span className="ws-row-name">{data?.name ?? card.dataId}</span>
                                 {/*
-                                  * Name, element, rarity and energy cost — never the description.
-                                  * Standing law (map § Notes): power dies at the surface, and several
-                                  * card descriptions quote the internal number out loud.
+                                  * The description used to be withheld here, on the same reasoning
+                                  * `MarketplaceNode`'s header carried: power dies at the surface,
+                                  * and 142 of 216 card descriptions quote the internal number.
+                                  * Henry amended that law on 2026-08-23 (*"we need power in the
+                                  * card descriptions otherwise you can't compare cards"*) and the
+                                  * 2026-08-24 playtest filed the omission as a bug. Choosing which
+                                  * card to CUT is a comparison, and the text is the comparison.
                                   */}
                                 <span className="ws-row-meta">
                                     {data?.element ?? 'None'} · {(data?.rarity as string) ?? 'Common'} ·{' '}
                                     {numericBaseCost(data?.baseCost ?? 0)}⚡
                                 </span>
+                                {data?.description && (
+                                    <span className="ws-row-text">{data.description}</span>
+                                )}
                                 {card.dataId === GENERIC_HIT && <span className="ws-tag">generic filler</span>}
                             </div>
                             <button

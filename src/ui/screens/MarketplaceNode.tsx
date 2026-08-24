@@ -32,12 +32,24 @@
  *    rather than ignoring the click), and a silently inert button is indistinguishable from a bug to
  *    whoever is holding the controller.
  * 3. **Scrap, always.** It is the only currency on the screen and every button changes it.
- * 4. **`power` NEVER.** Standing law (map § Notes): power dies at the surface. The offer rows print
- *    name, element, rarity and **energy cost** — the two inputs the price is actually keyed on — and
- *    not the card's description, because the descriptions are written for the balance pass and some
- *    of them quote the internal number out loud (`water_slap`: *"priced at 12 power to
- *    compensate"*). `MarketplaceNode.test.tsx` asserts the rendered markup contains no "power" at
- *    all, which is a test that would catch a well-meant "show the card text" patch.
+ * 4. **THE CARD SAYS WHAT IT DOES.** This clause used to be the opposite, and the reversal is
+ *    Henry's, twice over.
+ *
+ *    It read: *"`power` NEVER — the offer rows print name, element, rarity and energy cost and not
+ *    the card's description, because the descriptions are written for the balance pass and some of
+ *    them quote the internal number out loud"* (142 of 216 do). `MarketplaceNode.test.tsx` enforced
+ *    it by asserting the rendered markup contained no "power" anywhere.
+ *
+ *    Then Henry amended the standing law on 2026-08-23: *"I think we need power in the card
+ *    descriptions otherwise you can't compare cards in the deck builder."* Power dies at the
+ *    surface still holds for the FIGHT — that is where a preview must show true numbers rather than
+ *    printed ones — but a shop is a comparison screen, and the card text is the comparison. Then
+ *    the 2026-08-24 playtest made it a bug report: *"I don't like the marketplace UI. You can't see
+ *    the card descriptions."*
+ *
+ *    So the rows print the description, and the no-"power" test is gone with the rule it enforced.
+ *    A card you are being asked to pay 35 scrap for, described only as "Fire · Rare · 2⚡", is not
+ *    an offer — it is a lottery ticket with a price on it.
  *
  * # KEYBOARD
  *
@@ -90,12 +102,13 @@ interface CardLine {
     readonly element: string;
     readonly rarity: string;
     readonly cost: number;
+    /** What the card does, in its own words. Added 2026-08-24 — see clause 4 in the header. */
+    readonly description: string;
 }
 
 /**
- * What a card shows on this screen. Deliberately four fields: the two the price is keyed on (rarity,
- * energy cost) plus the two that identify it (name, element). No description, and no `power` — see
- * the header.
+ * What a card shows on this screen: the two fields the price is keyed on (rarity, energy cost), the
+ * two that identify it (name, element), and the text that says what you are buying.
  */
 function lineFor(dataId: string): CardLine {
     const data = ProgramRegistry[dataId];
@@ -104,6 +117,7 @@ function lineFor(dataId: string): CardLine {
         element: data?.element ?? 'None',
         rarity: (data?.rarity as string) ?? 'Common',
         cost: numericBaseCost(data?.baseCost ?? 0),
+        description: data?.description ?? '',
     };
 }
 
@@ -213,6 +227,9 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
                                 <span className="mk-card-meta">
                                     {line.element} · {line.rarity} · {line.cost}⚡
                                 </span>
+                                {line.description && (
+                                    <span className="mk-card-text">{line.description}</span>
+                                )}
                                 {offer.wildcard && <span className="mk-tag">off-pool</span>}
                             </div>
                             <button
@@ -324,6 +341,11 @@ export default function MarketplaceNode({ run, node, party }: MarketplaceNodePro
                                 <span className="mk-card-meta">
                                     {line.element} · {line.rarity} · {line.cost}⚡
                                 </span>
+                                {/* Deciding what to CUT needs the text at least as much as
+                                    deciding what to buy does. */}
+                                {line.description && (
+                                    <span className="mk-card-text">{line.description}</span>
+                                )}
                                 {card.dataId === GENERIC_HIT && <span className="mk-tag">generic filler</span>}
                             </div>
                             <div className="mk-row-actions">

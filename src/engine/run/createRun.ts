@@ -26,7 +26,7 @@ import type { IGymOffer } from './gyms';
 
 /**
  * > Start deck = **8 cards: 5 `startKit`-tagged cards from the member's species x OS deck list +
- * > 3 generic None-element hits**. A recruit joins with **4: 3 `startKit` cards + 1 generic**. The
+ * > 3 generic None-element hits**. A recruit joins with **5 `startKit` cards and no generics**. The
  * > player's OS is active from the start.
  *
  * **Why 8 and not a literal fraction of the tuned deck**, since the number looks arbitrary and is
@@ -40,13 +40,38 @@ import type { IGymOffer } from './gyms';
  * still being clearly weaker than the tuned list the run builds back toward
  * (`economy-session.md`, bite two: "the run BUILDS toward the ~20-25 cards a good 3v3 deck wants").
  *
- * Recruits get the shorter kit because they arrive mid-run into a deck that is already growing —
- * the shared pool they join is not empty, so their contribution is a seed rather than a starter.
+ * **RECRUITS WERE 3 + 1 AND ARE NOW 5 + 0** (Henry, playtest 2026-08-24). The old reasoning was
+ * that a recruit *"arrives mid-run into a deck that is already growing, so their contribution is a
+ * seed rather than a starter."* The playtest is what that argument missed: it makes a recruited
+ * member a body wearing somebody else's deck. Henry recruited Ratatoskr into a Fenrir run and got
+ * `forage, forage, healing_mist` out of him — the first three of his five tagged cards, because
+ * `startKitIdsFor` slices from the front — in a 12-card deck drawing 5-7 a turn. His words:
+ * *"It felt really bad to play Rat without his kit."*
+ *
+ * The generic goes rather than the kit card. A recruit's problem was never deck SIZE — 4 cards to 5
+ * barely moves the count — it was that only three of them said anything about the species you just
+ * paid a blueprint and 25 scrap for. A `GENERIC_HIT` is the one card in the deck that is the same
+ * whoever brought it, so it is the one worth cutting to make room.
+ *
+ * Deck-size arithmetic, since this is the number `economy-session.md`'s 20-25 gate watches: a full
+ * three-member run now opens at 8 + 5 + 5 = 18 base rather than 16. The pressure on that gate is
+ * not here — it is the reward pick, which was MANDATORY once per defeated body until the same
+ * playtest made it skippable (`BattleReport`).
  */
 export const START_KIT_SIZE = 5;
 export const START_GENERICS = 3;
-export const RECRUIT_KIT_SIZE = 3;
-export const RECRUIT_GENERICS = 1;
+export const RECRUIT_KIT_SIZE = 5;
+export const RECRUIT_GENERICS = 0;
+
+/**
+ * What a run opens with, in scrap (Henry, playtest 2026-08-24).
+ *
+ * 20 rather than 25: it must not silently BE a recruit. At 20 the first workshop is a real choice —
+ * recruit now if the run has already paid a fight or two, or take a removal at the market instead —
+ * which is the decision the opening shop was supposed to offer and could not at 0. See the
+ * `scrap:` field below for the measurement this came from.
+ */
+export const STARTING_SCRAP = 20;
 
 /**
  * Species already warned about for missing `startKits`, so a three-member debug party of untagged
@@ -203,10 +228,22 @@ export function createRun(input: CreateRunInput): IRunState {
         partyIds: party.map((m) => m.id),
         deck,
 
-        // Ticket 09: a run starts with NO scrap. Scrap is run-scoped and resets with the run
-        // (`economy-session.md`, the anti-mudflation line) — carrying any in would make the first
-        // marketplace a function of the previous run.
-        scrap: 0,
+        /*
+         * A run starts with STARTING_SCRAP, and the anti-mudflation rule is intact.
+         *
+         * Ticket 09 set this to 0 with the right argument — *"carrying any in would make the first
+         * marketplace a function of the previous run"* — and that argument is about CARRYING, not
+         * about the opening balance. A fixed grant every run carries nothing: it is the same 20
+         * after a win and after a wipe, so no run can bank into the next one.
+         *
+         * What 0 actually cost, measured in Henry's 2026-08-24 playtest: early fights are 1-2
+         * enemies at 10-15 scrap, the first things worth buying are a recruit (25) and a card
+         * removal (20), and the first market or workshop arrives 1-3 fights in. So the opening
+         * shop was a shop you walked past, and *"I had to farm like 7 battles to afford my 2nd
+         * mingming and remove a card."* Total run income was never the problem (~210, above the
+         * 150-180 ticket 56 modelled) — the run was poor exactly where the decisions are.
+         */
+        scrap: STARTING_SCRAP,
 
         macros,
         // Drivers are party-wide passives won from elites; there are none before the first fight.

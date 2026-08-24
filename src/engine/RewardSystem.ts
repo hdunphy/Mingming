@@ -164,8 +164,25 @@ export const BASE_WIN_SCRAP = 10;
 /** Added per enemy beyond the first, so 2v2 is 15 and 3v3 is 20. */
 export const SCRAP_PER_EXTRA_ENEMY = 5;
 
-/** An elite win, flat and independent of body count: *"the biome's exam"* (ticket 07). */
-export const ELITE_WIN_SCRAP = 30;
+/**
+ * An elite win, flat and independent of body count: *"the biome's exam"* (ticket 07).
+ *
+ * **45, raised from ticket 56's 30 on 2026-08-24** (Henry: *"yes and extra elite payout"*). At 30
+ * an elite paid ten more than the 3v3 wild it is strictly harder than, which made the biome exit
+ * the worst-value fight on the map — you took it because the graph forces you through it, never
+ * because it was worth taking. 45 is a whole extra wild fight of income for a fight that can end
+ * the run, and it stays flat across two or three bodies because the danger is the tuned deck
+ * rather than the head count (`kitFractionFor` hands an elite the FULL list at any depth).
+ *
+ * Run-total effect: about three elites on a modelled route — two guaranteed biome exits plus one
+ * drawn from the middle layers, where `REGION_PARAMS.middleKindWeights` puts elite at 10 — so +45
+ * on a run that measured ~215 spendable, taking it to 260, before the 20 a run now opens with
+ * (`createRun.STARTING_SCRAP`). `RewardSystem.test.ts` holds that arithmetic down line by line and
+ * is the thing to read before moving this. Deliberately looser than ticket 56's model: the
+ * same playtest had a removal (20) and a recruit (25) competing for a purse that covered neither
+ * in time. Both figures are one line each and are expected to move again after the next round.
+ */
+export const ELITE_WIN_SCRAP = 45;
 
 /**
  * What one won fight pays, in scrap.

@@ -91,6 +91,17 @@
 .ws-row-name { font-weight: 700; font-size: 0.84rem; }
 .ws-row-meta { font: 0.72rem/1.3 monospace; opacity: 0.72; }
 
+/* What the card does (2026-08-24). Its own line under the name and meta, never clamped — a mirror
+   of `MarketplaceNode.css`'s `.mk-card-text`, because removal is one sink at one price on two
+   counters and the two counters should not tell the player different amounts about it. */
+.ws-row-text {
+    flex-basis: 100%;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    opacity: 0.8;
+    max-width: 46ch;
+}
+
 .ws-tag {
     font-size: 0.62rem;
     letter-spacing: 0.08em;
