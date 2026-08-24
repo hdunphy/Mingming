@@ -73,7 +73,31 @@ export function useCodexRecorder(): void {
             // the reducer, so the selector's captured `battle` is the same state the play resolved
             // against. Whether the caster is yours cannot change mid-play.
             const isPlayer = battle?.playerParty.some((entity) => entity.id === event.sourceId) ?? false;
-            dispatch(recordCodex(isPlayer ? { seen: [dataId], played: [dataId] } : { seen: [dataId] }));
+            const payload = isPlayer ? { seen: [dataId], played: [dataId] } : { seen: [dataId] };
+
+            /*
+             * THE DISPATCH IS DEFERRED BECAUSE THE LISTENER IS INSIDE A REDUCER — reported
+             * 2026-08-24, and it broke every card play in the game.
+             *
+             * `emit` runs synchronously from `resolutionEngine.applyMutations`, which runs inside
+             * `battleSlice.playProgram`, which is a reducer. Redux forbids dispatching there and
+             * throws "You may not call store.getState() while the reducer is executing". That throw
+             * unwound back out through `applyMutations` and the engine reducer, so `state.battle`
+             * was never reassigned — while `useBattleVfx`, subscribed to the same bus and called
+             * first, had already fired the hit animation and the damage number. The play looked like
+             * it landed and then wasn't there: no discard, no damage, full HP on both sides.
+             *
+             * A microtask is the smallest correct seam. It runs as soon as the current call stack
+             * empties — after the reducer has returned and the dispatch has completed, and still
+             * before any timer, paint or user input — so the codex is written in the same frame the
+             * card resolved in, from outside the reducer. Everything the entry depends on (`dataId`,
+             * `isPlayer`) is read synchronously above, so a later state change cannot alter it.
+             *
+             * NOT fixed by wrapping `emit` in a try/catch: a listener that cannot do its job should
+             * say so loudly, and swallowing this would have hidden the same defect behind a codex
+             * that silently recorded nothing.
+             */
+            queueMicrotask(() => dispatch(recordCodex(payload)));
         });
         return unsubscribe;
     }, [dispatch, battle]);
