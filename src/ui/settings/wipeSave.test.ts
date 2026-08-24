@@ -117,6 +117,9 @@ describe('wipeSave', () => {
 
     it('reports what it cleared', () => {
         const store = loadedStore();
-        expect(wipeSave(store.dispatch).steps).toEqual(['run', 'ranch', 'stored save', 'run history']);
+        // Ticket 59 added the run logs: a transcript of the last three runs is a per-player
+        // history like the run clock is, and a player wiping their save does not expect it to
+        // survive. Settings and audio still do not appear here — they are not part of the save.
+        expect(wipeSave(store.dispatch).steps).toEqual(['run', 'ranch', 'stored save', 'run history', 'run logs']);
     });
 });

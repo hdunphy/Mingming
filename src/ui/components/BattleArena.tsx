@@ -43,6 +43,7 @@ import {
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
+import { logRunEvent } from '../store/runLogMiddleware';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
@@ -812,6 +813,28 @@ const BattleArena: React.FC = () => {
             }
             if (chosenRelic) {
                 dispatch(addDriver(chosenRelic));
+            }
+
+            /*
+             * TICKET 59: report the pick outcome, one row per offered triple.
+             *
+             * The one thing the run log's middleware genuinely cannot derive. A DECLINED pick
+             * (ruling 4, from the same playtest) lives in `BattleReport`'s component state and
+             * reaches no reducer, so from the store's side "three offered, none taken" and "no
+             * rewards this fight" are the same silence — and which of the two it was is exactly the
+             * question the log exists to answer about how a deck grows.
+             *
+             * Matched by instance id rather than by counting: `cardChoices` is one triple per
+             * defeated body, and a taken card belongs to the triple it came out of, so a skip is a
+             * triple with no taken card in it.
+             */
+            const taken = new Set(chosenCards.map(card => card.instanceId));
+            for (const choice of rewardBundle.cardChoices) {
+                const offered = choice.options.map(option => option.dataId);
+                const mine = choice.options.find(option => taken.has(option.instanceId));
+                dispatch(logRunEvent(mine
+                    ? { kind: 'CARD_PICKED', dataId: mine.dataId, offered }
+                    : { kind: 'CARD_SKIPPED', offered }));
             }
         }
 

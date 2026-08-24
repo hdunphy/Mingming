@@ -15,6 +15,7 @@ import {
     type MotionChoice,
 } from '../settings/settings';
 import { wipeSave } from '../settings/wipeSave';
+import { RUN_LOG_RUNS, exportRunLogs, storedRunLogCount } from '../settings/exportRunLog';
 import { playSfx } from '../audio/AudioEngine';
 import './SettingsScreen.css';
 
@@ -60,6 +61,10 @@ export default function SettingsScreen(): ReactNode {
     const [settings, setSettings] = useState<ISettings>(() => loadSettings());
     const [wipeArmed, setWipeArmed] = useState(false);
     const [wiped, setWiped] = useState(false);
+    // Ticket 59. Read once on mount: the count only changes when a run ends, which cannot happen
+    // while this overlay is up.
+    const [runLogCount] = useState(() => storedRunLogCount());
+    const [exported, setExported] = useState<string | null>(null);
 
     const update = (next: ISettings): void => {
         setSettings(next);
@@ -162,6 +167,42 @@ export default function SettingsScreen(): ReactNode {
                     <p className="settings-note">
                         Not remappable yet. This list and the strip under your hand are generated from the
                         same table, so it cannot drift from what the keys actually do.
+                    </p>
+                </section>
+
+                {/*
+                  * TICKET 59. Above the danger block on purpose: it is the one thing on this screen
+                  * a playtester is asked to do, and it must not be one scroll away from the wipe.
+                  *
+                  * A playtester who cannot hand over the log is a playtester describing their run
+                  * from memory, which is what the whole ticket exists to stop — every finding from
+                  * the 2026-08-24 session was reconstructed that way.
+                  */}
+                <section className="settings-group">
+                    <h3>Playtest</h3>
+                    <div className="settings-row">
+                        <span className="settings-label">Export run log</span>
+                        <button
+                            type="button"
+                            className="settings-button"
+                            disabled={runLogCount === 0}
+                            onClick={() => {
+                                playSfx('uiClick');
+                                setExported(exportRunLogs());
+                            }}
+                        >
+                            {runLogCount === 0
+                                ? 'No runs recorded yet'
+                                : `Save ${runLogCount} run${runLogCount === 1 ? '' : 's'} to a file`}
+                        </button>
+                    </div>
+                    <p className="settings-note">
+                        {exported
+                            ? `Saved as ${exported}. Attach it to your notes — it carries every node you
+                               entered, every card you took, skipped, bought or removed, and where the
+                               scrap went.`
+                            : `A JSON transcript of your last ${RUN_LOG_RUNS} runs. It stays on this
+                               machine until you send it somewhere.`}
                     </p>
                 </section>
 

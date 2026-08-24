@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-24 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57). **State: 59 tickets, 24 closed. The critical path is complete and 3v3 is finished player-side. **Next agent-runnable: 58 (interaction tests) and 59 (run telemetry) — both filed 2026-08-24 out of Henry's first real playtest — then 35/37/42 (platform baseline). THREE TICKETS ARE BUILT AND WAITING ON HENRY: 57 (Relay's 1-for-1 vs the reducer's 2-for-1, and whether to implement 56's pick-pool weighting), 31 (codex payouts need a cosmetics system, which has no ticket), 25 (he must play it).** 25 needs Henry to play it. Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22; loudest is 18's gym paying 3x. Suite green at 120 files / 1603 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-24 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57). **State: 59 tickets, 25 closed. The critical path is complete and 3v3 is finished player-side. **Next agent-runnable: 58 (interaction tests), then 35/37/42 (platform baseline). 59 closed the same day it was filed. THREE TICKETS ARE BUILT AND WAITING ON HENRY: 57 (Relay's 1-for-1 vs the reducer's 2-for-1, and whether to implement 56's pick-pool weighting), 31 (codex payouts need a cosmetics system, which has no ticket), 25 (he must play it).** 25 needs Henry to play it. Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22; loudest is 18's gym paying 3x. Suite green at 123 files / 1629 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,19 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-24 — Run telemetry CLOSED (ticket 59) — **a run writes a transcript of itself**
+
+Henry: *"we should record/log everything I do in the playtest run."* Built and closed the same day. Full resolution in the ticket; the parts worth carrying:
+
+- **Every row is a sample.** `seq`, `fightIndex`, `deckSize` and `scrap` are stamped on all fourteen event classes rather than emitted as their own kinds — because "when did the deck get big" and "where did the scrap go" are questions about curves, and a curve you reconstruct by interleaving two streams is a curve nobody plots. `runCurves` is a `.map`.
+- **Derived, not announced.** One middleware, `concat`ed alongside the action tap and deliberately not in it (one slot, last caller wins, the debug tape holds it). Nothing dispatches a scrap event: the middleware notices `run.scrap` moved and names the action. Fight boundaries are transitions on `battle.battle`, so a fight logs the same whether it came from a node, the gauntlet or the debug launcher — and `FIGHT_ENDED` reads the PRE-dispatch board, because by the time the battle is null the turns and HP are gone.
+- **The one thing the store cannot see** is a DECLINED pick — it lives in `BattleReport`'s component state, so "three offered, none taken" and "no rewards" are the same silence from the store. `BattleArena` reports it through `logRunEvent`, a logging-only action, its only call site.
+- **Two bounds, both needed.** 800 rows per run, 3 runs kept: a single bound big enough for three normal runs is big enough for one runaway run to evict them all. At the cap rows are DROPPED and counted, not evicted — a head-truncated transcript answers the questions, a tail-truncated one does not, and `droppedEvents` is what stops it looking complete.
+- **A wiring test.** Every other case builds its own store, which leaves the likeliest failure uncovered: a middleware that works and is not in the chain. It fails when the `concat` is reverted.
+- The tests caught a live bug first: `game/swapOS` takes `{ id, targetOS }`, and the `REFLASHED` row was reading `{ memberId, osId }` — a reflash you can see happened and cannot identify.
+- **One number needs Henry:** `RUN_LOG_RUNS = 3` is a guess at "a playtest session is a handful of runs". A tester who plays five before exporting loses the first two. One line; the cost of raising it is quota shared with the ranch save.
+- Suite 1629 green across 123 files. Commit `<pending>`.
 
 ### 2026-08-24 — Henry played it. Eight items, six defects, six rulings (new ticket 59)
 

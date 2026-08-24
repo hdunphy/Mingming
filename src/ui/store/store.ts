@@ -5,7 +5,9 @@ import gameReducer from './gameSlice';
 import runReducer from './runSlice';
 import uiReducer from './uiSlice';
 import { saveRanch, saveRun } from '../../engine/SaveSystem';
+import { readRunLogs } from '../../engine/run/runLog';
 import { reportSaveResult } from './saveHealth';
+import { createRunLogMiddleware } from './runLogMiddleware';
 
 /**
  * Dispatch tap — one optional observer of every dispatched action.
@@ -39,10 +41,16 @@ export const store = configureStore({
         ui: uiReducer
     },
     // Adding middleware to ignore non-serializable objects (like BattleEventBus in state if added later)
+    //
+    // TICKET 59: the run log rides ALONGSIDE the tap rather than inside it. `setActionTap` is one
+    // slot, last caller wins, and the debug action tape holds it — a production consumer installing
+    // itself there would silently disable the tape, and opening the debug panel would silently
+    // disable the log. `concat` takes a list, so both observers run and neither can evict the
+    // other. See `runLogMiddleware`'s header.
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: false
-        }).concat(tapMiddleware)
+        }).concat(tapMiddleware, createRunLogMiddleware(readRunLogs))
 });
 
 // Auto-save subscription

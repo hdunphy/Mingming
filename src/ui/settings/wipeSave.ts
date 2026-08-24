@@ -24,9 +24,10 @@
  * Steps 1-2 are what makes step 3 stick. Doing 3 alone is the bug; doing 1-2 alone leaves the old
  * bytes readable by a slot switch.
  *
- * Run telemetry (`mingming_run_telemetry`) goes too: it is a per-player history of runs, and a
- * player wiping their save does not expect their run clock to survive it. Settings and audio do
- * **not** — those are properties of the person, not the save (see `settings.ts`).
+ * Run telemetry (`mingming_run_telemetry`) goes too, and since ticket 59 so do the run logs
+ * (`mingming_run_log`): both are a per-player history of runs, and a player wiping their save does
+ * not expect their run clock or a transcript of their last three runs to survive it. Settings and
+ * audio do **not** — those are properties of the person, not the save (see `settings.ts`).
  *
  * # WHY IT IS A FUNCTION AND NOT A BUTTON
  *
@@ -37,6 +38,7 @@
 
 import { deleteSave } from '../../engine/SaveSystem';
 import { clearRunTelemetry } from '../../engine/run/runTelemetry';
+import { clearRunLogs } from '../../engine/run/runLog';
 import { resetSave } from '../store/gameSlice';
 import { clearRun } from '../store/runSlice';
 
@@ -60,5 +62,6 @@ export function wipeSave(dispatch: WipeDispatch): WipeResult {
     dispatch(resetSave());
     deleteSave();
     clearRunTelemetry();
-    return { steps: ['run', 'ranch', 'stored save', 'run history'] };
+    clearRunLogs();
+    return { steps: ['run', 'ranch', 'stored save', 'run history', 'run logs'] };
 }
