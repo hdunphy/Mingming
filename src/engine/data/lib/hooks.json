@@ -812,7 +812,7 @@
     "huldra_v2": {
         "id": "huldra_v2",
         "name": "BARK_SHIELD_OS",
-        "description": "Huldra starts every battle with a massive, temporary shield.",
+        "description": "At the end of Huldra's first turn, she raises a massive Bark Shield.",
         "hooks": []
     },
     "ymir_v1": {
@@ -1280,4 +1280,4 @@
             }
         ]
     }
-}
+}
