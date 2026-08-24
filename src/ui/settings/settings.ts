@@ -68,6 +68,19 @@ export const BASE_FONT_PX = 16;
 export interface ISettings {
     readonly reducedMotion: MotionChoice;
     readonly textScale: number;
+    /**
+     * Write a run's log to a file automatically the moment the run ends (ticket 59, extended).
+     *
+     * Henry: *"Having to export at the right time doesn't work. I often forget."* Which is the
+     * correct diagnosis of a manual export — a tester who has to remember is a tester who does not.
+     * The instruction it enables is *"turn this on, play, then send me everything in your Downloads
+     * folder called `mingming-run-*.json`"*, and it never asks the tester to act again.
+     *
+     * **Off by default**, and it is a settings field rather than a build flag for the same reason:
+     * a shipped player has no use for a JSON file per run appearing in their Downloads, and a build
+     * flag could not be turned on by a tester at all.
+     */
+    readonly autoSaveRunLog: boolean;
 }
 
 /**
@@ -80,9 +93,12 @@ export interface ISettings {
 export const SettingsSchema = z.object({
     reducedMotion: z.enum(MOTION_CHOICES).default('system'),
     textScale: z.number().min(0.5).max(2).default(1),
+    // `.default(false)` rather than required, so a settings blob written before this field existed
+    // still parses. An older save turning auto-save ON would be the wrong direction of surprise.
+    autoSaveRunLog: z.boolean().default(false),
 });
 
-export const DEFAULT_SETTINGS: ISettings = { reducedMotion: 'system', textScale: 1 };
+export const DEFAULT_SETTINGS: ISettings = { reducedMotion: 'system', textScale: 1, autoSaveRunLog: false };
 
 /** The two methods this module needs. `ISaveStorage` satisfies it; a test can pass a fake. */
 export interface SettingsStorage {

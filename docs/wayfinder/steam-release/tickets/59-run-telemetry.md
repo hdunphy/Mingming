@@ -88,6 +88,28 @@ Uploading (ticket 53's, post-launch), replay, and per-hit damage rows — the la
 
 Its protocol said *"collect snapshot exports on any bug"*. It now says **attach the run log**, once per tester per session, with snapshots kept for bugs (they carry the board; the log does not).
 
+
+### Addendum, same day: AUTO-SAVE
+
+Henry, on reading the resolution: *"Can we add a setting to auto log everything, so it just writes to a file on the disc… Having to export at the right time doesn't work. I often forget."* Correct diagnosis — an export a tester has to remember is an export that does not happen, which is the manual button's whole weakness.
+
+**Settings → Playtest → Auto-save every run** (`ISettings.autoSaveRunLog`, default OFF). With it on, a run writes itself to a file the moment its summary appears. The tester instruction is now one sentence and needs no timing: *turn this on, play, send me everything in your Downloads folder called `mingming-run-*.json`.*
+
+**Why a download and not the folder Henry asked for.** A browser page cannot write to a chosen path unprompted. The two things that could:
+
+- **The File System Access API** (`showDirectoryPicker`) — pick a folder once, write silently after. It is **Chrome/Edge 86+ only; Firefox and Safari do not implement it**, and Chrome's own docs say permission *"is not always persisted between sessions"* and re-requesting needs a **user gesture**. The failure mode is a tester who turned it on, played three runs and silently saved nothing — the exact failure this removes, relocated.
+- **The desktop build** ([ticket 42](42-desktop-packaging.md)) — a real writable path, no prompts, no support matrix. That is the right long-term home and the one Henry actually described. **Flagged onto 42:** its Done-when should name a `run-logs/` directory under `userData` and this setting should write there when the wrapper is present.
+
+A download needs no API a tester might lack and no permission that can lapse, and the folder is one every tester already knows. Chromium asks once per site to allow multiple downloads; the settings copy says so, because a tester who dismisses that prompt has silently switched the feature off.
+
+**One file per run, not one growing file** — a download cannot append. Per-run files also escape the three-run store window, which is the `RUN_LOG_RUNS` flag below answered in practice: nothing is lost to it any more once auto-save is on.
+
+**Idempotency is `recordRunEnd`'s return value.** `RunSummary` legitimately mounts more than once per run (StrictMode; and the run save survives until teardown, so reopening on that screen lands there again). `recordRunEnd` already returns false for a run it has seen, which makes it the one signal in the codebase meaning "this run just ended, once" — without it a tester gets a duplicate download per remount. `RunSummary.autoSave.test.tsx` pins all three cases and the once-only guard is verified to fail when removed.
+
+The outcome in the filename is passed in from `RunSummary` rather than read off the log's own `RUN_ENDED` row: a capped transcript drops rows, the last row of a long run is the likeliest casualty, and a file named `-unfinished-` for a run that was won lies in the one place a reader looks before opening anything.
+
+Suite 1634 green across 124 files.
+
 ### One flag for Henry
 
-**`RUN_LOG_RUNS = 3` and `RUN_LOG_EVENT_CAP = 800` are mine, not ruled.** Three runs is a guess at "a playtest session is a handful"; if a round-4 tester plays five runs before exporting, the first two are gone. Raising it is one line, and the cost is quota shared with the ranch save — which is the thing the bound exists to protect. Worth a number from you before ticket 25 runs.
+**`RUN_LOG_RUNS = 3` and `RUN_LOG_EVENT_CAP = 800` are mine, not ruled** (and auto-save above largely defuses the first). Three runs is a guess at "a playtest session is a handful"; if a round-4 tester plays five runs before exporting, the first two are gone. Raising it is one line, and the cost is quota shared with the ranch save — which is the thing the bound exists to protect. Worth a number from you before ticket 25 runs.

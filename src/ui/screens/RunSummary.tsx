@@ -63,6 +63,8 @@ import { recordRunEnd, runTelemetryEntryFor } from '../../engine/run/runTelemetr
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import type { IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
+import { autoSaveRunLog } from '../settings/exportRunLog';
+import { loadSettings } from '../settings/settings';
 import { teardownRun } from '../store/runTeardown';
 import './RunSummary.css';
 
@@ -152,7 +154,31 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
      * and telemetry is the last thing in the game entitled to put a banner in front of a player.
      */
     useEffect(() => {
-        recordRunEnd(runTelemetryEntryFor(run, clock));
+        const entry = runTelemetryEntryFor(run, clock);
+        const firstTime = recordRunEnd(entry);
+
+        /*
+         * AUTO-SAVE THE RUN LOG (ticket 59, extended 2026-08-24).
+         *
+         * Henry: *"Having to export at the right time doesn't work. I often forget."* So the file
+         * writes itself here, when the run is over and its transcript is complete.
+         *
+         * **`firstTime` is the whole of the idempotency**, and it is load-bearing rather than
+         * tidy. This component legitimately mounts more than once for one run — StrictMode
+         * double-invokes effects, and the run save is not removed until teardown, so closing the
+         * app on this screen and reopening lands here again. Without the guard a tester would get
+         * a duplicate download every time, and the browser's "allow multiple downloads" prompt on
+         * top of it. `recordRunEnd` returns false on a run it has already seen, which makes it the
+         * one signal in the codebase that already means "this run just ended, once".
+         *
+         * Off by default and silent either way: a failed or blocked download costs a playtest data
+         * point, and nothing on this screen may put an error in front of a player who just lost.
+         */
+        if (firstTime && loadSettings().autoSaveRunLog) {
+            // The outcome comes from here rather than from the log: this is where it is known for
+            // certain, and a capped transcript may have dropped its own `RUN_ENDED` row.
+            autoSaveRunLog(entry.runKey, entry.outcome);
+        }
     }, [run, clock]);
 
     const gym = GYM_REGISTRY[run.gymId];

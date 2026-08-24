@@ -265,6 +265,22 @@ export function serializeRunLogs(exportedAt: number): string {
     return JSON.stringify({ version: RUN_LOG_VERSION, exportedAt, logs: readRunLogs() }, null, 2);
 }
 
+/** One transcript by key, or null. What the auto-save writes when a run ends. */
+export function findRunLog(runKey: string): IRunLog | null {
+    return readRunLogs().find((log) => log.runKey === runKey) ?? null;
+}
+
+/**
+ * The same payload shape as `serializeRunLogs`, holding one run.
+ *
+ * Same envelope on purpose — `{version, exportedAt, logs: [...]}` either way — so whoever reads
+ * these does not need two parsers, and a pile of per-run files concatenates into a bulk export
+ * without translation.
+ */
+export function serializeOneRunLog(log: IRunLog, exportedAt: number): string {
+    return JSON.stringify({ version: RUN_LOG_VERSION, exportedAt, logs: [log] }, null, 2);
+}
+
 // ---------------------------------------------------------------------------------------------
 // Reading it back
 // ---------------------------------------------------------------------------------------------

@@ -48,7 +48,7 @@ describe('settings persistence', () => {
 
     it('round-trips through storage — the Done-when, in one line', () => {
         const storage = makeMockStorage();
-        const chosen: ISettings = { reducedMotion: 'on', textScale: 1.3 };
+        const chosen: ISettings = { ...DEFAULT_SETTINGS, reducedMotion: 'on', textScale: 1.3 };
         saveSettings(chosen, storage);
         expect(loadSettings(makeMockStorage(storage.data))).toEqual(chosen);
     });
@@ -72,7 +72,7 @@ describe('settings persistence', () => {
         // `.default()` not `.catch()` — ticket 23's rule. An invalid field fails the parse, and the
         // whole blob falls back, rather than half-applying something nobody chose.
         const storage = makeMockStorage({
-            [SETTINGS_STORAGE_KEY]: JSON.stringify({ reducedMotion: 'on', textScale: 9 }),
+            [SETTINGS_STORAGE_KEY]: JSON.stringify({ ...DEFAULT_SETTINGS, reducedMotion: 'on', textScale: 9 }),
         });
         expect(loadSettings(storage)).toEqual(DEFAULT_SETTINGS);
     });
@@ -81,7 +81,17 @@ describe('settings persistence', () => {
         const storage = makeMockStorage({
             [SETTINGS_STORAGE_KEY]: JSON.stringify({ reducedMotion: 'off' }),
         });
-        expect(loadSettings(storage)).toEqual({ reducedMotion: 'off', textScale: 1 });
+        expect(loadSettings(storage)).toEqual({ ...DEFAULT_SETTINGS, reducedMotion: 'off', textScale: 1 });
+    });
+
+    it('reads a blob written before auto-save existed as auto-save OFF', () => {
+        // The direction of the surprise matters: a settings file from an older build turning
+        // auto-save ON would start writing a JSON download after every run for a player who never
+        // asked for one. `.default(false)` is what makes the older blob parse at all.
+        const storage = makeMockStorage({
+            [SETTINGS_STORAGE_KEY]: JSON.stringify({ reducedMotion: 'off', textScale: 1 }),
+        });
+        expect(loadSettings(storage).autoSaveRunLog).toBe(false);
     });
 
     it('survives storage that throws in either direction', () => {
@@ -102,7 +112,7 @@ describe('applySettings', () => {
     it('sets the root font size from the scale ladder', () => {
         const root = document.createElement('html');
         for (const scale of TEXT_SCALES) {
-            applySettings({ reducedMotion: 'system', textScale: scale }, root);
+            applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'system', textScale: scale }, root);
             expect(root.style.fontSize).toBe(fontSizeFor(scale));
         }
         expect(fontSizeFor(1)).toBe(`${BASE_FONT_PX}px`);
@@ -113,13 +123,13 @@ describe('applySettings', () => {
         // `:root:not([data-reduced-motion])`. An attribute of "system" would silently disable them.
         const root = document.createElement('html');
 
-        applySettings({ reducedMotion: 'on', textScale: 1 }, root);
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'on', textScale: 1 }, root);
         expect(root.getAttribute('data-reduced-motion')).toBe('on');
 
-        applySettings({ reducedMotion: 'off', textScale: 1 }, root);
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'off', textScale: 1 }, root);
         expect(root.getAttribute('data-reduced-motion')).toBe('off');
 
-        applySettings({ reducedMotion: 'system', textScale: 1 }, root);
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'system', textScale: 1 }, root);
         expect(root.hasAttribute('data-reduced-motion')).toBe(false);
     });
 
@@ -127,15 +137,15 @@ describe('applySettings', () => {
         // Two mechanisms, one decision. They are set together here so they cannot come apart.
         const root = document.createElement('html');
 
-        applySettings({ reducedMotion: 'on', textScale: 1 }, root);
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'on', textScale: 1 }, root);
         expect(getReducedMotionOverride()).toBe(true);
         expect(prefersReducedMotion()).toBe(true);
 
-        applySettings({ reducedMotion: 'off', textScale: 1 }, root);
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'off', textScale: 1 }, root);
         expect(getReducedMotionOverride()).toBe(false);
         expect(prefersReducedMotion()).toBe(false);
 
-        applySettings({ reducedMotion: 'system', textScale: 1 }, root);
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'system', textScale: 1 }, root);
         expect(getReducedMotionOverride()).toBeNull();
     });
 });

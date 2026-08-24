@@ -180,6 +180,40 @@ export default function SettingsScreen(): ReactNode {
                   */}
                 <section className="settings-group">
                     <h3>Playtest</h3>
+
+                    {/*
+                      * Henry, 2026-08-24: "Having to export at the right time doesn't work. I often
+                      * forget." So the toggle sits ABOVE the manual button — it is the one a tester
+                      * is told to set, and once it is on the button below is for catching up on
+                      * runs played before it was.
+                      */}
+                    <div className="settings-row">
+                        <span className="settings-label">Auto-save every run</span>
+                        <div className="settings-control settings-choices">
+                            {([false, true] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice ${settings.autoSaveRunLog === choice ? 'active' : ''}`}
+                                    aria-pressed={settings.autoSaveRunLog === choice}
+                                    onClick={() => update({ ...settings, autoSaveRunLog: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.autoSaveRunLog
+                            ? `On. Every run writes itself to your downloads folder the moment it ends,
+                               as mingming-run-<date>-<outcome>.json. Your browser may ask once to allow
+                               multiple downloads — say yes, or nothing will be saved. When you are done,
+                               send every mingming-run-*.json you have.`
+                            : `Off. Runs are still recorded and you can save them below, but only the
+                               last ${RUN_LOG_RUNS} are kept — turn this on and each one writes itself to
+                               your downloads folder as it ends, so nothing is lost to that window.`}
+                    </p>
+
                     <div className="settings-row">
                         <span className="settings-label">Export run log</span>
                         <button
