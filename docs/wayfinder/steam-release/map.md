@@ -59,7 +59,7 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ### Phase 0 — Foundations (now → ~mid-September 2026)
 
-Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 26 all closed 2026-08-21**; 55 (lint burndown) graduated out of 03 and is the only agent-runnable ticket left in this phase. **05 (release shape) is the one Henry session still outstanding here** — 06 closed the same day and is no longer a Phase-0 blocker.
+Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 26 all closed 2026-08-21**; 55 (lint burndown) graduated out of 03 and closed 2026-08-23; **58 (interaction tests) graduated out of it on 2026-08-24**, when two player-facing blockers shipped through a green suite because every UI test here uses `renderToStaticMarkup`, which cannot click. 58 is the only agent-runnable ticket left in this phase. **05 (release shape) is the one Henry session still outstanding here** — 06 closed the same day and is no longer a Phase-0 blocker.
 
 | Ticket | Type | Driver | Blocked by |
 |---|---|---|---|
@@ -70,6 +70,7 @@ Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 
 | [05 Release shape: Early Access or 1.0, and the entry bar in numbers](tickets/05-release-shape.md) | grilling | Henry | [01](tickets/01-gap-audit.md) |
 | [26 Desktop wrapper research: Electron + steamworks.js vs Tauri, with a spike](tickets/26-wrapper-research.md) | research | agent | — |
 | [55 Lint burndown: clear 510 errors and make the lint gate blocking](tickets/55-lint-burndown.md) | task | agent | [03](tickets/03-ci-gate.md) |
+| [58 Interaction tests: a click-level harness over the core loop](tickets/58-interaction-tests.md) | task | agent | [03](tickets/03-ci-gate.md) |
 
 ### Phase 1 — Vertical Slice (~mid-September → ~late November 2026)
 
