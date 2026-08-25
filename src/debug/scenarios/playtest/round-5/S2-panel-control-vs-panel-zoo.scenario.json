@@ -1,0 +1,135 @@
+{
+  "kind": "composed",
+  "name": "S2 - Zoo vs Control Rematch (Panel-Control vs Panel-Zoo)",
+  "description": "Zoo is control's designated prey, but at 3v3 width the web inverts: the simulator shows Zoo winning 100% of these battles because control's debuffs are diluted while zoo's velocity scales with party size. Can a human pilot prove the simulator wrong and shut down the zoo?   [you: panel-control (kraken_v1 + huldra_v1 + draugr_v2) | opponent: panel-zoo (jormungandr_v1 + sleipnir_v1 + hraesvelgr_v1)]",
+  "tags": [
+    "playtest",
+    "round-5",
+    "3v3"
+  ],
+  "setup": {
+    "seed": "S2-panel-control-vs-panel-zoo",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "kraken",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "kraken_v1"
+        },
+        {
+          "definitionId": "huldra",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "huldra_v1"
+        },
+        {
+          "definitionId": "draugr",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "draugr_v2"
+        }
+      ],
+      "deck": [
+        "whirlpool_v2",
+        "whirlpool_v2",
+        "pressure_point",
+        "pressure_point",
+        "ink_stream",
+        "ink_stream",
+        "surge_protection",
+        "undertow",
+        "growth",
+        "growth",
+        "soothe",
+        "water_slap",
+        "iron_bark",
+        "iron_bark",
+        "thorn_tithe",
+        "thorn_tithe",
+        "hexbloom",
+        "rimefrost",
+        "rimefrost",
+        "water_slap",
+        "frost_bite",
+        "numbing_gale",
+        "killing_frost",
+        "ice_spear",
+        "glacial_slam",
+        "rimebreaker",
+        "rimebreaker"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "jormungandr",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "deck": [
+          "undertow",
+          "undertow",
+          "blind_spot",
+          "corrosive_leak",
+          "surge_protection",
+          "serpents_coil",
+          "serpents_coil",
+          "ink_stream",
+          "ink_stream"
+        ]
+      },
+      {
+        "definitionId": "sleipnir",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "deck": [
+          "water_slap",
+          "water_slap",
+          "slipstream",
+          "slipstream",
+          "disorienting_gust",
+          "adrenaline",
+          "tailwind",
+          "zephyr_strike",
+          "stampede",
+          "stampede",
+          "momentum_crash",
+          "hoofbeat_daemon"
+        ]
+      },
+      {
+        "definitionId": "hraesvelgr",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "deck": [
+          "feather_cache",
+          "feather_cache",
+          "war_molt",
+          "war_molt",
+          "sky_burial",
+          "sky_burial",
+          "tempest",
+          "tempest",
+          "carrion_swoop",
+          "carrion_swoop",
+          "zephyr_strike",
+          "slipstream"
+        ]
+      }
+    ],
+    "statJitter": 5
+  },
+  "version": 1,
+  "registryHash": "1:d5a18ed7",
+  "createdAt": "2026-08-25T01:18:34.062Z"
+}
