@@ -1,10 +1,13 @@
-# Difficulty and agency: the playtest verdict on the slice (ticket 58)
+# Difficulty and agency: the playtest verdict on the slice (ticket 60)
 
 - Type: wayfinder:grilling
 - Status: closed
 - Assignee: wayfinder (Henry grilling session, 2026-08-22)
 - Blocked by: [25](25-vs-playtest.md) (in spirit — this IS the first slice playtest's findings), [56](56-economy-numbers.md)
 - Phase: Vertical Slice
+
+
+> **RENUMBERED 58 → 60 on 2026-08-25.** This ticket and its applier were filed as 58 and 59, numbers already taken on this map the day before by [58 interaction tests](58-interaction-tests.md) (open) and [59 run telemetry](59-run-telemetry.md) (closed, shipped). Henry's call: the earlier pair keep their numbers, because they are referenced by landed commits and by the phase tables. Commit `2a969f5` closes this ticket under its old number — nothing about its content changed.
 
 ## Question
 

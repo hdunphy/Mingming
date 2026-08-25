@@ -69,8 +69,14 @@ export const GAUNTLET_FIGHTS = 3;
  * **Always three enemies, whatever the player brings** — ticket 18: *"always full 3v3 curated (if
  * the player has fewer than 3, the fight is still 3 vs N)"*.
  *
- * **FLAGGED FOR HENRY (reading, not ruling).** The ticket asks for this to be confirmed, and the
- * argument for it is the run's own economy: `exploration-map.md` gives a run two workshops and
+ * **RATIFIED** by ticket 56 ruling 4 (*"gauntlet boss is always 3 — 3 vs N"*), and re-confirmed by
+ * ticket 60's difficulty pass, which changed how hard the gauntlet's three ARE (they gain an OS and
+ * a Driver and the full-lookahead AI) without changing how many there are. This block was a
+ * "FLAGGED FOR HENRY, reading not ruling" note until 2026-08-25; the reading was correct and the
+ * ruling agreed with it, so it is recorded as settled rather than left looking open.
+ *
+ * The argument, kept because it is why the answer is what it is:
+ * the run's own economy. `exploration-map.md` gives a run two workshops and
  * ticket 14 makes each one a real recruit, so arriving at the gym with one or two members is a
  * *choice with a consequence* rather than a shortfall the game should paper over. That is what makes
  * ticket 06's "recruiting IS drafting" mean anything — if the exam shrank to match the party, the

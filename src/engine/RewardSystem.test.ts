@@ -433,6 +433,30 @@ describe('RewardSystem', () => {
             for (const id of pool) expect([...fenrir, ...kraken]).toContain(id);
         });
 
+        it('follows the party you are FIELDING, so swapping who is deployed changes what drops', () => {
+            /*
+             * HENRY'S RULING, 2026-08-25 (ticket 57 item 5): *"the cards should be from the current
+             * roster of mingmings. we can swap rosters mid run so we want cards to be based on the
+             * current active mingmings."*
+             *
+             * The source was already right — `rollDropTable` is handed `battleState.playerParty`,
+             * the live party — but nothing pinned the DYNAMIC half, and that is the half the bench
+             * (ticket 61) makes load-bearing: benching fenrir for kraken has to stop fenrir's cards
+             * being offered, immediately, with no other change. Asserted as an EXCLUSION rather
+             * than an inclusion, because "kraken's cards appear" would also pass on a pool that
+             * lazily unioned the whole roster.
+             */
+            const fielded = rewardCardPool([{ definitionId: 'kraken', activeOS: 'kraken_v1' }]);
+            const benched = getDeckForOS('fenrir', 'fenrir_v1')
+                .filter((id) => !getDeckForOS('kraken', 'kraken_v1').includes(id));
+
+            expect(benched.length, 'fixture assumes fenrir has cards kraken does not')
+                .toBeGreaterThan(0);
+            for (const id of benched) {
+                expect(fielded, `${id} belongs to a species that is not on the field`).not.toContain(id);
+            }
+        });
+
         it('dedupes for membership — a doubled card is not a doubled drop chance', () => {
             const pool = rewardCardPool(FENRIR_V1);
             expect(new Set(pool).size).toBe(pool.length);

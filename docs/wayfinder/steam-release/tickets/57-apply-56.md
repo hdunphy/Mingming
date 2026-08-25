@@ -1,7 +1,7 @@
 # Apply ticket 56 to the built slice: scrap rescale, no selling, Relay, 3-vs-N check (ticket 57)
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: agent
 - Blocked by: [56](56-economy-numbers.md)
 - Phase: Vertical Slice
@@ -21,7 +21,7 @@ Tickets 10–15/18–20/22/24 were built in parallel with the ticket 56 grilling
 
 Suite green, `tsc -b` and build clean, and the resolution lists each of the six items as changed / already-compliant, with the one-run income arithmetic re-measured (~150–180 scrap).
 
-## Progress — four of six applied 2026-08-23; two are BLOCKED ON HENRY
+## Progress — four of six applied 2026-08-23; the last two ruled 2026-08-25 (see Resolution)
 
 `tsc -b` clean, **1585 tests passing**, build green, lint clean (blocking since ticket 55). Each of
 the six items below is reported as **changed**, **already-compliant** or **blocked**.
@@ -176,3 +176,45 @@ of the design that 56 removed; it is rewritten to say what is true now. **If a R
 rare at a stall, the gate has to be reinstated deliberately** — a weighted draw, a scarcity cap on
 the stock, or a rarity term returning to `cardPrice`. That is a consequence of ticket 56 for Henry,
 not something this ticket should settle.
+
+---
+
+## Resolution
+
+**Closed 2026-08-25.** Six of six. Four were applied on 2026-08-23 (`366558d`); the two that stopped the task were returned to Henry as the protocol requires, and he ruled both today.
+
+### 3. Relay — **CUT, not built.**
+
+Henry: *"keep transfer energy as is in the code, we don't use it yet. we can cross that bridge when we get there."*
+
+So none of the three blockers gets paid for now: no macro→`TRANSFER_ENERGY` bridge, no `OTHER_ALLY` targeting mode, and **`TRANSFER_COST = 2` / `TRANSFER_GAIN = 1` stays exactly as built**. The 2-for-1 reducer is not a bug to be fixed ahead of a caller — it is an unused mechanism, and the ruling is that it stays unused until something wants it.
+
+What this ticket does NOT do, deliberately: it does not delete the reducer, and it does not soften the finding. The conflict is real and is the first thing anyone building Relay will hit — ticket 56 rules "move 1 energy", the code destroys one. That paragraph stays in this ticket so the next pass finds it already investigated rather than discovering it again. `battleSlice.transferEnergy` keeps its "nothing dispatches this, deliberately" docblock, which is now backed by two rulings instead of one.
+
+Ticket 56's macro list is therefore short one entry. Macro prices, stock and the rest of item 3 were already compliant and are untouched.
+
+### 5a. The reward pick pool — **ALREADY COMPLIANT; the weighting clause is dropped.**
+
+Henry: *"I don't understand this. the cards should be from the current roster of mingmings. we can swap rosters mid run so we want cards to be based on the current active mingmings."*
+
+That is what `rewardCardPool` does and has done since ticket 12: the pool is the union of `getDeckForOS` over the party `rollDropTable` was handed, and `BattleArena` hands it `battleState.playerParty` — the live field, not the roster and not the party the run started with. So the reported gap was never the source; it was ticket 56 ruling 1's second half, *"weighted toward untagged kit cards not yet in the run deck"*, which asked for a bias nobody had put a number on and a `IRunState.deck` argument the roll cannot see.
+
+**That clause is dropped rather than implemented.** The ruling above restates the rule with no weighting in it, and ticket 60's collection + bench changes what a pick even means — a skipped card now goes to the in-run collection rather than nowhere, so "not yet in the run deck" stops being a meaningful filter when the deck is editable and the collection is the destination. Implementing a bias against duplicates now would be tuning a mechanic that is about to be replaced.
+
+**What was added is a test, not a change.** The source half was pinned; the *dynamic* half was not, and that is the half the bench makes load-bearing — benching fenrir for kraken has to stop fenrir's cards being offered, immediately, with no other change. `RewardSystem.test.ts` now asserts it as an exclusion ("a benched species' cards are not in the pool"), because the inclusion form would also pass on a pool that lazily unioned the whole roster. Ticket 61 package 4 inherits a guarded invariant instead of an assumption.
+
+**Carried to ticket 61:** *"skipped cards now go to your in-run collection but not the current deck"* — that is the collection's behaviour, filed into 61's package 4 rather than here, because there is no collection to put them in yet.
+
+### 5b / 4 — the stale annotation is gone
+
+`gauntlet.ts` carried a **FLAGGED FOR HENRY (reading, not ruling)** block on `GAUNTLET_ENEMY_COUNT`. 56 ruling 4 ratified the reading and ticket 60 re-confirmed it from the other direction — the gauntlet's three get an OS, a Driver and full lookahead, so 60 changed how hard they are and left how many alone. The block now records a settled decision instead of looking like an open question a year from now. The argument itself is kept, because it is why the answer is what it is.
+
+### 6. The deck-archetypes note — **SENT, and rewritten to be true today**
+
+The note as specified said the ticket-09 startKit tag table is ratified content touching their registry decks. Between the specification and the sending, **ticket 60 replaced that table wholesale** — mini-engine starts, 4 tags (payoff + 3 enablers) + 2 generics, recruits identical, explicitly superseding ticket 08's 5+3 / 3+1 and the 5+0 this map shipped on 2026-08-24. Sending the original wording would have handed their wayfinder a fact that was two days out of date, so the note names the current table and the ticket that ratified it.
+
+### The Done-when
+
+Income re-measured and pinned as a test rather than a comment; the arithmetic is in the section above and in `RewardSystem.test.ts`. Two flags raised there stand and are Henry's, not this ticket's: the **215-vs-150-180 spendable gap** (since retuned again by the 2026-08-24 rulings — elites 45 and a 20 opening, so roughly 260) and the **missing rarity gate in the market**, which ticket 56 removed from the price while the stock was already drawn uniformly.
+
+Suite green, `tsc -b`, lint, build and the debug-absence gate clean.
