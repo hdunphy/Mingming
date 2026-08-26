@@ -1,8 +1,8 @@
 # Prototype: card frame rework (text-first cards that look shipped) (ticket 66)
 
 - Type: wayfinder:prototype
-- Status: open
-- Assignee: 
+- Status: closed
+- Assignee: wayfinder (Henry prototype session)
 - Blocked by: [32](32-art-direction.md)
 - Phase: Content Complete (feeds [34](34-ui-art-pass.md))
 
@@ -16,4 +16,12 @@ One HTML sheet showing the same 4–6 real cards (a 0e generic, a 1e attack, a 2
 
 ## Resolution
 
-_(open)_
+Closed 2026-08-26. Comparison sheet (3 directions) and the final reference in [research/66-frames-proto/](../research/66-frames-proto/).
+
+**CHOSEN: Direction 3 — CHASSIS** (Henry; the wayfinder's interim Circuit assumption was corrected same-session). Final reference: [frames_chassis_final.html](../research/66-frames-proto/frames_chassis_final.html) (+PNG). Frame spec for ticket 34's card pass:
+
+- **Stamped-plate frame**: element-tinted plate gradient + element border; **energy PIPS top-left** (cost as capacity — glowing squares, unlit pip for 0e; macros get a round pip).
+- **TYPE ICON top-right replaces the text banner**: ▲ ATTACK · ✦ SKILL · ◆ DAEMON · ● MACRO, color-coded, tooltip carries the word.
+- **NO STAB text on the card** (the icon change makes room; STAB surfaces in play via the true-number preview and in the editor via filters) and **NO payoff glow** — payoff status is a small tag in editor contexts only. Both amend the ticket-62 F reference (its cost gem, text banners, STAB meta line and payoff-glow borders are superseded by this frame).
+- **Descriptions present at BOTH scales** — hand-scale cards (~142×186) keep the full description text; editor/shop scale ~188×246. One component, two sizes.
+- Duplicates stack with the gold ×N badge (ticket 62 amendment). Art box is a placeholder gradient until ticket 33.

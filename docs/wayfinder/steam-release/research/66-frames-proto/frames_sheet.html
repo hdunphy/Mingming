@@ -1,0 +1,88 @@
+<!doctype html><html><head><meta charset="utf-8"><title>66 frames</title></head><body>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0d11;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-serif;width:1280px;height:800px;overflow:hidden;padding:14px 20px}
+h1{font-size:15px;letter-spacing:3px;color:#9fb4c8;margin-bottom:2px}
+.sub{font-size:11px;color:#5f6b7a;margin-bottom:10px}
+.rowlab{font-size:10px;letter-spacing:2px;color:#7d8ea1;margin:8px 0 6px}
+.dirs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.dir h2{font-size:11px;letter-spacing:2px;color:#c8d2dd;margin-bottom:8px;text-align:center}
+.set{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;justify-items:center}
+.hand{display:flex;gap:8px;justify-content:center;margin-top:8px}
+/* shared card bones */
+.card{position:relative;display:flex;flex-direction:column;width:182px;height:214px;padding:8px}
+.card .nm{font-weight:700;text-align:center}
+.card .desc{text-align:center;line-height:1.32;flex:1;overflow:hidden}
+.card .meta{font-size:8px;text-align:center;letter-spacing:.5px}
+.card.small{width:118px;height:140px;padding:5px}
+.card.small .desc{display:none}
+.card.small .art{height:44px !important}
+.card.small .nm{font-size:10px}
+/* D1 CIRCUIT (the F baseline, refined) */
+.d1{border:1px solid #303a48;border-radius:8px;background:linear-gradient(180deg,#171d27,#10151d)}
+.d1 .gem{position:absolute;top:-8px;left:-8px;width:27px;height:27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7ec3ff,#245a8c 70%);border:2px solid #0b0d11;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.d1 .typ{position:absolute;top:5px;right:5px;font-size:8px;letter-spacing:1px;padding:2px 5px;border-radius:2px;font-weight:700;background:#1e3a52;color:#8fc7f5}
+.d1 .art{height:56px;border-radius:5px;margin:12px 0 5px;background:repeating-linear-gradient(45deg,transparent 0 6px,#ffffff08 6px 12px),linear-gradient(135deg,var(--el),#0c0e12 130%)}
+.d1 .nm{font-size:12px}.d1 .desc{font-size:9.5px;color:#aeb9c6}.d1 .meta{color:#7d8ea1}
+.d1::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 8px 8px;background:var(--el)}
+.d1.payoff{border-color:var(--el);box-shadow:0 0 0 1px var(--el),0 0 14px 0 var(--el) inset}
+/* D2 TERMINAL (CRT console) */
+.d2{border:1px solid var(--el);border-radius:2px;background:#0a0f0d;font-family:'Consolas','Courier New',monospace}
+.d2::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 3px,#ffffff05 3px 4px);pointer-events:none}
+.d2 .gem{position:absolute;top:4px;left:6px;font-size:12px;font-weight:800;color:var(--el)}
+.d2 .gem::after{content:"e"}
+.d2 .typ{position:absolute;top:4px;right:6px;font-size:8px;letter-spacing:1px;color:var(--el);opacity:.9}
+.d2 .art{height:52px;margin:20px 0 5px;border:1px dashed color-mix(in srgb,var(--el) 50%,#222);background:linear-gradient(135deg,color-mix(in srgb,var(--el) 22%,transparent),transparent)}
+.d2 .nm{font-size:11.5px;color:var(--el);text-transform:uppercase;letter-spacing:1px}
+.d2 .desc{font-size:9px;color:#9fb3a8}
+.d2 .meta{color:#5c6f64}
+.d2 .corner{position:absolute;width:9px;height:9px;border:1.5px solid var(--el)}
+.d2 .c1{top:-1px;left:-1px;border-right:none;border-bottom:none}.d2 .c2{top:-1px;right:-1px;border-left:none;border-bottom:none}
+.d2 .c3{bottom:-1px;left:-1px;border-right:none;border-top:none}.d2 .c4{bottom:-1px;right:-1px;border-left:none;border-top:none}
+.d2.payoff{box-shadow:0 0 12px 0 color-mix(in srgb,var(--el) 55%,transparent)}
+/* D3 CHASSIS (stamped plate) */
+.d3{border-radius:10px;background:linear-gradient(160deg,color-mix(in srgb,var(--el) 38%,#12161c) 0%,#12161c 55%);border:2px solid color-mix(in srgb,var(--el) 65%,#2a2f38);box-shadow:inset 0 1px 0 #ffffff22}
+.d3 .gem{position:absolute;top:6px;left:6px;display:flex;gap:3px}
+.d3 .gem i{width:9px;height:9px;border-radius:2px;background:var(--el);box-shadow:0 0 5px var(--el);display:block}
+.d3 .gem i.off{background:#2a323d;box-shadow:none}
+.d3 .typ{position:absolute;top:5px;right:7px;font-size:8px;font-weight:800;letter-spacing:1.5px;color:#0c0e12;background:var(--el);padding:2px 6px;border-radius:2px}
+.d3 .art{height:58px;border-radius:6px;margin:20px 0 5px;background:linear-gradient(135deg,var(--el),#0c0e12 150%);opacity:.8;border:1px solid #00000066}
+.d3 .nm{font-size:12.5px;text-shadow:0 1px 0 #000}
+.d3 .desc{font-size:9.5px;color:#c6ccd4}
+.d3 .meta{color:#8a94a0}
+.d3.payoff{border-width:3px;box-shadow:inset 0 1px 0 #ffffff22,0 0 16px 0 color-mix(in srgb,var(--el) 50%,transparent)}
+</style>
+<h1>CARD FRAME REWORK — TICKET 66</h1>
+<div class="sub">Same four cards (0e generic · 1e attack · 2e payoff w/ distinct frame · daemon) in three Neon Industrial directions, editor scale + hand scale. Payoff frames glow; STAB shown in the meta line; previews print true numbers in play.</div>
+<div class="dirs"><div class="dir"><h2>DIRECTION 1 · CIRCUIT — the editor baseline, refined</h2>
+      <div class="set"><div class="card d1" style="--el:#9aa3ad"><div class="gem">0</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div><div class="meta"></div></div><div class="card d1" style="--el:#e05d43"><div class="gem">1</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div><div class="meta">STAB · Fenrir</div></div><div class="card d1 payoff" style="--el:#e05d43"><div class="gem">2</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div><div class="meta">STAB · Fenrir</div></div><div class="card d1" style="--el:#43b45f"><div class="gem">2</div><div class="typ">DAEMON</div>
+     <div class="art"></div><div class="nm">Echo Chamber</div><div class="desc">Whenever you play a 0-cost card, generate a 0-cost Feedback.</div><div class="meta">Ratatoskr</div></div></div>
+      <div class="rowlab" style="text-align:center">HAND SCALE</div>
+      <div class="hand"><div class="card d1 small" style="--el:#9aa3ad"><div class="gem">0</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div><div class="meta"></div></div><div class="card d1 small" style="--el:#e05d43"><div class="gem">1</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div><div class="meta">STAB · Fenrir</div></div><div class="card d1 payoff small" style="--el:#e05d43"><div class="gem">2</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div><div class="meta">STAB · Fenrir</div></div></div></div><div class="dir"><h2>DIRECTION 2 · TERMINAL — CRT console, mono type</h2>
+      <div class="set"><div class="card d2" style="--el:#9aa3ad"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><div class="gem">0</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div><div class="meta"></div></div><div class="card d2" style="--el:#e05d43"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><div class="gem">1</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div><div class="meta">STAB · Fenrir</div></div><div class="card d2 payoff" style="--el:#e05d43"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><div class="gem">2</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div><div class="meta">STAB · Fenrir</div></div><div class="card d2" style="--el:#43b45f"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><div class="gem">2</div><div class="typ">DAEMON</div>
+     <div class="art"></div><div class="nm">Echo Chamber</div><div class="desc">Whenever you play a 0-cost card, generate a 0-cost Feedback.</div><div class="meta">Ratatoskr</div></div></div>
+      <div class="rowlab" style="text-align:center">HAND SCALE</div>
+      <div class="hand"><div class="card d2 small" style="--el:#9aa3ad"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><div class="gem">0</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div><div class="meta"></div></div><div class="card d2 small" style="--el:#e05d43"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><div class="gem">1</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div><div class="meta">STAB · Fenrir</div></div><div class="card d2 payoff small" style="--el:#e05d43"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span><div class="gem">2</div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div><div class="meta">STAB · Fenrir</div></div></div></div><div class="dir"><h2>DIRECTION 3 · CHASSIS — stamped plate, energy pips</h2>
+      <div class="set"><div class="card d3" style="--el:#9aa3ad"><div class="gem"><i class="off"></i></div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div><div class="meta"></div></div><div class="card d3" style="--el:#e05d43"><div class="gem"><i class=""></i></div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div><div class="meta">STAB · Fenrir</div></div><div class="card d3 payoff" style="--el:#e05d43"><div class="gem"><i class=""></i><i class=""></i></div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div><div class="meta">STAB · Fenrir</div></div><div class="card d3" style="--el:#43b45f"><div class="gem"><i class=""></i><i class=""></i></div><div class="typ">DAEMON</div>
+     <div class="art"></div><div class="nm">Echo Chamber</div><div class="desc">Whenever you play a 0-cost card, generate a 0-cost Feedback.</div><div class="meta">Ratatoskr</div></div></div>
+      <div class="rowlab" style="text-align:center">HAND SCALE</div>
+      <div class="hand"><div class="card d3 small" style="--el:#9aa3ad"><div class="gem"><i class="off"></i></div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div><div class="meta"></div></div><div class="card d3 small" style="--el:#e05d43"><div class="gem"><i class=""></i></div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div><div class="meta">STAB · Fenrir</div></div><div class="card d3 payoff small" style="--el:#e05d43"><div class="gem"><i class=""></i><i class=""></i></div><div class="typ">ATTACK</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div><div class="meta">STAB · Fenrir</div></div></div></div></div>
+</body></html>
