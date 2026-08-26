@@ -18,3 +18,6 @@ Page live as Coming Soon; URL recorded; wishlist count baseline noted.
 
 _(open)_
 
+## Positioning note (Moonstone Island comp, researched 2026-08-26)
+
+Moonstone Island (Studio Supersoft/Raw Fury, 2023, $19.99, Very Positive ~2,900 reviews, ~$1M+ est.) proves the creature-collector + deckbuilding tag pairing has a paying audience. Claim its tags (Creature Collector, Deckbuilding, Card Battler + Roguelike Deckbuilder). Position AGAINST its shallow combat: Mingming is for the player who finished it wishing the battles were the point - "the depth of a roguelike deckbuilder wearing the creature-collector fantasy; Slay the Spire x Pokemon battles, not Stardew with cards." Their $19.99 buys 40+ life-sim hours - our $4.99-7.99 EA price sells combat depth honestly. Their cosmetic-DLC line is the eventual codex-cosmetics precedent.

@@ -18,3 +18,6 @@ Music plays per screen, volumes persist, `docs/licenses.md` complete, credits sc
 
 _(open)_
 
+## Licence findings (research done 2026-08-26, ahead of this ticket)
+
+Unity's own support docs confirm Asset Store assets are NOT restricted to Unity projects - usable in any engine under the standard EULA (embed-only in a real product; no standalone/extractable redistribution). Per-pack residue for this ticket: check each of Henry's owned SFX packs' store pages for "Standard Unity Asset Store EULA" vs "Non-standard EULA" / "Restricted Asset" labels and record a row per pack in docs/licenses.md. Sources: support.unity.com article 34387186019988; assetstore.unity.com/browse/eula-faq; unity.com/legal/as-terms.

@@ -1,8 +1,8 @@
 # Art direction and budget: AI-assisted vs commissioned, disclosure, what cards look like (ticket 32)
 
 - Type: wayfinder:grilling
-- Status: open
-- Assignee: 
+- Status: closed
+- Assignee: wayfinder (Henry grilling session)
 - Blocked by: [05](05-release-shape.md)
 - Phase: Content Complete
 
@@ -18,3 +18,13 @@ A one-page art plan with costs, the disclosure text drafted, and tickets 33/34/4
 
 _(open)_
 
+## Resolution
+
+**RULED (Henry, 2026-08-25):**
+
+1. **The $500 SPLITS: ~$250 commissions the capsule set** (main/header/small/vertical/library from one key-art piece) **+ ~$250 commissions 3-4 hero species illustrations** (the starters; they also feed screenshots and the trailer).
+2. **Sequencing rule: commission the hero pieces FIRST and use them as style anchors for the AI-generated set** covering the remaining species (512x512, consistent, curated by Henry, prompts refreshed from Art_Prompts.md). The store page carries Steam's generative-AI disclosure - mandatory for AI content reaching players or the page; roughly a fifth of new Steam releases disclose, low stigma.
+3. **Cards stay TEXT-FIRST** - no card art at launch; ticket 34's element frames + typography carry the look. Screenshots lean on battle scenes.
+4. **Neon Industrial is CONFIRMED** as the direction for capsule brief, species prompts and UI theming; Art_Prompts.md's counts are stale (Surtr, 114 cards) - content refreshes, direction stands.
+
+Tickets 33/34/45 are sized by this; the disclosure text drafts in ticket 45.
