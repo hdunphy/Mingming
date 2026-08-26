@@ -45,3 +45,7 @@ Henry's first slice runs were "incredibly hard" and team/deck building "felt rea
 | huldra_v2 | blightbloom | sap_vigor, thornguard, thornguard |
 
 Watch item, not a change: uncapped Sharp piles (21 stacks in the 2v1) felt fair at this pace; re-check under the new win-rate gate before touching it. Ticket 59 applies all of this; ticket 25's next round re-measures the felt difficulty.
+
+## Amendment (Henry, 2026-08-26)
+
+Rulings 2 and 5 are revised; the authoritative build spec now lives in [ticket 61's AMENDED SPEC section](61-apply-60.md). Gist: engines are **5 cards** (payoff + 4 enablers; 5th cards ratified); **only the starter adds 3 generics** (8-card opening deck), recruits bring their bare 5-card engine (base 8/13/18); post-fight picks offer **add-to-deck vs store-in-collection** per card; edit surfaces are exactly **marketplace, workshop, biome boundary (post-exit-elite alert, accept/ignore) and pre-gauntlet**; **selling returns** at 5/10/15/20 by energy (supersedes ticket 56's no-selling) and **paid removal is deleted**; **deck floor = the party's base contribution (8/13/18)** replacing flat min-16.
