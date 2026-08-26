@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "Q2 — the same cards at 1v1, where the buff is invisible",
+  "description": "The control claim behind the whole change: a side-wide card facing ONE body is just a single-target card, so the 1v1 game is untouched. Measured at 96.7% -> 98.3% and confirmed across all 960 grid cells (mean delta +0.00). Play it and check the cards read the same as they always did.",
+  "tags": [
+    "playtest",
+    "ticket-118",
+    "control",
+    "1v1",
+    "control-check"
+  ],
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-26T00:00:00.000Z",
+  "setup": {
+    "seed": "t118-03-draugr-v2-vs-jormungandr-1v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "draugr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "draugr_v2"
+        }
+      ],
+      "deck": [
+        "rimefrost",
+        "rimefrost",
+        "water_slap",
+        "frost_bite",
+        "numbing_gale",
+        "killing_frost",
+        "ice_spear",
+        "glacial_slam",
+        "rimebreaker",
+        "rimebreaker"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "jormungandr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "deck": [
+          "undertow",
+          "undertow",
+          "blind_spot",
+          "corrosive_leak",
+          "surge_protection",
+          "serpents_coil",
+          "serpents_coil",
+          "ink_stream",
+          "ink_stream"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}

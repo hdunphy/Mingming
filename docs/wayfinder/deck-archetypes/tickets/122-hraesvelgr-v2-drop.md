@@ -29,11 +29,30 @@ time, indistinguishable from a legitimately strong deck. That is the part worth 
 the 11 points, but that a bug worth 11 points of field can hide completely inside a clean-looking
 row.
 
-## What is not known
+## CONFIRMED 2026-08-26 — step one is done, and the drop is real
 
-- **It has never been confirmed on a second seed base.** One base, 30 iterations. The whole finding
-  could be a seed artifact, and this repo has already seen full-tier runs disagree with themselves by
-  MAD 6–13 per cell across bases. **Confirming or killing it is step one and it is cheap.**
+The pre-fix build was recovered in the measurement lane (a temporary `TICKET111_OFF` switch on
+`drawCards`' exclusion, never committed) so that both sides could be measured on the **same** seed
+bases, instead of comparing a fresh run against a single-base number from the old committed grid:
+
+| seed base | pre-fix | post-fix | delta |
+|---|---|---|---|
+| `grid` | 55.35% | 45.09% | **−10.3** |
+| `gridB` | 55.73% | 45.09% | **−10.6** |
+| `gridC` | 56.66% | 46.43% | **−10.2** |
+
+**Three independent bases, all agreeing inside half a point. Not a seed artifact.**
+
+`hraesvelgr_v1` was measured the same way and moves the same direction, smaller: −3.3 on `grid`,
+−2.7 on `gridB`. So both OSes were living off the loop, v2 about three times as much.
+
+**What this means:** `hraesvelgr_v2` really was drawing 10 points of field win rate out of a bug — a
+card reshuffling itself back out of the discard mid-resolution — and it did so without ever producing
+a single undecided game, an FTK, or any other signal a gate would have caught. `valkyrie_v2`, the
+deck the loop was *found* in, gained 1.8 from the same fix. **The deck that visibly abused it barely
+moved; the deck nobody was looking at was the one quietly living on it.**
+
+## What is still not known
 - **The mechanism is unidentified.** `hraesvelgr_v1` moved −3.2 in the same direction, so whatever it
   is, both OSes touch it. Hraesvelgr's X-cost cards and `GALE_FORCE` are the obvious suspects — an
   X-cost card that empties the hand interacts with reshuffle timing differently from a fixed-cost
@@ -43,8 +62,9 @@ row.
 
 ## Suggested order
 
-1. Re-run `hraesvelgr_v2`'s 30-cell row on a second seed base. If the drop does not reproduce, close
-   this ticket.
-2. If it does, instrument reshuffles-during-resolution per deck the way `scratch/exclusionscan.ts`
+1. ~~Re-run on a second seed base.~~ **Done — confirmed on three, see above.**
+2. Instrument reshuffles-during-resolution per deck the way `scratch/exclusionscan.ts`
    did for ticket 111, and find what `hraesvelgr` was doing that the rest of the roster was not.
-3. Only then decide whether the deck needs tuning.
+3. Only then decide whether the deck needs tuning. It sits at 45.1%, inside the 35-80 band, so
+   nothing is broken - the question is whether the deck was designed around a behaviour it no
+   longer has.

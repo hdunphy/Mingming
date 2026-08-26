@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "Q1 — triple sleipnir vs the control panel (sim: 100%)",
+  "description": "The most extreme number in the stacked-comp set: 100% over 30 games, FTK 0, truncated 0. Nothing is broken - the ceiling just moved. Worth feeling what a 100% matchup actually looks like from both sides before deciding whether the copy cap needs a replacement.",
+  "tags": [
+    "playtest",
+    "ticket-118",
+    "stacked-species",
+    "3v3"
+  ],
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-26T00:00:00.000Z",
+  "setup": {
+    "seed": "t118-05-triple-sleipnir-vs-control-panel",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "sleipnir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "sleipnir_v1"
+        },
+        {
+          "definitionId": "sleipnir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "sleipnir_v1"
+        },
+        {
+          "definitionId": "sleipnir",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "sleipnir_v1"
+        }
+      ],
+      "deck": [
+        "water_slap",
+        "water_slap",
+        "slipstream",
+        "slipstream",
+        "disorienting_gust",
+        "adrenaline",
+        "tailwind",
+        "zephyr_strike",
+        "stampede",
+        "stampede",
+        "momentum_crash",
+        "hoofbeat_daemon",
+        "water_slap",
+        "water_slap",
+        "slipstream",
+        "slipstream",
+        "disorienting_gust",
+        "adrenaline",
+        "tailwind",
+        "zephyr_strike",
+        "stampede",
+        "stampede",
+        "momentum_crash",
+        "hoofbeat_daemon",
+        "water_slap",
+        "water_slap",
+        "slipstream",
+        "slipstream",
+        "disorienting_gust",
+        "adrenaline",
+        "tailwind",
+        "zephyr_strike",
+        "stampede",
+        "stampede",
+        "momentum_crash",
+        "hoofbeat_daemon"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "kraken",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "kraken_v1",
+        "deck": [
+          "whirlpool_v2",
+          "whirlpool_v2",
+          "pressure_point",
+          "pressure_point",
+          "ink_stream",
+          "ink_stream",
+          "surge_protection",
+          "undertow"
+        ]
+      },
+      {
+        "definitionId": "huldra",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "deck": [
+          "growth",
+          "growth",
+          "soothe",
+          "water_slap",
+          "iron_bark",
+          "iron_bark",
+          "thorn_tithe",
+          "thorn_tithe",
+          "hexbloom"
+        ]
+      },
+      {
+        "definitionId": "draugr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "draugr_v2",
+        "deck": [
+          "rimefrost",
+          "rimefrost",
+          "water_slap",
+          "frost_bite",
+          "numbing_gale",
+          "killing_frost",
+          "ice_spear",
+          "glacial_slam",
+          "rimebreaker",
+          "rimebreaker"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}
