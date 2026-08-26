@@ -69,9 +69,33 @@ type Member = readonly [string, string];
 const ZOO: Member[] = [
     ['jormungandr', 'jormungandr_v1'], ['sleipnir', 'sleipnir_v1'], ['hraesvelgr', 'hraesvelgr_v1'],
 ];
-const CTL: Member[] = [
+const CTL_BASE: Member[] = [
     ['kraken', 'kraken_v1'], ['huldra', 'huldra_v1'], ['draugr', 'draugr_v2'],
 ];
+
+/**
+ * WHICH control member leads. This is not cosmetic and it invalidated a result.
+ *
+ * Every arm here slices `CTL.slice(0, width)`, so at width 1 the panel is the FIRST member only.
+ * With the default order that is `kraken_v1` - which the census in this file's header shows runs
+ * ZERO enemy-facing debuff cards. So the first width-1 rows I took came back bit-identical across
+ * SHIPPED, SIDE_NOCC and SIDE_COSTED, and I read that as "the change costs 1v1 nothing" when it
+ * actually meant "the change is not present in this matchup". A cost bump on six cards obviously
+ * bills 1v1; the arm just could not see it.
+ *
+ * `LEAD=draugr` puts the deck that actually HOLDS the six cards at the front, which is the only
+ * width-1 row that prices this change. `LEAD=kraken` reproduces the old (uninformative) rows.
+ *
+ * The mechanical claim "Side collapses to Single at width 1" remains true by construction - a
+ * side-wide effect facing one body hits one body. What was never measured is the ENERGY bill, and
+ * that is what this exists to measure.
+ */
+const LEAD = process.env.LEAD ?? 'kraken';
+const CTL: Member[] = (() => {
+    const i = CTL_BASE.findIndex(([s]) => s === LEAD);
+    if (i === -1) throw new Error(`LEAD=${LEAD} is not one of ${CTL_BASE.map(([s]) => s).join(',')}`);
+    return [CTL_BASE[i], ...CTL_BASE.filter((_, j) => j !== i)];
+})();
 
 /** The duality debuffs that ride POWER - the ones that punish card spam. */
 const DUALITY_DEBUFFS = new Set(['Weakened', 'Dazed']);
@@ -165,10 +189,41 @@ function armBigDamage(factor: number): Restore {
     return () => { for (const s of saved) (prog(s.id).actions as Array<Record<string, unknown>>)[s.i].power = s.power; };
 }
 
+/**
+ * The shippable candidate: SIDE_NOCC, but PAID FOR. `scratch/sidescopeprice.ts` found that Side
+ * scope multiplies a card's score by 2.2, putting all six over their cost band, and that power and
+ * stack cuts mostly cannot rescue them because the STATUS half carries these cards. The one dial
+ * that does not touch a card's 1v1 damage profile is Energy, so this arm scopes the six AND charges
+ * +1 Energy for each.
+ *
+ * This is the arm that decides whether option (c) is real. If the +45 points survive the cost bump,
+ * the change can be shipped in band. If the bump eats the gain, then paying for the scope and having
+ * the scope are mutually exclusive, and the decision moves to whether six knowingly over-band cards
+ * are acceptable.
+ */
+function armSideCosted(): Restore {
+    // The card list MUST be taken BEFORE scoping. `debuffCards` deliberately skips anything already
+    // Side-scoped, so asking it again afterwards returns an empty list - which is exactly what the
+    // first version of this arm did: it charged nobody and returned a row bit-identical to
+    // SIDE_NOCC. Two dead arms in this file now; both were caught by an empty/NaN echo line, which
+    // is why every arm prints what it touched.
+    const cards = debuffCards(SOFT_DEBUFFS);
+    if (!cards.length) throw new Error('ARM DID NOT TAKE: no cards to charge');
+    const restoreScope = armSetScope(SOFT_DEBUFFS);
+    const saved = cards.map(id => [id, prog(id).baseCost] as const);
+    for (const id of cards) prog(id).baseCost = (prog(id).baseCost ?? 0) + 1;
+    console.error(`   cost +1: ${saved.map(([id, c]) => `${id} ${c}e->${(c ?? 0) + 1}e`).join(' ')}`);
+    return () => {
+        for (const [id, c] of saved) prog(id).baseCost = c;
+        restoreScope();
+    };
+}
+
 const MAKE_ARM: Record<string, () => Restore> = {
     SHIPPED: () => () => { },
     SIDE: () => armSetScope(DUALITY_DEBUFFS),
     SIDE_NOCC: () => armSetScope(SOFT_DEBUFFS),
+    SIDE_COSTED: () => armSideCosted(),
     SIDE_ALL: () => armSetScope(ALL_DEBUFFS),
     FREE: () => armFreeCost(),
     TANK: () => armTank(1.5),
@@ -180,6 +235,9 @@ const MAKE_ARM: Record<string, () => Restore> = {
  *  expectation is only worth having if it is checked. */
 const DEFAULT_WIDTHS: Record<string, number[]> = {
     SHIPPED: [1, 3], SIDE: [1, 3], SIDE_NOCC: [3], SIDE_ALL: [3], FREE: [3], TANK: [3], BIGDMG: [3],
+    // SIDE_COSTED runs at BOTH widths: the cost bump is the one dial that DOES bill 1v1, so the 1v1
+    // row is not a formality here the way it was for the unpriced SIDE arm.
+    SIDE_COSTED: [1, 3],
 };
 
 const ITER = Number(process.env.ITER ?? 30);
@@ -221,7 +279,9 @@ for (const arm of ARMS) {
             const r = runPairedBatch(teamScenario({
                 player: CTL.slice(0, width) as Member[],
                 enemy: ZOO.slice(0, width) as Member[],
-                seed: `weakarms:w${width}`,          // SHARED with weakarms.ts - see the header
+                // SHARED with weakarms.ts at the default lead, so the SHIPPED arm reproduces it row
+                // for row. A non-default lead is a different matchup and gets its own seed base.
+                seed: LEAD === 'kraken' ? `weakarms:w${width}` : `sidescope:${LEAD}:w${width}`,
             }), { iterations: ITER, telemetry: true });
             const games = r.pooled.iterations || 1;
             let landed = 0;
