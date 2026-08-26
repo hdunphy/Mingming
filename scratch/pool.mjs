@@ -46,10 +46,17 @@ async function runRow(lanes) {
     const outs = await Promise.all(Array.from({ length: lanes }, (_, i) => runLane(i, lanes)));
     const cells = outs.join('').split('\n')
         .filter(l => l.startsWith('CELL,'))
-        .map(l => { const [, i, deck, wr] = l.split(','); return { i: Number(i), deck, wr }; })
+        .map(l => {
+            const [, i, deck, wr, games, decisive, turns, ftk, dead] = l.split(',');
+            return { i: Number(i), deck, wr, games, decisive, turns, ftk, dead };
+        })
         .sort((a, b) => a.i - b.i);
     const field = cells.reduce((s, c) => s + Number(c.wr), 0) / cells.length;
-    return { ms: Date.now() - started, cells, field, text: cells.map(c => `${c.deck},${c.wr}`).join('\n') };
+    // Extra columns are appended, so an older CSV (deck,wr) still parses and the --verify diff is
+    // unaffected - it compares whatever the lanes actually emitted, on both sides.
+    const text = cells.map(c => [c.deck, c.wr, c.games, c.decisive, c.turns, c.ftk, c.dead]
+        .filter(v => v !== undefined).join(',')).join('\n');
+    return { ms: Date.now() - started, cells, field, text };
 }
 
 if (flag('verify')) {

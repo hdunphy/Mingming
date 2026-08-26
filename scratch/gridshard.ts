@@ -46,5 +46,13 @@ for (let i = SHARD; i < opponents.length; i += SHARDS) {
     // too, so a lane's pipe carries battle noise interleaved with results, and an unmarked line
     // format silently parsed that noise into NaN cells. The index lets the merger restore canonical
     // order without knowing the roster.
-    console.log(`CELL,${i},${o.deck},${(r.pooled.decisiveWinRate * 100).toFixed(2)}`);
+    // TICKET 114 promotion: the row used to carry ONLY the win rate, so a grid promoted from these
+    // CSVs would have kept `turns`, `ftk`, `dead` and `decisive` at their pre-fix values - a file
+    // that looks current and is half stale, which is the `0-CACHE-FIRMWARE-BLIND` failure mode.
+    // Field order is append-only; `pool.mjs` reads by position.
+    console.log([`CELL`, i, o.deck,
+        (r.pooled.decisiveWinRate * 100).toFixed(2),
+        r.pooled.iterations, r.pooled.decisive,
+        r.pooled.averageTurns.toFixed(2), r.pooled.ftkCount,
+        r.pooled.deadCardRatio.toFixed(4)].join(','));
 }
