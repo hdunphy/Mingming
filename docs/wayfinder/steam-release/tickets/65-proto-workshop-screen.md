@@ -1,8 +1,8 @@
 # Prototype: the workshop screen (ticket 65)
 
 - Type: wayfinder:prototype
-- Status: open
-- Assignee: 
+- Status: closed
+- Assignee: wayfinder (Henry prototype session)
 - Blocked by: —  (spec: [61's AMENDED SPEC](61-apply-60.md) §3 + [56](56-economy-numbers.md) ruling 2)
 - Phase: Vertical Slice
 
@@ -16,4 +16,13 @@ The workshop's verbs: ASSEMBLE a blueprint into party or bench (1 blueprint + 25
 
 ## Resolution
 
-_(open)_
+Closed 2026-08-26. Mockups in [research/65-workshop-proto/](../research/65-workshop-proto/).
+
+**CHOSEN: Option I — the BAY, one screen** ([workshop_I_bay.html](../research/65-workshop-proto/workshop_I_bay.html); K, the 3-step wizard, rejected — more clicks for the same verbs). Build spec:
+
+- **Left: BLUEPRINT RACK** — species chips with consumable counts ("blueprints ×2"), zero-count species greyed; hint text carries the re-roll fiction (extra copies re-roll stats via re-assembly at the ranch).
+- **Center: the ASSEMBLY STAGE** — selected species silhouette, **the stat-roll reveal** (three stat boxes; animated in build: chassis prints, rolls spin up — the SynthesisLab "BASE DECK ACQUIRED" sequence is the precedent), the species' two OS options chosen AT assembly, and the **5-card engine that will enter the deck** listed explicitly. Cost chips: 1 × BLUEPRINT + 25 ⛁. Two commit buttons: **ASSEMBLE → PARTY** (asks who to bench when full) and **ASSEMBLE → BENCH**.
+- **RULED (Henry): an assembled member's 5-card engine goes STRAIGHT TO THE ACTIVE DECK** when it enters the party (bench assembly parks the engine in the collection until the member is swapped in) — consistent with the purchase ruling and the 8/13/18 floor.
+- **Right: PARTY/BENCH panel** (chips with OS + energy), species-clause note, the floor pill, and the **REFLASH entry**.
+- **REFLASH = the shared comparison screen** ([workshop_J_reflash.html](../research/65-workshop-proto/workshop_J_reflash.html)): current OS + its in-deck engine vs offered OS + the engine that replaces it, side by side; **old engine cards → run collection, new engine → deck** (floor unchanged, 5 for 5); cost 1 × species blueprint + 15 ⛁.
+- Top bar: scrap, EDIT LOADOUT (the ticket-62 F editor), LEAVE. Duplicate rule (×N badges) applies throughout.

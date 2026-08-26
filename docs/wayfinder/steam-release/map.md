@@ -23,6 +23,8 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ## Decisions so far
 
+- [Workshop prototype](tickets/65-proto-workshop-screen.md) — **Option I, the bay**: blueprint rack (consumable counts) + assembly stage (stat-roll reveal ceremony, OS chosen at assembly, engine listed) + party/bench with reflash entry, all on one screen; reflash = side-by-side OS + engine comparison (old engine → collection, new → deck, 5 for 5). **Assembled members' engines go straight to the active deck.** Mockups in research/65-workshop-proto/.
+
 - [Marketplace prototype](tickets/63-proto-marketplace-screen.md) — **Option G, the stall**: stock (cards with face prices + SOLD ghosts + off-pool slot; macros with slot counter) beside an always-visible SELL panel of deck+collection rows with green +scrap prices; no buy/sell mode switch. **Bought cards go straight to the active deck, always** (picks keep their choice). Mockups in research/63-market-proto/.
 
 - [Deck + roster editor prototype](tickets/62-proto-deck-roster-editor.md) — **Option F chosen from 6 mockups**: Hearthstone-style paged book (8 big cards/page: cost gem, ATTACK/SKILL/DAEMON banner, full description), roster strip on top with drag-to-swap bench, compact deck list right with ×counts, DECK/floor pill, boundary alert = the quick-swap modal (round-1 C). One editor serves all four edit surfaces. Mockups in research/62-editor-proto/.
