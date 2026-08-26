@@ -161,7 +161,7 @@ export interface IKitFraction {
  *
  * | biome | enemy deck | OS |
  * |---|---|---|
- * | 0 | 5 `startKit` + 3 generics — the same 8 the player opens with | no |
+ * | 0 | 4 `startKit` + 2 generics — the same 6 the player opens with (ticket 60) | no |
  * | 1 | the species' `startKit` | yes |
  * | 2 (and the gym) | the full tuned per-OS deck | yes |
  *
@@ -170,7 +170,7 @@ export interface IKitFraction {
  * list against other complete lists — that is what the 1v1 and 3v3 balance corpus measures. If the
  * final biome fields those tuned decks, then the corpus becomes the **late-run** reference point
  * rather than an average the run wobbles around, and everything earlier is easier *by construction*
- * — the biome-0 enemy is beatable because it is holding the same eight cards you are, not because a
+ * — the biome-0 enemy is beatable because it is holding the same six cards you are, not because a
  * hidden coefficient scaled its damage down. Difficulty is a deck, exactly as `vision.md` demands
  * ("never bigger numbers"), and it is legible: the player can read the enemy's hand and see why the
  * fight got harder.
@@ -193,7 +193,7 @@ export const FULL_KIT_FRACTION: IKitFraction = KIT_FRACTION_BY_BIOME[KIT_FRACTIO
  * ticket says it in so many words and it should be confirmed. The argument: ticket 07 makes the
  * elite every biome's unavoidable exit, `economy-session.md` makes it "ONE harder fight" with a
  * Driver visible as the stakes, and a biome-0 elite under the biome-0 rule would be the exam
- * written in the same eight cards as the practice questions — harder only by having one more body
+ * written in the same six cards as the practice questions — harder only by having one more body
  * on the field. Facing a complete tuned deck for the first time at the end of biome 0 is what makes
  * the elite legible as a checkpoint, and it is the same lesson the gym asks for twice more later.
  *
@@ -233,7 +233,7 @@ export function kitFractionFor(node: IRegionNode): IKitFraction {
  *
  * A floor made of rules that already exist, not authored content:
  *
- * - the enemy deck is pinned to `KIT_FRACTION_BY_BIOME[0]` — the same eight cards the player is
+ * - the enemy deck is pinned to `KIT_FRACTION_BY_BIOME[0]` — the same six cards the player is
  *   holding, no firmware — rather than whatever the node's depth or kind would give it;
  * - the enemy party is pinned to **one** body.
  *
@@ -352,8 +352,8 @@ export interface IRunEncounter {
 /**
  * What the enemy is holding, under the rule for this depth.
  *
- * `start-kit-plus-generics` calls `startDeckFor` rather than re-listing "5 kit + 3 generics",
- * because the claim ticket 08 makes is *"the same 8 the player starts with"* — and a second copy of
+ * `start-kit-plus-generics` calls `startDeckFor` rather than re-listing "4 kit + 2 generics",
+ * because the claim is *"the same six the player starts with"* — and a second copy of
  * that composition would be a second thing to keep true. The minted `IRunCard` wrappers are thrown
  * away and only the dataIds kept: an enemy deck has no owner and no instance identity, and
  * `createBattleState` instantiates its own card entities anyway.

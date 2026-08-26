@@ -104,11 +104,15 @@ describe('RunSummary — the numbers match the run it is reporting', () => {
         const run = ended('victory', { deck: [...BASE.deck, ...picked(14)] });
         const markup = render(run);
 
-        expect(markup).toContain('22 cards');
+        // Ticket 60 moved the kit half from 8 a member to 6 (4 tagged + 2 generics), so the same
+        // 14 picks now land the deck on 20 rather than 22 — right on the floor of the target
+        // instead of two inside it, which is the deck-building track working harder for the same
+        // number of picks. The picked half is untouched, and that split is the whole screen.
+        expect(markup).toContain('20 cards');
         expect(markup).toContain('20–25');
         expect(markup).toContain('>14<');       // picked
-        expect(markup).toContain('+ 8 kit');    // the eight the party walked in with
-        expect(markup).toContain('runs open at 8/member');
+        expect(markup).toContain('+ 6 kit');    // the six the party walked in with
+        expect(markup).toContain('runs open at 6/member');
     });
 
     it('calls the scrap figure a balance, never a spend', () => {

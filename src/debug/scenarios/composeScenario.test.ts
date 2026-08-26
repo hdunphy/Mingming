@@ -154,7 +154,7 @@ describe('deck resolution', () => {
 
         const resolved = resolveDeck({ ...createDraft(), deckMode: 'saved' }, run);
         expect(resolved.cards).toEqual(expected);
-        expect(resolved.cards).toHaveLength(8); // ticket 08: 5 kit + 3 generics for one member
+        expect(resolved.cards).toHaveLength(6); // ticket 60: 4 kit + 2 generics for one member
         expect(resolved.source).toContain('run deck');
         expect(resolved.issues).toEqual([]);
     });

@@ -2,7 +2,7 @@
 
 - Type: wayfinder:task
 - Status: open
-- Assignee: 
+- Assignee: session-61-pkg1 (mini-engine starts)
 - Blocked by: [60](60-difficulty-and-agency.md), [57](57-apply-56.md)
 - Phase: Vertical Slice
 

@@ -353,7 +353,9 @@ describe('an app close mid-run resumes at the same node with the same seed', () 
         expect(loaded.run?.currentNodeId).toBe(target.id);
         expect(loaded.run?.fightsResolved).toBe(3);
         expect(loaded.run?.scrap).toBe(42);
-        expect(loaded.run?.deck).toHaveLength(8);
+        // Ticket 60's opening six for the solo party `makeRun` fields (4 kit + 2 generics), every
+        // card back out of storage — a deck that round-trips short is the failure mode here.
+        expect(loaded.run?.deck).toHaveLength(6);
     });
 
     it('the graph is not stored twice — the same seed regenerates the same region', () => {

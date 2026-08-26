@@ -25,43 +25,49 @@ import type { IGymOffer } from './gyms';
 // ---------------------------------------------------------------------------------------------
 
 /**
- * > Start deck = **8 cards: 5 `startKit`-tagged cards from the member's species x OS deck list +
- * > 3 generic None-element hits**. A recruit joins with **5 `startKit` cards and no generics**. The
+ * > Start deck = **6 cards: the 4 `startKit`-tagged cards — the signature payoff plus its three
+ * > enablers — plus 2 generic None-element hits**. A recruit arrives with the identical six. The
  * > player's OS is active from the start.
  *
- * **Why 8 and not a literal fraction of the tuned deck**, since the number looks arbitrary and is
- * not. Draw per turn is `sum(cardDraw) - (N - 1)` across an N-member party, which is 3 / 5 / 7
- * cards at one, two and three members, and tuned decks run 8-11 cards. So a *tuned* solo deck
- * cycles itself about every three turns — enough that a draw is a draw and not a script.
+ * **Why SIX, and why the draw argument moved rather than disappeared.** Draw per turn is
+ * `sum(cardDraw) - (N - 1)` across an N-member party — 3 / 5 / 7 cards at one, two and three
+ * members — and tuned decks run 8-11. Ticket 08 argued from that to eight: a three-card kit held
+ * solo would be redrawn in its entirety every turn, so "draw a card" and every duplicate copy stop
+ * meaning anything, and 8 was the smallest deck that still felt like a deck.
  *
- * A one-third kit (3 cards) held solo would be redrawn in its entirety every single turn: zero
- * variance, and every "draw a card" and every duplicate copy in the list becomes literally
- * meaningless. 8 is the smallest number that keeps a solo opening deck feeling like a deck while
- * still being clearly weaker than the tuned list the run builds back toward
- * (`economy-session.md`, bite two: "the run BUILDS toward the ~20-25 cards a good 3v3 deck wants").
+ * Six is under that floor for a SOLO opener, and ticket 60 took the trade knowingly. What changed
+ * is what the six cards are: four of them are now a working engine rather than four fifths of one,
+ * so a solo player cycling their whole deck every other turn is cycling something that does a
+ * thing. And the solo opener is the shortest-lived state in the run — the first workshop is 1-3
+ * fights in, and 60's own collection + bench package makes the deck editable from run start. The
+ * run still BUILDS toward `economy-session.md`'s 20-25; it just no longer starts with the engine
+ * missing its payoff.
  *
- * **RECRUITS WERE 3 + 1 AND ARE NOW 5 + 0** (Henry, playtest 2026-08-24). The old reasoning was
- * that a recruit *"arrives mid-run into a deck that is already growing, so their contribution is a
- * seed rather than a starter."* The playtest is what that argument missed: it makes a recruited
- * member a body wearing somebody else's deck. Henry recruited Ratatoskr into a Fenrir run and got
- * `forage, forage, healing_mist` out of him — the first three of his five tagged cards, because
- * `startKitIdsFor` slices from the front — in a 12-card deck drawing 5-7 a turn. His words:
- * *"It felt really bad to play Rat without his kit."*
+ * **TICKET 60 REPLACED THIS TABLE TWICE OVER** (Henry, playtest round 5): the kit is **4 tags —
+ * the signature payoff plus its three enablers — and 2 generics**, and a recruit arrives with the
+ * identical six. It supersedes both ticket 08's 5 + 3 and the 5 + 0 this map shipped on
+ * 2026-08-24, which had itself been a correction to 3 + 1.
  *
- * The generic goes rather than the kit card. A recruit's problem was never deck SIZE — 4 cards to 5
- * barely moves the count — it was that only three of them said anything about the species you just
- * paid a blueprint and 25 scrap for. A `GENERIC_HIT` is the one card in the deck that is the same
- * whoever brought it, so it is the one worth cutting to make room.
+ * The 2026-08-24 pass fixed the right bug with the wrong lever. A recruit was arriving with three
+ * of five tagged cards, so it got all five and lost its filler — but that only fixed RECRUITS, and
+ * round 5 found the same hole in the STARTER: ticket 09's tables deliberately withheld each deck's
+ * payoff so the run could "build back toward" it, which meant *"ratatoskr's startKit carried none
+ * of his engine, making him pure feed."* A kit of enablers with no payoff is a pile of setup for a
+ * card you may never draw.
  *
- * Deck-size arithmetic, since this is the number `economy-session.md`'s 20-25 gate watches: a full
- * three-member run now opens at 8 + 5 + 5 = 18 base rather than 16. The pressure on that gate is
- * not here — it is the reward pick, which was MANDATORY once per defeated body until the same
- * playtest made it skippable (`BattleReport`).
+ * So the payoff is tagged, the fourth enabler is cut, and starters and recruits are the same shape
+ * — a recruit that plays differently from a starter of the same species was never a design, it was
+ * an artefact of two rulings written months apart.
+ *
+ * Deck-size arithmetic, since `economy-session.md`'s 20-25 gate watches it: 6 x 3 members = **18**
+ * before a single pick, against 8 + 5 + 5 = 18 under the previous table. The base is unchanged;
+ * what moved is that every one of those six cards now does something for the species that brought
+ * it, and two per member are generics the market can be paid to strip.
  */
-export const START_KIT_SIZE = 5;
-export const START_GENERICS = 3;
-export const RECRUIT_KIT_SIZE = 5;
-export const RECRUIT_GENERICS = 0;
+export const START_KIT_SIZE = 4;
+export const START_GENERICS = 2;
+export const RECRUIT_KIT_SIZE = 4;
+export const RECRUIT_GENERICS = 2;
 
 /**
  * What a run opens with, in scrap (Henry, playtest 2026-08-24).
@@ -102,7 +108,7 @@ const warnedMissingKits = new Set<string>();
  *
  * **Exported since ticket 11.** `engine/run/encounter.ts` fields enemies under the same ruling
  * (ticket 08's kit fraction: a biome-1 enemy holds "the species' `startKit`"), and it has to be the
- * *same* five cards the player would get from that species, chosen by the same tags and the same
+ * *same* four cards the player would get from that species, chosen by the same tags and the same
  * untagged fallback. A second implementation would drift the moment a kit was retagged.
  */
 export function startKitIdsFor(member: IMingmingState, size: number): string[] {
@@ -111,9 +117,26 @@ export function startKitIdsFor(member: IMingmingState, size: number): string[] {
     const tagged = definition.startKits?.[os];
 
     if (tagged) {
-        // Recruits take the FIRST `RECRUIT_KIT_SIZE` of the ruled five (Henry, ticket 09 data
-        // note) rather than a random three — the kits are written front-loaded, with the card the
-        // OS needs from turn one first, so the first three are already the right three.
+        /*
+         * TICKET 60: THE SLICE IS NOW A NO-OP, AND THAT IS THE POINT.
+         *
+         * A tag list is exactly `START_KIT_SIZE` long and a recruit takes the same four, so this
+         * takes all of them. It used to take the first three of five for a recruit, which is how
+         * Ratatoskr arrived carrying `forage, forage, healing_mist` — the front of a list whose
+         * engine was at the back. There is no front and back any more: four tags, all of them,
+         * every time.
+         *
+         * The warn is a data check, not a defence. A kit of the wrong length still works — it just
+         * quietly hands one species a different-sized opening than every other, which is invisible
+         * in play and obvious here.
+         */
+        if (tagged.length !== START_KIT_SIZE && !warnedMissingKits.has(`${os}:size`)) {
+            warnedMissingKits.add(`${os}:size`);
+            console.warn(
+                `[ticket 60] startKits["${os}"] has ${tagged.length} tags; the ratified mini-engine ` +
+                `is ${START_KIT_SIZE} (payoff + 3 enablers). Using ${Math.min(tagged.length, size)}.`,
+            );
+        }
         return tagged.slice(0, size);
     }
 
@@ -145,7 +168,7 @@ function mintCards(member: IMingmingState, dataIds: ReadonlyArray<string>, strea
 }
 
 /**
- * The 8 cards a starting party member brings: 5 kit + 3 generics.
+ * The 6 cards a starting party member brings: 4 kit (payoff + 3 enablers) + 2 generics.
  *
  * The generic is `GENERIC_HIT` (ticket 09) — a None-element card, so no species gains STAB from it
  * and the filler is worth the same to everyone.
@@ -159,10 +182,10 @@ export function startDeckFor(member: IMingmingState, stream: SeedStream): IRunCa
 }
 
 /**
- * The 4 cards a mid-run recruit brings: the first 3 kit cards + 1 generic. Not called by
+ * The 6 cards a mid-run recruit brings — the SAME six a starter does. Not called by
  * `createRun` — `engine/run/workshop.ts`'s `planRecruit` (ticket 14) is its caller — but it lives
  * here because it is the same ruling, and splitting the two halves of ticket 08 across two files is
- * how they drift apart. The workshop calls this rather than re-deriving the 3 + 1 for exactly that
+ * how they drift apart. The workshop calls this rather than re-deriving the shape for exactly that
  * reason.
  */
 export function recruitDeckFor(member: IMingmingState, stream: SeedStream): IRunCard[] {

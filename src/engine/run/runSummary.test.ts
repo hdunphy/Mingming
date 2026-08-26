@@ -57,10 +57,12 @@ const picked = (n: number): IRunCard[] => Array.from({ length: n }, (_, i) => ({
 }));
 
 describe('summarizeRun — the deck-building track', () => {
-    it('opens at 8 cards per member, which is the number the ticket quotes', () => {
-        // The constant is derived from `createRun`'s two halves rather than written as 8, so this
-        // asserts the derivation rather than the literal — a re-ruled start deck moves both.
-        expect(START_DECK_PER_MEMBER).toBe(8);
+    it('opens at 6 cards per member, which is the number the ticket quotes', () => {
+        // The constant is derived from `createRun`'s two halves rather than written as 6, so this
+        // asserts the derivation rather than the literal — a re-ruled start deck moves both. It has
+        // now been re-ruled twice (8 = 5 + 3, then ticket 60's 6 = 4 + 2) and the derivation held
+        // through both; the literal here is what makes the RULING visible in the diff.
+        expect(START_DECK_PER_MEMBER).toBe(6);
         expect(makeRun().deck).toHaveLength(START_DECK_PER_MEMBER);
     });
 
@@ -72,9 +74,13 @@ describe('summarizeRun — the deck-building track', () => {
         const grown = makeRun({ deck: [...run.deck, ...picked(9)] });
 
         const summary = summarizeRun(grown, STARTED_AT);
-        expect(summary.deckSize).toBe(17);
+        // A solo run's opening six plus nine bought cards. Ticket 60 moved the opening half (8 -> 6)
+        // and left the picked half alone, which is exactly the asymmetry these two counters exist
+        // to show the player: what you were given, and what you chose.
+        expect(summary.deckSize).toBe(15);
         expect(summary.pickedCards).toBe(9);
-        expect(summary.kitCards).toBe(8);
+        expect(summary.kitCards).toBe(6);
+        expect(summary.kitCards).toBe(START_DECK_PER_MEMBER);
         expect(summary.kitCards + summary.pickedCards).toBe(summary.deckSize);
     });
 

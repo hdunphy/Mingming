@@ -105,11 +105,17 @@ describe('MarketplaceNode', () => {
     });
 
     it('says which side of the target the deck is on', () => {
-        // The start deck is 8 cards, so the first market's advice is "buy".
-        const short = render(makeRun(140));
-        expect(short).toContain(`${DECK_TARGET_MIN - 8} short`);
-
+        // A solo run opens at ticket 60's six — 4 tagged kit cards + 2 generics, down from the 5 + 3
+        // that made it 8 — so the first market's advice is "buy", and it is 14 short rather than 12.
         const run = makeRun(140);
+        expect(run.deck).toHaveLength(6);
+
+        const short = render(run);
+        // Derived from the deck the screen was actually handed, then pinned as the literal the
+        // player reads: the shortfall is arithmetic, but 14 is what the first stall will say.
+        expect(short).toContain(`${DECK_TARGET_MIN - run.deck.length} short`);
+        expect(short).toContain('14 short');
+
         const bloated = render({ ...run, deck: [...run.deck, ...Array.from({ length: 20 }, (_, i) => ({
             instanceId: `extra_${i}`, dataId: GENERIC_HIT, ownerId: null,
         })) ] });

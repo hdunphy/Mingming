@@ -19,9 +19,11 @@
  *   `workshop.ts`, and why a second literal here would have drifted.
  * - **The species clause is enforced before anything is spent.** A standing law (map § Notes) that
  *   no reducer can check, because species live on the ranch and the party lives on the run.
- * - **A recruit is the ruled 5 + 0 (ticket 08's 3 + 1, re-ruled by Henry on 2026-08-24), not this
- *   file's opinion of it.** `recruitDeckFor` is the ruling; a re-derivation here would be a second
- *   answer waiting to disagree — and it would have been a second answer to re-edit this week.
+ * - **A recruit is the ruled 4 + 2 — ticket 60's mini-engine six, the same six a starter gets, and
+ *   the third table after ticket 08's 3 + 1 and the 5 + 0 of 2026-08-24 — not this file's opinion
+ *   of it.** `recruitDeckFor` is the ruling; a re-derivation here would be a second answer waiting
+ *   to disagree, and with the table having moved three times in a fortnight it would have been a
+ *   second answer to re-edit each time.
  * - **The individual is deterministic in the node's visit count.** The workshop is a node's
  *   contents, so ticket 07's re-roll rule and ticket 23's resume contract both apply to it.
  */
@@ -345,20 +347,23 @@ describe('assemblableSpecies', () => {
 describe('planRecruit', () => {
     const RANCH = makeRanch({ fenrir: 1 });
 
-    it('brings the ruled 5 kit + 0 generics, from recruitDeckFor and not re-derived', () => {
-        // Ticket 08 ruled 3 + 1; Henry re-ruled it to 5 + 0 on 2026-08-24, after a recruited
+    it('brings the ruled 4 kit + 2 generics, from recruitDeckFor and not re-derived', () => {
+        // Ticket 08 ruled 3 + 1; the 2026-08-24 pass re-ruled it to 5 + 0 after a recruited
         // Ratatoskr turned up holding the first three of his five tagged cards in a deck drawing
-        // 5-7 a turn: *"It felt really bad to play Rat without his kit."* The generic was what got
-        // cut, because it is the one card that is the same whoever brought it.
+        // 5-7 a turn: *"It felt really bad to play Rat without his kit."* Ticket 60 (playtest round
+        // 5) settled it at 4 + 2 — the same six a STARTER gets. The 5 + 0 table had paid for the
+        // missing tags by cutting the generic, which left a recruit playing a different shape from
+        // a starter of the same species; once ticket 60 put each deck's payoff into the kit for
+        // both of them, there was nothing left for a recruit to be a lesser version OF.
         const plan = planRecruit({ ranch: RANCH, run: RUN, node: NODE, speciesId: 'fenrir', osId: 'fenrir_v1' })!;
 
         expect(plan.cards).toHaveLength(RECRUIT_KIT_SIZE + RECRUIT_GENERICS);
-        expect(plan.cards).toHaveLength(5);
+        expect(plan.cards).toHaveLength(6);
         expect(plan.cards.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(RECRUIT_GENERICS);
-        expect(plan.cards.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
+        expect(plan.cards.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(2);
 
-        // The same five cards `createRun`'s own recruit rule produces for the same member and the
-        // same stream. A second derivation of "5 + 0" living here is the drift this asserts against.
+        // The same six cards `createRun`'s own recruit rule produces for the same member and the
+        // same stream. A second derivation of "4 + 2" living here is the drift this asserts against.
         const stream = new SeedStream(new SeedStream(nodeSeed(RUN, NODE, 'workshop')).fork('recruit-deck:fenrir'));
         expect(plan.cards).toEqual(recruitDeckFor(toMingmingState(plan.member), stream));
     });

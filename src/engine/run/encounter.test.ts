@@ -268,17 +268,23 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
     const tunedDeckFor = (enemies: ReadonlyArray<IBattleEntity>): string[] =>
         enemies.flatMap((enemy) => getDeckForOS(enemy.definitionId, enemy.activeOS));
 
-    it('biome 0 fields the same 8 the player starts with, and NO firmware', () => {
+    /** Ticket 60's opening deck, per body: 4 tagged kit cards then 2 generics. */
+    const START_DECK_SIZE = START_KIT_SIZE + START_GENERICS;
+
+    it('biome 0 fields the same 6 the player starts with, and NO firmware', () => {
         const { enemyParty, enemyDeckIds } = rollEncounter({ run, node: node({ biomeIndex: 0 }), party });
 
-        // Literally the composition `createRun.startDeckFor` gives the player, block by block: five
-        // of the species' own `startKit` cards, then three generics. The firmware the kit was
-        // chosen from is not readable off the entity (that is the point of the biome-0 row), so the
-        // check is that the five ARE one of the species' tagged kits.
-        expect(enemyDeckIds).toHaveLength((START_KIT_SIZE + START_GENERICS) * enemyParty.length);
+        // Literally the composition `createRun.startDeckFor` gives the player, block by block: four
+        // of the species' own `startKit` cards, then two generics. The firmware the kit was chosen
+        // from is not readable off the entity (that is the point of the biome-0 row), so the check
+        // is that the four ARE one of the species' tagged kits.
+        expect(enemyDeckIds).toHaveLength(START_DECK_SIZE * enemyParty.length);
 
         enemyParty.forEach((enemy, index) => {
-            const block = enemyDeckIds.slice(index * 8, (index + 1) * 8);
+            // Block width read from the constants rather than pinned at a literal: this slice is
+            // arithmetic about the opening deck's shape, and it has followed that shape through
+            // 3 + 1, 5 + 3 and 5 + 0 to ticket 60's 4 + 2 without being edited.
+            const block = enemyDeckIds.slice(index * START_DECK_SIZE, (index + 1) * START_DECK_SIZE);
             expect(block.slice(START_KIT_SIZE)).toEqual(
                 Array.from({ length: START_GENERICS }, () => GENERIC_HIT),
             );
@@ -288,8 +294,10 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
             );
             expect(kits.map((kit) => kit.join(','))).toContain(block.slice(0, START_KIT_SIZE).join(','));
 
-            // No firmware: the biome-0 enemy holds the player's opening eight and runs none of the
-            // hooks that make those eight into an engine.
+            // No firmware: the biome-0 enemy holds the player's opening six and runs none of the
+            // hooks that make those six into an engine. Under ticket 60 that is a sharper contrast
+            // than it was — the kit now LEADS with the species' payoff, so the biome-0 enemy is
+            // holding the good card and cannot cash it.
             expect(enemy.activeOS).toBeUndefined();
         });
     });
@@ -297,7 +305,9 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
     it('biome 1 fields the startKit alone, with the firmware on', () => {
         const { enemyParty, enemyDeckIds } = rollEncounter({ run, node: node({ biomeIndex: 1 }), party });
 
-        expect(enemyDeckIds).toHaveLength(5 * enemyParty.length);
+        // The kit and nothing else — 4 cards a body under ticket 60, read from the constant because
+        // the claim is "the startKit alone", not "four".
+        expect(enemyDeckIds).toHaveLength(START_KIT_SIZE * enemyParty.length);
         expect(enemyDeckIds).not.toEqual(tunedDeckFor(enemyParty));
         for (const enemy of enemyParty) {
             expect(enemy.activeOS).toBeDefined();
@@ -508,10 +518,10 @@ describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u
         expect(isOpeningFight(onboardingRun(['Fire', 'Water', 'Nature'], 'a-later-run'))).toBe(true);
     });
 
-    it('pins an elite first fight to one body holding the biome-0 eight', () => {
+    it('pins an elite first fight to one body holding the biome-0 six', () => {
         // The reason this exists: `generateRegionGraph` can put an elite in biome 0 layer 1, and
         // `kitFractionFor` gives an elite the FULL tuned deck at any depth. A first-ever player
-        // holding 8 cards would meet a complete per-OS list.
+        // holding 6 cards would meet a complete per-OS list.
         const run = onboardingRun(['Fire', 'Water', 'Nature']);
         const elite = node({ id: 'b0l1n0', kind: 'elite', layer: 1, visited: 1 });
 

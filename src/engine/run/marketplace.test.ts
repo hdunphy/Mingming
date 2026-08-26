@@ -23,10 +23,13 @@
  * - **The reroll stays strictly under the cheapest card.** The one ordering law the module still
  *   claims, and the only reason `REROLL_PRICE` moved at all — at ticket 13's 20 against ticket 56's
  *   15-scrap floor, rerolling would cost more than buying.
- * - **The removal price hits its stated target.** *"Stripping all generics over a run costs roughly
- *   one market visit's scrap"* is a number with a derivation, and the derivation is checked here
- *   against the constants it was derived from — so retuning `START_GENERICS`, the market count or
- *   the income table fails the test instead of quietly falsifying the comment.
+ * - **The removal price is measured against its stated target — and currently MISSES it.**
+ *   *"Stripping all generics over a run costs roughly one market visit's scrap"* is a number with a
+ *   derivation, and the derivation is checked here against the constants it was derived from. That
+ *   is why ticket 60 shows up in this file at all: doubling the generics a run accumulates (3 -> 6)
+ *   put the full strip at one and a half visits, outside the target. The block below records the
+ *   miss with the arithmetic that produces it, so retuning `START_GENERICS`, `RECRUIT_GENERICS`,
+ *   the market count or the income table fails the test instead of quietly falsifying the comment.
  */
 
 import { afterAll, describe, expect, it } from 'vitest';
@@ -441,7 +444,7 @@ describe('the market takes and never gives', () => {
 // The removal price's stated target
 // ---------------------------------------------------------------------------------------------
 
-describe('removal is priced at Henry’s stated target', () => {
+describe('removal, measured against Henry’s stated target', () => {
     /**
      * The run's spendable scrap, recomputed from `scrapForWin`'s income table rather than restated
      * as a literal — two elite biome exits, a three-fight gym, and about six wilds fought by a party
@@ -457,19 +460,24 @@ describe('removal is priced at Henry’s stated target', () => {
      * The generics a run accumulates: `START_GENERICS` in the opening deck, plus `RECRUIT_GENERICS`
      * for each of the two recruits a 1 → 2 → 3 party takes on (`vision.md`).
      *
-     * **That second term is now zero** (Henry, 2026-08-24: recruits arrive 5 kit + 0 generic), so a
-     * run's generic count no longer grows with the party — it is fixed at the three the starter
-     * brought, whether the run ends solo or three-strong. The `RECRUIT_GENERICS` factor is kept in
-     * the expression rather than dropped: it is the term that would come back if a filler card were
-     * ever handed to recruits again, and this arithmetic should move on its own when it does.
+     * **Ticket 60 put that second term back and doubled it**: a recruit now arrives with the same 4
+     * kit + 2 generics a starter does, so a run's generic count grows with the party again — 2 from
+     * the starter and 2 from each recruit, 2 + 2 x 2 = **6** in a full three-member run. It was 3
+     * for the one day the 5 + 0 table stood (recruits brought none) and 5 before that (3 + 1).
+     *
+     * The term is written out rather than folded into a literal for exactly this reason: it has now
+     * moved three times, and each time this arithmetic moved with it on its own.
      */
     const RECRUITS_PER_RUN = 2;
     const GENERICS_PER_RUN = START_GENERICS + RECRUIT_GENERICS * RECRUITS_PER_RUN;
 
-    it('counts three generics in a full run, which is what the price is divided against', () => {
-        // Was five, when the two recruits each brought one of their own.
-        expect(GENERICS_PER_RUN).toBe(3);
-        expect(GENERICS_PER_RUN).toBe(START_GENERICS);
+    it('counts six generics in a full run, which is what the price is divided against', () => {
+        // 2 (starter) + 2 x 2 (recruits) = 6. Was 3 under the 5 + 0 table, 5 under 3 + 1.
+        expect(GENERICS_PER_RUN).toBe(6);
+        // Three times the starter's own share — stated separately because it is the ticket-60
+        // ruling ("a recruit arrives with the identical six") expressed as an economy fact. It
+        // fails the day `RECRUIT_GENERICS` drifts from `START_GENERICS` again, in either direction.
+        expect(GENERICS_PER_RUN).toBe(START_GENERICS * (1 + RECRUITS_PER_RUN));
         expect(GENERIC_HIT).toBe('water_slap');
     });
 
@@ -486,26 +494,42 @@ describe('removal is priced at Henry’s stated target', () => {
         expect(RUN_SCRAP / MARKET_VISITS_PER_RUN).toBe(80);
     });
 
-    it('costs about three quarters of one market visit to strip them all', () => {
+    it('costs one and a half market visits to strip them all — OUTSIDE ticket 13’s target', () => {
         const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 240 / 3 = 80
-        const stripAll = REMOVAL_PRICE * GENERICS_PER_RUN;    // 20 x 3 = 60
+        const stripAll = REMOVAL_PRICE * GENERICS_PER_RUN;    // 20 x 6 = 120
 
-        expect(stripAll).toBe(60);
+        expect(stripAll).toBe(120);
         expect(visitScrap).toBe(80);
-        // Ticket 13's target was "roughly one visit's scrap" at 30 against a 150-scrap visit, and
-        // ticket 56's income briefly made the ruled 20 a DEARER strip in relative terms (100 against
-        // a 70-scrap visit, about one and a half visits). Henry's 2026-08-24 pass moved it back the
-        // other way, from both ends at once: a visit is richer (the elite raise, 70 -> 80) and there
-        // is less to strip (recruits stopped bringing a generic, so 5 generics -> 3, 100 -> 60). At
-        // 60/80 the whole strip is three quarters of a single visit — back inside ticket 13's
-        // "roughly one visit's scrap" target, from the expensive side rather than the cheap one, so
-        // thinning still competes with buying instead of undercutting it. The band is what "about
-        // three quarters" is allowed to mean: over half a visit, and still under a whole one.
-        expect(stripAll / visitScrap).toBe(0.75);
-        expect(stripAll / visitScrap).toBeGreaterThan(0.5);
-        expect(stripAll / visitScrap).toBeLessThan(1);
-        // And never half the run: a sink you save the whole game for is not a choice at a stall.
-        expect(stripAll / RUN_SCRAP).toBeLessThan(0.5);
+        /*
+         * **FLAG FOR HENRY: ticket 13's stated target does not hold under ticket 60, and this test
+         * now records the miss rather than the hit.** Nothing here is broken — the arithmetic is
+         * recomputed honestly from the shipped constants — but the design band this block existed
+         * to guard is out.
+         *
+         * The history, since the number has crossed the target twice: ticket 13 aimed at "roughly
+         * one market visit's scrap" (30 against a 150-scrap visit). Ticket 56's income made the
+         * ruled 20 a dearer strip — 100 against a 70-scrap visit, about one and a half visits. The
+         * 2026-08-24 pass moved it back inside from both ends at once: a richer visit (elite raise,
+         * 70 -> 80) and less to strip (recruits stopped bringing a generic, 5 -> 3), giving 60/80,
+         * three quarters of a visit.
+         *
+         * Ticket 60 gave recruits their generics back and doubled the starter's, which undoes the
+         * second of those two levers and then some: 3 generics -> 6, so 60 -> 120. Against the same
+         * 80-scrap visit that is 1.5 visits — the exact ratio ticket 56 was corrected FOR, reached
+         * this time from the deck side rather than the income side.
+         *
+         * Two knobs would restore the band without touching ticket 60's deck shape: REMOVAL_PRICE
+         * 20 -> 10 (120 -> 60, back to 0.75), or more income per visit. Both are Henry's call and
+         * neither belongs in a test, so this asserts what the game actually charges today and says
+         * plainly that it misses.
+         */
+        expect(stripAll / visitScrap).toBe(1.5);
+        // Documenting the breach, not a band: the strip is now MORE than one whole visit.
+        expect(stripAll / visitScrap).toBeGreaterThan(1);
+        // And it is now exactly half the run's income — the "sink you save the whole game for"
+        // line this test used to guard against with `toBeLessThan(0.5)`. Pinned exactly so that
+        // any move in the price, the income table or the generic count fails here on sight.
+        expect(stripAll / RUN_SCRAP).toBe(0.5);
     });
 
     it('sits between the cheapest card and the next rung up, so the sink competes', () => {

@@ -58,21 +58,30 @@ function soloInput(overrides: Partial<Parameters<typeof createRun>[0]> = {}) {
 // ---------------------------------------------------------------------------------------------
 
 describe('startDeckFor', () => {
-    it('is 8 cards: 5 kit + 3 generics', () => {
+    it('is 6 cards: 4 kit + 2 generics', () => {
         const deck = startDeckFor(KRAKEN, new SeedStream(SEED));
         expect(deck).toHaveLength(START_KIT_SIZE + START_GENERICS);
-        expect(deck).toHaveLength(8);
+        expect(deck).toHaveLength(6);
     });
 
-    it('transcribes the ratified kit in order, duplicates included', () => {
+    it('transcribes the ratified kit in order, payoff first, duplicates included', () => {
         const deck = startDeckFor(KRAKEN, new SeedStream(SEED));
         const kit = ratifiedKit('kraken', 'kraken_v1');
         expect(deck.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([...kit]);
-        // Spelled out rather than only compared to the registry, because the duplicate count IS
-        // the design: ticket 09 keeps `pressure_point` x2 as "the damage the OS is actually
-        // paying for", and a dedupe would pass a set comparison while deleting that.
+        // Spelled out rather than only compared to the registry, because the ORDER is the design:
+        // ticket 60's kit is a mini-engine, `ink_stream` (the payoff the OS is actually paying for)
+        // in front and the three cards that fill the pile it counts behind it. A sort or a set
+        // comparison would pass while deleting that.
         expect(deck.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([
-            'undertow', 'whirlpool_v2', 'pressure_point', 'pressure_point', 'ink_stream',
+            'ink_stream', 'undertow', 'whirlpool_v2', 'pressure_point',
+        ]);
+        // Ticket 60 retagged `kraken_v1` down to four singletons, so the duplicate case has to be
+        // demonstrated somewhere it still exists or this test's "duplicates included" is a claim
+        // about nothing. `fenrir_v2` doubles `ignite` because one is a coin flip and two is an
+        // ignition; a dedupe here would silently hand Fenrir a three-card kit.
+        const fenrir = startDeckFor(FENRIR, new SeedStream(SEED));
+        expect(fenrir.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([
+            'pyre_sacrifice', 'ignite', 'ignite', 'molten_core',
         ]);
     });
 
@@ -90,9 +99,9 @@ describe('startDeckFor', () => {
         }
     });
 
-    it('fills the remaining three with the generic None-element hit', () => {
+    it('fills the remaining two with the generic None-element hit', () => {
         const deck = startDeckFor(KRAKEN, new SeedStream(SEED));
-        expect(deck.slice(START_KIT_SIZE).map((c) => c.dataId)).toEqual([GENERIC_HIT, GENERIC_HIT, GENERIC_HIT]);
+        expect(deck.slice(START_KIT_SIZE).map((c) => c.dataId)).toEqual([GENERIC_HIT, GENERIC_HIT]);
     });
 
     it('stamps every card with the member as owner, and mints unique instance ids', () => {
@@ -119,10 +128,10 @@ describe('startDeckFor', () => {
             expect(GetMingmingData('ymir').startKits).toBeUndefined();
 
             const deck = startDeckFor(ymir, new SeedStream(SEED));
-            expect(deck).toHaveLength(8);
+            expect(deck).toHaveLength(6);
             expect(deck.slice(0, START_KIT_SIZE).map((c) => c.dataId))
                 .toEqual(getDeckForOS('ymir', 'ymir_v1').slice(0, START_KIT_SIZE));
-            expect(deck.slice(START_KIT_SIZE).map((c) => c.dataId)).toEqual([GENERIC_HIT, GENERIC_HIT, GENERIC_HIT]);
+            expect(deck.slice(START_KIT_SIZE).map((c) => c.dataId)).toEqual([GENERIC_HIT, GENERIC_HIT]);
 
             const message = warn.mock.calls.map((c) => String(c[0])).join('\n');
             expect(message).toContain('ymir');
@@ -138,30 +147,40 @@ describe('startDeckFor', () => {
 });
 
 describe('recruitDeckFor', () => {
-    it('is 5 cards: the recruit’s WHOLE ruled kit, and no generic at all', () => {
+    it('is 6 cards: the recruit’s WHOLE ruled kit plus 2 generics — a starter’s six exactly', () => {
         /*
-         * **Was 3 kit + 1 generic; Henry re-ruled it to 5 + 0 on 2026-08-24** after recruiting
-         * Ratatoskr into a Fenrir run and getting only the first three of his tagged five —
-         * `startKitIdsFor` slices from the front — in a 12-card deck drawing 5-7 a turn: *"It felt
-         * really bad to play Rat without his kit."* The generic was the card cut to make room,
-         * because `GENERIC_HIT` is the one card in the deck that is the same whoever brought it,
-         * and a recruit's problem was never deck SIZE (4 to 5 barely moves the count) — it was that
-         * only three cards said anything about the species you just paid a blueprint and 25 scrap
-         * for. So the "FIRST three" slice is gone: a recruit's five and a starter's five are now
-         * the same five cards.
+         * **Ticket 60 (playtest round 5) made a recruit and a starter the same shape: 4 kit + 2
+         * generics.** This is the third table. Ticket 08 gave a recruit 3 kit + 1 generic; the
+         * 2026-08-24 pass raised it to 5 + 0 after recruiting Ratatoskr into a Fenrir run and
+         * getting only the first three of his tagged five — `startKitIdsFor` slices from the front
+         * — *"It felt really bad to play Rat without his kit."*
+         *
+         * That pass fixed the right bug with the wrong lever. Cutting the generic to pay for the
+         * missing tags left a recruit playing differently from a starter of the same species, and
+         * round 5 found the same hole on the STARTER side anyway: the old table withheld each
+         * deck's payoff, so *"ratatoskr's startKit carried none of his engine, making him pure
+         * feed."* Tagging the payoff and cutting the fourth enabler fixes both ends at once, and
+         * once it does there is nothing left for a recruit to be a lesser version OF. So a recruit
+         * is not a seed and is not a starter-minus-something: it is the identical six, which is
+         * what the last assertion here pins.
          */
         const deck = recruitDeckFor(HULDRA, new SeedStream(SEED));
         expect(deck).toHaveLength(RECRUIT_KIT_SIZE + RECRUIT_GENERICS);
-        expect(deck).toHaveLength(5);
-        expect(deck.map((c) => c.dataId)).toEqual([
-            ...ratifiedKit('huldra', 'huldra_v1').slice(0, RECRUIT_KIT_SIZE),
+        expect(deck).toHaveLength(6);
+        expect(deck.slice(0, RECRUIT_KIT_SIZE).map((c) => c.dataId)).toEqual([
+            ...ratifiedKit('huldra', 'huldra_v1'),
         ]);
-        expect(deck.map((c) => c.dataId)).toEqual(['growth', 'growth', 'iron_bark', 'thorn_tithe', 'hexbloom']);
-        // The whole tagged kit, so the slice is no longer a slice — nothing is left behind.
-        expect(deck.map((c) => c.dataId)).toEqual([...ratifiedKit('huldra', 'huldra_v1')]);
-        // Stated as its own assertion because `RECRUIT_GENERICS = 0` is the half of the ruling a
-        // future "give recruits a filler card back" patch would undo without touching the kit size.
-        expect(deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
+        expect(deck.map((c) => c.dataId)).toEqual([
+            'hexbloom', 'growth', 'iron_bark', 'thorn_tithe', GENERIC_HIT, GENERIC_HIT,
+        ]);
+        // Stated as its own assertion because `RECRUIT_GENERICS = 2` is the half of the ruling a
+        // future "recruits are a seed, not a starter" patch would undo without touching the kit
+        // size — which is exactly what the 5 + 0 table did, in the other direction.
+        expect(deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(RECRUIT_GENERICS);
+        expect(deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(2);
+        // The ruling in one line: same species, same six, whether you started with it or bought it.
+        expect(deck.map((c) => c.dataId))
+            .toEqual(startDeckFor(HULDRA, new SeedStream(SEED)).map((c) => c.dataId));
     });
 
     it('stamps the recruit as owner', () => {
@@ -218,22 +237,22 @@ describe('createRun', () => {
         expect(run.partyIds).toEqual(['m_fenrir', 'm_kraken', 'm_huldra']);
     });
 
-    it('gives a solo party an 8-card deck', () => {
-        expect(createRun(soloInput()).deck).toHaveLength(8);
+    it('gives a solo party a 6-card deck', () => {
+        expect(createRun(soloInput()).deck).toHaveLength(6);
     });
 
-    it('gives a three-member party 24 cards, 8 per member, each correctly owned', () => {
+    it('gives a three-member party 18 cards, 6 per member, each correctly owned', () => {
         const run = createRun(soloInput({ party: [KRAKEN, FENRIR, HULDRA] }));
-        expect(run.deck).toHaveLength(24);
+        expect(run.deck).toHaveLength(18);
         for (const m of [KRAKEN, FENRIR, HULDRA]) {
             const owned = run.deck.filter((c) => c.ownerId === m.id);
-            expect(owned).toHaveLength(8);
+            expect(owned).toHaveLength(6);
             expect(owned.slice(0, START_KIT_SIZE).map((c) => c.dataId))
                 .toEqual([...ratifiedKit(m.definitionId, m.activeOS!)]);
         }
         // Concatenated in party order, and every instance id distinct across the whole deck.
-        expect(run.deck.slice(0, 8).every((c) => c.ownerId === KRAKEN.id)).toBe(true);
-        expect(new Set(run.deck.map((c) => c.instanceId)).size).toBe(24);
+        expect(run.deck.slice(0, 6).every((c) => c.ownerId === KRAKEN.id)).toBe(true);
+        expect(new Set(run.deck.map((c) => c.instanceId)).size).toBe(18);
     });
 
     it('starts with the ruled 20 opening scrap, and no macros, no drivers and no modifiers', () => {
