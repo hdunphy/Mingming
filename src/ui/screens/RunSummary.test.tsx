@@ -105,14 +105,24 @@ describe('RunSummary — the numbers match the run it is reporting', () => {
         const markup = render(run);
 
         // Ticket 60 moved the kit half from 8 a member to 6 (4 tagged + 2 generics), so the same
-        // 14 picks now land the deck on 20 rather than 22 — right on the floor of the target
-        // instead of two inside it, which is the deck-building track working harder for the same
-        // number of picks. The picked half is untouched, and that split is the whole screen.
+        // 14 picks land the deck on 20 rather than 22 — right on the floor of the target instead
+        // of two inside it, which is the deck-building track working harder for the same number of
+        // picks. The picked half is untouched, and that split is the whole screen.
+        //
+        // `BASE` is a SOLO run, so the kit half is 6 either side of Henry's 2026-08-25 ruling. What
+        // the ruling changed is the sentence beside it: the note used to read "6/member", and per
+        // member is exactly what the number stopped being. The generics are a run-level allowance
+        // carried by the first mingming, so a second member adds 4 and not 6 — a player who
+        // multiplied the old note by their party size would read 18 off a deck of 14. The screen
+        // now says what the figure is a figure OF.
         expect(markup).toContain('20 cards');
         expect(markup).toContain('20–25');
         expect(markup).toContain('>14<');       // picked
-        expect(markup).toContain('+ 6 kit');    // the six the party walked in with
-        expect(markup).toContain('runs open at 6/member');
+        expect(markup).toContain('+ 6 kit');    // the six this solo party walked in with
+        expect(markup).toContain('a solo run opens at 6');
+        // The retired phrasing, barred by name: "/member" is the one claim on this screen that a
+        // party of two or three would make false, and it is a one-word edit away from returning.
+        expect(markup).not.toContain('/member');
     });
 
     it('calls the scrap figure a balance, never a spend', () => {

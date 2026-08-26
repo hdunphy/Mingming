@@ -27,9 +27,9 @@
  *    the screen says "left" rather than "spent". Inventing a `scrapSpent` field would have meant
  *    changing the ratified save shape for a line of flavour text.
  *  - **The opening deck size is not derivable once the party grew.** A run opens with
- *    `START_DECK_PER_MEMBER` (8) cards per starting member (ticket 08), but a mid-run recruit joins
- *    with 4 (`recruitDeckFor`) and `IRunState` does not record how many members were there at the
- *    start. What IS exact is the split by `ownerId`: `runTypes.IRunCard` reserves `ownerId: null`
+ *    a run's opening size depends on how many members it started with AND on the run-level generic
+ *    allowance landing on the first of them, and `IRunState` does not record how many were there at
+ *    the start. What IS exact is the split by `ownerId`: `runTypes.IRunCard` reserves `ownerId: null`
  *    for cards that were "bought, drafted, or granted by an event", so **`pickedCards` is precisely
  *    the deck-building track** — every card the player chose to add — and `kitCards` is what the
  *    party walked in with. Those two are exact and they sum to the deck, which the guessed opening
@@ -37,18 +37,24 @@
  */
 
 import type { IRunCard, IRunState, RunOutcome } from '../runTypes';
-import { START_GENERICS, START_KIT_SIZE } from './createRun';
+import { RUN_GENERICS, START_KIT_SIZE } from './createRun';
 
 // ---------------------------------------------------------------------------------------------
 // The deck-building track's two ends
 // ---------------------------------------------------------------------------------------------
 
 /**
- * The 8 cards a starting party member brings (ticket 08: 5 `startKit` + 3 generics). Derived from
- * `createRun`'s two constants rather than written as `8`, so a re-ruling of the start deck moves
- * this with it instead of leaving the summary quoting a number the game stopped using.
+ * What a SOLO run opens with: one member's four tagged cards plus the run's two generics.
+ *
+ * Renamed from `START_DECK_PER_MEMBER` on 2026-08-25, because per-member is exactly what it stopped
+ * being — the generics are a run-level allowance carried by the first member (`RUN_GENERICS`), so a
+ * second or third member adds `START_KIT_SIZE` and no filler. A name that still said "per member"
+ * would have the summary quoting six for a party of three.
+ *
+ * Derived from `createRun`'s constants rather than written as `6`, so a re-ruling moves this with
+ * it instead of leaving the summary quoting a number the game stopped using.
  */
-export const START_DECK_PER_MEMBER = START_KIT_SIZE + START_GENERICS;
+export const SOLO_START_DECK = START_KIT_SIZE + RUN_GENERICS;
 
 /**
  * `economy-session.md`, bite two: *"the run BUILDS toward the ~20-25 cards a good 3v3 deck wants."*

@@ -105,8 +105,11 @@ describe('MarketplaceNode', () => {
     });
 
     it('says which side of the target the deck is on', () => {
-        // A solo run opens at ticket 60's six — 4 tagged kit cards + 2 generics, down from the 5 + 3
-        // that made it 8 — so the first market's advice is "buy", and it is 14 short rather than 12.
+        // A SOLO run opens at six — 4 tagged kit cards plus the RUN's 2 generics (Henry,
+        // 2026-08-25; ticket 60's 4 + 2 was per member, and before that 5 + 3 made it 8) — so the
+        // first market's advice is "buy", and it is 14 short rather than 12. A bigger party opens
+        // at 10 or 14 and the same screen says a smaller number; six is this fixture's party, not
+        // a constant of the game.
         const run = makeRun(140);
         expect(run.deck).toHaveLength(6);
 
@@ -234,8 +237,12 @@ describe('MarketplaceNode', () => {
     });
 
     it('tags the generic filler, because it is what removal is for', () => {
-        // Henry, 2026-08-21. The three start-deck generics are the sink's stated target, so the
-        // screen points at them rather than leaving the player to recognise "Tackle" on sight.
+        // Henry, 2026-08-21: the start-deck generics are what the sink was pointed at, so the
+        // screen tags them rather than leaving the player to recognise "Tackle" on sight. The count
+        // is read off the deck rather than written down — it was three a member under ticket 08,
+        // two a member under ticket 60, and is two for the whole RUN since 2026-08-25 — and the
+        // claim that survives all three is the one this asserts: every generic in the deck is
+        // tagged, and nothing else is.
         const run = makeRun(400);
         const markup = render(run);
         expect(markup.match(/generic filler<\/span>/g)?.length)

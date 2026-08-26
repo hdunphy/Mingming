@@ -6,7 +6,7 @@
  * because **an assembly writes both halves of the save**:
  *
  * - a blueprint is spent and an individual joins `ranch.roster` (`gameSlice.assembleMingming`);
- * - scrap is spent, `run.partyIds` grows and the recruit's six cards merge into `run.deck`
+ * - scrap is spent, `run.partyIds` grows and the recruit's four cards merge into `run.deck`
  *   (`runSlice.recruitIntoParty`).
  *
  * No reducer can do both. Ticket 11's reward claim hit the same wall and split its dispatch; this
@@ -36,7 +36,7 @@ import runReducer, {
     startRun,
     type RunSliceState,
 } from './runSlice';
-import { RECRUIT_GENERICS, RECRUIT_KIT_SIZE, createRun } from '../../engine/run/createRun';
+import { RECRUIT_KIT_SIZE, RUN_GENERICS, START_KIT_SIZE, createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
@@ -128,17 +128,18 @@ describe('assembling at a workshop', () => {
         // Ranch: one blueprint gone, one individual gained.
         expect(game.blueprints).toEqual({ fenrir: 1 });
         expect(game.roster.map((m) => m.id)).toEqual(['mm1', member.id]);
-        // Run: scrap gone, party grown, the recruit's whole deck merged into the shared one. Six
-        // cards since ticket 60 (4 kit + 2 generics — a starter's exact six, superseding the 5 + 0
-        // of 2026-08-24 and ticket 08's 3 + 1) — derived from the constants because what this test
-        // is pinning is that ALL of the plan's cards arrive, not how many the ruling currently says
+        // Run: scrap gone, party grown, the recruit's whole deck merged into the shared one. Four
+        // cards since Henry's 2026-08-25 ruling (the kit alone — the generics are a run-level
+        // allowance spent on the first mingming, superseding ticket 60's 4 + 2, the 5 + 0 of
+        // 2026-08-24 and ticket 08's 3 + 1) — derived from the constant because what this test is
+        // pinning is that ALL of the plan's cards arrive, not how many the ruling currently says
         // there are.
         expect(run.run!.scrap).toBe(200 - WORKSHOP_ASSEMBLY_SCRAP);
         expect(run.run!.partyIds).toEqual(['mm1', member.id]);
-        expect(run.run!.deck).toHaveLength(deckBefore + RECRUIT_KIT_SIZE + RECRUIT_GENERICS);
+        expect(run.run!.deck).toHaveLength(deckBefore + RECRUIT_KIT_SIZE);
     });
 
-    it('merges the recruit’s six cards into the SHARED deck, owned by the recruit', () => {
+    it('merges the recruit’s four cards into the SHARED deck, owned by the recruit', () => {
         const store = makeStore({ blueprints: { fenrir: 1 } });
         store.dispatch(startRun(makeRun(200)));
         const deckBefore = store.getState().run.run!.deck;
@@ -146,16 +147,21 @@ describe('assembling at a workshop', () => {
         const member = assembleAt(store, 'fenrir')!;
         const joined = store.getState().run.run!.deck.slice(deckBefore.length);
 
-        expect(joined).toHaveLength(6);
-        // The ruled recruit kit: 4 startKit and 2 generics (ticket 60, playtest round 5), which is
-        // a starter's six exactly. It supersedes the 5 + 0 of 2026-08-24, which had fixed a real
-        // bug — a recruit arriving as a body wearing somebody else's deck — by cutting the filler
-        // to pay for the missing tags, and so left a recruit shaped unlike a starter of the same
-        // species. Pinned as a literal 2 as well as against the constant, because "a recruit brings
-        // the same filler a starter does" is the half of the ruling that a well-meaning "recruits
-        // should feel leaner" patch would quietly undo, exactly as the last table did.
-        expect(joined.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(RECRUIT_GENERICS);
-        expect(joined.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(2);
+        expect(joined).toHaveLength(RECRUIT_KIT_SIZE);
+        expect(joined).toHaveLength(4);
+        // The ruled recruit kit: 4 startKit cards and no filler (Henry, 2026-08-25). The generics
+        // are a RUN-level allowance carried by the first mingming, so what arrives at a workshop is
+        // a body and its engine and nothing else. This is not the 5 + 0 table of 2026-08-24
+        // returning — there the missing filler was a price the recruit paid for its tags, and here
+        // there is no per-member filler for anyone to pay.
+        //
+        // Pinned as its own assertion, and as a literal 0, because "a recruit adds no generics" is
+        // the half of the ruling a well-meaning "a new mingming should come with something to play"
+        // patch would quietly undo — which is exactly what the 3 + 1 and 4 + 2 tables did, in the
+        // other direction. Filler exists to stop a SOLO opening deck being four cards; by the time
+        // a workshop is reachable the run already has its two, and a second helping is the padding
+        // the market then had to be paid to take back out.
+        expect(joined.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
         for (const card of joined) expect(card.ownerId).toBe(member.id);
         // The starting member's cards are untouched, and one deck holds both members' cards — which
         // is what "the team is the deck" means (`economy-session.md`, bite two).
@@ -178,13 +184,23 @@ describe('assembling at a workshop', () => {
         const { game, run } = store.getState();
         expect(game.blueprints).toEqual({});
         expect(run.run!.scrap).toBe(400 - 2 * WORKSHOP_ASSEMBLY_SCRAP);
-        // 6 start cards + 6 + 6 = 18 under ticket 60, where the previous table reached the same 18
-        // as 8 + 5 + 5 and ticket 08's original reached 16 as 8 + 4 + 4. The TOTAL is deliberately
-        // unchanged across the retag — `economy-session.md`'s 20-25 gate is the number that watches
-        // it, and ticket 60 was a change of composition, not of size. What moved is that all 18 now
-        // do something for the species that brought them, and six of them (2 a member) are generics
-        // the market can be paid to strip, where it used to be three.
-        expect(run.run!.deck).toHaveLength(18);
+        // 6 start cards + 4 + 4 = 14 under Henry's 2026-08-25 ruling, where ticket 60 reached 18 as
+        // 6 + 6 + 6, the table before it reached 18 as 8 + 5 + 5, and ticket 08's original reached
+        // 16 as 8 + 4 + 4.
+        //
+        // **The total moved this time, and that is the point rather than a side effect.** Ticket 60
+        // was a change of composition at a fixed size; this one is a change of size, because the
+        // filler had been multiplying with the party. A three-member run used to carry six generics
+        // — a third of everything the workshop sold you was padding, which the market then had to
+        // be paid to strip back out. Now the run carries two, once, and the twelve cards the party
+        // contributed all do something for the species that brought them. Against
+        // `economy-session.md`'s 20-25 gate that is the gain: a full party arrives at the gate with
+        // room for the picks and buys the run is supposed to be about, instead of arriving nearly
+        // full of `Tackle`.
+        expect(run.run!.deck).toHaveLength(3 * START_KIT_SIZE + RUN_GENERICS);
+        expect(run.run!.deck).toHaveLength(14);
+        // Two generics in the whole run, party of three included — the ruling as an end-state fact.
+        expect(run.run!.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(RUN_GENERICS);
         expect(new Set(run.run!.partyIds).size).toBe(PARTY_SIZE);
     });
 

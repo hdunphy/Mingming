@@ -11,9 +11,10 @@
  * - **Silent no-op on invalid**, the slice's standing convention. A refused action must leave the
  *   run *byte-identical*, not merely unpaid: a purchase that charged and delivered nothing, or
  *   delivered and charged nothing, are both reachable if the two halves are two dispatches.
- * - **Removing one specific instance.** A deck holds three identical generics; "remove a
- *   `water_slap`" is not an instruction anyone can carry out correctly, so the sink is keyed on
- *   `instanceId` and the paid-removal case below proves the deck thins by exactly one.
+ * - **Removing one specific instance.** A deck holds the run's two identical generics — and a kit
+ *   can double a card of its own besides — so "remove a `water_slap`" is not an instruction anyone
+ *   can carry out correctly. The sink is keyed on `instanceId`, and the paid-removal case below
+ *   proves the deck thins by exactly one.
  * - **Scrap is run-scoped and dies with the run** (ticket 06's anti-mudflation line) — the shop
  *   must not be a way to move value out of a run.
  *
@@ -158,9 +159,11 @@ describe('buying', () => {
 describe('paid removal — the only card sink', () => {
     it('charges the removal price and thins the deck by one', () => {
         const run = atMarket(makeRun(100));
-        // The start deck holds three identical generics (ticket 08's ruled 5 kit + 3 filler), so
-        // "thins by exactly one" is also the instance-keying proof: a dataId-keyed sink would take
-        // all three. Ticket 57 left that argument here when selling — which used to carry it — went.
+        // The start deck holds the run's two identical generics (Henry, 2026-08-25: `RUN_GENERICS`,
+        // once, on the first mingming — it was 3 per member under ticket 08 and 2 per member under
+        // ticket 60), so "thins by exactly one" is also the instance-keying proof: a dataId-keyed
+        // sink would take both. Ticket 57 left that argument here when selling — which used to
+        // carry it — went. Two is still enough to make the point; one would not be.
         const target = run.deck.find((c) => c.dataId === GENERIC_HIT)!;
 
         const after = runReducer(

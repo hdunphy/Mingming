@@ -134,7 +134,7 @@ export function enemyPartySize(kind: NodeKind, playerPartySize: number): number 
  * depth order.
  */
 export type EnemyDeckRule =
-    /** The same 8 the player starts with: 5 `startKit` cards + 3 generics (`createRun.startDeckFor`). */
+    /** The same the player starts with: 4 `startKit` cards, plus the run's 2 generics on the first. */
     | 'start-kit-plus-generics'
     /** The 5 `startKit` cards alone — a sharper list than the player's, and shorter. */
     | 'start-kit'
@@ -358,10 +358,18 @@ export interface IRunEncounter {
  * away and only the dataIds kept: an enemy deck has no owner and no instance identity, and
  * `createBattleState` instantiates its own card entities anyway.
  */
-function enemyDeckFor(state: IMingmingState, fraction: IKitFraction, stream: SeedStream): string[] {
+function enemyDeckFor(
+    state: IMingmingState,
+    fraction: IKitFraction,
+    stream: SeedStream,
+    isFirstEnemy: boolean,
+): string[] {
     switch (fraction.deck) {
         case 'start-kit-plus-generics':
-            return startDeckFor(state, stream).map((card) => card.dataId);
+            // `true`: an enemy party's first member carries the generics, exactly as the
+            // player's does. The symmetry is the whole claim of this loadout — "the same cards you
+            // opened with" is only true if the filler rule is the same one.
+            return startDeckFor(state, stream, isFirstEnemy).map((card) => card.dataId);
         case 'start-kit':
             return [...startKitIdsFor(state, START_KIT_SIZE)];
         case 'tuned':
@@ -428,7 +436,7 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
 
         const entity = initializeBattleEntity(state, definition);
         enemyParty.push(fraction.os ? entity : { ...entity, activeOS: undefined });
-        enemyDeckIds.push(...enemyDeckFor(state, fraction, decks));
+        enemyDeckIds.push(...enemyDeckFor(state, fraction, decks, enemyParty.length === 1));
     }
 
     return { enemyParty, enemyDeckIds, seed };

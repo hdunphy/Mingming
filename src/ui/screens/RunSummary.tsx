@@ -54,7 +54,7 @@ import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import {
     DECK_TARGET_MAX,
     DECK_TARGET_MIN,
-    START_DECK_PER_MEMBER,
+    SOLO_START_DECK,
     bankedBlueprintCounts,
     formatRunDuration,
     summarizeRun,
@@ -230,15 +230,15 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
                         <span className="rs-stat-label">Cards picked</span>
                         <span className="rs-stat-figure">{summary.pickedCards}</span>
                         {/*
-                          * The other half of the deck, and the rule it started from. A run opens at
-                          * `START_DECK_PER_MEMBER` per member (ticket 08) — stated as the rule
-                          * rather than multiplied out, because a party that grew mid-run started
-                          * smaller than it ended and `IRunState` does not record where the boundary
-                          * was. See `runSummary.ts`: the exact figures are this split, not a guessed
-                          * opening size.
+                          * The other half of the deck, and the rule it started from. A solo run
+                          * opens at `SOLO_START_DECK`, and each further member adds its four tagged
+                          * cards — stated as the rule rather than multiplied out, because a party
+                          * that grew mid-run started smaller than it ended and `IRunState` does not
+                          * record where the boundary was. See `runSummary.ts`: the exact figures are
+                          * this split, not a guessed opening size.
                           */}
                         <span className="rs-stat-note">
-                            + {summary.kitCards} kit · runs open at {START_DECK_PER_MEMBER}/member
+                            + {summary.kitCards} kit · a solo run opens at {SOLO_START_DECK}
                         </span>
                     </div>
 

@@ -31,7 +31,7 @@ import {
     rollEncounter,
 } from './encounter';
 import { buildBattleSetup, toMingmingState } from './battleSetup';
-import { START_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
+import { RUN_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
 import { GYM_REGISTRY, type IGymOffer } from './gyms';
 import { createBattleState } from '../data/battleFactories';
 import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
@@ -268,25 +268,37 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
     const tunedDeckFor = (enemies: ReadonlyArray<IBattleEntity>): string[] =>
         enemies.flatMap((enemy) => getDeckForOS(enemy.definitionId, enemy.activeOS));
 
-    /** Ticket 60's opening deck, per body: 4 tagged kit cards then 2 generics. */
-    const START_DECK_SIZE = START_KIT_SIZE + START_GENERICS;
+    /**
+     * The opening deck's block width for the enemy at `index`, mirroring the player exactly: the
+     * FIRST body carries the run's two generics on top of its four tagged cards, and every body
+     * after it is its four and nothing else (Henry, 2026-08-25). Six then four, not six then six.
+     */
+    const blockWidth = (index: number) => START_KIT_SIZE + (index === 0 ? RUN_GENERICS : 0);
 
-    it('biome 0 fields the same 6 the player starts with, and NO firmware', () => {
+    it('biome 0 fields what the player opens with, generics on the first body only, and NO firmware', () => {
         const { enemyParty, enemyDeckIds } = rollEncounter({ run, node: node({ biomeIndex: 0 }), party });
 
-        // Literally the composition `createRun.startDeckFor` gives the player, block by block: four
-        // of the species' own `startKit` cards, then two generics. The firmware the kit was chosen
-        // from is not readable off the entity (that is the point of the biome-0 row), so the check
-        // is that the four ARE one of the species' tagged kits.
-        expect(enemyDeckIds).toHaveLength(START_DECK_SIZE * enemyParty.length);
+        // Literally the composition `createRun` gives the player's PARTY, block by block: four of
+        // each species' own `startKit` cards, plus one run-level helping of generics riding on the
+        // first body. The firmware the kit was chosen from is not readable off the entity (that is
+        // the point of the biome-0 row), so the check is that the four ARE one of the species'
+        // tagged kits.
+        //
+        // The symmetry is the claim of this loadout — "the same cards you opened with" is only true
+        // if the FILLER rule is the same one, so an enemy side that handed every body two generics
+        // would be quietly holding a bigger deck than the player it is meant to mirror.
+        expect(enemyDeckIds).toHaveLength(START_KIT_SIZE * enemyParty.length + RUN_GENERICS);
 
+        let offset = 0;
         enemyParty.forEach((enemy, index) => {
             // Block width read from the constants rather than pinned at a literal: this slice is
             // arithmetic about the opening deck's shape, and it has followed that shape through
-            // 3 + 1, 5 + 3 and 5 + 0 to ticket 60's 4 + 2 without being edited.
-            const block = enemyDeckIds.slice(index * START_DECK_SIZE, (index + 1) * START_DECK_SIZE);
+            // 3 + 1, 5 + 3, 5 + 0 and ticket 60's 4 + 2 to today's per-run allowance without being
+            // edited for anything but where the generics land.
+            const block = enemyDeckIds.slice(offset, offset + blockWidth(index));
+            offset += blockWidth(index);
             expect(block.slice(START_KIT_SIZE)).toEqual(
-                Array.from({ length: START_GENERICS }, () => GENERIC_HIT),
+                Array.from({ length: index === 0 ? RUN_GENERICS : 0 }, () => GENERIC_HIT),
             );
 
             const kits = GetMingmingData(enemy.definitionId).availableOS.map((os) =>
@@ -294,12 +306,13 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
             );
             expect(kits.map((kit) => kit.join(','))).toContain(block.slice(0, START_KIT_SIZE).join(','));
 
-            // No firmware: the biome-0 enemy holds the player's opening six and runs none of the
-            // hooks that make those six into an engine. Under ticket 60 that is a sharper contrast
-            // than it was — the kit now LEADS with the species' payoff, so the biome-0 enemy is
-            // holding the good card and cannot cash it.
+            // No firmware: the biome-0 enemy holds the player's opening cards and runs none of the
+            // hooks that make them into an engine. Under ticket 60 that is a sharper contrast than
+            // it was — the kit now LEADS with the species' payoff, so the biome-0 enemy is holding
+            // the good card and cannot cash it.
             expect(enemy.activeOS).toBeUndefined();
         });
+        expect(offset).toBe(enemyDeckIds.length);
     });
 
     it('biome 1 fields the startKit alone, with the firmware on', () => {
@@ -521,18 +534,19 @@ describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u
     it('pins an elite first fight to one body holding the biome-0 six', () => {
         // The reason this exists: `generateRegionGraph` can put an elite in biome 0 layer 1, and
         // `kitFractionFor` gives an elite the FULL tuned deck at any depth. A first-ever player
-        // holding 6 cards would meet a complete per-OS list.
+        // holding 6 cards — a solo party: one kit plus the run's two generics — would meet a
+        // complete per-OS list.
         const run = onboardingRun(['Fire', 'Water', 'Nature']);
         const elite = node({ id: 'b0l1n0', kind: 'elite', layer: 1, visited: 1 });
 
         const softened = rollEncounter({ run, node: elite, party });
         expect(softened.enemyParty).toHaveLength(1);
-        expect(softened.enemyDeckIds).toHaveLength(START_KIT_SIZE + START_GENERICS);
+        expect(softened.enemyDeckIds).toHaveLength(START_KIT_SIZE + RUN_GENERICS);
         expect(softened.enemyParty[0].activeOS).toBeUndefined();
 
         // The same node in the same run, one fight later, is the real elite again.
         const real = rollEncounter({ run: { ...run, fightsResolved: 1 }, node: elite, party });
-        expect(real.enemyDeckIds.length).toBeGreaterThan(START_KIT_SIZE + START_GENERICS);
+        expect(real.enemyDeckIds.length).toBeGreaterThan(START_KIT_SIZE + RUN_GENERICS);
         expect(real.enemyParty[0].activeOS).toBeDefined();
     });
 

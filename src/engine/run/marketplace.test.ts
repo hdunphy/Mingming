@@ -23,13 +23,16 @@
  * - **The reroll stays strictly under the cheapest card.** The one ordering law the module still
  *   claims, and the only reason `REROLL_PRICE` moved at all — at ticket 13's 20 against ticket 56's
  *   15-scrap floor, rerolling would cost more than buying.
- * - **The removal price is measured against its stated target — and currently MISSES it.**
- *   *"Stripping all generics over a run costs roughly one market visit's scrap"* is a number with a
- *   derivation, and the derivation is checked here against the constants it was derived from. That
- *   is why ticket 60 shows up in this file at all: doubling the generics a run accumulates (3 -> 6)
- *   put the full strip at one and a half visits, outside the target. The block below records the
- *   miss with the arithmetic that produces it, so retuning `START_GENERICS`, `RECRUIT_GENERICS`,
- *   the market count or the income table fails the test instead of quietly falsifying the comment.
+ * - **The removal price's arithmetic is recomputed here — against a target that has since been
+ *   retired.** *"Stripping all generics over a run costs roughly one market visit's scrap"* was a
+ *   number with a derivation, and the derivation is still checked against the constants it was
+ *   derived from. Two rulings have since emptied the target out: Henry's 2026-08-25 move of the
+ *   generics from per-member to per-run leaves a whole run holding **two** of them, and Henry has
+ *   separately ruled that **paid removal is no longer how a deck gets thinned** — cards move to a
+ *   run collection instead (a later package). The block below therefore keeps the arithmetic exact
+ *   and says plainly that it is no longer measuring a live design goal; retuning `RUN_GENERICS`,
+ *   the market count or the income table still fails the test rather than quietly falsifying the
+ *   comment.
  */
 
 import { afterAll, describe, expect, it } from 'vitest';
@@ -48,7 +51,7 @@ import {
     isOfferSold,
     rollMarketStock,
 } from './marketplace';
-import { RECRUIT_GENERICS, START_GENERICS, createRun } from './createRun';
+import { RUN_GENERICS, createRun } from './createRun';
 import { encounterSeed } from './encounter';
 import { nodeSeed } from './nodeSeed';
 import { offerGyms } from './gyms';
@@ -457,27 +460,35 @@ describe('removal, measured against Henry’s stated target', () => {
         + 2 * (scrapForWin('wild', 1) + scrapForWin('wild', 2) + scrapForWin('wild', 3));
 
     /**
-     * The generics a run accumulates: `START_GENERICS` in the opening deck, plus `RECRUIT_GENERICS`
-     * for each of the two recruits a 1 → 2 → 3 party takes on (`vision.md`).
+     * The generics a run accumulates, start to finish: **`RUN_GENERICS`, and that is the whole
+     * term** (Henry, 2026-08-25 — *"Only add generics for the first mingming. After that the second
+     * and third mingmings do not need to add an additional generic card."*).
      *
-     * **Ticket 60 put that second term back and doubled it**: a recruit now arrives with the same 4
-     * kit + 2 generics a starter does, so a run's generic count grows with the party again — 2 from
-     * the starter and 2 from each recruit, 2 + 2 x 2 = **6** in a full three-member run. It was 3
-     * for the one day the 5 + 0 table stood (recruits brought none) and 5 before that (3 + 1).
+     * This used to be a sum with a per-recruit term in it, and the sum is gone rather than zeroed.
+     * The generics are no longer something a MEMBER brings — they are a run-level allowance spent
+     * on the first mingming — so there is no second term to multiply by `RECRUITS_PER_RUN` and no
+     * "generics per recruit" quantity to name. A run holds two whether it ends solo or at a full
+     * three-member party.
      *
-     * The term is written out rather than folded into a literal for exactly this reason: it has now
-     * moved three times, and each time this arithmetic moved with it on its own.
+     * The lineage, since this number is what the strip price is divided against and it has moved
+     * every time the deck table has: 5 under ticket 08's 3 + 1, 3 for the one day the 5 + 0 table
+     * stood, 6 under ticket 60's 4 + 2 per member, and **2** now.
      */
     const RECRUITS_PER_RUN = 2;
-    const GENERICS_PER_RUN = START_GENERICS + RECRUIT_GENERICS * RECRUITS_PER_RUN;
+    const GENERICS_PER_RUN = RUN_GENERICS;
 
-    it('counts six generics in a full run, which is what the price is divided against', () => {
-        // 2 (starter) + 2 x 2 (recruits) = 6. Was 3 under the 5 + 0 table, 5 under 3 + 1.
-        expect(GENERICS_PER_RUN).toBe(6);
-        // Three times the starter's own share — stated separately because it is the ticket-60
-        // ruling ("a recruit arrives with the identical six") expressed as an economy fact. It
-        // fails the day `RECRUIT_GENERICS` drifts from `START_GENERICS` again, in either direction.
-        expect(GENERICS_PER_RUN).toBe(START_GENERICS * (1 + RECRUITS_PER_RUN));
+    it('counts two generics in a full run, however far the party grew', () => {
+        expect(GENERICS_PER_RUN).toBe(2);
+        expect(GENERICS_PER_RUN).toBe(RUN_GENERICS);
+        // Counted off a real three-member run's actual deck rather than asserted about the constant,
+        // because "it does not scale with the party" is the whole ruling and a constant cannot show
+        // it. A 1 → 2 → 3 party takes on `RECRUITS_PER_RUN` recruits (`vision.md`) and each of them
+        // brings its kit and no filler, so this count is the same two the run opened with.
+        expect(TRIO).toHaveLength(1 + RECRUITS_PER_RUN);
+        const trio = makeRun('generics-count', TRIO);
+        expect(trio.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
+        // And a solo run holds the same two — the allowance is the run's, not the party's.
+        expect(RUN.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
         expect(GENERIC_HIT).toBe('water_slap');
     });
 
@@ -494,42 +505,52 @@ describe('removal, measured against Henry’s stated target', () => {
         expect(RUN_SCRAP / MARKET_VISITS_PER_RUN).toBe(80);
     });
 
-    it('costs one and a half market visits to strip them all — OUTSIDE ticket 13’s target', () => {
+    it('costs half a market visit to strip them all — against a target that has been retired', () => {
         const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 240 / 3 = 80
-        const stripAll = REMOVAL_PRICE * GENERICS_PER_RUN;    // 20 x 6 = 120
+        const stripAll = REMOVAL_PRICE * GENERICS_PER_RUN;    // 20 x 2 = 40
 
-        expect(stripAll).toBe(120);
+        expect(stripAll).toBe(40);
         expect(visitScrap).toBe(80);
         /*
-         * **FLAG FOR HENRY: ticket 13's stated target does not hold under ticket 60, and this test
-         * now records the miss rather than the hit.** Nothing here is broken — the arithmetic is
-         * recomputed honestly from the shipped constants — but the design band this block existed
-         * to guard is out.
+         * **FLAG FOR HENRY: this block no longer measures a live design goal, and the honest thing
+         * is to say so rather than to invent a new band for it to hit.** The arithmetic below is
+         * recomputed exactly from the shipped constants, and it is kept because a silent move in
+         * `REMOVAL_PRICE`, `MARKET_VISITS_PER_RUN`, the income table or the generic count should
+         * still fail a test. What it can no longer do is tell you whether the price is RIGHT.
          *
-         * The history, since the number has crossed the target twice: ticket 13 aimed at "roughly
-         * one market visit's scrap" (30 against a 150-scrap visit). Ticket 56's income made the
-         * ruled 20 a dearer strip — 100 against a 70-scrap visit, about one and a half visits. The
-         * 2026-08-24 pass moved it back inside from both ends at once: a richer visit (elite raise,
-         * 70 -> 80) and less to strip (recruits stopped bringing a generic, 5 -> 3), giving 60/80,
-         * three quarters of a visit.
+         * The history, since the number crossed ticket 13's "roughly one market visit's scrap"
+         * target twice before landing here: ticket 13 aimed at one visit (30 against a 150-scrap
+         * visit). Ticket 56's income made the ruled 20 a dearer strip — 100 against a 70-scrap
+         * visit, about one and a half. The 2026-08-24 pass moved it back inside from both ends
+         * (elite raise 70 -> 80, and recruits stopped bringing a generic, 5 -> 3), giving 60/80.
+         * Ticket 60's 4 + 2 per member took it back out to 120/80, 1.5 visits.
          *
-         * Ticket 60 gave recruits their generics back and doubled the starter's, which undoes the
-         * second of those two levers and then some: 3 generics -> 6, so 60 -> 120. Against the same
-         * 80-scrap visit that is 1.5 visits — the exact ratio ticket 56 was corrected FOR, reached
-         * this time from the deck side rather than the income side.
+         * **Both of the things that target was made of are now gone.**
          *
-         * Two knobs would restore the band without touching ticket 60's deck shape: REMOVAL_PRICE
-         * 20 -> 10 (120 -> 60, back to 0.75), or more income per visit. Both are Henry's call and
-         * neither belongs in a test, so this asserts what the game actually charges today and says
-         * plainly that it misses.
+         * The first is the generic count. Henry's 2026-08-25 ruling makes the generics a run-level
+         * allowance — two, on the first mingming, never multiplied by the party — so a full strip is
+         * two removals, 40 against an ~80-scrap visit. The target was really a proxy for a deck
+         * problem: filler multiplied with the party, so the run was sold padding at a workshop and
+         * then had to buy it back out at a stall, and the removal price was the lever that decided
+         * how painful that round trip was. The ruling deletes the round trip at the source. Two
+         * generics in a whole run is not a deck someone needs to save up to fix.
+         *
+         * The second is paid removal itself. Henry has ruled that buying removals is no longer how
+         * a deck gets thinned — cards move to a run collection instead, in a later package. So
+         * "what fraction of a market visit does a full strip cost" is not a question the design is
+         * asking any more, and 0.5 is neither a pass nor a miss against it: there is nothing left
+         * to be measured against. Do NOT read the numbers below as a new band, and do not retune
+         * `REMOVAL_PRICE` to move them — when the collection package lands, this block should be
+         * rewritten against whatever the collection actually charges, or deleted with it.
          */
-        expect(stripAll / visitScrap).toBe(1.5);
-        // Documenting the breach, not a band: the strip is now MORE than one whole visit.
-        expect(stripAll / visitScrap).toBeGreaterThan(1);
-        // And it is now exactly half the run's income — the "sink you save the whole game for"
-        // line this test used to guard against with `toBeLessThan(0.5)`. Pinned exactly so that
-        // any move in the price, the income table or the generic count fails here on sight.
-        expect(stripAll / RUN_SCRAP).toBe(0.5);
+        expect(stripAll / visitScrap).toBe(0.5);
+        // The 1.5-visit breach ticket 60 opened is closed — but closed by there being almost
+        // nothing left to strip, not by anyone retuning the price. `REMOVAL_PRICE` has not moved.
+        expect(stripAll / visitScrap).toBeLessThan(1);
+        expect(REMOVAL_PRICE).toBe(20);
+        // A sixth of the run's income, down from a half. Pinned exactly so that any move in the
+        // price, the income table or the generic count fails here on sight.
+        expect(stripAll / RUN_SCRAP).toBe(1 / 6);
     });
 
     it('sits between the cheapest card and the next rung up, so the sink competes', () => {

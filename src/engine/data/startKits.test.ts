@@ -29,10 +29,11 @@ const KIT_PAYOFF: Readonly<Record<string, string>> = {
 /**
  * startKit invariants — **ticket 60's mini-engine table** (supersedes ticket 09's).
  *
- * A run does not start with a species' whole tuned deck: a member brings 4 startKit cards plus 2
- * generics, and a recruit arrives with the identical six. The tuned deck is still the design target
- * the run builds back toward, so a startKit is a SUBSET of it - a tag saying which four survive the
- * cut, never a separate list. That is the invariant these tests exist to hold: the day a deck pass
+ * A run does not start with a species' whole tuned deck: every member brings 4 startKit cards, and
+ * the RUN adds 2 generics on top of the first mingming's four (Henry, 2026-08-25 - they used to be
+ * 2 per member). A recruit brings the same four any member that is not the first one brings. The
+ * tuned deck is still the design target the run builds back toward, so a startKit is a SUBSET of it
+ * - a tag saying which four survive the cut, never a separate list. That is the invariant these tests exist to hold: the day a deck pass
  * drops a card, the kit that still names it must fail here rather than silently dealing a card the
  * player's deck no longer contains.
  *
@@ -115,8 +116,9 @@ describe('start kits', () => {
         });
 
         it.each(def.availableOS)('%s kit: never tags the generic', osId => {
-            // GENERIC_HIT is what the other 2 slots are FILLED with. Tagging it would spend one
-            // of the four identity slots on a card the run gets for free.
+            // GENERIC_HIT is the RUN's filler, dealt on top of the tagged four and only to the
+            // first mingming. Tagging it would spend one of the four identity slots on a card the
+            // run may hand out for free anyway.
             expect(def.startKits![osId], `${osId}: tags GENERIC_HIT`).not.toContain(GENERIC_HIT);
         });
     });

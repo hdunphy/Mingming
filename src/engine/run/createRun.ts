@@ -25,9 +25,9 @@ import type { IGymOffer } from './gyms';
 // ---------------------------------------------------------------------------------------------
 
 /**
- * > Start deck = **6 cards: the 4 `startKit`-tagged cards — the signature payoff plus its three
- * > enablers — plus 2 generic None-element hits**. A recruit arrives with the identical six. The
- * > player's OS is active from the start.
+ * > Start deck = **4 `startKit`-tagged cards per member — the signature payoff plus its three
+ * > enablers — plus 2 generic None-element hits for the RUN, carried by the first member only**.
+ * > A mid-run recruit brings its four and no filler. The player's OS is active from the start.
  *
  * **Why SIX, and why the draw argument moved rather than disappeared.** Draw per turn is
  * `sum(cardDraw) - (N - 1)` across an N-member party — 3 / 5 / 7 cards at one, two and three
@@ -43,31 +43,55 @@ import type { IGymOffer } from './gyms';
  * run still BUILDS toward `economy-session.md`'s 20-25; it just no longer starts with the engine
  * missing its payoff.
  *
- * **TICKET 60 REPLACED THIS TABLE TWICE OVER** (Henry, playtest round 5): the kit is **4 tags —
- * the signature payoff plus its three enablers — and 2 generics**, and a recruit arrives with the
- * identical six. It supersedes both ticket 08's 5 + 3 and the 5 + 0 this map shipped on
- * 2026-08-24, which had itself been a correction to 3 + 1.
+ * **THIS TABLE HAS BEEN RE-RULED FOUR TIMES, AND THE LINEAGE IS THE ARGUMENT.** Ticket 08 set
+ * 5 kit + 3 generics per member, recruits 3 + 1. 2026-08-24 made recruits 5 + 0, fixing the right
+ * bug with the wrong lever. Ticket 60 (playtest round 5) made everyone 4 + 2. Henry, 2026-08-25,
+ * made the generics run-level: **4 per member, 2 for the run**.
  *
- * The 2026-08-24 pass fixed the right bug with the wrong lever. A recruit was arriving with three
- * of five tagged cards, so it got all five and lost its filler — but that only fixed RECRUITS, and
- * round 5 found the same hole in the STARTER: ticket 09's tables deliberately withheld each deck's
- * payoff so the run could "build back toward" it, which meant *"ratatoskr's startKit carried none
- * of his engine, making him pure feed."* A kit of enablers with no payoff is a pile of setup for a
- * card you may never draw.
+ * Two separate faults were being fixed, one per pass, and it is worth keeping them apart:
  *
- * So the payoff is tagged, the fourth enabler is cut, and starters and recruits are the same shape
- * — a recruit that plays differently from a starter of the same species was never a design, it was
- * an artefact of two rulings written months apart.
+ * 1. **The kit was missing its engine.** Ticket 09's tables deliberately withheld each deck's
+ *    payoff so the run could "build back toward" it, which meant *"ratatoskr's startKit carried
+ *    none of his engine, making him pure feed."* A kit of enablers with no payoff is a pile of
+ *    setup for a card you may never draw. Fixed by ticket 60's table: payoff first, 3 enablers.
+ * 2. **The filler multiplied with the party.** At 2 generics per member, recruiting a third
+ *    mingming brought a third engine AND two more `Tackle`s — so a third of what the workshop sold
+ *    you was padding, and the run then paid a removal to take it back out. Filler exists to stop a
+ *    solo opening deck being four cards. A three-member deck does not need padding; it needs room.
+ *    Fixed here: `RUN_GENERICS`, once, on the first member.
  *
- * Deck-size arithmetic, since `economy-session.md`'s 20-25 gate watches it: 6 x 3 members = **18**
- * before a single pick, against 8 + 5 + 5 = 18 under the previous table. The base is unchanged;
- * what moved is that every one of those six cards now does something for the species that brought
- * it, and two per member are generics the market can be paid to strip.
+ * A recruit is therefore not a lesser kind of member — it is simply never the first one, and it
+ * arrives with exactly what a second or third starting member does.
+ *
+ * Deck-size arithmetic, since `economy-session.md`'s 20-25 gate watches it: **6 / 10 / 14** at one,
+ * two and three members — the run's two generics plus four tagged cards per member. Against the
+ * previous table's 8 / 13 / 18, and against ticket 08's original 8 / 12 / 16. The floor dropped
+ * because the generics stopped multiplying (see `RUN_GENERICS`), and 14 rather than 18 is what
+ * leaves a full-party run genuine room inside the 20-25 gate for the picks and buys it is supposed
+ * to be about.
  */
 export const START_KIT_SIZE = 4;
-export const START_GENERICS = 2;
 export const RECRUIT_KIT_SIZE = 4;
-export const RECRUIT_GENERICS = 2;
+
+/**
+ * The generics a RUN opens with — **two, once, not two per member** (Henry, 2026-08-25).
+ *
+ * This constant used to be `START_GENERICS` and it was per member, which is why it is renamed
+ * rather than retuned: the quantity did not change, the thing it counts did. *"Only add generics
+ * for the first mingming. After that the second and third mingmings do not need to add an
+ * additional generic card."*
+ *
+ * The old shape taxed the party for growing. Recruiting a third member is meant to bring a third
+ * engine; under 2-per-member it also brought two more `Tackle`s, so a third of everything the
+ * workshop sold you was filler — and the run then had to buy the filler back out with a paid
+ * removal. Filler exists to stop a solo opening deck being four cards; a three-member deck does not
+ * need padding, it needs room.
+ *
+ * `RECRUIT_GENERICS` is gone rather than set to zero. A named constant at zero reads as a knob
+ * someone might turn, and there is no longer such a thing as a recruit's generics — there is one
+ * run-level allowance, spent at the top.
+ */
+export const RUN_GENERICS = 2;
 
 /**
  * What a run opens with, in scrap (Henry, playtest 2026-08-24).
@@ -168,32 +192,38 @@ function mintCards(member: IMingmingState, dataIds: ReadonlyArray<string>, strea
 }
 
 /**
- * The 6 cards a starting party member brings: 4 kit (payoff + 3 enablers) + 2 generics.
+ * What ONE member contributes: its four tagged cards, and nothing else.
+ *
+ * `withGenerics` is a required parameter rather than an optional one with a default, and that is
+ * deliberate. The generics are a run-level allowance spent on the first member (`RUN_GENERICS`), so
+ * every caller has to state which case it is — a default would let a new call site silently deal a
+ * second helping of filler, which is precisely the bug this ruling removes.
  *
  * The generic is `GENERIC_HIT` (ticket 09) — a None-element card, so no species gains STAB from it
  * and the filler is worth the same to everyone.
  */
-export function startDeckFor(member: IMingmingState, stream: SeedStream): IRunCard[] {
+export function startDeckFor(
+    member: IMingmingState,
+    stream: SeedStream,
+    withGenerics: boolean,
+): IRunCard[] {
     const ids = [
         ...startKitIdsFor(member, START_KIT_SIZE),
-        ...Array.from({ length: START_GENERICS }, () => GENERIC_HIT),
+        ...(withGenerics ? Array.from({ length: RUN_GENERICS }, () => GENERIC_HIT) : []),
     ];
     return mintCards(member, ids, stream);
 }
 
 /**
- * The 6 cards a mid-run recruit brings — the SAME six a starter does. Not called by
- * `createRun` — `engine/run/workshop.ts`'s `planRecruit` (ticket 14) is its caller — but it lives
- * here because it is the same ruling, and splitting the two halves of ticket 08 across two files is
- * how they drift apart. The workshop calls this rather than re-deriving the shape for exactly that
- * reason.
+ * The 4 cards a mid-run recruit brings — its kit, no filler.
+ *
+ * Identical to a non-first starting member, which is the ruling stated as code: a recruit is not a
+ * lesser kind of party member, it is simply never the first one. Not called by `createRun` —
+ * `engine/run/workshop.ts`'s `planRecruit` (ticket 14) is its caller — but it lives here because it
+ * is the same ruling, and splitting the two halves across two files is how they drift apart.
  */
 export function recruitDeckFor(member: IMingmingState, stream: SeedStream): IRunCard[] {
-    const ids = [
-        ...startKitIdsFor(member, RECRUIT_KIT_SIZE),
-        ...Array.from({ length: RECRUIT_GENERICS }, () => GENERIC_HIT),
-    ];
-    return mintCards(member, ids, stream);
+    return mintCards(member, startKitIdsFor(member, RECRUIT_KIT_SIZE), stream);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -224,7 +254,9 @@ export function createRun(input: CreateRunInput): IRunState {
     const deckStream = new SeedStream(new SeedStream(seed).fork('start-deck'));
 
     const deck: IRunCard[] = [];
-    for (const member of party) deck.push(...startDeckFor(member, deckStream));
+    // The generics ride on the FIRST member and only the first (`RUN_GENERICS`). A party picked at
+    // run start can be one, two or three members; whichever is first carries the run's filler.
+    party.forEach((member, index) => deck.push(...startDeckFor(member, deckStream, index === 0)));
 
     // `macros-and-drivers.md`: three fixed slots (`MACRO_SLOTS`), all empty at run start. Written
     // as a literal rather than built from the constant because `MacroSlots` is a fixed-length

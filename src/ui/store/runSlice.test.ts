@@ -353,8 +353,9 @@ describe('an app close mid-run resumes at the same node with the same seed', () 
         expect(loaded.run?.currentNodeId).toBe(target.id);
         expect(loaded.run?.fightsResolved).toBe(3);
         expect(loaded.run?.scrap).toBe(42);
-        // Ticket 60's opening six for the solo party `makeRun` fields (4 kit + 2 generics), every
-        // card back out of storage — a deck that round-trips short is the failure mode here.
+        // The opening six for the solo party `makeRun` fields — 4 kit cards plus the RUN's 2
+        // generics, not 2 per member (Henry, 2026-08-25) — every card back out of storage. A deck
+        // that round-trips short is the failure mode here.
         expect(loaded.run?.deck).toHaveLength(6);
     });
 
