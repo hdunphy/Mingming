@@ -24,6 +24,7 @@ body{background:#0c0e12;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-seri
 .bigc .desc{font-size:10px;color:#aeb9c6;text-align:center;line-height:1.35;flex:1;overflow:hidden}
 .bigc .tags{font-size:8.5px;color:#7d8ea1;text-align:center;letter-spacing:.5px;min-height:11px}
 .bigc.payoff{border-color:var(--el);box-shadow:0 0 0 1px var(--el),0 3px 12px #0008}
+.bigc .nbadge{position:absolute;bottom:-10px;right:-8px;background:#ffd479;color:#0c0e12;font-weight:800;font-size:12px;border-radius:11px;padding:2px 8px;border:2px solid #0c0e12}
 .bigc .elbar{position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 8px 8px;background:var(--el)}
 /* deck rows */
 .drow{display:flex;align-items:center;gap:7px;border:1px solid #2b3441;border-left:4px solid var(--el);border-radius:3px;background:#131820;padding:3px 7px;height:27px;font-size:11.5px}
@@ -56,7 +57,7 @@ body{background:#0c0e12;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-seri
      <div><div class="nm">Kraken</div><div class="os">SURGE CORE OS</div></div><div class="spacer" style="width:6px"></div><div class="meta">⚡2e · 5 in deck</div></div><div class="rmem" style="--el:#43b45f"><div class="dot">H</div>
      <div><div class="nm">Huldra</div><div class="os">BLIGHT OS</div></div><div class="spacer" style="width:6px"></div><div class="meta">⚡2e · 6 in deck</div></div><div class="rmem benched" style="--el:#43b45f"><div class="dot">R</div>
      <div><div class="nm">Ratatoskr</div><div class="os">FEEDBACK OS</div></div><div class="spacer" style="width:6px"></div><div class="meta">⚡3e · benched</div></div></div>
-<div class="bodyF"><div class="center panel"><h2>RUN COLLECTION · 10</h2><div class="filters"><span class="f on">ALL 10</span><span class="f">FIRE</span><span class="f">WATER</span><span class="f">NATURE</span><span class="f">ATTACKS</span><span class="f">SKILLS</span><span class="f">BENCHED ENGINE</span><span class="spacer"></span><span class="f">SORT: COST ▾</span><span class="f">🔍 search</span></div>
+<div class="bodyF"><div class="center panel"><h2>RUN COLLECTION · 10 (9 unique)</h2><div class="filters"><span class="f on">ALL 10</span><span class="f">FIRE</span><span class="f">WATER</span><span class="f">NATURE</span><span class="f">ATTACKS</span><span class="f">SKILLS</span><span class="f">BENCHED ENGINE</span><span class="spacer"></span><span class="f">SORT: COST ▾</span><span class="f">🔍 search</span></div>
   <div class="grid"><div class="bigc payoff" style="--el:#43b45f">
       <div class="gem">2</div><div class="typ ATTACK">ATTACK</div>
       <div class="art"></div><div class="nm">Seed Bomb</div>
@@ -66,10 +67,7 @@ body{background:#0c0e12;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-seri
       <div class="desc">Whenever you play a 0-cost card, generate a 0-cost Feedback.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#9aa3ad">
       <div class="gem">0</div><div class="typ SKILL">SKILL</div>
       <div class="art"></div><div class="nm">Forage</div>
-      <div class="desc">Draw 1. Take damage equal to 15 power.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#9aa3ad">
-      <div class="gem">0</div><div class="typ SKILL">SKILL</div>
-      <div class="art"></div><div class="nm">Forage</div>
-      <div class="desc">Draw 1. Take damage equal to 15 power.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#43b45f">
+      <div class="desc">Draw 1. Take damage equal to 15 power.</div><div class="tags">benched</div><div class="nbadge">×2</div><div class="elbar"></div></div><div class="bigc" style="--el:#43b45f">
       <div class="gem">0</div><div class="typ SKILL">SKILL</div>
       <div class="art"></div><div class="nm">Healing Mist</div>
       <div class="desc">Heal with 15 power.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#3d9be0">
@@ -81,7 +79,10 @@ body{background:#0c0e12;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-seri
       <div class="desc">Apply 4 Burn if you have Sharp. Otherwise 2 Burn.</div><div class="tags">pick</div><div class="elbar"></div></div><div class="bigc" style="--el:#3d9be0">
       <div class="gem">1</div><div class="typ ATTACK">ATTACK</div>
       <div class="art"></div><div class="nm">Venom Fang</div>
-      <div class="desc">Strike with envenomed fangs: 25 power.</div><div class="tags">pick</div><div class="elbar"></div></div></div>
-  <div class="pager">◀ &nbsp; page 1 / 2 &nbsp; ▶</div></div><div class="panel" style="width:300px;flex:none"><h2>ACTIVE DECK · 20 / floor 18</h2>
+      <div class="desc">Strike with envenomed fangs: 25 power.</div><div class="tags">pick</div><div class="elbar"></div></div><div class="bigc" style="--el:#e05d43">
+      <div class="gem">0</div><div class="typ SKILL">SKILL</div>
+      <div class="art"></div><div class="nm">Ignite</div>
+      <div class="desc">Apply 1 Burn.</div><div class="tags">pick</div><div class="elbar"></div></div></div>
+  <div class="pager">◀ &nbsp; page 1 / 2 &nbsp; ▶ &nbsp; <span style="color:#4d5866;font-style:italic">duplicates stack with ×N — one tile per unique card</span></div></div><div class="panel" style="width:300px;flex:none"><h2>ACTIVE DECK · 20 / floor 18</h2>
   <div style="display:flex;flex-direction:column;gap:3px;overflow:auto;flex:1"><div class="drow" style="--el:#9aa3ad"><span class="g">0</span><span class="nm">Water Slap</span><span class="t">generic</span><span class="x">×3</span></div><div class="drow" style="--el:#43b45f"><span class="g">0</span><span class="nm">Sap Vigor</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Blood Rite</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Berserk Rush</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Battle Rhythm</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Crimson Draw</span></div><div class="drow" style="--el:#43b45f"><span class="g">1</span><span class="nm">Thornguard</span><span class="x">×2</span></div><div class="drow" style="--el:#43b45f"><span class="g">1</span><span class="nm">Heartwood</span></div><div class="drow" style="--el:#43b45f"><span class="g">1</span><span class="nm">Nettle Sting</span><span class="t">pick</span></div><div class="drow" style="--el:#e05d43"><span class="g">2</span><span class="nm">Ragnarok Edge</span><span class="t">payoff</span></div><div class="drow" style="--el:#9aa3ad"><span class="g">2</span><span class="nm">Capacitor</span><span class="x">×2</span></div><div class="drow" style="--el:#3d9be0"><span class="g">2</span><span class="nm">Surge Protection</span><span class="x">×2</span></div><div class="drow" style="--el:#43b45f"><span class="g">2</span><span class="nm">Blightbloom</span><span class="t">payoff</span></div><div class="drow" style="--el:#e05d43"><span class="g">2</span><span class="nm">Pyre Sacrifice</span><span class="t">pick</span></div><div class="drow" style="--el:#3d9be0"><span class="g">3</span><span class="nm">Hydro Blast</span><span class="t">payoff</span></div></div>
   <div class="hint" style="margin-top:8px">Click a card in the collection to add it · click a row to send it back. Floor counts each member's 5-card engine + starter generics.</div></div></div></div></body></html>

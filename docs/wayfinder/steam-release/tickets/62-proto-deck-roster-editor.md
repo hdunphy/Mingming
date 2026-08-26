@@ -29,3 +29,7 @@ Closed 2026-08-26 after two mockup rounds (6 layouts). Mockups in [research/62-e
 - Same F editor serves all four edit surfaces (market, workshop, boundary accept, pre-gauntlet); at the marketplace the sell verb appears on collection/deck cards per ticket 61 §4.
 
 Henry's requirements that drove it: energy cost, skill-vs-attack, and descriptions readable on every card; Hearthstone collection feel; deck on the right; roster top.
+
+## Amendment (Henry, 2026-08-26) — duplicate rule
+
+**One tile per unique card, everywhere.** Duplicates never repeat as separate tiles: the collection book shows a single big card with a gold **×N badge** (bottom-right corner), the deck list already stacks with ×N on the row. Adding/removing a duplicate increments/decrements N; the tile disappears at 0. The header counts both: 'RUN COLLECTION · 10 (9 unique)'. Reference mockup updated in place (editor_F_big_paged.html/png — see Forage ×2).
