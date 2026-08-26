@@ -1,0 +1,87 @@
+<!doctype html><html><head><meta charset='utf-8'><title>62 F_big_paged</title></head><body><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0c0e12;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-serif;width:1280px;height:800px;overflow:hidden}
+.frame{width:1280px;height:800px;display:flex;flex-direction:column;background:radial-gradient(1200px 500px at 60% -10%,#16202c 0%,#0c0e12 60%)}
+.topbar{height:50px;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid #232a35;background:#10141b;flex:none}
+.title{font-size:14px;letter-spacing:2px;color:#9fb4c8;font-weight:600}
+.ctx{font-size:11.5px;color:#5f6b7a;letter-spacing:1px}
+.spacer{flex:1}
+.pill{border:1px solid #2c6e49;border-radius:3px;padding:4px 12px;font-size:12px;color:#7fd6a4;background:#151b24}
+.pill b{color:#fff}
+.btn{border:1px solid #3a4a5e;background:#1a2330;border-radius:3px;padding:6px 16px;font-size:12px;letter-spacing:1px;color:#dfe4ea}
+.btn.primary{background:#245a8c;border-color:#3d7ab5}
+.filters{display:flex;gap:6px;align-items:center}
+.f{border:1px solid #2c3745;border-radius:12px;padding:3px 11px;font-size:10.5px;color:#8fa0b3;background:#12171f}
+.f.on{border-color:#3d9be0;color:#fff}
+/* big card tile */
+.bigc{width:var(--cw,152px);height:var(--ch,200px);border:1px solid #303a48;border-radius:8px;background:linear-gradient(180deg,#171d27 0%,#10151d 100%);position:relative;padding:8px;display:flex;flex-direction:column;box-shadow:0 3px 10px #0007}
+.bigc .gem{position:absolute;top:-9px;left:-9px;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7ec3ff,#245a8c 70%);border:2px solid #0c0e12;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center}
+.bigc .typ{position:absolute;top:6px;right:6px;font-size:8.5px;letter-spacing:1px;padding:2px 6px;border-radius:2px;font-weight:700}
+.typ.ATTACK{background:#5b2320;color:#ff9d8f}.typ.SKILL{background:#1e3a52;color:#8fc7f5}.typ.DAEMON{background:#3a2352;color:#c9a2f0}
+.bigc .art{height:var(--ah,52px);border-radius:5px;margin:14px 0 6px;background:
+ repeating-linear-gradient(45deg,transparent 0 6px,#ffffff08 6px 12px),linear-gradient(135deg,var(--el) 0%,#0c0e12 130%);opacity:.85}
+.bigc .nm{font-size:12.5px;font-weight:700;text-align:center;margin-bottom:4px;line-height:1.1}
+.bigc .desc{font-size:10px;color:#aeb9c6;text-align:center;line-height:1.35;flex:1;overflow:hidden}
+.bigc .tags{font-size:8.5px;color:#7d8ea1;text-align:center;letter-spacing:.5px;min-height:11px}
+.bigc.payoff{border-color:var(--el);box-shadow:0 0 0 1px var(--el),0 3px 12px #0008}
+.bigc .elbar{position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 8px 8px;background:var(--el)}
+/* deck rows */
+.drow{display:flex;align-items:center;gap:7px;border:1px solid #2b3441;border-left:4px solid var(--el);border-radius:3px;background:#131820;padding:3px 7px;height:27px;font-size:11.5px}
+.drow .g{width:17px;height:17px;border-radius:50%;background:var(--el);color:#0c0e12;font-weight:700;font-size:10.5px;display:flex;align-items:center;justify-content:center;flex:none}
+.drow .nm{flex:1;white-space:nowrap;overflow:hidden}
+.drow .x{color:#ffd479;font-weight:700;font-size:11px}
+.drow .t{font-size:8.5px;color:#7d8ea1}
+/* roster chips */
+.rmem{display:flex;align-items:center;gap:8px;border:1px solid #2c3745;border-radius:5px;background:#11161e;padding:6px 10px}
+.rmem .dot{width:34px;height:34px;border-radius:5px;background:linear-gradient(135deg,var(--el),#0c0e12 160%);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
+.rmem .nm{font-size:12.5px;font-weight:700}
+.rmem .os{font-size:9px;color:#8fa0b3;letter-spacing:1px}
+.rmem .meta{font-size:10px;color:#ffd479}
+.rmem.benched{opacity:.55;border-style:dashed}
+.panel{border:1px solid #232a35;border-radius:6px;background:#0f131a;padding:10px 12px;display:flex;flex-direction:column;min-height:0}
+.panel h2{font-size:10.5px;letter-spacing:2px;color:#9fb4c8;margin-bottom:8px;flex:none}
+.hint{font-size:10px;color:#4d5866;font-style:italic}
+
+.rosterbar{display:flex;gap:10px;padding:10px 18px 0;flex:none}
+.bodyF{flex:1;display:flex;gap:12px;padding:10px 18px 14px;min-height:0}
+.center{flex:1;display:flex;flex-direction:column;gap:8px;min-height:0}
+.grid{--cw:196px;--ch:252px;--ah:78px;display:grid;grid-template-columns:repeat(4,196px);grid-template-rows:repeat(2,252px);gap:18px 16px;justify-content:center;align-content:center;flex:1}
+.grid .bigc .nm{font-size:14px} .grid .bigc .desc{font-size:11px}
+.pager{display:flex;justify-content:center;gap:14px;align-items:center;flex:none;color:#8fa0b3;font-size:12px}
+</style><div class="frame"><div class="topbar"><span class="title">LOADOUT — OPTION F · BIG CARDS, PAGED</span>
+      <span class="ctx">WORKSHOP · NATURE BIOME · 143 SCRAP</span><span class="spacer"></span>
+      <span class="pill">DECK <b>20</b> / floor 18</span><button class="btn">UNDO</button><button class="btn primary">CONFIRM</button></div>
+<div class="rosterbar"><div class="rmem" style="--el:#e05d43"><div class="dot">F</div>
+     <div><div class="nm">Fenrir</div><div class="os">BLOOD PACT OS</div></div><div class="spacer" style="width:6px"></div><div class="meta">⚡2e · 9 in deck</div></div><div class="rmem" style="--el:#3d9be0"><div class="dot">K</div>
+     <div><div class="nm">Kraken</div><div class="os">SURGE CORE OS</div></div><div class="spacer" style="width:6px"></div><div class="meta">⚡2e · 5 in deck</div></div><div class="rmem" style="--el:#43b45f"><div class="dot">H</div>
+     <div><div class="nm">Huldra</div><div class="os">BLIGHT OS</div></div><div class="spacer" style="width:6px"></div><div class="meta">⚡2e · 6 in deck</div></div><div class="rmem benched" style="--el:#43b45f"><div class="dot">R</div>
+     <div><div class="nm">Ratatoskr</div><div class="os">FEEDBACK OS</div></div><div class="spacer" style="width:6px"></div><div class="meta">⚡3e · benched</div></div></div>
+<div class="bodyF"><div class="center panel"><h2>RUN COLLECTION · 10</h2><div class="filters"><span class="f on">ALL 10</span><span class="f">FIRE</span><span class="f">WATER</span><span class="f">NATURE</span><span class="f">ATTACKS</span><span class="f">SKILLS</span><span class="f">BENCHED ENGINE</span><span class="spacer"></span><span class="f">SORT: COST ▾</span><span class="f">🔍 search</span></div>
+  <div class="grid"><div class="bigc payoff" style="--el:#43b45f">
+      <div class="gem">2</div><div class="typ ATTACK">ATTACK</div>
+      <div class="art"></div><div class="nm">Seed Bomb</div>
+      <div class="desc">Deal 15 power per card you played this turn.</div><div class="tags">payoff · benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#43b45f">
+      <div class="gem">2</div><div class="typ DAEMON">DAEMON</div>
+      <div class="art"></div><div class="nm">Echo Chamber</div>
+      <div class="desc">Whenever you play a 0-cost card, generate a 0-cost Feedback.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#9aa3ad">
+      <div class="gem">0</div><div class="typ SKILL">SKILL</div>
+      <div class="art"></div><div class="nm">Forage</div>
+      <div class="desc">Draw 1. Take damage equal to 15 power.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#9aa3ad">
+      <div class="gem">0</div><div class="typ SKILL">SKILL</div>
+      <div class="art"></div><div class="nm">Forage</div>
+      <div class="desc">Draw 1. Take damage equal to 15 power.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#43b45f">
+      <div class="gem">0</div><div class="typ SKILL">SKILL</div>
+      <div class="art"></div><div class="nm">Healing Mist</div>
+      <div class="desc">Heal with 15 power.</div><div class="tags">benched</div><div class="elbar"></div></div><div class="bigc" style="--el:#3d9be0">
+      <div class="gem">1</div><div class="typ ATTACK">ATTACK</div>
+      <div class="art"></div><div class="nm">Ink Stream</div>
+      <div class="desc">Deal 33 power for each card drawn to you this turn.</div><div class="tags">pick</div><div class="elbar"></div></div><div class="bigc" style="--el:#e05d43">
+      <div class="gem">1</div><div class="typ SKILL">SKILL</div>
+      <div class="art"></div><div class="nm">Molten Core</div>
+      <div class="desc">Apply 4 Burn if you have Sharp. Otherwise 2 Burn.</div><div class="tags">pick</div><div class="elbar"></div></div><div class="bigc" style="--el:#3d9be0">
+      <div class="gem">1</div><div class="typ ATTACK">ATTACK</div>
+      <div class="art"></div><div class="nm">Venom Fang</div>
+      <div class="desc">Strike with envenomed fangs: 25 power.</div><div class="tags">pick</div><div class="elbar"></div></div></div>
+  <div class="pager">◀ &nbsp; page 1 / 2 &nbsp; ▶</div></div><div class="panel" style="width:300px;flex:none"><h2>ACTIVE DECK · 20 / floor 18</h2>
+  <div style="display:flex;flex-direction:column;gap:3px;overflow:auto;flex:1"><div class="drow" style="--el:#9aa3ad"><span class="g">0</span><span class="nm">Water Slap</span><span class="t">generic</span><span class="x">×3</span></div><div class="drow" style="--el:#43b45f"><span class="g">0</span><span class="nm">Sap Vigor</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Blood Rite</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Berserk Rush</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Battle Rhythm</span></div><div class="drow" style="--el:#e05d43"><span class="g">1</span><span class="nm">Crimson Draw</span></div><div class="drow" style="--el:#43b45f"><span class="g">1</span><span class="nm">Thornguard</span><span class="x">×2</span></div><div class="drow" style="--el:#43b45f"><span class="g">1</span><span class="nm">Heartwood</span></div><div class="drow" style="--el:#43b45f"><span class="g">1</span><span class="nm">Nettle Sting</span><span class="t">pick</span></div><div class="drow" style="--el:#e05d43"><span class="g">2</span><span class="nm">Ragnarok Edge</span><span class="t">payoff</span></div><div class="drow" style="--el:#9aa3ad"><span class="g">2</span><span class="nm">Capacitor</span><span class="x">×2</span></div><div class="drow" style="--el:#3d9be0"><span class="g">2</span><span class="nm">Surge Protection</span><span class="x">×2</span></div><div class="drow" style="--el:#43b45f"><span class="g">2</span><span class="nm">Blightbloom</span><span class="t">payoff</span></div><div class="drow" style="--el:#e05d43"><span class="g">2</span><span class="nm">Pyre Sacrifice</span><span class="t">pick</span></div><div class="drow" style="--el:#3d9be0"><span class="g">3</span><span class="nm">Hydro Blast</span><span class="t">payoff</span></div></div>
+  <div class="hint" style="margin-top:8px">Click a card in the collection to add it · click a row to send it back. Floor counts each member's 5-card engine + starter generics.</div></div></div></div></body></html>
