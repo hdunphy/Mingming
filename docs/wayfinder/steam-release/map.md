@@ -23,6 +23,8 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ## Decisions so far
 
+- [Ticket 67 rulings](tickets/67-enemy-ladder-and-bands.md) — the run-gate's failing bands (52.8/41.7/50.0 vs 95/75/60) were measured WITHOUT ticket 60's enemy ladder, so 67 is **build-then-grill**: ladder + **IV flip** (player 0–31; **wilds 0–20**, elites 0–31 uncapped, **boss fixed authored IVs**) → full re-measure → numbers session on the residual (boss expected). No tuning against the broken baseline. Assembly roll stays unpreviewed (?? until spent).
+
 - [Region map visual pass](tickets/64-proto-region-map-screen.md) — **Option N, the winding overworld route** (min ~74px node spacing enforced), biome color zones with ✓/current/ahead headers, visit badges, pulsing current node, white reachable rings, fog beyond 1 layer, boundary banner, gym silhouettes. Reference SVG in research/64-map-proto/.
 - [Card frames](tickets/66-proto-card-frames.md) — **CHASSIS direction (Henry)**: element plate + border, **energy pips** top-left, **type ICONS** (▲ attack · ✦ skill · ◆ daemon · ● macro) replacing text banners, **no STAB text, no payoff glow**, descriptions kept at hand scale; supersedes the frame details in the 62 F reference. Final reference in research/66-frames-proto/frames_chassis_final.html.
 

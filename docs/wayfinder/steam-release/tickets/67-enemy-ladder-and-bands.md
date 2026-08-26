@@ -83,3 +83,10 @@ shows no non-monotonic step the ruling did not ask for.
   format with 51 committed files behind it — its own decision.
 - The gate's decks are the **un-drifted opening decks** (no market or workshop purchases), so the
   wild and elite bands read low against a played run. That is the conservative direction.
+
+## Rulings (Henry, 2026-08-26) — read before working this ticket
+
+1. **The IV asymmetry FLIPS.** Player: 0–31 unchanged. **Wilds roll 0–20** (mean 10 — below the player's 15.5; a tunable, bounded edge; no more god-roll wilds wiping early runs). **Elites roll 0–31 uncapped** (elite variance is the elite's spice). **The gauntlet boss gets FIXED authored IVs** per comp — exactly as hard as designed, tuned directly.
+2. **Sequencing is BUILD-THEN-GRILL, and no knob moves before the re-measure**: (1) implement the ticket-60 enemy ladder (wilds full kit / NO OS / AI_GREEDY → elites +OS / AI_LITE → gauntlet +OS+Driver / lookahead) + the IV flip above; (2) re-run `balance:run-gate` at full samples; (3) STOP and return the new bands — the numbers session with Henry happens on the real baseline. The −42/−33/−10 misses were measured without the ladder; do not tune against that baseline (deck-archetypes METHOD law).
+3. Expected survivor: the gym boss (8.3% from full HP; 4.2% full gauntlet). If the ladder + fixed IVs cannot plausibly reach the 60% band, bring options with numbers to the grilling, do not redesign.
+4. **Assembly stat reveal CONFIRMED as shipped**: ?? until the blueprint is spent; the roll is never previewed (planRecruit ruling stands; the mockup's numbers depicted the post-assembly ceremony).

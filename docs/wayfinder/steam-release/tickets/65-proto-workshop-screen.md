@@ -26,3 +26,7 @@ Closed 2026-08-26. Mockups in [research/65-workshop-proto/](../research/65-works
 - **Right: PARTY/BENCH panel** (chips with OS + energy), species-clause note, the floor pill, and the **REFLASH entry**.
 - **REFLASH = the shared comparison screen** ([workshop_J_reflash.html](../research/65-workshop-proto/workshop_J_reflash.html)): current OS + its in-deck engine vs offered OS + the engine that replaces it, side by side; **old engine cards → run collection, new engine → deck** (floor unchanged, 5 for 5); cost 1 × species blueprint + 15 ⛁.
 - Top bar: scrap, EDIT LOADOUT (the ticket-62 F editor), LEAVE. Duplicate rule (×N badges) applies throughout.
+
+## Reveal clarification (Henry, 2026-08-26)
+
+The stage's VIT/PWR/DEF numbers depict the POST-assembly ceremony, not a preview. Stats show ?? until the blueprint is spent (planRecruit ruling: the roll is never previewed). Confirmed against Legion's ticket-61 implementation.
