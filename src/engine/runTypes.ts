@@ -227,8 +227,24 @@ export interface IRunState {
      */
     readonly partyIds: ReadonlyArray<string>;
 
-    /** The shared 3v3 deck, built up over the run. `economy-session.md` bite two. */
+    /** The shared 3v3 deck the party actually fights with. `economy-session.md` bite two. */
     readonly deck: ReadonlyArray<IRunCard>;
+
+    /**
+     * THE RUN COLLECTION — everything owned this run that is not in the active deck.
+     *
+     * Ticket 61 (Henry, 2026-08-26). Picks the player chose to store rather than play, cards edited
+     * out of the deck at one of the four surfaces, and a benched member's engine all live here. It
+     * is run-scoped exactly as `deck` and `scrap` are: it dies with the run.
+     *
+     * **This is what stopped deck bloat being a trap.** Before it, a card you took was a card you
+     * had to draw, so taking a good card you could not use yet was a cost — and the answer the game
+     * offered was to pay 20 scrap to undo it. A card in the collection costs nothing and is one
+     * free edit away from playing, which is why paid removal could be deleted rather than repriced.
+     *
+     * Optional so save v4 blobs written before this field parse; every read defaults to `[]`.
+     */
+    readonly collection?: ReadonlyArray<IRunCard>;
 
     /** Run-scoped, resets with the run (`economy-session.md`, anti-mudflation). */
     readonly scrap: number;
@@ -398,6 +414,10 @@ export const RunStateSchema = z.object({
     currentNodeId: z.string(),
     partyIds: z.array(z.string()).max(3),
     deck: z.array(RunCardSchema),
+    // `.default([])` rather than required: an in-progress run saved before the collection existed
+    // must resume, and resuming with an empty collection is exactly right — everything it owned
+    // was in its deck.
+    collection: z.array(RunCardSchema).default([]),
     scrap: z.number().int().min(0),
     macros: z.tuple([z.string().nullable(), z.string().nullable(), z.string().nullable()]),
     drivers: z.array(z.string()),

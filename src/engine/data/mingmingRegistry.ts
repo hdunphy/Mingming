@@ -21,11 +21,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
         },
         /*
-         * TICKET 60 — THE MINI-ENGINE SIX (Henry, playtest round 5, ratified table).
+         * THE FIVE-CARD ENGINE — ticket 61's amended spec (Henry, 2026-08-26, ratified table).
          *
-         * A start kit is **the signature payoff plus its three enablers**; the run deck adds two
-         * generics on top, and a mid-run recruit arrives with the identical six. This replaces
-         * ticket 09's five-card table wholesale, and the replacement inverts its central choice.
+         * A start kit is **the signature payoff plus four enablers**. The STARTER adds three
+         * generics on top for an 8-card opening deck; a mid-run RECRUIT brings its bare five. This
+         * replaces ticket 09's table, and the replacement inverts its central choice.
          *
          * Ticket 09 deliberately WITHHELD the payoff — "leaves the `ragnarok_edge` finishers to be
          * earned back", "keeps `echo_chamber_v2` over the `seed_bomb_v2` payoff" — on the reasoning
@@ -34,15 +34,16 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
          * enablers and no payoff is not a weak engine, it is a pile of setup for a card the player
          * may never draw, and it reads as a species that does not work.
          *
-         * So the payoff is in, and the fourth enabler is out. Four tags, not five: the deck-size
-         * arithmetic is 6 x 3 members = 18 before a single pick, which is what leaves room inside
-         * `economy-session.md`'s 20-25 gate for the picks and buys the run is supposed to be about.
+         * So the payoff is in, and it leads the list. Five tags: the deck-size arithmetic is
+         * **8 / 13 / 18** by party size, which is also the active deck's FLOOR — see
+         * `createRun.minimumActiveDeck`. An engine of four was tried in between (ticket 60's
+         * "mini-engine 6") and Henry cut it: four tagged cards was too thin to play a species with.
          */
         startKits: {
-            // v1: the finisher, fed by the consume cycle that pays for it.
-            "fenrir_v1": ["ragnarok_edge", "blood_rite", "berserk_rush", "battle_rhythm"],
+            // v1: the finisher, and the consume cycle that pays for it.
+            "fenrir_v1": ["ragnarok_edge", "blood_rite", "berserk_rush", "battle_rhythm", "crimson_draw"],
             // v2: the Burn payoff over its own ignition. `ignite` x2 because one is a coin flip.
-            "fenrir_v2": ["pyre_sacrifice", "ignite", "ignite", "molten_core"]
+            "fenrir_v2": ["pyre_sacrifice", "ignite", "ignite", "molten_core", "slag_strike"]
         },
         moves: [
             {
@@ -103,11 +104,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection", "water_slap", "water_slap"]
         },
         startKits: {
-            // Ticket 60's mini-engine six — see the note on fenrir. v1: the draw payoff over the
-            // three cards that fill the pile it counts.
-            "kraken_v1": ["ink_stream", "undertow", "whirlpool_v2", "pressure_point"],
+            // v1: the draw payoff over the cards that fill the pile it counts.
+            "kraken_v1": ["ink_stream", "undertow", "whirlpool_v2", "pressure_point", "pressure_point"],
             // v2: the 3e payoff, the ramp that reaches it, the mitigation that survives to cash it.
-            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "surge_protection"]
+            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection"]
         },
         moves: [
             {
@@ -236,9 +236,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v1 keeps one `sun_devourer` as the consume payoff; v2 keeps `strength_burst` to light
         // the core and `glass_cannon` to cash it, leaving `all_in`'s self-Burn risk to be drafted.
         startKits: {
-            // Ticket 60's mini-engine six — see the note on fenrir.
-            "skoll_v1": ["sun_devourer", "fury_strike", "fury_strike", "brute_force"],
-            "skoll_v2": ["overdrive", "fury_strike", "fury_strike", "strength_burst"]
+            "skoll_v1": ["sun_devourer", "fury_strike", "fury_strike", "brute_force", "battle_rhythm"],
+            "skoll_v2": ["overdrive", "fury_strike", "fury_strike", "strength_burst", "reckless_charge"]
         },
         moves: [
             {
@@ -296,9 +295,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 keeps the amplifier pair whole (`corrosive_bolt` x2, `venom_fang` x2) and one
         // payoff; `contagion` doubles a pile that does not exist yet at run start.
         startKits: {
-            // Ticket 60's mini-engine six — see the note on fenrir.
-            "jormungandr_v1": ["ink_stream", "undertow", "undertow", "serpents_coil"],
-            "jormungandr_v2": ["contagion", "corrosive_bolt", "corrosive_bolt", "toxic_surge"]
+            "jormungandr_v1": ["ink_stream", "undertow", "undertow", "serpents_coil", "blind_spot"],
+            "jormungandr_v2": ["contagion", "corrosive_bolt", "corrosive_bolt", "toxic_surge", "venom_fang"]
         },
         moves: [
             {
@@ -485,8 +483,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         startKits: {
             // THE DECK THAT PROVED THE RULE. Round 5: "ratatoskr's startKit carried none of his
             // engine (seed_bomb/echo were untagged), making him pure feed." Both are tagged now.
-            "ratatoskr_v1": ["seed_bomb_v2", "forage", "forage", "echo_chamber_v2"],
-            "ratatoskr_v2": ["crippling_vine", "pollen_cloud", "pollen_cloud", "nagging_bite"]
+            "ratatoskr_v1": ["seed_bomb_v2", "forage", "forage", "echo_chamber_v2", "healing_mist"],
+            "ratatoskr_v2": ["crippling_vine", "pollen_cloud", "pollen_cloud", "nagging_bite", "nagging_bite"]
         },
         moves: [
             {
@@ -550,9 +548,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 keeps the shield wall whole (`sap_vigor` x2, `thornguard` x2) and `heartwood`,
         // which earns its slot on shield UPTIME rather than on mitigation.
         startKits: {
-            // Ticket 60's mini-engine six — see the note on fenrir.
-            "huldra_v1": ["hexbloom", "growth", "iron_bark", "thorn_tithe"],
-            "huldra_v2": ["blightbloom", "sap_vigor", "thornguard", "thornguard"]
+            "huldra_v1": ["hexbloom", "growth", "growth", "iron_bark", "thorn_tithe"],
+            "huldra_v2": ["blightbloom", "sap_vigor", "thornguard", "thornguard", "heartwood"]
         },
         moves: [
             {

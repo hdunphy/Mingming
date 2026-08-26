@@ -10,31 +10,33 @@
  *   it. Retuning `PARTY_SIZE`, `MARKET_VISITS_PER_RUN` or the income constants fails the test rather
  *   than quietly falsifying the comment. Ticket 13 established that discipline for removal; this is
  *   the same shape, pointed at a ruling instead of a proposal.
- * - **The ruled order is reflash < removal < recruit**, and it is the *inverse* of ticket 14's
- *   proposed order on its first two terms. That inversion is the substantive thing ticket 56 changed
- *   about this file's design, so it is asserted rather than assumed — see the reflash block for why
- *   losing "the sink is the cheapest button" is coherent.
- * - **Removal is ONE price, not one per counter.** `WORKSHOP_REMOVAL_PRICE` is ticket 13's constant,
- *   re-exported; that is exactly why ticket 56's move of the removal price needed no edit in
- *   `workshop.ts`, and why a second literal here would have drifted.
+ * - **The ruled order is reflash < recruit**, and it is the *inverse* of ticket 14's proposed order
+ *   on the terms that still exist. That inversion is the substantive thing ticket 56 changed about
+ *   this file's design, so it is asserted rather than assumed — see the reflash block for why losing
+ *   "the sink is the cheapest button" is coherent.
+ * - **There is no removal price at either counter.** `WORKSHOP_REMOVAL_PRICE` re-exported ticket
+ *   13's `REMOVAL_PRICE` so one sink cost the same at two counters; Henry deleted paid removal on
+ *   2026-08-26, and the ABSENCE is what is asserted now — a workshop edits the active deck for free,
+ *   and a second price re-appearing here would be a sink the design does not have.
  * - **The species clause is enforced before anything is spent.** A standing law (map § Notes) that
  *   no reducer can check, because species live on the ranch and the party lives on the run.
- * - **A recruit is the ruled 4 and nothing else — ticket 60's mini-engine kit, the same four any
- *   member that is not the first one gets, and the fourth table after ticket 08's 3 + 1, the 5 + 0
- *   of 2026-08-24 and ticket 60's 4 + 2 — not this file's opinion of it.** `recruitDeckFor` is the
- *   ruling; a re-derivation here would be a second answer waiting to disagree, and with the table
- *   having moved four times in a fortnight it would have been a second answer to re-edit each time.
+ * - **A recruit is the ruled 5 and nothing else — ticket 61's five-card engine, the same five any
+ *   member that is not the first one gets, and the fifth table after ticket 08's 3 + 1, the 5 + 0 of
+ *   2026-08-24, ticket 60's 4 + 2 and the 2026-08-25 run-level allowance — not this file's opinion
+ *   of it.** `recruitDeckFor` is the ruling; a re-derivation here would be a second answer waiting
+ *   to disagree, and with the table having moved five times in a fortnight it would have been a
+ *   second answer to re-edit each time.
  * - **The individual is deterministic in the node's visit count.** The workshop is a node's
  *   contents, so ticket 07's re-roll rule and ticket 23's resume contract both apply to it.
  */
 
 import { describe, expect, it } from 'vitest';
 
+import * as workshop from './workshop';
 import {
     RECRUITS_PER_RUN,
     WORKSHOP_ASSEMBLY_SCRAP,
     WORKSHOP_REFLASH_SCRAP,
-    WORKSHOP_REMOVAL_PRICE,
     assemblableSpecies,
     isWorkshopNode,
     planRecruit,
@@ -43,7 +45,8 @@ import {
     workshopBlockFor,
     workshopSpecies,
 } from './workshop';
-import { CARD_PRICE_BY_ENERGY, MARKET_VISITS_PER_RUN, REMOVAL_PRICE, cardPrice } from './marketplace';
+import * as marketplace from './marketplace';
+import { CARD_PRICE_BY_ENERGY, MARKET_VISITS_PER_RUN, cardPrice, sellPrice } from './marketplace';
 import { RECRUIT_KIT_SIZE, createRun, recruitDeckFor } from './createRun';
 import { toMingmingState } from './battleSetup';
 import { nodeSeed } from './nodeSeed';
@@ -202,9 +205,9 @@ describe('the recruit price is checked against the income, not derived from it',
 
     it('is not a rounding error and not unaffordable — the two ways the ruling fails', () => {
         // Dearer than the cheapest thing on the shelf, so declining a recruit still buys something.
-        // (Against REMOVAL_PRICE the claim is "dearer than one removal", which ticket 57's
-        // marketplace half lands by moving that constant to 20; it is not asserted here because
-        // this file must not encode a number another ticket owns.)
+        // (This used to also read "dearer than one removal"; paid removal is deleted, so the shelf
+        // is the only thing left to compare a recruit against — and it is the right one, since the
+        // trade a workshop actually presents is a body instead of a card.)
         expect(WORKSHOP_ASSEMBLY_SCRAP).toBeGreaterThan(OFFERABLE_PRICES[0]);
         // Under a whole market visit each, or the two recruits eat the marketplace.
         expect(WORKSHOP_ASSEMBLY_SCRAP).toBeLessThan(RUN_SCRAP / MARKET_VISITS_PER_RUN);
@@ -234,10 +237,15 @@ describe('the reflash price', () => {
 
     it('is now the CHEAPEST button at the workshop, inverting ticket 14’s ordering', () => {
         // Ticket 14 held the reflash above removal so "the cheapest button stays the sink". Henry
-        // ruled the other way, and the reason it is coherent is that the two prices are not in the
-        // same currency: a removal costs scrap alone, a reflash costs scrap PLUS a blueprint, which
-        // drops from ~20% of wilds. This holds whichever value ticket 13's constant carries.
-        expect(WORKSHOP_REFLASH_SCRAP).toBeLessThan(WORKSHOP_REMOVAL_PRICE);
+        // ruled the other way, and then deleted the sink outright (2026-08-26), so the ordering the
+        // law was about now has two terms rather than three — and the reflash is the bottom of it.
+        // The reason that is coherent is the one ticket 56 gave and the deletion did not touch: the
+        // two prices were never in the same currency, because a reflash costs scrap PLUS a
+        // blueprint, which drops from ~20% of wilds.
+        expect(WORKSHOP_REFLASH_SCRAP).toBeLessThan(WORKSHOP_ASSEMBLY_SCRAP);
+        // The literal, because with removal gone this is the whole ordering: these are the only two
+        // prices the node charges, and there is nothing between them for a third to hide in.
+        expect([WORKSHOP_REFLASH_SCRAP, WORKSHOP_ASSEMBLY_SCRAP]).toEqual([15, 25]);
     });
 
     it('is under the card it costs you, and not a token at that', () => {
@@ -256,22 +264,36 @@ describe('the reflash price', () => {
     });
 });
 
-describe('removal is one price, not one per counter', () => {
-    it('charges exactly what a marketplace charges', () => {
-        // One price for one verb, wherever it is bought. Ticket 13 derived its number against a
-        // target ("stripping all generics costs roughly one market visit's scrap") that is now
-        // retired on both sides — the generics stopped multiplying with the party (Henry,
-        // 2026-08-25) and paid removal is no longer how a deck gets thinned at all — so the reason
-        // this assertion survives is the plainer one it always also had: a second, cheaper workshop
-        // price would mean the player simply did every removal here, and the marketplace's sink
-        // would be a button nobody pressed.
-        expect(WORKSHOP_REMOVAL_PRICE).toBe(REMOVAL_PRICE);
+describe('there is no removal price, at either counter', () => {
+    it('sells no removal here — the workshop edits the active deck for free', () => {
+        // The inverse of what this block used to assert. `WORKSHOP_REMOVAL_PRICE` re-exported ticket
+        // 13's `REMOVAL_PRICE` so one sink cost the same at two counters, and the pair of them is
+        // deleted (Henry, 2026-08-26): a card leaves the active deck for the run collection for
+        // free, so a 20-scrap button doing the same thing more slowly is a trap for a player who has
+        // not found the editor yet.
+        //
+        // Asserted at the module surface for the reason the old test gave for the re-export: the
+        // failure mode is a SECOND price appearing at this counter, and a second price is invisible
+        // in play and obvious here.
+        const surface = Object.keys(workshop);
+        // Guards the absence assertions from passing on an empty namespace object.
+        expect(surface).toContain('WORKSHOP_ASSEMBLY_SCRAP');
+        expect(surface).toContain('WORKSHOP_REFLASH_SCRAP');
+        expect(surface).not.toContain('WORKSHOP_REMOVAL_PRICE');
+        expect(Object.keys(marketplace)).not.toContain('REMOVAL_PRICE');
     });
 
-    it('needed no edit when ticket 56 moved the removal price', () => {
-        // The whole payoff of the re-export. WORKSHOP_REMOVAL_PRICE is not a number this file keeps
-        // in step with ticket 13's — it IS ticket 13's, so there is nothing here to fall behind.
-        expect(Object.is(WORKSHOP_REMOVAL_PRICE, REMOVAL_PRICE)).toBe(true);
+    it('charges for exactly two things, both of which gain the run something', () => {
+        // What replaces "one price for one verb, wherever it is bought": the node's whole price list
+        // is a body and a firmware, and both are gated by a blueprint as well. Nothing here consumes
+        // scrap for a deletion any more — that direction is the marketplace's, and it pays out
+        // rather than charging (`sellPrice`).
+        const prices = Object.entries(workshop)
+            .filter(([name]) => name.startsWith('WORKSHOP_'))
+            .map(([, value]) => value);
+        expect(prices).toEqual([WORKSHOP_ASSEMBLY_SCRAP, WORKSHOP_REFLASH_SCRAP]);
+        // The one card verb that still moves scrap moves it TOWARD the player, and not at this node.
+        expect(sellPrice(GENERIC_HIT)).toBeGreaterThan(0);
     });
 });
 
@@ -351,27 +373,27 @@ describe('assemblableSpecies', () => {
 describe('planRecruit', () => {
     const RANCH = makeRanch({ fenrir: 1 });
 
-    it('brings the ruled 4 kit cards and no generics, from recruitDeckFor and not re-derived', () => {
+    it('brings the ruled 5 kit cards and no generics, from recruitDeckFor and not re-derived', () => {
         // Ticket 08 ruled 3 + 1; the 2026-08-24 pass re-ruled it to 5 + 0 after a recruited
         // Ratatoskr turned up holding the first three of his five tagged cards in a deck drawing
         // 5-7 a turn: *"It felt really bad to play Rat without his kit."* Ticket 60 (playtest round
         // 5) settled the kit at four — the payoff plus three enablers — for starter and recruit
         // alike, which is what removed the last reason for a recruit to be a lesser version of a
-        // starter.
+        // starter. Ticket 61 kept that symmetry and widened the engine to five, because four tagged
+        // cards was too thin to play a species with.
         //
-        // Henry then moved the generics off the member entirely (2026-08-25): the RUN gets two, the
-        // first mingming carries them, and nobody else adds any. So a recruit brings four. That is
-        // NOT the 5 + 0 table returning — there the missing generic was a price the recruit paid,
-        // and here there is simply no per-member generic left for anyone to pay. The workshop sells
-        // a body and its engine; the filler that stops a solo opening deck being four cards was
-        // already bought, once, at the top of the run.
+        // The generics are off the member entirely: the STARTER gets three, and nobody else adds
+        // any. So a recruit brings five. That is NOT the 5 + 0 table returning — there the missing
+        // generic was a price the recruit paid, and here there is simply no per-member generic left
+        // for anyone to pay. The workshop sells a body and its engine; the filler that stops a solo
+        // opening deck being five cards was already bought, once, at the top of the run.
         const plan = planRecruit({ ranch: RANCH, run: RUN, node: NODE, speciesId: 'fenrir', osId: 'fenrir_v1' })!;
 
         expect(plan.cards).toHaveLength(RECRUIT_KIT_SIZE);
-        expect(plan.cards).toHaveLength(4);
+        expect(plan.cards).toHaveLength(5);
         expect(plan.cards.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
 
-        // The same four cards `createRun`'s own recruit rule produces for the same member and the
+        // The same five cards `createRun`'s own recruit rule produces for the same member and the
         // same stream. A second derivation of the kit living here is the drift this asserts against.
         const stream = new SeedStream(new SeedStream(nodeSeed(RUN, NODE, 'workshop')).fork('recruit-deck:fenrir'));
         expect(plan.cards).toEqual(recruitDeckFor(toMingmingState(plan.member), stream));

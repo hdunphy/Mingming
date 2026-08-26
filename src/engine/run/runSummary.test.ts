@@ -57,20 +57,21 @@ const picked = (n: number): IRunCard[] => Array.from({ length: n }, (_, i) => ({
 }));
 
 describe('summarizeRun — the deck-building track', () => {
-    it('opens a SOLO run at 6 cards, which is the number the ticket quotes', () => {
-        // The constant is derived from `createRun`'s two halves rather than written as 6, so this
+    it('opens a SOLO run at 8 cards, which is the number the ticket quotes', () => {
+        // The constant is derived from `createRun`'s two halves rather than written as 8, so this
         // asserts the derivation rather than the literal — a re-ruled start deck moves both. It has
-        // now been re-ruled three times (8 = 5 + 3, then ticket 60's 6 = 4 + 2, then Henry's
-        // 2026-08-25 move of the generics from per-member to per-run) and the derivation held
-        // through all three; the literal here is what makes the RULING visible in the diff.
+        // now been re-ruled four times (8 = 5 + 3, then ticket 60's 6 = 4 + 2, then the 2026-08-25
+        // move of the generics from per-member to per-run, then ticket 61's 8 = 5 + 3 with the
+        // generics on the STARTER) and the derivation held through all four; the literal here is
+        // what makes the RULING visible in the diff.
         //
-        // What the last re-ruling changed is the constant's MEANING, not its value, which is why it
-        // was renamed rather than retuned: six is what ONE member opens with, and it is no longer
-        // multipliable. A two-member run opens at 10 and a three at 14 — 4 per member plus the run's
-        // two generics — so multiplying this by party size, which the old name invited, now
-        // overcounts by 2 per extra member. `makeRun` fields a solo party, so 6 is exactly right
+        // The value has now returned to where ticket 08 first put it, by a different road, and the
+        // constant is still not multipliable — that is what the rename recorded. A two-member run
+        // opens at 13 and a three at 18 — 5 per member plus the starter's three generics — so
+        // multiplying this by party size, which the old `START_DECK_PER_MEMBER` name invited, now
+        // overcounts by 3 per extra member. `makeRun` fields a solo party, so 8 is exactly right
         // here and would not be for any other party.
-        expect(SOLO_START_DECK).toBe(6);
+        expect(SOLO_START_DECK).toBe(8);
         expect(makeRun().deck).toHaveLength(SOLO_START_DECK);
     });
 
@@ -82,13 +83,13 @@ describe('summarizeRun — the deck-building track', () => {
         const grown = makeRun({ deck: [...run.deck, ...picked(9)] });
 
         const summary = summarizeRun(grown, STARTED_AT);
-        // A solo run's opening six plus nine bought cards. Every re-ruling so far has moved the
-        // opening half (8 -> 6, and then what the 6 counts) and left the picked half alone, which
-        // is exactly the asymmetry these two counters exist to show the player: what you were
+        // A solo run's opening eight plus nine bought cards. Every re-ruling so far has moved the
+        // opening half (8 -> 6, what the 6 counts, and back to 8) and left the picked half alone,
+        // which is exactly the asymmetry these two counters exist to show the player: what you were
         // given, and what you chose.
-        expect(summary.deckSize).toBe(15);
+        expect(summary.deckSize).toBe(17);
         expect(summary.pickedCards).toBe(9);
-        expect(summary.kitCards).toBe(6);
+        expect(summary.kitCards).toBe(8);
         expect(summary.kitCards).toBe(SOLO_START_DECK);
         expect(summary.kitCards + summary.pickedCards).toBe(summary.deckSize);
     });

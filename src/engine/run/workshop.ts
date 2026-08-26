@@ -40,7 +40,7 @@
  *
  * # WHAT IS *NOT* PRICED HERE
  *
- * Removal. `WORKSHOP_REMOVAL_PRICE` is ticket 13's `REMOVAL_PRICE`, re-exported rather than
+ * Removal is GONE from this screen (2026-08-26); the workshop edits the deck for free instead of
  * re-declared — see its own note. One sink, one price, whichever counter you buy it over.
  *
  * Engine module: no React, no Redux, no `src/ui` or `src/debug` imports, no `Math.random()`, no
@@ -51,7 +51,6 @@ import { SeedStream } from '../core/SeedStream';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 import { createRanchMember } from '../gameTypes';
 import { PARTY_SIZE, partyBlockFor, type PartyBlock, type PartyMember } from '../party';
-import { REMOVAL_PRICE } from './marketplace';
 import { recruitDeckFor } from './createRun';
 import { toMingmingState } from './battleSetup';
 import { nodeSeed } from './nodeSeed';
@@ -135,7 +134,7 @@ export const RECRUITS_PER_RUN = PARTY_SIZE - 1;
  *
  * - **Not a rounding error.** 25 is more than the cheapest card on the shelf
  *   (`CARD_PRICE_BY_ENERGY[0]` at 15) and more than one removal once ticket 57's marketplace half
- *   lands `REMOVAL_PRICE` at 20, so declining a recruit still buys something.
+ *   let declining a recruit buy a removal instead; free editing has replaced that trade.
  * - **Not ≥ 70 (a whole market visit each).** Two recruits would then eat 140 of 210 and the
  *   marketplace becomes a window display — the same failure ticket 14 named, at the new scale.
  * - **Payable at the first workshop, which is where the old number broke.** The biome-1 workshop is
@@ -148,7 +147,7 @@ export const RECRUITS_PER_RUN = PARTY_SIZE - 1;
  *   wilds on the way"*), so that errand is always available.
  * - **Still not free at the first workshop**, which is intended rather than tolerated. Henry's
  *   ticket-14 amendment is what keeps the node worth standing in meanwhile: see
- *   `WORKSHOP_REMOVAL_PRICE`.
+ *   a paid removal, when this screen still sold one.
  *
  * ### What would move this number
  *
@@ -204,7 +203,7 @@ export const WORKSHOP_ASSEMBLY_SCRAP = 25;
  * - **The worry the law existed to prevent does not follow.** "A power-up priced under a deletion
  *   makes the sink the expensive option" assumes the two compete for the same click. They do not:
  *   removal is the thing you do at a workshop **when you are holding no blueprint** (see
- *   `WORKSHOP_REMOVAL_PRICE`), which is most visits.
+ *   a paid removal, when one existed), which is most visits.
  *
  * What does still hold, and is still asserted in the test:
  *
@@ -219,46 +218,12 @@ export const WORKSHOP_ASSEMBLY_SCRAP = 25;
  */
 export const WORKSHOP_REFLASH_SCRAP = 15;
 
-/**
- * **Removal costs the same here as at a marketplace — ticket 13's `REMOVAL_PRICE`, re-exported and
- * NOT re-declared.** Henry's ticket-14 amendment leans toward offering removal at workshops too and
- * asks for a price; this is the answer, and the answer is "there is only one".
- *
- * **This constant needed no edit for ticket 56, and that is the point of it being a re-export.**
- * Henry ruled workshop removal at 20 in the same breath as the two prices above; ticket 57 lands
- * that 20 in ticket 13's `REMOVAL_PRICE`, and this line picks it up for free. A second literal here
- * that happened to equal 20 today would have had to be found and changed by hand — which is exactly
- * the drift the re-export exists to make impossible.
- *
- * ### Why the same and not blueprint-cheap
- *
- * - **Ticket 13 derives its number against a stated target** — *"stripping all generics over a run
- *   costs roughly one market visit's scrap"* — dividing a market visit's share by the run's 5
- *   generics. The figures on both sides of that division moved with ticket 56's income cut, and
- *   `marketplace.ts` owns the recomputation; what matters here is that **the derivation is quoted,
- *   not copied**. A cheaper workshop removal would falsify it without retuning it: the player would
- *   simply do all five removals at the workshop, and the sink's real cost would be whatever the
- *   cheaper number was, while ticket 13's comment and test went on describing its own.
- * - **It would also make the market's removal button dead.** Two counters selling the same service
- *   at two prices is not a choice, it is a dominant strategy plus a decoy.
- * - **Charging *more* here is the same mistake mirrored** — a convenience tax on the node that
- *   needs a reason to exist.
- *
- * So: one sink, one price, two counters. What changes is only *where* it is available, and that is
- * the point of the amendment rather than a side effect of it.
- *
- * ### What it is for: the empty-handed workshop
- *
- * A blueprint drops from ~20% of defeated wilds, so **most workshops are entered with no blueprint
- * to spend**. Without removal, a workshop is then a node that says "nothing for you" — which is
- * exactly the placeholder ticket 14 is here to delete. Removal gives the node a floor: there is
- * always something to do at a workshop, and it is always the thing the deck actually needs.
- *
- * The knock-on for ticket 13's sink is availability, not price: five removals now spread across six
- * nodes instead of three. The total cost of stripping the filler is untouched, which is the half of
- * that derivation that was load-bearing.
+/*
+ * `WORKSHOP_REMOVAL_PRICE` is deleted (Henry, 2026-08-26). It re-exported ticket 13's
+ * `REMOVAL_PRICE` so one sink had one price at two counters; there is no paid removal at either
+ * counter now. A workshop edits the deck for free — it is one of the four edit surfaces — and the
+ * card you will never play is sold at a marketplace. See `marketplace.SELL_PRICE_BY_ENERGY`.
  */
-export const WORKSHOP_REMOVAL_PRICE = REMOVAL_PRICE;
 
 // =================================================================================================
 // What the node serves

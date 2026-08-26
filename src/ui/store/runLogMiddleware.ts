@@ -225,9 +225,13 @@ export function createRunLogMiddleware(readLogs: () => IRunLog[]): Middleware {
                     });
                     break;
                 }
-                case 'run/removeRunCardForScrap': {
+                case 'run/sellRunCard': {
+                    // `CARD_REMOVED` still, because that is what happened to the deck — the card
+                    // left it. The paired `SCRAP` row below now carries a POSITIVE delta, which is
+                    // the whole difference between this and the paid removal it replaced.
                     const instanceId = String(payload?.instanceId ?? '');
-                    const gone = runBefore?.deck.find((card) => card.instanceId === instanceId);
+                    const gone = runBefore?.deck.find((card) => card.instanceId === instanceId)
+                        ?? runBefore?.collection?.find((card) => card.instanceId === instanceId);
                     record(runAfter, {
                         kind: 'CARD_REMOVED',
                         dataId: gone?.dataId ?? 'unknown',

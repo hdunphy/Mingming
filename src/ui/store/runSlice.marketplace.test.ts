@@ -11,19 +11,19 @@
  * - **Silent no-op on invalid**, the slice's standing convention. A refused action must leave the
  *   run *byte-identical*, not merely unpaid: a purchase that charged and delivered nothing, or
  *   delivered and charged nothing, are both reachable if the two halves are two dispatches.
- * - **Removing one specific instance.** A deck holds the run's two identical generics — and a kit
- *   can double a card of its own besides — so "remove a `water_slap`" is not an instruction anyone
- *   can carry out correctly. The sink is keyed on `instanceId`, and the paid-removal case below
- *   proves the deck thins by exactly one.
+ * - **Selling one specific instance.** A deck holds the starter's three identical generics — and a
+ *   kit can double a card of its own besides — so "sell a `water_slap`" is not an instruction anyone
+ *   can carry out correctly. The verb is keyed on `instanceId`, and the cases below prove the pile it
+ *   came out of thins by exactly one.
  * - **Scrap is run-scoped and dies with the run** (ticket 06's anti-mudflation line) — the shop
  *   must not be a way to move value out of a run.
  *
- * **Ticket 57 deleted this file's `describe('selling')` block.** Henry ruled (ticket 56) that cards
- * cannot be sold — removal is a pure sink, so the market takes scrap and never gives it, and there
- * is no longer a marketplace action that *adds* scrap for a card to test. The three cases that went
- * (one specific instance paid for, a ghost instance paying nothing, a double click not minting
- * scrap) all guarded an income line that no longer exists; the instance-keying half of that survives
- * against `removeRunCardForScrap`.
+ * **`describe('selling')` is back, and `describe('paid removal')` is gone.** Ticket 57 deleted the
+ * first when Henry banned selling in ticket 56; the 2026-08-26 amendment repeals that ban and deletes
+ * paid removal in the same pass, because the run collection makes leaving the active deck free and
+ * the two verbs traded places. So the block below tests the reducer that *adds* scrap for a card,
+ * across both piles a card can be sold out of, and there is no longer a marketplace action that
+ * charges to delete one.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -33,17 +33,18 @@ import runReducer, {
     buyMarketCard,
     clearRun,
     endRun,
-    removeRunCardForScrap,
     rerollMarketStock,
+    sellRunCard,
     startRun,
     type RunSliceState,
 } from './runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
-    REMOVAL_PRICE,
     REROLL_PRICE,
+    SELL_PRICE_BY_ENERGY,
     rollMarketStock,
+    sellPrice,
 } from '../../engine/run/marketplace';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import type { IMingmingState } from '../../engine/types';
@@ -151,49 +152,116 @@ describe('buying', () => {
     });
 });
 
-// Ticket 57: `describe('selling')` stood here. Henry ruled cards cannot be sold (ticket 56) —
-// removal is the only card sink, so the market takes scrap and never gives it, and the reducer these
-// three cases exercised is gone from `runSlice.ts`. Nothing replaces them: there is no second sink
-// to move them to, only the one below.
+describe('selling — the one card verb that pays the player', () => {
+    /** The run with a two-card collection: everything owned this run that is not in the deck. */
+    function withCollection(run: IRunState): IRunState {
+        return {
+            ...run,
+            collection: [
+                { instanceId: 'stored-1', dataId: GENERIC_HIT, ownerId: null },
+                { instanceId: 'stored-2', dataId: 'ink_stream', ownerId: null },
+            ],
+        };
+    }
 
-describe('paid removal — the only card sink', () => {
-    it('charges the removal price and thins the deck by one', () => {
+    it('ADDS the price and thins the deck by one', () => {
         const run = atMarket(makeRun(100));
-        // The start deck holds the run's two identical generics (Henry, 2026-08-25: `RUN_GENERICS`,
-        // once, on the first mingming — it was 3 per member under ticket 08 and 2 per member under
-        // ticket 60), so "thins by exactly one" is also the instance-keying proof: a dataId-keyed
-        // sink would take both. Ticket 57 left that argument here when selling — which used to
-        // carry it — went. Two is still enough to make the point; one would not be.
+        // The start deck holds the starter's three identical generics (Henry, 2026-08-26:
+        // `STARTER_GENERICS`, once, on the first mingming — it was 3 per member under ticket 08 and
+        // 2 per member under ticket 60), so "thins by exactly one" is also the instance-keying
+        // proof: a dataId-keyed verb would sell all three for the price of one.
         const target = run.deck.find((c) => c.dataId === GENERIC_HIT)!;
+        const price = sellPrice(target.dataId);
+        expect(price).toBe(SELL_PRICE_BY_ENERGY[0]);
 
         const after = runReducer(
             stateOf(run),
-            removeRunCardForScrap({ instanceId: target.instanceId, price: REMOVAL_PRICE }),
+            sellRunCard({ instanceId: target.instanceId, price }),
         ).run!;
 
-        expect(after.scrap).toBe(100 - REMOVAL_PRICE);
+        // The direction is the whole point of the re-ruling: scrap goes UP, where paid removal took
+        // 20 off the same click.
+        expect(after.scrap).toBe(100 + price);
         expect(after.deck.length).toBe(run.deck.length - 1);
         expect(after.deck.some((c) => c.instanceId === target.instanceId)).toBe(false);
+        // And the other two generics are untouched, which a dataId-keyed sale would not leave true.
+        expect(after.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(2);
     });
 
-    it('refuses when the run cannot afford it, without removing the card', () => {
-        const run = atMarket(makeRun(REMOVAL_PRICE - 1));
-        const target = run.deck[0];
+    it('sells out of the COLLECTION too, leaving the deck alone', () => {
+        // *"A card you will never play is the same card whether you already moved it out of the deck
+        // or not."* A sale that only worked on the active deck would force the player to edit a card
+        // back IN to sell it, which is the shape of nonsense the collection exists to remove.
+        const run = atMarket(withCollection(makeRun(100)));
+        const target = run.collection![1];
+        const price = sellPrice(target.dataId);
 
         const after = runReducer(
             stateOf(run),
-            removeRunCardForScrap({ instanceId: target.instanceId, price: REMOVAL_PRICE }),
+            sellRunCard({ instanceId: target.instanceId, price }),
         ).run!;
 
+        expect(after.scrap).toBe(100 + price);
+        expect(after.collection).toHaveLength(1);
+        expect(after.collection!.some((c) => c.instanceId === target.instanceId)).toBe(false);
+        // The deck is byte-identical: a sale takes the card out of exactly one pile.
+        expect(after.deck).toEqual(run.deck);
+    });
+
+    it('pays the same for the same card whichever pile it was in', () => {
+        // The price is a property of the CARD, not of where the player happened to leave it — which
+        // is why the screen lists both piles as one list.
+        const run = atMarket(withCollection(makeRun(100)));
+        const inDeck = run.deck.find((c) => c.dataId === GENERIC_HIT)!;
+        const inCollection = run.collection!.find((c) => c.dataId === GENERIC_HIT)!;
+
+        const fromDeck = runReducer(stateOf(run), sellRunCard({
+            instanceId: inDeck.instanceId, price: sellPrice(inDeck.dataId),
+        })).run!;
+        const fromCollection = runReducer(stateOf(run), sellRunCard({
+            instanceId: inCollection.instanceId, price: sellPrice(inCollection.dataId),
+        })).run!;
+
+        expect(fromDeck.scrap).toBe(fromCollection.scrap);
+        expect(fromDeck.scrap).toBe(100 + SELL_PRICE_BY_ENERGY[0]);
+    });
+
+    it('pays nothing for a card that is in NEITHER pile', () => {
+        // The atomic half of the verb: being paid for a sale that did not happen is the failure a
+        // component-level check would let through under a double click. Asserted as identity rather
+        // than as "did not pay", because a run that lost the card and kept the scrap, or kept the
+        // card and gained the scrap, are both reachable if the two halves are two dispatches.
+        const run = atMarket(withCollection(makeRun(100)));
+        const after = runReducer(stateOf(run), sellRunCard({ instanceId: 'ghost', price: 15 })).run!;
         expect(after).toEqual(run);
     });
 
-    it('charges nothing for a card that is not there', () => {
-        // The atomic half of the sink: paying for a removal that did not happen is the failure a
-        // component-level check would let through under a double click.
+    it('cannot be dispatched twice for the same card', () => {
+        // The double-click case, in the direction that now matters: the first sale empties the pile,
+        // so the second finds the instance in neither and mints nothing.
         const run = atMarket(makeRun(100));
-        const after = runReducer(stateOf(run), removeRunCardForScrap({ instanceId: 'ghost', price: REMOVAL_PRICE })).run!;
-        expect(after).toEqual(run);
+        const target = run.deck.find((c) => c.dataId === GENERIC_HIT)!;
+        const price = sellPrice(target.dataId);
+
+        const once = runReducer(stateOf(run), sellRunCard({ instanceId: target.instanceId, price }));
+        const twice = runReducer(once, sellRunCard({ instanceId: target.instanceId, price }));
+
+        expect(twice.run!.scrap).toBe(once.run!.scrap);
+        expect(twice.run!.deck).toEqual(once.run!.deck);
+    });
+
+    it('refuses a negative or fractional price rather than charging the player to sell', () => {
+        const run = atMarket(makeRun(100));
+        const target = run.deck[0];
+        for (const price of [-10, 1.5, Number.NaN]) {
+            expect(runReducer(stateOf(run), sellRunCard({ instanceId: target.instanceId, price })).run)
+                .toEqual(run);
+        }
+    });
+
+    it('is a no-op with no run in progress', () => {
+        const empty = runReducer(undefined, { type: '@@init' });
+        expect(runReducer(empty, sellRunCard({ instanceId: 'anything', price: 5 })).run).toBeNull();
     });
 });
 

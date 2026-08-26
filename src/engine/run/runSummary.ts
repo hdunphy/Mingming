@@ -37,24 +37,25 @@
  */
 
 import type { IRunCard, IRunState, RunOutcome } from '../runTypes';
-import { RUN_GENERICS, START_KIT_SIZE } from './createRun';
+import { STARTER_GENERICS, START_KIT_SIZE } from './createRun';
 
 // ---------------------------------------------------------------------------------------------
 // The deck-building track's two ends
 // ---------------------------------------------------------------------------------------------
 
 /**
- * What a SOLO run opens with: one member's four tagged cards plus the run's two generics.
+ * What a SOLO run opens with: one member's five engine cards plus the starter's three generics — 8.
  *
  * Renamed from `START_DECK_PER_MEMBER` on 2026-08-25, because per-member is exactly what it stopped
- * being — the generics are a run-level allowance carried by the first member (`RUN_GENERICS`), so a
- * second or third member adds `START_KIT_SIZE` and no filler. A name that still said "per member"
- * would have the summary quoting six for a party of three.
+ * being — the generics belong to the starter alone (`STARTER_GENERICS`), so a second or third member
+ * adds `START_KIT_SIZE` and no filler. A name that still said "per member" would have the summary
+ * quoting eight for a party of three, which owns thirteen or eighteen.
  *
- * Derived from `createRun`'s constants rather than written as `6`, so a re-ruling moves this with
- * it instead of leaving the summary quoting a number the game stopped using.
+ * Derived from `createRun`'s constants rather than written as `8`, so a re-ruling moves this with it
+ * instead of leaving the summary quoting a number the game stopped using — which this constant has
+ * now survived four times.
  */
-export const SOLO_START_DECK = START_KIT_SIZE + RUN_GENERICS;
+export const SOLO_START_DECK = START_KIT_SIZE + STARTER_GENERICS;
 
 /**
  * `economy-session.md`, bite two: *"the run BUILDS toward the ~20-25 cards a good 3v3 deck wants."*

@@ -15,12 +15,15 @@
  *   because otherwise cards cannot be compared) and then filed the missing text as a playtest bug.
  *   The assertion is inverted rather than dropped, and it is stricter: a partial or hover-only
  *   implementation fails it;
- * - **and, since ticket 57, "sell" must not appear either.** Henry ruled (ticket 56) that cards
- *   cannot be sold — removal is a pure sink, the market takes scrap and never gives it. That is a
- *   *design ruling*, and a screen that merely happens to have no sell button today obeys it without
- *   pinning it, so `offers no way at all to sell a card` asserts the absence directly. It is the same
- *   shape of test as the `power` one above and it exists for the same reason: the cheap way to break
- *   the rule is a well-meant patch, not a deliberate decision.
+ * - **and, since the 2026-08-26 amendment, "sell" must APPEAR — priced, and priced under the buy.**
+ *   Ticket 56 banned selling and this file pinned the ban by asserting the markup never contained
+ *   the word; Henry repealed it in the same pass that deleted paid removal, because the run
+ *   collection makes leaving the deck free and a sale is now what happens to a card you are never
+ *   going to play. So `offers a priced sell control` is that test INVERTED rather than deleted: the
+ *   control has to be on screen, every row has to carry its own `sellPrice`, and the price has to sit
+ *   under what the same card buys for, which is the no-loop law visible to the player. It is the
+ *   same shape of test as the `power` one above and it exists for the same reason: the cheap way to
+ *   break a ruling is a well-meant patch, not a deliberate decision.
  *
  * Rendered to static markup, the shape the panel tests established: the repo has no
  * `@testing-library/react`, and `renderToStaticMarkup` runs no effects.
@@ -35,7 +38,16 @@ import MarketplaceNode, { DECK_TARGET_MAX, DECK_TARGET_MIN } from './Marketplace
 import runReducer from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
-import { REMOVAL_PRICE, REROLL_PRICE, macroPrice, rollMacroStock, rollMarketStock } from '../../engine/run/marketplace';
+import {
+    CARD_PRICE_BY_ENERGY,
+    REROLL_PRICE,
+    SELL_PRICE_BY_ENERGY,
+    cardPrice,
+    macroPrice,
+    rollMacroStock,
+    rollMarketStock,
+    sellPrice,
+} from '../../engine/run/marketplace';
 import { MacroRegistry } from '../../engine/data/macroRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
@@ -105,26 +117,28 @@ describe('MarketplaceNode', () => {
     });
 
     it('says which side of the target the deck is on', () => {
-        // A SOLO run opens at six — 4 tagged kit cards plus the RUN's 2 generics (Henry,
-        // 2026-08-25; ticket 60's 4 + 2 was per member, and before that 5 + 3 made it 8) — so the
-        // first market's advice is "buy", and it is 14 short rather than 12. A bigger party opens
-        // at 10 or 14 and the same screen says a smaller number; six is this fixture's party, not
+        // A SOLO run opens at eight — 5 tagged kit cards plus the STARTER's 3 generics (Henry,
+        // 2026-08-26; ticket 60's 4 + 2 was per member, and the 2026-08-25 table made it 6) — so the
+        // first market's advice is "buy", and it is 12 short rather than 14. A bigger party opens
+        // at 13 or 18 and the same screen says a smaller number; eight is this fixture's party, not
         // a constant of the game.
         const run = makeRun(140);
-        expect(run.deck).toHaveLength(6);
+        expect(run.deck).toHaveLength(8);
 
         const short = render(run);
         // Derived from the deck the screen was actually handed, then pinned as the literal the
-        // player reads: the shortfall is arithmetic, but 14 is what the first stall will say.
+        // player reads: the shortfall is arithmetic, but 12 is what the first stall will say.
         expect(short).toContain(`${DECK_TARGET_MIN - run.deck.length} short`);
-        expect(short).toContain('14 short');
+        expect(short).toContain('12 short');
 
         const bloated = render({ ...run, deck: [...run.deck, ...Array.from({ length: 20 }, (_, i) => ({
             instanceId: `extra_${i}`, dataId: GENERIC_HIT, ownerId: null,
         })) ] });
-        // Ticket 57: this line used to read "over. Sell or remove." Removal is the only way down
-        // since Henry's ticket-56 ruling, so the advice names the one verb that exists.
-        expect(bloated).toContain('over. Pay to remove.');
+        // The over-target advice has to name a verb that EXISTS. It read "Pay to remove." until
+        // 2026-08-26, when paid removal was deleted; it now names the two things an over-target
+        // player can actually do — move cards to the collection for free, or sell them here.
+        expect(bloated).toContain('over. Move cards to your collection, or sell them.');
+        expect(bloated).not.toContain('Pay to remove');
     });
 
     it('prints what every stocked card DOES, not just what it costs', () => {
@@ -178,9 +192,13 @@ describe('MarketplaceNode', () => {
         for (const offer of stock.offers) {
             expect(markup).toContain(`${offer.price} scrap — ${offer.price} short`);
         }
-        expect(markup).toContain(`Remove (${REMOVAL_PRICE}) — ${REMOVAL_PRICE} short`);
         expect(markup).toContain(`Reroll (${REROLL_PRICE}) — ${REROLL_PRICE} scrap short`);
         expect(markup).not.toContain(`Buy — `);
+        // The sell rows are the one thing on this screen a broke player can still use, and that is
+        // the point of them: this line used to assert a disabled `Remove (20) — 20 short`, and a
+        // sale is never short of anything. Every row is live at zero scrap.
+        const target = run.deck[0];
+        expect(markup).toContain(`Sell — ${sellPrice(target.dataId)} scrap`);
     });
 
     it('offers the reroll at its price once the player can pay it', () => {
@@ -196,57 +214,112 @@ describe('MarketplaceNode', () => {
         expect(markup).not.toContain(`Buy — ${bought.price} scrap`);
     });
 
-    it('lists every deck card with a removal price', () => {
-        // Ticket 57 dropped this case's companion assertion — one `Sell — +N` per row. Henry ruled
-        // cards cannot be sold (ticket 56), so a deck row now offers exactly one action, and the
-        // count below is the whole of it.
-        const run = makeRun(400);
+    it('lists the deck AND the collection under one sell header, one button per card', () => {
+        // Ticket 57 replaced this case's `Sell — +N` per row with a removal price; the 2026-08-26
+        // amendment puts the sale back and widens the list, because *"a card you will never play is
+        // the same card whether you already moved it out of the deck or not."* A screen that listed
+        // only the deck would make the player edit a card back IN to sell it.
+        const collection = [
+            { instanceId: 'stored_1', dataId: 'hydro_blast', ownerId: null },
+            { instanceId: 'stored_2', dataId: GENERIC_HIT, ownerId: null },
+        ];
+        const run = makeRun(400, { collection });
         const markup = render(run);
 
-        expect(markup).toContain(`Your deck (${run.deck.length})`);
-        expect(markup.match(new RegExp(`Remove — ${REMOVAL_PRICE} scrap`, 'g'))?.length).toBe(run.deck.length);
+        const sellable = [...run.deck, ...collection];
+        expect(markup).toContain(`Sell cards (${sellable.length})`);
+        // One priced button per card in BOTH piles — the count is the assertion, because a list that
+        // rendered the deck twice or the collection not at all would still contain the words.
+        expect(markup.match(/Sell — \d+ scrap/g)?.length).toBe(sellable.length);
+        for (const card of sellable) {
+            expect(markup).toContain(`Sell — ${sellPrice(card.dataId)} scrap`);
+        }
+        // And which pile each row came from, since the same card pays the same either way and the
+        // player should not have to remember where they left it.
+        expect(markup.match(/>in deck</g)?.length).toBe(run.deck.length);
+        expect(markup.match(/>collection</g)?.length).toBe(collection.length);
     });
 
-    it('offers no way at all to sell a card — removal is a pure sink', () => {
-        // HENRY, TICKET 56: "Cards cannot be sold — removal is a pure sink." Ticket 57 removed the
-        // sell button, its price and its copy; this pins the ruling rather than trusting the screen
-        // to keep obeying it, exactly as the `power` case above pins the surface law.
-        //
-        // Asserted as an absence over the whole markup, not as "the button is gone": a sell control
-        // could come back as a differently-worded button, a buy-back price in a row, or an "over
-        // target — sell some" nudge in the advice line, and any of those is the same broken rule. The
-        // states are the ones where a sell affordance would plausibly be reintroduced — a normal
-        // shop, a player with no scrap (where "you could always sell something" is the tempting
-        // patch), a deck well over target, and an empty deck.
-        const rich = makeRun(400);
-        const broke = makeRun(0);
-        const bloated = makeRun(400);
+    it('prices every sell row at sellPrice, strictly under what the same card buys for', () => {
+        // The no-loop law, as the player can read it off the screen: *"prices must not be farmable
+        // to zero"* (Henry, 2026-08-21). `marketplace.test.ts` proves it of the tables; this proves
+        // the screen prints the paying half of that pair and not the charging half, on real cards.
+        const collection = [{ instanceId: 'stored_1', dataId: 'hydro_blast', ownerId: null }];
+        const run = makeRun(400, { collection });
+        const markup = render(run);
 
-        const markups = [
-            render(rich),
-            render(broke),
-            render({ ...bloated, deck: [...bloated.deck, ...Array.from({ length: 20 }, (_, i) => ({
+        for (const card of [...run.deck, ...collection]) {
+            const paid = sellPrice(card.dataId);
+            expect(paid).toBeLessThan(cardPrice(card.dataId));
+            expect(markup).toContain(`Sell — ${paid} scrap`);
+            // The number the row shows is never the BUY number for that card — the failure mode is
+            // a row wired to the wrong price function, which is invisible until someone farms it.
+            expect(markup).not.toContain(`Sell — ${cardPrice(card.dataId)} scrap`);
+        }
+        // The band is printed as well as applied, so the player can price a card they are not
+        // looking at: "5 / 10 / 15 / 20 by ⚡". And the band the screen advertises is the one that
+        // obeys the law — rung against its own rung, which is the form `marketplace.test.ts` proves
+        // of the constants and this proves of what the player is actually shown.
+        expect(markup).toContain(SELL_PRICE_BY_ENERGY.join(' / '));
+        SELL_PRICE_BY_ENERGY.forEach((paid, energy) => {
+            expect([energy, paid < CARD_PRICE_BY_ENERGY[energy]]).toEqual([energy, true]);
+        });
+    });
+
+    it('offers a priced sell control in every state a player reaches', () => {
+        // THIS TEST USED TO ASSERT THE OPPOSITE. It read *"offers no way at all to sell a card —
+        // removal is a pure sink"* and pinned Henry's ticket-56 ban by requiring that the markup
+        // never matched /sell/i anywhere. Henry repealed that ban on 2026-08-26 and deleted paid
+        // removal with it: *"now it doesn't feel bad to grab all the cards even if you don't plan to
+        // use them, you can get some scrap for them."*
+        //
+        // So the assertion is inverted rather than dropped, and it is checked in the same four
+        // states the ban was checked in — a normal shop, a player with no scrap, a deck well over
+        // target, and an empty deck — because the failure mode has flipped too: a sale that
+        // quietly disappears when the player is broke, or when the deck is empty but the collection
+        // is not, is the shape of regression this now catches.
+        const bloated = makeRun(400);
+        const stored = [{ instanceId: 'stored_1', dataId: 'hydro_blast', ownerId: null }];
+
+        const states = [
+            makeRun(400),
+            makeRun(0),
+            { ...bloated, deck: [...bloated.deck, ...Array.from({ length: 20 }, (_, i) => ({
                 instanceId: `extra_${i}`, dataId: GENERIC_HIT, ownerId: null,
-            })) ] }),
-            render(makeRun(400, { deck: [] })),
+            })) ] },
+            // An empty DECK is not an empty screen any more: the collection is sellable on its own.
+            makeRun(400, { deck: [], collection: stored }),
         ];
 
-        for (const markup of markups) {
-            expect(markup).not.toMatch(/sell/i);
+        for (const run of states) {
+            const markup = render(run);
+            const sellable = [...run.deck, ...(run.collection ?? [])];
+
+            expect(markup).toContain(`Sell cards (${sellable.length})`);
+            // Exactly the prices `sellPrice` gives for exactly those cards, as a multiset — a row
+            // wired to `cardPrice`, or a pile silently dropped, changes this list.
+            const printed = [...markup.matchAll(/Sell — (\d+) scrap/g)].map((m) => Number(m[1]));
+            expect(printed.sort()).toEqual(sellable.map((c) => sellPrice(c.dataId)).sort());
+            // And every printed number is on the ruled sell table, never on the buy table.
+            for (const price of printed) expect(SELL_PRICE_BY_ENERGY).toContain(price);
         }
     });
 
-    it('tags the generic filler, because it is what removal is for', () => {
-        // Henry, 2026-08-21: the start-deck generics are what the sink was pointed at, so the
-        // screen tags them rather than leaving the player to recognise "Tackle" on sight. The count
-        // is read off the deck rather than written down — it was three a member under ticket 08,
-        // two a member under ticket 60, and is two for the whole RUN since 2026-08-25 — and the
-        // claim that survives all three is the one this asserts: every generic in the deck is
-        // tagged, and nothing else is.
-        const run = makeRun(400);
+    it('tags the generic filler, in the deck and in the collection alike', () => {
+        // Henry, 2026-08-21: the start-deck generics are the cards this section is most often
+        // pointed at, so the screen tags them rather than leaving the player to recognise "Tackle"
+        // on sight. The count is read off the piles rather than written down — it was three a member
+        // under ticket 08, two a member under ticket 60, and is three for the whole run since the
+        // STARTER took the allowance — and the claim that survives all of them is the one this
+        // asserts: every generic on the sell list is tagged, and nothing else is.
+        const collection = [
+            { instanceId: 'stored_1', dataId: GENERIC_HIT, ownerId: null },
+            { instanceId: 'stored_2', dataId: 'hydro_blast', ownerId: null },
+        ];
+        const run = makeRun(400, { collection });
         const markup = render(run);
         expect(markup.match(/generic filler<\/span>/g)?.length)
-            .toBe(run.deck.filter((c) => c.dataId === GENERIC_HIT).length);
+            .toBe([...run.deck, ...collection].filter((c) => c.dataId === GENERIC_HIT).length);
     });
 
     /**
@@ -285,9 +358,10 @@ describe('MarketplaceNode', () => {
         expect(render(makeRun(400))).toContain('Visit 1');
     });
 
-    it('renders an empty deck without crashing', () => {
+    it('renders an empty deck and an empty collection without crashing', () => {
         const markup = render(makeRun(50, { deck: [] }));
-        expect(markup).toContain('No cards');
+        expect(markup).toContain('Nothing to sell.');
         expect(markup).toContain('deck: 0 cards');
+        expect(markup).toContain('Sell cards (0)');
     });
 });

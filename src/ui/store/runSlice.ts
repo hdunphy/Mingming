@@ -36,10 +36,12 @@
  * the block comment above `buyMarketCard` for ticket 20's atomicity argument, which is the whole
  * reason the affordability check is in here and not only in the screen.
  *
- * **Ticket 13 shipped a fourth verb, `sellRunCard`, and ticket 57 deleted it.** Henry ruled (ticket
- * 56) that cards cannot be sold — removal is a *pure sink*, so the market takes scrap and never
- * gives it. That amends `economy-session.md`'s "selling cards" income line: there is no card-shaped
- * way to turn deck size back into scrap, and nothing in this slice should grow one again.
+ * **`sellRunCard` shipped in ticket 13, was deleted by ticket 57, and is back (2026-08-26).** The
+ * ticket-56 ban was right for the game it was ruled against — when the only way to shrink a deck
+ * was to pay, selling was being paid for the shrinking you already had to do. The run collection
+ * deleted that shape: editing is free, so a sale is what you do with a card you will never play
+ * rather than a rebate on housekeeping. `removeRunCardForScrap` went the other way in the same
+ * pass; the two verbs traded places.
  *
  * # WHAT TICKET 14 ADDED
  *
@@ -298,39 +300,40 @@ const runSlice = createSlice({
             return { run: { ...run, scrap: run.scrap - price, deck: [...run.deck, card] } };
         },
 
-        // Ticket 57: `sellRunCard` is gone. Henry ruled cards cannot be sold (ticket 56) — removal is
-        // the only card sink, so the market takes scrap and never gives it. It was the one reducer in
-        // this file that *added* scrap in exchange for a card, and re-adding it would put a card-shaped
-        // income line back into a run economy that is now sink-only. The "one specific instance, keyed
-        // on `instanceId` and never `dataId`" argument it carried did not die with it: it moved to
-        // `removeRunCardForScrap` below, which is the sink that inherited the problem.
-
         /**
-         * Pay to remove one card — `economy-session.md`'s designer-added sink, and by Henry's
-         * 2026-08-21 amendment the answer to the generic filler.
+         * SELL one card for scrap — from the active deck OR the run collection.
          *
-         * Distinct from `removeRunCard` (which is free and has no price to check) because this one
-         * has to be atomic with the payment: charging for a removal that did not happen, or removing
-         * for free, are both reachable if the two halves are two dispatches. A card that is not in
-         * the deck costs nothing.
+         * Replaces `removeRunCardForScrap`, which charged 20 to take a card out of the deck. That
+         * verb is deleted: the collection makes leaving the deck free, so the only card transaction
+         * left worth a price is the one that ends in scrap.
          *
-         * **By `instanceId`, never by `dataId`** — the argument ticket 57 inherited from the deleted
-         * `sellRunCard`. A deck routinely holds several copies of one card (the tuned lists run
-         * doubles and `startDeckFor` deals three identical generics), so "remove a `water_slap`"
-         * would leave the player unable to say *which* one, which matters the moment `ownerId` means
-         * anything (it is the departure bookkeeping `runTypes.ts` describes). Since ticket 56 this is
-         * the *only* verb that takes a card out of a run deck for scrap, so it is the only place that
-         * promise can be kept.
+         * **Both piles, one verb.** A card you will never play is the same card whether you already
+         * moved it out of the deck or not, and a sale that only worked on the active deck would
+         * force the player to edit a card back IN to sell it — which is the shape of nonsense the
+         * collection exists to remove.
+         *
+         * Atomic, for the reason `buyMarketCard`'s block gives: paying for a sale that did not
+         * happen, or handing over the card without the scrap, are both reachable if the two halves
+         * are two dispatches. A card in neither pile earns nothing and changes nothing.
+         *
+         * **By `instanceId`, never by `dataId`.** A deck routinely holds several copies of one card
+         * (the tuned lists run doubles and a starter deals three identical generics), so "sell a
+         * `water_slap`" leaves the player unable to say *which* one — which matters the moment
+         * `ownerId` means anything (the departure bookkeeping `runTypes.ts` describes).
          */
-        removeRunCardForScrap: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
+        sellRunCard: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
             const { instanceId, price } = action.payload;
             if (!Number.isInteger(price) || price < 0) return { run };
-            if (run.scrap < price) return { run };
+
             const deck = run.deck.filter((card) => card.instanceId !== instanceId);
-            if (deck.length === run.deck.length) return { run };
-            return { run: { ...run, scrap: run.scrap - price, deck } };
+            const collection = (run.collection ?? []).filter((card) => card.instanceId !== instanceId);
+            const soldFromDeck = deck.length !== run.deck.length;
+            const soldFromCollection = collection.length !== (run.collection ?? []).length;
+            if (!soldFromDeck && !soldFromCollection) return { run };
+
+            return { run: { ...run, scrap: run.scrap + price, deck, collection } };
         },
 
         /**
@@ -850,9 +853,9 @@ export const {
     addRunCards,
     removeRunCard,
     buyMarketCard,
-    // Ticket 57: `sellRunCard` was exported here. Henry ruled cards cannot be sold (ticket 56) —
-    // removal is a pure sink, so nothing downstream may dispatch a card back into scrap.
-    removeRunCardForScrap,
+    // `removeRunCardForScrap` was exported here until 2026-08-26. Paid removal is deleted; free
+    // editing at the four surfaces replaced it, and `sellRunCard` is the verb that pays.
+    sellRunCard,
     rerollMarketStock,
     recruitIntoParty,
     buyMacro,

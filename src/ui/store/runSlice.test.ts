@@ -353,10 +353,14 @@ describe('an app close mid-run resumes at the same node with the same seed', () 
         expect(loaded.run?.currentNodeId).toBe(target.id);
         expect(loaded.run?.fightsResolved).toBe(3);
         expect(loaded.run?.scrap).toBe(42);
-        // The opening six for the solo party `makeRun` fields — 4 kit cards plus the RUN's 2
-        // generics, not 2 per member (Henry, 2026-08-25) — every card back out of storage. A deck
+        // The opening eight for the solo party `makeRun` fields — 5 kit cards plus the STARTER's 3
+        // generics, not 3 per member (Henry, 2026-08-26) — every card back out of storage. A deck
         // that round-trips short is the failure mode here.
-        expect(loaded.run?.deck).toHaveLength(6);
+        expect(loaded.run?.deck).toHaveLength(8);
+        // And the run collection survives the same trip. It is `.default([])` in the schema so that
+        // a pre-collection save still resumes, which means an empty array is also what a DROPPED
+        // field looks like — this run was created holding one, so it has to come back as one.
+        expect(loaded.run?.collection).toEqual([]);
     });
 
     it('the graph is not stored twice — the same seed regenerates the same region', () => {

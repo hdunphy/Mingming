@@ -1,5 +1,5 @@
 /**
- * The marketplace — ticket 13, repriced by ticket 57 against Henry's ticket 56 ruling.
+ * The marketplace — ticket 13, repriced by ticket 57, and re-verbed by ticket 61's amended spec.
  *
  * Six claims, each of which can be false without anything crashing, which is what makes them worth
  * a test rather than a comment:
@@ -17,22 +17,24 @@
  *   different rarity cost the same**, which the old model went out of its way to make false. `power`
  *   is still barred from the formula by the same standing law (map § Notes), so both exclusions are
  *   asserted behaviourally rather than by grep.
- * - **The market takes and never gives.** Henry: *"cards cannot be sold."* Ticket 13 kept "not
- *   farmable to zero" true with a `sell < buy` clamp and a test per registry card; there is now no
- *   sell verb at all, so the law is asserted at the module's surface instead.
+ * - **A sale never pays what the same card costs.** Selling came back (Henry, 2026-08-26) and paid
+ *   removal went in the same pass, so the "prices must not be farmable to zero" law of 2026-08-21 is
+ *   live again and is once more arithmetic rather than an absence. Ticket 13 held it with a
+ *   `Math.min(sell, buy - 1)` clamp; a ruled table of four literals holds it by construction, so the
+ *   test **reads the two arrays side by side** — rung against its own rung — and then re-checks it
+ *   per card across the whole registry, which is the form ticket 57 deleted along with the verb.
  * - **The reroll stays strictly under the cheapest card.** The one ordering law the module still
  *   claims, and the only reason `REROLL_PRICE` moved at all — at ticket 13's 20 against ticket 56's
  *   15-scrap floor, rerolling would cost more than buying.
- * - **The removal price's arithmetic is recomputed here — against a target that has since been
- *   retired.** *"Stripping all generics over a run costs roughly one market visit's scrap"* was a
- *   number with a derivation, and the derivation is still checked against the constants it was
- *   derived from. Two rulings have since emptied the target out: Henry's 2026-08-25 move of the
- *   generics from per-member to per-run leaves a whole run holding **two** of them, and Henry has
- *   separately ruled that **paid removal is no longer how a deck gets thinned** — cards move to a
- *   run collection instead (a later package). The block below therefore keeps the arithmetic exact
- *   and says plainly that it is no longer measuring a live design goal; retuning `RUN_GENERICS`,
- *   the market count or the income table still fails the test rather than quietly falsifying the
- *   comment.
+ * - **Paid removal is gone from the module's surface, and the arithmetic it anchored is re-aimed at
+ *   the sell table.** *"Stripping all generics over a run costs roughly one market visit's scrap"*
+ *   was a number with a derivation, and both halves of that derivation have since been emptied out:
+ *   the generics are the STARTER's three rather than a per-member helping, and a card now leaves the
+ *   active deck for the run collection **for free**, so there is no removal left to price. What is
+ *   kept is the derivation's machinery — the income table recomputed from `scrapForWin`, and the
+ *   generic count counted off a real three-member run — now measuring what a full run's filler is
+ *   WORTH at the stall rather than what it costs to be rid of. Retuning `STARTER_GENERICS`, the
+ *   market count or the income table still fails a test rather than quietly falsifying a comment.
  */
 
 import { afterAll, describe, expect, it } from 'vitest';
@@ -44,14 +46,15 @@ import {
     MARKET_VISITS_PER_RUN,
     MARKET_WILDCARD_SLOTS,
     MAX_PRICED_ENERGY,
-    REMOVAL_PRICE,
     REROLL_PRICE,
+    SELL_PRICE_BY_ENERGY,
     cardPrice,
     isMarketNode,
     isOfferSold,
     rollMarketStock,
+    sellPrice,
 } from './marketplace';
-import { RUN_GENERICS, createRun } from './createRun';
+import { STARTER_GENERICS, createRun } from './createRun';
 import { encounterSeed } from './encounter';
 import { nodeSeed } from './nodeSeed';
 import { offerGyms } from './gyms';
@@ -399,26 +402,102 @@ afterAll(() => {
     delete ProgramRegistry.ticket57_plain;
     delete ProgramRegistry.ticket57_precious;
     delete ProgramRegistry.ticket57_colossal;
+    delete ProgramRegistry.ticket61_plain;
+    delete ProgramRegistry.ticket61_precious;
+    delete ProgramRegistry.ticket61_colossal;
 });
 
 // ---------------------------------------------------------------------------------------------
-// The no-farm law — now structural, and the one surviving price ordering
+// Selling, the no-loop law, and the one surviving price ordering
 // ---------------------------------------------------------------------------------------------
 
-describe('the market takes and never gives', () => {
-    it('offers no way at all to turn a card back into scrap', () => {
-        // Henry, ticket 56: "cards cannot be sold." Ticket 13 kept "prices must not be farmable to
-        // zero" (Henry, 2026-08-21) true arithmetically — `sellPrice` clamped to `buy - 1`, checked
-        // here against all 216 cards. There is now nothing to check, and THAT is the assertion: a
-        // sell verb re-appearing on this module is the regression, whatever it is priced at.
+describe('the market buys back, and always for less than it sold', () => {
+    it('sells the two verbs it has, and no longer sells a removal', () => {
+        // Henry, 2026-08-26: selling is back and paid removal is deleted — *"the two verbs traded
+        // places."* Ticket 56 banned selling and ticket 57 deleted `sellPrice`; this assertion is
+        // that pair inverted, and it is a surface check for the same reason it was one then: a
+        // `REMOVAL_PRICE` re-appearing on this module is the regression now, whatever it is priced
+        // at, because a card leaves the active deck for the run collection for free.
         const surface = Object.keys(marketplace);
-        // Guards the two assertions below from passing on an empty namespace object, which is the
-        // one way a "module exports no X" test can be true and meaningless at the same time.
+        // Guards the assertions below from passing on an empty namespace object, which is the one
+        // way a "module exports no X" test can be true and meaningless at the same time.
         expect(surface).toContain('cardPrice');
-        expect(surface).not.toContain('sellPrice');
-        expect(surface).not.toContain('SELL_MULTIPLIER');
-        // Named rather than pattern-matched on purpose: a future `sellMacro` would deserve its own
+        expect(surface).toContain('sellPrice');
+        expect(surface).toContain('SELL_PRICE_BY_ENERGY');
+        expect(surface).not.toContain('REMOVAL_PRICE');
+        // Named rather than pattern-matched on purpose: a future `removeMacro` would deserve its own
         // ruling and its own test, not a silent pass under a regex that happened to catch it.
+    });
+
+    it('is Henry’s ruled sell table — 5 / 10 / 15 / 20 by energy, on the 5-scrap grid', () => {
+        // Quoted as the four numbers he said rather than only imported, the same way `RULED_TABLE`
+        // quotes the buy rungs: an edit to `SELL_PRICE_BY_ENERGY` has to be an edit to a quotation
+        // of the ruling as well.
+        expect([...SELL_PRICE_BY_ENERGY]).toEqual([5, 10, 15, 20]);
+        expect(SELL_PRICE_BY_ENERGY.length).toBe(CARD_PRICE_BY_ENERGY.length);
+        for (const price of SELL_PRICE_BY_ENERGY) expect(price % 5).toBe(0);
+    });
+
+    it('THE NO-LOOP LAW: every sell rung is strictly below its OWN buy rung', () => {
+        /*
+         * The restored form of ticket 13's law (Henry, 2026-08-21: *"prices must not be farmable to
+         * zero"*), which ticket 57 deleted along with the verb it governed.
+         *
+         * Ticket 13 held it with a `Math.min(sell, buy - 1)` clamp — machinery that existed to make
+         * the law true for whatever multiplier someone typed. A ruled table of four literals makes
+         * the clamp unnecessary and the law **checkable by reading the two arrays side by side**,
+         * which is exactly what this does: rung i against rung i, never a total or a minimum, because
+         * "sell is under buy on average" is precisely the true-sounding statement that would let one
+         * rung mint scrap.
+         */
+        expect(SELL_PRICE_BY_ENERGY.length).toBe(CARD_PRICE_BY_ENERGY.length);
+        SELL_PRICE_BY_ENERGY.forEach((sell, energy) => {
+            const buy = CARD_PRICE_BY_ENERGY[energy];
+            expect([energy, sell < buy]).toEqual([energy, true]);
+            // The pair spelled out, so a failure prints the rung that broke rather than `false`.
+            expect([energy, sell, buy]).toEqual([energy, [5, 10, 15, 20][energy], [15, 25, 35, 45][energy]]);
+        });
+    });
+
+    it('holds the no-loop law per card, over the whole shipped registry', () => {
+        // Ticket 13 asserted this card by card across all 216 shipped programs, and ticket 57
+        // deleted it with `sellPrice`. Restored in the same form: the rung-vs-rung check above is
+        // about the TABLES, and this is about the two FUNCTIONS that read them — a `sellPrice` that
+        // resolved energy differently from `cardPrice` (a missing clamp, a different unknown-id
+        // fallback) would satisfy the table law and still mint scrap on a real card.
+        expect(REGISTRY_IDS.length).toBeGreaterThan(200);
+        for (const id of REGISTRY_IDS) {
+            expect([id, sellPrice(id) < cardPrice(id)]).toEqual([id, true]);
+        }
+        // Both ends of the fallback behaviour too, since neither is a registry id: an unknown card
+        // and an X-cost card both have to keep the law rather than falling off opposite ends of it.
+        expect(sellPrice('no-such-card')).toBeLessThan(cardPrice('no-such-card'));
+        const xCard = REGISTRY_IDS.find((id) => ProgramRegistry[id].baseCost === 'X') as string;
+        expect(sellPrice(xCard)).toBe(SELL_PRICE_BY_ENERGY[MAX_PRICED_ENERGY]);
+        expect(sellPrice(xCard)).toBeLessThan(cardPrice(xCard));
+    });
+
+    it('pays on printed energy alone, clamp and unknown-id fallback included', () => {
+        // The sell side of "a price is the card's printed energy and nothing else" — same law, same
+        // reasons (`power` is a balance instrument; rarity is a drop-rate weight), and it has to hold
+        // on the paying side too or the shop would be readable in one direction only.
+        for (const id of REGISTRY_IDS) {
+            const energy = Math.min(Math.max(numericBaseCost(ProgramRegistry[id].baseCost), 0), MAX_PRICED_ENERGY);
+            expect([id, sellPrice(id)]).toEqual([id, SELL_PRICE_BY_ENERGY[energy]]);
+        }
+        // Same-energy, different-rarity, different-power: one payout. Its own fixtures rather than
+        // the buy tests' — a test that reads state another test registered passes or fails on the
+        // runner's ordering, which is not a property of the shop.
+        ProgramRegistry.ticket61_plain = fixture('ticket61_plain', { rarity: 'Common', power: 1 });
+        ProgramRegistry.ticket61_precious = fixture('ticket61_precious', { rarity: 'Rare', power: 999 });
+        ProgramRegistry.ticket61_colossal = fixture('ticket61_colossal', { baseCost: 7 });
+
+        expect(sellPrice('ticket61_plain')).toBe(sellPrice('ticket61_precious'));
+        expect(sellPrice('ticket61_plain')).toBe(SELL_PRICE_BY_ENERGY[2]); // both printed at 2 energy
+        expect(sellPrice('ticket61_colossal')).toBe(SELL_PRICE_BY_ENERGY[MAX_PRICED_ENERGY]);
+        // An unknown id pays the cheapest rung rather than throwing, for `cardPrice`'s reason: a
+        // price is asked for by a render, and being wrong cheap is the smaller lie.
+        expect(sellPrice('no-such-card')).toBe(SELL_PRICE_BY_ENERGY[0]);
     });
 
     it('charges for a reroll, and charges strictly less for it than the cheapest card', () => {
@@ -435,19 +514,33 @@ describe('the market takes and never gives', () => {
 
     it('keeps the reroll close enough to a card that variance is never free', () => {
         // The other half of ticket 13's stated law — "close to it, so it is never free variance."
-        // Two thirds of the cheapest card, half a removal. A reroll at 5 would make the stall a
-        // slot machine you pull until it pays.
+        // Two thirds of the cheapest card. A reroll at 5 would make the stall a slot machine you
+        // pull until it pays.
         expect(REROLL_PRICE / Math.min(...CARD_PRICE_BY_ENERGY)).toBeGreaterThan(0.5);
-        expect(REROLL_PRICE).toBe(REMOVAL_PRICE / 2);
+        // Pinned exactly. This line used to read `REROLL_PRICE === REMOVAL_PRICE / 2`, which held
+        // the number to the digit by tying it to a price that no longer exists — so the digit is
+        // written down instead, with its derivation: ticket 13's 20/24 ratio (0.83) against ticket
+        // 56's 15-scrap floor is 12.5, rounded onto the 5-scrap grid. Still FLAGGED as derived
+        // rather than ruled; if it is wrong it is wrong by 5.
+        expect(REROLL_PRICE).toBe(10);
         expect(REROLL_PRICE % 5).toBe(0);
+    });
+
+    it('costs more than the cheapest sale, so one generic never buys a fresh shelf', () => {
+        // The reroll is the one thing at the stall that consumes scrap and hands back nothing, and
+        // now that the market pays out again it is worth stating what it costs in SALES rather than
+        // only in cards: two 0-energy sales, which is every generic a solo run holds but one. That
+        // keeps "never free variance" true from the paying side as well as the buying side.
+        expect(REROLL_PRICE).toBeGreaterThan(SELL_PRICE_BY_ENERGY[0]);
+        expect(REROLL_PRICE / SELL_PRICE_BY_ENERGY[0]).toBe(2);
     });
 });
 
 // ---------------------------------------------------------------------------------------------
-// The removal price's stated target
+// What a run's filler is worth at the stall — the derivation paid removal used to anchor
 // ---------------------------------------------------------------------------------------------
 
-describe('removal, measured against Henry’s stated target', () => {
+describe('the generics, measured against the run’s income', () => {
     /**
      * The run's spendable scrap, recomputed from `scrapForWin`'s income table rather than restated
      * as a literal — two elite biome exits, a three-fight gym, and about six wilds fought by a party
@@ -460,34 +553,34 @@ describe('removal, measured against Henry’s stated target', () => {
         + 2 * (scrapForWin('wild', 1) + scrapForWin('wild', 2) + scrapForWin('wild', 3));
 
     /**
-     * The generics a run accumulates, start to finish: **`RUN_GENERICS`, and that is the whole
-     * term** (Henry, 2026-08-25 — *"Only add generics for the first mingming. After that the second
-     * and third mingmings do not need to add an additional generic card."*).
+     * The generics a run accumulates, start to finish: **`STARTER_GENERICS`, and that is the whole
+     * term** (Henry, 2026-08-26 — *"the STARTER opens with 5 engine + 3 generics. A RECRUIT brings
+     * only its 5 engine cards, no generics."*).
      *
      * This used to be a sum with a per-recruit term in it, and the sum is gone rather than zeroed.
-     * The generics are no longer something a MEMBER brings — they are a run-level allowance spent
-     * on the first mingming — so there is no second term to multiply by `RECRUITS_PER_RUN` and no
-     * "generics per recruit" quantity to name. A run holds two whether it ends solo or at a full
+     * The generics are no longer something a MEMBER brings — they are the starter's allowance, spent
+     * at the top of the party — so there is no second term to multiply by `RECRUITS_PER_RUN` and no
+     * "generics per recruit" quantity to name. A run holds three whether it ends solo or at a full
      * three-member party.
      *
-     * The lineage, since this number is what the strip price is divided against and it has moved
-     * every time the deck table has: 5 under ticket 08's 3 + 1, 3 for the one day the 5 + 0 table
-     * stood, 6 under ticket 60's 4 + 2 per member, and **2** now.
+     * The lineage, since this number has moved every time the deck table has: 5 under ticket 08's
+     * 3 + 1, 3 for the one day the 5 + 0 table stood, 6 under ticket 60's 4 + 2 per member, 2 under
+     * the 2026-08-25 run-level allowance, and **3** now.
      */
     const RECRUITS_PER_RUN = 2;
-    const GENERICS_PER_RUN = RUN_GENERICS;
+    const GENERICS_PER_RUN = STARTER_GENERICS;
 
-    it('counts two generics in a full run, however far the party grew', () => {
-        expect(GENERICS_PER_RUN).toBe(2);
-        expect(GENERICS_PER_RUN).toBe(RUN_GENERICS);
+    it('counts three generics in a full run, however far the party grew', () => {
+        expect(GENERICS_PER_RUN).toBe(3);
+        expect(GENERICS_PER_RUN).toBe(STARTER_GENERICS);
         // Counted off a real three-member run's actual deck rather than asserted about the constant,
         // because "it does not scale with the party" is the whole ruling and a constant cannot show
         // it. A 1 → 2 → 3 party takes on `RECRUITS_PER_RUN` recruits (`vision.md`) and each of them
-        // brings its kit and no filler, so this count is the same two the run opened with.
+        // brings its kit and no filler, so this count is the same three the run opened with.
         expect(TRIO).toHaveLength(1 + RECRUITS_PER_RUN);
         const trio = makeRun('generics-count', TRIO);
         expect(trio.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
-        // And a solo run holds the same two — the allowance is the run's, not the party's.
+        // And a solo run holds the same three — the allowance is the starter's, not the party's.
         expect(RUN.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
         expect(GENERIC_HIT).toBe('water_slap');
     });
@@ -505,69 +598,67 @@ describe('removal, measured against Henry’s stated target', () => {
         expect(RUN_SCRAP / MARKET_VISITS_PER_RUN).toBe(80);
     });
 
-    it('costs half a market visit to strip them all — against a target that has been retired', () => {
-        const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN; // 240 / 3 = 80
-        const stripAll = REMOVAL_PRICE * GENERICS_PER_RUN;    // 20 x 2 = 40
+    it('pays a sixteenth of a market visit to sell them all — costing nothing to be rid of', () => {
+        const visitScrap = RUN_SCRAP / MARKET_VISITS_PER_RUN;          // 240 / 3 = 80
+        const sellAll = sellPrice(GENERIC_HIT) * GENERICS_PER_RUN;     // 5 x 3 = 15
 
-        expect(stripAll).toBe(40);
+        expect(sellAll).toBe(15);
         expect(visitScrap).toBe(80);
         /*
-         * **FLAG FOR HENRY: this block no longer measures a live design goal, and the honest thing
-         * is to say so rather than to invent a new band for it to hit.** The arithmetic below is
-         * recomputed exactly from the shipped constants, and it is kept because a silent move in
-         * `REMOVAL_PRICE`, `MARKET_VISITS_PER_RUN`, the income table or the generic count should
-         * still fail a test. What it can no longer do is tell you whether the price is RIGHT.
+         * **This block used to price a REMOVAL, and the thing it measured is gone rather than
+         * repriced.** The arithmetic is recomputed exactly from the shipped constants, and it is
+         * kept because a silent move in the sell table, `MARKET_VISITS_PER_RUN`, the income table or
+         * the generic count should still fail a test. What it measures has changed sign.
          *
-         * The history, since the number crossed ticket 13's "roughly one market visit's scrap"
-         * target twice before landing here: ticket 13 aimed at one visit (30 against a 150-scrap
-         * visit). Ticket 56's income made the ruled 20 a dearer strip — 100 against a 70-scrap
-         * visit, about one and a half. The 2026-08-24 pass moved it back inside from both ends
-         * (elite raise 70 -> 80, and recruits stopped bringing a generic, 5 -> 3), giving 60/80.
-         * Ticket 60's 4 + 2 per member took it back out to 120/80, 1.5 visits.
+         * The history, since the number crossed ticket 13's *"stripping all generics over a run
+         * costs roughly one market visit's scrap"* target several times before the target itself was
+         * retired: ticket 13 aimed at one visit (30 against a 150-scrap visit). Ticket 56's income
+         * made the ruled 20 a dearer strip — 100 against a 70-scrap visit, about one and a half. The
+         * 2026-08-24 pass moved it back inside from both ends (elite raise 70 → 80, recruits stopped
+         * bringing a generic), giving 60/80. Ticket 60's 4 + 2 per member took it back out to
+         * 120/80. The 2026-08-25 run-level allowance left two generics and a 40/80 strip.
          *
-         * **Both of the things that target was made of are now gone.**
+         * **Henry deleted paid removal on 2026-08-26, so the target has no subject left.** The old
+         * target was really a proxy for a deck problem: filler multiplied with the party, so the run
+         * was sold padding at a workshop and then had to buy it back out at a stall, and the removal
+         * price was the lever that decided how painful the round trip was. Two rulings deleted the
+         * round trip at the source — the generics are the starter's three and never multiply, and a
+         * card leaves the active deck for the run collection **for free**.
          *
-         * The first is the generic count. Henry's 2026-08-25 ruling makes the generics a run-level
-         * allowance — two, on the first mingming, never multiplied by the party — so a full strip is
-         * two removals, 40 against an ~80-scrap visit. The target was really a proxy for a deck
-         * problem: filler multiplied with the party, so the run was sold padding at a workshop and
-         * then had to buy it back out at a stall, and the removal price was the lever that decided
-         * how painful that round trip was. The ruling deletes the round trip at the source. Two
-         * generics in a whole run is not a deck someone needs to save up to fix.
-         *
-         * The second is paid removal itself. Henry has ruled that buying removals is no longer how
-         * a deck gets thinned — cards move to a run collection instead, in a later package. So
-         * "what fraction of a market visit does a full strip cost" is not a question the design is
-         * asking any more, and 0.5 is neither a pass nor a miss against it: there is nothing left
-         * to be measured against. Do NOT read the numbers below as a new band, and do not retune
-         * `REMOVAL_PRICE` to move them — when the collection package lands, this block should be
-         * rewritten against whatever the collection actually charges, or deleted with it.
+         * So the question this block asks is now the other one: not *what does it cost to be rid of
+         * the filler* (nothing) but *what is the filler WORTH* if you sell it instead. Three
+         * 0-energy sales, 15 against an ~80-scrap visit — a fifth of a stall, or two thirds of one
+         * reroll. That is deliberately small, and it is the shape Henry asked for: selling is for
+         * *"a card you are never going to play"*, not an income stream, and the run's filler is the
+         * least valuable thing it owns. Do NOT read the ratio below as a band anyone is aiming at.
          */
-        expect(stripAll / visitScrap).toBe(0.5);
-        // The 1.5-visit breach ticket 60 opened is closed — but closed by there being almost
-        // nothing left to strip, not by anyone retuning the price. `REMOVAL_PRICE` has not moved.
-        expect(stripAll / visitScrap).toBeLessThan(1);
-        expect(REMOVAL_PRICE).toBe(20);
-        // A sixth of the run's income, down from a half. Pinned exactly so that any move in the
-        // price, the income table or the generic count fails here on sight.
-        expect(stripAll / RUN_SCRAP).toBe(1 / 6);
+        expect(sellAll / visitScrap).toBe(3 / 16);
+        expect(sellAll / visitScrap).toBeLessThan(1);
+        expect(sellPrice(GENERIC_HIT)).toBe(5);
+        // A sixteenth of the run's income, where a full strip used to cost a sixth of it. Pinned
+        // exactly so that any move in the sell table, the income table or the generic count fails
+        // here on sight.
+        expect(sellAll / RUN_SCRAP).toBe(1 / 16);
     });
 
-    it('sits between the cheapest card and the next rung up, so the sink competes', () => {
-        // Ticket 13 could say "dearer than the cheapest card and under an Uncommon"; with rarity out
-        // of the formula the same shape is now stated against the rungs. Removal is dearer than a
-        // 0-energy card and cheaper than a 1-energy one — the sink is a real alternative to a
-        // purchase at every stall, without being the obvious default.
-        expect(REMOVAL_PRICE).toBeGreaterThan(Math.min(...REGISTRY_IDS.map(cardPrice)));
-        expect(REMOVAL_PRICE).toBeGreaterThan(CARD_PRICE_BY_ENERGY[0]);
-        expect(REMOVAL_PRICE).toBeLessThan(CARD_PRICE_BY_ENERGY[1]);
+    it('is worth less to sell than the cheapest card on the shelf costs to buy', () => {
+        // Ticket 13 could say a removal was "dearer than the cheapest card and under an Uncommon";
+        // with removal deleted, the ordering worth stating is the one the sell table creates. Even
+        // the DEAREST sale (a 3-energy card at 20) is over the cheapest buy rung, so selling a card
+        // you will never play can fund a card you will — while the whole filler pile (15) still
+        // cannot buy the cheapest thing on the shelf (15) outright. Filler is not a bank.
+        expect(sellPrice(GENERIC_HIT)).toBeLessThan(Math.min(...REGISTRY_IDS.map(cardPrice)));
+        expect(sellPrice(GENERIC_HIT) * GENERICS_PER_RUN).toBe(CARD_PRICE_BY_ENERGY[0]);
+        expect(SELL_PRICE_BY_ENERGY[MAX_PRICED_ENERGY]).toBeGreaterThan(CARD_PRICE_BY_ENERGY[0]);
     });
 
-    it('pays nothing back — removal is a pure sink, not a trade', () => {
-        // Ticket 13 made this a comparison (removing cost more than selling paid). Selling is gone,
-        // so the claim is now absolute: the scrap a removal consumes exceeds what the shelf would
-        // charge for the very card being removed, and none of it ever comes back.
+    it('pays back strictly less than it charged — a buy-then-sell lap is a loss', () => {
+        // Ticket 13 made this a comparison (removing cost more than selling paid); ticket 57 made it
+        // absolute (nothing came back at all). It is a comparison again, and it is the no-loop law
+        // stated on the one card every run is holding three of: the generic buys at the cheapest
+        // rung and sells for a third of that, so the lap costs 10 scrap and mints none.
         expect(cardPrice(GENERIC_HIT)).toBe(CARD_PRICE_BY_ENERGY[0]);
-        expect(REMOVAL_PRICE).toBeGreaterThan(cardPrice(GENERIC_HIT));
+        expect(sellPrice(GENERIC_HIT)).toBeLessThan(cardPrice(GENERIC_HIT));
+        expect(cardPrice(GENERIC_HIT) - sellPrice(GENERIC_HIT)).toBe(10);
     });
 });

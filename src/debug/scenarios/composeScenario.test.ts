@@ -154,10 +154,10 @@ describe('deck resolution', () => {
 
         const resolved = resolveDeck({ ...createDraft(), deckMode: 'saved' }, run);
         expect(resolved.cards).toEqual(expected);
-        // A SOLO run's opener: one member's 4 kit cards plus the run's 2 generics. Not 6 a member —
-        // the generics are a run-level allowance carried by the first mingming (Henry, 2026-08-25),
-        // so this figure would be 10 for a party of two, not 12.
-        expect(resolved.cards).toHaveLength(6);
+        // A SOLO run's opener: one member's 5 kit cards plus the starter's 3 generics. Not 8 a
+        // member — the generics are the STARTER's allowance (Henry, 2026-08-26), so this figure
+        // would be 13 for a party of two, not 16.
+        expect(resolved.cards).toHaveLength(8);
         expect(resolved.source).toContain('run deck');
         expect(resolved.issues).toEqual([]);
     });

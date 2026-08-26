@@ -3,10 +3,13 @@
  *
  * # WHAT THE PLAYER IS LOOKING AT
  *
- * The one place a run's party grows. Three sections over two currencies: **assemble** a blueprint
- * plus scrap into a new party member, **reflash** a member's firmware for a blueprint plus scrap,
- * and **strip** a card out of the run deck for scrap — Henry's 2026-08-21 amendment, priced at
- * ticket 13's `REMOVAL_PRICE` so there is one sink at one price wherever you buy it.
+ * The one place a run's party grows. Two sections over two currencies: **assemble** a blueprint plus
+ * scrap into a new party member, and **reflash** a member's firmware for a blueprint plus scrap.
+ *
+ * There was a third — **strip** a card out of the deck for 20 scrap, priced at ticket 13's
+ * `REMOVAL_PRICE` so one sink cost the same at both counters. Henry deleted paid removal on
+ * 2026-08-26: editing the active deck is free at this screen and three others, and a card you will
+ * never play is sold at a marketplace instead of costing you scrap to be rid of.
  *
  * Everything about *what things cost* and *what can legally be built* lives in
  * `engine/run/workshop.ts`. This file renders it and dispatches, the same split `MarketplaceNode`
@@ -25,9 +28,9 @@
  *    the scrap, the blueprint, the party slot, or the species clause. A silently inert button is
  *    indistinguishable from a bug to whoever is holding the controller.
  * 4. **Scrap, always.** It is the currency every button here competes with the marketplace for.
- * 5. **That the recruit brings four cards.** Ticket 08's ruled recruit kit (3 `startKit` + 1
- *    generic) is the difference between "a body" and "a draft pick", and it is what makes 75 scrap
- *    read as a purchase rather than a toll.
+ * 5. **That the recruit brings its whole engine.** The ruled recruit kit — `RECRUIT_KIT_SIZE`
+ *    `startKit` cards, the payoff and its four enablers, and no filler — is the difference between
+ *    "a body" and "a draft pick", and it is what makes the fee read as a purchase rather than a toll.
  *
  * # THE ORDER OF THE TWO DISPATCHES IS LOAD-BEARING
  *
@@ -51,26 +54,23 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useDispatch, useStore } from 'react-redux';
 
-import { GetMingmingData, GENERIC_HIT } from '../../engine/data/mingmingRegistry';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { RECRUIT_KIT_SIZE } from '../../engine/run/createRun';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
     WORKSHOP_REFLASH_SCRAP,
-    WORKSHOP_REMOVAL_PRICE,
     planRecruit,
     reflashBlockFor,
     reflashOptionsFor,
     workshopSpecies,
     type WorkshopBlock,
 } from '../../engine/run/workshop';
-import { numericBaseCost } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import { assembleMingming, swapOS } from '../store/gameSlice';
-import { recruitIntoParty, removeRunCardForScrap, spendRunScrap } from '../store/runSlice';
+import { recruitIntoParty, spendRunScrap } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import './WorkshopNode.css';
 
@@ -178,11 +178,6 @@ export default function WorkshopNode({ run, node, ranch, initialPending }: Works
         setPending(null);
     };
 
-    const strip = (instanceId: string): void => {
-        dispatch(removeRunCardForScrap({ instanceId, price: WORKSHOP_REMOVAL_PRICE }));
-        playSfx('uiClick');
-    };
-
     return (
         <section className="ws">
             <header className="ws-head">
@@ -215,7 +210,7 @@ export default function WorkshopNode({ run, node, ranch, initialPending }: Works
             {species.length === 0 && (
                 <div className="ws-empty">
                     No blueprints. They drop from fights and are guaranteed by alpha nodes — until then
-                    there is nothing to assemble, but the deck bench below is open.
+                    there is nothing to assemble here.
                 </div>
             )}
 
@@ -331,62 +326,17 @@ export default function WorkshopNode({ run, node, ranch, initialPending }: Works
                 {party.length === 0 && <li className="ws-empty">No party members to reflash.</li>}
             </ul>
 
-            {/* --- Strip a card --- */}
-
-            <div className="ws-section-head">
-                <h3>Strip a card ({run.deck.length})</h3>
-                <span className="ws-price-tag">{WORKSHOP_REMOVAL_PRICE} scrap</span>
-            </div>
-            <p className="ws-note">
-                Removal costs the same {WORKSHOP_REMOVAL_PRICE} scrap here as at a marketplace — one sink,
-                one price, two counters. It pays nothing back; what it buys is a thinner deck. The generic{' '}
-                <em>Tackle</em> filler every member and every recruit brings is what it is for.
-            </p>
-
-            <ul className="ws-list ws-deck-list">
-                {run.deck.map((card) => {
-                    const data = ProgramRegistry[card.dataId];
-                    const short = shortBy(WORKSHOP_REMOVAL_PRICE);
-                    return (
-                        <li
-                            key={card.instanceId}
-                            className={`ws-row ${card.dataId === GENERIC_HIT ? 'generic' : ''}`}
-                        >
-                            <div className="ws-row-card">
-                                <span className="ws-row-name">{data?.name ?? card.dataId}</span>
-                                {/*
-                                  * The description used to be withheld here, on the same reasoning
-                                  * `MarketplaceNode`'s header carried: power dies at the surface,
-                                  * and 142 of 216 card descriptions quote the internal number.
-                                  * Henry amended that law on 2026-08-23 (*"we need power in the
-                                  * card descriptions otherwise you can't compare cards"*) and the
-                                  * 2026-08-24 playtest filed the omission as a bug. Choosing which
-                                  * card to CUT is a comparison, and the text is the comparison.
-                                  */}
-                                <span className="ws-row-meta">
-                                    {data?.element ?? 'None'} · {(data?.rarity as string) ?? 'Common'} ·{' '}
-                                    {numericBaseCost(data?.baseCost ?? 0)}⚡
-                                </span>
-                                {data?.description && (
-                                    <span className="ws-row-text">{data.description}</span>
-                                )}
-                                {card.dataId === GENERIC_HIT && <span className="ws-tag">generic filler</span>}
-                            </div>
-                            <button
-                                type="button"
-                                className="ws-button danger"
-                                disabled={short > 0}
-                                onClick={() => strip(card.instanceId)}
-                            >
-                                {short > 0
-                                    ? `Strip (${WORKSHOP_REMOVAL_PRICE}) — ${short} short`
-                                    : `Strip — ${WORKSHOP_REMOVAL_PRICE} scrap`}
-                            </button>
-                        </li>
-                    );
-                })}
-                {run.deck.length === 0 && <li className="ws-empty">No cards. Nothing to strip.</li>}
-            </ul>
+            {/*
+              * THE STRIP SECTION IS GONE (Henry, 2026-08-26).
+              *
+              * It sold a 20-scrap removal at the same price as the marketplace's — one sink, one
+              * price, two counters. Paid removal is deleted: a card leaves the active deck for the
+              * run collection for FREE, and a workshop is one of the four surfaces where that
+              * editing happens. Selling a card you will never play is the marketplace's job now.
+              *
+              * The free deck-and-party editor that replaces it lands with the rest of ticket 61's
+              * agency work; until it does, this screen assembles and reflashes and nothing else.
+              */}
 
             {pending && (
                 <OsPicker

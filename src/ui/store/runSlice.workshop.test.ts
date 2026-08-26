@@ -6,7 +6,7 @@
  * because **an assembly writes both halves of the save**:
  *
  * - a blueprint is spent and an individual joins `ranch.roster` (`gameSlice.assembleMingming`);
- * - scrap is spent, `run.partyIds` grows and the recruit's four cards merge into `run.deck`
+ * - scrap is spent, `run.partyIds` grows and the recruit's five cards merge into `run.deck`
  *   (`runSlice.recruitIntoParty`).
  *
  * No reducer can do both. Ticket 11's reward claim hit the same wall and split its dispatch; this
@@ -26,24 +26,26 @@ import { configureStore } from '@reduxjs/toolkit';
 import { describe, expect, it } from 'vitest';
 
 import gameReducer, { assembleMingming, createEmptyRanch, swapOS } from './gameSlice';
+import * as runSlice from './runSlice';
 import runReducer, {
     addRunScrap,
     clearRun,
     endRun,
     recruitIntoParty,
-    removeRunCardForScrap,
+    sellRunCard,
     spendRunScrap,
     startRun,
     type RunSliceState,
 } from './runSlice';
-import { RECRUIT_KIT_SIZE, RUN_GENERICS, START_KIT_SIZE, createRun } from '../../engine/run/createRun';
+import { RECRUIT_KIT_SIZE, STARTER_GENERICS, START_KIT_SIZE, createRun, minimumActiveDeck } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
+import * as workshop from '../../engine/run/workshop';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
     WORKSHOP_REFLASH_SCRAP,
-    WORKSHOP_REMOVAL_PRICE,
     planRecruit,
 } from '../../engine/run/workshop';
+import { sellPrice } from '../../engine/run/marketplace';
 import { PARTY_SIZE } from '../../engine/party';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import { SAVE_VERSION_V4, reconcileLoadedState } from '../../engine/runTypes';
@@ -139,7 +141,7 @@ describe('assembling at a workshop', () => {
         expect(run.run!.deck).toHaveLength(deckBefore + RECRUIT_KIT_SIZE);
     });
 
-    it('merges the recruit’s four cards into the SHARED deck, owned by the recruit', () => {
+    it('merges the recruit’s five cards into the SHARED deck, owned by the recruit', () => {
         const store = makeStore({ blueprints: { fenrir: 1 } });
         store.dispatch(startRun(makeRun(200)));
         const deckBefore = store.getState().run.run!.deck;
@@ -148,19 +150,19 @@ describe('assembling at a workshop', () => {
         const joined = store.getState().run.run!.deck.slice(deckBefore.length);
 
         expect(joined).toHaveLength(RECRUIT_KIT_SIZE);
-        expect(joined).toHaveLength(4);
-        // The ruled recruit kit: 4 startKit cards and no filler (Henry, 2026-08-25). The generics
-        // are a RUN-level allowance carried by the first mingming, so what arrives at a workshop is
-        // a body and its engine and nothing else. This is not the 5 + 0 table of 2026-08-24
-        // returning — there the missing filler was a price the recruit paid for its tags, and here
-        // there is no per-member filler for anyone to pay.
+        expect(joined).toHaveLength(5);
+        // The ruled recruit kit: 5 startKit cards and no filler (Henry, 2026-08-26). The generics
+        // are the STARTER's allowance, so what arrives at a workshop is a body and its engine and
+        // nothing else. This is not the 5 + 0 table of 2026-08-24 returning — there the missing
+        // filler was a price the recruit paid for its tags, and here there is no per-member filler
+        // for anyone to pay.
         //
         // Pinned as its own assertion, and as a literal 0, because "a recruit adds no generics" is
         // the half of the ruling a well-meaning "a new mingming should come with something to play"
         // patch would quietly undo — which is exactly what the 3 + 1 and 4 + 2 tables did, in the
-        // other direction. Filler exists to stop a SOLO opening deck being four cards; by the time
-        // a workshop is reachable the run already has its two, and a second helping is the padding
-        // the market then had to be paid to take back out.
+        // other direction. Filler exists to stop a SOLO opening deck being five cards, redrawn every
+        // turn; by the time a workshop is reachable the run already has its three, and a second
+        // helping is padding that would multiply with the party.
         expect(joined.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
         for (const card of joined) expect(card.ownerId).toBe(member.id);
         // The starting member's cards are untouched, and one deck holds both members' cards — which
@@ -184,23 +186,23 @@ describe('assembling at a workshop', () => {
         const { game, run } = store.getState();
         expect(game.blueprints).toEqual({});
         expect(run.run!.scrap).toBe(400 - 2 * WORKSHOP_ASSEMBLY_SCRAP);
-        // 6 start cards + 4 + 4 = 14 under Henry's 2026-08-25 ruling, where ticket 60 reached 18 as
-        // 6 + 6 + 6, the table before it reached 18 as 8 + 5 + 5, and ticket 08's original reached
-        // 16 as 8 + 4 + 4.
+        // 8 start cards + 5 + 5 = 18 under ticket 61, where the 2026-08-25 table reached 14 as
+        // 6 + 4 + 4, ticket 60 reached 18 as 6 + 6 + 6, the table before it reached 18 as 8 + 5 + 5,
+        // and ticket 08's original reached 16 as 8 + 4 + 4.
         //
-        // **The total moved this time, and that is the point rather than a side effect.** Ticket 60
-        // was a change of composition at a fixed size; this one is a change of size, because the
-        // filler had been multiplying with the party. A three-member run used to carry six generics
-        // — a third of everything the workshop sold you was padding, which the market then had to
-        // be paid to strip back out. Now the run carries two, once, and the twelve cards the party
-        // contributed all do something for the species that brought them. Against
-        // `economy-session.md`'s 20-25 gate that is the gain: a full party arrives at the gate with
-        // room for the picks and buys the run is supposed to be about, instead of arriving nearly
-        // full of `Tackle`.
-        expect(run.run!.deck).toHaveLength(3 * START_KIT_SIZE + RUN_GENERICS);
-        expect(run.run!.deck).toHaveLength(14);
-        // Two generics in the whole run, party of three included — the ruling as an end-state fact.
-        expect(run.run!.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(RUN_GENERICS);
+        // **The total lands on 18 again by a fourth route, and the route is the whole point.** The
+        // three earlier 18s were built out of filler that multiplied with the party: a three-member
+        // run carried six generics, so a third of everything the workshop sold you was padding the
+        // market then had to be paid to strip back out. This 18 is fifteen cards of engine and three
+        // of filler bought once, at the top of the run. Against `economy-session.md`'s 20-25 gate
+        // that is the gain: a full party arrives at the gate holding three species' whole engines
+        // rather than arriving nearly full of `Tackle`.
+        expect(run.run!.deck).toHaveLength(3 * START_KIT_SIZE + STARTER_GENERICS);
+        expect(run.run!.deck).toHaveLength(18);
+        // A grown party is standing exactly on its own floor — the team is the deck, as a minimum.
+        expect(run.run!.deck).toHaveLength(minimumActiveDeck(PARTY_SIZE));
+        // Three generics in the whole run, party of three included — the ruling as an end-state fact.
+        expect(run.run!.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(STARTER_GENERICS);
         expect(new Set(run.run!.partyIds).size).toBe(PARTY_SIZE);
     });
 
@@ -478,42 +480,38 @@ describe('reflashing at a workshop', () => {
     });
 });
 
-describe('stripping a card at a workshop', () => {
-    it('charges the marketplace’s removal price — one sink, two counters', () => {
-        const store = makeStore();
-        store.dispatch(startRun(makeRun(0)));
-        store.dispatch(addRunScrap(100));
-        const target = store.getState().run.run!.deck.find((c) => c.dataId === GENERIC_HIT)!;
-        const deckBefore = store.getState().run.run!.deck.length;
-
-        store.dispatch(removeRunCardForScrap({ instanceId: target.instanceId, price: WORKSHOP_REMOVAL_PRICE }));
-
-        expect(store.getState().run.run!.scrap).toBe(100 - WORKSHOP_REMOVAL_PRICE);
-        expect(store.getState().run.run!.deck).toHaveLength(deckBefore - 1);
-        expect(store.getState().run.run!.deck.some((c) => c.instanceId === target.instanceId)).toBe(false);
+describe('the workshop no longer strips a card for scrap', () => {
+    it('has no removal price to charge, at this counter or the marketplace’s', () => {
+        // This block used to be `describe('stripping a card at a workshop')` and its first case
+        // asserted "one sink, two counters" — the workshop charging exactly `REMOVAL_PRICE`. Henry
+        // deleted paid removal on 2026-08-26, so the assertion is inverted rather than dropped: the
+        // constant that priced the button is gone from the module the screen imports it from.
+        expect(Object.keys(workshop)).not.toContain('WORKSHOP_REMOVAL_PRICE');
+        // And the action the button dispatched is gone from the slice with it. Asserted at the
+        // slice's surface, guarded against an empty namespace object by the positive line first:
+        // `sellRunCard` replaced `removeRunCardForScrap`, and it is a MARKETPLACE verb that PAYS —
+        // see `runSlice.marketplace.test.ts`.
+        expect(Object.keys(runSlice)).toContain('sellRunCard');
+        expect(Object.keys(runSlice)).not.toContain('removeRunCardForScrap');
     });
 
-    it('refuses when the run cannot afford it, without removing the card', () => {
-        const run = makeRun(WORKSHOP_REMOVAL_PRICE - 1);
-        const target = run.deck[0];
-        const after = runReducer(
-            stateOf(run),
-            removeRunCardForScrap({ instanceId: target.instanceId, price: WORKSHOP_REMOVAL_PRICE }),
-        ).run!;
-        expect(after).toEqual(run);
-    });
-
-    it('is what an empty-handed workshop is for — it needs no blueprint at all', () => {
+    it('is still worth walking into empty-handed — the deck edit here is free', () => {
         // A blueprint drops from ~20% of wilds, so most workshops are entered with nothing to
-        // assemble. Removal is the floor that keeps the node from being a dead one.
+        // assemble, and paid removal used to be the floor that kept the node from being a dead one.
+        // Free editing replaced it: the card moves to the run collection at no charge, so an
+        // empty-handed visit costs the player nothing rather than costing them 20.
         const store = makeStore({ blueprints: {} });
         store.dispatch(startRun(makeRun(60)));
-        const target = store.getState().run.run!.deck[0];
+        store.dispatch(addRunScrap(0));
 
-        store.dispatch(removeRunCardForScrap({ instanceId: target.instanceId, price: WORKSHOP_REMOVAL_PRICE }));
-
-        expect(store.getState().run.run!.scrap).toBe(60 - WORKSHOP_REMOVAL_PRICE);
+        // Nothing at this node can take scrap off a player holding no blueprint any more.
+        expect(store.getState().run.run!.scrap).toBe(60);
         expect(store.getState().game.blueprints).toEqual({});
+        // And selling — the verb that DOES move scrap for a card — pays rather than charges, and
+        // does it at the marketplace. The direction is the assertion.
+        const target = store.getState().run.run!.deck[0];
+        store.dispatch(sellRunCard({ instanceId: target.instanceId, price: sellPrice(target.dataId) }));
+        expect(store.getState().run.run!.scrap).toBe(60 + sellPrice(target.dataId));
     });
 });
 
@@ -530,7 +528,7 @@ describe('the workshop respects the ranch/run split', () => {
         // The ranch gained an individual and lost a blueprint. It gained no scrap and no cards.
         expect(Object.keys(store.getState().game).sort())
             .toEqual(['blueprints', 'codex', 'codexMilestones', 'gymsCleared', 'highestTierCleared', 'roster', 'seenTips']);
-        // The run gained a party member and four cards. It gained nothing that outlives it.
+        // The run gained a party member and five cards. It gained nothing that outlives it.
         store.dispatch(endRun('victory'));
         store.dispatch(clearRun());
         expect(store.getState().run.run).toBeNull();

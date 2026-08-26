@@ -27,7 +27,7 @@ import runReducer, {
     enterNode,
     grantMacro,
     recruitIntoParty,
-    removeRunCardForScrap,
+    sellRunCard,
     setRun,
     startRun,
 } from './runSlice';
@@ -108,8 +108,8 @@ function playARun(store: ReturnType<typeof makeStore>): IRunState {
         card: { instanceId: 'bought_1', dataId: 'hydro_blast', ownerId: null }, price: 25,
     }));
 
-    const doomed = store.getState().run.run!.deck[0];
-    store.dispatch(removeRunCardForScrap({ instanceId: doomed.instanceId, price: 20 }));
+    const sold = store.getState().run.run!.deck[0];
+    store.dispatch(sellRunCard({ instanceId: sold.instanceId, price: 5 }));
 
     store.dispatch(recruitIntoParty({
         memberId: 'mm2',
@@ -158,8 +158,13 @@ describe('the run log middleware, over a whole run', () => {
 
         expect(paid('addRunScrap')).toEqual([200]);
         expect(paid('buyMarketCard')).toEqual([-25]);
-        // A removal is a pure sink at both counters (ticket 56): it SPENDS, it does not pay back.
-        expect(paid('removeRunCardForScrap')).toEqual([-20]);
+        // A SALE PAYS, and the SIGN is the assertion. This line read
+        // `paid('removeRunCardForScrap')).toEqual([-20])` while the market's only card verb charged
+        // to delete a card; Henry deleted paid removal and repealed the sell ban on 2026-08-26, so
+        // the same middleware derivation now has to produce a positive delta from a positive
+        // balance change — a sink logged as income, or income logged as a sink, is exactly the kind
+        // of error a derived log can make and a hand-written one cannot.
+        expect(paid('sellRunCard')).toEqual([5]);
         expect(paid('recruitIntoParty')).toEqual([-25]);
         expect(paid('buyMacro')).toEqual([-32]);
     });

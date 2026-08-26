@@ -104,22 +104,21 @@ describe('RunSummary — the numbers match the run it is reporting', () => {
         const run = ended('victory', { deck: [...BASE.deck, ...picked(14)] });
         const markup = render(run);
 
-        // Ticket 60 moved the kit half from 8 a member to 6 (4 tagged + 2 generics), so the same
-        // 14 picks land the deck on 20 rather than 22 — right on the floor of the target instead
-        // of two inside it, which is the deck-building track working harder for the same number of
-        // picks. The picked half is untouched, and that split is the whole screen.
+        // Ticket 61 put the kit half back at 8 (5 tagged + 3 generics), so the same 14 picks land
+        // the deck on 22 — two inside the target where ticket 60's 6-card kit put it right on the
+        // floor at 20. The picked half is untouched by every one of these re-rulings, and that
+        // split is the whole screen: what you were given, and what you chose.
         //
-        // `BASE` is a SOLO run, so the kit half is 6 either side of Henry's 2026-08-25 ruling. What
-        // the ruling changed is the sentence beside it: the note used to read "6/member", and per
-        // member is exactly what the number stopped being. The generics are a run-level allowance
-        // carried by the first mingming, so a second member adds 4 and not 6 — a player who
-        // multiplied the old note by their party size would read 18 off a deck of 14. The screen
-        // now says what the figure is a figure OF.
-        expect(markup).toContain('20 cards');
+        // `BASE` is a SOLO run, so the kit half is 8 here. The note beside it must not read
+        // "8/member" — per member is exactly what the number is not. The generics are the STARTER's
+        // allowance, so a second member adds 5 and not 8, and a player who multiplied the figure by
+        // their party size would read 24 off a deck of 13. The screen says what the figure is a
+        // figure OF instead.
+        expect(markup).toContain('22 cards');
         expect(markup).toContain('20–25');
         expect(markup).toContain('>14<');       // picked
-        expect(markup).toContain('+ 6 kit');    // the six this solo party walked in with
-        expect(markup).toContain('a solo run opens at 6');
+        expect(markup).toContain('+ 8 kit');    // the eight this solo party walked in with
+        expect(markup).toContain('a solo run opens at 8');
         // The retired phrasing, barred by name: "/member" is the one claim on this screen that a
         // party of two or three would make false, and it is a one-word edit away from returning.
         expect(markup).not.toContain('/member');

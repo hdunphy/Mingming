@@ -4,7 +4,7 @@ import { GetProgramData, ProgramRegistry } from './programRegistry';
 import { START_KIT_SIZE } from '../run/createRun';
 
 /**
- * The payoff each ratified kit must lead with — ticket 60's table, transcribed.
+ * The payoff each ratified kit must lead with — ticket 61's table, transcribed.
  *
  * Deliberately a SECOND copy of the table's first column rather than a read of `startKits[os][0]`,
  * which would assert that the data equals itself. This is the ticket's ruling written down where a
@@ -27,23 +27,24 @@ const KIT_PAYOFF: Readonly<Record<string, string>> = {
 };
 
 /**
- * startKit invariants — **ticket 60's mini-engine table** (supersedes ticket 09's).
+ * startKit invariants — **ticket 61's five-card engine table** (supersedes ticket 60's).
  *
- * A run does not start with a species' whole tuned deck: every member brings 4 startKit cards, and
- * the RUN adds 2 generics on top of the first mingming's four (Henry, 2026-08-25 - they used to be
- * 2 per member). A recruit brings the same four any member that is not the first one brings. The
+ * A run does not start with a species' whole tuned deck: every member brings 5 startKit cards, and
+ * the STARTER adds 3 generics on top of its five for an 8-card opening deck (Henry, 2026-08-26).
+ * A recruit brings the same five any member that is not the first one brings, and no generics. The
  * tuned deck is still the design target the run builds back toward, so a startKit is a SUBSET of it
- * - a tag saying which four survive the cut, never a separate list. That is the invariant these tests exist to hold: the day a deck pass
+ * - a tag saying which five survive the cut, never a separate list. That is the invariant these tests exist to hold: the day a deck pass
  * drops a card, the kit that still names it must fail here rather than silently dealing a card the
  * player's deck no longer contains.
  *
- * **What ticket 60 added to that, and why it is the assertion with teeth.** The old table tagged
- * five cards and deliberately left each deck's PAYOFF out, so the run could build back toward it.
- * Playtest round 5: *"ratatoskr's startKit carried none of his engine, making him pure feed."* The
- * shape is now payoff + 3 enablers, and the shape is checkable - `KIT_PAYOFF` below names the card
- * every kit must lead with, taken from the ratified table, and a deck pass that renames or re-roles
- * that card fails here rather than in someone's playtest three weeks later. That is the exact ask
- * sent to the deck-archetypes wayfinder on 2026-08-25.
+ * **What the payoff rule added to that, and why it is the assertion with teeth.** Ticket 09's table
+ * deliberately left each deck's PAYOFF out, so the run could build back toward it. Playtest round 5:
+ * *"ratatoskr's startKit carried none of his engine, making him pure feed."* The shape is now payoff
+ * + 4 enablers, and the shape is checkable - `KIT_PAYOFF` below names the card every kit must lead
+ * with, taken from the ratified table, and a deck pass that renames or re-roles that card fails here
+ * rather than in someone's playtest three weeks later. Ticket 60 tried the same shape at four tags;
+ * Henry cut that on 2026-08-26 because four tagged cards was too thin to play a species with, so the
+ * payoff column below is unchanged and every kit gained a fifth card behind it.
  *
  * Scope is the six launch species only (ticket 05). The other ten are asserted UNTAGGED so
  * the narrow scope is a stated decision rather than an accident of which ids happen to have
@@ -72,7 +73,7 @@ describe('start kits', () => {
         });
 
         it.each(def.availableOS)(`%s kit: exactly ${START_KIT_SIZE} cards`, osId => {
-            // Ticket 60: four, and the same four for a starter and a recruit. Read from the
+            // Ticket 61: five, and the same five for a starter and a recruit. Read from the
             // constant rather than a literal, because the day these disagree is the day one
             // species silently opens differently from every other.
             expect(def.startKits?.[osId], `${id}: no kit for ${osId}`).toBeDefined();
@@ -81,10 +82,10 @@ describe('start kits', () => {
 
         it.each(def.availableOS)('%s kit: LEADS with the ratified payoff', osId => {
             /*
-             * The whole of ticket 60 in one assertion. A kit is a mini-engine - one payoff and the
-             * three cards that make it happen - and the payoff being present is what round 5 found
-             * missing. First position is not decoration: `startKitIdsFor` transcribes the list in
-             * order, so leading with the payoff is what makes the tag list readable as the design
+             * The whole of ticket 61 in one assertion. A kit is a five-card engine - one payoff and
+             * the four cards that make it happen - and the payoff being present is what round 5
+             * found missing. First position is not decoration: `startKitIdsFor` transcribes the list
+             * in order, so leading with the payoff is what makes the tag list readable as the design
              * rather than as a set.
              */
             const payoff = KIT_PAYOFF[osId];
@@ -92,7 +93,7 @@ describe('start kits', () => {
             expect(def.startKits![osId][0]).toBe(payoff);
         });
 
-        it.each(def.availableOS)('%s kit: brings 3 enablers behind the payoff', osId => {
+        it.each(def.availableOS)('%s kit: brings 4 enablers behind the payoff', osId => {
             // Stated separately from the length so a failure says WHICH half of the shape broke.
             expect(def.startKits![osId].slice(1)).toHaveLength(START_KIT_SIZE - 1);
         });
@@ -116,8 +117,8 @@ describe('start kits', () => {
         });
 
         it.each(def.availableOS)('%s kit: never tags the generic', osId => {
-            // GENERIC_HIT is the RUN's filler, dealt on top of the tagged four and only to the
-            // first mingming. Tagging it would spend one of the four identity slots on a card the
+            // GENERIC_HIT is the STARTER's filler, dealt on top of the tagged five and only to the
+            // first mingming. Tagging it would spend one of the five identity slots on a card the
             // run may hand out for free anyway.
             expect(def.startKits![osId], `${osId}: tags GENERIC_HIT`).not.toContain(GENERIC_HIT);
         });

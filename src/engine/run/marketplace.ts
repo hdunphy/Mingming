@@ -6,7 +6,8 @@
  * Ticket 12 gave a run an income (`SCRAP_PER_ENEMY`) and nothing to spend it on. This module is the
  * other half: **buy a card, pay to remove a card** — two verbs over one run-scoped currency, plus
  * ticket 15's macro stall below. (Ticket 13 shipped a third verb, *sell a card*; Henry deleted it in
- * ticket 56 — see the note beside `REMOVAL_PRICE`.) `economy-session.md` calls removal *the
+ * ticket 56, and un-ruled again in 2026-08-26's amendment — see `SELL_PRICE_BY_ENERGY`.)
+ * `economy-session.md` calls removal *the
  * designer-added sink* — the one price in the game whose job is to consume scrap rather than to
  * trade it — and Henry's amendment of 2026-08-21 says what it is a sink *for*:
  *
@@ -42,7 +43,7 @@
  * ratified some of that screenful and left the rest open, so the block is no longer uniform:
  *
  * - **RULED** (Henry, ticket 56; applied by ticket 57): the card table `CARD_PRICE_BY_ENERGY`, and
- *   `REMOVAL_PRICE` at 20. **RULED earlier** (`macros-and-drivers.md`, upheld in 56's
+ *   removal at 20 — a service this map no longer sells. **RULED earlier** (`macros-and-drivers.md`, upheld in 56's
  *   reconciliation): `MACRO_PRICE_STANDARD` / `MACRO_PRICE_RARE`.
  * - **STILL PROPOSALS**, each flagged at its own declaration: `MARKET_STOCK_SIZE`,
  *   `MARKET_WILDCARD_SLOTS`, `MACRO_STOCK_SIZE` — and `REROLL_PRICE`, which ticket 57 *derived* from
@@ -162,39 +163,56 @@ export const CARD_PRICE_BY_ENERGY: ReadonlyArray<number> = [15, 25, 35, 45];
 /** Anything printed above this is priced as this. See `CARD_PRICE_BY_ENERGY`. */
 export const MAX_PRICED_ENERGY = CARD_PRICE_BY_ENERGY.length - 1;
 
-/*
- * SELLING IS GONE — Henry, ticket 56, applied by ticket 57.
- *
- * > *"Cards cannot be sold"* — which amends `economy-session.md`'s "selling cards" income line.
- * > **Removal is a pure sink.**
- *
- * `SELL_MULTIPLIER` (0.4) and `sellPrice` lived here, with a `Math.min(..., buy - 1)` clamp whose
- * whole job was to make "sell < buy for every card" hold for any multiplier anyone could type — the
- * no-farm law. The law is now structural: there is no way to turn a card back into scrap at all, so
- * the market takes and never gives. `runSlice.sellRunCard` and the shop's sell control went with it.
- */
-
 /**
- * REMOVAL COSTS 20 SCRAP — **RULED by Henry in ticket 56** (*"card removal 20 (market and
- * workshop)"*), replacing ticket 13's proposed 30.
+ * WHAT A CARD SELLS FOR — **5 / 10 / 15 / 20 by energy cost 0/1/2/3e** (Henry, 2026-08-26).
  *
- * The target ticket 13 derived 30 against still holds and is worth restating against the new
- * income: *"stripping all generics over a run costs roughly one market visit's scrap."* A start deck
- * carries `START_GENERICS` (3) generics per member, and a three-member party built through the run
- * therefore accumulates up to 9 — but the two recruits arrive with 1 each (`RECRUIT_GENERICS`), so
- * the realistic total is **5**: 3 from the starter, 1 per recruit.
+ * # SELLING CAME BACK, AND IT IS A DIFFERENT MECHANIC FROM THE ONE THAT LEFT
  *
- * 5 x 20 = **100 scrap**, against a run's **210** spendable (`RewardSystem.scrapForWin`, the table
- * above `MARKET_VISITS_PER_RUN`) and a market visit's **70**. So stripping the deck clean costs about **one and a half market visits** — slightly
- * dearer than ticket 13's target in relative terms, which is the right direction: under the new
- * income everything costs a larger share of a smaller pot, and thinning is meant to compete with
- * buying rather than be the obvious default.
+ * Ticket 56 banned selling and ticket 57 deleted `sellPrice` and `sellRunCard` from this file and
+ * from `runSlice`. That ban was right for the game it was ruled against: a deck you could only
+ * shrink by paying meant selling was a way to be *paid* for the shrinking you were doing anyway.
  *
- * It is no longer the cheapest thing on the screen — a 0-energy card is 15 — and that is fine: a
- * removal and a cheap card are different transactions, and the sink does not have to undercut the
- * stock to be used. What DOES have to stay under the cheapest card is the reroll; see there.
+ * The run collection removes that shape entirely. Editing a card out of the active deck is free
+ * now, so selling is no longer "removal with a rebate paid to you" — it is what you do with a card
+ * you are never going to play, at the one node that deals in scrap. Henry: *"now it doesn't feel
+ * bad to grab all the cards even if you don't plan to use them, you can get some scrap for them."*
+ * That is the reason the ban is repealed rather than worked around, and it is why paid removal is
+ * deleted in the same pass: the two verbs traded places.
+ *
+ * # THE NO-LOOP LAW IS STRUCTURAL, NOT ARITHMETIC
+ *
+ * Every rung is **below its own buy rung** — 5 < 15, 10 < 25, 15 < 35, 20 < 45 — so buying a card
+ * and selling it back is a strict loss at every energy cost, and no sequence of trades mints scrap.
+ * Ticket 13's old `Math.min(sell, buy - 1)` clamp existed to guarantee that for any multiplier
+ * someone might type; a ruled table of four literals makes the clamp unnecessary and the law
+ * checkable by reading two arrays side by side. `marketplace.test.ts` reads them that way.
+ *
+ * A third of the buy price, on the same 5-scrap grid the whole economy sits on.
  */
-export const REMOVAL_PRICE = 20;
+export const SELL_PRICE_BY_ENERGY: ReadonlyArray<number> = [5, 10, 15, 20];
+
+/** What the market pays for one card. Above `MAX_PRICED_ENERGY` sells as the top rung, as it buys. */
+export function sellPrice(dataId: string): number {
+    const data = ProgramRegistry[dataId];
+    const energy = Math.min(numericBaseCost(data?.baseCost ?? 0), MAX_PRICED_ENERGY);
+    return SELL_PRICE_BY_ENERGY[Math.max(0, energy)];
+}
+
+/*
+ * PAID REMOVAL IS DELETED — Henry, 2026-08-26. `REMOVAL_PRICE` (20) and its whole derivation lived
+ * here, and `WORKSHOP_REMOVAL_PRICE` re-exported it so one sink had one price at two counters.
+ *
+ * It has no job left. A card leaves the active deck for the run collection **for free** at any of
+ * the four edit surfaces, so a 20-scrap button that did the same thing more slowly is a trap for a
+ * player who has not yet found the editor. Selling replaces it in the other direction: the card you
+ * will never play turns into scrap (`SELL_PRICE_BY_ENERGY`) instead of costing you scrap to be rid
+ * of. See that constant for why the ticket-56 sell ban was repealed in the same pass.
+ *
+ * The derivation this block used to carry — "stripping all generics over a run costs roughly one
+ * market visit" — is gone with it rather than re-banded, and deliberately: it measured a round trip
+ * (filler multiplies with the party, player buys it back out) that the run collection and the
+ * starter-only generics between them deleted at the source.
+ */
 
 /**
  * A REROLL COSTS 10 SCRAP — and this is **the one number in the shop ticket 56 did not rule**, so
@@ -285,7 +303,6 @@ export function macroPrice(macroId: string): number {
     return macro?.rarity === 'Rare' ? MACRO_PRICE_RARE : MACRO_PRICE_STANDARD;
 }
 
-/* `sellPrice` was here. Ticket 56 removed selling — see the note beside `REMOVAL_PRICE`. */
 
 
 // =================================================================================================
@@ -485,8 +502,8 @@ export function rollMacroStock(input: MarketStockInput): ReadonlyArray<IMacroOff
  * Derived rather than stored, which is what lets a sold-out slot survive a resume without a new
  * field in the ratified run shape. Since ticket 56 there is no sell verb to hand the card back with,
  * so a sold row un-sells only if that instance leaves the deck again — which at a stall means paying
- * for a removal (`removeRunCardForScrap`) and buying the row a second time, `cardPrice` +
- * `REMOVAL_PRICE` a lap. That is a drain, not a farm: every lap is scrap leaving the run and none
+ * for selling the card back (`sellPrice`, always under the buy rung) and buying the row again,
+ * a sale a lap. That is a drain, not a farm: every lap is scrap leaving the run and none
  * entering, which is the no-farm law holding structurally rather than by a clamp.
  */
 export function isOfferSold(deck: ReadonlyArray<IRunCard>, offer: IMarketOffer): boolean {
