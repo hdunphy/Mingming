@@ -23,6 +23,8 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ## Decisions so far
 
+- [Marketplace prototype](tickets/63-proto-marketplace-screen.md) — **Option G, the stall**: stock (cards with face prices + SOLD ghosts + off-pool slot; macros with slot counter) beside an always-visible SELL panel of deck+collection rows with green +scrap prices; no buy/sell mode switch. **Bought cards go straight to the active deck, always** (picks keep their choice). Mockups in research/63-market-proto/.
+
 - [Deck + roster editor prototype](tickets/62-proto-deck-roster-editor.md) — **Option F chosen from 6 mockups**: Hearthstone-style paged book (8 big cards/page: cost gem, ATTACK/SKILL/DAEMON banner, full description), roster strip on top with drag-to-swap bench, compact deck list right with ×counts, DECK/floor pill, boundary alert = the quick-swap modal (round-1 C). One editor serves all four edit surfaces. Mockups in research/62-editor-proto/.
 
 - [Difficulty and agency — amendment](tickets/60-difficulty-and-agency.md) (Henry, 2026-08-26, after ticket-61 package 1 confusion) — engines are **5 cards** with ratified 5th picks; **only the starter gets the 3 generics** (opening deck 8; recruits bring bare engines; base 8/13/18 = the deck floor); picks choose **deck vs collection** per card; edit surfaces = **market, workshop, biome-boundary alert, pre-gauntlet**; **selling is BACK** at 5/10/15/20 by energy (supersedes 56's no-selling) and paid removal is deleted. The single authoritative spec is ticket 61's AMENDED SPEC section.
