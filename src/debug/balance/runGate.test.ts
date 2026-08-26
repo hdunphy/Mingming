@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GAUNTLET_ENEMY_COUNT, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
-import { KIT_FRACTION_BY_BIOME, RUN_ENEMY_MODE } from '../../engine/run/encounter';
+import { ENEMY_LADDER, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import { minimumActiveDeck } from '../../engine/run/createRun';
@@ -94,17 +94,67 @@ describe('run gate — the fight it builds is the fight the run rolls', () => {
         expect([1, 2, 3].map(minimumActiveDeck)).toEqual([8, 13, 18]);
     });
 
-    it('fields ticket 08\'s kit fraction: no firmware at biome 0, firmware below it', () => {
-        // KIT_FRACTION_BY_BIOME is the one knob; this asserts the gate reads it rather than
-        // holding an opinion about it, so retuning the table retunes the gate.
+    it('fields ticket 60\'s ladder: a wild runs NO firmware at every depth, an elite runs one', () => {
+        /*
+         * `ENEMY_LADDER` is the one knob; this asserts the gate reads it rather than holding an
+         * opinion about it, so retuning the ladder retunes the gate.
+         *
+         * The loop used to index the expectation on BIOME, off ticket 08's table — no firmware at
+         * biome 0, firmware below it. Depth is not the axis any more, so the expectation is flat
+         * across biomes and the CONTRAST that matters is against the elite band. Both are checked in
+         * one test, because "wilds have no firmware" passes trivially in a world where nothing does.
+         */
         for (let biomeIndex = 0; biomeIndex < REGION_PARAMS.biomesPerRun; biomeIndex += 1) {
-            const cell = CELLS.find((c) => c.band === 'wild' && c.biomeIndex === biomeIndex)!;
-            const setup = sampleFight(cell, 0).setup;
-            const expectFirmware = KIT_FRACTION_BY_BIOME[biomeIndex].os;
-            for (const enemy of setup.enemies) {
-                expect(enemy.activeOS === NO_FIRMWARE_OS).toBe(!expectFirmware);
+            const wild = CELLS.find((c) => c.band === 'wild' && c.biomeIndex === biomeIndex)!;
+            for (const enemy of sampleFight(wild, 0).setup.enemies) {
+                expect(enemy.activeOS).toBe(NO_FIRMWARE_OS);
             }
+
+            /*
+             * Elites are sampled by SEARCH rather than at index 0, because a biome does not always
+             * contain one: biome 2's exit is the gym, so its only elites are whatever the middle
+             * layers rolled, and `pickNode` throws `NoSuchNodeError` for a run that has none. The
+             * gate itself skips those samples, and so does this — silently asserting nothing would
+             * be the failure mode, so the search is bounded and the find is required.
+             */
+            const elite = CELLS.find((c) => c.band === 'elite' && c.biomeIndex === biomeIndex)!;
+            let checked = 0;
+            for (let index = 0; index < 12 && checked === 0; index += 1) {
+                let sampled;
+                try {
+                    sampled = sampleFight(elite, index);
+                } catch {
+                    continue;
+                }
+                for (const enemy of sampled.setup.enemies) {
+                    expect(enemy.activeOS).not.toBe(NO_FIRMWARE_OS);
+                    expect(getOSBehavior(enemy.activeOS!)).toBeDefined();
+                    checked += 1;
+                }
+            }
+            expect(checked).toBeGreaterThan(0);
         }
+    });
+
+    it('carries the ladder\'s AI grade into the batch, per band', () => {
+        /*
+         * The third column, and the one a harness can silently drop: `runBatch` defaults to the
+         * PROCESS tier, so a gate that forgot to pass `enemyAiTier` would play every rung at full
+         * lookahead and report a game the run does not field — wilds two grades too strong, and no
+         * error anywhere.
+         *
+         * Read off `ENEMY_LADDER` for the reason above: this file must not hold its own copy of
+         * which band plays at which grade.
+         */
+        const gradeOf = (id: string) =>
+            sampleFight(CELLS.find((c) => c.id === id)!, 0).enemyAiTier;
+
+        expect(gradeOf('wild:biome0')).toBe(ENEMY_LADDER.wild.ai);
+        expect(gradeOf('elite:biome0')).toBe(ENEMY_LADDER.elite.ai);
+        expect(gradeOf('gauntlet:fight0')).toBe(ENEMY_LADDER.gauntlet.ai);
+        // And the three are genuinely different, so a ladder collapsed to one grade fails here
+        // rather than passing three tautologies.
+        expect(new Set([ENEMY_LADDER.wild.ai, ENEMY_LADDER.elite.ai, ENEMY_LADDER.gauntlet.ai]).size).toBe(3);
     });
 
     it('gives an enemy with no firmware an id the firmware registry does not know', () => {

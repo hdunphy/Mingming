@@ -26,6 +26,19 @@ To implement this the rule must be mechanical, per species × OS (32 decks): how
 6. **Enemy decks mirror the player's kit fraction by biome depth** (`kitFraction` per depth, one knob in ticket 11): biome 1 wilds = 5 kit + 3 generics, **no OS**; biome 2 = kit + OS; biome 3 and the gauntlet = full tuned decks + OS. The tuned 1v1/3v3 corpus is therefore the LATE-run reference and early fights are easier by construction.
 7. **Arithmetic check:** 8 + 4 + 4 + ~9 picks + ~3 buys − ~3 generic removals ≈ **25 at the gauntlet** (target 20–25).
 
+> **CLAUSE 6 IS SUPERSEDED — ticket 60 (2026-08-26), built by [ticket 67](67-enemy-ladder-and-bands.md).**
+>
+> *"Enemy decks mirror the player's kit fraction by biome depth"* was the design, and `npm run
+> balance:run-gate` measured what it produced: biome-1 wilds at **26.7%** against biome 2's 50.0% and
+> biome 0's 67.1% — the MIDDLE of the run was its hardest part. The mechanism is concentration rather
+> than size: the middle row's "startKit alone" is five pure engine cards a body with no filler, which
+> is a *sharper* list than the tuned one, not a weaker one.
+>
+> Depth is no longer the axis. **Every enemy holds the full tuned deck**, and a rung raises how well
+> it plays it: a wild runs no firmware and no lookahead, an elite runs firmware and a narrowed
+> lookahead, the gauntlet runs both and the full one. Clauses 1-5 and 7 stand; the enemy half of this
+> ticket lives in `encounter.ENEMY_LADDER` now.
+
 **Tags:** an agent proposes the 5 `startKit` cards for each of the 12 launch decks from the balance data (play rate, the OS enabler, the signature), Henry ratifies all 12 in one sitting — filed as a request to the deck-archetypes map (their content), referenced from ticket 09. Species beyond the launch six get tags when they ship.
 
 Data shape: a `startKit: string[]` (5 ids, duplicates allowed) beside each deck list in `mingmingRegistry.ts`, validated by a test that every id is in the deck list and every launch deck has exactly 5.

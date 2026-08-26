@@ -220,7 +220,13 @@ export default function RunScreen(): ReactNode {
             enemyIds: [],
             // Seeding the battle from the encounter's own seed is what makes the whole fight — the
             // shuffle and the opening hand included, not just the enemies — replay from the node.
-            options: { seed: encounter.seed, enemyMode: RUN_ENEMY_MODE },
+            options: {
+                seed: encounter.seed,
+                enemyMode: RUN_ENEMY_MODE,
+                // Ticket 60's ladder, third column. Carried on the encounter rather than
+                // re-derived here — this screen has no business knowing the tier rules.
+                enemyAiTier: encounter.enemyAiTier,
+            },
         }));
     }, [run, ranch, roster, dispatch]);
 

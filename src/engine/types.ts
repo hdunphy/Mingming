@@ -576,6 +576,21 @@ export interface IBattleState {
    * Undefined is treated as 'MOVES' everywhere.
    */
   readonly enemyMode?: EnemyCombatMode;
+  /**
+   * Which grade of `TacticalAI` plays the ENEMY side — steam-release ticket 60's enemy ladder,
+   * wired by ticket 67. `'greedy'` skips the one-turn lookahead, `'lite'` narrows it, `'full'` is
+   * the shipped default.
+   *
+   * Decided once at battle creation, exactly as `enemyMode` is, and for the same reason: it is a
+   * property of the fight the run rolled, not a setting a turn can change. Undefined means the
+   * process-wide default (`TacticalAI.AI_TIER`, from the environment), which is what every battle
+   * outside a run still gets.
+   *
+   * **The player's half is never graded.** The AI does not play it in the shipped game, and in a
+   * harness that plays both sides the player deliberately stays on the process default — grading
+   * both would measure two changes at once.
+   */
+  readonly enemyAiTier?: 'greedy' | 'lite' | 'full';
   /** Stacks removed by the most recent STATUS consume action (for STATUS_CONSUMED heal scaling). Reset each card play. */
   readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;

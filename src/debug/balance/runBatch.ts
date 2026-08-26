@@ -37,6 +37,7 @@ import { getBestAction } from '../../engine/ai/TacticalAI';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import { buildScenarioState } from '../scenarios/buildScenarioState';
+import type { AiTier } from '../../engine/ai/TacticalAI';
 import type { ComposedSetup } from '../scenarios/scenarioSchema';
 
 /** Default battle length cap. A battle still running at turn 60 is a stall, not a game. */
@@ -84,6 +85,20 @@ export interface BatchOptions {
      * regress no matter what the deck report grows into. `npm run balance:deck` turns it on.
      */
     telemetry?: boolean;
+    /**
+     * Which grade of `TacticalAI` plays the ENEMY side — steam-release ticket 60's enemy ladder.
+     *
+     * Applied to the materialized state and nothing else, exactly as `startingSide` is, and for the
+     * same reason: it is a property of the battle rather than of the scenario file, so `ComposedSetup`
+     * — a versioned format with committed scenarios behind it — does not have to grow a field to
+     * express a measurement. Omitted means the process-wide default (`TacticalAI.AI_TIER`), so every
+     * existing suite keeps the grade it had.
+     *
+     * **The PLAYER's side is never graded.** In a harness both sides are `getBestAction`, and a
+     * measurement of the enemy ladder that also handicapped the player would be reading two changes
+     * at once.
+     */
+    enemyAiTier?: AiTier;
 }
 
 /**
@@ -273,9 +288,15 @@ export function runOne(
     maxTurns: number = DEFAULT_MAX_TURNS,
     startingSide: Side = 'PLAYER',
     collectTelemetry = false,
+    enemyAiTier?: AiTier,
 ): RunResult {
     const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
-    let state: IBattleState = startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
+    let state: IBattleState = {
+        ...(startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' as const }),
+        // Left off the state entirely when unset, so `TacticalAI.tierFor` reads it as "take the
+        // process default" rather than as a grade someone chose.
+        ...(enemyAiTier === undefined ? {} : { enemyAiTier }),
+    };
 
     // Dead-card bookkeeping. `seen` accumulates every card instance that has ever been in
     // hand; `played` the ones a PLAY_PROGRAM actually consumed. Ids are stable across
@@ -516,7 +537,7 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
 
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
-            runOne(setup, seed, maxTurns, startingSide, options.telemetry === true)),
+            runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier)),
     );
 }
 

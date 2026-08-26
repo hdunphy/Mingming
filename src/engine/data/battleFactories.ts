@@ -48,6 +48,7 @@ export function instantiateDeck(deckIds: string[], rng: SeedStream = new SeedStr
 
 import { generateEncounter } from './EncounterGenerator';
 import type { Element, EnemyCombatMode } from '../types';
+import type { AiTier } from '../ai/TacticalAI';
 
 export interface BattleOptions {
     /**
@@ -64,6 +65,13 @@ export interface BattleOptions {
      * 'CARDS' explicitly is the ONLY way to create card-playing enemies.
      */
     readonly enemyMode?: EnemyCombatMode;
+
+    /**
+     * Which grade of `TacticalAI` plays the enemy — steam-release ticket 60's enemy ladder.
+     * Omitted means the process-wide default, which is what every battle outside a run gets.
+     * See `IBattleState.enemyAiTier`.
+     */
+    readonly enemyAiTier?: AiTier;
 }
 
 /**
@@ -377,6 +385,10 @@ export function createBattleState(
         },
         counters: {},
         activeRelics: [...setup.drivers],
-        enemyMode
+        enemyMode,
+        // Undefined rather than a default, deliberately: `TacticalAI.tierFor` reads "unset" as
+        // "take the process default", and writing a concrete 'full' here would override the
+        // AI_GREEDY / AI_LITE environment the balance corpus runs under.
+        enemyAiTier: options?.enemyAiTier
     };
 }

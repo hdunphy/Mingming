@@ -111,6 +111,7 @@ import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/s
 import { BALANCE_IV, BALANCE_STAT_JITTER } from './balanceScenarios';
 import { quietly } from './balanceReporting';
 import { DEFAULT_MAX_TURNS, aggregate, runBatch, type RunResult } from './runBatch';
+import type { AiTier } from '../../engine/ai/TacticalAI';
 
 // ---------------------------------------------------------------------------------------------
 // The ruled targets
@@ -470,6 +471,15 @@ export interface SampledFight {
     /** The node this was rolled at, for a repro. */
     readonly nodeId: string;
     readonly biomeElements: ReadonlyArray<string>;
+    /**
+     * Which grade of `TacticalAI` the enemies play at — ticket 60's ladder, third column.
+     *
+     * Read off the encounter rather than derived from the cell, for the reason the encounter carries
+     * it at all: getting it right needs the node kind, the run's tier and the opening-fight rule
+     * together, and a harness holding a second opinion about any of the three would silently measure
+     * a ladder the game does not field.
+     */
+    readonly enemyAiTier: AiTier;
 }
 
 /**
@@ -560,6 +570,7 @@ export function sampleFight(cell: RunGateCell, index: number): SampledFight {
     return {
         setup: setupForEncounter(encounter.seed, party, deck, encounter.enemyParty, encounter.enemyDeckIds),
         lineup,
+        enemyAiTier: encounter.enemyAiTier,
         enemy: encounter.enemyParty.map((e) => describeEnemy(e.definitionId, e.activeOS)),
         nodeId: entered.id,
         biomeElements: run.biomes.map((b) => b.elements.join('/')),
@@ -709,6 +720,9 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
             iterations: 1,
             maxTurns: options.maxTurns ?? DEFAULT_MAX_TURNS,
             startingSide: 'PLAYER',
+            // Ticket 60's ladder. Without this the gate would play every rung at the process
+            // default — full lookahead everywhere — and report a game the run does not field.
+            enemyAiTier: fight.enemyAiTier,
         }));
         runs.push(...batch.runs);
         enemiesSeen.push(fight.enemy.join(' + '));

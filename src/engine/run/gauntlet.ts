@@ -49,7 +49,7 @@ import { GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
 import type { IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState } from '../runTypes';
-import { encounterSpeciesPool } from './encounter';
+import { ENEMY_LADDER, encounterSpeciesPool } from './encounter';
 import type { IRunEncounter } from './encounter';
 import { GYM_REGISTRY } from './gyms';
 import { nodeSeed } from './nodeSeed';
@@ -108,6 +108,43 @@ export const BOSS_RELIC_IDS: ReadonlyArray<string> = [
     'boss_relic_fire',
     'boss_relic_water',
     'boss_relic_ice',
+];
+
+/**
+ * **THE BOSS DOES NOT ROLL. RULED by Henry on ticket 67, 2026-08-26.**
+ *
+ * Every other enemy in the game draws its IVs from a band (`encounter.ENEMY_LADDER`: a wild rolls
+ * 0-20, an elite the player's own 0-31). The gauntlet's boss team draws nothing — *"the gauntlet
+ * boss gets FIXED authored IVs per comp: exactly as hard as designed, tuned directly."*
+ *
+ * # WHY A BOSS IS THE ONE THING THAT SHOULD NOT ROLL
+ *
+ * It is the run's last fight and the only one the player cannot walk around, so it is the fight
+ * whose difficulty most needs to be a *decision* rather than a distribution. Under a band, a boss
+ * that measures at 8.3% might be a boss that is too hard or a boss that rolled hot in the sample —
+ * and the two are indistinguishable from the outside, which makes tuning it a matter of moving a
+ * number and re-running until the noise agrees with you. Fixed, the measurement is the design: the
+ * boss is exactly this hard, and making it easier is editing this table.
+ *
+ * # THE NUMBER, AND WHY IT IS THIS NUMBER
+ *
+ * **20 across the board, for all three slots.** That is the mean of the 10-31 band these enemies
+ * rolled from before this ruling (20.5, rounded down), and it is chosen for exactly that reason:
+ * the re-measure that follows ticket 67 is supposed to isolate what the LADDER did, so the boss's
+ * expected stat line has to be the one the 8.3% was measured against. A boss handed 26s would make
+ * the new number a reading of two changes at once.
+ *
+ * **This is the knob for the grilling.** Ticket 67 expects the boss to be the surviving problem
+ * (8.3% from full HP, 4.2% for the full gauntlet), and this table is where an answer to that goes —
+ * one triple per slot, so a boss can be lopsided on purpose (a glass-cannon leader behind two
+ * walls) rather than uniformly softened. Ticket 28 authors the real bosses and will replace the
+ * placeholder uniformity with intent; the SHAPE is already here so that it does not have to invent
+ * machinery when it does.
+ */
+export const BOSS_IVS: ReadonlyArray<{ readonly hp: number; readonly attack: number; readonly defense: number }> = [
+    { hp: 20, attack: 20, defense: 20 },
+    { hp: 20, attack: 20, defense: 20 },
+    { hp: 20, attack: 20, defense: 20 },
 ];
 
 /**
@@ -225,15 +262,34 @@ function buildEnemy(
     nickname: string,
     firmware: string | null,
     stream: SeedStream,
+    /** Which of `GAUNTLET_ENEMY_COUNT` this is — the boss's authored IVs are indexed by it. */
+    slot: number,
+    /** True on the last fight only. A boss does not roll; see `BOSS_IVS`. */
+    boss: boolean,
 ): { entity: IBattleEntity; deck: string[] } {
     const definition = GetMingmingData(definitionId);
 
-    // Ticket 21: IVs are the only per-individual variance left, and the band is the same one
-    // `rollEncounter` uses at every depth. The gym does not roll hotter individuals; it fields
-    // better teams.
-    const hpIV = stream.nextInt(10, 31);
-    const attackIV = stream.nextInt(10, 31);
-    const defenseIV = stream.nextInt(10, 31);
+    /*
+     * Ticket 21: IVs are the only per-individual variance left, and nothing here scales with the
+     * fight index or the depth — the gym does not roll hotter individuals, it fields better teams.
+     *
+     * TICKET 67 SPLIT THE TWO GAUNTLET CASES. The leader's first two teams are ELITES and take the
+     * elite band (`ENEMY_LADDER.gauntlet.iv`, which is the player's own 0-31 — an exam is allowed
+     * to roll hot). The boss takes `BOSS_IVS` and rolls nothing at all.
+     *
+     * **The three draws happen either way**, even when the authored triple overrides them. That is
+     * the same stream-position discipline the firmware draw below keeps, and it is what stops
+     * ticket 28 changing which SPECIES a gym fields the day it authors a boss's stat line.
+     */
+    const [ivLow, ivHigh] = ENEMY_LADDER.gauntlet.iv;
+    const rolledHp = stream.nextInt(ivLow, ivHigh);
+    const rolledAttack = stream.nextInt(ivLow, ivHigh);
+    const rolledDefense = stream.nextInt(ivLow, ivHigh);
+
+    const authored = boss ? BOSS_IVS[Math.min(slot, BOSS_IVS.length - 1)] : undefined;
+    const hpIV = authored?.hp ?? rolledHp;
+    const attackIV = authored?.attack ?? rolledAttack;
+    const defenseIV = authored?.defense ?? rolledDefense;
 
     // Drawn even when a signature overrides it, so that adding or removing a boss relic cannot shift
     // which species the *next* member of the team is — the same stream-position discipline
@@ -329,12 +385,18 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
             ? `${gymName} Champion ${GetMingmingData(definitionId).name}`
             : `${gymName} ${GetMingmingData(definitionId).name}`;
 
-        const built = buildEnemy(definitionId, nickname, firmware, roster);
+        const built = buildEnemy(definitionId, nickname, firmware, roster, slot, boss);
         enemyParty.push(built.entity);
         enemyDeckIds.push(...built.deck);
     }
 
-    return { enemyParty, enemyDeckIds, seed };
+    /*
+     * The gauntlet is the ladder's top rung and always has been in everything but the AI: ticket 60
+     * gives it the full lookahead, which is the grade the whole game shipped at before the ladder
+     * existed. It is read off `ENEMY_LADDER` rather than written as `'full'` so that the gym cannot
+     * hold a second opinion about its own rung — the same discipline the deck rule already keeps.
+     */
+    return { enemyParty, enemyDeckIds, seed, enemyAiTier: ENEMY_LADDER.gauntlet.ai };
 }
 
 /**

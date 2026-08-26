@@ -150,7 +150,13 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
         dispatch(startBattle({
             setup: buildBattleSetup(ranch, run, encounter),
             enemyIds: [],
-            options: { seed: encounter.seed, enemyMode: RUN_ENEMY_MODE },
+            options: {
+                seed: encounter.seed,
+                enemyMode: RUN_ENEMY_MODE,
+                // Ticket 60's ladder, third column. Carried on the encounter rather than
+                // re-derived here — this screen has no business knowing the tier rules.
+                enemyAiTier: encounter.enemyAiTier,
+            },
         }));
         playSfx('uiClick');
     };

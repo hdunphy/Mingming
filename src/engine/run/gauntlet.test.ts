@@ -26,6 +26,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    BOSS_IVS,
     BOSS_RELIC_IDS,
     GAUNTLET_ENEMY_COUNT,
     GAUNTLET_FIGHTS,
@@ -35,7 +36,7 @@ import {
     isBossFight,
     rollGauntletFight,
 } from './gauntlet';
-import { FULL_KIT_FRACTION, kitFractionFor } from './encounter';
+import { ENEMY_LADDER, gradeFor } from './encounter';
 import { buildBattleSetup } from './battleSetup';
 import { createRun } from './createRun';
 import { GYM_REGISTRY, type IGymOffer } from './gyms';
@@ -330,11 +331,52 @@ describe('bossFirmwareFor', () => {
 // Ticket 08 — the gym is biome-3 depth
 // ---------------------------------------------------------------------------------------------
 
-describe('the gym takes ticket 08’s deepest kit fraction', () => {
-    it('kitFractionFor a gym node is the full one: tuned deck, firmware on', () => {
+describe('the gym is the enemy ladder’s top rung', () => {
+    it('a gym node grades as the gauntlet: tuned deck, firmware on, FULL lookahead', () => {
+        // The gauntlet is the only rung that gets the full one-turn lookahead — the grade the whole
+        // game shipped at before ticket 60 split it three ways. Read off `ENEMY_LADDER` rather than
+        // written as a literal here, so this file cannot hold a second opinion about the gym's rung
+        // (the same discipline it already keeps about the gym's deck).
         const run = makeRun();
-        expect(kitFractionFor(gymNodeOf(run))).toEqual(FULL_KIT_FRACTION);
-        expect(FULL_KIT_FRACTION).toEqual({ deck: 'tuned', os: true });
+        expect(gradeFor(gymNodeOf(run).kind)).toBe('gauntlet');
+        expect(ENEMY_LADDER.gauntlet).toMatchObject({ deck: 'tuned', os: true, ai: 'full' });
+        expect(rollGauntletFight({ run, node: gymNodeOf(run), fightIndex: 0 }).enemyAiTier).toBe('full');
+    });
+
+    it('the BOSS does not roll — fixed authored IVs, and the same team every time', () => {
+        /*
+         * Ticket 67, ruled: *"the gauntlet boss gets FIXED authored IVs per comp — exactly as hard
+         * as designed, tuned directly."* It is the run's last fight and the only one the player
+         * cannot walk around, so its difficulty has to be a decision rather than a distribution:
+         * under a band, a boss measuring 8.3% might be too hard or might have rolled hot, and the
+         * two are indistinguishable from outside.
+         *
+         * The leader's EARLIER teams still roll — they are elites, and an exam is allowed variance.
+         * Both halves are asserted, because a fix applied to the whole gauntlet would pass a
+         * boss-only check.
+         */
+        const run = makeRun();
+        const node = gymNodeOf(run);
+
+        const boss = rollGauntletFight({ run, node, fightIndex: GAUNTLET_FIGHTS - 1 });
+        boss.enemyParty.forEach((enemy, slot) => {
+            const authored = BOSS_IVS[Math.min(slot, BOSS_IVS.length - 1)];
+            expect({ hp: enemy.hpIV, attack: enemy.attackIV, defense: enemy.defenseIV })
+                .toEqual({ hp: authored.hp, attack: authored.attack, defense: authored.defense });
+        });
+
+        // The earlier fights are elites and DO vary. Sampled across seeds rather than asserted on
+        // one, because a single fight could legitimately roll the authored triple by chance.
+        const rolled = new Set<number>();
+        for (let i = 0; i < 12; i += 1) {
+            const seeded = { ...run, seed: `gauntlet-iv-${i}` };
+            for (const enemy of rollGauntletFight({ run: seeded, node, fightIndex: 0 }).enemyParty) {
+                rolled.add(enemy.hpIV);
+            }
+        }
+        expect(rolled.size).toBeGreaterThan(1);
+        expect(Math.max(...rolled)).toBeLessThanOrEqual(ENEMY_LADDER.gauntlet.iv[1]);
+        expect(Math.min(...rolled)).toBeGreaterThanOrEqual(ENEMY_LADDER.gauntlet.iv[0]);
     });
 
     it('so every gauntlet enemy holds its whole tuned list and runs its firmware', () => {

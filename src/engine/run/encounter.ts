@@ -7,9 +7,9 @@
  * it hands back "some enemies of that element with a themed pile of cards". It knows nothing about
  * a run, which is exactly right for the sector screen it was written for and exactly wrong now. A
  * run encounter is decided by four things that generator cannot see — the **node's kind** (a wild
- * and an ambush are different fights), the **biome's element** (the map's routing information), the
- * **biome's depth** (ticket 08's kit fraction), and the **visit count** (ticket 07's re-roll) — and
- * three of the four live in `IRunState`. So this module owns the run's answer and leaves the old
+ * and an ambush are different fights, and since ticket 60 they are different LADDER RUNGS), the
+ * **biome's element** (the map's routing information), the run's **tier**, and the **visit count**
+ * (ticket 07's re-roll) — and all four live in `IRunState`. So this module owns the run's answer and leaves the old
  * generator to the callers that still have no run: the gauntlet branch of `createBattleState` and
  * the debug paths.
  *
@@ -20,8 +20,11 @@
  *    a replay. `encounterSeed` is that rule, and it is the whole of it.
  * 2. **Ticket 11 — symmetric party size.** The enemy party matches yours, with two authored
  *    exceptions (`ambush`, `alpha`) that ticket 07 names in its own words.
- * 3. **Ticket 08, RULED — the enemy's deck is the player's kit fraction at that depth.** See
- *    `KIT_FRACTION_BY_BIOME`, which is the one place to tune it.
+ * 3. **Ticket 60, RULED — the enemy LADDER.** Every enemy holds the full tuned deck; what a rung
+ *    raises is how well it plays it (firmware, then lookahead), and the tier raises the wild rung.
+ *    See `ENEMY_LADDER`, which is the one place to tune it. It replaced ticket 08's kit-fraction
+ *    table, indexed by biome depth — the run gate measured that table making the MIDDLE of a run
+ *    its hardest part, which is the argument written out in full above `ENEMY_LADDER`.
  *
  * And one ruling it deliberately does NOT implement: **ticket 21 froze the engine at
  * `CALIBRATION_LEVEL`**, so nothing here scales a stat, an IV range or an HP pool by depth. Biome 2
@@ -34,6 +37,7 @@
  */
 
 import { SeedStream } from '../core/SeedStream';
+import type { AiTier } from '../ai/TacticalAI';
 import { getSectorSpecies } from '../data/EncounterGenerator';
 import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
@@ -141,72 +145,141 @@ export type EnemyDeckRule =
     /** The full tuned per-OS deck (`getDeckForOS`) — the list the balance corpus is calibrated on. */
     | 'tuned';
 
-export interface IKitFraction {
+/**
+ * One rung of the ladder: everything about an enemy that is not its species or its stat roll.
+ *
+ * `os: false` means the built entity carries **no `activeOS` at all**, so `OSSystem` wires no hooks
+ * for it. Expressing that needed care: `initializeBattleEntity` resolves a missing `activeOS` to
+ * `definition.availableOS[0]`, so an `IMingmingState` with the field left off comes out of the
+ * factory running its default firmware — the opposite of what this flag says. The OS is therefore
+ * cleared on the **built entity**, after the factory has had its say, which is the same technique
+ * `createBattleState` already uses to strip OS from intent-driven enemies.
+ */
+export interface IEnemyLoadout {
     readonly deck: EnemyDeckRule;
-    /**
-     * Whether the enemy runs its firmware. `false` means the built entity carries **no `activeOS`
-     * at all**, so `OSSystem` wires no hooks for it.
-     *
-     * Expressing "no OS" needed care: `initializeBattleEntity` resolves a missing `activeOS` to
-     * `definition.availableOS[0]`, so an `IMingmingState` with the field left off comes out of the
-     * factory running its default firmware — the opposite of what this flag says. The OS is
-     * therefore cleared on the **built entity**, after the factory has had its say, which is the
-     * same technique `createBattleState` already uses to strip OS from intent-driven enemies.
-     */
     readonly os: boolean;
+    /** Which grade of `TacticalAI` plays it — see `IBattleState.enemyAiTier`. */
+    readonly ai: AiTier;
+    /** Inclusive IV band, both ends. See `IV_BANDS` for why each rung has its own. */
+    readonly iv: readonly [number, number];
 }
 
 /**
- * **THE ONE KNOB. Ticket 08's ruled table, indexed by biome depth.**
+ * **THE IV BANDS — RULED by Henry on ticket 67, 2026-08-26, and this is a FLIP.**
  *
- * | biome | enemy deck | OS |
- * |---|---|---|
- * | 0 | 4 `startKit` + 2 generics — the same 6 the player opens with (ticket 60) | no |
- * | 1 | the species' `startKit` | yes |
- * | 2 (and the gym) | the full tuned per-OS deck | yes |
+ * The run gate measured it and it was the finding upstream of every band: the player rolls
+ * `nextInt(0, 31)` (`gameTypes.createMingmingInstance`, mean 15.5) and **every enemy in the game
+ * used to roll `nextInt(10, 31)`** — mean 20.5, with a floor the player has no equivalent of. Five
+ * points of every stat, in the enemy's favour, everywhere, forever.
  *
- * **Why this shape rather than a difficulty multiplier**, which is the point of the ruling and the
- * reason it is worth a table at all. Every deck in `mingmingRegistry` was tuned as a *complete*
- * list against other complete lists — that is what the 1v1 and 3v3 balance corpus measures. If the
- * final biome fields those tuned decks, then the corpus becomes the **late-run** reference point
- * rather than an average the run wobbles around, and everything earlier is easier *by construction*
- * — the biome-0 enemy is beatable because it is holding the same six cards you are, not because a
- * hidden coefficient scaled its damage down. Difficulty is a deck, exactly as `vision.md` demands
- * ("never bigger numbers"), and it is legible: the player can read the enemy's hand and see why the
- * fight got harder.
+ * Henry's ruling flips it, and the shape of the flip is the design:
  *
- * Tuning this is editing this array. Nothing else in the file branches on depth.
+ * | rung | band | mean | why |
+ * |---|---|---|---|
+ * | wild | **0–20** | 10 | *below* the player's 15.5. A bounded, tunable edge to the player, and no more god-roll wilds wiping an early run. |
+ * | elite | **0–31 uncapped** | 15.5 | level with the player. *"Elite variance is the elite's spice"* — the elite is the biome's exam and it is allowed to roll hot. |
+ * | boss | **fixed, authored** | — | not a band at all. See `gauntlet.BOSS_IVS`: a boss is exactly as hard as it is designed to be, and it is tuned by editing a number rather than by hoping. |
+ *
+ * The player's own 0–31 is unchanged. Note what this is NOT: it is not a difficulty multiplier and
+ * it does not scale with depth — ticket 21's freeze holds, and a biome-2 wild rolls from the same
+ * 0–20 a biome-0 wild does. What got harder later is the deck and the firmware, which is
+ * `vision.md`'s "never bigger numbers" in the only form it allows.
  */
-export const KIT_FRACTION_BY_BIOME: ReadonlyArray<IKitFraction> = [
-    { deck: 'start-kit-plus-generics', os: false },
-    { deck: 'start-kit', os: true },
-    { deck: 'tuned', os: true },
-];
-
-/** The deepest rule, and what anything off the end of the table falls back to. */
-export const FULL_KIT_FRACTION: IKitFraction = KIT_FRACTION_BY_BIOME[KIT_FRACTION_BY_BIOME.length - 1];
+const WILD_IV: readonly [number, number] = [0, 20];
+const ELITE_IV: readonly [number, number] = [0, 31];
 
 /**
- * The rule a given node fights under.
+ * **THE ENEMY LADDER — ticket 60's ruling, built by ticket 67.**
  *
- * **Elites use the deepest rule regardless of depth, and this is a READING, not a ruling** — no
- * ticket says it in so many words and it should be confirmed. The argument: ticket 07 makes the
- * elite every biome's unavoidable exit, `economy-session.md` makes it "ONE harder fight" with a
- * Driver visible as the stakes, and a biome-0 elite under the biome-0 rule would be the exam
- * written in the same six cards as the practice questions — harder only by having one more body
- * on the field. Facing a complete tuned deck for the first time at the end of biome 0 is what makes
- * the elite legible as a checkpoint, and it is the same lesson the gym asks for twice more later.
+ * | rung | deck | OS | AI | IVs |
+ * |---|---|---|---|---|
+ * | wild | full tuned | **no** | greedy | 0–20 |
+ * | elite | full tuned | yes | lite | 0–31 |
+ * | gauntlet | full tuned | yes | **full lookahead** | 0–31, boss fixed |
  *
- * The gym takes it too, for the plainer reason that it is the run's final exam. **Ticket 18 leans on
- * that clause from outside**: `rollGauntletFight` builds all three gauntlet fights with full tuned
- * decks and firmware *because* this function pins a gym node to the deepest row, and
- * `gauntlet.test.ts` asserts the two agree rather than letting the gauntlet hold its own opinion
- * about the gym's depth.
+ * # WHAT THIS REPLACED, AND WHY THE REPLACEMENT IS A DIFFERENT KIND OF THING
+ *
+ * `KIT_FRACTION_BY_BIOME` — ticket 08's table, indexed by **biome depth**: biome 0 fought with the
+ * six cards the player opened with, biome 1 with the bare start kit, biome 2 with the tuned deck.
+ * Ticket 60 killed it and the run gate said why. Difficulty was **not monotonic in the thing the
+ * table indexed on**: biome 1 wilds measured 26.7% against biome 2's 50.0% and biome 0's 67.1%,
+ * because the middle row fields five pure engine cards per body with no filler — a *sharper* list
+ * than the tuned one, not a weaker one. A table that made the middle of the run the hardest part of
+ * it was tuning the wrong axis.
+ *
+ * So depth stops being the axis entirely. **Every enemy in the game now holds the full tuned deck**
+ * — the list the balance corpus is calibrated on, so the corpus is the reference point for every
+ * fight rather than for one biome — and what a rung raises is **how well the enemy plays it**: no
+ * firmware and no lookahead at a wild, firmware and a narrowed lookahead at an elite, both and the
+ * full lookahead at the gym.
+ *
+ * That is still difficulty-as-a-deck in `vision.md`'s sense, and it is arguably more legible than
+ * the table was: the player can read a wild's hand and see the same cards a gym leader holds, and
+ * lose to the gym leader because the gym leader plays them better.
+ *
+ * # THE GRADE IS BY NODE KIND, NOT BY DEPTH
+ *
+ * `elite` is the elite rung wherever it stands, which the old table had to say as a special case
+ * (*"elites use the deepest rule regardless of depth"*). It falls out of the shape now. `gym` is the
+ * gauntlet rung, and `gauntlet.rollGauntletFight` reads this table rather than holding a second
+ * opinion. Everything else — `wild`, `ambush`, `alpha` — is a wild: the two authored exceptions vary
+ * the enemy COUNT (`enemyPartySize`), which is ticket 07's own way of making them special, and
+ * giving them a fourth rung as well would be two knobs for one idea.
  */
-export function kitFractionFor(node: IRegionNode): IKitFraction {
-    if (node.kind === 'elite' || node.kind === 'gym') return FULL_KIT_FRACTION;
-    return KIT_FRACTION_BY_BIOME[node.biomeIndex] ?? FULL_KIT_FRACTION;
+export const ENEMY_LADDER: Readonly<Record<EnemyGrade, IEnemyLoadout>> = {
+    wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV },
+    elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV },
+    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV },
+};
+
+/** The three rungs. Named rather than inferred, so a fourth is a deliberate act. */
+export type EnemyGrade = 'wild' | 'elite' | 'gauntlet';
+
+/** Which rung a node fights under, before the tier has its say. */
+export function gradeFor(kind: NodeKind): EnemyGrade {
+    if (kind === 'elite') return 'elite';
+    if (kind === 'gym') return 'gauntlet';
+    return 'wild';
 }
+
+/**
+ * **THE TIER RAISES THE WILD RUNG, AND NOTHING ELSE** — ticket 60: *"tier 2 = wild OS on; tier 3 =
+ * wild AI lite"*, and `exploration-map.md`'s standing law that *"harder tiers unlock by beating
+ * gyms — meaner curated teams, more elites, enemy relics; never bigger numbers."*
+ *
+ * Only the wild moves, and that is the point rather than an omission: an elite already runs its
+ * firmware and a gauntlet already thinks a turn ahead, so there is nothing left to give them without
+ * reaching for a number. A tier makes the ORDINARY fight play like the exam did one tier ago, which
+ * is a difficulty curve made of the same three grades the player has already met.
+ *
+ * Tiers are cumulative and clamped: tier 3 and above is the top rung, because there is no fourth
+ * grade and inventing one here would be a scaling knob wearing a ladder's clothes.
+ */
+export function enemyLoadoutFor(kind: NodeKind, tier: number): IEnemyLoadout {
+    const grade = gradeFor(kind);
+    const base = ENEMY_LADDER[grade];
+    if (grade !== 'wild') return base;
+    if (tier >= 3) return { ...base, os: true, ai: 'lite' };
+    if (tier >= 2) return { ...base, os: true };
+    return base;
+}
+
+/**
+ * The scripted opening fight's loadout — ticket 24, and the one rung that is not on the ladder.
+ *
+ * It kept working by accident while `KIT_FRACTION_BY_BIOME[0]` existed, because that row happened to
+ * say what the script wanted. The table is gone, so the script says it itself: **the same cards the
+ * player is holding, no firmware, and the gentlest AI**. That is ticket 24's ruling verbatim
+ * (*"the enemy deck is pinned to the same six cards the player is holding, no firmware"*), and
+ * writing it here rather than pointing at a row means a later ladder edit cannot silently make a
+ * brand-new player's first fight harder.
+ */
+export const OPENING_FIGHT_LOADOUT: IEnemyLoadout = {
+    deck: 'start-kit-plus-generics',
+    os: false,
+    ai: 'greedy',
+    iv: WILD_IV,
+};
 
 // ---------------------------------------------------------------------------------------------
 // The opening fight (ticket 24, re-ruled by Henry 2026-08-23)
@@ -347,6 +420,15 @@ export interface IRunEncounter {
     readonly enemyDeckIds: ReadonlyArray<string>;
     /** `encounterSeed`, handed on as the battle's seed so the whole fight replays from the node. */
     readonly seed: string;
+    /**
+     * Which grade of `TacticalAI` this fight's enemies play at — the ladder's third column.
+     *
+     * Carried on the encounter rather than re-derived at the screen, because the screen would have
+     * to know the node kind, the tier AND the opening-fight rule to get it right, and one of those
+     * three is exactly the sort of thing that drifts. `RunScreen` and `GauntletNode` hand it
+     * straight to `startBattle` as `options.enemyAiTier`.
+     */
+    readonly enemyAiTier: AiTier;
 }
 
 /**
@@ -360,11 +442,11 @@ export interface IRunEncounter {
  */
 function enemyDeckFor(
     state: IMingmingState,
-    fraction: IKitFraction,
+    loadout: IEnemyLoadout,
     stream: SeedStream,
     isFirstEnemy: boolean,
 ): string[] {
-    switch (fraction.deck) {
+    switch (loadout.deck) {
         case 'start-kit-plus-generics':
             // `true`: an enemy party's first member carries the generics, exactly as the
             // player's does. The symmetry is the whole claim of this loadout — "the same cards you
@@ -396,10 +478,10 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
     const decks = new SeedStream(new SeedStream(seed).fork('enemy-deck'));
 
     // Ticket 24: every run's opening fight is the scripted easy one (Slay the Spire's model, ruled
-    // 2026-08-23) — pinned to the gentlest row of ticket 08's table and to a single body. See
-    // `isOpeningFight` for why this is a floor on the fight rather than a rewrite of it.
+    // 2026-08-23) — pinned to its own gentle loadout and to a single body. See `isOpeningFight` for
+    // why this is a floor on the fight rather than a rewrite of it.
     const opening = isOpeningFight(run);
-    const fraction = opening ? KIT_FRACTION_BY_BIOME[0] : kitFractionFor(node);
+    const loadout = opening ? OPENING_FIGHT_LOADOUT : enemyLoadoutFor(node.kind, run.tier);
     const pool = encounterSpeciesPool(run, node);
     const size = opening ? 1 : enemyPartySize(node.kind, party.length);
 
@@ -411,13 +493,15 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         const definition = GetMingmingData(definitionId);
 
         // Ticket 21: IVs are the ONLY per-individual variance left, and their range is the same at
-        // every depth. A biome-2 enemy is not rolled hotter than a biome-0 one; 10-31 is the same
-        // band `generateEncounter` used, kept so the two paths field comparable individuals.
-        const hpIV = roster.nextInt(10, 31);
-        const attackIV = roster.nextInt(10, 31);
-        const defenseIV = roster.nextInt(10, 31);
+        // every DEPTH — a biome-2 wild rolls from the same band a biome-0 wild does, which is what
+        // makes "no scaling by depth" testable. What varies is the RUNG (ticket 67's flip): a wild
+        // rolls 0-20, below the player's 15.5 mean; an elite rolls the player's own 0-31.
+        const [ivLow, ivHigh] = loadout.iv;
+        const hpIV = roster.nextInt(ivLow, ivHigh);
+        const attackIV = roster.nextInt(ivLow, ivHigh);
+        const defenseIV = roster.nextInt(ivLow, ivHigh);
 
-        // Rolled even when the fraction says no OS, and deliberately: the `startKit` tags are keyed
+        // Rolled even when the loadout says no OS, and deliberately: the `startKit` tags are keyed
         // by firmware, so a biome-0 enemy still needs a firmware to have chosen its five cards
         // FROM, it just does not get to run it. Drawing it unconditionally also keeps the stream
         // position identical across depths, which is what the no-scaling test compares.
@@ -435,9 +519,9 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         };
 
         const entity = initializeBattleEntity(state, definition);
-        enemyParty.push(fraction.os ? entity : { ...entity, activeOS: undefined });
-        enemyDeckIds.push(...enemyDeckFor(state, fraction, decks, enemyParty.length === 1));
+        enemyParty.push(loadout.os ? entity : { ...entity, activeOS: undefined });
+        enemyDeckIds.push(...enemyDeckFor(state, loadout, decks, enemyParty.length === 1));
     }
 
-    return { enemyParty, enemyDeckIds, seed };
+    return { enemyParty, enemyDeckIds, seed, enemyAiTier: loadout.ai };
 }

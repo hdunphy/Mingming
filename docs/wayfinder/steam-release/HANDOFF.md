@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-26 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61). **State: 62 tickets, 31 closed. The critical path is complete and the run's four edit surfaces are built. **THE LOUDEST THING ON THIS MAP: `npm run balance:run-gate` exists now and ALL THREE BANDS FAIL — wilds 52.8% against a 95% target, elites 41.7% against 75, gauntlet 50.0% against 60, the gym boss at 8.3%, and every enemy out-rolling the player by ~5 IV in every stat. Those are measurements, not tunings; [ticket 67](tickets/67-enemy-ladder-and-bands.md) is the grilling that has to rule on them and it is NEXT.** Next agent-runnable after 67: 58 (interaction tests), then 35/37/42 (platform baseline). **BUILT AND WAITING ON HENRY: 67 (the three bands, above), 57 (Relay's 1-for-1 vs the reducer's 2-for-1), 31 (codex payouts need a cosmetics system, which has no ticket), 25 (he must play it). ONE READING FLAGGED IN 61: the workshop's stat roll is shown as `??` until you assemble — mockup I's "reveal moment" read against `planRecruit`'s standing "never previewed" ruling. One line either way.** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22, 61; loudest is 67. Suite green at 128 files / 1768 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-26 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE MAP IS WAITING ON ONE THING: [ticket 67](tickets/67-enemy-ladder-and-bands.md)'s GRILLING.** The ladder and the IV flip are built and re-measured at 1,080 battles — wilds 52.8% → **79.5%**, elites 41.7% → **46.3%**, gauntlet 50.0% → **51.1%**, against targets of 95/75/60. Both curves are monotonic now (the biome-1 trough is gone, +52pt on that cell); what survived is the gym boss at **3.3%** and the **elite band, which barely moved**. Nothing was tuned — build-then-grill, as ruled. Henry rules on the residual against that baseline. Next agent-runnable after 67: 58 (interaction tests), then 35/37/42 (platform baseline). **ALSO WAITING ON HENRY: 57 (Relay's 1-for-1 vs the reducer's 2-for-1), 31 (codex payouts need a cosmetics system, which has no ticket), 25 (he must play it).** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22, 61; loudest is 67. Suite green at 128 files / 1773 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,58 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-26 — Ticket 67 steps 1-2: the ladder is built, and the re-measure says it is not enough
+
+Build-then-grill, as ruled. `KIT_FRACTION_BY_BIOME` — ticket 08's enemy-deck table indexed by biome
+depth — is **deleted**, and `encounter.ENEMY_LADDER` replaces it: every enemy in the game holds the
+full tuned deck, and a rung raises **how well it plays it** (wild = no firmware + greedy, elite =
+firmware + lite lookahead, gauntlet = firmware + full lookahead). The tier raises the wild rung and
+nothing else, clamped at tier 3. Henry's IV flip is applied: wilds 0-20, elites 0-31 uncapped, and
+the gym boss rolls nothing at all (`gauntlet.BOSS_IVS`, fixed at 20/20/20 — the old band's mean, so
+the re-measure reads the ladder rather than two changes at once).
+
+**One seam had to be built first, and it is worth knowing about.** The three AI grades existed only
+as `AI_GREEDY=1` / `AI_LITE=1`: process-wide env switches read once at module load. That is right for
+ticket 99's corpus and cannot express three grades inside one run, so the grade is now
+`IBattleState.enemyAiTier`, set at battle creation exactly as `enemyMode` is and defaulting to the
+env value when unset. **Enemy side only** — grading the player in a two-AI harness would measure two
+changes at once. `runBatch` takes it as an option and applies it to the materialized state, so
+`ComposedSetup` (a versioned format with 51 committed scenarios) did not have to grow a field.
+
+**The numbers, at 1,080 battles over 4h 09m** — equal `n` within each band, so a band is the mean of
+its three cells rather than whichever was cheapest to run:
+
+| band | target | before | after | 95% CI |
+|---|---|---|---|---|
+| WILDS | 95% | 52.8% | **79.5%** (477/600) | 76.1-82.5 |
+| ELITES | 75% | 41.7% | **46.3%** (139/300) | 40.8-52.0 |
+| GAUNTLET | 60% | 50.0% | **51.1%** (92/180) | 43.9-58.3 |
+
+**What landed:** both curves are monotonic. Wilds run 73.5 / 79.0 / 86.0 across the biomes and elites
+39.0 / 48.0 / 52.0, where the old table produced a **trough** at biome 1 (26.7%, against 67.1% at
+biome 0). That cell moved **+52 points** and is the single biggest change in the re-measure — the
+middle row's "startKit alone" was five pure engine cards a body with no filler, a *sharper* list than
+the tuned one, so the middle of a run was its hardest part.
+
+**What survived, and it is two things rather than one.** The gym boss is at **3.3%** (2 of 60, where
+the old 8.3% was 1 of 12) sitting between fights that measure 68.3% and 81.7% — a wall, now measured
+properly rather than made harder. And the **ELITE band moved only 4.6 points**: ruling 3 expected the
+boss to be the survivor, but 46.3% against a 75% target is the larger miss. Both bands' worst cells
+are the same fight — `elite:biome0` at 39.0% and `wild:biome0` at 73.5% are **one mingming, eight
+cards, against a complete tuned per-OS deck**, which is the direct cost of the ladder's central
+choice. It is clearly a good trade at three members and eighteen cards (biome-2 wilds went 50% →
+86%) and the hardest position in the run at one.
+
+**Nothing was tuned.** Options with numbers are in the ticket; the grilling happens on this baseline.
+
+**One thing ticket 60 asks for that does not exist:** the gauntlet rung's *"+ Driver"*. There is no
+enemy-driver machinery — `createBattleState` applies `setup.drivers` to the player's party only. The
+boss's `boss_relic_*` signature firmware is the closest thing in the tree and is what the rung ships
+as. A literal enemy Driver is its own ticket.
+
+Ticket 08's clause 6 carries a supersession note pointing here.
+
 
 ### 2026-08-26 — Ticket 61 CLOSED. The run gate exists, and it says we are failing by 30-40 points.
 
