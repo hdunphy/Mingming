@@ -20,10 +20,22 @@ which is exactly six cards × two fields.
 | `numbing_gale` | 1e | 20 power. Apply 2 Dazed. | 20 power **to side**. Apply 2 Dazed **to side**. |
 | `rimefrost` | 0e | Apply 1 Weakened and 1 Dazed. | Apply 1 Weakened and 1 Dazed **to side**. |
 | `frost_bite` | 1e | 15 power. Apply 2 Burn. | 15 power **to side**. Apply 2 Burn **to side**. |
-| `hexbloom` | 2e | Apply 2 Poison per stack of Weakened on the target. The Weakened remains. | Apply 2 Poison **to each enemy** per stack of Weakened **it carries**. The Weakened remains. |
+| ~~`hexbloom`~~ | 2e | *reverted — see below* | *stays Single* |
 
-`hexbloom` gets the long form deliberately: it scales off the *target's own* Weakened, so "to side"
-alone would leave it ambiguous whose stacks are being counted.
+> **REVERTED 2026-08-24, same day.** Henry: *"lets revert hexbloom I think it was already a good
+> card, we don't need to add side to it, but keep a note to revisit if we need to."* `hexbloom` is
+> back to `target: Single` with its original text. **Revisit note:** side-scoping it was worth about
+> **15 points** at 3v3 in the presence of the ticket-116 kraken OS change (55.0% → 40.0% when it came
+> out), so it is the largest single lever still on the table if control needs more later. It was also
+> the most over-band card in the panel *before* any change (16.5 against a 5.2–6.5 band), which is a
+> reason to leave it alone until that scoring question is settled on its own terms.
+
+> **CORRECTION 2026-08-26 — this ticket originally said all six cards were `draugr_v2`'s. They are
+> not.** `ice_spear` is in `ymir_v1`, `ymir_v2`, `draugr_v1` and `draugr_v2`; `numbing_gale` is in
+> `ymir_v2` and `draugr_v2`. So this is a shared-card change across **five decks**, not one
+> (`0-DECK-NOT-CARD`), and the 1v1 rows for `ymir_v1`, `ymir_v2`, `draugr_v1` and `draugr_v2` are all
+> stale as a result. The census that produced the original claim was scoped to the three
+> `panel-control` decks and I read a panel-scoped answer as a roster-scoped one.
 
 **`glacial_slam` is deliberately NOT in this list.** Its Side form stuns all three attackers at once
 and was worth ~+35 points on its own — a side-wide hard CC removes turns rather than shrinking them,

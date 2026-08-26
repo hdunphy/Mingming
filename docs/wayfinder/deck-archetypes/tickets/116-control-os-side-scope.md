@@ -1,8 +1,22 @@
 # Ticket 116 — side-wide firmware for kraken and huldra
 
-**Status:** OPEN — measured, nothing shipped. Awaiting Henry's ruling.
+**Status:** **KRAKEN SHIPPED 2026-08-26** (*"I'm good with the Kraken OS change"*). Huldra NOT taken.
 Opened 2026-08-24 on Henry's request: *"I'd be curious about adding some side debuffs to kraken and
 huldra before we look to change the deck. so do some OS testing then try swapping some cards"*.
+
+## What shipped
+
+`kraken_v1`'s `ABYSSAL_INK_SYS` hook: `"target": "RANDOM_ENEMY"` → `"ENEMIES"`. Its description and
+its log line both named a single enemy and now name the side — the log template was `{target} is
+blinded by Abyssal Ink!`, and under `ENEMIES` the resolver returns an *array* of ids, so the
+placeholder no longer resolved. It now reads `Abyssal Ink blinds the enemy side!`, and
+`OSSystem.test.ts` was updated to match. 872/872 green.
+
+**`huldra_v1`'s `ALLURE_PROXY` is unchanged** and should stay that way unless it gains a condition —
+see the recommendation below.
+
+**Measured after both this and the `hexbloom` revert:** `panel-control` vs `panel-zoo` at 3v3 sits at
+**40.0%**, up from 10.0% before ticket 115.
 
 ---
 

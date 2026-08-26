@@ -3992,9 +3992,9 @@
     "hexbloom": {
         "id": "hexbloom",
         "name": "Hexbloom",
-        "description": "Apply 2 Poison to each enemy per stack of Weakened it carries. The Weakened remains.",
+        "description": "Apply 2 Poison per stack of Weakened on the target. The Weakened remains.",
         "element": "Nature",
-        "target": "Side",
+        "target": "Single",
         "category": "Status",
         "rarity": "Rare",
         "baseCost": 2,

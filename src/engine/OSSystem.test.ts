@@ -201,7 +201,7 @@ describe('OS System - Kraken', () => {
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
         expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 1)).toBe(true);
-        expect(newState.logs).toContain('Enemy Mingming is blinded by Abyssal Ink!');
+        expect(newState.logs).toContain('Abyssal Ink blinds the enemy side!');
     });
 
     it('v2 (TIDAL_CRUSH_OS): high-cost Water cards deal 30% more damage', () => {
