@@ -2183,6 +2183,38 @@ body {
   color: #00d2ff;
 }
 
+/* TICKET 61 §2 — where a taken card goes. Two buttons rather than a checkbox, because both
+   destinations are real choices and a checkbox would make one of them the absence of the other;
+   understated for the same reason SKIP is, since the pick itself is the decision the screen is for. */
+.reward-dest {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.reward-dest-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reward-dest-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.reward-dest-btn.on {
+  border-color: rgba(0, 210, 255, 0.5);
+  color: #00d2ff;
+}
+
 .choice-group-pending {
   animation: choice-pending-pulse 1.8s ease-in-out infinite;
 }

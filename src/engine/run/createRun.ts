@@ -134,7 +134,10 @@ const warnedMissingKits = new Set<string>();
  * *same* four cards the player would get from that species, chosen by the same tags and the same
  * untagged fallback. A second implementation would drift the moment a kit was retagged.
  */
-export function startKitIdsFor(member: IMingmingState, size: number): string[] {
+export function startKitIdsFor(
+    member: Pick<IMingmingState, 'definitionId' | 'activeOS'>,
+    size: number,
+): string[] {
     const definition = GetMingmingData(member.definitionId);
     const os = member.activeOS ?? definition.availableOS[0];
     const tagged = definition.startKits?.[os];
@@ -284,6 +287,8 @@ export function createRun(input: CreateRunInput): IRunState {
         deck,
         // Nothing is owned-but-unplayed at the start: the party's engines ARE the deck.
         collection: [],
+        // Nobody is benched at run start: the party you picked IS the party.
+        bench: [],
 
         /*
          * A run starts with STARTING_SCRAP, and the anti-mudflation rule is intact.

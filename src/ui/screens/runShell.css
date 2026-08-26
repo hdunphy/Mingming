@@ -1,0 +1,304 @@
+/*
+ * THE RUN-SCREEN SHELL — the vocabulary the three ruled mockups share.
+ *
+ * `editor_F_big_paged.html`, `market_G_stall.html` and `workshop_I_bay.html` open with the SAME
+ * ~45 lines of CSS, character for character: a 50px top bar, a `.btn`, a `.pill`, a `.panel`, the
+ * big card tile, the 27px deck row, the roster chip. That is not three screens that happen to look
+ * alike — it is one screen kit that the prototypes pasted three times because a standalone HTML
+ * file has nowhere else to put it. Here it has somewhere else to put it.
+ *
+ * # WHY IT IS ONE FILE AND NOT THREE
+ *
+ * The alternative is three transcriptions of the same declarations, which is three places for the
+ * next person to change a border colour and two places for them to forget. The mockups' shared
+ * block is the seam the prototypes were already drawing; this file is that seam made real.
+ *
+ * # THE CARD TILE IS SIZED BY VARIABLE, BECAUSE THE MOCKUPS SIZE IT BY VARIABLE
+ *
+ * `.bigc{width:var(--cw,152px);height:var(--ch,200px)}` with `--ah` for the art box is the
+ * mockups' own mechanism: the market's grid sets 170/216/56, the editor's book sets 196/252/78.
+ * The card is the one element whose SIZE is load-bearing — Henry's requirement is that cost,
+ * ATTACK-vs-SKILL and the full description are readable on every card — so the sizes are carried
+ * as data rather than hard-coded, and each screen states its own.
+ *
+ * Nothing here animates. Ticket 36's reduced-motion contract therefore has nothing to disable in
+ * this file, which is recorded so that whoever adds the first transition knows to gate it.
+ */
+
+/* --- the frame ------------------------------------------------------------------------------ */
+
+/*
+ * The mockups are a fixed 1280x800 body. The game is not — it runs windowed and ticket 37 owns
+ * resolution — so the frame is a flex column that fills whatever it is given, and the fixed
+ * dimensions survive only where they are the design (card size, row height, bar height).
+ */
+.rs-frame {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: radial-gradient(1200px 500px at 60% -10%, #16202c 0%, #0c0e12 60%);
+    color: #dfe4ea;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* A screen that takes the whole window rather than sitting inside the map's section. */
+.rs-frame.rs-fixed {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+}
+
+/* --- top bar (50px) -------------------------------------------------------------------------- */
+
+.rs-top {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 18px;
+    border-bottom: 1px solid #232a35;
+    background: #10141b;
+    flex: none;
+}
+
+.rs-title { font-size: 14px; letter-spacing: 2px; color: #9fb4c8; font-weight: 600; }
+.rs-ctx { font-size: 11.5px; color: #5f6b7a; letter-spacing: 1px; }
+.rs-spacer { flex: 1; }
+.rs-scrap { font-size: 15px; color: #ffd479; font-weight: 700; letter-spacing: 1px; }
+
+/* --- controls -------------------------------------------------------------------------------- */
+
+.rs-btn {
+    border: 1px solid #3a4a5e;
+    background: #1a2330;
+    border-radius: 3px;
+    padding: 6px 16px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #dfe4ea;
+    cursor: pointer;
+    flex: none;
+}
+.rs-btn.primary { background: #245a8c; border-color: #3d7ab5; }
+/* Ticket 20's precedent: a dead control still says what it is short of, so it is dimmed and
+   readable rather than hidden. */
+.rs-btn:disabled { opacity: 0.45; cursor: default; }
+
+.rs-pill {
+    border: 1px solid #2c6e49;
+    border-radius: 3px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #7fd6a4;
+    background: #151b24;
+    flex: none;
+}
+.rs-pill b { color: #fff; }
+/* At the floor the pill stops being reassurance and becomes the reason a row is dead. */
+.rs-pill.at-floor { border-color: #8a6d3b; color: #ffd479; }
+
+.rs-f {
+    border: 1px solid #2c3745;
+    border-radius: 12px;
+    padding: 3px 11px;
+    font-size: 10.5px;
+    color: #8fa0b3;
+    background: #12171f;
+    cursor: pointer;
+}
+.rs-f.on { border-color: #3d9be0; color: #fff; }
+
+.rs-search {
+    border: 1px solid #2c3745;
+    border-radius: 12px;
+    padding: 3px 11px;
+    font-size: 10.5px;
+    color: #dfe4ea;
+    background: #12171f;
+    width: 130px;
+}
+
+.rs-chip {
+    border: 1px solid #8a6c2f;
+    border-radius: 3px;
+    background: #1b1710;
+    color: #ffd479;
+    font-size: 11.5px;
+    padding: 3px 10px;
+    flex: none;
+}
+
+/* --- panel ----------------------------------------------------------------------------------- */
+
+.rs-panel {
+    border: 1px solid #232a35;
+    border-radius: 6px;
+    background: #0f131a;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.rs-panel h2 {
+    font-size: 10.5px;
+    letter-spacing: 2px;
+    color: #9fb4c8;
+    margin: 0 0 8px;
+    flex: none;
+    font-weight: 600;
+}
+
+.rs-hint { font-size: 10px; color: #4d5866; font-style: italic; line-height: 1.4; }
+
+/* --- the big card tile ----------------------------------------------------------------------- */
+
+.rs-card {
+    width: var(--cw, 152px);
+    height: var(--ch, 200px);
+    border: 1px solid #303a48;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #171d27 0%, #10151d 100%);
+    position: relative;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 3px 10px #0007;
+    color: inherit;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+}
+/* The payoff reads first, which is the whole point of tagging it (ticket 61's engine rule). */
+.rs-card.payoff { border-color: var(--el); box-shadow: 0 0 0 1px var(--el), 0 3px 12px #0008; }
+.rs-card:disabled { cursor: default; }
+
+.rs-gem {
+    position: absolute; top: -9px; left: -9px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #7ec3ff, #245a8c 70%);
+    border: 2px solid #0c0e12;
+    color: #fff; font-weight: 800; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.rs-typ {
+    position: absolute; top: 6px; right: 6px;
+    font-size: 8.5px; letter-spacing: 1px; padding: 2px 6px;
+    border-radius: 2px; font-weight: 700;
+}
+.rs-typ.ATTACK { background: #5b2320; color: #ff9d8f; }
+.rs-typ.SKILL { background: #1e3a52; color: #8fc7f5; }
+.rs-typ.DAEMON { background: #3a2352; color: #c9a2f0; }
+.rs-typ.MACRO { background: #3a2352; color: #c9a2f0; }
+
+/* Placeholder until ticket 33's art pass — the mockup's own gradient, so the swap is one rule. */
+.rs-art {
+    height: var(--ah, 52px);
+    border-radius: 5px;
+    margin: 14px 0 6px;
+    background:
+        repeating-linear-gradient(45deg, transparent 0 6px, #ffffff08 6px 12px),
+        linear-gradient(135deg, var(--el) 0%, #0c0e12 130%);
+    opacity: 0.85;
+    flex: none;
+}
+
+.rs-cnm { font-size: 12.5px; font-weight: 700; margin-bottom: 4px; line-height: 1.1; }
+.rs-desc { font-size: 10px; color: #aeb9c6; line-height: 1.35; flex: 1; overflow: hidden; }
+.rs-tags { font-size: 8.5px; color: #7d8ea1; letter-spacing: 0.5px; min-height: 11px; }
+
+.rs-nbadge {
+    position: absolute; bottom: -10px; right: -8px;
+    background: #ffd479; color: #0c0e12;
+    font-weight: 800; font-size: 12px;
+    border-radius: 11px; padding: 2px 8px;
+    border: 2px solid #0c0e12;
+}
+
+.rs-elbar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px; border-radius: 0 0 8px 8px; background: var(--el);
+}
+
+/* The price rides ON the card face — ticket 63's ruling, so a stall reads as a stall. */
+.rs-price {
+    position: absolute; bottom: 10px; left: 50%;
+    transform: translateX(-50%);
+    background: #ffd479; color: #0c0e12;
+    font-weight: 800; font-size: 12.5px;
+    border-radius: 3px; padding: 2px 10px;
+    border: 2px solid #0c0e12;
+    white-space: nowrap;
+}
+/* A sold card STAYS on the shelf, greyed. Ticket 63: the gap it leaves is what tells you the
+   stock was finite, and a vanished card reads as a bug. */
+.rs-price.sold { background: #3a4351; color: #8fa0b3; }
+.rs-card.sold { opacity: 0.55; }
+
+/* --- the 27px deck row ------------------------------------------------------------------------ */
+
+.rs-row {
+    display: flex; align-items: center; gap: 7px;
+    border: 1px solid #2b3441;
+    border-left: 4px solid var(--el);
+    border-radius: 3px;
+    background: #131820;
+    padding: 3px 7px;
+    height: 27px;
+    font-size: 11.5px;
+    color: inherit;
+    font-family: inherit;
+    cursor: pointer;
+    flex: none;
+    width: 100%;
+}
+.rs-row:disabled { opacity: 0.45; cursor: default; }
+.rs-row.static { cursor: default; }
+.rs-row.on { border-color: #3d9be0; box-shadow: 0 0 0 1px #3d9be0; }
+
+.rs-g {
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--el); color: #0c0e12;
+    font-weight: 700; font-size: 10.5px;
+    display: flex; align-items: center; justify-content: center; flex: none;
+}
+.rs-rnm { flex: 1; white-space: nowrap; overflow: hidden; text-align: left; }
+.rs-x { color: #ffd479; font-weight: 700; font-size: 11px; flex: none; }
+.rs-t { font-size: 8.5px; color: #7d8ea1; flex: none; }
+.rs-sellp { color: #7fd6a4; font-weight: 700; font-size: 11px; flex: none; }
+
+/* --- the roster chip -------------------------------------------------------------------------- */
+
+.rs-mem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #2c3745;
+    border-radius: 5px;
+    background: #11161e;
+    padding: 6px 10px;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.rs-mem.static { cursor: default; }
+.rs-mem.benched { opacity: 0.55; border-style: dashed; }
+.rs-mem.sel { border-color: var(--el); box-shadow: 0 0 0 1px var(--el); opacity: 1; }
+.rs-mem.none { opacity: 0.4; cursor: default; }
+
+.rs-dot {
+    width: 34px; height: 34px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--el), #0c0e12 160%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; color: #fff; font-size: 15px;
+    flex: none;
+}
+.rs-mem-text { display: flex; flex-direction: column; min-width: 0; }
+.rs-mnm { font-size: 12.5px; font-weight: 700; }
+.rs-os { font-size: 9px; color: #8fa0b3; letter-spacing: 1px; }
+.rs-meta { font-size: 10px; color: #ffd479; margin-left: 6px; flex: none; }
+
+/* A column of rows or chips — the mockups' `.cards`. */
+.rs-cards { display: flex; flex-direction: column; gap: 4px; min-height: 0; }

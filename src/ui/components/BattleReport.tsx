@@ -26,7 +26,17 @@ interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
     /** Picked cards, in choice order. `BattleArena` mints them into `IRunState.deck`. */
-    onContinue: (chosenCards: IOwnedProgram[], chosenRelic?: string) => void;
+    /**
+     * `storedInstanceIds` is ticket 61 §2: the instance ids among `chosenCards` the player chose to
+     * STORE in the run collection rather than add to the active deck. Everything not named goes to
+     * the deck, which keeps the default where it has always been and makes the new argument
+     * ignorable by a caller that has no collection (the debug scenarios).
+     */
+    onContinue: (
+        chosenCards: IOwnedProgram[],
+        chosenRelic?: string,
+        storedInstanceIds?: ReadonlyArray<string>,
+    ) => void;
 }
 
 // --- Payoff timing (ms) ---
@@ -91,6 +101,18 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
      * anyone could clean it, which is most of *"it was too hard to build a good deck."*
      */
     const [skipped, setSkipped] = useState<Record<number, boolean>>({});
+    /**
+     * Which taken picks are bound for the run COLLECTION rather than the active deck — ticket 61
+     * §2: *"each taken pick offers per-card: ADD TO ACTIVE DECK, or STORE in the run collection."*
+     *
+     * A third map rather than a value on `selections`, for `skipped`'s reason: taking a card and
+     * deciding where it goes are two questions, and only the first one blocks CONTINUE. **The
+     * default is the deck**, because the card you just chose out of three is usually the one you
+     * want to play — STORE is for the pick you take because it is free, which is precisely the
+     * behaviour Henry asked the collection to make safe: *"it doesn't feel bad to grab all the
+     * cards even if you don't plan to use them."*
+     */
+    const [stored, setStored] = useState<Record<number, boolean>>({});
     const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
@@ -140,6 +162,9 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
         playSfx('uiClick');
         setSkipped(prev => ({ ...prev, [choiceIndex]: !prev[choiceIndex] }));
         setSelections(prev => (prev[choiceIndex] ? { ...prev, [choiceIndex]: null } : prev));
+        // A declined pick has nowhere to go, so its destination goes back to the default rather
+        // than lying in wait for the next card taken in this slot.
+        setStored(prev => (prev[choiceIndex] ? { ...prev, [choiceIndex]: false } : prev));
     };
 
     const handleFinalize = () => {
@@ -149,7 +174,13 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
             ...Object.values(selections).filter((s): s is IOwnedProgram => !!s),
             ...draftPicks
         ];
-        onContinue(chosen, selectedRelic || undefined);
+        // The draft's picks carry no destination — that panel is dormant (ticket 18 owns it), and
+        // giving it a control nothing renders would be a setting no one can reach.
+        const storedIds = Object.entries(stored)
+            .filter(([, on]) => on)
+            .map(([index]) => selections[Number(index)]?.instanceId)
+            .filter((id): id is string => id !== undefined);
+        onContinue(chosen, selectedRelic || undefined, storedIds);
     };
 
     /** Advance the draft; card=null means the round was skipped. */
@@ -450,6 +481,42 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                             {skipped[choiceIdx] ? 'SKIPPED — TAKE ONE?' : 'SKIP'}
                                         </button>
                                     </div>
+
+                                    {/*
+                                      * TICKET 61 §2 — where the card you just took is going.
+                                      *
+                                      * Shown only once a card IS taken, because until then there is
+                                      * nothing to route and a pair of dead buttons above three live
+                                      * cards would read as part of the choice. The deck is
+                                      * pre-selected: this is a refinement of a decision already
+                                      * made, not a second decision blocking CONTINUE.
+                                      */}
+                                    {selections[choiceIdx] && (
+                                        <div className="reward-dest">
+                                            <button
+                                                type="button"
+                                                className={`reward-dest-btn${stored[choiceIdx] ? '' : ' on'}`}
+                                                aria-pressed={!stored[choiceIdx]}
+                                                onClick={() => {
+                                                    playSfx('uiClick');
+                                                    setStored(prev => ({ ...prev, [choiceIdx]: false }));
+                                                }}
+                                            >
+                                                ADD TO ACTIVE DECK
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`reward-dest-btn${stored[choiceIdx] ? ' on' : ''}`}
+                                                aria-pressed={stored[choiceIdx] === true}
+                                                onClick={() => {
+                                                    playSfx('uiClick');
+                                                    setStored(prev => ({ ...prev, [choiceIdx]: true }));
+                                                }}
+                                            >
+                                                STORE IN COLLECTION
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="reward-card-row">
                                         {choice.options.map((opt, optIdx) => {
                                             const data = GetProgramData(opt.dataId);

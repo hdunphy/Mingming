@@ -82,6 +82,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { isMarketNode } from '../../engine/run/marketplace';
+import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import {
     biomeRevealModifier,
     firstFreeMacroSlot,
@@ -90,6 +91,7 @@ import {
     macroRackBlockFor,
 } from '../../engine/data/macroRegistry';
 import { PARTY_SIZE } from '../../engine/party';
+import { minimumActiveDeck } from '../../engine/run/createRun';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome } from '../../engine/runTypes';
@@ -210,11 +212,59 @@ const runSlice = createSlice({
          *
          * A loss does not come through here. Defeat ends the run (`endRun('defeat')`), and a fight
          * that killed you is not a fight you resolved.
+         *
+         * # THE BIOME BOUNDARY IS RAISED HERE — TICKET 61 §3
+         *
+         * *"I think after defeating the elite that gates the next biome you should be able to manage
+         * your deck and team."* The gate is the exit-layer elite, so the moment it resolves is the
+         * moment the offer is owed, and `boundaryBiome` is where the run records that it owes it.
+         *
+         * **Written here rather than watched for by a screen** for the reason `phase` is: an app
+         * close between the elite dying and the modal being answered must resume with the offer
+         * still open. A component effect keyed on "did `fightsResolved` just go up on an elite?"
+         * cannot survive a reload, and would fire twice under `StrictMode`.
+         *
+         * The gym is not a boundary: it is biome 3's exit and there is no fourth biome to prepare
+         * for, which the `biomeIndex + 1 < biomes.length` clause covers without naming the kind. A
+         * re-fought elite raises it again, deliberately — walking back over a gate is walking over
+         * the gate, and ticket 07 makes that re-entry legal and re-rolled.
          */
         resolveEncounter: (state): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
-            return { run: { ...run, phase: 'map', fightsResolved: run.fightsResolved + 1 } };
+
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            const gate = here !== undefined
+                && here.kind === 'elite'
+                && here.layer === REGION_PARAMS.layersPerBiome - 1
+                && here.biomeIndex + 1 < run.biomes.length;
+
+            return {
+                run: {
+                    ...run,
+                    phase: 'map',
+                    fightsResolved: run.fightsResolved + 1,
+                    ...(gate ? { boundaryBiome: here!.biomeIndex + 1 } : {}),
+                },
+            };
+        },
+
+        /**
+         * The player answered the boundary alert — with IGNORE or with EDIT, it makes no difference
+         * here. The offer was to open the editor; opening it is `RunScreen`'s business, and clearing
+         * the debt is this.
+         *
+         * One reducer for both buttons rather than two named after them, because a reducer named
+         * `ignoreBoundary` would invite a future ticket to make ignoring mean something. It does not
+         * — ticket 62: *"an alert offers the edit screen; player accepts or ignores"*, and an alert
+         * with a real IGNORE is an offer rather than a toll.
+         */
+        dismissBoundaryAlert: (state): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            if (run.boundaryBiome === undefined) return { run };
+            const { boundaryBiome: _cleared, ...rest } = run;
+            return { run: rest };
         },
 
         // --- Run-scoped economy (ticket 11) ---
@@ -245,15 +295,40 @@ const runSlice = createSlice({
         },
 
         /**
-         * Add cards to the shared run deck — a reward claim, a marketplace purchase, a recruit's
-         * kit. `IRunCard` carries its `dataId` directly, so there is no inventory to add to first:
-         * the deck *is* the collection for the length of the run (`economy-session.md`, bite two).
+         * Add cards to the shared run deck — a reward claim taken to the deck, a marketplace
+         * purchase, a recruit's kit. `IRunCard` carries its `dataId` directly, so there is no
+         * inventory to add to first.
+         *
+         * The old note here read *"the deck IS the collection for the length of the run"*. That
+         * stopped being true on 2026-08-26: there is a real collection now, and `addRunCollection`
+         * below is where a card goes when the player wants to own it without playing it.
          */
         addRunCards: (state, action: PayloadAction<ReadonlyArray<IRunCard>>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
             if (action.payload.length === 0) return { run };
             return { run: { ...run, deck: [...run.deck, ...action.payload] } };
+        },
+
+        /**
+         * Add cards to the run COLLECTION — ticket 61 §2's other half of a reward pick.
+         *
+         * *"Each taken pick offers per-card: ADD TO ACTIVE DECK, or STORE in the run collection."*
+         * This is STORE. It exists because the alternative Henry described from the playtest was
+         * the whole problem: *"it was too hard to build a good deck... deck bloat became a massive
+         * problem"*, and a pick that could only go into the live deck made taking a card and
+         * diluting a deck the same act. Now they are two acts, and only one of them costs anything.
+         *
+         * Separate from `addRunCards` rather than a flag on it, because the two have different
+         * invariants and the difference is going to matter: the deck has a floor and a shuffle
+         * behind it, the collection has neither. A boolean argument would make the call site the
+         * place you find out which.
+         */
+        addRunCollection: (state, action: PayloadAction<ReadonlyArray<IRunCard>>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            if (action.payload.length === 0) return { run };
+            return { run: { ...run, collection: [...(run.collection ?? []), ...action.payload] } };
         },
 
         /** Remove one card by instance id — card removal at a marketplace. No-op if absent. */
@@ -301,6 +376,114 @@ const runSlice = createSlice({
         },
 
         /**
+         * THE FOUR EDIT SURFACES' VERBS — ticket 61 §3 (Henry, 2026-08-26).
+         *
+         * Free, unpriced, and reachable only at a marketplace, a workshop, a biome boundary or the
+         * pre-gauntlet screen. The reducers do not know which surface called them — that gating is
+         * the screens' job — because a reducer that checked the node kind would have to be taught
+         * every new surface, and the list of surfaces is a design decision that moves.
+         *
+         * **The floor is enforced HERE, not only in the editor.** `minimumActiveDeck(partySize)` is
+         * 8 / 13 / 18, and a deck at its floor refuses to shrink. Putting it in the reducer means a
+         * screen that forgets to grey a row cannot produce an illegal deck, which is the same
+         * argument ticket 20 made for the affordability checks living beside the payment.
+         */
+        moveCardToCollection: (state, action: PayloadAction<string>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            // The floor counts the PARTY, so benching a member lowers it in the same edit session.
+            if (run.deck.length <= minimumActiveDeck(run.partyIds.length)) return { run };
+            const instanceId = action.payload;
+            const card = run.deck.find((held) => held.instanceId === instanceId);
+            if (!card) return { run };
+            return {
+                run: {
+                    ...run,
+                    deck: run.deck.filter((held) => held.instanceId !== instanceId),
+                    collection: [...(run.collection ?? []), card],
+                },
+            };
+        },
+
+        /** Collection -> active deck. No ceiling: `DECK_TARGET_MAX` is advice, not a rule. */
+        moveCardToDeck: (state, action: PayloadAction<string>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const instanceId = action.payload;
+            const card = (run.collection ?? []).find((held) => held.instanceId === instanceId);
+            if (!card) return { run };
+            return {
+                run: {
+                    ...run,
+                    deck: [...run.deck, card],
+                    collection: (run.collection ?? []).filter((held) => held.instanceId !== instanceId),
+                },
+            };
+        },
+
+        /**
+         * Swap a benched member into the party — **and their engines swap with them.**
+         *
+         * *"Drag a benched mingming onto a party slot to swap — its 5 engine cards follow it."* The
+         * card movement is what makes benching a routing decision rather than a loss: the outgoing
+         * member's cards go to the collection intact, and come back whole if they are fielded again.
+         *
+         * Cards are matched by `IRunCard.ownerId`, which `runTypes.ts` calls "write-only bookkeeping
+         * against the day a member can leave the party mid-run". This is that day. Cards with a null
+         * owner — picks, purchases, the starter's generics — belong to the RUN and never move.
+         *
+         * Party size does not change, so the deck floor does not change: five out, five in. A swap
+         * therefore cannot break the floor no matter how the deck was edited beforehand.
+         */
+        swapBenchMember: (state, action: PayloadAction<{ outId: string; inId: string }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { outId, inId } = action.payload;
+            const bench = run.bench ?? [];
+            if (!run.partyIds.includes(outId) || !bench.includes(inId)) return { run };
+
+            const collection = run.collection ?? [];
+            const outgoing = run.deck.filter((card) => card.ownerId === outId);
+            const incoming = collection.filter((card) => card.ownerId === inId);
+
+            return {
+                run: {
+                    ...run,
+                    partyIds: run.partyIds.map((id) => (id === outId ? inId : id)),
+                    bench: bench.map((id) => (id === inId ? outId : id)),
+                    deck: [...run.deck.filter((card) => card.ownerId !== outId), ...incoming],
+                    collection: [...collection.filter((card) => card.ownerId !== inId), ...outgoing],
+                },
+            };
+        },
+
+        /**
+         * Bench a party member with no one coming back the other way — the party shrinks.
+         *
+         * Separate from `swapBenchMember` because the floor behaves differently: a party of three
+         * becoming two drops the floor from 18 to 13 in the same action that removes five cards, so
+         * the deck lands exactly on its new floor rather than under it. A swap can never do that.
+         */
+        benchPartyMember: (state, action: PayloadAction<string>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const memberId = action.payload;
+            // The last member cannot be benched: a party of nobody cannot fight, and the run has no
+            // other way back to a legal state.
+            if (!run.partyIds.includes(memberId) || run.partyIds.length <= 1) return { run };
+            const leaving = run.deck.filter((card) => card.ownerId === memberId);
+            return {
+                run: {
+                    ...run,
+                    partyIds: run.partyIds.filter((id) => id !== memberId),
+                    bench: [...(run.bench ?? []), memberId],
+                    deck: run.deck.filter((card) => card.ownerId !== memberId),
+                    collection: [...(run.collection ?? []), ...leaving],
+                },
+            };
+        },
+
+        /**
          * SELL one card for scrap — from the active deck OR the run collection.
          *
          * Replaces `removeRunCardForScrap`, which charged 20 to take a card out of the deck. That
@@ -320,12 +503,26 @@ const runSlice = createSlice({
          * (the tuned lists run doubles and a starter deals three identical generics), so "sell a
          * `water_slap`" leaves the player unable to say *which* one — which matters the moment
          * `ownerId` means anything (the departure bookkeeping `runTypes.ts` describes).
+         *
+         * # THE FLOOR APPLIES HERE TOO, AND IT HAS TO BE HERE RATHER THAN ONLY ON THE SHOP
+         *
+         * Ticket 61 §5 makes the party's own contribution (8/13/18) the minimum active deck, and
+         * `moveCardToCollection` refuses to break it. A sale that ignored it would be the same
+         * illegal deck reached through the other door — pay 5 scrap and the floor is gone — so this
+         * refuses identically. `MarketplaceNode` greys the rows that would break it and the pill
+         * above them says why, but a screen that forgets to grey something still must not be able
+         * to produce an under-floor deck; same argument ticket 20 made for affordability living
+         * beside the payment. **Selling out of the COLLECTION is never floor-blocked**, because the
+         * collection is not the deck.
          */
         sellRunCard: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
             const { instanceId, price } = action.payload;
             if (!Number.isInteger(price) || price < 0) return { run };
+
+            const fromDeck = run.deck.some((card) => card.instanceId === instanceId);
+            if (fromDeck && run.deck.length <= minimumActiveDeck(run.partyIds.length)) return { run };
 
             const deck = run.deck.filter((card) => card.instanceId !== instanceId);
             const collection = (run.collection ?? []).filter((card) => card.instanceId !== instanceId);
@@ -442,6 +639,131 @@ const runSlice = createSlice({
                     scrap: run.scrap - price,
                     partyIds: [...run.partyIds, memberId],
                     deck: [...run.deck, ...cards],
+                },
+            };
+        },
+
+        /**
+         * A recruit assembled straight onto the BENCH — ticket 65's second assembly button.
+         *
+         * Same transaction as `recruitIntoParty` and the same ranch-first ordering behind it (see
+         * that reducer's block, which argues both at length); the only difference is where the two
+         * halves land. The member joins `bench` instead of `partyIds`, and its five engine cards go
+         * to the **collection** instead of the deck.
+         *
+         * # WHY THIS EXISTS AT ALL
+         *
+         * Ticket 65 ruled that an assembled member's engine goes straight to the active deck. That
+         * is right for the member you are going to field, and wrong for the one you are building
+         * *for the fire biome two nodes from now* — which is precisely the experiment Henry asked
+         * for: *"I want to be able to swap out mingmings from the active roster based on the upcoming
+         * biome or challenges. I also want to experiment more."* A bench assembly that shoved five
+         * cards into the live deck would tax the experiment with a deck it did not want, and the
+         * player would have to walk into the editor and undo half of what they just paid for.
+         *
+         * **The party ceiling is not checked here**, because the bench is not the party — this is
+         * how a full party keeps buying. The species clause still is, but not here: `planRecruit`
+         * refuses before either dispatch, and `partyBlockFor` counts party **and** bench, which is
+         * the standing rule (map § Notes) that the roster may hold ten krakens and the *team* may
+         * field one.
+         */
+        recruitToBench: (
+            state,
+            action: PayloadAction<{ memberId: string; cards: ReadonlyArray<IRunCard>; price: number }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { memberId, cards, price } = action.payload;
+
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            // The double-click guard, in both piles: `planRecruit` mints a deterministic member id,
+            // so a second click computes the SAME id rather than a second recruit.
+            if (run.partyIds.includes(memberId)) return { run };
+            if ((run.bench ?? []).includes(memberId)) return { run };
+            // Two cards sharing an instance id would both vanish on the first move, the same
+            // correctness guard `buyMarketCard` and `recruitIntoParty` make for the same reason.
+            const held = new Set([...run.deck, ...(run.collection ?? [])].map((card) => card.instanceId));
+            if (cards.some((card) => held.has(card.instanceId))) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    bench: [...(run.bench ?? []), memberId],
+                    collection: [...(run.collection ?? []), ...cards],
+                },
+            };
+        },
+
+        /**
+         * The RUN half of a reflash: the retired engine leaves the deck for the collection, and the
+         * new one arrives in the deck. Five out, five in — see `workshop.planReflash` for why a
+         * reflash moves cards at all now, and why the count is exactly balanced.
+         *
+         * # HALF A TRANSACTION AGAIN, AND THE RANCH HALF GOES FIRST
+         *
+         * `gameSlice.swapOS` spends the blueprint and rewrites `activeOS`; this spends the scrap and
+         * rewrites the deck. Ranch-first for `recruitIntoParty`'s reason, sharpened by one detail:
+         * the intermediate state here (OS swapped, cards not yet moved) is a member running a
+         * firmware whose engine is not in the deck — untidy, but a perfectly loadable run that the
+         * player can fix for free in the editor. The reverse order leaves a deck holding an engine
+         * for an OS nobody runs, and no blueprint spent to explain it.
+         *
+         * # WHAT IS RETIRED IS MATCHED BY (owner, dataId), AND ONLY OUT OF THE DECK
+         *
+         * Not by instance id, because the plan is computed from the registry and cannot know which
+         * of three `forage` instances is this member's. Not out of the collection either: a card the
+         * player already benched is a card they already decided about, and hauling it back out to
+         * "retire" it would move something they did not touch.
+         *
+         * The consequence, stated because it is a real asymmetry rather than an oversight: a player
+         * who has already sold or stored part of the old engine retires fewer than five cards and
+         * still receives five, so the deck **grows**. That is correct — the floor is a minimum, not a
+         * quota — and it cannot be farmed, because the cards arriving are the ones they now need.
+         */
+        reflashEngine: (
+            state,
+            action: PayloadAction<{
+                memberId: string;
+                retireIds: ReadonlyArray<string>;
+                cards: ReadonlyArray<IRunCard>;
+                price: number;
+            }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { memberId, retireIds, cards, price } = action.payload;
+
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            if (!run.partyIds.includes(memberId) && !(run.bench ?? []).includes(memberId)) return { run };
+            const held = new Set([...run.deck, ...(run.collection ?? [])].map((card) => card.instanceId));
+            if (cards.some((card) => held.has(card.instanceId))) return { run };
+
+            // One instance per retired id, so a five-card engine listing `forage` twice retires two
+            // forages and an engine listing it once retires one.
+            const budget = new Map<string, number>();
+            for (const id of retireIds) budget.set(id, (budget.get(id) ?? 0) + 1);
+
+            const keep: IRunCard[] = [];
+            const retired: IRunCard[] = [];
+            for (const card of run.deck) {
+                const left = budget.get(card.dataId) ?? 0;
+                if (card.ownerId === memberId && left > 0) {
+                    budget.set(card.dataId, left - 1);
+                    retired.push(card);
+                } else {
+                    keep.push(card);
+                }
+            }
+
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    deck: [...keep, ...cards],
+                    collection: [...(run.collection ?? []), ...retired],
                 },
             };
         },
@@ -848,16 +1170,24 @@ export const {
     clearRun,
     enterNode,
     resolveEncounter,
+    dismissBoundaryAlert,
     addRunScrap,
     spendRunScrap,
     addRunCards,
+    addRunCollection,
     removeRunCard,
     buyMarketCard,
     // `removeRunCardForScrap` was exported here until 2026-08-26. Paid removal is deleted; free
     // editing at the four surfaces replaced it, and `sellRunCard` is the verb that pays.
     sellRunCard,
+    moveCardToCollection,
+    moveCardToDeck,
+    swapBenchMember,
+    benchPartyMember,
     rerollMarketStock,
     recruitIntoParty,
+    recruitToBench,
+    reflashEngine,
     buyMacro,
     grantMacro,
     consumeMacro,

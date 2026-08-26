@@ -1,8 +1,8 @@
 /**
  * The workshop — ticket 14.
  *
- * Six claims, each of which can be false without anything crashing, which is what makes them worth
- * a test rather than a comment:
+ * Seven claims, each of which can be false without anything crashing, which is what makes them
+ * worth a test rather than a comment:
  *
  * - **The assembly price stays inside the bounds its docblock claims.** Ticket 56 RULED 25 and 15,
  *   so these are no longer derivations that produce a number — they are bounds the ruled number is
@@ -28,6 +28,12 @@
  *   second answer to re-edit each time.
  * - **The individual is deterministic in the node's visit count.** The workshop is a node's
  *   contents, so ticket 07's re-roll rule and ticket 23's resume contract both apply to it.
+ * - **A reflash is an engine swap, five for five, and the five it mints are the TARGET firmware's.**
+ *   Ticket 65 ruled it — *"reflash swaps engines 5-for-5, with the old set to the collection"* — and
+ *   the 5-for-5 is load-bearing rather than tidy: it is the entire reason `runSlice.reflashEngine`
+ *   has no deck-floor check to make. A plan that retired five and minted four would walk a party
+ *   under `minimumActiveDeck` with no reducer downstream still looking, so the arithmetic is
+ *   asserted here, at the only place it is decided.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -38,8 +44,11 @@ import {
     WORKSHOP_ASSEMBLY_SCRAP,
     WORKSHOP_REFLASH_SCRAP,
     assemblableSpecies,
+    engineIdsFor,
+    engineIdsForSpecies,
     isWorkshopNode,
     planRecruit,
+    planReflash,
     reflashBlockFor,
     reflashOptionsFor,
     workshopBlockFor,
@@ -47,7 +56,7 @@ import {
 } from './workshop';
 import * as marketplace from './marketplace';
 import { CARD_PRICE_BY_ENERGY, MARKET_VISITS_PER_RUN, cardPrice, sellPrice } from './marketplace';
-import { RECRUIT_KIT_SIZE, createRun, recruitDeckFor } from './createRun';
+import { RECRUIT_KIT_SIZE, createRun, minimumActiveDeck, recruitDeckFor } from './createRun';
 import { toMingmingState } from './battleSetup';
 import { nodeSeed } from './nodeSeed';
 import { offerGyms } from './gyms';
@@ -497,5 +506,219 @@ describe('reflash options', () => {
         expect(reflashBlockFor(KRAKEN_MEMBER, makeRanch({}))).toBe('no-blueprint');
         expect(reflashBlockFor(KRAKEN_MEMBER, makeRanch({ fenrir: 5 }))).toBe('no-blueprint');
         expect(reflashBlockFor(KRAKEN_MEMBER, makeRanch({ kraken: 1 }))).toBeNull();
+    });
+});
+
+/**
+ * `planReflash` — ticket 61's engine, ticket 65's swap.
+ *
+ * A reflash used to grant no cards at all: *"the cards already in the deck stay. What changes is the
+ * firmware and every list drawn from it."* That was the right shape while a member's cards were a
+ * loose kit plus filler and the OS only re-aimed what the run would go on to offer. Ticket 61 made
+ * the FIVE-CARD ENGINE the unit — a payoff and the four enablers that exist to set it up — and
+ * ticket 65 ruled the consequence out loud: *"reflash swaps engines 5-for-5, with the old set to the
+ * collection."* The failure it deletes is a specific one, and it is worth stating rather than
+ * gesturing at, because every assertion below is aimed at some piece of it: a BLOOD PACT Fenrir
+ * reflashed to CINDER WALL and left holding Blood Rite and Crimson Draw is a player carrying four
+ * enablers for a payoff they no longer own. Nothing in the game tells them those cards are now dead
+ * weight, and the run's only way out of it is to pay a marketplace to delete them one at a time.
+ *
+ * Kraken is the fixture for all of this because its two firmwares are **disjoint** in the registry —
+ * `kraken_v1` tags `ink_stream / undertow / whirlpool_v2 / pressure_point ×2` (a draw payoff over
+ * the cards that fill the pile it counts) and `kraken_v2` tags `hydro_blast / capacitor ×2 /
+ * surge_protection ×2` (a 3e payoff, the ramp that reaches it, the mitigation that survives to cash
+ * it). Not one card is shared. A plan that quietly retired the wrong five, or minted the CURRENT
+ * engine instead of the target's, would therefore show up as a total mismatch here rather than as
+ * one card's worth of drift that a reader could talk themselves out of.
+ */
+describe('planReflash', () => {
+    const MEMBER = rosterMember('mm1', 'kraken', 'kraken_v1');
+    const RANCH = makeRanch({ kraken: 1 }, [MEMBER]);
+
+    type ReflashInput = Parameters<typeof planReflash>[0];
+    /** The legal reflash — mm1 off `kraken_v1` — with one term at a time swapped out. */
+    const reflash = (over: Partial<ReflashInput> = {}): ReturnType<typeof planReflash> =>
+        planReflash({ ranch: RANCH, run: RUN, node: NODE, member: MEMBER, targetOS: 'kraken_v2', ...over });
+
+    it('returns null for everything reflashBlockFor refuses, and for a firmware the species has not got', () => {
+        // `planRecruit`'s law, applied to the other half of the node: an illegal transaction must
+        // produce NO PLAN, so there is nothing to dispatch and no reducer left to be trusted with
+        // the refusal. That matters more here than it looks, because the two reducers a reflash
+        // touches are in different slices — the ranch owns the firmware, the run owns the deck —
+        // and a plan is the only place both halves are visible at once.
+
+        // No blueprint of the member's own species. The second case is the one a well-meant patch
+        // gets wrong: the ranch is not empty, it is simply holding somebody else's blueprint.
+        expect(reflash({ ranch: makeRanch({}, [MEMBER]) })).toBeNull();
+        expect(reflash({ ranch: makeRanch({ fenrir: 9 }, [MEMBER]) })).toBeNull();
+
+        // No other firmware. `control` is the measuring instrument (ticket 42's "everything except
+        // measuring instruments"), and it is used here rather than an unknown species precisely
+        // because it is a REAL registry entry that offers exactly one OS — so this covers the
+        // reachable shape of the refusal and not just the renamed-species fallback that
+        // `reflashOptionsFor` already has its own test for.
+        const control = rosterMember('mmC', 'control', 'control_v1');
+        const controlRanch = makeRanch({ control: 1 }, [control]);
+        expect(reflashBlockFor(control, controlRanch)).toBe('no-other-firmware');
+        expect(reflash({ ranch: controlRanch, member: control, targetOS: 'control_v1' })).toBeNull();
+
+        // And the clause `reflashBlockFor` does NOT cover, which is why `planReflash` checks the
+        // target separately rather than trusting the block: the member is reflashable, the ranch is
+        // stocked, and the OS asked for is somebody else's entirely. A caller that passed a stale
+        // id from a picker rendered for a different member would otherwise mint a Fenrir engine
+        // onto a Kraken — `startKitIdsFor` reads the species and the OS independently, so nothing
+        // downstream of here would notice.
+        expect(reflashBlockFor(MEMBER, RANCH)).toBeNull();
+        expect(reflash({ targetOS: 'fenrir_v2' })).toBeNull();
+        expect(reflash({ targetOS: 'no-such-os' })).toBeNull();
+        // The firmware it is ALREADY running is refused too, and that is the same clause doing it:
+        // `reflashOptionsFor` filters `activeOS` out of the options, so "reflash to what you have"
+        // is not a no-op costing 15 scrap, it is not a transaction at all.
+        expect(reflash({ targetOS: 'kraken_v1' })).toBeNull();
+    });
+
+    it('hands back the member as it will BE — the TARGET firmware, not the one it walked in on', () => {
+        // `IReflashPlan.member` is documented as *"the member as it will be AFTER the swap — the OS
+        // is already the target one"*, and the direction is the whole point: the caller dispatches
+        // this member straight into the roster, so a plan that returned the member unchanged would
+        // pay 15 scrap, swap five cards for five, and leave the ranch still believing the old
+        // firmware is live. Every list that reads `activeOS` — `rewardCardPool` and
+        // `rollMarketStock` among them — would then keep offering cards for the engine the player
+        // just retired, which is the precise opposite of what the 15 scrap buys.
+        const plan = reflash()!;
+        expect(plan.member.activeOS).toBe('kraken_v2');
+
+        // The same individual, reflashed — not a new one built to order. The id has to survive
+        // because every card already in the deck points at it through `ownerId`, and the IVs have
+        // to survive because a firmware swap that re-rolled the stats would make the workshop's
+        // 15-scrap button a cheaper `planRecruit` with none of its blueprint gating.
+        expect(plan.member.id).toBe(MEMBER.id);
+        expect([plan.member.attackIV, plan.member.defenseIV, plan.member.hpIV])
+            .toEqual([MEMBER.attackIV, MEMBER.defenseIV, MEMBER.hpIV]);
+        // The input is not mutated on the way past: this is a plan, and nothing has happened yet.
+        expect(MEMBER.activeOS).toBe('kraken_v1');
+    });
+
+    it('retires exactly the engine it is running and mints exactly the engine it is going to', () => {
+        // The two halves are computed by two different helpers on purpose — `engineIdsFor` reads a
+        // real member, `engineIdsForSpecies` answers for a hypothetical one — and the reason to
+        // assert against both rather than against a hard-coded list of five card ids is the one
+        // `planRecruit`'s kit test gives: a second derivation living in this file is a second
+        // answer waiting to disagree, and the engine table has moved five times in a fortnight.
+        //
+        // The direction is the thing a well-meant patch reverses. Retiring the TARGET's five and
+        // minting the CURRENT five is the same code with two variables swapped; it passes any
+        // length check, keeps the deck at exactly the right size, and hands the player back the
+        // engine they just paid to leave.
+        const plan = reflash()!;
+        expect(plan.retireIds).toEqual(engineIdsFor(MEMBER));
+        expect(plan.cards.map((c) => c.dataId)).toEqual(engineIdsForSpecies(MEMBER.definitionId, 'kraken_v2'));
+
+        // The preview and the delivery agree: what ticket 65's assembly stage prints beside the OS
+        // picker (*"ITS 5-CARD ENGINE -> DECK"*) is what actually arrives.
+        expect(plan.cards.map((c) => c.dataId)).toEqual(engineIdsFor(plan.member));
+
+        // And the two engines really are disjoint, which is what makes the assertion above worth
+        // trusting rather than a tautology over two lists that happen to share four of five cards.
+        expect(plan.cards.filter((c) => plan.retireIds.includes(c.dataId))).toEqual([]);
+    });
+
+    it('is five for five, which is why the reducer has no floor check to make', () => {
+        // THE property, and the one that reads as an accident until you see what it protects.
+        //
+        // *"You can never edit below what the team itself brings — the team is the deck, as a
+        // floor"*, and `minimumActiveDeck` puts that at 8 / 13 / 18. A workshop is one of the four
+        // edit surfaces, so a player can and will arrive with the deck sitting exactly ON its
+        // floor. A reflash is still legal there — `runSlice.reflashEngine` has no floor check —
+        // and the ONLY thing that makes that safe is this equality: the party's contribution has
+        // not changed, only which five cards it contributes.
+        //
+        // So a plan that minted four (a species tagged with a short kit, say, which
+        // `startKitIdsFor` warns about but still serves) would walk a floored deck one card under
+        // its minimum, and the reducer that could have caught it does not exist. The obvious patch
+        // when that turns up in play is to add the floor check back to the reducer; the right fix
+        // is to keep this equality true, which is what this test is here to notice first.
+        const plan = reflash()!;
+        expect(plan.retireIds).toHaveLength(RECRUIT_KIT_SIZE);
+        expect(plan.cards).toHaveLength(RECRUIT_KIT_SIZE);
+        expect(plan.cards.length).toBe(plan.retireIds.length);
+
+        // Played out on the run's real opening deck rather than asserted as arithmetic: a solo
+        // party opens at 8, which IS its floor, and the swap leaves it at 8.
+        const floor = minimumActiveDeck(RUN.partyIds.length);
+        expect(RUN.deck).toHaveLength(floor);
+        expect(RUN.deck.length - plan.retireIds.length + plan.cards.length).toBe(floor);
+    });
+
+    it('mints every card onto the member that will play it', () => {
+        // `ownerId` is the roster instance id, and a card pointing at an id the roster does not
+        // hold is exactly the bookkeeping `runTypes.ts` keeps the field for, broken. A reflash is
+        // the easy place to get this wrong, because there are two members in scope — the one that
+        // walked in and the one the plan hands back — and they are not the same object. They ARE
+        // the same id, which is what makes the mistake invisible until the day it is not.
+        const plan = reflash()!;
+        for (const card of plan.cards) expect(card.ownerId).toBe(MEMBER.id);
+        for (const card of plan.cards) expect(card.ownerId).toBe(plan.member.id);
+        // Five distinct instances, not one card counted five times: the v2 engine tags `capacitor`
+        // and `surge_protection` twice each, so the duplicate dataIds must still be separate cards.
+        expect(new Set(plan.cards.map((c) => c.instanceId)).size).toBe(plan.cards.length);
+    });
+
+    it('is deterministic in the run, the node, the visit, the member and the target', () => {
+        // Ticket 23's resume contract, applied to a screen the player may well be standing on when
+        // the app closes. The workshop is a node's CONTENTS (ticket 07), so what it offers has to
+        // be a pure function of the seed and the visit — a reflash whose five cards were minted
+        // from a fresh stream would come back from a reload with five different instance ids, and
+        // a run that had already been shown its offer would silently be shown another one.
+        const a = reflash()!;
+        const b = reflash()!;
+        expect(b.cards.map((c) => c.instanceId)).toEqual(a.cards.map((c) => c.instanceId));
+        expect(b).toEqual(a);
+
+        // The visit is a term, for the same reason and with ticket 07's consequence attached:
+        // *"markets and workshops can be revisited at the price of re-fighting the wilds on the
+        // way"*, so walking away and back re-mints. The CARDS do not change — the engine is the
+        // engine — only the instances, which is the honest distinction between "a different offer"
+        // and "the same offer, minted again".
+        const later = reflash({ node: visited(WORKSHOPS[0], 2) })!;
+        expect(later.cards.map((c) => c.dataId)).toEqual(a.cards.map((c) => c.dataId));
+        expect(later.cards.map((c) => c.instanceId)).not.toEqual(a.cards.map((c) => c.instanceId));
+    });
+
+    it('labels its fork with the target, so reflashing there and back does not mint the same cards twice', () => {
+        // The fork is `reflash-deck:<member>:<targetOS>` and the target is in the label on purpose:
+        // *"reflashing to A and then to B must not mint A's cards twice."*
+        //
+        // A round trip is the strongest form of that available in the launch registry, since every
+        // species offers exactly two firmwares — so "A then B" from one member IS there and back,
+        // at the same node on the same visit, with the target as the only term that differs. That
+        // is what makes it a test of the LABEL rather than of the seed: drop `:${targetOS}` from
+        // the fork and both calls draw from one stream at one position, and the five cards the
+        // player gets back on the return trip carry the instance ids of the five they were offered
+        // on the way out. Two cards under one instance id in a single deck is a bug with no
+        // symptom until something keys off it.
+        const toV2 = reflash()!;
+        const backToV1 = reflash({ member: toV2.member, targetOS: 'kraken_v1' })!;
+
+        expect(backToV1.cards.map((c) => c.instanceId)).not.toEqual(toV2.cards.map((c) => c.instanceId));
+        expect(new Set([...toV2.cards, ...backToV1.cards].map((c) => c.instanceId)).size)
+            .toBe(2 * RECRUIT_KIT_SIZE);
+
+        // The round trip is otherwise a mirror, which is the sanity check on the fixture: what the
+        // return leg mints is what the outward leg retired, and vice versa.
+        expect(backToV1.cards.map((c) => c.dataId)).toEqual([...toV2.retireIds]);
+        expect(backToV1.retireIds).toEqual(toV2.cards.map((c) => c.dataId));
+    });
+
+    it('carries WORKSHOP_REFLASH_SCRAP so nothing downstream re-derives a price it must check', () => {
+        // `IReflashPlan.scrap` exists for the same reason `IRecruitPlan.scrap` does: the reducer
+        // that spends the scrap is the one that refuses the payment, and a reducer that reached for
+        // the constant itself would be a second place the price is written down. One of the two
+        // would eventually be the one Henry did not re-rule.
+        expect(reflash()!.scrap).toBe(WORKSHOP_REFLASH_SCRAP);
+        expect(reflash()!.scrap).toBe(15);
+        // And it is the reflash's price, not the recruit's — the node charges two different numbers
+        // and they are one property name apart.
+        expect(reflash()!.scrap).not.toBe(WORKSHOP_ASSEMBLY_SCRAP);
     });
 });

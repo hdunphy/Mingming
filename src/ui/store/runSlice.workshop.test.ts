@@ -28,6 +28,7 @@ import { describe, expect, it } from 'vitest';
 import gameReducer, { assembleMingming, createEmptyRanch, swapOS } from './gameSlice';
 import * as runSlice from './runSlice';
 import runReducer, {
+    addRunCollection,
     addRunScrap,
     clearRun,
     endRun,
@@ -509,7 +510,13 @@ describe('the workshop no longer strips a card for scrap', () => {
         expect(store.getState().game.blueprints).toEqual({});
         // And selling — the verb that DOES move scrap for a card — pays rather than charges, and
         // does it at the marketplace. The direction is the assertion.
-        const target = store.getState().run.run!.deck[0];
+        //
+        // Out of the COLLECTION, because a fresh solo deck sits exactly on its floor and ticket 61
+        // §5 refuses a sale that would break it (`runSlice.marketplace.test.ts` asserts that in its
+        // own right). The direction of the payment is what this test is about, and it is the same
+        // from either pile.
+        const target = { instanceId: 'stored-1', dataId: GENERIC_HIT, ownerId: null };
+        store.dispatch(addRunCollection([target]));
         store.dispatch(sellRunCard({ instanceId: target.instanceId, price: sellPrice(target.dataId) }));
         expect(store.getState().run.run!.scrap).toBe(60 + sellPrice(target.dataId));
     });

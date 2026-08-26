@@ -38,7 +38,7 @@ import runReducer, {
     startRun,
     type RunSliceState,
 } from './runSlice';
-import { createRun } from '../../engine/run/createRun';
+import { createRun, minimumActiveDeck } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
     REROLL_PRICE,
@@ -153,6 +153,26 @@ describe('buying', () => {
 });
 
 describe('selling — the one card verb that pays the player', () => {
+    /**
+     * The run with slack above the deck floor.
+     *
+     * A fresh solo run's deck is EXACTLY `minimumActiveDeck(1)` — five engine cards plus three
+     * generics — so every sale out of it is floor-blocked, which is correct and is asserted in its
+     * own test below. These tests are about the price and the piles, so they buy the deck some room
+     * first. The bought cards carry `ownerId: null`, exactly as a purchase does.
+     */
+    function withSlack(run: IRunState): IRunState {
+        return {
+            ...run,
+            deck: [
+                ...run.deck,
+                { instanceId: 'slack-1', dataId: GENERIC_HIT, ownerId: null },
+                { instanceId: 'slack-2', dataId: GENERIC_HIT, ownerId: null },
+                { instanceId: 'slack-3', dataId: 'ink_stream', ownerId: null },
+            ],
+        };
+    }
+
     /** The run with a two-card collection: everything owned this run that is not in the deck. */
     function withCollection(run: IRunState): IRunState {
         return {
@@ -165,7 +185,7 @@ describe('selling — the one card verb that pays the player', () => {
     }
 
     it('ADDS the price and thins the deck by one', () => {
-        const run = atMarket(makeRun(100));
+        const run = withSlack(atMarket(makeRun(100)));
         // The start deck holds the starter's three identical generics (Henry, 2026-08-26:
         // `STARTER_GENERICS`, once, on the first mingming — it was 3 per member under ticket 08 and
         // 2 per member under ticket 60), so "thins by exactly one" is also the instance-keying
@@ -184,8 +204,9 @@ describe('selling — the one card verb that pays the player', () => {
         expect(after.scrap).toBe(100 + price);
         expect(after.deck.length).toBe(run.deck.length - 1);
         expect(after.deck.some((c) => c.instanceId === target.instanceId)).toBe(false);
-        // And the other two generics are untouched, which a dataId-keyed sale would not leave true.
-        expect(after.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(2);
+        // And the other generics are untouched, which a dataId-keyed sale would not leave true.
+        expect(after.deck.filter((c) => c.dataId === GENERIC_HIT))
+            .toHaveLength(run.deck.filter((c) => c.dataId === GENERIC_HIT).length - 1);
     });
 
     it('sells out of the COLLECTION too, leaving the deck alone', () => {
@@ -211,7 +232,7 @@ describe('selling — the one card verb that pays the player', () => {
     it('pays the same for the same card whichever pile it was in', () => {
         // The price is a property of the CARD, not of where the player happened to leave it — which
         // is why the screen lists both piles as one list.
-        const run = atMarket(withCollection(makeRun(100)));
+        const run = withSlack(atMarket(withCollection(makeRun(100))));
         const inDeck = run.deck.find((c) => c.dataId === GENERIC_HIT)!;
         const inCollection = run.collection!.find((c) => c.dataId === GENERIC_HIT)!;
 
@@ -224,6 +245,42 @@ describe('selling — the one card verb that pays the player', () => {
 
         expect(fromDeck.scrap).toBe(fromCollection.scrap);
         expect(fromDeck.scrap).toBe(100 + SELL_PRICE_BY_ENERGY[0]);
+    });
+
+    it('refuses to sell the active deck below its floor — the other door to an illegal deck', () => {
+        // Ticket 61 §5: the party's own contribution (8/13/18) is the minimum active deck, and
+        // `moveCardToCollection` refuses to break it. A sale that ignored the floor would reach the
+        // same illegal deck for 5 scrap, so it refuses identically. A fresh solo run sits exactly ON
+        // the floor, which is why no fixture is needed to reach the case.
+        const run = atMarket(makeRun(100));
+        expect(run.deck.length).toBe(minimumActiveDeck(run.partyIds.length));
+
+        const target = run.deck[0];
+        const after = runReducer(
+            stateOf(run),
+            sellRunCard({ instanceId: target.instanceId, price: sellPrice(target.dataId) }),
+        ).run!;
+
+        // Byte-identical: the slice's standing refusal convention, and the proof no scrap was paid
+        // for a sale that did not happen.
+        expect(after).toEqual(run);
+    });
+
+    it('still sells out of the COLLECTION at the floor — the collection is not the deck', () => {
+        // The asymmetry is the point: the floor is a statement about what you can FIELD, and a card
+        // in the collection is not fielded. A floor that blocked both piles would strand a player
+        // who stored eight cards and cannot afford the next stall.
+        const run = atMarket(withCollection(makeRun(100)));
+        expect(run.deck.length).toBe(minimumActiveDeck(run.partyIds.length));
+
+        const target = run.collection![0];
+        const after = runReducer(
+            stateOf(run),
+            sellRunCard({ instanceId: target.instanceId, price: sellPrice(target.dataId) }),
+        ).run!;
+
+        expect(after.scrap).toBe(100 + sellPrice(target.dataId));
+        expect(after.deck).toEqual(run.deck);
     });
 
     it('pays nothing for a card that is in NEITHER pile', () => {

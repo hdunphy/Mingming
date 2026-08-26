@@ -85,44 +85,64 @@ function standingOn(kind: NodeKind, over: Partial<IRunState> = {}): IRunState {
 }
 
 describe('RunScreen — a node that fired says so', () => {
-    it('opens the shop on a marketplace instead of an apology (ticket 13)', () => {
-        // Until ticket 13 this node printed "nothing here yet (ticket 13)". It now has all three
-        // verbs, so the placeholder has to be gone rather than merely accompanied — a screen that
-        // says both is a screen nobody updated.
+    it('gives the marketplace the WHOLE screen, map chrome and all (tickets 13, 63)', () => {
+        /*
+         * Two rulings stacked here, and the second reversed the first.
+         *
+         * Ticket 13 made the shop a PANEL over the map, on the argument that *"a market is not a
+         * mode you are trapped in, it is a thing at the place you are standing"* — so it had no
+         * LEAVE button, because there was nothing to leave. Ticket 63's ruled mockup
+         * (`market_G_stall.html`) is a full frame with its own top bar, an always-visible sell
+         * column and a LEAVE, and it has to be: a stall that wide does not fit beside a map.
+         *
+         * So the assertion is inverted rather than dropped. The map's own chrome — the seed line,
+         * the canvas, the abandon control — must be ABSENT, which is the half a well-meant "keep
+         * the header for context" patch would break, and is the whole difference between the two
+         * rulings.
+         */
         const markup = render(standingOn('marketplace'));
 
         expect(markup).not.toContain('nothing here yet');
-        expect(markup).toContain('Marketplace');
-        expect(markup).toContain('Stock');
-        // The Done-when: the deck count is on screen with its target beside it.
-        expect(markup).toContain('deck:');
-        expect(markup).toContain('target 20');
+        expect(markup).toContain('MARKETPLACE');
+        expect(markup).toContain('STOCK');
+        expect(markup).toContain('LEAVE');
+        // Ticket 61 §3: the stall is one of the four doors to the shared editor.
+        expect(markup).toContain('EDIT LOADOUT');
+        // The map is not underneath it any more.
+        expect(markup).not.toContain('rm-canvas');
+        expect(markup).not.toContain('Abandon run');
+        // Ticket 61 §5 replaced the 20-25 TARGET with an enforced floor, and printing an aspiration
+        // beside a minimum invites the player to read the aspiration as the rule.
+        expect(markup).not.toContain('target 20');
+        expect(markup).toContain('floor');
     });
 
     it('does NOT open the shop on any other kind of node', () => {
-        // The marketplace is a panel on the run screen rather than a route, so the guard that keeps
-        // it off a workshop is one `isMarketNode` call and worth pinning.
-        expect(render(standingOn('workshop'))).not.toContain('Reroll');
+        // The route into the stall is one `isMarketNode` call, and it is worth pinning that the
+        // bay next door does not answer to it.
+        expect(render(standingOn('workshop'))).not.toContain('REROLL');
     });
 
-    it('opens the workshop on a workshop instead of an apology (ticket 14)', () => {
-        // Until ticket 14 this node printed "nothing here yet (ticket 14)". It has a bench now, so
-        // the placeholder has to be GONE rather than merely accompanied — a screen that says both is
-        // a screen nobody updated.
+    it('gives the workshop the whole screen too (tickets 14, 65)', () => {
+        // Same inversion as the stall above, for the same reason: `workshop_I_bay.html` is three
+        // columns around a lit assembly stage and does not fit beside a map either.
         const markup = render(standingOn('workshop'));
 
         expect(markup).not.toContain('nothing here yet');
         expect(markup).not.toContain('ticket 14');
-        expect(markup).toContain('Workshop');
-        expect(markup).toContain('Assemble');
+        expect(markup).toContain('WORKSHOP');
+        expect(markup).toContain('BLUEPRINTS');
+        expect(markup).toContain('LEAVE');
+        expect(markup).toContain('EDIT LOADOUT');
+        expect(markup).not.toContain('rm-canvas');
         // The one thing this node must say that no other node can: the party grows here and only
         // here (ticket 06), with the count beside it.
-        expect(markup).toContain('party: 1/3');
+        expect(markup).toContain('PARTY 1/3');
         expect(markup).toContain('only place the party grows');
     });
 
     it('does NOT open the workshop on any other kind of node', () => {
-        expect(render(standingOn('marketplace'))).not.toContain('Reflash firmware');
+        expect(render(standingOn('marketplace'))).not.toContain('BLUEPRINTS');
     });
 
     it('says nothing of the kind on a fight node', () => {
@@ -133,9 +153,31 @@ describe('RunScreen — a node that fired says so', () => {
     });
 
     it('shows the map, the party and the run’s seed while on the map', () => {
-        const markup = render(standingOn('marketplace'));
+        // A plain node, now that the stall and the bay take the whole screen. `event` is the one
+        // kind still in `PENDING_NODE_TICKET`, so it is the map's own chrome and nothing else.
+        const markup = render(standingOn('event'));
         expect(markup).toContain('run-screen-seed');
         expect(markup).toContain('fights');
+        expect(markup).toContain('rm-canvas');
+    });
+
+    it('offers the way back into a stall the player closed with LEAVE', () => {
+        /*
+         * LEAVE is what ticket 63's full-screen stall costs, and this button is what keeps ticket
+         * 13's argument true anyway: *"there is nothing to leave"* — the node is not spent, you are
+         * still standing on it, and the map offers a way straight back in. Without this the LEAVE
+         * button would be a one-way door out of a node the player has not finished with, which is
+         * the opposite of what ticket 07 makes a market.
+         *
+         * Rendered by clicking LEAVE, which `renderToStaticMarkup` cannot do — so this asserts the
+         * copy exists in the module rather than the state, and `RunScreen`'s `closedNodeId` is what
+         * routes to it. Flagged as the one branch here that a click test (ticket 58's jsdom shape)
+         * should take over.
+         */
+        const markup = render(standingOn('marketplace'));
+        // The stall is open, so the way back in is NOT on screen — it is the closed state's copy.
+        expect(markup).not.toContain('Back to the stall');
+        expect(markup).toContain('LEAVE');
     });
 });
 
@@ -215,8 +257,10 @@ describe('RunScreen — the gauntlet takes the screen', () => {
 
     it('does NOT draw the region map — there is no walking out of the exam', () => {
         expect(render(inGauntlet())).not.toContain('rm-canvas');
-        // ...and an ordinary node still does.
-        expect(render(standingOn('marketplace'))).toContain('rm-canvas');
+        // ...and an ordinary node still does. `event` rather than `marketplace` since ticket 63:
+        // the stall takes the whole screen too now, so it is no longer the control case for "the
+        // map is still there" — see the stall's own test for the inversion.
+        expect(render(standingOn('event'))).toContain('rm-canvas');
     });
 });
 
@@ -275,7 +319,11 @@ describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
         // `window.confirm` is gone (ticket 19): a native modal in a game that draws its own UI,
         // unstyleable, unreachable by gamepad (ticket 38), and untestable. The first step is what
         // stands between one stray click and forty minutes.
-        const markup = render(standingOn('marketplace'));
+        //
+        // On a plain node, because the stall and the bay take the whole screen since tickets 63 and
+        // 65 and neither of their ruled top bars carries an abandon. Quitting is still always
+        // allowed — it is LEAVE and then this button, one click further away than it was.
+        const markup = render(standingOn('event'));
         expect(markup).toContain('Abandon run');
         // The second step's wording appears only after that click, so a confirm that ships both
         // states at once is not a confirm.

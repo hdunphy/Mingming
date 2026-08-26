@@ -34,6 +34,7 @@ import { openSettings } from '../store/uiSlice';
 import {
     addDriver,
     addRunCards,
+    addRunCollection,
     addRunScrap,
     advanceGauntlet,
     consumeMacro,
@@ -794,7 +795,11 @@ const BattleArena: React.FC = () => {
      * A defeat does not come through here at all — `handleDefeat` ends the run, and a wipe in fight
      * one of three is exactly as final as a wipe anywhere else on the map.
      */
-    const handleContinue = (chosenCards: IOwnedProgram[], chosenRelic?: string) => {
+    const handleContinue = (
+        chosenCards: IOwnedProgram[],
+        chosenRelic?: string,
+        storedInstanceIds: ReadonlyArray<string> = [],
+    ) => {
         if (rewardBundle) {
             // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints — and ticket 12
             // moved the **blueprints** out of this handler: they are banked to the ranch as soon as
@@ -804,12 +809,28 @@ const BattleArena: React.FC = () => {
                 dispatch(addRunScrap(rewardBundle.scraps));
             }
             if (chosenCards.length > 0) {
-                const runCards: IRunCard[] = chosenCards.map(card => ({
+                /*
+                 * TICKET 61 §2: A TAKEN PICK NOW HAS TWO DESTINATIONS.
+                 *
+                 * `BattleReport` asks per card — ADD TO ACTIVE DECK or STORE in the run collection
+                 * — and hands back the ids of the stored ones. Everything unnamed goes to the deck,
+                 * so a caller with no collection (the debug scenarios) behaves exactly as before.
+                 *
+                 * Two dispatches rather than one with a flag, because the deck and the collection
+                 * are two piles with different invariants (`runSlice.addRunCollection` argues it).
+                 * They are not a transaction: a card in the wrong pile is one free click to fix at
+                 * any of the four edit surfaces, which is the difference between this and a payment.
+                 */
+                const store = new Set(storedInstanceIds);
+                const toRunCard = (card: IOwnedProgram): IRunCard => ({
                     instanceId: card.instanceId,
                     dataId: card.dataId,
                     ownerId: null,
-                }));
-                dispatch(addRunCards(runCards));
+                });
+                const forDeck = chosenCards.filter(card => !store.has(card.instanceId)).map(toRunCard);
+                const forCollection = chosenCards.filter(card => store.has(card.instanceId)).map(toRunCard);
+                if (forDeck.length > 0) dispatch(addRunCards(forDeck));
+                if (forCollection.length > 0) dispatch(addRunCollection(forCollection));
             }
             if (chosenRelic) {
                 dispatch(addDriver(chosenRelic));

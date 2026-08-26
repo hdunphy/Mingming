@@ -1,0 +1,373 @@
+/**
+ * `npm run balance:run-gate` — ticket 61's run gate, printed.
+ *
+ * The harness is `runGate.ts`; this file is the argv, the table and the exit code. Same split as
+ * `runDeckReport.ts` / `deckReport.ts`, and for the same reason: the thing that decides *what to
+ * measure* should be importable and testable without a `console.log` in it.
+ *
+ * Usage:
+ *
+ *     npm run balance:run-gate                                  # all three bands, ITERATIONS_DEFAULT each
+ *     npm run balance:run-gate -- --iterations 12               # one full pass over the 12 tuned OS ids
+ *     npm run balance:run-gate -- --bands gauntlet --iterations 24
+ *     npm run balance:run-gate -- --cells wild:biome0 --iterations 400   # the cheap cells, to real precision
+ *     npm run balance:run-gate -- --strict                      # exit 1 if any band is outside ±5
+ *     npm run balance:run-gate -- --list                        # every cell id, and nothing else
+ *
+ * `--cells` exists because **the nine cells differ in cost by a factor of two hundred** (see
+ * `runGate.ts`'s cost table), and `--iterations` alone therefore prices the whole gate at its most
+ * expensive cell. `wild:biome0` is a 1v1 and runs 400 samples in under a minute; `gauntlet:fight2` is
+ * a 3v3 and runs 400 samples in about five hours. A knob that could only move them together would
+ * mean the two cheap cells were permanently under-sampled for no reason at all. A band measured with
+ * `--cells` is still pooled over whatever cells were run, so **a band verdict from a partial cell set
+ * is not a band verdict** — the header line says which cells were in it, and that line is the caveat.
+ *
+ * # DELIBERATELY NOT A VITEST SUITE, AND DELIBERATELY NOT A CI GATE
+ *
+ * `npm run balance` is the commit gate and its runtime is a standing requirement (ticket 20). This
+ * measures a different thing (a run, not a deck) at a cost that would swamp that gate — six of its
+ * nine cells are 3v3 — so it runs as a plain script, writes no file, and touches neither
+ * `docs/balance/balance_report.json` nor `deck_report.json`.
+ *
+ * Ticket 61 asks for *"a report, not a CI gate"*: the exit code is **0 whatever the numbers say**,
+ * so a failing band is a finding for Henry to rule on rather than a red build. `--strict` flips that
+ * for whoever eventually wants it wired into something.
+ *
+ * # THE DEFAULT, AND ITS RUNTIME — MEASURED, NOT ESTIMATED, AND OVER THE TICKET'S BUDGET
+ *
+ * `ITERATIONS_DEFAULT = 2` is **18 battles: 2 samples in each of 9 cells**, and it takes
+ * **8m 23s** — measured, 502,832 ms, on a 2-core Xeon @2.8GHz under `npx vite-node`. Split: WILDS
+ * 63.7s, ELITES 144.3s, GAUNTLET 294.8s. Two separate default runs produced byte-identical win/loss
+ * sequences, which is the determinism contract holding: every seed in this gate derives from a
+ * sample index, so the same invocation is the same 18 battles.
+ *
+ * **Ticket 61 asked for well under five minutes and this does not meet it. The reason is worth
+ * recording rather than papering over, because it is a fact about the engine and not about this
+ * script.** Six of the nine cells are 3v3, a 3v3 battle costs 30-70 seconds, and nothing this file
+ * controls changes that: `TacticalAI`'s same-turn search enumerates casters x hand x targets, so a
+ * 3v3 decision is ~200x a 1v1 one (`runGate.ts`'s cost table, and `gauntlet-boss.balance.ts` reached
+ * the same wall independently). The gate needs 3v3 because the run does — a trio at biome 2 and a
+ * trio at the gym are what ticket 61 named as the representative decks.
+ *
+ * Three ways out were considered and all three are worse than telling the truth:
+ *
+ * - **`ITERATIONS_DEFAULT = 1`** hits the budget at ~4m 10s, and prints three battles per band — a
+ *   band that can only read 0%, 33%, 67% or 100%. That satisfies a stopwatch by making the output
+ *   unreadable, which is the wrong trade for a ticket whose deliverable is numbers.
+ * - **`AI_LITE` / `AI_BEAM`** would buy roughly 2-3x. Ticket 108 calibrated both and its ruling is
+ *   explicit — *"SCREEN WITH LITE, CONFIRM THE WINNER WITH FULL. Never read a band verdict off
+ *   lite"* — and lite biases weak arms UP by as much as 8 points, which is larger than the window
+ *   being checked. (It is moot anyway: see the `process.env` note below.)
+ * - **Dropping the 3v3 cells** would make the gate fast and make it measure a different game.
+ *
+ * So the default is sized to be *readable* rather than *fast*, and the cost is printed at the bottom
+ * of every run. **At the default every band's 95% interval is roughly ±20 to ±40 points, four to
+ * eight times ticket 61's ±5 window** — the default exists to prove the harness runs end to end and
+ * to catch a band that is wrong by thirty points, not to close the window. Closing it needs
+ * `--iterations` in the low hundreds and hours of wall clock; buy it one band at a time with
+ * `--bands`, and use `--cells` for the two cheap cells, which are nearly free.
+ *
+ * # WHAT THE FIRST REAL MEASUREMENT SAID (2026-08-26, registry `1:1ad8616b`)
+ *
+ * Recorded here the way `gauntlet-boss.balance.ts` records its first smoke run: **not as a threshold
+ * and not as a claim about what the game should be**, but so the next person to run this knows what
+ * moved and what did not. Every number is a measurement, not a target. All three bands are far
+ * outside their windows, and **none of the three misses is a sampling artefact** — the two cheapest
+ * cells were run to 1,200 samples each, which puts their intervals well inside ±5.
+ *
+ * | cell | n | win rate | 95% CI |
+ * |---|---|---|---|
+ * | `wild:biome0`     | 1200 | **67.1%** | 64.4-69.7 |
+ * | `wild:biome1`     |  120 | **26.7%** | 19.6-35.2 |
+ * | `wild:biome2`     |   12 | 50.0%     | wide |
+ * | `elite:biome0`    | 1200 | **36.9%** | 34.2-39.7 |
+ * | `elite:biome1`    |  120 | **42.5%** | 34.0-51.4 |
+ * | `elite:biome2`    |   12 | 41.7%     | wide |
+ * | `gauntlet:fight0` |   12 | 75.0%     | wide |
+ * | `gauntlet:fight1` |   12 | 66.7%     | wide |
+ * | `gauntlet:fight2` |   12 | **8.3%**  | wide |
+ *
+ * Pooled at 12 samples per cell: WILDS **52.8%** (19/36) against 95, ELITES **41.7%** (15/36)
+ * against 75, GAUNTLET **50.0%** (18/36) against 60.
+ *
+ * Three things in that table are shapes rather than magnitudes, and they are the ones worth chasing:
+ *
+ * 1. **The kit fraction is not monotonic.** A biome-1 wild (26.7%) is harder than a biome-2 wild
+ *    (50.0%) and much harder than a biome-0 one (67.1%), so ticket 08's table does not currently
+ *    produce a rising difficulty curve — it produces a spike in the middle. The plausible mechanism
+ *    is deck CONCENTRATION rather than deck size: the biome-1 rule is `start-kit`, five pure engine
+ *    cards per body and no filler, while the biome-2 rule is `tuned`, nine cards including whatever
+ *    the tuned list carries to smooth itself out. The player, meanwhile, is holding three neutral
+ *    `GENERIC_HIT` at every depth.
+ * 2. **The gym boss is not in the same game as the two fights before it** — 8.3% against 75.0% and
+ *    66.7%. Ticket 18's own smoke run said the same thing in twelve battles ("the boss team won 12
+ *    of 12... may simply be over the line"), and this is that result at the run's real party and
+ *    deck. And it is an *optimistic* reading: this harness fights from full HP and the real gauntlet
+ *    carries damage forward with no heal.
+ * 3. **The enemy out-rolls the player on IVs by about five points in every stat, everywhere.** See
+ *    the block above `partyFor` in `runGate.ts` for the two call sites. It is upstream of every band
+ *    in this table and of every deck in the game, so it should be ruled on before any deck is.
+ */
+
+import { computeRegistryHash } from '../scenarios/registryHash';
+import { AI_TIER } from '../../engine/ai/TacticalAI';
+import { DEFAULT_MAX_TURNS } from './runBatch';
+import {
+    CELLS,
+    RUN_GATE_TARGETS,
+    RUN_GATE_TOLERANCE,
+    TUNED_OS_IDS,
+    gauntletCompound,
+    measureBand,
+    type BandId,
+    type BandMeasurement,
+    type CellMeasurement,
+} from './runGate';
+
+/** See the header. Two samples per cell, ~5 minutes, ±20 points per band. */
+const ITERATIONS_DEFAULT = 2;
+
+const ALL_BANDS: ReadonlyArray<BandId> = ['wild', 'elite', 'gauntlet'];
+
+interface Args {
+    bands: BandId[];
+    /** Cell ids to restrict to, empty = every cell of every selected band. */
+    cells: string[];
+    iterations: number;
+    maxTurns: number;
+    strict: boolean;
+    /** Print the sampled lineups and enemy rosters per cell. Off by default — it is a wall of text. */
+    verbose: boolean;
+    /** Print the cell ids and exit. */
+    list: boolean;
+}
+
+/**
+ * Argv parsing, copied in shape from `runDeckReport.parseArgs` rather than reached for from a
+ * library: the balance scripts are run by hand from a terminal and a dependency that has to be
+ * installed to read `--iterations 12` is a dependency this repo does not need.
+ *
+ * Flags rather than environment variables, and that is forced rather than chosen — `vite.config.ts`
+ * carries `define: { 'process.env': {} }`, so under `vite-node` every `process.env` read in the
+ * module graph is substituted to `{}` before the script ever starts. `process.argv` is untouched.
+ */
+function parseArgs(argv: string[]): Args {
+    const get = (flag: string): string | undefined => {
+        const i = argv.indexOf(flag);
+        return i >= 0 ? argv[i + 1] : undefined;
+    };
+    const list = (flag: string): string[] | undefined =>
+        get(flag)?.split(',').map((s) => s.trim()).filter(Boolean);
+
+    const bands = (list('--bands') as BandId[] | undefined) ?? [...ALL_BANDS];
+    const iterations = Number(get('--iterations') ?? ITERATIONS_DEFAULT);
+
+    return {
+        bands,
+        cells: list('--cells') ?? [],
+        iterations,
+        maxTurns: Number(get('--max-turns') ?? DEFAULT_MAX_TURNS),
+        strict: argv.includes('--strict'),
+        verbose: argv.includes('--verbose'),
+        list: argv.includes('--list'),
+    };
+}
+
+const pct = (value: number): string => `${(value * 100).toFixed(1)}%`;
+const secs = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
+
+/** `1h 04m 12s` for anything past a minute, plain seconds below it. */
+function clock(ms: number): string {
+    const total = Math.round(ms / 1000);
+    if (total < 60) return `${total}s`;
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return h > 0
+        ? `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`
+        : `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+const BAND_LABEL: Readonly<Record<BandId, string>> = {
+    wild: 'WILDS   (ordinary wild nodes)',
+    elite: 'ELITES  (biome exits + rolled middle elites)',
+    gauntlet: 'GAUNTLET (the gym\'s three fights)',
+};
+
+function cellLine(cell: CellMeasurement): string {
+    return (
+        `    ${cell.label.padEnd(26)} ` +
+        `${String(cell.partySize)}v${String(cell.enemiesSeen[0]?.split(' + ').length ?? '?')}  ` +
+        `${String(cell.wins).padStart(3)}/${String(cell.battles).padEnd(3)} = ${pct(cell.winRate).padStart(6)}  ` +
+        `decisive=${pct(cell.decisiveWinRate).padStart(6)}  ` +
+        `avgTurns=${cell.averageTurns.toFixed(1).padStart(4)}  ` +
+        `ftk=${cell.ftkCount}  stalled=${cell.truncatedCount}  ` +
+        `${secs(cell.elapsedMs)}`
+    );
+}
+
+/**
+ * Is this band's sample too thin for its verdict to mean anything?
+ *
+ * The test is the only one that is actually about the ticket: **is the 95% interval narrower than
+ * the ±5 window the verdict is being read against?** If it is not, PASS and FAIL are both statements
+ * about the sample size rather than about the game — a band could print PASS at the default and FAIL
+ * at `--iterations 40` without a single card changing. Ticket 61 asked for PASS/FAIL and it gets
+ * PASS/FAIL, but a verdict this flag marks is a placeholder for a measurement nobody has paid for
+ * yet, and hiding that behind a confident word would be the one way this report could mislead.
+ */
+const underSampled = (band: BandMeasurement): boolean =>
+    band.high - band.low > 2 * RUN_GATE_TOLERANCE;
+
+/**
+ * One band's verdict line.
+ *
+ * The interval is printed *before* the verdict on purpose. A PASS whose interval spans the whole
+ * window is not a pass, it is an absence of evidence, and putting the two next to each other is the
+ * only way a reader skimming the output sees that.
+ */
+function bandLines(band: BandMeasurement): string[] {
+    const target = RUN_GATE_TARGETS[band.band];
+    const window = `${pct(target - RUN_GATE_TOLERANCE)}-${pct(target + RUN_GATE_TOLERANCE)}`;
+    const delta = band.measured - target;
+    const signed = `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(1)}pt`;
+    const caveat = underSampled(band)
+        ? `  <- UNDER-SAMPLED: the 95% interval (±${(((band.high - band.low) / 2) * 100).toFixed(1)}pt) is wider than the ±5 window, so this verdict is not yet evidence`
+        : '';
+
+    return [
+        '',
+        `  ${BAND_LABEL[band.band]}`,
+        `    target ${pct(target)} (window ${window})   ` +
+        `measured ${pct(band.measured)} (${band.wins}/${band.battles}, ${signed})   ` +
+        `95% CI ${pct(band.low)}-${pct(band.high)}`,
+        `    ${band.inBand ? 'PASS' : 'FAIL'} — ${band.inBand
+            ? 'inside the ±5 window'
+            : `outside the ±5 window by ${((Math.abs(delta) - RUN_GATE_TOLERANCE) * 100).toFixed(1)}pt`}` +
+        `   [${secs(band.elapsedMs)}]${caveat}`,
+        ...band.cells.map(cellLine),
+    ];
+}
+
+async function main(): Promise<void> {
+    const args = parseArgs(process.argv.slice(2));
+
+    if (args.list) {
+        for (const cell of CELLS) console.log(`${cell.id.padEnd(20)} ${cell.partySize}v? ${cell.label}`);
+        return;
+    }
+
+    const unknown = args.bands.filter((band) => !ALL_BANDS.includes(band));
+    if (unknown.length > 0) {
+        console.error(`[balance:run-gate] Unknown band(s): ${unknown.join(', ')}`);
+        console.error(`[balance:run-gate] Valid bands: ${ALL_BANDS.join(', ')}`);
+        process.exitCode = 1;
+        return;
+    }
+    if (!Number.isFinite(args.iterations) || args.iterations < 1) {
+        console.error('[balance:run-gate] --iterations must be an integer >= 1.');
+        process.exitCode = 1;
+        return;
+    }
+
+    const unknownCells = args.cells.filter((id) => !CELLS.some((cell) => cell.id === id));
+    if (unknownCells.length > 0) {
+        console.error(`[balance:run-gate] Unknown cell id(s): ${unknownCells.join(', ')}`);
+        console.error(`[balance:run-gate] Valid ids: ${CELLS.map((cell) => cell.id).join(', ')}`);
+        process.exitCode = 1;
+        return;
+    }
+
+    const cells = CELLS.filter((cell) =>
+        args.bands.includes(cell.band) && (args.cells.length === 0 || args.cells.includes(cell.id)));
+    if (cells.length === 0) {
+        console.error('[balance:run-gate] --bands and --cells select no cells between them.');
+        process.exitCode = 1;
+        return;
+    }
+    const battles = cells.length * args.iterations;
+
+    console.log('[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.');
+    console.log(`[balance:run-gate]   bands      ${args.bands.join(', ')}  (${cells.length} cells: ${cells.map((c) => c.id).join(', ')})`);
+    console.log(`[balance:run-gate]   iterations ${args.iterations} per cell  ->  ${battles} battles, PLAYER moves first (as a run does)`);
+    console.log(`[balance:run-gate]   sample     ${TUNED_OS_IDS.length} tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample`);
+    console.log(`[balance:run-gate]   AI tier    ${AI_TIER}   maxTurns ${args.maxTurns}   registry ${computeRegistryHash()}`);
+    console.log('');
+
+    const started = Date.now();
+    const results: BandMeasurement[] = [];
+
+    // A band with no selected cell is not measured at all rather than measured as 0/0: `--cells
+    // wild:biome0` must not print an ELITES row that says 0.0% FAIL about six battles nobody ran.
+    for (const band of args.bands.filter((b) => cells.some((cell) => cell.band === b))) {
+        results.push(measureBand(band, cells, {
+            iterations: args.iterations,
+            maxTurns: args.maxTurns,
+            onProgress: (cell, sampleIndex, elapsedMs, won) => {
+                console.log(
+                    `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
+                    `${won ? 'WIN ' : 'loss'}  ${secs(elapsedMs)} into cell, ${clock(Date.now() - started)} total`,
+                );
+            },
+        }));
+    }
+
+    const elapsed = Date.now() - started;
+
+    console.log('');
+    console.log('='.repeat(112));
+    console.log('  RUN GATE — ticket 61');
+    console.log('='.repeat(112));
+    for (const band of results) for (const line of bandLines(band)) console.log(line);
+
+    const gauntlet = results.find((band) => band.band === 'gauntlet');
+    if (gauntlet && gauntlet.cells.length === 3) {
+        console.log('');
+        console.log(
+            `    clears all three (product of the per-fight rates): ${pct(gauntletCompound(gauntlet))}` +
+            '  — UNBANDED, and an UPPER BOUND: the gauntlet carries HP between fights and this',
+        );
+        console.log('      harness fights each one from full. See `gauntletCompound` for why.');
+    }
+
+    console.log('');
+    console.log('-'.repeat(112));
+    const failures = results.filter((band) => !band.inBand);
+    console.log(
+        `  ${failures.length === 0 ? 'ALL BANDS IN WINDOW' : `${failures.length} BAND(S) OUTSIDE WINDOW: ${failures.map((b) => b.band).join(', ')}`}`,
+    );
+    const thin = results.filter(underSampled);
+    if (thin.length > 0) {
+        console.log(
+            `  ${thin.length} BAND(S) UNDER-SAMPLED (${thin.map((b) => b.band).join(', ')}): ` +
+            'their 95% interval is wider than the ±5 window, so the verdicts above are provisional. ' +
+            'Raise --iterations.',
+        );
+    }
+    console.log(`  wall clock ${clock(elapsed)} (${elapsed} ms) for ${results.reduce((n, b) => n + b.battles, 0)} battles`);
+    console.log(`  ${(elapsed / Math.max(1, results.reduce((n, b) => n + b.battles, 0)) / 1000).toFixed(1)}s per battle averaged over every cell`);
+    console.log('-'.repeat(112));
+
+    if (args.verbose) {
+        console.log('');
+        console.log('  SAMPLES (player lineup vs rolled enemy roster, in sample order)');
+        for (const band of results) {
+            for (const cell of band.cells) {
+                console.log(`    ${cell.id}`);
+                cell.lineupsSeen.forEach((lineup, i) => {
+                    console.log(`      ${String(i).padStart(3)}  ${lineup.padEnd(46)} vs  ${cell.enemiesSeen[i]}`);
+                });
+            }
+        }
+    }
+
+    // Ticket 61: a report, not a gate. `--strict` is the opt-in for whoever wires this into CI.
+    if (args.strict && failures.length > 0) {
+        console.error(
+            `[balance:run-gate] --strict: ${failures.length} band(s) outside ±${(RUN_GATE_TOLERANCE * 100).toFixed(0)} points.`,
+        );
+        process.exitCode = 1;
+    }
+}
+
+void main();

@@ -497,15 +497,25 @@ export function rollMacroStock(input: MarketStockInput): ReadonlyArray<IMacroOff
 }
 
 /**
- * Has this offer already been bought? True exactly when its minted instance id is in the deck.
+ * Has this offer already been bought? True exactly when its minted instance id is still **owned** —
+ * in the active deck or in the run collection, either one.
  *
  * Derived rather than stored, which is what lets a sold-out slot survive a resume without a new
- * field in the ratified run shape. Since ticket 56 there is no sell verb to hand the card back with,
- * so a sold row un-sells only if that instance leaves the deck again — which at a stall means paying
- * for selling the card back (`sellPrice`, always under the buy rung) and buying the row again,
- * a sale a lap. That is a drain, not a farm: every lap is scrap leaving the run and none
- * entering, which is the no-farm law holding structurally rather than by a clamp.
+ * field in the ratified run shape.
+ *
+ * # WHY BOTH PILES, AS OF TICKET 61
+ *
+ * This took the deck alone, which was exact while the deck was the only place a card could be. It
+ * is not any more: a bought card lands in the deck (ticket 63, ruled) and the free editor can move
+ * it to the collection a second later. Asked about the deck alone, the stall would then call the
+ * offer unsold and **sell the same instance twice** — a card duplicated out of nothing, and a real
+ * cards-for-scrap farm rather than the drain described below.
+ *
+ * A sold row un-sells only if that instance leaves the run entirely, which means selling it
+ * (`sellPrice`, always under the buy rung) and buying the row again: a sale a lap. That is a drain,
+ * not a farm — every lap is scrap leaving the run and none entering, which is the no-farm law
+ * holding structurally rather than by a clamp.
  */
-export function isOfferSold(deck: ReadonlyArray<IRunCard>, offer: IMarketOffer): boolean {
-    return deck.some((card) => card.instanceId === offer.card.instanceId);
+export function isOfferSold(owned: ReadonlyArray<IRunCard>, offer: IMarketOffer): boolean {
+    return owned.some((card) => card.instanceId === offer.card.instanceId);
 }

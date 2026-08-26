@@ -23,17 +23,30 @@
  *    re-rolls the identical fight from the identical seed — ticket 23's resume contract extended to
  *    encounters, for free, because nothing about the fight was ever held in a component.
  *
- * # THE MARKETPLACE IS A PANEL, NOT A ROUTE (ticket 13), AND SO IS THE WORKSHOP (ticket 14)
+ * # THE MARKETPLACE AND THE WORKSHOP ARE FULL SCREENS NOW — TICKETS 63 AND 65
  *
- * Standing on a market renders `MarketplaceNode` inside this screen, with the map still underneath
- * it. That is a deliberate difference from the fight path, which swaps the whole screen for
- * `BattleArena`: a market is not a mode you are trapped in, it is a thing at the place you are
- * standing, and ticket 07 makes leaving it a matter of walking to a neighbour on the map that is
- * already on screen. There is no "leave the shop" button because there is nothing to leave.
+ * They were panels rendered inside this screen with the map still underneath, on the argument that
+ * *"a market is not a mode you are trapped in, it is a thing at the place you are standing"* — and
+ * so there was no "leave the shop" button, because there was nothing to leave.
  *
- * `WorkshopNode` takes the same shape for the same reasons, plus one of its own: the workshop writes
- * the **ranch** as well as the run (an assembled individual joins the permanent roster), so it is
- * handed `ranch` alongside `run` where the market needs only the party.
+ * The ruled mockups replaced that. `market_G_stall.html` and `workshop_I_bay.html` are both full
+ * frames with their own top bar, a scrap readout, EDIT LOADOUT and LEAVE, and they have to be: a
+ * stall with an always-visible sell column and a bay with a lit assembly stage do not fit beside a
+ * map, and squeezing them in would cost exactly the legibility both tickets were run to buy.
+ *
+ * **So what does LEAVE mean, when there is nothing to leave?** It closes the screen back to the map
+ * you are still standing on. `closedNodeId` below is that one bit of state, and the argument above
+ * survives intact: leaving is not a move, the node is not spent, and the map offers a way straight
+ * back in. The old shape said "there is nothing to leave" by never opening; this one says it by
+ * making the door swing both ways.
+ *
+ * # ONE EDITOR, FOUR DOORS — TICKET 61 §3
+ *
+ * `LoadoutEditor` is rendered from HERE and from nowhere else, over whatever is beneath it. The four
+ * surfaces Henry ruled — marketplace, workshop, the biome-boundary alert, pre-gauntlet — each ask
+ * this component to open it, and the editor itself knows only a context label. That is deliberate:
+ * a component that checked the node kind would have to be taught every new surface, and the list of
+ * surfaces is a design decision that has already moved twice.
  *
  * # THE GYM IS THE EXCEPTION, AND IT IS AN EXCEPTION ON PURPOSE (ticket 18)
  *
@@ -69,10 +82,12 @@ import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import { startBattle } from '../store/battleSlice';
-import { beginGauntlet, endRun, enterNode, fireMapReveal } from '../store/runSlice';
+import { beginGauntlet, dismissBoundaryAlert, endRun, enterNode, fireMapReveal } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
+import BoundaryAlert from './BoundaryAlert';
 import GauntletNode from './GauntletNode';
+import LoadoutEditor from './LoadoutEditor';
 import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
 import Callout from '../components/Callout';
@@ -111,6 +126,21 @@ export default function RunScreen(): ReactNode {
      * Declared above the early return, as hooks must be.
      */
     const [confirmingAbandon, setConfirmingAbandon] = useState(false);
+
+    /**
+     * Which node's stall or bay the player has closed with LEAVE. Component state rather than run
+     * state for `confirmingAbandon`'s reason: it is a window the player shut, not a fact about the
+     * run, and persisting it would resume a run with a shop mysteriously closed. Keyed on the node
+     * id so that walking anywhere else — or walking back — opens the next one normally.
+     */
+    const [closedNodeId, setClosedNodeId] = useState<string | null>(null);
+
+    /**
+     * Whether the shared `LoadoutEditor` is open, and what its context line should read. Null is
+     * the ordinary state. The four surfaces all set this and nothing else, which is what keeps
+     * "exactly four doors" checkable by reading one file.
+     */
+    const [editorContext, setEditorContext] = useState<string | null>(null);
 
     const byId = useMemo(() => new Map((run?.nodes ?? []).map((n) => [n.id, n])), [run]);
     const current = run ? byId.get(run.currentNodeId) : undefined;
@@ -278,6 +308,58 @@ export default function RunScreen(): ReactNode {
     }
 
     /**
+     * The editor, over whatever is beneath it. Rendered as a sibling rather than inside each
+     * surface so that all four doors open the identical screen — and so that "which surfaces may
+     * edit" is a question answered by reading the four `setEditorContext` calls in this file.
+     */
+    const editor = editorContext !== null ? (
+        <LoadoutEditor
+            run={run}
+            ranch={ranch}
+            context={editorContext}
+            onClose={() => setEditorContext(null)}
+        />
+    ) : null;
+
+    /** The mockups' context line: where you are, and what you are holding while you decide. */
+    const contextLine = (where: string): string =>
+        `${where} · ${(biome?.name ?? 'BIOME').toUpperCase()} · ${run.scrap} SCRAP`;
+
+    const stallOpen = closedNodeId !== run.currentNodeId;
+
+    if (isMarketNode(current.kind) && stallOpen) {
+        return (
+            <>
+                <MarketplaceNode
+                    run={run}
+                    node={current}
+                    party={marketParty}
+                    biomeName={biome?.name}
+                    onEditLoadout={() => setEditorContext(contextLine('MARKETPLACE'))}
+                    onLeave={() => setClosedNodeId(current.id)}
+                />
+                {editor}
+            </>
+        );
+    }
+
+    if (isWorkshopNode(current.kind) && stallOpen) {
+        return (
+            <>
+                <WorkshopNode
+                    run={run}
+                    node={current}
+                    ranch={ranch}
+                    biomeName={biome?.name}
+                    onEditLoadout={() => setEditorContext(contextLine('WORKSHOP'))}
+                    onLeave={() => setClosedNodeId(current.id)}
+                />
+                {editor}
+            </>
+        );
+    }
+
+    /**
      * The gauntlet takes the whole screen — **ticket 18.**
      *
      * Not a panel over the map like the shop and the bench, because the gauntlet is the one node you
@@ -299,13 +381,22 @@ export default function RunScreen(): ReactNode {
                 </header>
 
                 <section className="ranch-section ranch-section-wide">
-                    <GauntletNode run={run} node={current} ranch={ranch} />
+                    <GauntletNode
+                        run={run}
+                        node={current}
+                        ranch={ranch}
+                        onEditLoadout={() => setEditorContext(contextLine('PRE-GAUNTLET'))}
+                    />
                 </section>
+                {editor}
             </div>
         );
     }
 
     const pendingTicket = PENDING_NODE_TICKET[current.kind];
+
+    /** The biome the alert is about, or undefined when no alert is owed. */
+    const boundaryBiome = run.boundaryBiome !== undefined ? run.biomes[run.boundaryBiome] : undefined;
 
     return (
         <div className="ranch-screen">
@@ -332,29 +423,19 @@ export default function RunScreen(): ReactNode {
                 )}
 
                 {/*
-                  * The market's stock is rolled from the node the player is standing on, which
-                  * `enterNode` has already visit-incremented — the same count `rollEncounter` reads,
-                  * and the reason a re-entered market is a genuinely different stall.
-                  *
-                  * The party is passed as roster members: `IRewardPartyMember` needs only
-                  * `definitionId` + `activeOS`, which `IRanchMember` already satisfies structurally,
-                  * so there is nothing to map and no second shape of "the party" to keep in step.
+                  * The stall and the bay took the whole screen above. What is left here is the way
+                  * back into one you closed with LEAVE: the node is not spent, you are still
+                  * standing on it, and ticket 07's "entering a node triggers it again" is about
+                  * walking IN rather than about re-opening a window you shut by accident.
                   */}
-                {isMarketNode(current.kind) && (
-                    <MarketplaceNode run={run} node={current} party={marketParty} />
-                )}
-
-                {/*
-                  * The workshop reads the same visit-incremented node — the individual it offers is
-                  * rolled from it, exactly as a market's stock is (ticket 07 / `nodeSeed`), so a
-                  * resumed run is standing in the same workshop it left.
-                  *
-                  * It gets the whole `ranch` rather than the mapped party, because an assembly spends
-                  * a blueprint and writes the roster: this is the one node that changes the half of
-                  * the save that outlives the run.
-                  */}
-                {isWorkshopNode(current.kind) && (
-                    <WorkshopNode run={run} node={current} ranch={ranch} />
+                {(isMarketNode(current.kind) || isWorkshopNode(current.kind)) && (
+                    <button
+                        type="button"
+                        className="ranch-button"
+                        onClick={() => { setClosedNodeId(null); playSfx('uiClick'); }}
+                    >
+                        {isMarketNode(current.kind) ? 'Back to the stall' : 'Back to the assembly bay'}
+                    </button>
                 )}
 
                 {/*
@@ -445,6 +526,31 @@ export default function RunScreen(): ReactNode {
                 </div>
                 <p className="ranch-note">Run deck: {run.deck.length} cards. Seed <code>{run.seed}</code>.</p>
             </section>
+
+            {/*
+              * THE BIOME BOUNDARY — ticket 61 §3's fourth surface, and the one Henry added after
+              * the other three. `runSlice.resolveEncounter` raises `boundaryBiome` when the exit
+              * elite dies; this is what it raises it FOR.
+              *
+              * Rendered here rather than from an effect for the reason the reducer's block gives:
+              * the alert is a debt the run owes, so it survives a reload and cannot double-fire
+              * under `StrictMode`. Both buttons clear the debt; only one of them opens the editor.
+              */}
+            {boundaryBiome !== undefined && (
+                <BoundaryAlert
+                    run={run}
+                    ranch={ranch}
+                    nextBiomeName={boundaryBiome.name}
+                    nextBiomeElements={boundaryBiome.elements}
+                    onIgnore={() => dispatch(dismissBoundaryAlert())}
+                    onEdit={() => {
+                        dispatch(dismissBoundaryAlert());
+                        setEditorContext(`BIOME BOUNDARY · ${boundaryBiome.name.toUpperCase()} AHEAD · ${run.scrap} SCRAP`);
+                    }}
+                />
+            )}
+
+            {editor}
         </div>
     );
 }

@@ -51,7 +51,7 @@ import { SeedStream } from '../core/SeedStream';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 import { createRanchMember } from '../gameTypes';
 import { PARTY_SIZE, partyBlockFor, type PartyBlock, type PartyMember } from '../party';
-import { recruitDeckFor } from './createRun';
+import { RECRUIT_KIT_SIZE, recruitDeckFor, startKitIdsFor } from './createRun';
 import { toMingmingState } from './battleSetup';
 import { nodeSeed } from './nodeSeed';
 import type { IRanchMember, IRanchState, IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
@@ -286,16 +286,27 @@ function speciesName(speciesId: string): string {
 }
 
 /**
- * Every species the ranch holds a blueprint for, each carrying the reason it cannot be built if
- * there is one. This is what the screen lists: a blueprint you are holding but cannot spend *here*
- * is news, so it is shown with its refusal rather than filtered out and left unexplained.
+ * Every species the ranch has a blueprint ENTRY for, each carrying the reason it cannot be built if
+ * there is one. This is what the screen's rack lists: a blueprint you are holding but cannot spend
+ * *here* is news, so it is shown with its refusal rather than filtered out and left unexplained.
+ *
+ * # ZERO COUNTS ARE LISTED TOO, AS OF TICKET 65
+ *
+ * This filtered on `count > 0`, which made a species you had spent down to nothing vanish from the
+ * rack entirely. Ticket 65's mockup draws that row instead — greyed, reading *"no blueprints"* —
+ * and it is right to: a rack that shows only what you can spend cannot tell you what you have
+ * **run out of**, and "I built a Ratatoskr at the last workshop" is exactly the fact a player needs
+ * when deciding whether to walk to this one. A species the ranch has never met has no entry at all
+ * and still does not appear, which is the honest distinction — never seen is not the same as spent.
+ *
+ * `assemblableSpecies` is unaffected: a zero count yields `'no-blueprint'`, so it filters out there
+ * for the reason it always did rather than by never being listed.
  *
  * Sorted by display name so the list does not reshuffle as counts change — the same reason
  * `RanchScreen`'s assembly bay sorts.
  */
 export function workshopSpecies(ranch: IRanchState, run: IRunState): IWorkshopSpecies[] {
     return Object.entries(ranch.blueprints)
-        .filter(([, count]) => count > 0)
         .map(([speciesId, blueprints]): IWorkshopSpecies => ({
             speciesId,
             blueprints,
@@ -432,4 +443,88 @@ export function reflashBlockFor(
     if ((ranch.blueprints[member.definitionId] ?? 0) < 1) return 'no-blueprint';
     if (reflashOptionsFor(member).length === 0) return 'no-other-firmware';
     return null;
+}
+
+/**
+ * The engine a member is running right now, as data ids — ticket 61's ratified five, payoff first.
+ */
+export function engineIdsFor(member: IRanchMember): string[] {
+    return startKitIdsFor(toMingmingState(member), RECRUIT_KIT_SIZE);
+}
+
+/**
+ * The engine a species WOULD bring on a given firmware — the same five, for something that does not
+ * exist yet.
+ *
+ * The assembly bay has to print this before anything is built: ticket 65's stage lists *"ITS 5-CARD
+ * ENGINE -> DECK"* beside the OS picker, because choosing the firmware IS choosing the five cards
+ * and a picker that named only the OS would be asking the player to choose blind. `startKitIdsFor`
+ * reads nothing but the species and the OS, so it answers for a hypothetical member as exactly as
+ * for a real one — which is the property that keeps the preview and the delivery from drifting.
+ */
+export function engineIdsForSpecies(speciesId: string, osId?: string): string[] {
+    const activeOS = osId ?? MingmingRegistry[speciesId]?.availableOS[0] ?? '';
+    return startKitIdsFor({ definitionId: speciesId, activeOS }, RECRUIT_KIT_SIZE);
+}
+
+/** Both halves of a reflash: what leaves the deck, and what replaces it. */
+export interface IReflashPlan {
+    /** The member as it will be AFTER the swap — the OS is already the target one. */
+    readonly member: IRanchMember;
+    /** The five data ids of the engine being retired, in engine order (payoff first). */
+    readonly retireIds: ReadonlyArray<string>;
+    /** The five freshly minted cards of the engine arriving, `ownerId` already set. */
+    readonly cards: ReadonlyArray<IRunCard>;
+    /** `WORKSHOP_REFLASH_SCRAP`, carried so nothing downstream re-derives a price it must check. */
+    readonly scrap: number;
+}
+
+/**
+ * Roll what a reflash would do, without doing any of it. Pure, and deterministic in
+ * (`run.seed`, `node.id`, `node.visited`, member, target OS).
+ *
+ * # A REFLASH IS AN ENGINE SWAP NOW, NOT JUST A FIRMWARE SWAP
+ *
+ * It used to grant no cards: *"the cards already in the deck stay. What changes is the firmware and
+ * every list drawn from it."* That was right when a member's cards were a loose kit plus filler and
+ * the OS only re-aimed future draws. Ticket 61 made the five-card engine the unit — a payoff and the
+ * four enablers that exist to set it up — and ticket 65 ruled the consequence: *"reflash swaps
+ * engines 5-for-5, with the old set to the collection."* A BLOOD PACT Fenrir reflashed to CINDER
+ * WALL and left holding Blood Rite and Crimson Draw is a player holding four enablers for a payoff
+ * they no longer have, which is the deck-bloat problem the whole ticket exists to delete.
+ *
+ * **Old engine to the COLLECTION, not to the bin.** Nothing is destroyed by a reflash: the five
+ * retired cards are still owned, still sellable at a stall, and still addable back into the deck by
+ * a player who decides the old shell was better. That is what makes the 15 scrap a re-aim rather
+ * than a gamble.
+ *
+ * **5 for 5 keeps the floor exactly where it was**, which is why this is legal at a workshop while
+ * the deck sits at its minimum: the party's contribution has not changed, only which five cards it
+ * contributes. `runSlice.reflashEngine` therefore has no floor check to make.
+ *
+ * Returns `null` for anything `reflashBlockFor` refuses, or a target the species does not offer, so
+ * an illegal reflash produces no plan and therefore no dispatch at all.
+ */
+export function planReflash(input: {
+    readonly ranch: IRanchState;
+    readonly run: IRunState;
+    /** The workshop being stood in, **already visit-incremented** — see `nodeSeed`. */
+    readonly node: IRegionNode;
+    readonly member: IRanchMember;
+    readonly targetOS: string;
+}): IReflashPlan | null {
+    const { ranch, run, node, member, targetOS } = input;
+    if (reflashBlockFor(member, ranch) !== null) return null;
+    if (!reflashOptionsFor(member).includes(targetOS)) return null;
+
+    const retireIds = engineIdsFor(member);
+    const after: IRanchMember = { ...member, activeOS: targetOS };
+
+    // Its own fork, labelled with both the member and the target: changing how a recruit's deck is
+    // minted must not shift the cards a resumed run has already been offered here, and reflashing
+    // to A and then to B must not mint A's cards twice.
+    const seed = nodeSeed(run, node, 'workshop');
+    const stream = new SeedStream(new SeedStream(seed).fork(`reflash-deck:${member.id}:${targetOS}`));
+
+    return { member: after, retireIds, cards: recruitDeckFor(toMingmingState(after), stream), scrap: WORKSHOP_REFLASH_SCRAP };
 }

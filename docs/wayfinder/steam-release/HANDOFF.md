@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-24 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57). **State: 61 tickets, 27 closed. The critical path is complete and 3v3 is finished player-side. **Next agent-runnable: 61 (apply 60 — four packages, split across sessions in order) and 58 (interaction tests), then 35/37/42 (platform baseline). THREE TICKETS ARE BUILT AND WAITING ON HENRY: 57 (Relay's 1-for-1 vs the reducer's 2-for-1, and whether to implement 56's pick-pool weighting), 31 (codex payouts need a cosmetics system, which has no ticket), 25 (he must play it).** 25 needs Henry to play it. Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22; loudest is 18's gym paying 3x. Suite green at 124 files / 1634 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-26 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61). **State: 62 tickets, 31 closed. The critical path is complete and the run's four edit surfaces are built. **THE LOUDEST THING ON THIS MAP: `npm run balance:run-gate` exists now and ALL THREE BANDS FAIL — wilds 52.8% against a 95% target, elites 41.7% against 75, gauntlet 50.0% against 60, the gym boss at 8.3%, and every enemy out-rolling the player by ~5 IV in every stat. Those are measurements, not tunings; [ticket 67](tickets/67-enemy-ladder-and-bands.md) is the grilling that has to rule on them and it is NEXT.** Next agent-runnable after 67: 58 (interaction tests), then 35/37/42 (platform baseline). **BUILT AND WAITING ON HENRY: 67 (the three bands, above), 57 (Relay's 1-for-1 vs the reducer's 2-for-1), 31 (codex payouts need a cosmetics system, which has no ticket), 25 (he must play it). ONE READING FLAGGED IN 61: the workshop's stat roll is shown as `??` until you assemble — mockup I's "reveal moment" read against `planRecruit`'s standing "never previewed" ruling. One line either way.** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22, 61; loudest is 67. Suite green at 128 files / 1768 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,62 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-26 — Ticket 61 CLOSED. The run gate exists, and it says we are failing by 30-40 points.
+
+The whole of Henry's amended spec is built: five-card engines, the per-card ADD/STORE choice on
+picks, the four edit surfaces behind one editor, selling back with paid removal gone, and the 8/13/18
+floor enforced at every door that can shrink a deck. The market, the workshop and the editor are
+rebuilt to the ruled mockups over one shared screen kit (`src/ui/screens/runShell.css` + `.ts` — the
+five prototypes open with the same ~45 lines of CSS character for character, so it is one kit that
+had nowhere else to live).
+
+**The headline is the gate.** `npm run balance:run-gate` measures the shipped game against
+95/75/60 ±5 and reports **52.8 / 41.7 / 50.0**. The two cheapest cells were re-run to 1,200 samples,
+so the misses are not noise. Three shapes matter more than the magnitudes:
+
+1. **Enemies out-roll the player by ~5 IV in every stat, everywhere.** The player rolls
+   `nextInt(0, 31)` (`gameTypes.ts:109`), enemies roll `nextInt(10, 31)` (`encounter.ts:416`). That
+   is upstream of every band, every biome and every deck.
+2. **Difficulty is not monotonic** — biome 1 wilds (26.7%) are harder than biome 2 (50.0%) and much
+   harder than biome 0 (67.1%). Ticket 08's kit-fraction table produces a spike, not a ramp.
+3. **The gym boss is not in the same game as the two fights before it** — 8.3% against 75.0/66.7,
+   and that is from full HP, which a real gauntlet is not. Clearing all three: 4.2%.
+
+Nothing was tuned. All of it is [ticket 67](tickets/67-enemy-ladder-and-bands.md), which also
+absorbs ticket 61's unbuilt package 2 (the enemy ladder) — the ladder and the numbers belong
+together, and package 2 was written before any of this was measured.
+
+**Three real bugs the run collection created, all found by writing tests rather than by playing:**
+
+- `isOfferSold` looked only at the deck, so a bought card moved to the collection **un-sold its own
+  offer** and could be bought again — a card duplicated out of nothing, and a real cards-for-scrap
+  farm.
+- `sellRunCard` had no floor check, so 5 scrap bought you a deck under its minimum. The floor was
+  enforced at four of five doors, which is not a floor.
+- The boundary alert listed suggestions by instance rather than by card. **Eleven of the twelve
+  ruled engines contain a duplicate**, so one benched member's repeats could fill all five slots.
+
+Two dead controls fixed on the way: the editor's party chip invited a bench a party of one cannot
+perform and answered the click with a beep (a run OPENS solo, so that was the first editor most
+players would ever see), and the editor's empty-book copy told a player holding twelve cards that
+nothing had landed in their collection whenever a filter matched nothing.
+
+**Worth knowing beyond this ticket:** under `vite-node` every `process.env` read compiles to
+`undefined`, because `vite.config.ts` carries `define: { 'process.env': {} }`. That silently disables
+`BALANCE_ONLY` for `npm run balance:deck` as well as for the new gate.
+
+**One reading flagged for Henry.** Mockup I puts VIT/PWR/DEF on the assembly stage under *"stats roll
+at assembly — this is the reveal moment"*, which reads two ways. It ships as `??` until you assemble,
+because `workshop.planRecruit`'s standing ruling is that the roll is never previewed and the
+consequence — walking away re-rolls the individual, at the price of the road back — is the mid-run
+echo of *"re-assembly is the re-roll"*. A previewed roll makes that free and turns every workshop
+into a button to mash. One line either way if the intent was a genuine preview.
+
+Also recorded: **the amended spec never reached a commit.** It arrived as chat and an uncommitted
+edit, and the sitting that applied sections 1/4/5 overwrote it with progress notes. It is restored
+verbatim at the top of ticket 61's resolution, and the map's ticket-60 gist now points there.
+
 
 ### 2026-08-25 — Ticket 57 CLOSED, and the ticket numbers were colliding
 

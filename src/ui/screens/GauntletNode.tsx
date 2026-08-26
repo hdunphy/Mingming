@@ -68,6 +68,12 @@ export interface GauntletNodeProps {
     readonly node: IRegionNode;
     /** The ranch — the party's species, firmware and stat rolls all live on the roster. */
     readonly ranch: IRanchState;
+    /**
+     * Opens the shared `LoadoutEditor`. Ticket 61 §3's PRE-GAUNTLET surface — see the button for
+     * why it is offered before fight one and never between fights. Optional so a test can render
+     * the screen without a store behind the editor.
+     */
+    readonly onEditLoadout?: () => void;
 }
 
 /** One party member as this screen has to describe them: who they are, and what they have left. */
@@ -81,7 +87,7 @@ interface MemberLine {
     readonly down: boolean;
 }
 
-export default function GauntletNode({ run, node, ranch }: GauntletNodeProps): ReactNode {
+export default function GauntletNode({ run, node, ranch, onEditLoadout }: GauntletNodeProps): ReactNode {
     const dispatch = useDispatch();
     const gauntlet = run.gauntlet;
 
@@ -264,18 +270,34 @@ export default function GauntletNode({ run, node, ranch }: GauntletNodeProps): R
                 ))}
             </ul>
 
-            <button
-                type="button"
-                className="gn-button"
-                disabled={party.length === 0 || everyoneDown}
-                onClick={begin}
-            >
-                {party.length === 0
-                    ? 'No party to field'
-                    : everyoneDown
-                        ? 'Every member is down — nothing left to send in'
-                        : `Begin fight ${fightNumber} of ${gauntlet.totalFights}`}
-            </button>
+            <div className="gn-actions">
+                {/*
+                  * THE PRE-GAUNTLET EDIT — ticket 61 §3's fourth surface, and the last one there is.
+                  *
+                  * Offered ONLY before the first fight. `exploration-map.md` makes the gauntlet
+                  * three fights with no healing between them, and an editor between rounds two and
+                  * three would be the same as a heal: it would let a player answer the boss they
+                  * just saw with a deck they did not bring. Before fight one is the moment the
+                  * ruling names, and `gauntlet.fightIndex === 0` is that moment exactly.
+                  */}
+                {onEditLoadout && gauntlet.fightIndex === 0 && (
+                    <button type="button" className="gn-button subtle" onClick={onEditLoadout}>
+                        Edit loadout — last chance before the gym
+                    </button>
+                )}
+                <button
+                    type="button"
+                    className="gn-button"
+                    disabled={party.length === 0 || everyoneDown}
+                    onClick={begin}
+                >
+                    {party.length === 0
+                        ? 'No party to field'
+                        : everyoneDown
+                            ? 'Every member is down — nothing left to send in'
+                            : `Begin fight ${fightNumber} of ${gauntlet.totalFights}`}
+                </button>
+            </div>
         </section>
     );
 }

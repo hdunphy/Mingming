@@ -246,6 +246,43 @@ export interface IRunState {
      */
     readonly collection?: ReadonlyArray<IRunCard>;
 
+    /**
+     * THE BENCH — roster member ids owned by this run but not currently fielded.
+     *
+     * Ticket 61 §3 (Henry, 2026-08-26). A benched member is still yours: it can be swapped into the
+     * party at any of the four edit surfaces, and when it is, **its five engine cards follow it**
+     * out of the collection and into the active deck. Swapping the other way sends the outgoing
+     * member's engine back to the collection. That is the whole of *"remove Rat for the fire
+     * biome"* — a routing decision, not a loss.
+     *
+     * Member ids, not members: the individuals live on the ranch roster exactly as `partyIds`'
+     * do, and a run that stored copies of them would be a second place for a nickname to drift.
+     *
+     * Optional so save v4 blobs written before this field parse; every read defaults to `[]`.
+     */
+    readonly bench?: ReadonlyArray<string>;
+
+    /**
+     * The biome the player is about to walk INTO, when the boundary alert is owed and unanswered.
+     * Undefined is the ordinary state.
+     *
+     * Ticket 61 §3's fourth edit surface, and the one Henry added after the other three: *"I think
+     * after defeating the elite that gates the next biome you should be able to manage your deck and
+     * team."* `runSlice.resolveEncounter` sets it when the fight that just ended was the biome's
+     * exit elite and another biome follows; `dismissBoundaryAlert` clears it, whichever button the
+     * player pressed.
+     *
+     * **It is run state rather than a component flag for the same reason `phase` is.** The alert is
+     * a thing the run owes the player, not a thing a screen happens to be showing: an app close
+     * between the elite dying and the modal being answered must resume with the offer still open,
+     * because the information it carries — what element the next biome runs — is the whole reason
+     * ticket 62 put an edit surface here rather than at the next node.
+     *
+     * Optional so save v4 blobs written before this field parse; a run resumed without it is a run
+     * that owes no alert, which is true of every run that predates the field.
+     */
+    readonly boundaryBiome?: number;
+
     /** Run-scoped, resets with the run (`economy-session.md`, anti-mudflation). */
     readonly scrap: number;
 
@@ -418,6 +455,13 @@ export const RunStateSchema = z.object({
     // must resume, and resuming with an empty collection is exactly right — everything it owned
     // was in its deck.
     collection: z.array(RunCardSchema).default([]),
+    // Same reasoning as `collection`: an in-progress run saved before the bench existed resumes
+    // with nobody benched, which is exactly what was true of it.
+    bench: z.array(z.string()).default([]),
+    // Bounded like `biomeIndex` is: an alert naming a fourth biome is a save that would open a modal
+    // about somewhere the run cannot go. `.optional()` rather than `.default()` because "no alert
+    // owed" has no number to stand for it — 0 is a real biome.
+    boundaryBiome: z.number().int().min(0).max(2).optional(),
     scrap: z.number().int().min(0),
     macros: z.tuple([z.string().nullable(), z.string().nullable(), z.string().nullable()]),
     drivers: z.array(z.string()),
