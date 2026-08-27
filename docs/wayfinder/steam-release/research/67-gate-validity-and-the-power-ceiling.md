@@ -2,7 +2,8 @@
 
 **For:** the design agent (deck-archetypes map, and whoever rules on ticket 67's residual)
 **From:** the steam-release map, session 67-build, 2026-08-26
-**Status:** findings and open questions. **Nothing here has been decided, and nothing has been tuned.**
+**Status:** findings, plus Henry's rulings on the three questions (§9). **Nothing has been tuned, and
+no card content has been written.** Two sub-questions remain open and are marked as such.
 
 ---
 
@@ -20,7 +21,11 @@ who cannot exist and could not win, and two of the three things a real player do
 unmodelled or absent from the content. Those two things are design decisions, which is why this is
 addressed to design rather than filed as a tuning ticket.
 
-The three questions at the end are the ones that need ruling before another number is worth taking.
+The three questions in §7 are the ones that needed ruling before another number was worth taking.
+**Henry ruled all three on 2026-08-26 — §9 carries them, and §9 is the section a design agent
+should act on.** In short: report a control number and a prepared number for every band; add a
+power tier of **2–3 anti-boss cards per deck** (24–36 cards); and the 95/75/60 targets grade the
+**prepared** player, not the control.
 
 ---
 
@@ -200,6 +205,9 @@ Tuned deck sizes, for reference: 8–11 cards (`kraken_v1/v2` 8, `ratatoskr_v1` 
 Each of these changes what a "correct" balance number even means. None can be made by an
 implementation agent.
 
+> **All three were ruled by Henry on 2026-08-26 — see §9.** The framing below is kept because the
+> options and their consequences are what the rulings were made against.
+
 ### Q1 — which player should the gate model?
 
 Options, roughly:
@@ -249,7 +257,120 @@ cheaply than anything else available.
 
 ---
 
-## 9. Facts appendix
+---
+
+## 9. Henry's rulings on the three questions — 2026-08-26
+
+Recorded verbatim in substance, with the open sub-question and the consequences named underneath
+each. **These are directions to build toward, not measurements.**
+
+### Q1 — RULED: report BOTH numbers
+
+> *"We should report both numbers. No type matchup — although I'm not sure what form this control
+> takes: same type, mixed type, or remove type adv? The other number is player with matchup adv."*
+
+So the gate grows from three numbers to six: a **control** band and a **prepared** band for wilds,
+elites and gym fights.
+
+**The prepared arm is unambiguous:** the player brings the counter-element for the biome, within what
+the roster allows (see §6 — two species per element, so a full commitment caps at two party slots).
+
+**The control arm is still open, and it is a real choice.** Three candidate forms, with what each
+actually measures:
+
+| control form | multiplier in play | what it isolates | cost | catch |
+|---|---|---|---|---|
+| **(a) same element** — Fire team into a Fire biome | 1.0× both directions | deck, AI grade and stats, with type genuinely removed | free | **impossible at party size 3** — see below |
+| **(b) mixed team** — one of each element | 1.5× in *both* directions at once | a realistic messy team | free | not a control at all; it is "both sides have an edge" |
+| **(c) matrix disabled** — flatten the type chart in the harness | 1.0× by force | everything except type, perfectly | small harness change | measures a game that does not ship, and runs different combat code from the treatment arm |
+| **(d) today's numbers** — arbitrary lineup, averaged | mixed, unbiased | the population mean over all matchups | already measured | an average, not a neutral — the §4 table shows the mix it rolled |
+
+**The catch on (a), which is the one worth knowing before choosing.** With the EA six there is no
+element that is neutral against Fire, Water or Nature except that element itself. Checked against the
+matrix: versus a Fire biome, Water and Earth have the edge, Nature and Ice are at a disadvantage, and
+only Fire is neutral — and Earth/Ice do not ship at EA. Since there are **two species per element**,
+a same-element team is possible at party size 1 and 2 and **impossible at size 3**. A three-member
+control would have to be two same-element plus one that necessarily carries a matchup.
+
+**Recommendation, for Henry to confirm or overrule:** run **(a) at party sizes 1 and 2**, and at size
+3 use two same-element plus one whose relationship is recorded and reported beside the number rather
+than hidden in the average. It keeps the control and the treatment on identical combat code, which
+(c) does not, and it measures a team a player could actually field, which (c) also does not. **(d) is
+worth keeping as a free third line** — the population mean is the honest answer to "what happens to a
+player who does not think about type", and we already have it.
+
+### Q2 — RULED: yes, there is a power tier, and it is anti-boss
+
+> *"Yes, we need to offer a power tier above the base decks. Each deck should have 2-3 cards at launch
+> that help you defeat the boss."*
+
+Twelve tuned decks × 2–3 cards = **24 to 36 cards**, at launch. This is the answer to Finding B, and
+it is more specific than "make some cards stronger": the tier has a **job**, and the job is the gym.
+
+**Design agent — this is your ticket.** Card content belongs to the deck-archetypes map. What follows
+is the material the steam-release side can hand over.
+
+The three boss firmwares that exist today (`src/engine/data/lib/hooks.json`), which is what these
+cards have to answer:
+
+| firmware | what the boss does | the lever a counter-card would pull |
+|---|---|---|
+| `FIRE_RELIC_OS` | At the end of its turn, ignites the field: Fire damage to **your whole party**, scaled by the boss's **Sharp** stacks | strip or prevent Sharp; party-wide mitigation or shields; close before Sharp accumulates |
+| `WATER_RELIC_OS` | Whenever its side **takes damage**, the whole enemy team heals 5% max HP | anti-heal / healing prevention; **one big hit instead of many small ones** — chip damage actively feeds it; execute effects |
+| `ICE_RELIC_OS` | Your programs aimed at a **poisoned** target cost **+1 energy** | energy generation or cost reduction; cleansing Poison off the target; not routing your win condition through Poison |
+
+Note the third one is pointed at a specific archetype: `jormungandr_v2` is a Poison engine
+(contagion / corrosive_bolt / toxic_surge / venom_fang), so ICE_RELIC taxes that deck's whole plan.
+Whether that is intended asymmetry or an accident is worth a look while the anti-boss cards are being
+written.
+
+Open sub-questions this ruling does not settle, and that the design pass will hit immediately:
+
+- **Where do these cards appear?** Elite rewards only, marketplace at a premium, gym clears, or the
+  ordinary pick pool? "At launch" says they exist, not how they are earned.
+- **Do they stay inside the party's species pool?** Ticket 56 rules that stock and picks draw from the
+  current party's species. Two or three per deck fits that ruling naturally — but it also means a
+  player who never fields a Kraken never sees Kraken's anti-boss cards, which may be the point or may
+  be a problem.
+- **Does the enemy ever get them?** Ticket 60's ladder deliberately gives every enemy the same deck as
+  every other. A tier only the player can reach is the first asymmetry pointing the player's way, and
+  that is presumably deliberate — worth stating so nobody "fixes" it later.
+- **Can the 12 existing off-deck Rares (§5) do this job**, or does this need 24–36 genuinely new
+  cards? Four Rares per launch element already sit outside every deck.
+
+### Q3 — RULED: the targets belong to an average PREPARED player
+
+> *"These are the targets for an average prepared player."*
+
+So **95 / 75 / 60 grade the prepared arm**, not the control. The control arm is diagnostic — it says
+how much preparation is worth, and it is not expected to hit the targets.
+
+**One definition still needs pinning**, because "average prepared" sits between the two arms as
+described above. The reading this note assumes unless corrected:
+
+> **Average prepared** = brings the counter-element where the roster and their blueprints allow, has
+> shopped and pruned the deck along the way, and holds the anti-boss cards from Q2 by the time they
+> reach the gym — but is not playing a solved, optimal line.
+
+If "prepared" is meant to be *only* the matchup and not the shopped deck, that is a materially easier
+bar and the gate should model it differently. Worth one sentence back.
+
+### What these three rulings change about sequencing
+
+1. **The boss diagnostic in §8 is now a pre-check rather than an answer.** It tells us whether the
+   boss is a wall *before* the anti-boss cards exist. That is still worth knowing — if the boss is
+   winnable at 55% on matchup alone, the Q2 cards are pushing on an open door, and if it is 15% they
+   have real work to do. But the number that grades against 60% has to come after Q2 ships.
+2. **The gate needs the prepared arm built before any band can be graded.** Until then every number in
+   §3 is the control arm by accident.
+3. **Q2 is on the critical path to Q3.** The targets describe a player holding cards that do not
+   exist yet, so the balance question genuinely cannot be closed before the content lands. That is
+   not a delay to route around — it is the actual dependency, and it means the ticket-67 grilling
+   should rule on *shape* now and on *numbers* after the cards.
+
+---
+
+## 10. Facts appendix
 
 **Targets:** 95% wilds / 75% elites / 60% per gym fight, tier 1, ±5.
 

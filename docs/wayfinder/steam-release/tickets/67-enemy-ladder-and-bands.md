@@ -102,7 +102,10 @@ shows no non-monotonic step the ruling did not ask for.
 > that **no card in the game is stronger than what a tuned deck already holds** — 148 of 216 programs
 > are inside the 12 launch decks — so "build a deck better than the enemy's" is not currently
 > reachable. The research note carries the measurements behind both and the three decisions that
-> follow. The bands below stand as a floor, not as a forecast.
+> follow — **all three now ruled (2026-08-26): report a control band and a prepared band for every
+> number; add a power tier of 2-3 anti-boss cards per deck; and 95/75/60 grade the PREPARED
+> player.** The bands below stand as a floor, not as a forecast, and cannot be graded until the
+> prepared arm and the anti-boss cards exist.
 
 ## THE RE-MEASURE — steps 1 and 2 done, 2026-08-26. Stopping here, as ruled.
 
