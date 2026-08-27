@@ -102,11 +102,11 @@ import {
     startDeckFor,
 } from '../../engine/run/createRun';
 import { RUN_ENEMY_MODE, rollEncounter } from '../../engine/run/encounter';
-import { GAUNTLET_FIGHTS, rollGauntletFight } from '../../engine/run/gauntlet';
+import { GAUNTLET_FIGHTS, isBossFight, rollGauntletFight } from '../../engine/run/gauntlet';
 import { offerGyms } from '../../engine/run/gyms';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
-import type { IMingmingState } from '../../engine/types';
+import type { IBattleEntity, IMingmingState } from '../../engine/types';
 import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/scenarioSchema';
 import { BALANCE_IV, BALANCE_STAT_JITTER } from './balanceScenarios';
 import { quietly } from './balanceReporting';
@@ -619,6 +619,69 @@ export const CELLS: ReadonlyArray<RunGateCell> = [
  */
 const fightsResolvedAt = (biomeIndex: number): number => 1 + biomeIndex * 4;
 
+/**
+ * **THE BOSS ISOLATION OVERRIDES — ticket 67, rulings round 3 (Henry, 2026-08-27).**
+ *
+ * The prepared arm wins the gym boss 0 times in 60 (§10 of the research note), and the wall is a
+ * *compound*: full lookahead, fixed 20/20/20 IVs, `boss_relic_*` firmware and 3v3 focus fire, all at
+ * once. Ruling R3 asks which of those is load-bearing, as a measurement rather than a grilling —
+ * lower the stats in one arm, neutralize the relics in the other, change nothing else, and see which
+ * number moves.
+ *
+ * **These are RUN-SCOPED, and that is the whole point of them being flags.** Ruling R2 leaves
+ * `BOSS_IVS` and the relic firmware open as levers and locks the AI grade, but nothing has been
+ * ruled yet — so the shipped constants must not move while the question is being measured. A gate
+ * that answered "which knob is the wall" by turning the knob would have destroyed the baseline it
+ * was comparing against.
+ *
+ * **`relics: 'off'` costs the boss nothing but its hooks.** A boss's `activeOS` is a `boss_relic_*`
+ * id, and no species keys a deck by one — `getDeckForOS` already falls back to `availableOS[0]`'s
+ * tuned list (`gauntlet.buildEnemy` documents this). So swapping the firmware to that same
+ * `availableOS[0]` leaves the DECK byte-identical and removes only the relic's hooks, which is
+ * exactly the isolation asked for rather than an approximation of it.
+ *
+ * Applied to **boss fights only**. `BOSS_IVS` has no meaning outside one, and the gauntlet's first
+ * two fights are elites carrying no relic.
+ */
+export interface BossOverride {
+    /** Replace every boss slot's stat roll with this triple. Undefined leaves `BOSS_IVS` alone. */
+    readonly ivs?: { readonly hp: number; readonly attack: number; readonly defense: number };
+    /** `'off'` strips the `boss_relic_*` firmware, leaving the species' own tuned OS and deck. */
+    readonly relics?: 'off';
+}
+
+/** Apply a run-scoped override to a sampled boss team. A no-op for every other fight. */
+function withBossOverride(
+    cell: RunGateCell,
+    enemyParty: ReadonlyArray<IBattleEntity>,
+    override: BossOverride | undefined,
+): ReadonlyArray<IBattleEntity> {
+    if (!override || cell.kind !== 'gauntlet') return enemyParty;
+    if (!isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS)) return enemyParty;
+    if (override.ivs === undefined && override.relics === undefined) return enemyParty;
+
+    return enemyParty.map((enemy) => {
+        const stats = override.ivs
+            ? { hpIV: override.ivs.hp, attackIV: override.ivs.attack, defenseIV: override.ivs.defense }
+            : {};
+        const firmware = override.relics === 'off'
+            ? { activeOS: MingmingRegistry[enemy.definitionId]?.availableOS[0] ?? enemy.activeOS }
+            : {};
+        return { ...enemy, ...stats, ...firmware };
+    });
+}
+
+/** A one-line description of the override, for a report header that must not lose its provenance. */
+export function describeBossOverride(override: BossOverride | undefined): string {
+    if (!override || (override.ivs === undefined && override.relics === undefined)) {
+        return 'boss as shipped';
+    }
+    const parts: string[] = [];
+    if (override.ivs) parts.push(`BOSS_IVS ${override.ivs.hp}/${override.ivs.attack}/${override.ivs.defense}`);
+    if (override.relics === 'off') parts.push('boss_relic_* hooks OFF (tuned OS, same deck)');
+    return `ISOLATION — ${parts.join(' + ')}`;
+}
+
 export interface SampledFight {
     readonly setup: ComposedSetup;
     /** The player's OS ids, in party order. */
@@ -631,6 +694,8 @@ export interface SampledFight {
     /** Which arm this sample belongs to, and the element it was chosen against. */
     readonly matchup: MatchupMode;
     readonly targetElement: string;
+    /** The run-scoped boss override this sample was built under, if any. */
+    readonly bossOverride?: BossOverride;
     /**
      * Which grade of `TacticalAI` the enemies play at — ticket 60's ladder, third column.
      *
@@ -707,6 +772,7 @@ export function sampleFight(
     cell: RunGateCell,
     index: number,
     matchup: MatchupMode = 'blind',
+    bossOverride?: BossOverride,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -743,15 +809,20 @@ export function sampleFight(
         ? rollGauntletFight({ run, node: entered, fightIndex: cell.fightIndex! })
         : rollEncounter({ run, node: entered, party });
 
+    // Run-scoped, and applied AFTER the roll so the enemies, the deck and the seed are the ones the
+    // shipped game would field — only the named knob differs from the 0/60 baseline.
+    const enemyParty = withBossOverride(cell, encounter.enemyParty, bossOverride);
+
     return {
-        setup: setupForEncounter(encounter.seed, party, deck, encounter.enemyParty, encounter.enemyDeckIds),
+        setup: setupForEncounter(encounter.seed, party, deck, enemyParty, encounter.enemyDeckIds),
         lineup,
         enemyAiTier: encounter.enemyAiTier,
-        enemy: encounter.enemyParty.map((e) => describeEnemy(e.definitionId, e.activeOS)),
+        enemy: enemyParty.map((e) => describeEnemy(e.definitionId, e.activeOS)),
         nodeId: entered.id,
         biomeElements: run.biomes.map((b) => b.elements.join('/')),
         matchup,
         targetElement: target,
+        bossOverride,
     };
 }
 
@@ -852,6 +923,8 @@ export interface MeasureOptions {
     readonly onProgress?: (cell: RunGateCell, sampleIndex: number, elapsedMs: number, won: boolean) => void;
     /** Which player to model. Defaults to `blind` — see `MatchupMode`. */
     readonly matchup?: MatchupMode;
+    /** Run-scoped boss isolation, ticket 67 R3. Undefined ships the boss as authored. */
+    readonly bossOverride?: BossOverride;
 }
 
 /**
@@ -890,7 +963,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
 
         let fight: SampledFight;
         try {
-            fight = sampleFight(cell, at, options.matchup ?? 'blind');
+            fight = sampleFight(cell, at, options.matchup ?? 'blind', options.bossOverride);
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;
             throw error;

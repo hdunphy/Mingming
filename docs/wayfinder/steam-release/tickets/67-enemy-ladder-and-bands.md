@@ -291,3 +291,57 @@ what the fight is currently authored to be. The rulings below decide what moves.
 Sequencing: this closes the "which knob is the wall" question as a measurement task (Legion),
 not a grilling. The 67 grilling resumes — and the elite band gets its options ruled — after the
 isolation arms and the prepared wild/elite bands are on the table.
+
+---
+
+## R3 measurement complete — 2026-08-27 (Legion). Numbers only; nothing tuned.
+
+Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](../research/67-gate-validity-and-the-power-ceiling.md) **§12**.
+
+### The isolation arms (R3.3) — it is the relics, not the stats
+
+`gauntlet:fight2`, `--matchup favourable`, 60 battles each, everything but the named knob identical
+to the 0/60 baseline (enemy roll, decks, player side and seed all verified unchanged).
+
+| arm | result | vs baseline |
+|---|---|---|
+| baseline — boss as shipped | 0/60 — 0.0% | — |
+| **A — `BOSS_IVS` 10/10/10** | 1/60 — **1.7%** (CI 0.3–8.9) | **+1.7pt** |
+| **B — `boss_relic_*` hooks off** | 35/60 — **58.3%** (CI 45.7–69.9) | **+58.3pt** |
+
+The relic effects are **stat-independent by construction** — FIRE scales on Sharp stacks, WATER heals
+5% of max HP, ICE taxes energy — so lowering IVs cannot reach them, and the measurement shows it:
+arm A's battles ran *longer* than the baseline (6.2 turns vs 5.3) and still lost.
+
+**`BOSS_IVS` is not the lever.** R2 left stats and relics both open; stats buy 1.7 points and relics
+buy 58.3.
+
+### The prepared and control bands (1,800 battles)
+
+| band | target | blind | control | **prepared** | prepared verdict |
+|---|---|---|---|---|---|
+| WILDS | 95% | 79.5% | 84.5% | **95.7%** (574/600) | **PASS**, CI 93.7–97.0 |
+| ELITES | 75% | 46.3% | 53.7% | **73.7%** (221/300) | **PASS**, CI 68.4–78.3 |
+| GYM BOSS | 60% | 3.3% | 0.0% | **0.0%** (0/60) | FAIL by 55pt |
+
+Preparation is worth **+11.2** at the wild band and **+20.0** at the elite band, and it is worth most
+exactly where the run is hardest — the two biggest per-spot gaps are both the **solo** fight
+(wild biome 1 **+22.5**, elite biome 1 **+24.0**).
+
+### What this closes, and what it hands back
+
+- **The game is not broadly mistuned.** Two of three bands already hit their targets for the player
+  Q3 says the targets describe. Every earlier number was measuring a player who does not think about
+  type.
+- **The gym boss is the only failing band**, and its knob is identified. What to DO about it is R2's
+  open ruling and remains Henry's: soften the relics, answer them with the Q2 cards, or both. Arm B
+  is a diagnostic, not a proposal.
+- **The gauntlet target (R3) can now be ruled with real costs in view** — with one gap: fights 1 and
+  2 have only ever been measured blind (68.3%, 81.7%). A prepared end-to-end gauntlet number needs
+  those two re-run, about 2h.
+- Arm B's interval is wide (±12.1). If the target gets ruled against its *number* rather than its
+  direction, deepen that cell first.
+
+The two overrides are **run-scoped CLI flags** (`--boss-ivs`, `--boss-relics off`) and print on the
+report header. **No shipped constant moved, and the boss AI grade stays locked at full lookahead per
+R2.**

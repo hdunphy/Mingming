@@ -2,8 +2,9 @@
 
 **For:** the design agent (deck-archetypes map, and whoever rules on ticket 67's residual)
 **From:** the steam-release map, session 67-build, 2026-08-26
-**Status:** findings, Henry's rulings on the three questions (§9), and the boss diagnostic those
-rulings asked for (§10 — **prepared 0/60, control 0/60**). **Nothing has been tuned, and
+**Status:** findings, Henry's rulings (§9), the boss diagnostic (§10), and the isolation arms plus
+prepared/control bands ruling R3 asked for (§12 — **the relics are the boss wall, and the wild and
+elite bands both PASS for a prepared player**). **Nothing has been tuned, and
 no card content has been written.** Two sub-questions remain open and are marked as such.
 
 ---
@@ -24,9 +25,13 @@ addressed to design rather than filed as a tuning ticket.
 
 The three questions in §7 are the ones that needed ruling before another number was worth taking.
 **Henry ruled all three on 2026-08-26 — §9 carries them, and §9 is the section a design agent
-should act on. §10 carries the boss diagnostic those rulings asked for, and it is the loudest
-single number in this document: a PREPARED player, bringing the counter-element, wins the gym
-boss 0 times in 60.** In short: report a control number and a prepared number for every band; add a
+should act on. §10 and §12 carry the measurements those rulings asked for.**
+
+**§12 is the section to read if you read only one.** Measured properly, against a player who brings
+the counter-element: **wilds 95.7% against a 95% target and elites 73.7% against 75 — both PASS.**
+The game is not broadly mistuned. **One fight is**: the gym boss sits at 0/60, and isolating its
+knobs shows the wall is the `boss_relic_*` firmware, not the stats — halving `BOSS_IVS` buys 1.7
+points, switching the relic hooks off buys 58.3. In short: report a control number and a prepared number for every band; add a
 power tier of **2–3 anti-boss cards per deck** (24–36 cards); and the 95/75/60 targets grade the
 **prepared** player, not the control.
 
@@ -450,6 +455,8 @@ cores. The report header names the arm, so a pasted number cannot lose it.
 
 ---
 
+---
+
 ## 11. Facts appendix
 
 **Targets:** 95% wilds / 75% elites / 60% per gym fight, tier 1, ±5.
@@ -491,3 +498,134 @@ entire cost. `--cells wild:biome0 --iterations 1200` is 90 seconds if one spot n
 
 **Where the numbers live:** ticket 67 (`docs/wayfinder/steam-release/tickets/67-enemy-ladder-and-bands.md`),
 section "THE RE-MEASURE".
+
+---
+
+## 12. ISOLATION ARMS AND PREPARED BANDS — run 2026-08-27. Two of three bands already pass.
+
+Ruling R3 (ticket 67) asked for two things as a measurement task: **which knob is the boss wall**, and
+**the prepared and control bands for wilds and elites**, which had only ever been measured blind.
+Both are below. **Nothing was tuned.** The boss AI grade stays locked at full lookahead per R2, and
+`BOSS_IVS` and the relic firmware are untouched in the shipped tree — the two isolation arms are
+run-scoped CLI flags (`--boss-ivs`, `--boss-relics off`) precisely so the baseline they are compared
+against still exists.
+
+### 12a. The boss isolation — it is the relics, and it is not close
+
+`gauntlet:fight2`, `--matchup favourable`, 60 battles per arm. Everything identical to the 0/60
+baseline except the one named knob: same enemy roll, same decks (verified byte-identical), same
+player side, same seed.
+
+| arm | what changed | result | 95% CI | vs baseline |
+|---|---|---|---|---|
+| baseline (§10) | nothing — boss as shipped | 0/60 — **0.0%** | 0.0–6.0 | — |
+| **A — stats** | `BOSS_IVS` 20/20/20 → **10/10/10** | 1/60 — **1.7%** | 0.3–8.9 | **+1.7pt** |
+| **B — relics** | `boss_relic_*` hooks **off** (tuned OS, same deck) | 35/60 — **58.3%** | 45.7–69.9 | **+58.3pt** |
+
+**Halving the boss's stats does not make the fight winnable. Removing the relic firmware does —
+essentially to the 60% target.**
+
+There is a mechanism behind that, and it is worth stating because it means the result is structural
+rather than a quirk of this sample: **the relic effects are largely stat-independent by
+construction.**
+
+| relic | what it does | what it scales on |
+|---|---|---|
+| `FIRE_RELIC_OS` | end-of-turn field ignition on the whole player party | the boss's **Sharp stacks** |
+| `WATER_RELIC_OS` | heals the enemy team on every damage event its side takes | **5% of max HP** |
+| `ICE_RELIC_OS` | player programs aimed at a poisoned target cost +1 | **energy** |
+
+None of the three reads the boss's attack or defence roll. Lowering IVs therefore *cannot* reach
+them — and the measurement shows exactly that: arm A's battles ran **longer** than the baseline
+(6.2 turns against 5.3) and still lost. A softer boss that grinds the party down the same way.
+
+Arm B's interval is wide (±12.1) because 60 battles is a thin sample for a rate near 50%. The
+direction is not in doubt — the two arms do not overlap even slightly — but if the gauntlet target
+gets ruled against arm B's *number*, that cell wants deepening first.
+
+### 12b. The prepared and control bands
+
+Wilds at 200 battles per biome, elites at 100, both arms, equal `n` within each band. **1,800
+battles.** The blind column is the earlier run (§3), included because the three arms together are
+what "how much does preparation buy" actually means.
+
+| band | target | blind | **CONTROL** (type removed) | **PREPARED** (counter-element) | verdict on prepared |
+|---|---|---|---|---|---|
+| WILDS | 95% | 79.5% | 84.5% (507/600) | **95.7%** (574/600) | **PASS** — CI 93.7–97.0 |
+| ELITES | 75% | 46.3% | 53.7% (161/300) | **73.7%** (221/300) | **PASS** — CI 68.4–78.3 |
+| GYM BOSS | 60% | 3.3% | 0.0% | **0.0%** (0/60) | FAIL by 55pt |
+
+Per spot, and this is where the story is:
+
+| spot | control | prepared | what preparation is worth |
+|---|---|---|---|
+| wild, biome 1 (solo) | 74.5% | **97.0%** | **+22.5** |
+| wild, biome 2 | 90.5% | 94.0% | +3.5 |
+| wild, biome 3 | 88.5% | 96.0% | +7.5 |
+| elite, biome 1 (solo) | 37.0% | **61.0%** | **+24.0** |
+| elite, biome 2 | 65.0% | 82.0% | +17.0 |
+| elite, biome 3 | 59.0% | 78.0% | +19.0 |
+
+### What this settles
+
+**1. Two of the three bands already hit their targets, and the game is not broadly mistuned.**
+Wilds 95.7% against 95, elites 73.7% against 75 — both inside the ±5 window, and the wild band is
+sampled tightly enough (±1.6) for that verdict to be evidence rather than provisional. Every number
+before this was measuring a player who does not think about type.
+
+**2. Preparation is worth 11 points at the wild band and 20 at the elite band** — and it is worth
+most exactly where the run is hardest. The two biggest gaps in the table are both the **solo** spot
+(+22.5 and +24.0), which is the fight §10 identified as the run's worst position: one mingming,
+eight cards, against a full tuned deck. Bringing the counter is what makes that survivable.
+
+**3. The gym boss is now the ONLY failing band**, and 12a says which knob it is. The
+"is the whole game too hard" question is answered: no. One fight is.
+
+**4. `BOSS_IVS` is not the lever.** R2 left both stats and relics open. The measurement says stats
+buy 1.7 points and relics buy 58.3. Whatever the boss ruling turns out to be, turning the stat knob
+is not it.
+
+### What this does NOT settle
+
+- **The gauntlet's first two fights have only ever been measured blind** (68.3% and 81.7%). The
+  gauntlet band above is the boss cell alone. A prepared end-to-end gauntlet number needs those two
+  re-run, ~2h.
+- **Arm B is a diagnostic, not a proposal.** It measures what the fight is worth *without* the relics;
+  it does not say the relics should be removed, weakened, or answered with cards. That is R2's open
+  ruling and the three options are still live: soften the relics, author cards that answer them, or
+  both.
+- **The prepared arm still does not shop.** These bands are an un-drifted starting deck plus the
+  right elements. A played run's deck is better than this, so the wild and elite numbers remain a
+  floor — they are passing from below.
+- **Nothing here is measured under a played gauntlet's HP carry.** Every gym number in this document
+  still reads high against a real run.
+
+### One harness observation worth recording
+
+The control arm at `wild:biome0` produced **15 stalled battles out of 200** and an average of 8.8
+turns, against 4.1 for the prepared arm. Same-element mirrors between two copies of a tuned deck
+grind: neither side has the multiplier that closes a game. It does not affect the verdict (a stall
+scores as a non-win, which is the conservative direction for a control) but it is why that cell is
+the slowest cheap cell in the gate, and it is a small piece of evidence for the 89/11 finding in §4 —
+without the multiplier, these decks struggle to kill each other at all.
+
+### Reproducing
+
+```
+# 12a — the isolation arms
+npm run balance:run-gate -- --cells gauntlet:fight2 --iterations 60 --matchup favourable --boss-ivs 10
+npm run balance:run-gate -- --cells gauntlet:fight2 --iterations 60 --matchup favourable --boss-relics off
+
+# 12b — the bands, one cell per invocation (a long multi-cell run risks losing everything to one kill)
+npm run balance:run-gate -- --cells wild:biome0  --iterations 200 --matchup favourable   # and control
+npm run balance:run-gate -- --cells wild:biome1  --iterations 200 --matchup favourable   # and control
+npm run balance:run-gate -- --cells wild:biome2  --iterations 200 --matchup favourable   # and control
+npm run balance:run-gate -- --cells elite:biome0 --iterations 100 --matchup favourable   # and control
+npm run balance:run-gate -- --cells elite:biome1 --iterations 100 --matchup favourable   # and control
+npm run balance:run-gate -- --cells elite:biome2 --iterations 100 --matchup favourable   # and control
+```
+
+Both override flags are **run-scoped** and print on the report header, so a pasted number cannot lose
+which boss it was measured against. `--boss-ivs` accepts one value or `hp/attack/defense`.
+
+---

@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-26 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE LOUDEST NUMBER ON THIS MAP: a PREPARED player — counter-element, nothing disadvantaged — wins the gym boss 0 times in 60.** Control 0/60, blind 2/60; the boss is a wall and type advantage cannot rescue it. Henry has ruled ticket 67's three questions (two arms per band, a 2-3-card anti-boss power tier per deck, targets grade the PREPARED player) — see [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md). **The anti-boss cards are deck-archetypes' content and are now on the critical path: the balance numbers cannot close before they exist.** Re-measured bands (blind arm): wilds 79.5%, elites 46.3%, gauntlet 51.1%, against 95/75/60 — a floor, not a forecast. Next agent-runnable: measure wilds and elites on the PREPARED arm (~1h), then 58 (interaction tests), then 35/37/42 (platform baseline). **ALSO WAITING ON HENRY: 57 (Relay's 1-for-1 vs the reducer's 2-for-1), 31 (codex payouts need a cosmetics system), 25 (he must play it).** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22 (142 of 216 card descriptions print their power figure) and now the anti-boss power tier.** Suite green at 128 files / 1779 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-27 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE BALANCE PICTURE IS NOW MEASURED AND IT IS GOOD NEWS WITH ONE EXCEPTION.** For the PREPARED player the targets grade (ruling Q3): **wilds 95.7% against 95 — PASS. Elites 73.7% against 75 — PASS.** The game is not broadly mistuned; every earlier number measured a player who ignores type. **The gym boss is the only failing band (0/60), and its knob is identified: the relics, not the stats** — `BOSS_IVS` 20→10 buys 1.7pt, switching the `boss_relic_*` hooks off buys 58.3pt (the relic effects are stat-independent: Sharp-scaled, %maxHP, energy tax). **WAITING ON HENRY: ticket 67's R2 boss ruling** — soften the relics, answer them with the Q2 anti-boss cards, or both; and the gauntlet target (per-fight 60 vs end-to-end), which R3 deferred until these numbers landed. Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) §12. Gap: gauntlet fights 1 and 2 have only been measured blind (68.3%, 81.7%) — a prepared end-to-end number needs ~2h. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass (deck-archetypes, 24-36 cards, runs concurrently per R1), 57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22 (142 of 216 card descriptions print their power figure) and the anti-boss power tier.** Suite green at 128 files / 1785 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,54 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-27 — Two of three bands PASS for a prepared player. The boss wall is the relics, not the stats.
+
+Ticket 67 ruling R3's measurement task, done. **Nothing tuned** — the boss AI grade stays locked at
+full lookahead per R2, and both isolation levers are **run-scoped CLI flags** (`--boss-ivs`,
+`--boss-relics off`) so the shipped constants never moved and the 0/60 baseline still exists to
+compare against.
+
+**The isolation arms**, `gauntlet:fight2`, prepared, 60 battles each, everything but the named knob
+verified identical to baseline:
+
+| arm | result | vs 0/60 |
+|---|---|---|
+| A — `BOSS_IVS` 10/10/10 | 1/60 — **1.7%** | +1.7pt |
+| B — `boss_relic_*` off | 35/60 — **58.3%** | **+58.3pt** |
+
+**The relics are the wall.** And structurally so: the relic effects are stat-independent — FIRE
+scales on Sharp stacks, WATER heals 5% of max HP, ICE taxes energy — so lowering IVs *cannot* reach
+them. Arm A's battles ran longer than baseline (6.2 turns vs 5.3) and still lost: a softer boss that
+grinds you down the same way.
+
+**The prepared and control bands**, 1,800 battles:
+
+| band | target | blind | control | prepared |
+|---|---|---|---|---|
+| WILDS | 95% | 79.5% | 84.5% | **95.7%** — PASS (CI 93.7–97.0) |
+| ELITES | 75% | 46.3% | 53.7% | **73.7%** — PASS (CI 68.4–78.3) |
+| GYM BOSS | 60% | 3.3% | 0.0% | **0.0%** — FAIL by 55pt |
+
+**The game is not broadly mistuned.** Two of three bands already hit their targets for the player
+Q3 says the targets describe. Preparation is worth +11.2 at the wild band and +20.0 at the elite
+band, and most where the run is hardest — the two largest per-spot gaps are both the SOLO fight
+(wild biome 1 +22.5, elite biome 1 +24.0), which §10 had already identified as the run's worst
+position.
+
+**One fight is the whole problem**, and its knob is now named. What to do about it is R2's open
+ruling: soften the relics, answer them with the Q2 cards, or both. Arm B is a diagnostic, not a
+proposal.
+
+Open gaps: gauntlet fights 1 and 2 have only been measured blind (68.3%, 81.7%), so a prepared
+end-to-end gauntlet number needs ~2h; arm B's interval is wide (±12.1) and wants deepening if the
+target gets ruled against its number rather than its direction; and the prepared arm still does not
+shop, so both passing bands are passing **from below**.
+
+One harness note worth keeping: the control arm at `wild:biome0` stalled 15 battles in 200 and
+averaged 8.8 turns against the prepared arm's 4.1. Same-element mirrors between two tuned decks
+struggle to kill each other — a small independent echo of the 89/11 type finding.
+
 
 ### 2026-08-26 — The boss diagnostic: a PREPARED player wins the gym boss 0 times in 60
 

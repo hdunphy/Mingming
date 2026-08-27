@@ -118,7 +118,9 @@ import {
     RUN_GATE_TOLERANCE,
     TUNED_OS_IDS,
     gauntletCompound,
+    describeBossOverride,
     measureBand,
+    type BossOverride,
     type MatchupMode,
     type BandId,
     type BandMeasurement,
@@ -147,6 +149,27 @@ interface Args {
      * 95/75/60 targets grade; `control` removes type from the fight. See `runGate.MatchupMode`.
      */
     matchup: MatchupMode;
+    /**
+     * Run-scoped boss isolation — ticket 67 rulings round 3. `--boss-ivs 10` (or `10/12/14` as
+     * hp/attack/defense) replaces the authored `BOSS_IVS` for this run only; `--boss-relics off`
+     * strips the `boss_relic_*` hooks while leaving the deck identical. **Neither edits a shipped
+     * constant**, because the question being measured is which knob is the wall and turning a knob
+     * to answer it would destroy the baseline.
+     */
+    bossOverride?: BossOverride;
+}
+
+/** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
+ *  that turns out to be one stat rather than all three. */
+function parseBossIvs(raw: string | undefined): BossOverride['ivs'] {
+    if (raw === undefined) return undefined;
+    const parts = raw.split('/').map((n) => Number(n.trim()));
+    if (parts.some((n) => !Number.isInteger(n) || n < 0 || n > 31)) {
+        throw new Error(`[run-gate] --boss-ivs expects 0-31 integers, got "${raw}"`);
+    }
+    if (parts.length === 1) return { hp: parts[0], attack: parts[0], defense: parts[0] };
+    if (parts.length === 3) return { hp: parts[0], attack: parts[1], defense: parts[2] };
+    throw new Error(`[run-gate] --boss-ivs expects one value or three (hp/attack/defense), got "${raw}"`);
 }
 
 /**
@@ -175,6 +198,10 @@ function parseArgs(argv: string[]): Args {
         iterations,
         maxTurns: Number(get('--max-turns') ?? DEFAULT_MAX_TURNS),
         matchup: (get('--matchup') as MatchupMode | undefined) ?? 'blind',
+        bossOverride: {
+            ivs: parseBossIvs(get('--boss-ivs')),
+            relics: get('--boss-relics') === 'off' ? 'off' : undefined,
+        },
         strict: argv.includes('--strict'),
         verbose: argv.includes('--verbose'),
         list: argv.includes('--list'),
@@ -323,6 +350,7 @@ async function main(): Promise<void> {
             iterations: args.iterations,
             maxTurns: args.maxTurns,
             matchup: args.matchup,
+            bossOverride: args.bossOverride,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 console.log(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
@@ -337,6 +365,7 @@ async function main(): Promise<void> {
     console.log('');
     console.log('='.repeat(112));
     console.log(`  RUN GATE — ticket 61   ·   ${MATCHUP_LABEL[args.matchup]}`);
+    console.log(`  ${describeBossOverride(args.bossOverride)}`);
     console.log('='.repeat(112));
     for (const band of results) for (const line of bandLines(band)) console.log(line);
 

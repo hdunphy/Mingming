@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import { GAUNTLET_ENEMY_COUNT, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
+import { BOSS_IVS, GAUNTLET_ENEMY_COUNT, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { ENEMY_LADDER, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
@@ -9,6 +9,7 @@ import { ElementalMatrix } from '../../engine/combatUtils';
 import { minimumActiveDeck } from '../../engine/run/createRun';
 import {
     CELLS,
+    describeBossOverride,
     NO_FIRMWARE_OS,
     RUN_GATE_TARGETS,
     TUNED_OS_IDS,
@@ -16,6 +17,7 @@ import {
     lineupFor,
     sampleFight,
     wilson,
+    type SampledFight,
 } from './runGate';
 
 /**
@@ -336,5 +338,96 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
         const seen = new Set<string>();
         for (let i = 0; i < 40; i += 1) for (const os of sampleFight(cell, i, 'favourable').lineup) seen.add(os);
         expect(seen.size).toBe(TUNED_OS_IDS.length);
+    });
+});
+
+describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
+    const boss = () => CELLS.find((c) => c.id === 'gauntlet:fight2')!;
+    const decksOf = (fight: SampledFight): string =>
+        fight.setup.enemies.flatMap((e) => e.deck ?? []).join(',');
+
+    it('changes ONLY the named knob — the deck, the player and the seed are the baseline\'s', () => {
+        /*
+         * The whole value of an isolation arm is that it is comparable to the 0/60 it is measured
+         * against. If the override moved the enemy roll, the deck or the player's side as well, the
+         * difference between the two numbers would be uninterpretable — which is the failure mode
+         * that makes this test worth more than the flags themselves.
+         *
+         * Asserted per arm, because the two overrides reach different fields and a shared assertion
+         * would pass while one of them quietly did nothing.
+         */
+        const base = sampleFight(boss(), 3, 'favourable');
+        const lowered = sampleFight(boss(), 3, 'favourable', { ivs: { hp: 10, attack: 10, defense: 10 } });
+        const stripped = sampleFight(boss(), 3, 'favourable', { relics: 'off' });
+
+        for (const arm of [lowered, stripped]) {
+            expect(decksOf(arm)).toBe(decksOf(base));
+            expect(arm.setup.player).toEqual(base.setup.player);
+            expect(arm.setup.seed).toBe(base.setup.seed);
+            expect(arm.setup.enemies.map((e) => e.definitionId)).toEqual(base.setup.enemies.map((e) => e.definitionId));
+        }
+    });
+
+    it('ARM A lowers every boss slot\'s stats and leaves the relics on', () => {
+        const arm = sampleFight(boss(), 3, 'favourable', { ivs: { hp: 10, attack: 10, defense: 10 } });
+        for (const enemy of arm.setup.enemies) {
+            expect({ hp: enemy.hpIV, attack: enemy.attackIV, defense: enemy.defenseIV })
+                .toEqual({ hp: 10, attack: 10, defense: 10 });
+            expect(enemy.activeOS!.startsWith('boss_relic')).toBe(true);
+        }
+    });
+
+    it('ARM B strips the relic hooks for a REAL firmware, not for nothing', () => {
+        /*
+         * `relics: 'off'` swaps the `boss_relic_*` id for the species' own `availableOS[0]`. Two
+         * things have to be true for that to be an isolation rather than a second change:
+         *
+         * 1. the replacement must RESOLVE — a firmware the registry does not know would silently
+         *    field an enemy running no hooks at all, which is a different experiment;
+         * 2. the deck must not move — and it does not, because `getDeckForOS` already falls back to
+         *    `availableOS[0]`'s tuned list for a boss (`gauntlet.buildEnemy` documents this), so the
+         *    boss was fighting with that deck all along.
+         */
+        const base = sampleFight(boss(), 3, 'favourable');
+        const arm = sampleFight(boss(), 3, 'favourable', { relics: 'off' });
+
+        for (const enemy of arm.setup.enemies) {
+            expect(enemy.activeOS!.startsWith('boss_relic')).toBe(false);
+            expect(getOSBehavior(enemy.activeOS!)).toBeDefined();
+            // Stats untouched: this arm is about the relics and nothing else.
+            expect(enemy.hpIV).toBe(20);
+        }
+        expect(base.setup.enemies.every((e) => e.activeOS!.startsWith('boss_relic'))).toBe(true);
+    });
+
+    it('touches no fight that is not a boss fight', () => {
+        // `BOSS_IVS` has no meaning outside one, and the gauntlet's first two fights are elites
+        // carrying no relic — an override that reached them would be measuring a different ladder.
+        for (const id of ['gauntlet:fight0', 'gauntlet:fight1', 'elite:biome0', 'wild:biome1']) {
+            const cell = CELLS.find((c) => c.id === id)!;
+            const plain = sampleFight(cell, 3, 'favourable');
+            const overridden = sampleFight(cell, 3, 'favourable', {
+                ivs: { hp: 10, attack: 10, defense: 10 }, relics: 'off',
+            });
+            expect(overridden.setup.enemies).toEqual(plain.setup.enemies);
+        }
+    });
+
+    it('is absent by default, so the shipped boss is what an unflagged run measures', () => {
+        // Ruling R2 leaves BOSS_IVS and the relics open as levers and nothing has been ruled yet, so
+        // the authored constants must not move while the question is being measured.
+        const plain = sampleFight(boss(), 5, 'favourable');
+        expect(plain.bossOverride).toBeUndefined();
+        for (const enemy of plain.setup.enemies) {
+            expect(enemy.hpIV).toBe(BOSS_IVS[0].hp);
+            expect(enemy.activeOS!.startsWith('boss_relic')).toBe(true);
+        }
+    });
+
+    it('names the arm in one line, so a pasted number cannot lose its provenance', () => {
+        expect(describeBossOverride(undefined)).toBe('boss as shipped');
+        expect(describeBossOverride({})).toBe('boss as shipped');
+        expect(describeBossOverride({ ivs: { hp: 10, attack: 10, defense: 10 } })).toContain('10/10/10');
+        expect(describeBossOverride({ relics: 'off' })).toContain('hooks OFF');
     });
 });
