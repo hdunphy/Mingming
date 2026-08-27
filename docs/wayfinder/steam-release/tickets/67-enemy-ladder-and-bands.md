@@ -93,6 +93,17 @@ shows no non-monotonic step the ruling did not ask for.
 
 ---
 
+> **BEFORE GRILLING ON THESE NUMBERS, READ
+> [research/67-gate-validity-and-the-power-ceiling.md](../research/67-gate-validity-and-the-power-ceiling.md).**
+> Henry's reaction to the re-measure (2026-08-26) was that the gate is modelling a player who cannot
+> exist: it picks the party **blind to the biome's element** (at the boss it brought a favourable
+> matchup 7 times in 60, against a 1.5×-per-attack type multiplier the combat code's own experiment
+> found produced an 89/11 split), and it fights with the un-shopped starting deck. He also identified
+> that **no card in the game is stronger than what a tuned deck already holds** — 148 of 216 programs
+> are inside the 12 launch decks — so "build a deck better than the enemy's" is not currently
+> reachable. The research note carries the measurements behind both and the three decisions that
+> follow. The bands below stand as a floor, not as a forecast.
+
 ## THE RE-MEASURE — steps 1 and 2 done, 2026-08-26. Stopping here, as ruled.
 
 The ladder and the IV flip are built; nothing was tuned against them. What follows is the baseline
