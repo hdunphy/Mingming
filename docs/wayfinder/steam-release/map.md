@@ -23,6 +23,8 @@ Henry has ~5–15 focused hours a week plus heavy agent time, a fourth child arr
 
 ## Decisions so far
 
+- [Gate validity + the power ceiling](research/67-gate-validity-and-the-power-ceiling.md) — the ladder worked (wilds 52.8→79.5%, curve now monotonic; the biome-2 spike was ticket 08's engine-only middle row) but the gate was grading a matchup lottery (type = 1.5× persistent ≈ a win condition) against a player with no power ceiling to climb. Ruled: **six-number gate** (control = same-element ≤2 / two+recorded-third at 3, + population mean; **prepared = matchup + shopped deck + anti-boss cards, and 95/75/60 grades the prepared arm**); **anti-boss tier = 2–3 cards per deck, species-pool-bound, elite rewards + premium market slot, enemy never gets them** — designed with Henry in a deck-archetypes-shape session; **ICE_RELIC hard-countering jorm_v2 is intended counter-play** (with one non-Poison out). Boss diagnostic runs before anything else.
+
 - [Ticket 67 rulings](tickets/67-enemy-ladder-and-bands.md) — the run-gate's failing bands (52.8/41.7/50.0 vs 95/75/60) were measured WITHOUT ticket 60's enemy ladder, so 67 is **build-then-grill**: ladder + **IV flip** (player 0–31; **wilds 0–20**, elites 0–31 uncapped, **boss fixed authored IVs**) → full re-measure → numbers session on the residual (boss expected). No tuning against the broken baseline. Assembly roll stays unpreviewed (?? until spent).
 
 - [Region map visual pass](tickets/64-proto-region-map-screen.md) — **Option N, the winding overworld route** (min ~74px node spacing enforced), biome color zones with ✓/current/ahead headers, visit badges, pulsing current node, white reachable rings, fog beyond 1 layer, boundary banner, gym silhouettes. Reference SVG in research/64-map-proto/.
