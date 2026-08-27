@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-27 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE BALANCE PICTURE IS NOW MEASURED AND IT IS GOOD NEWS WITH ONE EXCEPTION.** For the PREPARED player the targets grade (ruling Q3): **wilds 95.7% against 95 — PASS. Elites 73.7% against 75 — PASS.** The game is not broadly mistuned; every earlier number measured a player who ignores type. **The gym boss is the only failing band (0/60), and its knob is identified: the relics, not the stats** — `BOSS_IVS` 20→10 buys 1.7pt, switching the `boss_relic_*` hooks off buys 58.3pt (the relic effects are stat-independent: Sharp-scaled, %maxHP, energy tax). **WAITING ON HENRY: ticket 67's R2 boss ruling** — soften the relics, answer them with the Q2 anti-boss cards, or both; and the gauntlet target (per-fight 60 vs end-to-end), which R3 deferred until these numbers landed. Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) §12. Gap: gauntlet fights 1 and 2 have only been measured blind (68.3%, 81.7%) — a prepared end-to-end number needs ~2h. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass (deck-archetypes, 24-36 cards, runs concurrently per R1), 57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22 (142 of 216 card descriptions print their power figure) and the anti-boss power tier.** Suite green at 128 files / 1785 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-27 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE BALANCE PICTURE IS NOW MEASURED AND IT IS GOOD NEWS WITH ONE EXCEPTION.** For the PREPARED player the targets grade (ruling Q3): **wilds 95.7% against 95 — PASS. Elites 73.7% against 75 — PASS.** The game is not broadly mistuned; every earlier number measured a player who ignores type. **The gym boss is the only failing band (0/60), and its knob is identified: the relics, not the stats** — `BOSS_IVS` 20→10 buys 1.7pt, switching the `boss_relic_*` hooks off buys 58.3pt (the relic effects are stat-independent: Sharp-scaled, %maxHP, energy tax). **WAITING ON HENRY: ticket 67's R2 boss ruling** — soften the relics, answer them with the Q2 anti-boss cards, or both; and the gauntlet target (per-fight 60 vs end-to-end), which R3 deferred until these numbers landed. Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) §12. Gap: gauntlet fights 1 and 2 have only been measured blind (68.3%, 81.7%) — a prepared end-to-end number needs ~2h. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass (deck-archetypes, 24-36 cards, runs concurrently per R1), 57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22 (142 of 216 card descriptions print their power figure) and the anti-boss power tier.** **New tool: `npm run decks`** writes `docs/balance/deck_browser.html`, a standalone at-a-glance reference for all 32 decks (firmware text, engine, curve, cards, borrowed win rates) that badges its own numbers stale by registry hash — read it before touching a deck. Suite green at 129 files / 1790 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,34 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-27 — `npm run decks`: a deck browser, and it flags its own stale numbers
+
+Henry's side quest, not a ticket: *"I need a tool to look at the current decks… easy to read at a
+glance, not JSON, interactive… mark it stale if we have made changes that affect it."*
+
+`npm run decks` writes **`docs/balance/deck_browser.html`** — one self-contained file, double-click,
+no server and no `npm run dev`. Left rail of all 32 decks grouped by element with win rates; main
+panel per deck: statline, the FIRMWARE box (the OS description is the biggest thing on the page,
+because forgetting what an OS does is the problem this solves), cost curve, the deck engine-first
+with PAYOFF/ENABLER badges and per-card telemetry, and the MEASURED grid. `c` pins a deck and
+compares two side by side; `j`/`k` walk the filtered list; `/` searches.
+
+**Everything structural is read from the live registry at generation time** (`getDeckForOS`,
+`startKits`, `ProgramRegistry`, `getOSBehavior`), so regenerating is all it takes to be current. The
+win rates cannot work that way — they cost hours — so they are borrowed from
+`docs/balance/deck_report.json` and **stamped with `computeRegistryHash()`**. Hash mismatch ⇒ banner
+at the top, every borrowed number dimmed and badged. That is honest rather than a file-date
+heuristic: if a card's numbers moved, the hash moved.
+
+**The staleness banner is live right now.** The deck report was measured at `1:ce1ac459`; the
+registry is at `1:1ad8616b` — i.e. every win rate on the page predates the ticket-60 ladder and the
+ticket-61 engine work. `npm run balance:deck` refreshes them. Also worth knowing before trusting the
+column: the report's win rate is **vs the mirror field it was run against**, not vs the new ladder.
+
+Three files under `src/debug/balance/` (`deckBrowser.ts`, `deckBrowserTemplate.html`,
+`runDeckBrowser.ts`) plus `deckBrowser.test.ts`, which pins the two things a reader would be silently
+misled by: the hash comparison, and that telemetry joins by `osId|cardId` and never by position.
 
 ### 2026-08-27 — Two of three bands PASS for a prepared player. The boss wall is the relics, not the stats.
 
