@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-26 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE MAP IS WAITING ON ONE THING: [ticket 67](tickets/67-enemy-ladder-and-bands.md)'s GRILLING.** The ladder and the IV flip are built and re-measured at 1,080 battles — wilds 52.8% → **79.5%**, elites 41.7% → **46.3%**, gauntlet 50.0% → **51.1%**, against targets of 95/75/60. Both curves are monotonic now (the biome-1 trough is gone, +52pt on that cell); what survived is the gym boss at **3.3%** and the **elite band, which barely moved**. Nothing was tuned — build-then-grill, as ruled. Henry rules on the residual against that baseline. Next agent-runnable after 67: 58 (interaction tests), then 35/37/42 (platform baseline). **ALSO WAITING ON HENRY: 57 (Relay's 1-for-1 vs the reducer's 2-for-1), 31 (codex payouts need a cosmetics system, which has no ticket), 25 (he must play it).** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES (ticket 22): 142 of 216 card descriptions print their power figure — the standing law broken at the data layer.** HENRY'S QUEUE: proposals and flagged readings in 12, 13, 14, 15, 18, 19, 22, 61; loudest is 67. Suite green at 128 files / 1773 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-26 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE LOUDEST NUMBER ON THIS MAP: a PREPARED player — counter-element, nothing disadvantaged — wins the gym boss 0 times in 60.** Control 0/60, blind 2/60; the boss is a wall and type advantage cannot rescue it. Henry has ruled ticket 67's three questions (two arms per band, a 2-3-card anti-boss power tier per deck, targets grade the PREPARED player) — see [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md). **The anti-boss cards are deck-archetypes' content and are now on the critical path: the balance numbers cannot close before they exist.** Re-measured bands (blind arm): wilds 79.5%, elites 46.3%, gauntlet 51.1%, against 95/75/60 — a floor, not a forecast. Next agent-runnable: measure wilds and elites on the PREPARED arm (~1h), then 58 (interaction tests), then 35/37/42 (platform baseline). **ALSO WAITING ON HENRY: 57 (Relay's 1-for-1 vs the reducer's 2-for-1), 31 (codex payouts need a cosmetics system), 25 (he must play it).** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22 (142 of 216 card descriptions print their power figure) and now the anti-boss power tier.** Suite green at 128 files / 1779 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,47 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-26 — The boss diagnostic: a PREPARED player wins the gym boss 0 times in 60
+
+Henry ruled ticket 67's three questions (research note
+[67-gate-validity-and-the-power-ceiling](research/67-gate-validity-and-the-power-ceiling.md), §9):
+report a **control** number and a **prepared** number for every band, add a power tier of **2-3
+anti-boss cards per deck** (24-36 cards, deck-archetypes' content), and **95/75/60 grade the
+prepared player**, not the control.
+
+The gate now has both arms — `--matchup blind|favourable|control`. `blind` is the original stride and
+is still the default, so every number taken before the ruling reproduces exactly.
+
+**The boss diagnostic, 180 battles:**
+
+| arm | boss result |
+|---|---|
+| PREPARED (counter-element, nobody the champion is strong against) | **0/60 — 0.0%** |
+| CONTROL (champion's own element, type removed) | **0/60 — 0.0%** |
+| blind (earlier) | 2/60 — 3.3% |
+
+**The boss is a wall and type advantage cannot rescue it.** The prepared arm is not better than the
+blind one. Average battle length 5.3 turns, so these are routs rather than near-misses: the boss team
+removes a party before it can execute, and a damage multiplier on attacks nobody lives to make does
+nothing. The "the 3.3% is a matchup artefact" hypothesis is dead.
+
+**What it does NOT settle:** this is a result about the boss, not about type advantage. Wilds and
+elites have still only been measured blind, and the prepared arm should move them a lot — they are
+ordinary enemies, not three champions carrying `boss_relic_*` firmware. Measuring those two bands
+prepared is the next thing worth an hour.
+
+**What it means for ruling Q2:** it sizes the job. The anti-boss cards are not shifting a 40% fight to
+60% — they are being asked to make a **0%** fight winnable, against a starting deck, where the loss is
+a rout. A throughput-style effect cannot do that; the cards likely have to change the fight's shape
+(survive FIRE's field ignition, deny WATER's heal trigger, escape ICE's energy tax). `BOSS_IVS` is one
+authored triple per slot and exists so it can move too — asking 24-36 unwritten cards to carry all of
+a 0-to-60 gap is a large bet.
+
+Also worth stating before those cards are designed: even at 60% per fight, clearing all three
+compounds to ~33%, and the harness does not carry HP between fights. Whatever the gauntlet is meant
+to produce end-to-end should be a number somebody has said out loud.
+
 
 ### 2026-08-26 — Ticket 67 steps 1-2: the ladder is built, and the re-measure says it is not enough
 

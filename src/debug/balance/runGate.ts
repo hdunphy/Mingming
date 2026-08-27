@@ -111,6 +111,8 @@ import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/s
 import { BALANCE_IV, BALANCE_STAT_JITTER } from './balanceScenarios';
 import { quietly } from './balanceReporting';
 import { DEFAULT_MAX_TURNS, aggregate, runBatch, type RunResult } from './runBatch';
+import { ElementalMatrix } from '../../engine/combatUtils';
+import type { Element } from '../../engine/types';
 import type { AiTier } from '../../engine/ai/TacticalAI';
 
 // ---------------------------------------------------------------------------------------------
@@ -263,6 +265,161 @@ export function lineupFor(index: number, size: number): string[] {
         throw new Error(`[run-gate] Lineup ${lineup.join('+')} holds two of one species.`);
     }
     return lineup;
+}
+
+/**
+ * **WHICH PLAYER THE GATE IS MEASURING — Henry's ruling on ticket 67, 2026-08-26.**
+ *
+ * > *"We should report both numbers. No type matchup … the other number is player with matchup adv."*
+ * > *"These are the targets for an average prepared player."*
+ *
+ * So the gate has two arms, and only one of them is graded against 95/75/60.
+ *
+ * # WHY THIS EXISTS AT ALL
+ *
+ * `lineupFor` above picks the party by walking the tuned roster on a stride. It never looks at the
+ * biome. That is a fine SAMPLE of decks and a terrible sample of FIGHTS, because type advantage in
+ * this engine is close to a win condition rather than flavour: 1.5x on every attack for the whole
+ * battle, and `combatUtils.ElementalMatrix`'s own header records that a persistent multiplier that
+ * size measured an **89/11 cross-element split over 1,440 games**. Measured over 60 boss samples,
+ * the blind lineup brought a favourable matchup **7 times**. Every band the gate has reported so far
+ * is therefore an average over a lottery on the single largest term in the fight.
+ *
+ * # THE THREE MODES
+ *
+ * - **`blind`** — the original stride. Kept as the default so every number taken before this ruling
+ *   still reproduces, and kept as a third line worth reporting: it is the honest answer to *"what
+ *   happens to a player who does not think about type"*.
+ * - **`favourable`** — the PREPARED arm. Brings the counter-element for the fight, as far as the
+ *   roster allows. This is the arm the targets grade.
+ * - **`control`** — the CONTROL arm. Brings the fight's own element, which is 1.0x in both
+ *   directions, so the number isolates deck, AI grade and stats with type removed.
+ *
+ * # THE CONSTRAINT THAT SHAPES BOTH NON-BLIND MODES
+ *
+ * With the EA six there is **no element neutral against Fire, Water or Nature except itself** (vs
+ * Fire: Water and Earth have the edge, Nature and Ice are behind, and Earth/Ice do not ship), and
+ * there are only **two species per element**. So:
+ *
+ * - a same-element control is exact at party size 1 and 2, and **impossible at size 3**;
+ * - a full counter-element commitment likewise caps at two members.
+ *
+ * The third slot is therefore filled deliberately rather than left to fall out, and differently per
+ * mode:
+ *
+ * - `favourable` fills it with the **target's own element** — neutral, the best available, and
+ *   deterministic. A prepared player would not bring the one member the champion eats.
+ * - `control` **alternates** the third slot between the two non-target elements by sample index, so
+ *   across a sample the third member is favourable half the time and behind half the time and the
+ *   arm averages back to neutral. Filling it consistently either way would tilt the control.
+ *
+ * Both are recorded here rather than hidden, because a control that is not actually neutral is worse
+ * than no control at all.
+ */
+export type MatchupMode = 'blind' | 'favourable' | 'control';
+
+const elementOf = (osId: string): string => MingmingRegistry[speciesOf(osId)].primaryElement;
+
+/** Every tuned firmware of a given element — two species x two firmwares, four ids. */
+const osIdsOfElement = (element: string): string[] =>
+    TUNED_OS_IDS.filter((id) => elementOf(id) === element);
+
+/** The launch elements that beat `target` at 1.5x. With the EA cycle this is exactly one. */
+const countersOf = (target: string): string[] =>
+    [...new Set(TUNED_OS_IDS.map(elementOf))].filter(
+        (element) => (ElementalMatrix[element as Element]?.[target as Element] ?? 1) > 1,
+    );
+
+/**
+ * The element the sampled fight is *about*.
+ *
+ * For a wild or an elite it is the biome the node stands in. **For the gauntlet it is the GYM's own
+ * element**, which `offerGyms` rule 4 puts in `biomes[2]`: the boss team is one species per biome in
+ * biome order, so its champion — the leader's own species, and the member the fight is named after —
+ * is the biome-2 one. Countering the champion is what *"come into the grass boss with firestarters"*
+ * means, and it necessarily leaves the other two boss members un-countered. That is the real shape
+ * of the fight rather than a limitation of the harness.
+ */
+function targetElementFor(cell: RunGateCell, biomes: ReadonlyArray<{ elements: ReadonlyArray<string> }>): string {
+    const index = cell.kind === 'gauntlet' ? biomes.length - 1 : cell.biomeIndex;
+    return biomes[Math.min(index, biomes.length - 1)]?.elements[0] ?? 'None';
+}
+
+/**
+ * Draw `count` firmwares of one element, from DISTINCT species, rotating by sample index.
+ *
+ * The rotation is what keeps a prepared arm a sample rather than a fixture: without it every
+ * favourable boss sample would field the same two firmwares, and the arm would report one matchup's
+ * quality instead of the counter-element's.
+ */
+function drawFromElement(element: string, count: number, index: number, taken: Set<string>): string[] {
+    const bySpecies = new Map<string, string[]>();
+    for (const id of osIdsOfElement(element)) {
+        const species = speciesOf(id);
+        if (taken.has(species)) continue;
+        bySpecies.set(species, [...(bySpecies.get(species) ?? []), id]);
+    }
+    const species = [...bySpecies.keys()];
+    const out: string[] = [];
+    for (let slot = 0; slot < count && slot < species.length; slot += 1) {
+        const name = species[(index + slot) % species.length];
+        if (taken.has(name)) continue;
+        const firmwares = bySpecies.get(name)!;
+        out.push(firmwares[index % firmwares.length]);
+        taken.add(name);
+    }
+    return out;
+}
+
+/**
+ * The lineup for one sample under one matchup mode. See `MatchupMode` for the argument.
+ *
+ * Falls back to `lineupFor`'s stride for any slot the rules above cannot fill — which cannot happen
+ * with the EA six, and is here so that adding a seventh species can never silently produce a short
+ * party instead of a loud one.
+ */
+export function lineupAgainst(
+    index: number,
+    size: number,
+    target: string,
+    mode: MatchupMode,
+): string[] {
+    if (mode === 'blind') return lineupFor(index, size);
+
+    const taken = new Set<string>();
+    const lineup: string[] = [];
+
+    if (mode === 'favourable') {
+        for (const element of countersOf(target)) {
+            lineup.push(...drawFromElement(element, size - lineup.length, index, taken));
+        }
+        // The remainder rides on the target's own element: 1.0x both ways, and the only neutral
+        // choice the EA roster offers.
+        lineup.push(...drawFromElement(target, size - lineup.length, index, taken));
+    } else {
+        lineup.push(...drawFromElement(target, size - lineup.length, index, taken));
+        // Alternate the overflow between the two non-target elements so the arm averages neutral.
+        const others = [...new Set(TUNED_OS_IDS.map(elementOf))].filter((e) => e !== target);
+        const ordered = index % 2 === 0 ? others : [...others].reverse();
+        for (const element of ordered) {
+            lineup.push(...drawFromElement(element, size - lineup.length, index, taken));
+        }
+    }
+
+    /*
+     * Backstop, for a roster this file does not have yet. With the EA six the rules above always
+     * fill the party, so this walks zero times — it exists so that adding a seventh species can
+     * produce a loud short-party bug rather than a silent one. Walked over `TUNED_OS_IDS` directly
+     * rather than through `lineupFor`, because that function refuses a lineup holding two of one
+     * species and a full-roster call is by definition one.
+     */
+    for (let step = 0; step < TUNED_OS_IDS.length && lineup.length < size; step += 1) {
+        const id = TUNED_OS_IDS[(index + step) % TUNED_OS_IDS.length];
+        if (taken.has(speciesOf(id))) continue;
+        lineup.push(id);
+        taken.add(speciesOf(id));
+    }
+    return lineup.slice(0, size);
 }
 
 /** A sampled lineup as roster instances, at the corpus's pinned IVs. */
@@ -471,6 +628,9 @@ export interface SampledFight {
     /** The node this was rolled at, for a repro. */
     readonly nodeId: string;
     readonly biomeElements: ReadonlyArray<string>;
+    /** Which arm this sample belongs to, and the element it was chosen against. */
+    readonly matchup: MatchupMode;
+    readonly targetElement: string;
     /**
      * Which grade of `TacticalAI` the enemies play at — ticket 60's ladder, third column.
      *
@@ -543,13 +703,29 @@ const describeEnemy = (definitionId: string, activeOS?: string): string =>
  * element in the final biome, so the leader picks the whole element ORDER of the run, and with it
  * which counter matchups the player meets at which depth.
  */
-export function sampleFight(cell: RunGateCell, index: number): SampledFight {
+export function sampleFight(
+    cell: RunGateCell,
+    index: number,
+    matchup: MatchupMode = 'blind',
+): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
-    const lineup = lineupFor(index, cell.partySize);
-    const party = partyFor(lineup);
 
+    /*
+     * THE OFFER IS PICKED BEFORE THE PARTY, AND THAT ORDER IS THE WHOLE TRICK.
+     *
+     * A prepared player chooses their team knowing where they are going, and the biome elements live
+     * on the gym OFFER — `offerGyms` decides them, `createRun` only copies them onto the run. So the
+     * offer is rolled first, the target element read off it, and the lineup chosen against that.
+     * `blind` ignores the target entirely and reproduces the original stride, which is what keeps
+     * every number taken before this ruling reproducible.
+     */
     const offers = offerGyms(seed);
     const offer = offers[index % offers.length];
+    const target = targetElementFor(cell, offer.biomes);
+
+    const lineup = lineupAgainst(index, cell.partySize, target, matchup);
+    const party = partyFor(lineup);
+
     const created = createRun({ seed, offer, party, startedAt: 0 });
     const deck = deckFor(created, party);
 
@@ -574,6 +750,8 @@ export function sampleFight(cell: RunGateCell, index: number): SampledFight {
         enemy: encounter.enemyParty.map((e) => describeEnemy(e.definitionId, e.activeOS)),
         nodeId: entered.id,
         biomeElements: run.biomes.map((b) => b.elements.join('/')),
+        matchup,
+        targetElement: target,
     };
 }
 
@@ -672,6 +850,8 @@ export interface MeasureOptions {
     readonly maxTurns?: number;
     /** Called once per finished sample, so a half-hour run is not a silent one. */
     readonly onProgress?: (cell: RunGateCell, sampleIndex: number, elapsedMs: number, won: boolean) => void;
+    /** Which player to model. Defaults to `blind` — see `MatchupMode`. */
+    readonly matchup?: MatchupMode;
 }
 
 /**
@@ -710,7 +890,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
 
         let fight: SampledFight;
         try {
-            fight = sampleFight(cell, at);
+            fight = sampleFight(cell, at, options.matchup ?? 'blind');
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;
             throw error;

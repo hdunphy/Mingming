@@ -2,7 +2,8 @@
 
 **For:** the design agent (deck-archetypes map, and whoever rules on ticket 67's residual)
 **From:** the steam-release map, session 67-build, 2026-08-26
-**Status:** findings, plus Henry's rulings on the three questions (§9). **Nothing has been tuned, and
+**Status:** findings, Henry's rulings on the three questions (§9), and the boss diagnostic those
+rulings asked for (§10 — **prepared 0/60, control 0/60**). **Nothing has been tuned, and
 no card content has been written.** Two sub-questions remain open and are marked as such.
 
 ---
@@ -23,7 +24,9 @@ addressed to design rather than filed as a tuning ticket.
 
 The three questions in §7 are the ones that needed ruling before another number was worth taking.
 **Henry ruled all three on 2026-08-26 — §9 carries them, and §9 is the section a design agent
-should act on.** In short: report a control number and a prepared number for every band; add a
+should act on. §10 carries the boss diagnostic those rulings asked for, and it is the loudest
+single number in this document: a PREPARED player, bringing the counter-element, wins the gym
+boss 0 times in 60.** In short: report a control number and a prepared number for every band; add a
 power tier of **2–3 anti-boss cards per deck** (24–36 cards); and the 95/75/60 targets grade the
 **prepared** player, not the control.
 
@@ -255,6 +258,9 @@ only the player's element changes. ~30–40 minutes of compute.
 This is a diagnostic, not a tuning pass, and it discriminates between the two live hypotheses more
 cheaply than anything else available.
 
+> **RUN, 2026-08-26 — see §10. Both arms came back 0/60.** The boss is a wall and type advantage
+> cannot rescue it; the artefact hypothesis is dead.
+
 ---
 
 ---
@@ -370,7 +376,81 @@ bar and the gate should model it differently. Worth one sentence back.
 
 ---
 
-## 10. Facts appendix
+---
+
+## 10. THE BOSS DIAGNOSTIC — run 2026-08-26. The answer is unambiguous, and it is the bad branch.
+
+§8 proposed one measurement: re-run the gym boss with a type-favourable team and see whether the
+3.3% was a wall or an artefact of the harness's matchup blindness. It has now been run, in both arms
+Henry ruled for in §9, plus the blind figure already on record.
+
+**The `--matchup` flag exists now** (`blind` | `favourable` | `control`), so this is the two-arm gate
+from ruling Q1 rather than a throwaway script — every future band can be taken both ways.
+
+### The numbers
+
+`gauntlet:fight2`, 60 battles per arm, boss stats fixed at `BOSS_IVS` throughout. Nothing else changed
+between arms except which elements the player fielded.
+
+| arm | what the player brought | result | 95% CI |
+|---|---|---|---|
+| **PREPARED** | counter-element for the champion, no member the champion is strong against | **0/60 — 0.0%** | 0.0–6.0 |
+| **CONTROL** | the champion's own element, 1.0× both ways | **0/60 — 0.0%** | 0.0–6.0 |
+| blind (earlier run) | arbitrary lineup | 2/60 — 3.3% | 0.9–11.4 |
+
+Pooled across all three arms: **2 wins in 180 battles (1.1%).** Average battle length 5.3 turns.
+
+### What this settles
+
+**The boss is a wall, and type advantage cannot rescue it.** The prepared arm is not better than the
+blind arm — it is nominally worse, and the three arms are statistically indistinguishable. The
+hypothesis that §4's matchup blindness was hiding a winnable fight is dead.
+
+The 1.5× multiplier is simply not large enough to close this particular gap. A ~5-turn average means
+these are **routs, not near-misses**: the boss team removes a party before it can execute, so a damage
+multiplier on attacks the player does not live to make changes nothing.
+
+### What this does NOT settle, and the distinction matters
+
+**This is a result about the boss, not about type advantage.** The wild and elite bands have still
+only ever been measured blind, and there is every reason to expect the prepared arm to move them a
+lot — those are ordinary enemies at 1v1/2v2/3v3, not three champions carrying `boss_relic_*`
+firmware. §4's 89/11 finding stands; it just cannot operate on a fight this lopsided.
+
+The two bands worth measuring prepared next are **wilds** and **elites**, and those are where the
+prepared-vs-control gap will actually tell us what preparation is worth.
+
+### What it means for the anti-boss cards (§9, Q2)
+
+It sizes the job. Those 2–3 cards per deck are not being asked to shift a 40% fight to 60% — they are
+being asked to make a **0%** fight winnable at 60%, against a starting deck, and the loss is a rout
+rather than a grind. Three consequences worth putting in front of the design pass:
+
+1. **A percentage-style effect will not do it.** Nothing that scales what the player is already doing
+   can move 0% far, because the player is not surviving long enough to do it. The cards likely have
+   to change the fight's *shape* — survive the FIRE relic's field ignition, deny the WATER relic's
+   heal trigger, escape the ICE relic's energy tax — rather than add throughput.
+2. **The boss may need to move too.** `BOSS_IVS` is one authored triple per slot and exists precisely
+   so that it can. A 0% fight is a long way from 60%, and asking 24–36 cards to carry all of it is a
+   large bet on content that has not been written yet.
+3. **The gauntlet compound is the real target.** Fights 1 and 2 measure 68.3% and 81.7% blind. Even
+   if the boss reached 60%, clearing all three compounds to ~33%, and HP does not carry in the
+   harness so a played run is worse. Whatever "60% per fight" is meant to produce end-to-end should
+   be stated explicitly before the cards are designed against it.
+
+### Reproducing
+
+```
+npm run balance:run-gate -- --cells gauntlet:fight2 --iterations 60 --matchup favourable
+npm run balance:run-gate -- --cells gauntlet:fight2 --iterations 60 --matchup control
+```
+
+About 62–66 seconds per battle; roughly an hour per arm, and the two arms run concurrently on two
+cores. The report header names the arm, so a pasted number cannot lose it.
+
+---
+
+## 11. Facts appendix
 
 **Targets:** 95% wilds / 75% elites / 60% per gym fight, tier 1, ±5.
 

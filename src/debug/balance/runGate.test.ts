@@ -5,6 +5,7 @@ import { GAUNTLET_ENEMY_COUNT, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet
 import { ENEMY_LADDER, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
+import { ElementalMatrix } from '../../engine/combatUtils';
 import { minimumActiveDeck } from '../../engine/run/createRun';
 import {
     CELLS,
@@ -231,5 +232,109 @@ describe('run gate — the banding', () => {
         // And it narrows with sample, which is the property the printed row is there to show.
         expect(wilson(95, 100).high - wilson(95, 100).low)
             .toBeLessThan(wilson(19, 20).high - wilson(19, 20).low);
+    });
+});
+
+describe('the two arms — which player the gate is measuring (ticket 67, Henry 2026-08-26)', () => {
+    const speciesOf = (osId: string): string => osId.replace(/_v\d+$/, '');
+    const elementOf = (osId: string): string => MingmingRegistry[speciesOf(osId)].primaryElement;
+    const beats = (attacker: string, defender: string): boolean =>
+        ((ElementalMatrix as Record<string, Partial<Record<string, number>>>)[attacker]?.[defender] ?? 1) > 1;
+
+    /** Every arm of every cell, sampled wide enough that a rule-shaped claim is testable. */
+    const walk = (cellId: string, mode: 'blind' | 'favourable' | 'control', n = 40) => {
+        const cell = CELLS.find((c) => c.id === cellId)!;
+        const out: Array<{ mine: string[]; target: string }> = [];
+        for (let i = 0; i < n; i += 1) {
+            try {
+                const fight = sampleFight(cell, i, mode);
+                out.push({ mine: fight.lineup.map(elementOf), target: fight.targetElement });
+            } catch { /* a graph with no node of this kind — `measureCell` re-rolls these too */ }
+        }
+        expect(out.length).toBeGreaterThan(n / 2);
+        return out;
+    };
+
+    it('PREPARED brings the counter every time, and brings nobody the enemy eats', () => {
+        /*
+         * The arm the 95/75/60 targets grade. Henry: *"the other number is player with matchup adv."*
+         *
+         * Both halves are asserted, and the second is the one a careless implementation would drop:
+         * a team that counters the target but drags along a member the target is strong against has
+         * handed back most of what it bought. With the EA six there is a neutral filler available
+         * (the target's own element), so a prepared player has no reason to take the bad third slot.
+         */
+        for (const cellId of ['wild:biome1', 'elite:biome0', 'gauntlet:fight2']) {
+            for (const { mine, target } of walk(cellId, 'favourable')) {
+                expect(mine.some((e) => beats(e, target))).toBe(true);
+                expect(mine.some((e) => beats(target, e))).toBe(false);
+            }
+        }
+    });
+
+    it('CONTROL is exactly neutral wherever the roster allows it to be', () => {
+        // Party sizes 1 and 2 can field a same-element team, so the control is 1.0x in both
+        // directions — no advantage either way, on any sample.
+        for (const cellId of ['elite:biome0', 'wild:biome1']) {
+            for (const { mine, target } of walk(cellId, 'control')) {
+                expect(mine.some((e) => beats(e, target))).toBe(false);
+                expect(mine.some((e) => beats(target, e))).toBe(false);
+            }
+        }
+    });
+
+    it('CONTROL averages neutral at party size 3, where exact neutrality is impossible', () => {
+        /*
+         * There is no element neutral against Fire, Water or Nature except itself, and there are two
+         * species per element — so a three-member same-element team cannot exist and the third slot
+         * MUST carry a matchup. The arm alternates which way it leans by sample index, so the two
+         * biases cancel across the sample instead of tilting it.
+         *
+         * Asserted as a balance rather than as an absence, because "no advantage on any sample" is
+         * unachievable here and a test claiming it would be a test of the wrong thing.
+         */
+        const samples = walk('gauntlet:fight2', 'control', 40);
+        const forMe = samples.filter(({ mine, target }) => mine.some((e) => beats(e, target))).length;
+        const forThem = samples.filter(({ mine, target }) => mine.some((e) => beats(target, e))).length;
+        expect(forMe).toBe(forThem);
+        // And the third slot really is leaning — a control that quietly went neutral would mean the
+        // alternation stopped working and the arm had become something else.
+        expect(forMe).toBeGreaterThan(0);
+    });
+
+    it('BLIND is untouched, so every number taken before the ruling still reproduces', () => {
+        // The default. `measureCell` passes 'blind' when no mode is given, and the lineup must be
+        // byte-identical to the original stride — otherwise the pre-ruling bands in ticket 67 stop
+        // being comparable to anything measured after it.
+        const cell = CELLS.find((c) => c.id === 'wild:biome2')!;
+        for (let i = 0; i < 12; i += 1) {
+            expect(sampleFight(cell, i, 'blind').lineup).toEqual(lineupFor(i, cell.partySize));
+            expect(sampleFight(cell, i).lineup).toEqual(lineupFor(i, cell.partySize));
+        }
+    });
+
+    it('aims the gauntlet at the GYM’s own element, not biome 0’s', () => {
+        /*
+         * The boss team is one species per biome in biome order, so its champion — the member the
+         * fight is named after — is the biome-2 one, and `offerGyms` rule 4 puts the gym's own
+         * element there. Countering the champion is what *"come into the grass boss with
+         * firestarters"* means. Aiming at biome 0 instead would counter the weakest member of the
+         * three and report it as a prepared player.
+         */
+        const cell = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
+        for (let i = 0; i < 12; i += 1) {
+            const fight = sampleFight(cell, i, 'favourable');
+            expect(fight.targetElement).toBe(fight.biomeElements[fight.biomeElements.length - 1]);
+        }
+    });
+
+    it('keeps both arms a SAMPLE of decks rather than a fixture', () => {
+        // The prepared arm rotates through every firmware of the counter element. Without that, a
+        // 60-battle boss run would field the same two decks sixty times and report one matchup's
+        // quality rather than the counter-element's.
+        const cell = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
+        const seen = new Set<string>();
+        for (let i = 0; i < 40; i += 1) for (const os of sampleFight(cell, i, 'favourable').lineup) seen.add(os);
+        expect(seen.size).toBe(TUNED_OS_IDS.length);
     });
 });

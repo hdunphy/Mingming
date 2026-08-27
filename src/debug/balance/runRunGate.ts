@@ -119,6 +119,7 @@ import {
     TUNED_OS_IDS,
     gauntletCompound,
     measureBand,
+    type MatchupMode,
     type BandId,
     type BandMeasurement,
     type CellMeasurement,
@@ -140,6 +141,12 @@ interface Args {
     verbose: boolean;
     /** Print the cell ids and exit. */
     list: boolean;
+    /**
+     * Which player to model — Henry's ticket-67 ruling. `blind` (default) is the original stride and
+     * reproduces every number taken before that ruling; `favourable` is the PREPARED arm the
+     * 95/75/60 targets grade; `control` removes type from the fight. See `runGate.MatchupMode`.
+     */
+    matchup: MatchupMode;
 }
 
 /**
@@ -167,6 +174,7 @@ function parseArgs(argv: string[]): Args {
         cells: list('--cells') ?? [],
         iterations,
         maxTurns: Number(get('--max-turns') ?? DEFAULT_MAX_TURNS),
+        matchup: (get('--matchup') as MatchupMode | undefined) ?? 'blind',
         strict: argv.includes('--strict'),
         verbose: argv.includes('--verbose'),
         list: argv.includes('--list'),
@@ -187,6 +195,17 @@ function clock(ms: number): string {
         ? `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`
         : `${m}m ${String(s).padStart(2, '0')}s`;
 }
+
+/**
+ * What each arm is, said once at the top of a report, because a number without its arm is not a
+ * number: the same cell measures very differently under `blind` and `favourable`, and a pasted
+ * figure that has lost its header is unreadable.
+ */
+const MATCHUP_LABEL: Readonly<Record<MatchupMode, string>> = {
+    blind: 'BLIND matchup (party picked without looking at the biome — the population average)',
+    favourable: 'PREPARED player (brings the counter-element — THIS is the arm 95/75/60 grade)',
+    control: 'CONTROL (party is the fight\'s own element — type removed, 1.0x both ways)',
+};
 
 const BAND_LABEL: Readonly<Record<BandId, string>> = {
     wild: 'WILDS   (ordinary wild nodes)',
@@ -303,6 +322,7 @@ async function main(): Promise<void> {
         results.push(measureBand(band, cells, {
             iterations: args.iterations,
             maxTurns: args.maxTurns,
+            matchup: args.matchup,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 console.log(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
@@ -316,7 +336,7 @@ async function main(): Promise<void> {
 
     console.log('');
     console.log('='.repeat(112));
-    console.log('  RUN GATE — ticket 61');
+    console.log(`  RUN GATE — ticket 61   ·   ${MATCHUP_LABEL[args.matchup]}`);
     console.log('='.repeat(112));
     for (const band of results) for (const line of bandLines(band)) console.log(line);
 
