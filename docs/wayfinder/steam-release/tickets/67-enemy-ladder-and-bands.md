@@ -261,3 +261,33 @@ or ticket for the enemy side. The gauntlet's boss already carries `boss_relic_*`
 firmware**, which is the closest thing in the tree to the +Driver rung and is what ticket 18 built
 for that purpose, so that is what the rung ships as. **Building a second enemy-passive system was not
 in this ticket and was not invented.** If the Driver was meant literally, it is its own ticket.
+
+
+## Rulings, round 3 (Henry, 2026-08-27) — the boss wall
+
+Context first, because it reframes the 0/60. The boss team is tri-element **by construction** —
+one species per biome, in biome order (`gauntlet.ts`): Nature, Fire, Water. The prepared arm
+counters the champion (Water), which means it brings Nature — and Fire→Nature is 1.5x, so the
+biome-1 boss member eats the counters. The three launch elements form a cycle
+(Nature→Water, Fire→Nature, Water→Fire): **countering any one boss member hands another boss
+member the edge.** "Type advantage vs the boss" is not a coherent lever against a full-cycle
+tri-element team, and the relics compound it (WATER_RELIC's heal-on-damage punishes exactly the
+long chip game Nature wants). The 5.3-turn routs say the wall itself is the compound of full
+lookahead + fixed 20/20/20 IVs + relic firmware + 3v3 focus fire. None of that is a bug; it is
+what the fight is currently authored to be. The rulings below decide what moves.
+
+1. **Anti-boss card design proceeds NOW** — it does not wait for isolation sims. The Q2 design
+   pass (24-36 cards, shape-changing not percentage-adding, per §10 of the research doc) runs as
+   its own session with Henry. Sims run concurrently.
+2. **Open boss-side levers: `BOSS_IVS` (down) and relic firmware tuning.** The boss AI grade is
+   **LOCKED at full lookahead** — Henry explicitly did not put it on the table. Do not propose or
+   apply an AI downgrade for the gauntlet rung.
+3. **The gauntlet target (per-fight 60 vs end-to-end) is DEFERRED until the isolation sims
+   report.** Two arms, both `gauntlet:fight2`, both `--matchup favourable`, 60 iterations:
+   (a) `BOSS_IVS` lowered to 10/10/10; (b) relic firmware neutralized (boss keeps a tuned OS but
+   no `boss_relic_*` hooks). Whichever lever moves the number tells us what the cards are being
+   asked to beat, and the end-to-end target gets ruled with real costs in view.
+
+Sequencing: this closes the "which knob is the wall" question as a measurement task (Legion),
+not a grilling. The 67 grilling resumes — and the elite band gets its options ruled — after the
+isolation arms and the prepared wild/elite bands are on the table.
