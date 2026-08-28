@@ -75,3 +75,4 @@ converted into Energy, not in the display. Say so and I will chase that instead.
 [ ] 3v3 enemies take a long time it feels so slow
 [ ] Gulinbursti_v1: I'm not convinced it works and hard to understand description. Seems like it worked a couple of times, but there is no indicator/status to show me.
 [ ] sleipnir_v1 description is confusing
+

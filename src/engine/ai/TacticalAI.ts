@@ -563,7 +563,8 @@ const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
  *    free, because without lookahead it simply plays something else. A power knob is usually
  *    exactly that kind of change. **Greedy is a decision-density probe (ticket 99), not a screen.**
  */
-const LITE = process.env.AI_LITE === '1';
+const env = typeof process !== 'undefined' ? process.env : ({} as Record<string, string | undefined>);
+const LITE = env.AI_LITE === '1';
 const LOOKAHEAD_TOP_N = LITE ? 2 : 3;
 const LOOKAHEAD_DETERMINIZATIONS = LITE ? 1 : 2;
 const LOOKAHEAD_REPLY_DEPTH = 2;
@@ -575,7 +576,7 @@ const LOOKAHEAD_REPLY_DEPTH = 2;
  * 83 reducer simulations per decision at 1v1 against 16,677 at 3v3, and 18.1% of the 3v3 ones
  * byte-identical repeats (research/3v3-optimisation.md).
  */
-const CENSUS = process.env.AI_CENSUS === '1';
+const CENSUS = env.AI_CENSUS === '1';
 export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0 };
 export function censusReset(): void {
     census.enumerated = 0; census.duplicate = 0; census.simulated = 0;
@@ -610,11 +611,11 @@ export function censusNewDecision(): void { census.decisions++; }
  * is never beamed - that is the layer producing the candidate list `getBestAction` ranks, and
  * truncating it would hide legal plays from the decision entirely.
  */
-const BEAM = Number(process.env.AI_BEAM ?? 0);
+const BEAM = Number(env.AI_BEAM ?? 0);
 
 /** What tier is live, for a harness that wants to record it beside its numbers. */
 export const AI_TIER: 'greedy' | 'lite' | 'full' =
-    process.env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
+    env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
 /**
  * Dominance pruning: when the best same-turn candidate leads the runner-up by more
  * than this many eval points (12 = 6 HP), the decision is not close and the
@@ -665,7 +666,7 @@ export function setDecisionTap(tap: ((record: DecisionRecord) => void) | null): 
  * one turn ahead is WORTH on a given deck. A deck that scores the same either way is a deck whose
  * decisions do not matter - which is exactly the complaint the ticket exists to quantify.
  */
-const GREEDY_ONLY = process.env.AI_GREEDY === '1';
+const GREEDY_ONLY = env.AI_GREEDY === '1';
 
 function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
     return party.every(e => e.currentHp <= 0);
