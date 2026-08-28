@@ -1,0 +1,538 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t1-10808573",
+  "description": "Auto-captured at turn 1, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_t118-02-draugr-alone-vs-three",
+    "seed": "1080857344",
+    "turn": 1,
+    "phase": "ACTION",
+    "activeSide": "ENEMY",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_1vkgkxs_1",
+        "definitionId": "draugr",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "draugr_v2",
+        "name": "Draugr",
+        "maxHp": 83,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 36,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Ice",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "936338bc-cfac-4956-90d3-2b7494202d6f",
+            "type": "Dazed",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Draugr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_1ku14ao_2",
+        "definitionId": "jormungandr",
+        "level": 15,
+        "experience": 2748,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "name": "Jormungandr",
+        "maxHp": 89,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 83,
+        "currentEnergy": 2,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "a2e1cb38-982c-4cf3-910a-00dd34169985",
+            "type": "Weakened",
+            "stacks": 1
+          },
+          {
+            "id": "24a97c68-8bdd-4cb2-9c4b-6538e2d9e168",
+            "type": "Dazed",
+            "stacks": 1
+          },
+          {
+            "id": "1378435a-6110-40bd-9a77-4d73544c7c74",
+            "type": "Stunned",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Jormungandr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 0,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_1wf1wjk_3",
+        "definitionId": "sleipnir",
+        "level": 15,
+        "experience": 2748,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "name": "Sleipnir",
+        "maxHp": 78,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 32,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 78,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "64f5e1f3-724e-4562-9583-2e309ebbd20a",
+            "type": "Dazed",
+            "stacks": 1
+          },
+          {
+            "id": "d961d038-53a5-4427-8109-649bc04cc6a1",
+            "type": "Strengthened",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Sleipnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 5,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_1b186io_4",
+        "definitionId": "hraesvelgr",
+        "level": 15,
+        "experience": 2748,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "name": "Hraesvelgr",
+        "maxHp": 77,
+        "cardDraw": 4,
+        "maxEnergy": 2,
+        "attack": 36,
+        "defense": 30,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 77,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "29f3ceec-9d07-4d90-bda4-63167030722b",
+            "type": "Weakened",
+            "stacks": 1
+          },
+          {
+            "id": "e7da55be-157b-4988-8d42-a87b7fa72c7b",
+            "type": "Dazed",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Hraesvelgr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1ged6gw_b",
+          "dataId": "ice_spear",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0vxgrds_9",
+          "dataId": "numbing_gale",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0en51xc_7",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0wh3x1c_e",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0kc6adc_5",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0awjo8w_8",
+          "dataId": "frost_bite",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1tm2j9c_a",
+          "dataId": "killing_frost",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_0yei7eo_6",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_07cmhhc_c",
+          "dataId": "glacial_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0dvzkow_d",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_0todwjk_17",
+          "dataId": "tempest",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1knmsqo_1a",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0if20ow_y",
+          "dataId": "momentum_crash",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_05teqdc_15",
+          "dataId": "sky_burial",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1n7suf4_v",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_06ss45c_14",
+          "dataId": "sky_burial",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1u87fuo_12",
+          "dataId": "war_molt",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0pwk268_g",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0cm85a8_16",
+          "dataId": "tempest",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0b7wum8_z",
+          "dataId": "hoofbeat_daemon",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0btmakg_q",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_07ywg74_t",
+          "dataId": "adrenaline",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ikapkw_k",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ypkpog_o",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0dn8268_18",
+          "dataId": "carrion_swoop",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0lhpbeo_m",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0fg5dkw_10",
+          "dataId": "feather_cache",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0oje0hs_s",
+          "dataId": "disorienting_gust",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ibngu8_1b",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0wlo2yo_i",
+          "dataId": "corrosive_leak",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1d846io_19",
+          "dataId": "carrion_swoop",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1wxwo8w_j",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ri6q68_p",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_1swx2bk_u",
+          "dataId": "tailwind",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1gri39c_r",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_13kurr4_l",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_0xpi39c_h",
+          "dataId": "blind_spot",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1qgb9q8_13",
+          "dataId": "war_molt",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_17i8pa8_11",
+          "dataId": "feather_cache",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1cnu48w_f",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0jdooao_n",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1v9x1s0_w",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1mxjf9c_x",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "Draugr plays Rimefrost → Sleipnir",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Jormungandr gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Hraesvelgr gains Dazed (1 stacks)",
+      "Draugr plays Glacial Slam → Jormungandr",
+      "  → Jormungandr takes 6 damage",
+      "  → Jormungandr gains Stunned (1 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "  ✨ Sleipnir's Weakened canceled by Strengthened",
+      "Sleipnir plays Blind Spot → Draugr",
+      "  → Draugr takes 1 damage",
+      "  → Draugr gains Dazed (1 stacks)",
+      "Hraesvelgr plays War Molt → Draugr",
+      "  → Draugr takes 4 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Feather Cache → Draugr",
+      "  → Draugr takes 3 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Undertow → Sleipnir",
+      "Hraesvelgr plays Ink Stream → Draugr",
+      "  → Draugr takes 4 damage",
+      "Sleipnir plays Stampede → Draugr",
+      "  → Draugr takes 36 damage",
+      "Sleipnir plays Stampede → Draugr",
+      "  → Draugr takes 42 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 3 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 7,
+    "cardsDrawnThisTurn": 2,
+    "nonNaturalCardsDrawnThisTurn": 1,
+    "lastProgramPlayed": "stampede",
+    "counters": {},
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 3,
+      "Earth": 0,
+      "Air": 4,
+      "Nature": 0,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 1,
+    "resolvingCardInstanceId": null,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-28T01:53:09.138Z"
+}

@@ -1,4 +1,4 @@
-import type { IBattleState, Element, AttackActionData } from '../../engine/types';
+import type { IBattleState, IBattleEntity, Element, AttackActionData } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getModifierBreakdown } from '../../engine/combatUtils';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
@@ -145,7 +145,10 @@ export function computeDamagePreview(
             [data.element]: (state.elementPlays?.[data.element] ?? 0) + 1,
         },
     } as IBattleState;
-    const multiplier = getDamageScalingMultiplier(asResolved, first.scaling, data.element, target);
+    // TICKET 123: the caster's own play count needs the same +1 the state counters get above,
+    // or the hover chip under-reads a CARDS_PLAYED scaler by exactly one cast.
+    const sourceAsResolved = { ...source, playsThisTurn: (source.playsThisTurn ?? 0) + 1 } as IBattleEntity;
+    const multiplier = getDamageScalingMultiplier(asResolved, first.scaling, data.element, target, sourceAsResolved);
 
     return {
         damage,

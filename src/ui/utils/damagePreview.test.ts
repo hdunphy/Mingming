@@ -249,8 +249,19 @@ describe('computeDamagePreview', () => {
         it('scales the preview by cards played this turn, and says so', () => {
             const base = { ...state, playerDeck: { ...state.playerDeck, hand: [SCALER] } } as IBattleState;
             // The preview counts the card being cast, exactly as the reducer does.
-            const atZero = computeDamagePreview({ ...base, cardsPlayedThisTurn: 0 }, 'strong', 'card_h', 'enemy');
-            const atThree = computeDamagePreview({ ...base, cardsPlayedThisTurn: 3 }, 'strong', 'card_h', 'enemy');
+            //
+            // TICKET 123: the scaler now counts the CASTER's plays rather than the whole
+            // side's, so the caster's own `playsThisTurn` has to be set alongside the side
+            // counter. Setting only `cardsPlayedThisTurn` used to be enough because the two
+            // were the same number at 1v1. The assertion below is unchanged - what a scaler
+            // is worth per play is still the thing under test.
+            const played = (s: IBattleState, n: number): IBattleState => ({
+                ...s,
+                cardsPlayedThisTurn: n,
+                playerParty: s.playerParty.map(e => (e.id === 'strong' ? { ...e, playsThisTurn: n } : e)),
+            });
+            const atZero = computeDamagePreview(played(base, 0), 'strong', 'card_h', 'enemy');
+            const atThree = computeDamagePreview(played(base, 3), 'strong', 'card_h', 'enemy');
 
             expect(atZero.damage).toBeGreaterThan(0);
             expect(atZero.scalingMultiplier).toBe(1);

@@ -170,10 +170,29 @@ export function getDamageScalingMultiplier(
     scaling: string | undefined,
     element: Element | undefined,
     target: IBattleEntity | undefined,
+    /** TICKET 123: the CASTER, for scalers that count the caster's own actions. */
+    source?: IBattleEntity,
 ): number {
     switch (scaling) {
         case 'CARDS_PLAYED':
-            return state.cardsPlayedThisTurn;
+            // TICKET 123: the CASTER's plays, not the whole active side's.
+            //
+            // All three cards using this scaler already say so in their own text:
+            // `stampede` and `serpents_coil` read "for every card YOU played this turn",
+            // and `seed_bomb_v2` reads "per card played by HOST this turn". At 1v1 the
+            // caster IS the side, so the distinction never existed and the note above -
+            // that reading side history is deliberate per ticket 26 - was written when it
+            // could not have meant anything else. 3v3 with a SHARED hand made it mean
+            // something and nobody revisited it: every ally's cast pumps your scaler.
+            // Henry, playtest: `stampede` for 42 in one game and 78 in a stacked comp,
+            // off an 11-power card.
+            //
+            // `playsThisTurn` is incremented in the SAME reducer snapshot as
+            // `cardsPlayedThisTurn`, so the resolving card counts itself either way and
+            // the off-by-one is unchanged. At width 1 the two values are equal, so no 1v1
+            // cell moves. The `??` is a safety net only - `selfPumpsOnly` in
+            // `cardsPlayedScaling.test.ts` is what actually guards this.
+            return source?.playsThisTurn ?? state.cardsPlayedThisTurn;
         case 'STATUS_COUNT': {
             const stacks = (target?.statusEffects ?? []).reduce((acc, s) => acc + s.stacks, 0);
             return 1 + stacks * 0.25; // +25% per status stack
@@ -232,7 +251,7 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
             // Ticket 90: one source of truth, shared with the UI preview.
-            damage = Math.floor(damage * getDamageScalingMultiplier(state, scaling, element || programToUse.element, target));
+            damage = Math.floor(damage * getDamageScalingMultiplier(state, scaling, element || programToUse.element, target, source));
         }
 
         return applyMutations(state, [{
