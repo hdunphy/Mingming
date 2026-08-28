@@ -1,3 +1,12 @@
+/*
+ * TICKET 34: the token block that used to sit here is now `ui/theme/tokens.css`, imported above
+ * everything so a screen sheet can rely on the vocabulary being defined. Every name it declared is
+ * still declared — see that file's LEGACY ALIASES block — so nothing below changed appearance when
+ * it moved. New rules should reach for `--surface-*`, `--ink-*`, `--el-*`, `--fs-*` and `--gap-*`;
+ * the old names are a migration path, not a second vocabulary to choose from.
+ */
+@import './ui/theme/tokens.css';
+
 :root {
   font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -6,26 +15,6 @@
   color-scheme: dark;
   color: #f0f0f5;
   background-color: #050508;
-
-  /* Design Tokens */
-  --bg-dark: #050508;
-  --bg-card: rgba(18, 18, 24, 0.85);
-  --accent-primary: #7c3aed;
-  --hp-green: #22c55e;
-  --hp-red: #ef4444;
-  --energy-blue: #3b82f6;
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --premium-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.9);
-
-  /* Elemental Colors */
-  --fire: #ff3333;
-  --water: #3399ff;
-  --nature: #33cc33;
-  --earth: #996633;
-  --air: #87ceeb;
-  --ice: #00ffff;
-  --light: #ffff80;
-  --dark: #8000ff;
 }
 
 body {

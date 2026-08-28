@@ -61,6 +61,7 @@ import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../en
 import { playSfx } from '../audio/AudioEngine';
 import { startBattle } from '../store/battleSlice';
 import './GauntletNode.css';
+import { Icon } from '../theme/Icon';
 
 export interface GauntletNodeProps {
     readonly run: IRunState;
@@ -165,7 +166,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
         <section className="gn">
             <header className="gn-head">
                 <h2 className="gn-title">
-                    🏛 {gym?.name ?? run.gymId} gauntlet — fight {fightNumber} of {gauntlet.totalFights}
+                    <Icon name="gym" size={18} /> {gym?.name ?? run.gymId} gauntlet — fight {fightNumber} of {gauntlet.totalFights}
                 </h2>
                 <div className="gn-progress" aria-label="Gauntlet progress">
                     {Array.from({ length: gauntlet.totalFights }, (_, i) => (
@@ -173,7 +174,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                             key={i}
                             className={`gn-pip ${i < gauntlet.fightIndex ? 'done' : ''} ${i === gauntlet.fightIndex ? 'now' : ''}`}
                         >
-                            {i < gauntlet.fightIndex ? '✔' : i + 1}
+                            {i < gauntlet.fightIndex ? <Icon name="check" size={12} /> : i + 1}
                         </span>
                     ))}
                 </div>

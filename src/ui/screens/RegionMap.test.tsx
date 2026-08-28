@@ -36,13 +36,26 @@ describe('RegionMap', () => {
     it('draws every node and every undirected edge exactly once', () => {
         const markup = render();
         const circles = markup.match(/<circle/g)?.length ?? 0;
-        const lines = markup.match(/<line/g)?.length ?? 0;
+        // `class="rm-edge"`, not every `<line>`: ticket 34 added the biome seams, which are also
+        // lines and are decoration rather than graph. Counting all of them would make this test
+        // fail for a reason it is not about.
+        const lines = markup.match(/<line[^>]*class="rm-edge"/g)?.length ?? 0;
 
         expect(circles).toBe(graph.nodes.length);
         // Edges are stored on both endpoints (ticket 07: walkable both ways), so drawing straight
         // from the arrays would paint every line twice.
         const halfEdges = graph.nodes.reduce((sum, n) => sum + n.edges.length, 0);
         expect(lines).toBe(halfEdges / 2);
+    });
+
+    it('paints one backdrop band per biome, tinted by its element (ticket 34)', () => {
+        const markup = render();
+        // The map's routing information used to live only in the strip of labels above the picture.
+        // One band per biome, each with its own gradient, is the picture carrying it too.
+        expect(markup.match(/class="rm-biome-band"/g)?.length).toBe(BIOME_NAMES.length);
+        for (let i = 0; i < BIOME_NAMES.length; i += 1) expect(markup).toContain(`id="rm-biome-${i}"`);
+        // Seams sit BETWEEN biomes, so there is one fewer than there are bands.
+        expect(markup.match(/class="rm-biome-seam"/g)?.length).toBe(BIOME_NAMES.length - 1);
     });
 
     it('shows the three biomes and marks the one you are standing in', () => {

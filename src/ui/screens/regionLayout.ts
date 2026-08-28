@@ -36,6 +36,7 @@
 
 import { revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
+import type { IconName } from '../theme/icons';
 
 // ---------------------------------------------------------------------------------------------
 // Presentation
@@ -47,15 +48,21 @@ import type { IRegionNode, NodeKind } from '../../engine/runTypes';
  * screens use them and because a `.tsx` that exports constants alongside a component breaks fast
  * refresh.
  */
-export const NODE_ICON: Record<NodeKind, string> = {
-    wild: '⚔',
-    elite: '☠',
-    alpha: '👑',
-    ambush: '🕳',
-    marketplace: '🛒',
-    workshop: '🔧',
-    event: '❓',
-    gym: '🏛',
+/*
+ * TICKET 34: these were emoji. They are now names in `ui/theme/Icon`'s closed set, and the change is
+ * not cosmetic on this screen of all screens — an emoji ignores `color`, so the ruled mockup's
+ * biome-tinted nodes were undrawable, and `\u{1F573}` (the ambush pit) renders as nothing at all on
+ * several Linux font stacks. The map's whole job is that a node's kind is legible from across it.
+ */
+export const NODE_ICON: Record<NodeKind, IconName> = {
+    wild: 'wild',
+    elite: 'elite',
+    alpha: 'alpha',
+    ambush: 'ambush',
+    marketplace: 'marketplace',
+    workshop: 'workshop',
+    event: 'event',
+    gym: 'gym',
 };
 
 export const NODE_LABEL: Record<NodeKind, string> = {

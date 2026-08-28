@@ -16,6 +16,8 @@ import SettingsScreen from './ui/screens/SettingsScreen'
 import { openSettings } from './ui/store/uiSlice'
 import { applySettings, loadSettings } from './ui/settings/settings'
 import { useCodexRecorder } from './ui/hooks/useCodexRecorder'
+import { Icon } from './ui/theme/Icon';
+import type { IconName } from './ui/theme/icons';
 
 // The single import edge between the game and the debug toolkit. `import.meta.env.DEV` is
 // statically replaced by `false` in a production build, the ternary folds to `null`, and the
@@ -42,10 +44,11 @@ const debugLayer = DebugRoot ? (
  */
 type Tab = 'ranch' | 'debug';
 
-const debugTab: { id: Tab; label: string; icon: string } = { id: 'debug', label: 'Debug', icon: '🐞' };
+// Ticket 34: `icon` is a name in `ui/theme/Icon`'s closed set, so a typo here is a type error.
+const debugTab: { id: Tab; label: string; icon: IconName } = { id: 'debug', label: 'Debug', icon: 'debug' };
 
-const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
-  { id: 'ranch', label: 'Ranch', icon: '🏡' },
+const TAB_CONFIG: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'ranch', label: 'Ranch', icon: 'ranch' },
   ...(import.meta.env.DEV ? [debugTab] : []),
 ];
 
@@ -195,7 +198,7 @@ function App() {
             className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => { playSfx('uiClick'); setActiveTab(tab.id); }}
           >
-            <span className="nav-icon">{tab.icon}</span>
+            <span className="nav-icon"><Icon name={tab.icon} size={18} /></span>
             <span className="nav-label">{tab.label}</span>
           </button>
         ))}
@@ -211,7 +214,7 @@ function App() {
           className="nav-tab nav-settings"
           onClick={() => { playSfx('uiClick'); dispatch(openSettings()); }}
         >
-          <span className="nav-icon">⚙</span>
+          <span className="nav-icon"><Icon name="settings" size={18} /></span>
           <span className="nav-label">Settings</span>
         </button>
       </nav>

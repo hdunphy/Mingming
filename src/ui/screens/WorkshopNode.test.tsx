@@ -160,12 +160,12 @@ describe('WorkshopNode — the top bar', () => {
     it('prints the scrap it is about to charge, labelled for a screen reader', () => {
         // The bay's whole proposition is "a blueprint AND scrap", and the scrap half is a number the
         // player has to be able to check against the chips on the stage without leaving the screen.
-        // `aria-label` because the readout itself is a glyph — `140 ⛁` reads as nothing aloud, and
+        // `aria-label` because the readout is an ICON since ticket 34 — it reads as nothing aloud, and
         // ticket 38 should inherit screens that already say what their numbers are.
         const markup = render(makeRun(140), makeRanch({}));
 
         expect(markup).toContain('aria-label="Scrap held"');
-        expect(markup).toContain('140 ⛁');
+        expect(markup).toContain('140 <svg');
     });
 
     it('names the biome it is standing in, and falls back rather than printing "undefined"', () => {
@@ -286,7 +286,7 @@ describe('WorkshopNode — the assembly stage', () => {
         const markup = render(makeRun(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
         expect(markup).toContain('<span class="rs-chip">1 × BLUEPRINT</span>');
-        expect(markup).toContain(`<span class="rs-chip">${WORKSHOP_ASSEMBLY_SCRAP} ⛁</span>`);
+        expect(markup).toContain(`<span class="rs-chip">${WORKSHOP_ASSEMBLY_SCRAP} <svg`);
         expect(markup).toContain('ASSEMBLE → PARTY');
         expect(markup).toContain('ASSEMBLE → BENCH');
     });
@@ -505,7 +505,7 @@ describe('WorkshopNode — the reflash comparison', () => {
         );
 
         expect(markup).toContain('<span class="rs-chip">1 × KRAKEN BLUEPRINT</span>');
-        expect(markup).toContain(`<span class="rs-chip">${WORKSHOP_REFLASH_SCRAP} ⛁</span>`);
+        expect(markup).toContain(`<span class="rs-chip">${WORKSHOP_REFLASH_SCRAP} <svg`);
         expect(markup).toContain('old engine cards → run collection');
         expect(markup).toContain(`${RECRUIT_KIT_SIZE} for ${RECRUIT_KIT_SIZE}`);
         expect(markup).toContain('floor unchanged');
@@ -551,7 +551,7 @@ describe('WorkshopNode — the party and bench column', () => {
         // it. `no blueprints` is the rack's label doing its live work here.
         const withBlueprint = render(makeRun(400), makeRanch({ kraken: 1 }));
         expect(withBlueprint).toContain('ABYSSAL_INK_SYS · reflash');
-        expect(withBlueprint).toContain(`1 blueprint + ${WORKSHOP_REFLASH_SCRAP} ⛁`);
+        expect(withBlueprint).toContain(`1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap`);
 
         const without = render(makeRun(400), makeRanch({}));
         expect(without).toContain('ABYSSAL_INK_SYS · no blueprints');

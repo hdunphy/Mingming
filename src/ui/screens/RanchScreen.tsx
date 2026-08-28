@@ -65,18 +65,22 @@ import { RANCH_BLUEPRINT_TIP } from '../../engine/tips';
 import RunStart from './RunStart';
 import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
+import { Icon } from '../theme/Icon';
+import type { IconName } from '../theme/icons';
 
 type Section = 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex';
 
 /** Stable empty array, so the `no run in progress` selector does not re-render on every dispatch. */
 const EMPTY_DRIVERS: ReadonlyArray<string> = [];
 
-const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: string }> = [
-    { id: 'expedition', label: 'Expedition', icon: '🗺' },
-    { id: 'roster', label: 'Roster', icon: '🤖' },
-    { id: 'assembly', label: 'Assembly', icon: '🔬' },
-    { id: 'vault', label: 'Vault', icon: '💎' },
-    { id: 'codex', label: 'Codex', icon: '📖' },
+// Ticket 34: emoji out. `IconName` is a closed union, so a section cannot ask for a glyph that
+// does not exist, and the icons take the section's own colour when it is active.
+const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: IconName }> = [
+    { id: 'expedition', label: 'Expedition', icon: 'expedition' },
+    { id: 'roster', label: 'Roster', icon: 'roster' },
+    { id: 'assembly', label: 'Assembly', icon: 'assembly' },
+    { id: 'vault', label: 'Vault', icon: 'vault' },
+    { id: 'codex', label: 'Codex', icon: 'codex' },
 ];
 
 export interface RanchScreenProps {
@@ -101,7 +105,7 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
     return (
         <div className="ranch-screen">
             <header className="ranch-header">
-                <h1>🏡 Ranch</h1>
+                <h1><Icon name="ranch" size={20} /> Ranch</h1>
                 <nav className="ranch-nav" aria-label="Ranch sections">
                     {SECTIONS.map((s) => (
                         <button
@@ -111,7 +115,7 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
                             aria-current={section === s.id ? 'page' : undefined}
                             onClick={() => { playSfx('uiClick'); setSection(s.id); }}
                         >
-                            <span aria-hidden="true">{s.icon}</span> {s.label}
+                            <Icon name={s.icon} size={17} /> {s.label}
                         </button>
                     ))}
                 </nav>
@@ -149,7 +153,7 @@ function RosterSection({
             <div className="ranch-section-head">
                 <h2>Roster ({roster.length})</h2>
                 <button type="button" className="ranch-button" onClick={onOpenFirmware}>
-                    💾 Firmware terminal
+                    <Icon name="firmware" size={15} /> Firmware terminal
                 </button>
             </div>
             <p className="ranch-note">
@@ -190,9 +194,9 @@ function RosterSection({
 function StatRoll({ member }: { member: IRanchMember }): ReactNode {
     return (
         <div className="ranch-ivs" title="Stat roll — fixed at assembly, 0-31 each">
-            <span>⚔ {member.attackIV}</span>
-            <span>🛡 {member.defenseIV}</span>
-            <span>💚 {member.hpIV}</span>
+            <span><Icon name="attack" size={12} /> {member.attackIV}</span>
+            <span><Icon name="defense" size={12} /> {member.defenseIV}</span>
+            <span><Icon name="hp" size={12} /> {member.hpIV}</span>
         </div>
     );
 }

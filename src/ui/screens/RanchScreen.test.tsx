@@ -117,7 +117,11 @@ describe('RanchScreen', () => {
     it('has a codex tab, and it opens on the overview — ticket 31', () => {
         const markup = render({ roster: [member('a1', 'kraken')] }, 'codex');
 
-        expect(markup).toContain('📖');
+        // Ticket 34 replaced the emoji with an inline SVG from `ui/theme/icons`. The claim worth
+        // keeping is that the tab is ICONED, not which glyph it uses — so this asserts a drawn icon
+        // is present rather than pinning path data a redraw would break.
+        expect(markup).toContain('viewBox="0 0 24 24"');
+        expect(markup).not.toContain('📖');
         expect(markup).toContain('Codex');
         // Fresh ranch, so every track reads zero — and the screen still shows the target.
         expect(markup).toContain('Cards seen');

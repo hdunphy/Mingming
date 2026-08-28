@@ -1,0 +1,152 @@
+/*
+ * THE THEME TOKENS — ticket 34.
+ *
+ * Ticket 34's brief opens with a constraint rather than a look: *"Keep `index.css` (2,567 lines)
+ * from growing further: introduce tokens (CSS variables) for the theme in this pass."* It is 2,923
+ * lines now, which is the argument making itself.
+ *
+ * # WHY A SEPARATE FILE AND NOT ANOTHER `:root` BLOCK
+ *
+ * `index.css` is a stylesheet with a token block at the top; that block has been edited by every
+ * ticket that needed a colour, and it has no way to say what a token is FOR. This file is the
+ * other shape: a vocabulary with nothing but declarations in it, which is the thing a screen
+ * stylesheet imports rather than a thing it appends to. `RanchScreen.css`, `runShell.css` and the
+ * eleven other screen sheets already exist for exactly that reason — ticket 34's job is to give
+ * them a shared dialect, not to add a fourteenth.
+ *
+ * # THE PALETTE IS RULED, NOT PICKED
+ *
+ * "Neon Industrial" is CONFIRMED as the direction (ticket 32 ruling 4), and the element colours
+ * below are the ones ticket 61 shipped its five ruled mockups against — `ui/screens/runShell.ts`
+ * holds the JS mirror of the same nine values, because inline `style` needs them as strings.
+ * **`theme.test.ts` asserts the two agree**, so a colour edited in one place and not the other is a
+ * failing test rather than a screen that quietly disagrees with the rest of the game.
+ *
+ * The SURFACE set comes from ticket 66's chassis reference
+ * (`research/66-frames-proto/frames_chassis_final.html`), which is the most recently ruled look in
+ * the tree and the one the card frames are built to.
+ *
+ * # LEGACY ALIASES: THIS PASS ADDS A VOCABULARY, IT DOES NOT RESTYLE 2,923 LINES
+ *
+ * The bottom block re-declares the eight token names `index.css` shipped with, pointed at the values
+ * they already had. Nothing that reads `--bg-dark` or `--accent-primary` changes appearance in this
+ * commit. That is deliberate: a theming pass that moved every surface in the game AND replaced the
+ * icon set in one step would be two changes wearing one diff, and the screenshots at the end of this
+ * ticket would have nothing to be a review OF. The aliases are the migration path — a screen adopts
+ * the ruled surfaces when it is worked on, and the alias block shrinks as they do.
+ */
+
+:root {
+    /* ---------------------------------------------------------------------------------------
+     * ELEMENTS — the nine, ruled by ticket 61's mockups. Mirrored in `runShell.ts`.
+     * ------------------------------------------------------------------------------------ */
+    --el-fire: #e05d43;
+    --el-water: #3d9be0;
+    --el-nature: #43b45f;
+    --el-earth: #b08040;
+    --el-air: #8fc7f5;
+    --el-ice: #7fd6ff;
+    --el-light: #e8d27a;
+    --el-dark: #9a6fd0;
+    --el-none: #9aa3ad;
+
+    /* ---------------------------------------------------------------------------------------
+     * SURFACES — ticket 66's chassis reference.
+     *
+     * Four steps, and the gaps between them are uneven on purpose: 0 to 1 is the page against a
+     * panel and has to be obvious, 1 to 2 is a panel against a card inside it and has to be quiet.
+     * ------------------------------------------------------------------------------------ */
+    --surface-0: #0b0d11;
+    --surface-1: #12161c;
+    --surface-2: #171d25;
+    --surface-3: #1f2731;
+
+    /* Borders, in the order you reach for them: a hairline, a real edge, a focused edge. */
+    --line-soft: #1e242c;
+    --line: #2a2f38;
+    --line-strong: #3b4553;
+
+    /* ---------------------------------------------------------------------------------------
+     * INK — four weights of foreground, and no more. A fifth would be a decision nobody could
+     * repeat: these are "read it", "read it second", "label", "barely there".
+     * ------------------------------------------------------------------------------------ */
+    --ink: #dfe4ea;
+    --ink-dim: #c6ccd4;
+    --ink-label: #7d8ea1;
+    --ink-faint: #5f6b7a;
+    /* Headings in the mockups are cooler than body text rather than brighter. */
+    --ink-head: #9fb4c8;
+
+    /* ---------------------------------------------------------------------------------------
+     * TYPE SCALE — ticket 34's "consistent type scale".
+     *
+     * Absolute px rather than rem multiples, matching every ruled mockup: this UI is a fixed-size
+     * game canvas, not a document that reflows to a reader's base size, and ticket 37 handles
+     * resolution by scaling the whole stage rather than by re-flowing type.
+     * ------------------------------------------------------------------------------------ */
+    --fs-micro: 9px;
+    --fs-tiny: 10px;
+    --fs-small: 11px;
+    --fs-body: 13px;
+    --fs-lead: 15px;
+    --fs-head: 18px;
+    --fs-title: 24px;
+
+    /* Two tracking steps. Wide is for the small-caps labels the mockups letterspace; loose is for
+     * the screen titles. Body text is never tracked. */
+    --track-wide: 0.12em;
+    --track-loose: 0.2em;
+
+    /* ---------------------------------------------------------------------------------------
+     * SPACE — a 4px grid, named by use rather than by number so a gap can be re-tuned centrally.
+     * ------------------------------------------------------------------------------------ */
+    --gap-hair: 3px;
+    --gap-tight: 6px;
+    --gap: 10px;
+    --gap-wide: 16px;
+    --gap-section: 24px;
+
+    /* Radii: a chip, a card, a panel. */
+    --radius-chip: 4px;
+    --radius-card: 10px;
+    --radius-panel: 14px;
+
+    /* ---------------------------------------------------------------------------------------
+     * ELEVATION AND GLOW
+     *
+     * `--glow` takes a colour argument by being used as `box-shadow: 0 0 var(--glow-blur) <color>`;
+     * it is a blur radius rather than a whole shadow because Neon Industrial's glow is always the
+     * element's own colour and a token cannot know which element it is on.
+     * ------------------------------------------------------------------------------------ */
+    --glow-blur: 6px;
+    --shadow-panel: 0 12px 48px rgba(0, 0, 0, 0.9);
+    --shadow-inset-top: inset 0 1px 0 #ffffff22;
+
+    /* ---------------------------------------------------------------------------------------
+     * LEGACY ALIASES — the eight names `index.css` shipped with, at the values they already had.
+     * Appearance is unchanged by this file. Each one goes when the last rule reading it does.
+     * ------------------------------------------------------------------------------------ */
+    --bg-dark: #050508;
+    --bg-card: rgba(18, 18, 24, 0.85);
+    --accent-primary: #7c3aed;
+    --hp-green: #22c55e;
+    --hp-red: #ef4444;
+    --energy-blue: #3b82f6;
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --premium-shadow: var(--shadow-panel);
+
+    /*
+     * The pre-ticket-34 element names, still read by `index.css` and several screen sheets. They are
+     * NOT re-pointed at `--el-*` here: the old values are more saturated (`--fire: #ff3333` against
+     * the ruled `#e05d43`), so aliasing them would restyle every existing rule in the same commit
+     * that introduces the vocabulary. They are duplicates on purpose, and temporarily.
+     */
+    --fire: #ff3333;
+    --water: #3399ff;
+    --nature: #33cc33;
+    --earth: #996633;
+    --air: #87ceeb;
+    --ice: #00ffff;
+    --light: #ffff80;
+    --dark: #8000ff;
+}

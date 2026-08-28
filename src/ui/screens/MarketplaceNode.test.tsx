@@ -146,7 +146,7 @@ function macrosFor(run: IRunState) {
 /**
  * The mockup's stall put the price ON the card face, so most of what this file used to assert as a
  * button label (`Buy — 25 scrap`) is now one `<span>` inside a tile that also carries a gem, a
- * banner, a name, the rules text and a tag line. Asserting `markup.toContain('25⛁')` against that
+ * banner, a name, the rules text and a tag line. Asserting `markup.toContain('25 scrap')` against that
  * would be a much weaker test than the one it replaces: it would pass for a plate printed on the
  * WRONG tile, or printed twice, or left on a sold tile that should read SOLD.
  *
@@ -162,7 +162,7 @@ interface Tile {
     readonly name: string;
     readonly description: string;
     readonly tags: string;
-    /** The price plate on the card face: `35⛁`, `35⛁ · 12 SHORT`, `SOLD`, or `RACK FULL`. */
+    /** The price plate on the card face: `35 scrap`, `35 scrap · 12 SHORT`, `SOLD`, or `RACK FULL`. */
     readonly plate: string;
     readonly disabled: boolean;
     /** The `sold` class the CSS greys the whole tile with — a state, not just a word on the plate. */
@@ -211,7 +211,11 @@ const rowsIn = (markup: string): SellRow[] =>
         name: spanText(html, 'rs-rnm'),
         tags: [...html.matchAll(/<span class="rs-t">([\s\S]*?)<\/span>/g)].map((m) => m[1]),
         count: Number(spanText(html, 'rs-x').replace('×', '') || 1),
-        price: Number(spanText(html, 'rs-sellp').replace(/[^\d]/g, '')),
+        // Ticket 34: the sell plate is `+10 <svg …/>` now, and an SVG path is mostly digits — so the
+        // markup is stripped of tags BEFORE the number is read. Reading digits out of raw HTML was
+        // safe only while the plate held no elements, which is the sort of assumption a test should
+        // not quietly carry.
+        price: Number(spanText(html, 'rs-sellp').replace(/<[^>]*>/g, '').replace(/[^\d]/g, '')),
         disabled: /<button[^>]*disabled=""/.test(html),
     }));
 
@@ -241,13 +245,16 @@ describe('MarketplaceNode', () => {
     it('shows the scrap balance and the deck floor, both readable at a glance', () => {
         // Two numbers, and the screen is illegible without either: scrap is the only currency here
         // and every button on the stall changes it, and the floor is the number that decides whether
-        // a sell row is alive. The scrap readout carries `aria-label="Scrap held"` because `400 ⛁`
+        // a sell row is alive. The scrap readout carries `aria-label="Scrap held"` because the icon
         // is a glyph a screen reader cannot name — ticket 38's standing concern.
         const run = makeRun(140);
         const markup = render(run);
         const floor = minimumActiveDeck(run.partyIds.length);
 
-        expect(markup).toContain('<span class="rs-scrap" aria-label="Scrap held">140 ⛁</span>');
+        // Ticket 34: the scrap glyph is an inline SVG now (it was `\u26C1`, which is a tofu box on
+        // several Linux font stacks). The `aria-label` matters MORE for the same reason it always
+        // did — an icon reads as nothing aloud — so that is what this pins, plus a drawn icon.
+        expect(markup).toContain('<span class="rs-scrap" aria-label="Scrap held">140 <svg');
         expect(markup).toContain(`DECK <b>${run.deck.length}</b> / floor ${floor}`);
         // And the floor is READ from the party, not written down: `minimumActiveDeck` is 3 + 5 per
         // member, so a second member moves the pill to 13. A hard-coded 8 would pass the line above
@@ -331,7 +338,7 @@ describe('MarketplaceNode', () => {
             // the affordance's whole label — there is no `Buy —` verb on a stall tile, because the
             // tile IS the button.
             expect(tiles[i].name).toBe(nameOf(offer.card.dataId));
-            expect(tiles[i].plate).toBe(`${offer.price}⛁`);
+            expect(tiles[i].plate).toBe(`${offer.price} scrap`);
             expect(tiles[i].disabled).toBe(false);
             expect(['ATTACK', 'SKILL', 'DAEMON']).toContain(tiles[i].banner);
         });
@@ -354,13 +361,13 @@ describe('MarketplaceNode', () => {
         const tiles = tilesIn(markup);
 
         stock.offers.forEach((offer, i) => {
-            expect(tiles[i].plate).toBe(`${offer.price}⛁ · ${offer.price} SHORT`);
+            expect(tiles[i].plate).toBe(`${offer.price} scrap · ${offer.price} SHORT`);
             expect(tiles[i].disabled).toBe(true);
         });
         // The reroll owes the same explanation, and it is the one control on the screen that buys
         // nothing but a new set of choices, so a silent dead chip there is the easiest to miss.
-        expect(rerollChip(markup)).toBe(`REROLL ${REROLL_PRICE}⛁ — ${REROLL_PRICE} SHORT`);
-        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REROLL ${REROLL_PRICE}⛁`);
+        expect(rerollChip(markup)).toBe(`REROLL ${REROLL_PRICE} scrap — ${REROLL_PRICE} SHORT`);
+        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REROLL ${REROLL_PRICE} scrap`);
         // The sell rows are the one thing on this screen a broke player can still use, and that is
         // the point of them: a sale is never short of anything. This line used to assert a disabled
         // `Remove (20) — 20 short`, which was the same screen charging the player to tidy up.
@@ -372,7 +379,7 @@ describe('MarketplaceNode', () => {
         // `rerollMarketStock` buys exactly the visit-increment that walking out and back in buys, so
         // without it the context line's "stock re-rolls each visit" is a claim with no reachable
         // second visit at a dead-end market.
-        expect(rerollChip(render(makeRun(REROLL_PRICE)))).toBe(`REROLL STOCK — ${REROLL_PRICE}⛁`);
+        expect(rerollChip(render(makeRun(REROLL_PRICE)))).toBe(`REROLL STOCK — ${REROLL_PRICE} scrap`);
     });
 
     it('leaves a sold offer on the shelf, greyed and reading SOLD, rather than letting it be bought twice', () => {
@@ -446,7 +453,7 @@ describe('MarketplaceNode', () => {
         macros.forEach((offer, i) => {
             expect(tiles[i].name).toBe(MacroRegistry[offer.macroId].name);
             expect(tiles[i].description).toBe(escapeHtml(MacroRegistry[offer.macroId].description));
-            expect(tiles[i].plate).toBe(`${offer.price}⛁`);
+            expect(tiles[i].plate).toBe(`${offer.price} scrap`);
             expect(tiles[i].disabled).toBe(false);
             // The banner and the `◈` gem are the whole of what distinguishes a macro tile from a
             // card tile at a glance — a macro has no energy cost to print in the gem, because it is

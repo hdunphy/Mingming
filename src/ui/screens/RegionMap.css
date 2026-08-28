@@ -50,6 +50,20 @@
 
 .rm-canvas svg { display: block; max-width: none; }
 
+/*
+ * Ticket 34: the biome backdrops. The band itself is painted by an SVG gradient (it needs the
+ * element colour, which only the component knows); what lives here is the seam between two biomes —
+ * a hairline the eye reads as a border crossing rather than as a shadow.
+ */
+.rm-biome-band { pointer-events: none; }
+
+.rm-biome-seam {
+    pointer-events: none;
+    stroke-width: 1;
+    opacity: 0.28;
+    stroke-dasharray: 3 5;
+}
+
 .rm-edge {
     stroke: rgba(160, 150, 210, 0.35);
     stroke-width: 2;

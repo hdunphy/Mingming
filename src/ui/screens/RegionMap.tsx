@@ -45,6 +45,8 @@ import {
     type LaidOutNode,
 } from './regionLayout';
 import './RegionMap.css';
+import { Icon } from '../theme/Icon';
+import { iconPaths } from '../theme/icons';
 
 const ELEMENT_COLOR: Record<string, string> = {
     Fire: '#e8734a',
@@ -118,6 +120,41 @@ export default function RegionMap({
         return out;
     }, [layout]);
 
+    /*
+     * TICKET 34 — THE BIOME BACKDROPS.
+     *
+     * The map is a walk through three mono-element biomes in a ruled order (`gyms.offerGyms`), and
+     * until now the only thing that said so was a strip of three labels above the picture. So the
+     * picture itself now carries the routing information: each biome's span of columns gets a band
+     * tinted with its element, fading out downward so the nodes and edges stay the brightest thing
+     * on screen.
+     *
+     * Derived from the laid-out columns rather than from `REGION_PARAMS.layersPerBiome`, because the
+     * layout owns where a column ends up and a second opinion about it would drift the day a pocket
+     * changes the column count. A band is exactly as wide as the nodes it stands behind.
+     *
+     * The strip above the picture stays. It names the biome and states its element in words, and a
+     * colour is not a label — ticket 38's accessibility pass would have to put the words back.
+     */
+    const bands = useMemo(() => {
+        const spans = new Map<number, { min: number; max: number }>();
+        for (const laid of layout.nodes) {
+            const span = spans.get(laid.node.biomeIndex);
+            if (!span) spans.set(laid.node.biomeIndex, { min: laid.column, max: laid.column });
+            else { span.min = Math.min(span.min, laid.column); span.max = Math.max(span.max, laid.column); }
+        }
+        return [...spans.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([biomeIndex, span]) => ({
+                biomeIndex,
+                element: biomeElements[biomeIndex] ?? 'None',
+                // Half a column of margin either side, so neighbouring bands meet cleanly between
+                // the last node of one biome and the first of the next rather than under either.
+                x: cx(span.min) - COL_W / 2,
+                width: (span.max - span.min + 1) * COL_W,
+            }));
+    }, [layout, biomeElements]);
+
     const reachable = layout.nodes.filter((n) => n.reachable);
     const current = layout.byId.get(currentNodeId);
 
@@ -155,6 +192,31 @@ export default function RegionMap({
                     role="presentation"
                     aria-hidden="true"
                 >
+                    <defs>
+                        {bands.map((band) => (
+                            <linearGradient key={band.biomeIndex} id={`rm-biome-${band.biomeIndex}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={ELEMENT_COLOR[band.element] ?? '#7a5cff'} stopOpacity={0.16} />
+                                <stop offset="70%" stopColor={ELEMENT_COLOR[band.element] ?? '#7a5cff'} stopOpacity={0.03} />
+                                <stop offset="100%" stopColor={ELEMENT_COLOR[band.element] ?? '#7a5cff'} stopOpacity={0} />
+                            </linearGradient>
+                        ))}
+                    </defs>
+                    {bands.map((band) => (
+                        <rect
+                            key={band.biomeIndex}
+                            className="rm-biome-band"
+                            x={band.x} y={0} width={band.width} height={height}
+                            fill={`url(#rm-biome-${band.biomeIndex})`}
+                        />
+                    ))}
+                    {bands.slice(1).map((band) => (
+                        <line
+                            key={`seam-${band.biomeIndex}`}
+                            className="rm-biome-seam"
+                            x1={band.x} y1={0} x2={band.x} y2={height}
+                            stroke={ELEMENT_COLOR[band.element] ?? '#7a5cff'}
+                        />
+                    ))}
                     {lines.map(({ key, a, b }) => (
                         <line
                             key={key}
@@ -186,9 +248,25 @@ export default function RegionMap({
                                     className="rm-node-disc"
                                     style={isFight ? { stroke: ELEMENT_COLOR[element] ?? undefined } : undefined}
                                 />
-                                <text x={x} y={y + 7} textAnchor="middle" className="rm-node-icon">
-                                    {laid.revealed ? NODE_ICON[laid.node.kind] : '·'}
-                                </text>
+                                {/*
+                                  * TICKET 34: a nested `<svg>` rather than a `<text>` glyph. The
+                                  * icon now inherits `currentColor` from `.rm-node-icon`, which is
+                                  * what lets a revealed node take its biome's element colour — the
+                                  * ruled mockup's behaviour, and undrawable with an emoji.
+                                  */}
+                                {laid.revealed ? (
+                                    <svg
+                                        x={x - 9} y={y - 9} width={18} height={18}
+                                        viewBox="0 0 24 24" className="rm-node-icon"
+                                        fill="none" stroke="currentColor" strokeWidth={1.8}
+                                        strokeLinecap="round" strokeLinejoin="round"
+                                        style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
+                                    >
+                                        {iconPaths(NODE_ICON[laid.node.kind]).map((d) => <path key={d} d={d} />)}
+                                    </svg>
+                                ) : (
+                                    <text x={x} y={y + 7} textAnchor="middle" className="rm-node-icon">·</text>
+                                )}
                                 {laid.node.visited > 0 && (
                                     <text x={x + R - 2} y={y - R + 6} textAnchor="middle" className="rm-node-visits">
                                         ×{laid.node.visited}
@@ -222,7 +300,7 @@ export default function RegionMap({
                         <li key={laid.node.id}>
                             <button type="button" className="rm-travel-button" onClick={() => onTravel(laid.node)}>
                                 <span aria-hidden="true" className="rm-travel-icon">
-                                    {laid.revealed ? NODE_ICON[laid.node.kind] : '·'}
+                                    {laid.revealed ? <Icon name={NODE_ICON[laid.node.kind]} size={15} /> : '·'}
                                 </span>
                                 {describe(laid)}
                             </button>

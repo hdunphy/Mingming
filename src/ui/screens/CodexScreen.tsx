@@ -19,6 +19,7 @@ import type { StatusType } from '../../engine/types';
 import { TypeChartPanel } from '../components/TypeChart';
 import { getElementIcon } from '../components/cardIcons';
 import './CodexScreen.css';
+import { Icon } from '../theme/Icon';
 
 /**
  * THE CODEX SCREEN — ticket 31.
@@ -75,7 +76,7 @@ export default function CodexScreen({
     return (
         <section className="ranch-section ranch-section-wide codex">
             <div className="ranch-section-head">
-                <h2>📖 Codex</h2>
+                <h2><Icon name="codex" size={18} /> Codex</h2>
             </div>
             <p className="ranch-note">
                 A record of what you have met. <strong>Nothing here makes you stronger</strong> — it is

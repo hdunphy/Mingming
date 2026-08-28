@@ -87,6 +87,7 @@ import type { RootState } from '../store/store';
 import { cardFace, colorFor } from './runShell';
 import './runShell.css';
 import './WorkshopNode.css';
+import { Icon } from '../theme/Icon';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
 export interface ReflashTarget {
@@ -271,7 +272,7 @@ export default function WorkshopNode({
             </span>
             <span className="rs-ctx">{(biomeName ?? 'THIS').toUpperCase()} BIOME · ASSEMBLY BAY</span>
             <span className="rs-spacer" />
-            <span className="rs-scrap" aria-label="Scrap held">{scrap} ⛁</span>
+            <span className="rs-scrap" aria-label="Scrap held">{scrap} <Icon name="scrap" size={12} /></span>
             <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onEditLoadout(); }}>
                 EDIT LOADOUT
             </button>
@@ -356,7 +357,7 @@ export default function WorkshopNode({
                             <span className="rs-chip">
                                 1 × {member ? GetMingmingData(member.definitionId).name.toUpperCase() : ''} BLUEPRINT
                             </span>
-                            <span className="rs-chip">{WORKSHOP_REFLASH_SCRAP} ⛁</span>
+                            <span className="rs-chip">{WORKSHOP_REFLASH_SCRAP} <Icon name="scrap" size={11} /></span>
                             <button
                                 type="button"
                                 className="rs-btn primary"
@@ -500,7 +501,7 @@ export default function WorkshopNode({
                     {definition && (
                         <div className="ws-cost">
                             <span className="rs-chip">1 × BLUEPRINT</span>
-                            <span className="rs-chip">{WORKSHOP_ASSEMBLY_SCRAP} ⛁</span>
+                            <span className="rs-chip">{WORKSHOP_ASSEMBLY_SCRAP} <Icon name="scrap" size={11} /></span>
                             <button
                                 type="button"
                                 className="rs-btn primary"
@@ -607,8 +608,8 @@ export default function WorkshopNode({
                         {swappingOut
                             ? 'Pick who steps off the field. Their cards go to the collection with them, and the new engine takes their place in the deck.'
                             : partyFull
-                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. Species clause: no duplicate species across party + bench. Click a member to reflash. 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} ⛁.`
-                                : `Click a member to reflash — 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} ⛁, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
+                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. Species clause: no duplicate species across party + bench. Click a member to reflash. 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap.`
+                                : `Click a member to reflash — 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
                     </p>
                     <div className={`rs-pill ${run.deck.length <= floor ? 'at-floor' : ''}`}>
                         DECK <b>{run.deck.length}</b> / floor {floor}

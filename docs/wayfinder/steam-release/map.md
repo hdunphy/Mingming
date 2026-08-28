@@ -147,7 +147,7 @@ Re-cut by [Content plan](tickets/27-content-plan.md) once the slice has been pla
 | [31 Codex: seen/played species, OS and cards; completion payouts](tickets/31-codex.md) | task | agent | [23](tickets/23-save-v4.md), [19](tickets/19-run-end.md) |
 | [32 Art direction and budget: AI-assisted vs commissioned, disclosure, what cards look like](tickets/32-art-direction.md) | grilling | Henry | [05](tickets/05-release-shape.md) |
 | [33 Species art pass: 16 battle portraits to the ruled standard](tickets/33-species-art.md) | task | agent | [32](tickets/32-art-direction.md) |
-| [34 UI art and theming pass: icons, backgrounds, logo, node icons](tickets/34-ui-art-pass.md) | task | agent | [32](tickets/32-art-direction.md), [10](tickets/10-region-map-screen.md) |
+| [34 UI art and theming pass: icons, backgrounds, logo, node icons](tickets/34-ui-art-pass.md) **PART ONE IN — tokens, icons, backdrops, screenshots; frames open** | task | agent | [32](tickets/32-art-direction.md), [10](tickets/10-region-map-screen.md) |
 | [35 Audio pass: music loops, owned SFX packs, license inventory](tickets/35-audio-pass.md) | task | agent | [36](tickets/36-settings-screen.md) |
 | [36 Settings screen: audio, display, motion, keybinds, save management](tickets/36-settings-screen.md) | task | agent | [23](tickets/23-save-v4.md) |
 | [37 Resolution, fullscreen and controller: 16:9, 16:10 Steam Deck, Steam Input](tickets/37-resolution-and-input.md) | task | agent | [26](tickets/26-wrapper-research.md), [10](tickets/10-region-map-screen.md), [22](tickets/22-3v3-game-side.md) |

@@ -67,6 +67,8 @@ import { autoSaveRunLog } from '../settings/exportRunLog';
 import { loadSettings } from '../settings/settings';
 import { teardownRun } from '../store/runTeardown';
 import './RunSummary.css';
+import { Icon } from '../theme/Icon';
+import type { IconName } from '../theme/icons';
 
 /**
  * `exploration-map.md`'s run-length target, printed beside the clock.
@@ -95,7 +97,7 @@ export interface RunSummaryProps {
 }
 
 interface HeadlineCopy {
-    readonly icon: string;
+    readonly icon: IconName;
     readonly title: string;
     readonly lead: string;
 }
@@ -109,19 +111,19 @@ function headlineFor(run: IRunState, gymName: string, biomeName: string): Headli
     switch (run.outcome) {
         case 'victory':
             return {
-                icon: '🏛',
+                icon: 'gym',
                 title: 'Gym cleared',
                 lead: `You beat ${gymName}. The clear and the tier are recorded at the ranch.`,
             };
         case 'abandoned':
             return {
-                icon: '🚪',
+                icon: 'door',
                 title: 'Run abandoned',
                 lead: `You walked out of ${biomeName}. The run is over; everything you banked on the way is not.`,
             };
         default:
             return {
-                icon: '💀',
+                icon: 'skull',
                 title: 'Run over',
                 lead: `Your party fell in ${biomeName}. A defeat costs the run and only the run.`,
             };
@@ -199,7 +201,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
     return (
         <div className="ranch-screen">
             <header className="ranch-header">
-                <h1>{headline.icon} {headline.title}</h1>
+                <h1><Icon name={headline.icon} size={22} /> {headline.title}</h1>
             </header>
 
             <section className="ranch-section ranch-section-wide">

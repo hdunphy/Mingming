@@ -95,6 +95,7 @@ import { nextMapTip } from '../../engine/tips';
 import RunSummary from './RunSummary';
 import WorkshopNode from './WorkshopNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
+import { Icon } from '../theme/Icon';
 
 /**
  * The kinds that have no handler yet, and the ticket that gives them one.
@@ -378,7 +379,7 @@ export default function RunScreen(): ReactNode {
         return (
             <div className="ranch-screen">
                 <header className="ranch-header">
-                    <h1>🏛 {gym?.name ?? run.gymId}</h1>
+                    <h1><Icon name="gym" size={20} /> {gym?.name ?? run.gymId}</h1>
                     <div className="ranch-run-meta">
                         Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
                         {' '}{run.fightsResolved} fights · {run.scrap} scrap
@@ -407,7 +408,7 @@ export default function RunScreen(): ReactNode {
     return (
         <div className="ranch-screen">
             <header className="ranch-header">
-                <h1>🗺 {gym?.name ?? run.gymId}</h1>
+                <h1>{gym?.name ?? run.gymId}</h1>
                 <div className="ranch-run-meta">
                     Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
                     layer {current.layer} · {run.fightsResolved} fights · {run.scrap} scrap
@@ -417,7 +418,7 @@ export default function RunScreen(): ReactNode {
 
             <section className="ranch-section ranch-section-wide">
                 <div className="ranch-section-head">
-                    <h2>{NODE_ICON[current.kind]} {NODE_LABEL[current.kind]}{current.pocket ? ' (pocket)' : ''}</h2>
+                    <h2><Icon name={NODE_ICON[current.kind]} size={18} /> {NODE_LABEL[current.kind]}{current.pocket ? ' (pocket)' : ''}</h2>
                 </div>
 
                 {pendingTicket !== undefined && (

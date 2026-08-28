@@ -38,6 +38,7 @@ import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
+import { Icon } from '../theme/Icon';
 
 /**
  * The offer screen is rolled ONCE per visit and held in component state.
@@ -113,7 +114,7 @@ export default function RunStart(): ReactNode {
                 <h2>{chosen ? 'Choose your party' : 'Choose a gym'}</h2>
                 {chosen && (
                     <button type="button" className="ranch-button subtle" onClick={() => { setChosen(null); playSfx('uiClick'); }}>
-                        ← Back to offers
+                        ‹ Back to offers
                     </button>
                 )}
             </div>
@@ -195,9 +196,9 @@ export default function RunStart(): ReactNode {
                                         {GetMingmingData(member.definitionId).name} · {GetMingmingData(member.definitionId).primaryElement}
                                     </div>
                                     <div className="ranch-ivs">
-                                        <span>⚔ {member.attackIV}</span>
-                                        <span>🛡 {member.defenseIV}</span>
-                                        <span>💚 {member.hpIV}</span>
+                                        <span><Icon name="attack" size={12} /> {member.attackIV}</span>
+                                        <span><Icon name="defense" size={12} /> {member.defenseIV}</span>
+                                        <span><Icon name="hp" size={12} /> {member.hpIV}</span>
                                     </div>
                                     {picked && <div className="ranch-card-badge">Deploying</div>}
                                     {block === 'duplicate-species' && <div className="ranch-card-block">Already fielding this species</div>}

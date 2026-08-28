@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-28 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion, 68-legion). **State: 67 tickets, 37 closed.** The critical path is complete, the run's four edit surfaces are built, ticket 60's enemy ladder is in, and **ticket 68 rebuilt the gym boss**. **THE BOSS WALL IS GONE — AND THE FIGHT OVERSHOT.** Emberfall's boss goes **0/60 -> 48/60 (80.0%) prepared**, 39/60 (65.0%) control, against a 60% target; its three fights now read **83.3 / 90.0 / 80.0** where they read 68.3 / 81.7 / 3.3. The relics are retired as a concept: enemy passives are **DRIVERS**, side-scoped, additive to a member's own OS, on the same machinery as the player's. For the PREPARED player the other two bands still grade (Q3): **wilds 95.7% vs 95 - PASS. Elites 73.7% vs 75 - PASS.** **WAITING ON HENRY: the boss is now 15pt ABOVE the target the prepared arm grades.** Nothing was turned - the unturned levers are `BOSS_IVS` (ruling 7's re-check against the new Driver, NOT yet run), WAR FOOTING's numbers, the authored composition, and the 60% target itself, which was set against a boss nobody had designed. Also worth a decision: **WAR FOOTING's turn-4 escalation barely fires** (fights average 4.1 turns). Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) SS13. **Tidewrack and Rootfall are NOT authored** (68 ruling 6) and still field ticket 18's `boss_relic_*` formula boss at 0/60 - one gym per design session. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass** (deck-archetypes, 24-36 cards - re-read it against 80.0%, the fight it was aimed at no longer exists), **57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40 - **109 is the single highest-leverage ticket on the board**, nine steam-release tickets sit behind it. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22** (142 of 216 card descriptions print their power figure) and the anti-boss power tier. **New tool: `npm run decks`** writes `docs/balance/deck_browser.html`, a standalone at-a-glance reference for all 32 decks that badges its own numbers stale by registry hash. Suite green at 130 files / 1825 tests. **LINT IS BLOCKING IN CI as of ticket 55** - the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-28 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion, 68-legion). **State: 67 tickets, 37 closed.** The critical path is complete, the run's four edit surfaces are built, ticket 60's enemy ladder is in, and **ticket 68 rebuilt the gym boss**. **THE BOSS WALL IS GONE — AND THE FIGHT OVERSHOT.** Emberfall's boss goes **0/60 -> 48/60 (80.0%) prepared**, 39/60 (65.0%) control, against a 60% target; its three fights now read **83.3 / 90.0 / 80.0** where they read 68.3 / 81.7 / 3.3. The relics are retired as a concept: enemy passives are **DRIVERS**, side-scoped, additive to a member's own OS, on the same machinery as the player's. For the PREPARED player the other two bands still grade (Q3): **wilds 95.7% vs 95 - PASS. Elites 73.7% vs 75 - PASS.** **WAITING ON HENRY: the boss is now 15pt ABOVE the target the prepared arm grades.** Nothing was turned - the unturned levers are `BOSS_IVS` (ruling 7's re-check against the new Driver, NOT yet run), WAR FOOTING's numbers, the authored composition, and the 60% target itself, which was set against a boss nobody had designed. Also worth a decision: **WAR FOOTING's turn-4 escalation barely fires** (fights average 4.1 turns). Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) SS13. **Tidewrack and Rootfall are NOT authored** (68 ruling 6) and still field ticket 18's `boss_relic_*` formula boss at 0/60 - one gym per design session. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass** (deck-archetypes, 24-36 cards - re-read it against 80.0%, the fight it was aimed at no longer exists), **57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40 - **109 is the single highest-leverage ticket on the board**, nine steam-release tickets sit behind it. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22** (142 of 216 card descriptions print their power figure) and the anti-boss power tier. **Ticket 34 part one is in** (theme tokens, 31 SVG icons replacing the chrome emoji, biome backdrops, 12 screens x 2 resolutions in `research/34-screens/`); **34 stays OPEN for the card frames and the battle-HUD glyphs.** **`scripts/debug-generate.ts` deleted — it was failing `eslint .`, i.e. CI has been red on HEAD since ticket 55; every session missed it by linting a drifted cloud copy.** **New tool: `npm run decks`** writes `docs/balance/deck_browser.html`, a standalone at-a-glance reference for all 32 decks that badges its own numbers stale by registry hash. Suite green at 132 files / 1836 tests. **LINT IS BLOCKING IN CI as of ticket 55** - the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,49 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-28 — Ticket 34, part one: a token layer, 31 icons, biome backdrops, and the screenshots
+
+**Ticket 34 is NOT closed** — four of five deliverables landed and card frames did not. The
+ticket's own Progress section is the honest list; the short version:
+
+- **`ui/theme/tokens.css`** — the vocabulary `index.css` never had (elements, surfaces, ink, type
+  scale, space, radii). The eight legacy names ship as aliases at their old values, so **nothing
+  changed appearance by being moved**; screens adopt the ruled surfaces as they are worked on.
+  `theme.test.ts` parses the file and compares the nine element colours against
+  `runShell.ELEMENT_COLOR`, which is the one seam that can drift silently.
+- **Emoji are out of the chrome.** 31 inline SVG icons on a 24 grid in `ui/theme/icons.ts`, stroked
+  in `currentColor`. The point is not taste: an emoji is a font glyph the player's system picks and
+  it **ignores `color`**, so the region map could not tint a node by its biome and `U+1F573` drew as
+  nothing at all on several Linux stacks. `Icon.test.tsx` renders the whole set and **sweeps
+  `src/ui` for emoji**, so the acceptance criterion fails a build now.
+- **Biome backdrops on the region map** — element-tinted bands with a dashed seam, derived from the
+  laid-out columns so a band is exactly as wide as the nodes it stands behind.
+- **12 screens x 1280x800 and 1920x1080** in `research/34-screens/`, captured by
+  `scripts/screenshots.mjs` driving a real production build through a real cold-start playthrough.
+  They earned their keep as a review: the `wild` icon was crossed swords, which **collapses into an
+  X at 18px** — the commonest node in the game drawn as a close button — and ticket 68's uneven offer
+  cards were pushing Emberfall's name out of line.
+
+**Still open on 34:** the card frames (ticket 66's chassis — the largest piece), the in-battle glyph
+vocabulary (excluded BY NAME from the emoji sweep, so the exclusion list is the to-do list), the
+engine's combat-log emoji, and a logo — which ticket 32 ruled is COMMISSIONED, so an agent should
+not invent one.
+
+### 2026-08-28 — CI lint was RED on HEAD, and every session reported it green
+
+`scripts/debug-generate.ts` is a pre-run-loop leftover: it imports `createDefaultSave` and
+`createStarterSave` (deleted), reads `save.gauntlet` and `save.activeParty` (deleted by ticket 06),
+and calls `createBattleState(save as any, [])` against a signature ticket 11 replaced. It cannot
+compile or run, and it failed `eslint .` with two errors — which is `npm run lint`, which is a
+BLOCKING CI gate. **Deleted.**
+
+It survived ticket 55's burndown and every session since because **agents run the gates against a
+cloud copy of the tree, and a previous session had patched this file locally without transferring
+it.** Every session after that ran lint against a file the repo does not contain and reported clean.
+The lesson is procedural and belongs at the top of this file: *a gate is only evidence if it ran
+against HEAD.* After syncing a tree into a container, diff it against the device before trusting a
+green run — content-compare with `tr -d '\r'`, since the mount is CRLF and the container is not.
 
 ### 2026-08-28 — The boss wall is gone. Emberfall goes 0/60 to 48/60, and is now too EASY.
 

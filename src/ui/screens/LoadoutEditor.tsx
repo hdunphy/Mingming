@@ -312,7 +312,7 @@ export default function LoadoutEditor({
                         <input
                             className="rs-search"
                             type="search"
-                            placeholder="🔍 search"
+                            placeholder="search"
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                         />

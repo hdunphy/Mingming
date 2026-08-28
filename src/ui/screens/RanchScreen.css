@@ -287,6 +287,15 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
     gap: 0.6rem;
+    /*
+     * Ticket 34: TOP-aligned, not stretched-and-centred.
+     *
+     * Ticket 68 made the three offer cards different heights — an authored gym telegraphs one
+     * Driver where an un-authored one lists three relics — and grid's default `stretch` centred
+     * the short card's content, so Emberfall's gym name sat lower than its neighbours'. The names
+     * are what a player scans across; they have to be on one line.
+     */
+    align-items: start;
 }
 
 .ranch-offer {

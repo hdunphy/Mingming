@@ -74,6 +74,7 @@ import { buyMacro, buyMarketCard, rerollMarketStock, sellRunCard } from '../stor
 import { cardFace, colorFor, groupByData } from './runShell';
 import './runShell.css';
 import './MarketplaceNode.css';
+import { Icon } from '../theme/Icon';
 
 /**
  * Ticket 19's deck-band constants, re-exported because this module's readers and tests import them
@@ -190,7 +191,7 @@ export default function MarketplaceNode({
                     {(biomeName ?? 'THIS').toUpperCase()} BIOME · VISIT {stock.visit} · stock re-rolls each visit
                 </span>
                 <span className="rs-spacer" />
-                <span className="rs-scrap" aria-label="Scrap held">{scrap} ⛁</span>
+                <span className="rs-scrap" aria-label="Scrap held">{scrap} <Icon name="scrap" size={12} /></span>
                 <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onEditLoadout(); }}>
                     EDIT LOADOUT
                 </button>
@@ -202,7 +203,7 @@ export default function MarketplaceNode({
             <div className="mk-body">
                 <div className="rs-panel mk-center">
                     <div className="mk-merchant">
-                        <span className="mk-face" aria-hidden="true">🤖</span>
+                        <span className="mk-face" aria-hidden="true"><Icon name="roster" size={22} /></span>
                         <span className="mk-merchant-text">
                             <span className="mk-merchant-nm">SALVAGE BROKER v2.3</span>
                             <span className="mk-say">&ldquo;Fresh firmware, honest prices. Mostly.&rdquo;</span>
@@ -223,8 +224,8 @@ export default function MarketplaceNode({
                             disabled={scrap < REROLL_PRICE}
                         >
                             {scrap < REROLL_PRICE
-                                ? `REROLL ${REROLL_PRICE}⛁ — ${shortBy(REROLL_PRICE)} SHORT`
-                                : `REROLL STOCK — ${REROLL_PRICE}⛁`}
+                                ? `REROLL ${REROLL_PRICE} scrap — ${shortBy(REROLL_PRICE)} SHORT`
+                                : `REROLL STOCK — ${REROLL_PRICE} scrap`}
                         </button>
                     </div>
 
@@ -250,7 +251,7 @@ export default function MarketplaceNode({
                                     <span className="rs-desc">{face.description}</span>
                                     <span className="rs-tags mk-tags">{offer.wildcard ? 'off-pool' : ''}</span>
                                     <span className={`rs-price ${sold ? 'sold' : ''}`}>
-                                        {sold ? 'SOLD' : short > 0 ? `${offer.price}⛁ · ${short} SHORT` : `${offer.price}⛁`}
+                                        {sold ? 'SOLD' : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
                                     </span>
                                     <span className="rs-elbar" />
                                 </button>
@@ -298,7 +299,7 @@ export default function MarketplaceNode({
                                     <span className="rs-price">
                                         {block === 'rack-full'
                                             ? 'RACK FULL'
-                                            : short > 0 ? `${offer.price}⛁ · ${short} SHORT` : `${offer.price}⛁`}
+                                            : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
                                     </span>
                                     <span className="rs-elbar" />
                                 </button>
@@ -328,7 +329,7 @@ export default function MarketplaceNode({
                                     {stack.instances[0].dataId === GENERIC_HIT && <span className="rs-t">generic</span>}
                                     <span className="rs-t">{stack.inDeck ? 'deck' : 'collection'}</span>
                                     {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
-                                    <span className="rs-sellp">+{stack.price}⛁</span>
+                                    <span className="rs-sellp">+{stack.price} <Icon name="scrap" size={11} /></span>
                                 </button>
                             );
                         })}
