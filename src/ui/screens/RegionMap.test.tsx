@@ -35,11 +35,16 @@ function render(currentNodeId = graph.entryNodeId, nodes = graph.nodes): string 
 describe('RegionMap', () => {
     it('draws every node and every undirected edge exactly once', () => {
         const markup = render();
-        const circles = markup.match(/<circle/g)?.length ?? 0;
+        // `class="rm-node-disc"`, not every `<circle>`: ticket 34 part two gave a visited node a
+        // second circle for its gold visit badge, and counting those would make "one disc per node"
+        // fail for a reason it is not about.
+        const circles = markup.match(/<circle[^>]*class="rm-node-disc"/g)?.length ?? 0;
         // `class="rm-edge"`, not every `<line>`: ticket 34 added the biome seams, which are also
         // lines and are decoration rather than graph. Counting all of them would make this test
         // fail for a reason it is not about.
-        const lines = markup.match(/<line[^>]*class="rm-edge"/g)?.length ?? 0;
+        // `class="rm-edge"` may carry a ` faded` modifier since ticket 34 part two, so match the
+        // prefix. Still not every `<line>`: the biome seams are decoration, not graph.
+        const lines = markup.match(/<line[^>]*class="rm-edge/g)?.length ?? 0;
 
         expect(circles).toBe(graph.nodes.length);
         // Edges are stored on both endpoints (ticket 07: walkable both ways), so drawing straight
@@ -95,7 +100,9 @@ describe('RegionMap', () => {
         const walked = graph.nodes.map((n) => (n.id === far.id ? { ...n, visited: 3 } : n));
         const markup = render(graph.entryNodeId, walked);
         // Revealed: it draws its real icon and its visit count, not the fog placeholder.
-        expect(markup).toContain('×3');
+        // Ticket 34 part two: the count is a gold shoulder badge now, not a '×N' beside the node.
+        expect(markup).toContain('rm-visit-count');
+        expect(markup).toMatch(/rm-visit-count">3</);
         expect(markup.match(/rm-node fogged/g)?.length).toBe(
             graph.nodes.filter((n) => columnOf(n) > columnOf(graph.nodes.find((m) => m.id === graph.entryNodeId)!) + 1).length - 1,
         );
@@ -107,7 +114,7 @@ describe('RegionMap', () => {
         const start = graph.nodes.find((n) => n.id === graph.entryNodeId)!;
         const markup = render();
         expect(start.visited).toBe(1);
-        expect(markup).toContain('×1');
+        expect(markup).toMatch(/rm-visit-count">1</);
         expect(markup).not.toMatch(/cleared|spent|exhausted/i);
     });
 

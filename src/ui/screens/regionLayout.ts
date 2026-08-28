@@ -107,6 +107,26 @@ export interface LaidOutNode {
     /** One edge away from the player, so a click travels there. */
     readonly reachable: boolean;
     readonly isCurrent: boolean;
+    /**
+     * TICKET 34 part two — **the wander**, in unit terms: two values in `[-1, 1]` the renderer
+     * scales into pixels.
+     *
+     * The ruled reference (`research/64-map-proto/map_N_route.svg`, *"OPTION N — WINDING ROUTE
+     * (overworld feel)"*) does not put its nodes on a lattice. A perfect grid reads as a flowchart;
+     * a route reads as somewhere you are walking, and the difference is entirely in whether the
+     * nodes sit exactly where you would predict.
+     *
+     * **Derived from the node ID, not rolled.** The offset has to be stable across a re-render, a
+     * reload and a resumed save, and it must not become a third thing the run seed decides — ticket
+     * 06 deliberately kept `x`/`y` out of `IRegionNode` so that layout stays derivable and a save
+     * never freezes a UI decision. A hash of the id is derivable, deterministic, and costs the save
+     * nothing.
+     *
+     * Bounded to a fraction of the lane spacing by the renderer, so the wander is a lean, not a
+     * scramble: `(biomeIndex, layer)` is still the position and the graph still reads left to right.
+     */
+    readonly wanderX: number;
+    readonly wanderY: number;
 }
 
 export interface RegionLayout {
@@ -118,6 +138,50 @@ export interface RegionLayout {
 
 export function columnOf(node: IRegionNode): number {
     return node.biomeIndex * COLUMNS_PER_BIOME + node.layer;
+}
+
+/**
+ * A stable pair of offsets in `[-1, 1]` for a node id — ticket 34 part two's wander.
+ *
+ * FNV-1a, because it needs to be *stable forever* and cheap, not statistically excellent: the same
+ * id must land in the same place in every build, and two adjacent ids (`b1l2n0`, `b1l2n1`) must land
+ * in visibly different places. FNV's avalanche is more than enough for both and it is eight lines
+ * with no dependency. `Math.random` is forbidden in this module for the ordinary reason and one
+ * extra: a re-render would move the map under the cursor.
+ *
+ * The two values come from different halves of the hash so that x and y are independent — deriving
+ * y from the same number as x would put every node on a diagonal.
+ */
+export function wanderFor(id: string): { x: number; y: number } {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < id.length; i += 1) {
+        hash ^= id.charCodeAt(i);
+        // FNV prime, via shifts so this stays in 32-bit integer arithmetic rather than drifting
+        // into float territory on a long id.
+        hash = (hash + (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24)) >>> 0;
+    }
+    /*
+     * AVALANCHE, and it is load-bearing rather than ceremony.
+     *
+     * FNV-1a alone leaves adjacent ids adjacent in the low bits — `b1l2n0` and `b1l2n1` differ by
+     * one byte and came out **0.015 apart** on a scale of 2, which is not a wander, it is two nodes
+     * drawn on top of each other. And those two ids are precisely the case that matters: they are
+     * neighbours in the same column, so they are the pair the wander exists to separate.
+     * `regionLayout.test.ts` pins it.
+     *
+     * This is the `lowbias32` finalizer: two xorshift-multiply rounds, which is what makes a
+     * one-byte change rewrite the whole word rather than the end of it.
+     */
+    hash ^= hash >>> 16;
+    hash = Math.imul(hash, 0x21f0aaad) >>> 0;
+    hash ^= hash >>> 15;
+    hash = Math.imul(hash, 0x735a2d97) >>> 0;
+    hash ^= hash >>> 15;
+
+    // Two independent 16-bit halves, each mapped to [-1, 1].
+    const low = hash & 0xffff;
+    const high = (hash >>> 16) & 0xffff;
+    return { x: (low / 0xffff) * 2 - 1, y: (high / 0xffff) * 2 - 1 };
 }
 
 /** How far ahead of the player's column a node's kind is visible. Ticket 07: one layer. */
@@ -165,6 +229,7 @@ export function layoutRegion(
         });
         maxRows = Math.max(maxRows, ordered.length);
         ordered.forEach((node, row) => {
+            const wander = wanderFor(node.id);
             laid.push({
                 node,
                 column,
@@ -179,6 +244,8 @@ export function layoutRegion(
                     || surveyed.has(node.biomeIndex),
                 reachable: reachableIds.has(node.id),
                 isCurrent: node.id === currentNodeId,
+                wanderX: wander.x,
+                wanderY: wander.y,
             });
         });
     }

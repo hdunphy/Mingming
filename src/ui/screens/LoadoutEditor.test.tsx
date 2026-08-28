@@ -357,12 +357,19 @@ describe('LoadoutEditor — the run collection', () => {
             expect(markup).toContain(`<span class="rs-cnm">${escapeHtml(data.name)}</span>`);
             expect(markup).toContain(`<span class="rs-desc">${escapeHtml(data.description)}</span>`);
         }
-        expect(markup).toContain('<span class="rs-typ ATTACK">ATTACK</span>');
-        expect(markup).toContain('<span class="rs-typ DAEMON">DAEMON</span>');
-        // `undertow` is a Skill and `healing_mist` is a Heal: two categories, one banner.
-        expect(markup.match(/<span class="rs-typ SKILL">SKILL<\/span>/g)?.length).toBe(2);
-        expect(markup).toContain('<span class="rs-gem">0</span>');
-        expect(markup).toContain('<span class="rs-gem">2</span>');
+        /*
+         * TICKET 66's chassis replaced the coloured TEXT banner with a one-character type MARK and
+         * the cost gem with an energy PIP rack. The claim is unchanged — attack-vs-skill and the
+         * energy cost are both readable on every tile — so this asserts the same two facts through
+         * the shapes that now carry them. The `title` is what keeps the mark nameable.
+         */
+        expect(markup).toContain('<span class="rs-typ ATTACK" title="ATTACK">▲</span>');
+        expect(markup).toContain('<span class="rs-typ DAEMON" title="DAEMON">◆</span>');
+        // `undertow` is a Skill and `healing_mist` is a Heal: two categories, one mark.
+        expect(markup.match(/<span class="rs-typ SKILL" title="SKILL">✦<\/span>/g)?.length).toBe(2);
+        // A 0-cost card racks ONE unfilled pip; a 2-cost card racks two filled ones.
+        expect(markup).toContain('<span class="rs-pips" aria-label="0 energy"><i class="off"></i></span>');
+        expect(markup).toContain('<span class="rs-pips" aria-label="2 energy"><i></i><i></i></span>');
     });
 
     it('tags a tile by what it is FOR — payoff, generic, benched, or a pick', () => {

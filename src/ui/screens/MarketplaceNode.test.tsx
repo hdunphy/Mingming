@@ -184,8 +184,11 @@ const tilesIn = (markup: string, grid: 'mk-grid' | 'mk-macros' = 'mk-grid'): Til
     const scoped = grid === 'mk-macros' ? markup.slice(cut) : markup.slice(0, cut);
     return [...scoped.matchAll(/<button[^>]*class="rs-card[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
         html,
-        gem: spanText(html, 'rs-gem'),
-        banner: spanText(html, 'rs-typ [A-Z]+'),
+        // Ticket 66: the cost gem is an energy PIP rack now. The rack's `aria-label` is the
+        // machine-readable cost, which is what this parser wants — a count of `<i>` would be the
+        // same number for 0 and 1 (a 0-cost card racks one UNFILLED pip).
+        gem: (html.match(/class="rs-pips" aria-label="([^"]*)"/) ?? [])[1] ?? '',
+        banner: (html.match(/class="rs-typ ([A-Z]+)"/) ?? [])[1] ?? '',
         name: spanText(html, 'rs-cnm'),
         description: spanText(html, 'rs-desc'),
         tags: spanText(html, 'rs-tags[^"]*'),
@@ -334,7 +337,7 @@ describe('MarketplaceNode', () => {
         const tiles = tilesIn(render(run));
 
         stock.offers.forEach((offer, i) => {
-            // Name, cost gem and banner are the mockup's three identifiers, and the price plate is
+            // Name, energy rack and type mark are the chassis's three identifiers, and the price plate is
             // the affordance's whole label — there is no `Buy —` verb on a stall tile, because the
             // tile IS the button.
             expect(tiles[i].name).toBe(nameOf(offer.card.dataId));
@@ -455,11 +458,12 @@ describe('MarketplaceNode', () => {
             expect(tiles[i].description).toBe(escapeHtml(MacroRegistry[offer.macroId].description));
             expect(tiles[i].plate).toBe(`${offer.price} scrap`);
             expect(tiles[i].disabled).toBe(false);
-            // The banner and the `◈` gem are the whole of what distinguishes a macro tile from a
-            // card tile at a glance — a macro has no energy cost to print in the gem, because it is
-            // fired free on your turn.
+            // The type mark is what distinguishes a macro tile from a card tile at a glance —
+            // ticket 66 gives it its own (`●`). A macro has no energy cost at all, because it is
+            // fired free on your turn, so its rack is the same single unfilled slot a 0-cost card
+            // shows.
             expect(tiles[i].banner).toBe('MACRO');
-            expect(tiles[i].gem).toBe('◈');
+            expect(tiles[i].gem).toBe('0 energy');
             expect(offer.price).toBe(macroPrice(offer.macroId));
         });
         // The rack is the brake on buying them, so the rack's state is on the shelf's own heading.

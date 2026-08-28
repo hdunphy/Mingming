@@ -39,10 +39,18 @@ export const ELEMENT_COLOR: Readonly<Record<string, string>> = {
 export const colorFor = (element: string): string => ELEMENT_COLOR[element] ?? ELEMENT_COLOR.None;
 
 /**
- * The mockups' three banners. `Status` and `Heal` read as SKILL — a heal is a skill you cast, and a
- * fourth colour for a category the player never names would be three shades of the same idea.
+ * The card's TYPE, as ticket 66's chassis prints it — one mark in the top-right corner.
+ *
+ * `Status` and `Heal` read as SKILL: a heal is a skill you cast, and a fourth colour for a category
+ * the player never names would be three shades of the same idea.
+ *
+ * **`MACRO` is the fourth member and it is not a `ProgramCategory`** — a macro is not a program at
+ * all (`data/macroRegistry`), it is a free single-use effect on the rack beside the hand. It is in
+ * this union because it shares the tile: the marketplace stocks macros on the same card face, and
+ * ticket 66's reference draws it with the same chassis and its own mark (`●`). `bannerFor` cannot
+ * return it, and does not — the macro sites pass it directly.
  */
-export type Banner = 'ATTACK' | 'SKILL' | 'DAEMON';
+export type Banner = 'ATTACK' | 'SKILL' | 'DAEMON' | 'MACRO';
 
 export function bannerFor(category: ProgramCategory | undefined): Banner {
     if (category === 'Attack') return 'ATTACK';

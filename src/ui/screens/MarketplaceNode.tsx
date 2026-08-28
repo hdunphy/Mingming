@@ -75,6 +75,7 @@ import { cardFace, colorFor, groupByData } from './runShell';
 import './runShell.css';
 import './MarketplaceNode.css';
 import { Icon } from '../theme/Icon';
+import { EnergyPips, TypeMark } from './CardChassis';
 
 /**
  * Ticket 19's deck-band constants, re-exported because this module's readers and tests import them
@@ -244,8 +245,8 @@ export default function MarketplaceNode({
                                     disabled={sold || short > 0}
                                     onClick={() => buy(offer)}
                                 >
-                                    <span className="rs-gem">{face.cost}</span>
-                                    <span className={`rs-typ ${face.banner}`}>{face.banner}</span>
+                                    <EnergyPips cost={face.cost} />
+                                    <TypeMark banner={face.banner} />
                                     <span className="rs-art" />
                                     <span className="rs-cnm">{face.name}</span>
                                     <span className="rs-desc">{face.description}</span>
@@ -285,13 +286,16 @@ export default function MarketplaceNode({
                                 <button
                                     key={offer.macroId}
                                     type="button"
-                                    className={`rs-card ${macro.rarity === 'Rare' ? 'payoff' : ''}`}
+                                    className={`rs-card ${macro.rarity === 'Rare' ? 'rare' : ''}`}
                                     style={{ ['--el' as string]: '#c9a2f0' }}
                                     disabled={block !== null || short > 0}
                                     onClick={() => purchaseMacro(offer)}
                                 >
-                                    <span className="rs-gem">◈</span>
-                                    <span className="rs-typ MACRO">MACRO</span>
+                                    {/* A macro costs no energy — it is free and single-use — so its
+                                        rack is a single unfilled slot, the same shape a 0-cost card
+                                        shows. Ticket 66 gives it its own mark instead. */}
+                                    <EnergyPips cost={0} />
+                                    <TypeMark banner="MACRO" />
                                     <span className="rs-art" />
                                     <span className="rs-cnm">{macro.name}</span>
                                     <span className="rs-desc">{macro.description}</span>

@@ -168,34 +168,60 @@
     text-align: center;
     cursor: pointer;
 }
-/* The payoff reads first, which is the whole point of tagging it (ticket 61's engine rule). */
-.rs-card.payoff { border-color: var(--el); box-shadow: 0 0 0 1px var(--el), 0 3px 12px #0008; }
+/*
+ * TICKET 66 rules **no payoff glow** — *"payoff = tag in editor contexts only"*, which the editor
+ * already does (`LoadoutEditor.tagsFor`). The rule below survives under a corrected NAME: the one
+ * place that used it was the marketplace marking a RARE MACRO, which is a rarity cue and was never
+ * a payoff cue. Renaming it is what makes the ruling checkable — there is now no class called
+ * `payoff` on any card face.
+ */
+.rs-card.rare { border-color: var(--el); box-shadow: 0 0 0 1px var(--el), 0 3px 12px #0008; }
 .rs-card:disabled { cursor: default; }
 
-.rs-gem {
-    position: absolute; top: -9px; left: -9px;
-    width: 30px; height: 30px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #7ec3ff, #245a8c 70%);
-    border: 2px solid #0c0e12;
-    color: #fff; font-weight: 800; font-size: 15px;
-    display: flex; align-items: center; justify-content: center;
+/*
+ * TICKET 66's chassis: energy PIPS top-left, TYPE MARK top-right.
+ *
+ * The gem this replaces was a 30px disc hanging off the corner with a numeral in it — a price you
+ * read and then did arithmetic with. Pips are a quantity you compare by looking, which is what
+ * "cost as capacity" means and what matters in a game where a turn is two energy.
+ */
+.rs-pips {
+    position: absolute; top: 7px; left: 7px;
+    display: flex; gap: 3px;
 }
 
-.rs-typ {
-    position: absolute; top: 6px; right: 6px;
-    font-size: 8.5px; letter-spacing: 1px; padding: 2px 6px;
-    border-radius: 2px; font-weight: 700;
+.rs-pips i {
+    width: 9px; height: 9px;
+    border-radius: 2px;
+    background: var(--el);
+    box-shadow: 0 0 5px var(--el);
+    display: block;
 }
-.rs-typ.ATTACK { background: #5b2320; color: #ff9d8f; }
-.rs-typ.SKILL { background: #1e3a52; color: #8fc7f5; }
-.rs-typ.DAEMON { background: #3a2352; color: #c9a2f0; }
-.rs-typ.MACRO { background: #3a2352; color: #c9a2f0; }
+
+/* An unfilled slot: a 0-cost card racks ONE of these rather than nothing, so "free" reads as a
+   deliberate empty slot instead of as a corner that failed to render. */
+.rs-pips i.off { background: #2a323d; box-shadow: none; }
+
+.rs-typ {
+    position: absolute; top: 2px; right: 7px;
+    font-size: 15px; line-height: 1;
+    text-shadow: 0 0 6px currentColor;
+}
+.rs-typ.ATTACK { color: #ff9d8f; }
+.rs-typ.SKILL { color: #8fc7f5; }
+.rs-typ.DAEMON { color: #c9a2f0; }
+.rs-typ.MACRO { color: #ffd479; }
 
 /* Placeholder until ticket 33's art pass — the mockup's own gradient, so the swap is one rule. */
 .rs-art {
     height: var(--ah, 52px);
     border-radius: 5px;
-    margin: 14px 0 6px;
+    /* Ticket 66's spacing: the art starts BELOW the pips and the mark, which both now sit inside
+       the card rather than hanging off its corner (the gem used to hang outside it, so the art
+       could start higher). 16px clears a 9px pip at top:7px with a hair to spare — the reference's
+       20px is against a 246px editor card, and ours is 216px, where the extra 4px pushed the tag
+       line under the price plate. */
+    margin: 16px 0 6px;
     background:
         repeating-linear-gradient(45deg, transparent 0 6px, #ffffff08 6px 12px),
         linear-gradient(135deg, var(--el) 0%, #0c0e12 130%);

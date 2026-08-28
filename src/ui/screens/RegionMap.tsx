@@ -61,14 +61,40 @@ const PAD_X = 52;
 const PAD_Y = 40;
 const R = 21;
 
-function cx(column: number): number {
-    return PAD_X + column * COL_W;
+/**
+ * TICKET 34 part two — how far a node may lean off its lane.
+ *
+ * The ruled reference is `research/64-map-proto/map_N_route.svg`: *"OPTION N — WINDING ROUTE
+ * (overworld feel)"*. Its nodes are visibly off-lattice, and that is the whole of the difference
+ * between a flowchart and a route — a grid tells you the graph is generated, a wander tells you it
+ * is a place.
+ *
+ * A quarter of the lane each way, and the two numbers are not equal on purpose. **X is the tighter
+ * one**: columns carry the run's ordering (you walk left to right, and the fog is measured in
+ * columns), so a node that wanders far enough to look like it belongs to the next layer would be
+ * lying about the graph. Y has no such meaning — a column's rows are just a stacking order — so it
+ * gets the looser lean and does most of the visible work.
+ */
+/** How far the biome panels sit inside the canvas, top and bottom. */
+const BAND_INSET_Y = 10;
+
+const WANDER_X = COL_W * 0.20;
+const WANDER_Y = ROW_H * 0.26;
+
+function cx(column: number, wander = 0): number {
+    return PAD_X + column * COL_W + wander * WANDER_X;
 }
 
-function cy(row: number, rowsInColumn: number, maxRows: number): number {
+function cy(row: number, rowsInColumn: number, maxRows: number, wander = 0): number {
     const span = (maxRows - rowsInColumn) / 2;
-    return PAD_Y + (row + span) * ROW_H + R;
+    return PAD_Y + (row + span) * ROW_H + R + wander * WANDER_Y;
 }
+
+/** A laid-out node's centre, wander included. The one place the two are combined. */
+const centreOf = (laid: LaidOutNode, maxRows: number): { x: number; y: number } => ({
+    x: cx(laid.column, laid.wanderX),
+    y: cy(laid.row, laid.rowsInColumn, maxRows, laid.wanderY),
+});
 
 export interface RegionMapProps {
     readonly nodes: ReadonlyArray<IRegionNode>;
@@ -155,6 +181,19 @@ export default function RegionMap({
             }));
     }, [layout, biomeElements]);
 
+    /**
+     * TICKET 34 part two: where the player is, relative to each band.
+     *
+     * The reference labels its three panels `NATURE ✓` / `FIRE — CURRENT` / `WATER — AHEAD`, and
+     * that is the one piece of information the picture was missing: the strip above says *which*
+     * biomes the run walks, and this says *how far through them you are*. It is a state word rather
+     * than the biome name repeated, because the name is already on the strip and a map that prints
+     * everything twice is a map nobody reads.
+     */
+    const currentBiome = layout.byId.get(currentNodeId)?.node.biomeIndex ?? 0;
+    const bandState = (biomeIndex: number): string =>
+        biomeIndex < currentBiome ? 'WALKED' : biomeIndex === currentBiome ? 'CURRENT' : 'AHEAD';
+
     const reachable = layout.nodes.filter((n) => n.reachable);
     const current = layout.byId.get(currentNodeId);
 
@@ -201,33 +240,63 @@ export default function RegionMap({
                             </linearGradient>
                         ))}
                     </defs>
+                    {/*
+                      * Rounded, inset panels rather than full-bleed bands — the reference draws
+                      * each biome as a PLACE with edges, not as a stripe behind the graph. The
+                      * inset is what makes them read as three panels on one board.
+                      */}
                     {bands.map((band) => (
-                        <rect
-                            key={band.biomeIndex}
-                            className="rm-biome-band"
-                            x={band.x} y={0} width={band.width} height={height}
-                            fill={`url(#rm-biome-${band.biomeIndex})`}
-                        />
+                        <g key={band.biomeIndex}>
+                            <rect
+                                className="rm-biome-band"
+                                x={band.x + 3} y={BAND_INSET_Y}
+                                width={band.width - 6} height={height - BAND_INSET_Y * 2}
+                                rx={16}
+                                fill={`url(#rm-biome-${band.biomeIndex})`}
+                                stroke={ELEMENT_COLOR[band.element] ?? '#7a5cff'}
+                            />
+                            <text
+                                className={`rm-band-label ${bandState(band.biomeIndex) === 'CURRENT' ? 'here' : ''}`}
+                                x={band.x + 18} y={BAND_INSET_Y + 20}
+                                style={{ fill: ELEMENT_COLOR[band.element] ?? undefined }}
+                            >
+                                {band.element.toUpperCase()} · {bandState(band.biomeIndex)}
+                            </text>
+                        </g>
                     ))}
                     {bands.slice(1).map((band) => (
                         <line
                             key={`seam-${band.biomeIndex}`}
                             className="rm-biome-seam"
-                            x1={band.x} y1={0} x2={band.x} y2={height}
+                            x1={band.x} y1={BAND_INSET_Y} x2={band.x} y2={height - BAND_INSET_Y}
                             stroke={ELEMENT_COLOR[band.element] ?? '#7a5cff'}
                         />
                     ))}
-                    {lines.map(({ key, a, b }) => (
-                        <line
-                            key={key}
-                            x1={cx(a.column)} y1={cy(a.row, a.rowsInColumn, layout.maxRows)}
-                            x2={cx(b.column)} y2={cy(b.row, b.rowsInColumn, layout.maxRows)}
-                            className="rm-edge"
-                        />
-                    ))}
+                    {/*
+                      * TICKET 34 part two — the trails.
+                      *
+                      * Dotted rather than solid, per the ruled reference: a solid line between two
+                      * discs is a graph EDGE, and a dotted one is a path someone walked. It is the
+                      * cheapest single change on this screen and it does most of the "overworld
+                      * feel" the reference is named for.
+                      *
+                      * A trail that leads into the fog is DIMMER than one between two revealed
+                      * nodes, which is information rather than decoration: it is the difference
+                      * between a route you can plan and one you can only see the start of.
+                      */}
+                    {lines.map(({ key, a, b }) => {
+                        const from = centreOf(a, layout.maxRows);
+                        const to = centreOf(b, layout.maxRows);
+                        return (
+                            <line
+                                key={key}
+                                x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+                                className={`rm-edge ${a.revealed && b.revealed ? '' : 'faded'}`}
+                            />
+                        );
+                    })}
                     {layout.nodes.map((laid) => {
-                        const x = cx(laid.column);
-                        const y = cy(laid.row, laid.rowsInColumn, layout.maxRows);
+                        const { x, y } = centreOf(laid, layout.maxRows);
                         const element = biomeElements[laid.node.biomeIndex];
                         const isFight = laid.revealed && FIGHT_KINDS.includes(laid.node.kind);
                         return (
@@ -267,10 +336,20 @@ export default function RegionMap({
                                 ) : (
                                     <text x={x} y={y + 7} textAnchor="middle" className="rm-node-icon">·</text>
                                 )}
+                                {/*
+                                  * The visit badge, per the reference: a gold disc pinned to the
+                                  * node's shoulder rather than a bare "×2" floating beside it.
+                                  * Ticket 07's re-roll rule makes the count meaningful — a node you
+                                  * have stood on twice has been TWO different fights — so it earns
+                                  * a badge rather than a footnote.
+                                  */}
                                 {laid.node.visited > 0 && (
-                                    <text x={x + R - 2} y={y - R + 6} textAnchor="middle" className="rm-node-visits">
-                                        ×{laid.node.visited}
-                                    </text>
+                                    <g className="rm-node-visits">
+                                        <circle cx={x + R - 4} cy={y - R + 4} r={8.5} className="rm-visit-disc" />
+                                        <text x={x + R - 4} y={y - R + 7.5} textAnchor="middle" className="rm-visit-count">
+                                            {laid.node.visited}
+                                        </text>
+                                    </g>
                                 )}
                             </g>
                         );

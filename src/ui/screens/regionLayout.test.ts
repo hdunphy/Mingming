@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import { generateRegionGraph } from '../../engine/run/regionGraph';
 import type { IRegionNode } from '../../engine/runTypes';
-import { COLUMNS_PER_BIOME, VISIBILITY_LAYERS, columnOf, layoutRegion } from './regionLayout';
+import { COLUMNS_PER_BIOME, VISIBILITY_LAYERS, columnOf, layoutRegion, wanderFor } from './regionLayout';
 
 const node = (over: Partial<IRegionNode> & { id: string }): IRegionNode => ({
     kind: 'wild',
@@ -113,5 +113,53 @@ describe('layoutRegion — reachability and position', () => {
 
     it('spans fifteen columns — three biomes of five layers', () => {
         expect(layout.columnCount).toBe(15);
+    });
+});
+
+/**
+ * TICKET 34 part two — the wander.
+ *
+ * Ticket 06 kept `x`/`y` out of `IRegionNode` so that layout stays derivable and a save never
+ * freezes a UI decision. The wander has to honour that: it may make the map look hand-drawn, but it
+ * must be a pure function of the node id, or a re-render moves the map under the player's cursor and
+ * a resumed save draws a different region from the one they left.
+ */
+describe('the wander (ticket 34 part two)', () => {
+    const graph = generateRegionGraph('wander-graph');
+
+    it('is stable for an id, and independent between x and y', () => {
+        expect(wanderFor('b1l2n0')).toEqual(wanderFor('b1l2n0'));
+        const { x, y } = wanderFor('b1l2n0');
+        // Both halves of the hash are used; deriving y from x would put every node on a diagonal.
+        expect(x).not.toBe(y);
+    });
+
+    it('stays inside [-1, 1] for every id a graph can produce', () => {
+        for (const node of graph.nodes) {
+            const { x, y } = wanderFor(node.id);
+            expect(x).toBeGreaterThanOrEqual(-1);
+            expect(x).toBeLessThanOrEqual(1);
+            expect(y).toBeGreaterThanOrEqual(-1);
+            expect(y).toBeLessThanOrEqual(1);
+        }
+    });
+
+    it('separates ADJACENT ids — the case a weak hash would fail', () => {
+        // `b1l2n0` and `b1l2n1` share a column and are drawn as neighbours. A hash that mapped them
+        // to nearly the same offset would leave the two nodes stacked, which is the exact thing the
+        // wander exists to prevent.
+        const a = wanderFor('b1l2n0');
+        const b = wanderFor('b1l2n1');
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(0.2);
+    });
+
+    it('reaches the laid-out nodes, so the renderer has something to lean on', () => {
+        const laid = layoutRegion(graph.nodes, graph.entryNodeId);
+        for (const node of laid.nodes) {
+            expect(node.wanderX).toBe(wanderFor(node.node.id).x);
+            expect(node.wanderY).toBe(wanderFor(node.node.id).y);
+        }
+        // Not all zero — a wander that never moves anything is a wander nobody would notice.
+        expect(laid.nodes.some((n) => Math.abs(n.wanderX) > 0.2)).toBe(true);
     });
 });

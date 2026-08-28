@@ -55,7 +55,25 @@
  * element colour, which only the component knows); what lives here is the seam between two biomes —
  * a hairline the eye reads as a border crossing rather than as a shadow.
  */
-.rm-biome-band { pointer-events: none; }
+.rm-biome-band {
+    pointer-events: none;
+    stroke-width: 1;
+    /* The panel edge is a hint, not a border — the fill is what says "biome". */
+    stroke-opacity: 0.18;
+}
+
+/* The state word inside each panel: WALKED / CURRENT / AHEAD. Small caps, widely tracked, and dim
+ * unless it is the one you are standing in — the panel you are in should be the only one that
+ * announces itself. */
+.rm-band-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.rm-band-label.here { opacity: 0.95; }
 
 .rm-biome-seam {
     pointer-events: none;
@@ -64,10 +82,24 @@
     stroke-dasharray: 3 5;
 }
 
+/*
+ * TICKET 34 part two — the trails.
+ *
+ * Dotted, round-capped, per `research/64-map-proto/map_N_route.svg`. A solid line between two discs
+ * is a graph edge; a dotted one is a path someone walked, and that single change does most of the
+ * "overworld feel" the ruled option is named for. `1 6` is the reference's own spacing — dots, not
+ * dashes, so the trail reads as footsteps rather than as a dashed border.
+ */
 .rm-edge {
-    stroke: rgba(160, 150, 210, 0.35);
-    stroke-width: 2;
+    stroke: #4a5462;
+    stroke-width: 2.5;
+    stroke-dasharray: 1 6;
+    stroke-linecap: round;
 }
+
+/* A trail with a fogged node at one end. Information, not decoration: the difference between a
+ * route you can plan and one you can only see the start of. */
+.rm-edge.faded { stroke: #242b34; }
 
 .rm-node-disc {
     fill: #191430;
@@ -78,15 +110,13 @@
 .rm-node-icon {
     font-size: 19px;
     fill: #e6e0ff;
-    /* The glyphs are emoji; keep them from inheriting a monospace metric that clips them. */
-    font-family: system-ui, 'Segoe UI Emoji', sans-serif;
+    /* Ticket 34: the glyphs are inline SVG now, not emoji, so the font stack that kept an emoji
+     * from inheriting a clipping monospace metric is gone with them. `color` is what a revealed
+     * node's icon reads — see the nested `<svg>` in `RegionMap.tsx`. */
+    color: #e6e0ff;
 }
 
-.rm-node-visits {
-    font-size: 11px;
-    fill: #ffcc66;
-    font-family: monospace;
-}
+.rm-node-visits { pointer-events: none; }
 
 .rm-node.fogged .rm-node-disc { fill: #0e0b18; stroke: rgba(160, 150, 210, 0.22); }
 .rm-node.fogged .rm-node-icon { fill: rgba(230, 224, 255, 0.35); }
@@ -148,3 +178,22 @@
 .rm-travel-button:focus-visible { outline: 2px solid #6ee7a8; outline-offset: 2px; }
 .rm-travel-icon { font-size: 1rem; }
 .rm-travel-empty { font-size: 0.76rem; opacity: 0.6; }
+
+/*
+ * The visit badge — ticket 34 part two, from the reference's gold shoulder disc.
+ *
+ * Ticket 07's re-roll rule is what makes the count worth a badge: a node you have stood on twice
+ * has been two DIFFERENT fights, so this is a small piece of run history rather than a counter.
+ */
+.rm-visit-disc {
+    fill: #ffd479;
+    stroke: #0c0e12;
+    stroke-width: 2;
+}
+
+.rm-visit-count {
+    fill: #0c0e12;
+    font-size: 10px;
+    font-weight: 800;
+    pointer-events: none;
+}

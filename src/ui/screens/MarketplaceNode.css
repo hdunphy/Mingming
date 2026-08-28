@@ -63,8 +63,16 @@
 /* The macro shelf is shorter — the mockup drops it to 200px. Same tile, less card. */
 .mk-macros { --ch: 200px; }
 
-/* The price plate sits over the bottom of the face, so the tag line stops short of it. */
-.mk-tags { margin-bottom: 22px; }
+/*
+ * The price plate sits OVER the bottom of the face, so the tag line has to stop short of it.
+ *
+ * 22px was not enough and the overlap was invisible until ticket 34's screenshots showed a stall
+ * with an off-pool tag on it: the plate is ~21px of type plus padding and border, pinned 10px up,
+ * so it occupies the last ~31px of the card and a 22px gap put the tag underneath it. This is the
+ * plate's full height plus a hairline — the two must not touch, because the only card that carries
+ * BOTH a tag and a plate is the off-pool slot, which is the one row on the shelf with news in it.
+ */
+.mk-tags { margin-bottom: 32px; }
 
 .mk-empty { grid-column: 1 / -1; text-align: center; color: #5f6b7a; font-size: 12px; }
 
