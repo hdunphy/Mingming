@@ -40,17 +40,49 @@ export interface DamagePreview {
     scalingMultiplier: number;
     /** The scaling key driving `scalingMultiplier`, for labelling. Undefined when there is none. */
     scalingKind?: string;
+    /**
+     * TICKET 125: statuses this card will put on, or take off, the target - read out of the
+     * same simulation that produces `damage`.
+     *
+     * Henry, ticket-118 playtest: *"Hexbloom has no indication what it will do. There should
+     * be some preview."* `hexbloom` applies Poison scaled by the target's Weakened and deals
+     * no direct HP damage, so it failed BOTH of this function's old gates - no ATTACK action,
+     * and zero HP lost - and returned no preview at all.
+     *
+     * DIFFED, not re-derived, for the ticket-104 reason: an analytic prediction of a scaled
+     * status application would be a second implementation to drift from. Empty when the card
+     * changes no status on this target.
+     */
+    statusChanges: Array<{ status: string; delta: number }>;
 }
 
 const NO_PREVIEW: DamagePreview = {
     damage: 0, lethal: false, hitCount: 0, stab: false, effectiveness: 1,
-    element: 'None', sharpBonus: 0, scalingMultiplier: 1,
+    element: 'None', sharpBonus: 0, scalingMultiplier: 1, statusChanges: [],
 };
 
 /** HP plus shield, because absorbed damage is still damage the player watches happen. */
 function pool(state: IBattleState, id: string): number {
     const e = state.playerParty.find(x => x.id === id) ?? state.enemyParty.find(x => x.id === id);
     return (e?.currentHp ?? 0) + (e?.tempHp ?? 0);
+}
+
+/** Stacks by status type for one unit, so before and after can be diffed. */
+function statusMap(state: IBattleState, id: string): Record<string, number> {
+    const e = state.playerParty.find(x => x.id === id) ?? state.enemyParty.find(x => x.id === id);
+    const out: Record<string, number> = {};
+    for (const s of e?.statusEffects ?? []) out[s.type] = (out[s.type] ?? 0) + s.stacks;
+    return out;
+}
+
+/** What the simulated play changed about the target's statuses, biggest movement first. */
+function statusDiff(before: Record<string, number>, after: Record<string, number>) {
+    const changes: Array<{ status: string; delta: number }> = [];
+    for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+        const delta = (after[key] ?? 0) - (before[key] ?? 0);
+        if (delta !== 0) changes.push({ status: key, delta });
+    }
+    return changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 }
 
 function currentHpOf(state: IBattleState, id: string): number {
@@ -114,17 +146,29 @@ export function computeDamagePreview(
     if (!selfConstraintsOk) return NO_PREVIEW;
 
     const attackActions = (data.actions ?? []).filter(a => a.type === 'ATTACK');
-    if (attackActions.length === 0) return NO_PREVIEW;
 
     // THE NUMBER. Everything below this is chips that explain it.
     const before = pool(state, targetId);
+    const statusBefore = statusMap(state, targetId);
     const after = globalBattleEventBus.runMuted(() => battleReducer(state, {
         type: 'PLAY_PROGRAM',
         payload: { sourceId, targetId, programId: cardId },
     }));
     if (after === state) return NO_PREVIEW;          // the reducer refused the play
     const damage = before - pool(after, targetId);
-    if (damage <= 0) return NO_PREVIEW;              // pure buff, or the attack was aimed at SELF
+    const statusChanges = statusDiff(statusBefore, statusMap(after, targetId));
+
+    // TICKET 125: a card earns a preview if it does ANYTHING to this target, HP or statuses.
+    // The old gates were `no ATTACK action` and `damage <= 0`, which between them silenced
+    // every status-only card, `hexbloom` included. A card that does neither still gets none:
+    // a pure self-buff, or an attack aimed at its own caster like `forage`.
+    if (damage <= 0 && statusChanges.length === 0) return NO_PREVIEW;
+
+    // The chips below are derived off the first ATTACK action, so a status-only card returns
+    // the neutral chip set with its statusChanges filled in.
+    if (attackActions.length === 0 || damage <= 0) {
+        return { ...NO_PREVIEW, element: data.element, statusChanges };
+    }
 
     // The explanatory chips, derived analytically off the FIRST attack action. They are LABELS,
     // not the number: `damage` above is authoritative and is the only thing the parity suite pins.
@@ -152,6 +196,7 @@ export function computeDamagePreview(
 
     return {
         damage,
+        statusChanges,
         lethal: currentHpOf(after, targetId) <= 0,
         // `count` is the multi-hit field (`stone_flurry`: one ATTACK action with `count: 3`), so a
         // chip that counted actions alone would read "1" on the very cards the multi-hit chip
