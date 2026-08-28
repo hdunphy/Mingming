@@ -1,0 +1,38 @@
+# Line-ending policy — ticket 02 (steam-release map), ruled by Henry 2026-08-21.
+#
+# WHY THIS FILE EXISTS. Before it, the repo had no policy and the blobs proved it:
+# 339 tracked files stored CRLF, 340 stored LF, 11 stored mixed. The desktop sync
+# layer periodically rewrote the working tree to CRLF, which made ~160 files show
+# as modified with insertions == deletions and zero content change (the sweep that
+# `_WARNING-line-endings.md` documented). With no consistent baseline in the index
+# there was nothing to restore *to*, so the sweep kept coming back.
+#
+# THE RULE. `text=auto` normalizes every text file to LF **in the repository**;
+# `eol=crlf` checks it back out as CRLF **in the working tree**, which is what the
+# Windows-side sync layer wants anyway. Because the clean filter strips CR on the
+# way in, a working-tree file is byte-identical to its blob whether it holds LF or
+# CRLF — so an ending flip can no longer register as a diff, in either direction.
+#
+# Landed together with `git add --renormalize -u`, which rewrote every blob to LF
+# in one commit. Do not revert one without the other.
+
+* text=auto eol=crlf
+
+# Binary — never touched by the clean/smudge filters, and never diffed as text.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.mp3  binary
+*.ogg  binary
+*.wav  binary
+*.woff binary
+*.woff2 binary
+*.tgz  binary
+*.gz   binary
+*.zip  binary
+
+# Shell scripts must stay LF or they break under bash/CI even on Windows checkouts.
+*.sh   text eol=lf
