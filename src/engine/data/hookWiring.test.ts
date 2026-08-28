@@ -3,6 +3,7 @@ import PROGRAMS from './programs.json';
 import HOOKS_DATA from './lib/hooks.json';
 import { initDaemonHooks } from './daemonHooks';
 import { getOSBehavior } from './firmwareRegistry';
+import { DRIVER_WAR_FOOTING, getDriver } from './driverRegistry';
 import { getHook } from '../core/HookRegistry';
 import { HookFactory } from '../core/HookFactory';
 import { createBattleState } from './battleFactories';
@@ -101,10 +102,13 @@ describe('boss relic OSes', () => {
      * whose OS string is intact but whose hooks were never registered is a boss that does nothing,
      * and nothing else in the suite would notice.
      */
-    it('every member of a gauntlet boss team keeps a live boss_relic OS through createBattleState', () => {
+    it('every member of an UN-AUTHORED gym’s boss team keeps a live boss_relic OS through createBattleState', () => {
+        // TICKET 68 repointed this at Tidewrack. Emberfall is authored now and fields real firmware
+        // behind a Driver (ruling 5); the relic shape this asserts is what ruling 6 keeps at the two
+        // gyms that have not had their design session yet, and it has to go on working meanwhile.
         const run = createRun({
             seed: 'hook-wiring-gauntlet',
-            offer: { gym: GYM_REGISTRY.gym_emberfall, biomes: BIOMES },
+            offer: { gym: GYM_REGISTRY.gym_tidewrack, biomes: BIOMES },
             party: [PARTY_MEMBER],
             startedAt: 0,
         });
@@ -129,6 +133,81 @@ describe('boss relic OSes', () => {
         }
         // Three distinct signatures, not one tripled — `gauntlet.bossFirmwareFor`'s de-duplication.
         expect(new Set(state.enemyParty.map(e => e.activeOS)).size).toBe(3);
+    });
+});
+
+/**
+ * TICKET 68 — the same wiring claim, for the system that replaces the relics at an authored gym.
+ *
+ * The failure this guards against is the one the relic test above was written for and the one
+ * ticket 55's liveness sweep exists to catch: a passive whose id survives every layer and whose
+ * HOOKS were never registered does nothing at all, and no balance number would look wrong — it
+ * would just look like a weak boss. A Driver has one more layer than a relic did (it rides
+ * `entity.hooks` rather than `activeOS`), so it has one more place to be silently dropped.
+ */
+describe('enemy Drivers (ticket 68)', () => {
+    it('getDriver returns a working definition, and both WAR FOOTING hooks are registered', () => {
+        const driver = getDriver(DRIVER_WAR_FOOTING);
+        expect(driver).toBeDefined();
+        expect(driver!.name).toBe('WAR FOOTING');
+        expect(driver!.hooks.length).toBe(2);
+        expect(getHook('driver_war_footing_rally')?.onTurnEnd).toBeTypeOf('function');
+        expect(getHook('driver_war_footing_escalate')?.onTurnEnd).toBeTypeOf('function');
+    });
+
+    it('reaches every enemy through createBattleState, ADDITIVELY — the OS is untouched', () => {
+        const run = createRun({
+            seed: 'hook-wiring-driver',
+            offer: { gym: GYM_REGISTRY.gym_emberfall, biomes: BIOMES },
+            party: [PARTY_MEMBER],
+            startedAt: 0,
+        });
+        const gymNode = run.nodes.find(n => n.kind === 'gym')!;
+        const fight = rollGauntletFight({ run, node: gymNode, fightIndex: GAUNTLET_FIGHTS - 1 });
+
+        expect(fight.enemyDrivers).toEqual([DRIVER_WAR_FOOTING]);
+
+        const setup: IBattleSetup = {
+            party: [PARTY_MEMBER],
+            deck: [],
+            drivers: [],
+            persistedHp: {},
+            encounter: {
+                enemyParty: fight.enemyParty,
+                enemyDeckIds: fight.enemyDeckIds,
+                enemyDrivers: fight.enemyDrivers,
+            },
+            enemyDrivers: fight.enemyDrivers,
+        };
+
+        const state = createBattleState(setup, [], undefined, { seed: fight.seed, enemyMode: 'CARDS' });
+
+        expect(state.enemyParty).toHaveLength(3);
+        for (const boss of state.enemyParty) {
+            expect(boss.hooks).toContain('driver_war_footing_rally');
+            expect(boss.hooks).toContain('driver_war_footing_escalate');
+            // Additive: the member still runs its own firmware, and it is not a relic (ruling 1/2).
+            expect(getOSBehavior(boss.activeOS!)!.hooks.length).toBeGreaterThan(0);
+            expect(boss.activeOS?.startsWith('boss_relic_')).toBe(false);
+        }
+        // The PLAYER side gets nothing from it — the list is side-scoped.
+        for (const member of state.playerParty) {
+            expect(member.hooks ?? []).not.toContain('driver_war_footing_rally');
+        }
+    });
+
+    it('leaves the enemy side alone when there is no Driver, allocating no hook list', () => {
+        const setup: IBattleSetup = {
+            party: [PARTY_MEMBER],
+            deck: [],
+            drivers: [],
+            persistedHp: {},
+            encounter: null,
+        };
+        const state = createBattleState(setup, ['fenrir'], undefined, { seed: 'no-driver' });
+        for (const enemy of state.enemyParty) {
+            expect(enemy.hooks ?? []).toEqual([]);
+        }
     });
 });
 

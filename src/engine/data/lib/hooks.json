@@ -1279,5 +1279,49 @@
                 "bonus": 1
             }
         ]
+    },
+    "driver_war_footing": {
+        "id": "driver_war_footing",
+        "name": "WAR FOOTING",
+        "description": "At the end of this side's turn, every member gains 1 Strengthened. From turn 4 on, 2.",
+        "hooks": [
+            {
+                "id": "driver_war_footing_rally",
+                "trigger": "onTurnEnd",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
+                    }
+                ]
+            },
+            {
+                "id": "driver_war_footing_escalate",
+                "trigger": "onTurnEnd",
+                "priority": 89,
+                "when": {
+                    "source": "SELF",
+                    "turnAtLeast": 4
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner} is on a WAR FOOTING!"
+                    }
+                ]
+            }
+        ]
     }
-}
+}

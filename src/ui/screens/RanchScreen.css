@@ -333,6 +333,40 @@
 
 .ranch-offer-element { margin-left: auto; opacity: 0.55; font-size: 0.7rem; }
 
+/*
+ * Ticket 68 ruling 4 — the leader's signature passive, on the offer card.
+ *
+ * Warm-edged and set off by a rule from the route above it, because it answers a different question
+ * from everything else on the card: the route is where you are going, this is what is waiting. It is
+ * deliberately NOT the loudest thing on the card — the gym name and the element order are what a
+ * player scans first — but it is the only block with a border, so it is findable on the second look.
+ */
+.ranch-offer-signature {
+    margin-top: 0.6rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(122, 92, 255, 0.22);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.ranch-offer-driver {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border-left: 2px solid rgba(255, 138, 76, 0.55);
+    padding-left: 0.5rem;
+}
+
+.ranch-offer-driver-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #ff8a4c;
+}
+
+.ranch-offer-driver-rule { font-size: 0.72rem; opacity: 0.72; line-height: 1.45; }
+
 /* --- Run shell --- */
 
 .ranch-run-meta {

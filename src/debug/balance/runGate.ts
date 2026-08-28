@@ -646,7 +646,17 @@ const fightsResolvedAt = (biomeIndex: number): number => 1 + biomeIndex * 4;
 export interface BossOverride {
     /** Replace every boss slot's stat roll with this triple. Undefined leaves `BOSS_IVS` alone. */
     readonly ivs?: { readonly hp: number; readonly attack: number; readonly defense: number };
-    /** `'off'` strips the `boss_relic_*` firmware, leaving the species' own tuned OS and deck. */
+    /**
+     * `'off'` strips the boss's SIGNATURE PASSIVE, leaving the species' own tuned OS and deck.
+     *
+     * **Ticket 68 widened what that means, deliberately.** When this flag was written every boss
+     * wore a `boss_relic_*` as its `activeOS`, so stripping the passive and restoring the tuned OS
+     * were the same edit. An authored gym's boss now runs its real OS already and carries a
+     * side-level Driver instead, so the flag drops the Driver there. Both branches answer the same
+     * question — *what is the anti-boss card pool actually being asked to beat?* — which is the
+     * question §12 used it for, and which would have silently changed meaning if the field had been
+     * left pointing at a mechanism only two of the three gyms still use.
+     */
     readonly relics?: 'off';
 }
 
@@ -678,7 +688,7 @@ export function describeBossOverride(override: BossOverride | undefined): string
     }
     const parts: string[] = [];
     if (override.ivs) parts.push(`BOSS_IVS ${override.ivs.hp}/${override.ivs.attack}/${override.ivs.defense}`);
-    if (override.relics === 'off') parts.push('boss_relic_* hooks OFF (tuned OS, same deck)');
+    if (override.relics === 'off') parts.push('boss signature passive OFF (relic hooks / Driver; tuned OS, same deck)');
     return `ISOLATION — ${parts.join(' + ')}`;
 }
 
@@ -688,6 +698,15 @@ export interface SampledFight {
     readonly lineup: ReadonlyArray<string>;
     /** One `species(firmware)` per enemy — `(no firmware)` where ticket 08 strips it. */
     readonly enemy: ReadonlyArray<string>;
+    /**
+     * TICKET 68: the Drivers this fight's enemy SIDE runs. Empty for every fight but Emberfall's
+     * boss and the elites guarding its approach.
+     *
+     * Reported separately from `enemy` on purpose: a Driver is not a member's firmware, and folding
+     * it into the per-enemy string would print it three times and read as though each body carried
+     * its own — which is exactly the shape ruling 1 retired.
+     */
+    readonly enemyDrivers: ReadonlyArray<string>;
     /** The node this was rolled at, for a repro. */
     readonly nodeId: string;
     readonly biomeElements: ReadonlyArray<string>;
@@ -696,6 +715,8 @@ export interface SampledFight {
     readonly targetElement: string;
     /** The run-scoped boss override this sample was built under, if any. */
     readonly bossOverride?: BossOverride;
+    /** Which leader this sample walked toward — ticket 68 made that matter (`sampleFight`'s `gymId`). */
+    readonly gymId: string;
     /**
      * Which grade of `TacticalAI` the enemies play at — ticket 60's ladder, third column.
      *
@@ -728,6 +749,8 @@ function setupForEncounter(
     deck: ReadonlyArray<string>,
     enemyParty: ReadonlyArray<{ definitionId: string; activeOS?: string; attackIV: number; defenseIV: number; hpIV: number }>,
     enemyDeckIds: ReadonlyArray<string>,
+    /** Ticket 68: the fight's enemy-side Drivers, carried on the encounter. */
+    enemyDrivers: ReadonlyArray<string> = [],
 ): ComposedSetup {
     const enemies: EnemySetup[] = enemyParty.map((enemy, index) => ({
         definitionId: enemy.definitionId,
@@ -745,6 +768,9 @@ function setupForEncounter(
         enemyMode: RUN_ENEMY_MODE,
         player: { party: party.map(asSetupMember), deck: [...deck], relics: [] },
         enemies,
+        // Ticket 68. Omitted rather than sent empty so that every setup written before this ticket
+        // serializes byte-identically — the gate's own repros are compared as JSON.
+        ...(enemyDrivers.length > 0 ? { enemyDrivers: [...enemyDrivers] } : {}),
         statJitter: BALANCE_STAT_JITTER,
     };
 }
@@ -773,6 +799,21 @@ export function sampleFight(
     index: number,
     matchup: MatchupMode = 'blind',
     bossOverride?: BossOverride,
+    /**
+     * TICKET 68: pin every sample to ONE gym leader.
+     *
+     * Unpinned, the offer is `index % 3` so a cell walks all three leaders evenly, which is right
+     * for a band verdict about "the gauntlet" and wrong the moment the three leaders stop being the
+     * same fight. Ticket 68 authored Emberfall and left Tidewrack and Rootfall on ticket 18's
+     * formula boss (ruling 6), so an unpinned `gauntlet:fight2` at 60 iterations now measures
+     * twenty rebuilt bosses blended with forty unchanged ones and reports the average as a number
+     * about neither.
+     *
+     * A pinned arm is therefore NOT comparable to §12's 0/60 — it is a different population, and
+     * §13 says so where it reports one. Both are worth having: pinned answers "is the rebuilt
+     * Emberfall beatable", unpinned answers "did the gauntlet band move".
+     */
+    gymId?: string,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -786,7 +827,11 @@ export function sampleFight(
      * every number taken before this ruling reproducible.
      */
     const offers = offerGyms(seed);
-    const offer = offers[index % offers.length];
+    // Pinned: the offer for the named leader, which `offerGyms` guarantees is present exactly once
+    // (rule 3 — every run is offered all three). Unpinned: the even stride over all three.
+    const offer = gymId
+        ? offers.find((candidate) => candidate.gym.id === gymId) ?? offers[index % offers.length]
+        : offers[index % offers.length];
     const target = targetElementFor(cell, offer.biomes);
 
     const lineup = lineupAgainst(index, cell.partySize, target, matchup);
@@ -813,9 +858,17 @@ export function sampleFight(
     // shipped game would field — only the named knob differs from the 0/60 baseline.
     const enemyParty = withBossOverride(cell, encounter.enemyParty, bossOverride);
 
+    // `--boss-relics off` means "the boss without its signature passive". Ticket 68 moved where that
+    // passive lives for an authored gym, so the flag follows it — see `BossOverride.relics`.
+    const stripSignature = bossOverride?.relics === 'off'
+        && cell.kind === 'gauntlet'
+        && isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS);
+    const enemyDrivers = stripSignature ? [] : (encounter.enemyDrivers ?? []);
+
     return {
-        setup: setupForEncounter(encounter.seed, party, deck, enemyParty, encounter.enemyDeckIds),
+        setup: setupForEncounter(encounter.seed, party, deck, enemyParty, encounter.enemyDeckIds, enemyDrivers),
         lineup,
+        enemyDrivers,
         enemyAiTier: encounter.enemyAiTier,
         enemy: enemyParty.map((e) => describeEnemy(e.definitionId, e.activeOS)),
         nodeId: entered.id,
@@ -823,6 +876,7 @@ export function sampleFight(
         matchup,
         targetElement: target,
         bossOverride,
+        gymId: offer.gym.id,
     };
 }
 
@@ -925,6 +979,12 @@ export interface MeasureOptions {
     readonly matchup?: MatchupMode;
     /** Run-scoped boss isolation, ticket 67 R3. Undefined ships the boss as authored. */
     readonly bossOverride?: BossOverride;
+    /**
+     * Ticket 68: pin every sample to one gym leader. Undefined walks all three evenly, which is the
+     * band's own stride and the only arm comparable to the numbers taken before this ticket. See
+     * `sampleFight`'s `gymId` for why the two are different populations.
+     */
+    readonly gymId?: string;
 }
 
 /**
@@ -963,7 +1023,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
 
         let fight: SampledFight;
         try {
-            fight = sampleFight(cell, at, options.matchup ?? 'blind', options.bossOverride);
+            fight = sampleFight(cell, at, options.matchup ?? 'blind', options.bossOverride, options.gymId);
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;
             throw error;

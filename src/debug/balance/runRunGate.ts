@@ -157,6 +157,15 @@ interface Args {
      * to answer it would destroy the baseline.
      */
     bossOverride?: BossOverride;
+    /**
+     * TICKET 68: `--gym gym_emberfall` pins every sample to one leader.
+     *
+     * The three gyms stopped being the same fight when ruling 5 authored Emberfall and ruling 6 left
+     * the other two on ticket 18's formula boss. Unpinned, `gauntlet:fight2` blends them and reports
+     * an average about neither. **A pinned arm is not comparable to a number taken before this
+     * flag** — it is a different population, not a deeper sample of the same one.
+     */
+    gymId?: string;
 }
 
 /** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
@@ -198,6 +207,7 @@ function parseArgs(argv: string[]): Args {
         iterations,
         maxTurns: Number(get('--max-turns') ?? DEFAULT_MAX_TURNS),
         matchup: (get('--matchup') as MatchupMode | undefined) ?? 'blind',
+        gymId: get('--gym'),
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
             relics: get('--boss-relics') === 'off' ? 'off' : undefined,
@@ -350,6 +360,7 @@ async function main(): Promise<void> {
             iterations: args.iterations,
             maxTurns: args.maxTurns,
             matchup: args.matchup,
+            gymId: args.gymId,
             bossOverride: args.bossOverride,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 console.log(
@@ -366,6 +377,12 @@ async function main(): Promise<void> {
     console.log('='.repeat(112));
     console.log(`  RUN GATE — ticket 61   ·   ${MATCHUP_LABEL[args.matchup]}`);
     console.log(`  ${describeBossOverride(args.bossOverride)}`);
+    // Ticket 68: a pinned arm is a different POPULATION from an unpinned one, so the header has to
+    // say so — the whole value of these numbers is that they can be pasted somewhere and still mean
+    // what they meant.
+    console.log(args.gymId
+        ? `  PINNED to ${args.gymId} — not comparable to an unpinned number (ticket 68)`
+        : '  all three leaders, evenly (unpinned)');
     console.log('='.repeat(112));
     for (const band of results) for (const line of bandLines(band)) console.log(line);
 

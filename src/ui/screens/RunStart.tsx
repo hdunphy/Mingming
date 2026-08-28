@@ -32,6 +32,7 @@ import { rollSeed } from '../../engine/core/SeedStream';
 import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
+import { gymSignatures } from '../../engine/run/gauntlet';
 import { offerGyms, type IGymOffer } from '../../engine/run/gyms';
 import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
@@ -146,6 +147,24 @@ export default function RunStart(): ReactNode {
                                         </li>
                                     ))}
                                 </ol>
+                                {/*
+                                  * TICKET 68 ruling 4 — THE TELEGRAPH.
+                                  *
+                                  * The leader's signature passive, stated before the party is
+                                  * chosen. It belongs on THIS screen and no later: the route is
+                                  * the run's one irreversible choice, and a boss built around an
+                                  * escalating aura is a boss you answer at party selection or not
+                                  * at all. `gymSignatures` gives one Driver for an authored gym
+                                  * and the three relic texts for a gym ruling 6 has not migrated.
+                                  */}
+                                <div className="ranch-offer-signature">
+                                    {gymSignatures(offer.gym.id, offer.biomes).map((signature) => (
+                                        <div key={signature.id} className="ranch-offer-driver">
+                                            <span className="ranch-offer-driver-name">{signature.name}</span>
+                                            <span className="ranch-offer-driver-rule">{signature.description}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </button>
                         ))}
                     </div>

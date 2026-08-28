@@ -52,6 +52,7 @@ import type {
 import { initializeBattleEntity } from '../../engine/types';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
+import { applyDrivers } from '../../engine/data/driverRegistry';
 import { instantiateDeck } from '../../engine/data/battleFactories';
 import { drawCards } from '../../engine/deckLogic';
 import { generateIntents } from '../../engine/core/IntentUtils';
@@ -120,7 +121,12 @@ function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBa
 
 /**
  * The player-side relic bonuses `createBattleState` applies at battle start, mirrored here
- * so `player.relics` is not decorative. Enemies get none, same as the real path.
+ * so `player.relics` is not decorative.
+ *
+ * The enemy side has its own list since ticket 68 (`setup.enemyDrivers`) and goes through
+ * `driverRegistry.applyDrivers` instead — the same function the live factory calls, so the two
+ * sides cannot drift. This one stays because it carries ticket 02's registry-drift policy for the
+ * player's list, which `applyDrivers` deliberately does not replicate.
  *
  * `GetRelic` throws on an unknown id. Scenarios follow the registry-drift policy from
  * ticket 02 (warn, then continue) rather than hard-failing an entire scenario library over
@@ -195,7 +201,15 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
     // Enemies keep the activeOS `initializeBattleEntity` resolved. `createBattleState`
     // strips it (enemies use intents, not OS) but that strip is unrepresentable in
     // canonical form: the normalizer's fill class puts `availableOS[0]` straight back.
-    const enemyParty: IBattleEntity[] = setup.enemies.map(enemy => buildEntity(enemy, rng));
+    //
+    // Ticket 68: the enemy side's Drivers go on last, through the same `applyDrivers` the live
+    // factory uses. Additive by construction — a Driver attaches hook ids and never touches
+    // `activeOS` — so this composes with the note above rather than fighting it, and a boss
+    // measured in the harness runs the firmware AND the Driver the shipped fight gives it.
+    const enemyDrivers = setup.enemyDrivers ?? [];
+    const enemyParty: IBattleEntity[] = setup.enemies
+        .map(enemy => buildEntity(enemy, rng))
+        .map(entity => (enemyDrivers.length > 0 ? applyDrivers(entity, enemyDrivers) : entity));
 
     // v1 keeps the player deck shared across the party (ticket 02, "shared-deck watch
     // item"). Enemy decks are per-enemy in the file but flattened into one side deck here,

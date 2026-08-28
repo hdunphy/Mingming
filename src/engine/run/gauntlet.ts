@@ -23,7 +23,13 @@
  * |---|---|---|
  * | 1 | the leader's team, drawn from the run's three biomes | its own, tuned deck |
  * | 2 | the same, re-rolled | its own, tuned deck |
- * | 3 | **the boss team: one species per biome, in biome order** | `boss_relic_*` |
+ * | 3 — authored gym | **the hand-authored trio** (`AUTHORED_BOSSES`) | its own tuned OS, + one side **Driver** |
+ * | 3 — un-authored gym | one species per biome, in biome order | `boss_relic_*` |
+ *
+ * **Ticket 68 split that last row.** Emberfall is authored and fields real species running real
+ * firmware behind WAR FOOTING; Tidewrack and Rootfall keep ticket 18's formula boss until their own
+ * design sessions (ruling 6). See `AUTHORED_BOSSES` for what changed and why the measurement in
+ * ticket 67 §12 forced it.
  *
  * Ticket 18: *"the BOSS team draws one species from each of the run's three biomes — the run trains
  * you for its own exam"*, which `runTypes.ts` already states from the other end: the biome elements
@@ -45,12 +51,15 @@
  */
 
 import { SeedStream } from '../core/SeedStream';
+import { describeDriver } from '../data/driverRegistry';
+import { getOSBehavior } from '../data/firmwareRegistry';
 import { GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
 import type { IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState } from '../runTypes';
 import { ENEMY_LADDER, encounterSpeciesPool } from './encounter';
 import type { IRunEncounter } from './encounter';
+import { authoredBossFor } from './bosses';
 import { GYM_REGISTRY } from './gyms';
 import { nodeSeed } from './nodeSeed';
 
@@ -172,6 +181,55 @@ const BOSS_RELIC_BY_ELEMENT: Readonly<Record<string, string>> = {
     // nodes back. Ice matches by name; everything else takes the fallback below.
     Ice: 'boss_relic_ice',
 };
+
+// ---------------------------------------------------------------------------------------------
+// The authored bosses (ticket 68) — the table itself lives in `bosses.ts`
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * What the OFFER SCREEN is allowed to print about a gym's boss — its signature passives, by name
+ * and rule text, and nothing else. Ticket 68 ruling 4's telegraph.
+ *
+ * **The telegraph is the design, not a courtesy.** A boss whose central rule is an escalating aura
+ * is a boss you have to build against *before the run starts*, and the run's one irreversible choice
+ * — which gym you walk toward — is made on this screen. Printing the Driver there is what makes the
+ * party-selection decision a real one rather than something you learn by losing.
+ *
+ * Two shapes come back, because two kinds of gym exist right now:
+ *
+ * - An **authored** gym returns its ONE Driver. That is the whole fight's rule.
+ * - A **formula** gym (Tidewrack, Rootfall — ruling 6) returns the three `boss_relic_*` its biome
+ *   elements will produce, derived through `bossFirmwareFor` off the OFFER's biomes rather than
+ *   guessed, so the screen promises exactly what walks out. Ruling 4 asks for their existing relic
+ *   text *unchanged*, and derived-from-the-offer is the only way for it to be both unchanged and
+ *   true.
+ *
+ * Takes the offer's biomes rather than an `IRunState` because it is called before a run exists.
+ */
+export function gymSignatures(
+    gymId: string,
+    biomes: ReadonlyArray<{ readonly elements: ReadonlyArray<string> }>,
+): ReadonlyArray<{ readonly id: string; readonly name: string; readonly description: string }> {
+    const authored = authoredBossFor(gymId);
+    if (authored) {
+        return [{ id: authored.driver, ...describeDriver(authored.driver) }];
+    }
+
+    const taken: string[] = [];
+    const signatures: Array<{ id: string; name: string; description: string }> = [];
+    for (let slot = 0; slot < GAUNTLET_ENEMY_COUNT; slot += 1) {
+        const element = biomes[Math.min(slot, biomes.length - 1)]?.elements[0] ?? '';
+        const id = bossFirmwareFor(element, taken);
+        taken.push(id);
+        const behaviour = getOSBehavior(id);
+        signatures.push({
+            id,
+            name: behaviour?.name ?? id,
+            description: behaviour?.description ?? '',
+        });
+    }
+    return signatures;
+}
 
 /**
  * The signature for a biome's element, avoiding one already taken by an earlier member of the same
@@ -314,11 +372,15 @@ function buildEnemy(
      * file hold a second opinion about the gym's depth. So the enemy holds the full per-OS list the
      * balance corpus is calibrated on, and it runs its firmware.
      *
-     * For a boss, `activeOS` is a `boss_relic_*` id and no species has a deck keyed by one, so
-     * `getDeckForOS` resolves to `availableOS[0]`'s tuned list by its documented fallback. That is
-     * load-bearing rather than incidental: it means a shipped boss is reproducible in the balance
-     * harness as nothing more than `[species, boss_relic_x]` (`debug/balance/teamComps.ts`,
-     * `BOSS_COMPS`), with no new machinery on either side to keep in step.
+     * For an UN-AUTHORED gym's boss, `activeOS` is a `boss_relic_*` id and no species has a deck
+     * keyed by one, so `getDeckForOS` resolves to `availableOS[0]`'s tuned list by its documented
+     * fallback. That was load-bearing under ticket 18: it meant a shipped boss was reproducible in
+     * the balance harness as nothing more than `[species, boss_relic_x]`
+     * (`debug/balance/teamComps.ts`, `BOSS_COMPS`).
+     *
+     * **Ticket 68's authored bosses need no fallback at all**, which is the quieter half of the
+     * redesign: the member's `activeOS` IS one of its own `availableOS`, so this lookup returns the
+     * species' real tuned list directly and the boss's deck is a deck the player could build.
      */
     const deck = getDeckForOS(definitionId, activeOS);
 
@@ -355,6 +417,9 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
     const gymName = gym?.name ?? 'Gym';
 
     const boss = isBossFight(fightIndex, GAUNTLET_FIGHTS);
+    // TICKET 68: an authored gym's boss fight is a table lookup, not a roll. Undefined for fights 1
+    // and 2 at every gym, and for all three fights at a gym ruling 6 has not migrated yet.
+    const authored = boss ? authoredBossFor(run.gymId) : undefined;
 
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];
@@ -370,13 +435,26 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
             ? encounterSpeciesPool(run, { ...node, biomeIndex })
             : regionSpeciesPool(run, node);
 
-        const definitionId = drawSpecies(pool, species, roster);
+        /*
+         * The draw happens even when the authored table overrides it — the same stream-position
+         * discipline `buildEnemy` keeps for the IVs and the firmware, and for the same reason:
+         * authoring a gym must not silently re-roll what the OTHER gyms field, and un-authoring one
+         * must not either. Reading `run.gymId` is the only thing that decides this branch.
+         */
+        const rolled = drawSpecies(pool, species, roster);
+        const definitionId = authored?.members[slot]?.species ?? rolled;
         species.push(definitionId);
 
-        const firmware = boss
+        const rolledFirmware = boss
             ? bossFirmwareFor(run.biomes[biomeIndex]?.elements[0] ?? '', firmwares)
             : null;
-        if (firmware) firmwares.push(firmware);
+        if (rolledFirmware) firmwares.push(rolledFirmware);
+
+        // An authored member's firmware IS its own tuned OS — ruling 2: *"members keep their OSes;
+        // the Driver is additive, not an OS replacement"*. So the id handed to `buildEnemy` is a
+        // real `availableOS` entry rather than a `boss_relic_*`, which is also what makes its deck
+        // lookup return the species' real tuned list with no fallback in the path.
+        const firmware = authored ? (authored.members[slot]?.os ?? null) : rolledFirmware;
 
         // Ticket 28 authors the real names. Until it does, the nickname says which gym's team this
         // is and whether it is the leader's own — a player who cannot tell fight 3 from fight 2 by
@@ -396,7 +474,15 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
      * existed. It is read off `ENEMY_LADDER` rather than written as `'full'` so that the gym cannot
      * hold a second opinion about its own rung — the same discipline the deck rule already keeps.
      */
-    return { enemyParty, enemyDeckIds, seed, enemyAiTier: ENEMY_LADDER.gauntlet.ai };
+    return {
+        enemyParty,
+        enemyDeckIds,
+        seed,
+        enemyAiTier: ENEMY_LADDER.gauntlet.ai,
+        // Ticket 68: one side-level Driver, on the authored boss fight only. Ticket 60's rung reads
+        // "kit + OS + Driver" and this is the Driver — literally, now that there is one.
+        ...(authored ? { enemyDrivers: [authored.driver] } : {}),
+    };
 }
 
 /**

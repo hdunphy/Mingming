@@ -2,7 +2,7 @@ import type { IBattleEntity, ProgramEntity, IBattleState, IMingmingState, IDeckS
 import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
-import { GetRelic } from './relicRegistry';
+import { applyDrivers } from './driverRegistry';
 import { drawCards } from '../deckLogic';
 import { generateIntents } from '../core/IntentUtils';
 import { SeedStream, rollSeed } from '../core/SeedStream';
@@ -96,6 +96,22 @@ export interface IBattleSetup {
     /** Was `relics`. Applied to the player side and copied to `IBattleState.activeRelics`. */
     readonly drivers: ReadonlyArray<string>;
     /**
+     * The ENEMY side's Drivers — ticket 68 build step 1. Applied to every enemy member by the same
+     * `applyDrivers` the player's list goes through, so a Driver that works on one side works on
+     * the other by construction.
+     *
+     * **Optional where `drivers` is required, and that asymmetry is honest rather than an
+     * oversight.** Every fight has a player side and the run always has a (possibly empty) Driver
+     * list to hand it; almost no fight has an enemy Driver — one gym's third fight and one grade of
+     * elite carry one, and everything else in the game would be writing `enemyDrivers: []` to say
+     * nothing. Absent and empty mean the same thing here and the code treats them identically.
+     *
+     * Not copied to `IBattleState.activeRelics`: that field is the PLAYER's list, read by
+     * `resolutionEngine` for `buffer_cache`, and mixing both sides into it would make a
+     * side-agnostic lookup out of something every reader treats as side-specific.
+     */
+    readonly enemyDrivers?: ReadonlyArray<string>;
+    /**
      * HP carried between gauntlet fights, by member id. Empty outside a gauntlet.
      *
      * **A 0 in here is not the same as an absent key**, and ticket 18 depends on the difference: an
@@ -124,6 +140,8 @@ export interface IBattleSetup {
     readonly encounter?: {
         readonly enemyParty: ReadonlyArray<IBattleEntity>;
         readonly enemyDeckIds: ReadonlyArray<string>;
+        /** Ticket 68: the fight's own enemy Drivers, copied up to `enemyDrivers` by `buildBattleSetup`. */
+        readonly enemyDrivers?: ReadonlyArray<string>;
     } | null;
 }
 
@@ -162,32 +180,12 @@ export function createBattleState(
             };
         }
 
-        // Milestone 8.4: Driver (was: relic) application
-        setup.drivers.forEach(relicId => {
-            const relic = GetRelic(relicId);
-            if (relic.effect === 'ENERGY_CAP_BONUS') {
-                entity = {
-                    ...entity,
-                    maxEnergy: entity.maxEnergy + 1,
-                    currentEnergy: entity.currentEnergy + 1
-                };
-            }
-            if (relic.effect === 'DRAW_BONUS') {
-                entity = {
-                    ...entity,
-                    cardDraw: entity.cardDraw + 1
-                };
-            }
-            if (relic.effect === 'ATTACK_MULTIPLIER') {
-                entity = {
-                    ...entity,
-                    relicBonuses: {
-                        ...entity.relicBonuses!,
-                        attackMod: entity.relicBonuses!.attackMod * 1.1
-                    }
-                };
-            }
-        });
+        // Milestone 8.4: Driver (was: relic) application.
+        //
+        // Ticket 68 moved the three stat effects that used to be spelled out here into
+        // `data/driverRegistry.applyDrivers`, so that the enemy side below can go through the
+        // identical path rather than a copy of it. Nothing about the player's Drivers changed.
+        entity = applyDrivers(entity, setup.drivers);
 
         return entity;
     });
@@ -268,6 +266,22 @@ export function createBattleState(
             ...e,
             activeOS: e.activeOS?.startsWith('boss_relic_') ? e.activeOS : undefined
         }));
+    }
+
+    /*
+     * TICKET 68 — the enemy side's Drivers, the mirror of the player's above.
+     *
+     * Applied AFTER the OS strip on purpose. A Driver is additive: it attaches hook ids and never
+     * touches `activeOS`, so running it before the strip would be harmless but would read as though
+     * the two interacted. Applied last, the order says what is true — the enemy's firmware is
+     * settled first, and the Driver goes on top of whatever it turned out to be.
+     *
+     * Empty for every fight but Emberfall's third and the elites guarding its approach, so this is
+     * a no-op on the overwhelming majority of battles and allocates nothing when the list is empty.
+     */
+    const enemyDrivers = setup.enemyDrivers ?? [];
+    if (enemyDrivers.length > 0) {
+        enemyParty = enemyParty.map(e => applyDrivers(e, enemyDrivers));
     }
 
     // --- SHARED DECK INITIALIZATION ---

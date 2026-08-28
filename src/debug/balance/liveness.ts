@@ -38,6 +38,7 @@ import type { DamageModifierHook, EventHook, HookContext } from '../../engine/co
 import type { IBattleEntity } from '../../engine/types';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { DRIVER_IDS } from '../../engine/data/driverRegistry';
 import { HookLibrarySchema } from '../../engine/data/HookSchema';
 import { matchupScenario, mirrorScenario, BALANCE_SPECIES, CONTROL_SPECIES } from './balanceScenarios';
 import { runBatch } from './runBatch';
@@ -47,12 +48,22 @@ const RAW = JSON.parse(fs.readFileSync('src/engine/data/lib/hooks.json', 'utf8')
 const PARSED = HookLibrarySchema.parse(RAW);
 const osIds = BALANCE_SPECIES.flatMap(s => MingmingRegistry[s].availableOS);
 
+/**
+ * TICKET 68: the STATIC pass sweeps Drivers as well as OSes.
+ *
+ * A Driver is a hooks.json entry like any other and has exactly the same way of being born dead — a
+ * non-LOG action with no `target`, a key zod strips, an empty `do`. It cannot join the DYNAMIC pass
+ * below, which probes by assigning an OS to a species and a Driver is never an `activeOS`; its
+ * dynamic proof is `data/driverRegistry.test.ts`, which plays real turns and reads the stacks.
+ */
+const staticIds = [...osIds, ...DRIVER_IDS];
+
 // ---------- STATIC ----------
 type Finding = { os: string; hook: string; kind: string; detail: string };
 const findings: Finding[] = [];
 const MODIFIER_TRIGGERS = new Set(['onDamageCalculated','onStatusDamageCalculated','onCostCalculated','onHealCalculated']);
 
-for (const os of osIds) {
+for (const os of staticIds) {
   const raw = RAW[os]; const parsed = PARSED[os];
   if (!raw) { findings.push({ os, hook: '-', kind: 'NO_ENTRY', detail: 'no hooks.json entry' }); continue; }
   const rawHooks = raw.hooks ?? [];

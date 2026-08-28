@@ -94,5 +94,11 @@ export function buildBattleSetup(
         // see the header, and `IBattleSetup.persistedHp`.
         persistedHp: run.gauntlet ? { ...run.gauntlet.persistedHp } : {},
         encounter: encounter ?? null,
+        // Ticket 68: the enemy side's Drivers travel on the encounter, because the encounter is
+        // where the fight was decided. They are lifted to the top level here for the same reason
+        // `persistedHp` is not nested — `createBattleState` applies them to the enemy party exactly
+        // as it applies `drivers` to the player's, and a factory should not have to reach into a
+        // sub-object for one half of a symmetric pair.
+        ...(encounter?.enemyDrivers?.length ? { enemyDrivers: [...encounter.enemyDrivers] } : {}),
     };
 }

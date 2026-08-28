@@ -43,6 +43,7 @@ import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmin
 import { initializeBattleEntity } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
+import { authoredBossFor } from './bosses';
 import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
 
@@ -429,6 +430,19 @@ export interface IRunEncounter {
      * straight to `startBattle` as `options.enemyAiTier`.
      */
     readonly enemyAiTier: AiTier;
+    /**
+     * TICKET 68 — the Drivers this fight's enemy SIDE runs, if any.
+     *
+     * Carried here for the same reason `enemyAiTier` is: the fight is decided in this module, and a
+     * screen that re-derived it would have to know the run's gym, the node's kind and the biome
+     * index to get it right. `buildBattleSetup` copies it onto `IBattleSetup.enemyDrivers` and
+     * `createBattleState` applies it; nothing in between has an opinion about it.
+     *
+     * Absent on almost every fight — Emberfall's third gauntlet fight and the elites guarding its
+     * approach are the whole of it today. See `IBattleSetup.enemyDrivers` for why absent rather than
+     * empty.
+     */
+    readonly enemyDrivers?: ReadonlyArray<string>;
 }
 
 /**
@@ -470,6 +484,45 @@ function enemyDeckFor(
  * the second enemy of the same fight at biome 2 — which would make ticket 21's "no scaling by
  * depth" untestable, because there would be no "same encounter at two depths" to compare.
  */
+/**
+ * TICKET 68, ruling 4 — **the telegraph's second half.** The elites guarding the approach to the
+ * gauntlet run the gym's own Driver, unmodified.
+ *
+ * The offer screen tells you the rule at run start; this is where you meet it. Reading about an
+ * escalating aura and *fighting* one are different kinds of knowledge, and a boss whose central rule
+ * the player has already had to solve once is a boss they lose to for a reason they can name.
+ *
+ * # WHICH ELITES, AND THE PART THAT IS A READING RATHER THAN A RULING
+ *
+ * Ruling 4 says *"the region's FINAL elite - the one guarding the gauntlet approach"*, in the
+ * singular. **The region graph has no such node.** `REGION_PARAMS` makes each biome's EXIT an elite
+ * except the last, whose exit is the gym itself (`finalBiomeExitKind`), so the final biome has no
+ * exit elite to be — its elites are middle nodes rolled from the weighted pool, and there may be
+ * two, one, or none.
+ *
+ * Two readings survive that, and this function implements the second:
+ *
+ * 1. *The last guaranteed elite in the run* — biome 1's exit. Exactly one per run, unavoidable, but
+ *    a whole biome away from the gym, which is not "guarding the gauntlet approach".
+ * 2. *The elites in the gym's own biome* — what this is. They are literally the fights standing
+ *    between the player and the gauntlet, which is what the clause describes, and they serve the
+ *    stated purpose (meet the rule before the boss does) where reading 1 barely does.
+ *
+ * The cost of reading 2 is that a graph can roll a final biome with no elite in it, and that run
+ * gets the offer-screen half of the telegraph only. **FLAGGED FOR HENRY** in the ticket's
+ * resolution with the measured frequency; flipping to reading 1 is this function and nothing else.
+ *
+ * Un-authored gyms (Tidewrack, Rootfall — ruling 6) have no Driver to carry, so their elites are
+ * untouched. Nothing here changes an elite's deck, firmware, IVs or AI grade: ruling 4 says the
+ * Driver runs *unmodified*, and a rung that also got a stat bump would make ticket 67's elite band
+ * unreadable against its own history.
+ */
+export function gymDriverForNode(run: IRunState, node: IRegionNode): string | undefined {
+    if (node.kind !== 'elite') return undefined;
+    if (node.biomeIndex !== run.biomes.length - 1) return undefined;
+    return authoredBossFor(run.gymId)?.driver;
+}
+
 export function rollEncounter(input: EncounterInput): IRunEncounter {
     const { run, node, party } = input;
 
@@ -523,5 +576,15 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         enemyDeckIds.push(...enemyDeckFor(state, loadout, decks, enemyParty.length === 1));
     }
 
-    return { enemyParty, enemyDeckIds, seed, enemyAiTier: loadout.ai };
+    // Ticket 68 ruling 4: the gym's Driver, on the elites guarding its approach and nowhere else.
+    // Undefined for every wild, every elite outside the gym's biome, and every un-authored gym.
+    const gymDriver = gymDriverForNode(run, node);
+
+    return {
+        enemyParty,
+        enemyDeckIds,
+        seed,
+        enemyAiTier: loadout.ai,
+        ...(gymDriver ? { enemyDrivers: [gymDriver] } : {}),
+    };
 }

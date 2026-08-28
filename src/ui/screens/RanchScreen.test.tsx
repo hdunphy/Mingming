@@ -124,3 +124,45 @@ describe('RanchScreen', () => {
         expect(markup).toMatch(/0 \/ \d+/);
     });
 });
+
+/**
+ * TICKET 68 ruling 4 — the offer screen has to TELEGRAPH the leader's Driver.
+ *
+ * Rendered through the Expedition section, which is where `RunStart` lives. The claim is not
+ * cosmetic: the route is a run's one irreversible choice and it is made here, so a boss built around
+ * an escalating aura is answerable at party selection or not at all. A missing rule text is a
+ * player learning the fight by losing it.
+ */
+describe('RanchScreen — the gym offer telegraph (ticket 68)', () => {
+    const roster = [member('a1', 'kraken', 'kraken_v1')];
+
+    it('prints the authored leader’s Driver by name and rule on the offer card', () => {
+        const markup = render({ roster }, 'expedition');
+
+        // All three leaders are always offered (`offerGyms` rule 3), so Emberfall's Driver is on
+        // this screen for every seed — no fixture has to pin one.
+        expect(markup).toContain('Emberfall');
+        expect(markup).toContain('WAR FOOTING');
+        expect(markup).toContain('Strengthened');
+        expect(markup).toContain('turn 4');
+    });
+
+    it('still prints the un-authored leaders’ existing relic text, unchanged (ruling 6)', () => {
+        const markup = render({ roster }, 'expedition');
+
+        expect(markup).toContain('Tidewrack');
+        expect(markup).toContain('Rootfall');
+        // One of the three relic names, whichever the biomes produce — the point is that a gym
+        // ruling 6 has not migrated is not left with a blank signature block.
+        expect(markup).toMatch(/FIRE_RELIC_OS|WATER_RELIC_OS|ICE_RELIC_OS/);
+    });
+
+    it('never calls either of them a relic in the player-facing name (ruling 1)', () => {
+        // The naming law: `boss_relic_*` is an id, not a word the game says. The relic OSes still
+        // print their own `name`/`description` from hooks.json, and those strings are ticket 18's —
+        // what must not appear is the raw id leaking through as a label.
+        const markup = render({ roster }, 'expedition');
+        expect(markup).not.toContain('boss_relic_');
+        expect(markup).not.toContain('driver_war_footing');
+    });
+});

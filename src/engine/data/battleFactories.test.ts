@@ -32,10 +32,18 @@ const BIOMES: ReadonlyArray<IBiome> = [
 
 const PARTY = [createMingmingInstance('fenrir')];
 
-function gauntletSetup(fightIndex: number): { setup: IBattleSetup; seed: string } {
+function gauntletSetup(
+    fightIndex: number,
+    /**
+     * TICKET 68: which gym. Emberfall is authored now (real firmware behind a Driver); Tidewrack
+     * still fields ticket 18's `boss_relic_*` formula boss, which ruling 6 keeps until its own
+     * session. Both shapes have to reach the factory intact, so both are exercised from here.
+     */
+    gym = GYM_REGISTRY.gym_tidewrack,
+): { setup: IBattleSetup; seed: string } {
     const run = createRun({
         seed: 'battle-factories-gauntlet',
-        offer: { gym: GYM_REGISTRY.gym_emberfall, biomes: BIOMES },
+        offer: { gym, biomes: BIOMES },
         party: PARTY,
         startedAt: 0,
     });
@@ -48,7 +56,12 @@ function gauntletSetup(fightIndex: number): { setup: IBattleSetup; seed: string 
             deck: [],
             drivers: [],
             persistedHp: {},
-            encounter: { enemyParty: fight.enemyParty, enemyDeckIds: fight.enemyDeckIds },
+            encounter: {
+                enemyParty: fight.enemyParty,
+                enemyDeckIds: fight.enemyDeckIds,
+                enemyDrivers: fight.enemyDrivers,
+            },
+            ...(fight.enemyDrivers ? { enemyDrivers: fight.enemyDrivers } : {}),
         },
         seed: fight.seed,
     };
@@ -81,6 +94,21 @@ describe('createBattleState — the gym-tier branch is gone (ticket 18)', () => 
         }
         // Tuned decks, not moves: the old tier-3 boss carried three hardcoded moves and an empty
         // deck. Ticket 08's deepest kit fraction says the gym fields full decks.
+        expect(state.enemyDeck.drawpile.length + state.enemyDeck.hand.length).toBeGreaterThan(0);
+    });
+
+    it('builds an AUTHORED boss team with its own firmware and its side Driver (ticket 68)', () => {
+        const { setup, seed } = gauntletSetup(GAUNTLET_FIGHTS - 1, GYM_REGISTRY.gym_emberfall);
+        const state = createBattleState(setup, [], undefined, { seed, enemyMode: 'CARDS' });
+
+        expect(state.enemyParty).toHaveLength(3);
+        for (const boss of state.enemyParty) {
+            // Ruling 2: the Driver is additive. The member keeps its real OS and gains the hooks.
+            expect(boss.activeOS?.startsWith('boss_relic_')).toBe(false);
+            expect(boss.hooks).toContain('driver_war_footing_rally');
+            // And still no multiplied health bars — ticket 21 holds either side of the redesign.
+            expect(boss.currentHp).toBe(boss.maxHp);
+        }
         expect(state.enemyDeck.drawpile.length + state.enemyDeck.hand.length).toBeGreaterThan(0);
     });
 

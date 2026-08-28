@@ -1,8 +1,8 @@
 # Boss redesign: enemy-side Drivers, hand-authored gym trios, the telegraph (ticket 68)
 
 - Type: wayfinder:task (rulings recorded; build steps below are agent work)
-- Status: open
-- Assignee: 
+- Status: closed
+- Assignee: LEGION
 - Blocked by: [67](67-enemy-ladder-and-bands.md) (context: SS12 isolation numbers), ticket [16](16-drivers.md) for the DROP wiring only
 - Phase: Vertical Slice
 
@@ -74,4 +74,92 @@ refreshed. Tidewrack/Rootfall authoring sessions are NOT this ticket.
 
 ## Resolution
 
-_(open)_
+**Built and measured 2026-08-28 (LEGION). Steps 1-7 all done; nothing tuned.** The ticket's two
+design-shaped clauses are flagged below rather than decided.
+
+### What shipped
+
+| step | where |
+|---|---|
+| 1. Enemy-side Driver machinery | `engine/data/driverRegistry.ts` (new), `IBattleSetup.enemyDrivers`, `IRunEncounter.enemyDrivers`, `buildBattleSetup` |
+| 2. `turnAtLeast` hook condition | `HookCondition`, `HookSchema`, `ConditionValidator` |
+| 3. WAR FOOTING | `lib/hooks.json` `driver_war_footing` — two hooks, the second gated on `turnAtLeast: 4` |
+| 4. Emberfall's authored trio | `engine/run/bosses.ts` (new), consumed by `gauntlet.rollGauntletFight` |
+| 5. Offer-screen telegraph | `gauntlet.gymSignatures` + `ui/screens/RunStart.tsx` |
+| 6. Final elite carries the Driver | `encounter.gymDriverForNode` |
+| 7. The re-measure | research doc §13 |
+
+**One function, two sides.** `driverRegistry.applyDrivers` is what `createBattleState` now calls for
+BOTH `setup.drivers` and `setup.enemyDrivers`, so a Driver that works on one side works on the other
+by construction — which is what ticket 16 will want when elites start dropping them. The three
+Milestone 8.4 stat effects moved into it verbatim; the player's Drivers are unchanged.
+
+**A Driver attaches hook ids to `IBattleEntity.hooks` and never touches `activeOS`.** That single
+choice is the whole of ruling 2: a boss member keeps UNBOUND_KERNEL and gains WAR FOOTING on top,
+where a relic used to overwrite the firmware and leave the deck resolving through a documented
+fallback. An authored boss's deck now needs no fallback at all — it is the species' real tuned list.
+
+`boss_relic_*` is NOT deleted. Ruling 6 keeps Tidewrack and Rootfall exactly as ticket 18 built them,
+so both shapes are live and both are pinned by tests.
+
+### The numbers (research §13)
+
+| arm | result | vs the 0/60 it replaces |
+|---|---|---|
+| Emberfall boss, **PREPARED** | 48/60 — **80.0%** (CI 68.2-88.2) | **+80.0pt** |
+| Emberfall boss, **CONTROL** | 39/60 — **65.0%** (CI 52.4-75.8) | +65.0pt |
+| all three gyms, prepared (unpinned) | 14/60 — **23.3%** | +23.3pt — and ≈ the 26.7% one-gym-in-three predicts |
+| Emberfall fight 1 / fight 2, prepared | 83.3% / 90.0% | (were 68.3 / 81.7, blind, un-authored) |
+
+**The wall is gone and the fight overshot.** Against a 60% target the control arm passes at 65.0% and
+the prepared arm — the one Q3 grades — is 15 points high. The three fights now read 83.3 / 90.0 /
+80.0 where they read 68.3 / 81.7 / 3.3, so the cliff became a gauntlet; compounded that is 60.0%, and
+an upper bound, because the harness fights each from full HP.
+
+**FOR HENRY, R2's successor question:** 80.0% prepared is a number, not a verdict. The unturned
+levers are `BOSS_IVS` (ruling 7 explicitly asks for it to be re-checked against the new Driver, and
+that re-check has NOT been run), WAR FOOTING's numbers, the authored composition, and the 60% target
+itself — which was set against a boss nobody had designed.
+
+**Also for Henry: WAR FOOTING's escalation barely fires.** The fight averages 4.1 turns and the
+clause starts at turn 4, so in most battles the Driver is worth 1 Strengthened a round and *"from
+turn 4 on, 2"* is decoration. Built, tested and live; just not part of the measured difficulty.
+
+### Two readings this ticket had to make, both isolated to one function
+
+1. **"The region's FINAL elite - the one guarding the gauntlet approach" has no such node.**
+   `REGION_PARAMS` makes each biome's exit an elite EXCEPT the last, whose exit is the gym itself, so
+   the final biome's elites are middle nodes rolled from the weighted pool — there may be two, one or
+   none. Implemented as **the elites in the gym's own biome** (`encounter.gymDriverForNode`), because
+   they are literally the fights standing between the player and the gauntlet and they serve the
+   stated purpose — meet the rule before the boss does. The runner-up reading was *biome 1's exit*,
+   which is guaranteed and unavoidable but a whole biome away. **Cost of the choice:** a graph can
+   roll a final biome with no elite at all, and that run gets the offer-screen half of the telegraph
+   only. Flipping to the other reading is that one function and nothing else.
+2. **`--boss-relics off` now follows the Driver.** The §12 flag meant "the boss without its signature
+   passive", and ticket 68 moved where an authored gym keeps that passive. Left pointing only at
+   `boss_relic_*` it would have silently measured the boss WITH its signature and reported it as
+   without. The flag's question is unchanged; only its reach is.
+
+### What was NOT done, deliberately
+
+- **No tuning of any kind.** `BOSS_IVS`, the AI grade, the elite rung, the wild rung: untouched.
+- **Tidewrack and Rootfall** keep ticket 18's boss (ruling 6).
+- **The elite DROP wiring** is ticket 16's and is explicitly out of scope (ruling 4 / step 6).
+- **The elite band was not re-measured** under the new final-elite Driver — one cell,
+  `elite:biome2 --gym gym_emberfall`, ~15 min at 100 iterations.
+
+### Gates
+
+`tsc -b`, `eslint .` (0), `vite build`, `assert-no-debug`, and `liveness.ts` (STATIC findings: none —
+the sweep now covers `DRIVER_IDS` as well as the OSes, so the next authored gym's Driver is checked
+without anyone remembering to). Suite **1825 green across 130 files** (1790 -> 1825).
+
+No assertion was weakened. The tests that pinned ticket 18's boss were **repointed at Tidewrack**,
+where that shape is still the truth, and the authored shape got its own block: `gauntlet.test.ts`
+(the trio, its own OSes, its real deck, one Driver, fights 1-2 still rolled, the other gyms
+undisturbed), `driverRegistry.test.ts` (the clock condition through the zod parse, and WAR FOOTING
+playing real turns — 1, 2, 3 then 5 stacks, side-scoped), `hookWiring.test.ts` (the Driver survives
+`createBattleState` additively), `encounter.test.ts` (the final-elite rule, and that it changes
+nothing else about the rung), `RanchScreen.test.tsx` (the telegraph, both gym shapes, and that no id
+leaks as a label).

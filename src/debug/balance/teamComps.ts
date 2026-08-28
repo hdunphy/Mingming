@@ -247,8 +247,21 @@ export const CANARY_COMPS: readonly CanaryComp[] = [
  *
  * The relic per element is `gauntlet.BOSS_RELIC_BY_ELEMENT`: Fire and Water have signatures named
  * after them and Nature takes the element-neutral ice relic (an Energy tax on programs aimed at a
- * poisoned target — the only one of the three whose effect names no element). **Ticket 28 authors
- * the real gym leaders**; when it does, these comps are what it edits.
+ * poisoned target — the only one of the three whose effect names no element).
+ *
+ * # TICKET 68 MADE THIS TABLE PARTIAL, AND KNOWINGLY LEFT IT THAT WAY
+ *
+ * **These comps now describe Tidewrack and Rootfall only.** Emberfall's boss is hand-authored — a
+ * fixed trio running their own tuned OSes behind the side-level Driver WAR FOOTING (`run/bosses.ts`)
+ * — so it is not in the 2x2x2 product at all, and no `[species, os]` pair can express it: a Driver
+ * is not an `activeOS`, which is the whole of ruling 2.
+ *
+ * This file is **not** the instrument for the authored bosses and should not grow into one. The
+ * right measurement for a hand-authored fight is the run gate pinned to its gym
+ * (`npm run balance:run-gate -- --cells gauntlet:fight2 --gym gym_emberfall`), which fights the
+ * shipped entity through the shipped roll rather than a reconstruction of it. What this gate is
+ * still exactly right for is the FORMULA boss space, and that space shrinks by one gym per authoring
+ * session until it is empty — at which point this table goes, rather than being ported.
  *
  * # WHAT A GATE OVER THESE IS WATCHING FOR
  *

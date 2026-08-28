@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-27 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion). **State: 62 tickets, 31 closed. The critical path is complete, the run's four edit surfaces are built, and ticket 60's enemy ladder is in. **THE BALANCE PICTURE IS NOW MEASURED AND IT IS GOOD NEWS WITH ONE EXCEPTION.** For the PREPARED player the targets grade (ruling Q3): **wilds 95.7% against 95 — PASS. Elites 73.7% against 75 — PASS.** The game is not broadly mistuned; every earlier number measured a player who ignores type. **The gym boss is the only failing band (0/60), and its knob is identified: the relics, not the stats** — `BOSS_IVS` 20→10 buys 1.7pt, switching the `boss_relic_*` hooks off buys 58.3pt (the relic effects are stat-independent: Sharp-scaled, %maxHP, energy tax). **WAITING ON HENRY: ticket 67's R2 boss ruling** — soften the relics, answer them with the Q2 anti-boss cards, or both; and the gauntlet target (per-fight 60 vs end-to-end), which R3 deferred until these numbers landed. Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) §12. Gap: gauntlet fights 1 and 2 have only been measured blind (68.3%, 81.7%) — a prepared end-to-end number needs ~2h. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass (deck-archetypes, 24-36 cards, runs concurrently per R1), 57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22 (142 of 216 card descriptions print their power figure) and the anti-boss power tier.** **New tool: `npm run decks`** writes `docs/balance/deck_browser.html`, a standalone at-a-glance reference for all 32 decks (firmware text, engine, curve, cards, borrowed win rates) that badges its own numbers stale by registry hash — read it before touching a deck. Suite green at 129 files / 1790 tests. **LINT IS BLOCKING IN CI as of ticket 55** — the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-28 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion, 68-legion). **State: 67 tickets, 37 closed.** The critical path is complete, the run's four edit surfaces are built, ticket 60's enemy ladder is in, and **ticket 68 rebuilt the gym boss**. **THE BOSS WALL IS GONE — AND THE FIGHT OVERSHOT.** Emberfall's boss goes **0/60 -> 48/60 (80.0%) prepared**, 39/60 (65.0%) control, against a 60% target; its three fights now read **83.3 / 90.0 / 80.0** where they read 68.3 / 81.7 / 3.3. The relics are retired as a concept: enemy passives are **DRIVERS**, side-scoped, additive to a member's own OS, on the same machinery as the player's. For the PREPARED player the other two bands still grade (Q3): **wilds 95.7% vs 95 - PASS. Elites 73.7% vs 75 - PASS.** **WAITING ON HENRY: the boss is now 15pt ABOVE the target the prepared arm grades.** Nothing was turned - the unturned levers are `BOSS_IVS` (ruling 7's re-check against the new Driver, NOT yet run), WAR FOOTING's numbers, the authored composition, and the 60% target itself, which was set against a boss nobody had designed. Also worth a decision: **WAR FOOTING's turn-4 escalation barely fires** (fights average 4.1 turns). Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) SS13. **Tidewrack and Rootfall are NOT authored** (68 ruling 6) and still field ticket 18's `boss_relic_*` formula boss at 0/60 - one gym per design session. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass** (deck-archetypes, 24-36 cards - re-read it against 80.0%, the fight it was aimed at no longer exists), **57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40 - **109 is the single highest-leverage ticket on the board**, nine steam-release tickets sit behind it. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22** (142 of 216 card descriptions print their power figure) and the anti-boss power tier. **New tool: `npm run decks`** writes `docs/balance/deck_browser.html`, a standalone at-a-glance reference for all 32 decks that badges its own numbers stale by registry hash. Suite green at 130 files / 1825 tests. **LINT IS BLOCKING IN CI as of ticket 55** - the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,47 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-28 — The boss wall is gone. Emberfall goes 0/60 to 48/60, and is now too EASY.
+
+Ticket 68, built and measured. The relic stack §12 identified as the wall is **retired as a
+concept**: enemy passives are DRIVERS now — side-scoped, additive to a member's own firmware, on the
+same machinery as the player's — and Emberfall fields a hand-authored trio of real tuned decks
+(fenrir_v1 + skoll_v1 + ratatoskr_v2) under one Driver, **WAR FOOTING**.
+
+| arm | result | vs the 0/60 it replaces |
+|---|---|---|
+| Emberfall boss, PREPARED | 48/60 — **80.0%** (CI 68.2-88.2) | **+80.0pt** |
+| Emberfall boss, CONTROL | 39/60 — **65.0%** (CI 52.4-75.8) | +65.0pt |
+| all three gyms, prepared (unpinned) | 14/60 — **23.3%** | ≈ the 26.7% one-rebuilt-gym-in-three predicts |
+| Emberfall fights 1 and 2, prepared | **83.3%** / **90.0%** | were 68.3 / 81.7, blind and un-authored |
+
+**The cliff became a gauntlet.** 83.3 / 90.0 / 80.0 against the old 68.3 / 81.7 / 3.3 — three fights
+of comparable weight with the boss slightly the hardest. Compounded that is 60.0%, exactly the
+target, and an upper bound because the harness fights each from full HP.
+
+**AND IT OVERSHOT.** Against a 60% target the control arm passes at 65.0% and the prepared arm — the
+one Q3 rules the targets grade — is **15 points high**. Six weeks of §10-§12 were about this fight
+being impossible; it is now too easy for the player the targets are written for. **Nothing was
+turned**: ruling 7 pins `BOSS_IVS` and the AI grade, so this is a number for Henry, not a verdict.
+The unturned levers, cheapest first: `BOSS_IVS` (20/20/20 — ruling 7 asks for it to be re-checked
+against the new Driver and that re-check has not been run), WAR FOOTING's numbers, the authored
+composition, and the 60% target itself, which was set against a boss nobody had designed.
+
+**WAR FOOTING's escalation is nearly decorative.** The fight averages 4.1 turns and the clause starts
+at turn 4, so in most battles the Driver is worth 1 Strengthened a round. It is built, tested and
+live — it is why the `turnAtLeast` hook condition exists — but it is not part of the measured
+difficulty. If the intent was an aura that punishes a long fight, this fight is not long.
+
+**Two readings the build had to make**, both isolated to one function and both flagged in the
+ticket's resolution: *"the region's FINAL elite"* has no such node (the final biome's exit is the gym,
+so its elites are weighted middle nodes) — implemented as **the elites in the gym's own biome**; and
+`--boss-relics off` was widened to follow the Driver, or it would have measured the boss WITH its
+signature and reported it as without.
+
+**`--gym` is new** and the gate needs it now: `gauntlet:fight2` walks all three leaders, and after
+ruling 6 the three leaders are no longer the same fight. An unpinned run blends one rebuilt boss with
+two unchanged ones. Tidewrack and Rootfall keep ticket 18's formula boss until their own sessions.
 
 ### 2026-08-27 — `npm run decks`: a deck browser, and it flags its own stale numbers
 

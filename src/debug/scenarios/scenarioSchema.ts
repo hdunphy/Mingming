@@ -246,6 +246,15 @@ export const ComposedSetupSchema = z.object({
     }),
     /** Explicit list; never the procedural encounter branch. */
     enemies: z.array(EnemySetupSchema),
+    /**
+     * Ticket 68: the enemy side's Drivers, the mirror of `player.relics`. Applied to every enemy by
+     * `buildScenarioState` through the same `data/driverRegistry.applyDrivers` the live game uses,
+     * so a boss measured in the harness is the boss that ships.
+     *
+     * Optional so that every scenario file written before this ticket still validates unchanged —
+     * `migrateScenario` stays a no-op, which is the rule this file format keeps.
+     */
+    enemyDrivers: z.array(z.string()).optional(),
     gauntlet: GauntletContextSchema.nullable().optional(),
     /**
      * Ticket 19 (deck-archetypes): per-seed IV jitter magnitude. When set, every unit's
@@ -341,6 +350,8 @@ export interface ComposedSetup {
         relics: string[];
     };
     enemies: EnemySetup[];
+    /** Ticket 68: the enemy side's Drivers — the mirror of `player.relics`. */
+    enemyDrivers?: string[];
     gauntlet?: GauntletContext | null;
     /** Per-seed IV jitter magnitude (see ComposedSetupSchema.statJitter). */
     statJitter?: number;

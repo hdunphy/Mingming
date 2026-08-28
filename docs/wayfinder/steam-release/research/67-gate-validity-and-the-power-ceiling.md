@@ -629,3 +629,134 @@ Both override flags are **run-scoped** and print on the report header, so a past
 which boss it was measured against. `--boss-ivs` accepts one value or `hp/attack/defense`.
 
 ---
+
+## 13. THE REBUILT EMBERFALL — run 2026-08-28. The wall is gone, and the fight overshot the other way.
+
+Ticket 68's build steps 1-6 shipped and step 7 measured them. **No tuning.** `BOSS_IVS` is untouched
+at 20/20/20, the boss AI grade is still full lookahead (R2), and nothing in this section proposes a
+number. What follows is the rebuilt fight measured against the 0/60 it replaced.
+
+### What changed between §12 and this
+
+§12 established that the `boss_relic_*` stack was the wall — **+58.3pt** from switching the relic
+hooks off, against **+1.7pt** from halving `BOSS_IVS`. Henry then reviewed the relic system in
+session (it had never been through him) and rebuilt the fight from first principles. Three of ticket
+68's rulings decide these numbers:
+
+- **The relics are retired as a concept.** Enemy passives are DRIVERS, side-level, on the same
+  machinery as the player's. Ticket 60's *"kit + OS + Driver"* rung is literal now rather than
+  aspirational.
+- **The boss team is hand-authored and keeps its own firmware.** Emberfall fields fenrir_v1
+  (UNBOUND_KERNEL) + skoll_v1 (TREACHERY_KERNEL) + ratatoskr_v2 (INSTIGATOR_OS) — three real tuned
+  decks a player could build — with **one** Driver over the side instead of three relics on three
+  bodies.
+- **WAR FOOTING** is that Driver: *at the end of this side's turn every member gains 1 Strengthened;
+  from turn 4 on, 2.*
+
+### A note on what these numbers are OF, because it changed
+
+`gauntlet:fight2` walks all three leaders (`index % 3`), and after ruling 6 **the three leaders are
+no longer the same fight** — Emberfall is rebuilt, Tidewrack and Rootfall still field the formula
+boss. An unpinned run of that cell blends twenty rebuilt bosses with forty unchanged ones and reports
+the average as a number about neither. So this ticket added `--gym`, and arms A, B and D below are
+**pinned to `gym_emberfall`**. They are a different POPULATION from §12's, not a deeper sample of it.
+The comparison to 0.0% still holds in the only direction that matters: §12's unpinned 0/60 means
+every gym was zero, Emberfall included. Arm C keeps the unpinned stride for continuity, and is the
+arm to compare against §12 directly.
+
+### 13a. The rebuilt boss
+
+| arm | pinned | result | 95% CI | vs §12's 0/60 | avg turns |
+|---|---|---|---|---|---|
+| **A** — PREPARED (`--matchup favourable`) | Emberfall | 48/60 — **80.0%** | 68.2-88.2 | **+80.0pt** | 4.1 |
+| **B** — CONTROL (`--matchup control`) | Emberfall | 39/60 — **65.0%** | 52.4-75.8 | +65.0pt | 4.5 |
+| **C** — PREPARED, all three leaders | no | 14/60 — **23.3%** | 14.4-35.4 | +23.3pt | 5.1 |
+
+Target 60%, window ±5. **The control arm PASSES at 65.0%** (top edge). **The prepared arm — the one
+Q3 rules the targets grade — FAILS by 15 points in the OTHER direction.** The fight the whole of this
+document has been about being impossible is now, for a prepared player, too easy.
+
+**Arm C is the cross-check, and it lands where the arithmetic says it should.** One rebuilt gym in
+three at 80% and two unchanged gyms at 0% predicts 26.7%; the unpinned cell measures **23.3%**, well
+inside its interval. Nothing else moved. That is as clean a confirmation as this instrument gives
+that the change is confined to the gym ruling 5 authored.
+
+Zero first-turn kills and zero stalls in all 180 battles.
+
+### 13b. The whole gauntlet, prepared, at the authored gym
+
+Ruling 7 asked for fights 1-2 if compute allowed. It did — they are the cheap ones.
+
+| fight | who | result | avg turns |
+|---|---|---|---|
+| 1 | the leader's team, rolled from the region | 50/60 — **83.3%** | 5.5 |
+| 2 | the same, re-rolled | 54/60 — **90.0%** | 4.9 |
+| 3 | the authored trio under WAR FOOTING | 48/60 — **80.0%** | 4.1 |
+
+**Compounded: 0.833 x 0.900 x 0.800 = 60.0%** — exactly the gauntlet target, which is a coincidence
+worth naming as one rather than reading as a result. It is also **an upper bound**, and by more than
+usual: the harness fights each of the three from full HP and a real gauntlet carries damage forward
+with no heal between fights. The true end-to-end number is below this, by an amount nothing in this
+document has ever measured.
+
+It does settle the shape question R3 deferred, though. Under the old boss the three fights read
+68.3 / 81.7 / 3.3 — a cliff. They now read 83.3 / 90.0 / 80.0, which is a gauntlet: three hard fights
+of comparable weight, with the boss slightly the hardest of the three.
+
+### What this settles
+
+1. **The wall was the relics, and removing them removed it.** §12's arm B predicted +58.3pt from
+   switching the relic hooks off; the rebuilt fight measures **+80.0pt**. More than the isolation
+   arm, in the expected direction — arm B stripped the relics and kept the formula team, while this
+   replaces the team too.
+2. **A boss made of real tuned decks is a legible fight.** 4.1 turns, no stalls, no first-turn kills;
+   it resolves the way an ordinary 3v3 does. §12's verdict on the old one was *"not a difficulty
+   step, it is a different game"*. That is gone.
+3. **Preparation is worth +15.0pt at this boss** — against +20.0 at the elite band and +11.2 at
+   wilds (§12b). Type advantage does ordinary work here rather than deciding the fight, which is what
+   ruling 3's *"counter to the counter"* third member is for. This is the first evidence it does
+   anything: the Nature member is there precisely to tax the Water team a prepared player brings to a
+   Fire gym.
+4. **The change is contained.** Arm C, and the suite: Tidewrack and Rootfall still roll the formula
+   boss, still get three distinct relics, and still carry no Driver.
+
+### What this does NOT settle, and one of them is a decision waiting
+
+- **Whether 80.0% is wrong, and if so which side of it moves.** The target says 60; a prepared player
+  measures 80. **That is Henry's call and nothing was turned** — ruling 7 pins `BOSS_IVS` and the AI
+  grade for this ticket. The unturned levers, in the order they cost least: `BOSS_IVS` (20/20/20;
+  §12 measured it nearly inert against the OLD boss, and ruling 7 explicitly asks for it to be
+  re-checked against the new one — that re-check has not been run); WAR FOOTING's numbers; the
+  authored composition itself. There is also a fourth option this document should say out loud: **the
+  60% target was set against a boss nobody had designed**, and it is as re-openable as the numbers
+  are.
+- **WAR FOOTING's escalation clause barely fires.** The fight averages 4.1 turns and the clause starts
+  at turn 4, so in most battles the Driver is worth exactly 1 Strengthened a round and *"from turn 4
+  on, 2"* is decoration. The escalation is built, tested and live — it is why the `turnAtLeast` hook
+  condition exists — but at this fight length it is not part of the measured difficulty. If the
+  intent was an aura that punishes a long fight, this fight is not long.
+- **Tidewrack and Rootfall are unmeasured and unchanged.** Ruling 6 keeps them on the formula boss;
+  their 0/60 stands until their own authoring sessions. Arm C is the only number that includes them.
+- **Still no HP carry.** Every number here fights from full — see 13b.
+- **The prepared arm still does not shop.** An un-drifted starting deck plus the right elements.
+- **The final-elite telegraph is unmeasured.** Ruling 4 gives the elites in the gym's own biome the
+  gym's Driver; the elite band was not re-run, so what that costs the ELITE rung at Emberfall is
+  unknown. It is one cell (`elite:biome2 --gym gym_emberfall`, ~15 min at 100 iterations).
+
+### Reproducing
+
+```
+# 13a — the rebuilt boss, pinned. --gym is new in ticket 68.
+npm run balance:run-gate -- --cells gauntlet:fight2 --iterations 60 --matchup favourable --gym gym_emberfall
+npm run balance:run-gate -- --cells gauntlet:fight2 --iterations 60 --matchup control    --gym gym_emberfall
+npm run balance:run-gate -- --cells gauntlet:fight2 --iterations 60 --matchup favourable   # unpinned, arm C
+
+# 13b — the first two fights at the same gym
+npm run balance:run-gate -- --cells gauntlet:fight0,gauntlet:fight1 --iterations 60 --matchup favourable --gym gym_emberfall
+```
+
+Two lanes, ~2h 40m of wall clock for 300 battles. **One arm per process**, as §12 learned the hard
+way: a multi-cell invocation prints its summary only at the end, so a kill mid-flight loses every
+cell it had finished. The report header states the pin, the matchup and the boss override, so a
+pasted number cannot lose which fight it was measured against.
+

@@ -89,6 +89,21 @@ export type HookCondition = {
     /** Ticket 53: AND-list of counter checks, for hooks that need more than one (GENESIS_FIRMWARE). Composes with `counter`. */
     counters?: Array<{ key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number; scope?: CounterScope }>;
     currentEnergy?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
+    /**
+     * TICKET 68: passes from battle turn `N` onward (`state.turn >= N`). The escalation clause of an
+     * enemy Driver — WAR FOOTING grants 1 Strengthened a turn and 2 from turn 4 — and the first hook
+     * condition that reads the CLOCK rather than the board.
+     *
+     * `state.turn` is a full round, not a side-turn: `processPreTurn` increments it only when the
+     * active side flips back to PLAYER, so both sides see the same number and "turn 4" means the
+     * same moment whoever is asking. An escalating aura written against side-turns would tick twice
+     * as fast for the side that moves first.
+     *
+     * A floor rather than an operator pair, because escalation is the only thing anything has wanted
+     * from the clock and a floor cannot be written backwards. If a hook ever needs "before turn N",
+     * that grows a sibling here rather than an operator.
+     */
+    turnAtLeast?: number;
 };
 
 export type HookAction = {

@@ -17,6 +17,7 @@ import {
     lineupFor,
     sampleFight,
     wilson,
+    type BossOverride,
     type SampledFight,
 } from './runGate';
 
@@ -346,6 +347,23 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
     const decksOf = (fight: SampledFight): string =>
         fight.setup.enemies.flatMap((e) => e.deck ?? []).join(',');
 
+    /*
+     * TICKET 68 MADE THE BOSS CELL HETEROGENEOUS, AND THESE TESTS HAVE TO SAY WHICH KIND THEY MEAN.
+     *
+     * `sampleFight` picks the gym offer as `index % 3`, so the `gauntlet:fight2` cell walks all
+     * three leaders. Emberfall is authored now — real firmware, one side-level Driver — while
+     * Tidewrack and Rootfall still field ticket 18's `boss_relic_*` formula boss (ruling 6). A
+     * sample index hardcoded to 3 was fine when every gym had the same shape; it is now a coin flip
+     * on which shape you get, decided by a seeded shuffle.
+     *
+     * So the indices are FOUND rather than written down, and the two shapes are asserted separately.
+     */
+    const at = (index: number, override?: BossOverride): SampledFight =>
+        sampleFight(boss(), index, 'favourable', override);
+    const INDICES = [0, 1, 2, 3, 4, 5];
+    const relicIndex = INDICES.find((i) => at(i).enemyDrivers.length === 0)!;
+    const driverIndex = INDICES.find((i) => at(i).enemyDrivers.length > 0)!;
+
     it('changes ONLY the named knob — the deck, the player and the seed are the baseline\'s', () => {
         /*
          * The whole value of an isolation arm is that it is comparable to the 0/60 it is measured
@@ -356,9 +374,9 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          * Asserted per arm, because the two overrides reach different fields and a shared assertion
          * would pass while one of them quietly did nothing.
          */
-        const base = sampleFight(boss(), 3, 'favourable');
-        const lowered = sampleFight(boss(), 3, 'favourable', { ivs: { hp: 10, attack: 10, defense: 10 } });
-        const stripped = sampleFight(boss(), 3, 'favourable', { relics: 'off' });
+        const base = at(relicIndex);
+        const lowered = at(relicIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
+        const stripped = at(relicIndex, { relics: 'off' });
 
         for (const arm of [lowered, stripped]) {
             expect(decksOf(arm)).toBe(decksOf(base));
@@ -369,7 +387,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
     });
 
     it('ARM A lowers every boss slot\'s stats and leaves the relics on', () => {
-        const arm = sampleFight(boss(), 3, 'favourable', { ivs: { hp: 10, attack: 10, defense: 10 } });
+        const arm = at(relicIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
         for (const enemy of arm.setup.enemies) {
             expect({ hp: enemy.hpIV, attack: enemy.attackIV, defense: enemy.defenseIV })
                 .toEqual({ hp: 10, attack: 10, defense: 10 });
@@ -388,8 +406,8 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          *    `availableOS[0]`'s tuned list for a boss (`gauntlet.buildEnemy` documents this), so the
          *    boss was fighting with that deck all along.
          */
-        const base = sampleFight(boss(), 3, 'favourable');
-        const arm = sampleFight(boss(), 3, 'favourable', { relics: 'off' });
+        const base = at(relicIndex);
+        const arm = at(relicIndex, { relics: 'off' });
 
         for (const enemy of arm.setup.enemies) {
             expect(enemy.activeOS!.startsWith('boss_relic')).toBe(false);
@@ -414,20 +432,49 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
     });
 
     it('is absent by default, so the shipped boss is what an unflagged run measures', () => {
-        // Ruling R2 leaves BOSS_IVS and the relics open as levers and nothing has been ruled yet, so
-        // the authored constants must not move while the question is being measured.
-        const plain = sampleFight(boss(), 5, 'favourable');
-        expect(plain.bossOverride).toBeUndefined();
-        for (const enemy of plain.setup.enemies) {
-            expect(enemy.hpIV).toBe(BOSS_IVS[0].hp);
-            expect(enemy.activeOS!.startsWith('boss_relic')).toBe(true);
+        // Ruling R2 leaves BOSS_IVS open as a lever and ticket 68 left it untouched, so the authored
+        // constants must not move while the question is being measured. Asserted for BOTH boss
+        // shapes: every sample carries a signature, whichever system provides it.
+        for (const index of [relicIndex, driverIndex]) {
+            const plain = at(index);
+            expect(plain.bossOverride).toBeUndefined();
+            for (const enemy of plain.setup.enemies) {
+                expect(enemy.hpIV).toBe(BOSS_IVS[0].hp);
+            }
+            const relics = plain.setup.enemies.every((e) => e.activeOS!.startsWith('boss_relic'));
+            expect(relics || plain.enemyDrivers.length > 0).toBe(true);
         }
+    });
+
+    it('ARM B strips an AUTHORED boss’s Driver too — the flag follows the passive (ticket 68)', () => {
+        /*
+         * `--boss-relics off` asks one question: *what is the anti-boss card pool being asked to
+         * beat?* Ticket 68 moved where an authored gym keeps the answer — from a `boss_relic_*`
+         * worn as `activeOS` to a side-level Driver — so a flag still pointed only at the old
+         * mechanism would silently measure the boss WITH its signature and report it as without.
+         * That is the failure this test exists for; the §12 arms were read off this flag.
+         */
+        const base = at(driverIndex);
+        const stripped = at(driverIndex, { relics: 'off' });
+
+        expect(base.enemyDrivers.length).toBeGreaterThan(0);
+        expect(stripped.enemyDrivers).toEqual([]);
+        expect(stripped.setup.enemyDrivers).toBeUndefined();
+        // And nothing else moves — same species, same deck, same seed, same stats.
+        expect(decksOf(stripped)).toBe(decksOf(base));
+        expect(stripped.setup.seed).toBe(base.setup.seed);
+        expect(stripped.setup.enemies.map((e) => e.hpIV)).toEqual(base.setup.enemies.map((e) => e.hpIV));
+    });
+
+    it('carries the Driver into the measured setup, so the harness fights the shipped boss', () => {
+        const plain = at(driverIndex);
+        expect(plain.setup.enemyDrivers).toEqual(plain.enemyDrivers);
     });
 
     it('names the arm in one line, so a pasted number cannot lose its provenance', () => {
         expect(describeBossOverride(undefined)).toBe('boss as shipped');
         expect(describeBossOverride({})).toBe('boss as shipped');
         expect(describeBossOverride({ ivs: { hp: 10, attack: 10, defense: 10 } })).toContain('10/10/10');
-        expect(describeBossOverride({ relics: 'off' })).toContain('hooks OFF');
+        expect(describeBossOverride({ relics: 'off' })).toContain('signature passive OFF');
     });
 });

@@ -48,8 +48,24 @@ function initFirmwareHooks() {
         validatedData = HOOKS_DATA as unknown as Record<string, HookLibraryEntry>; // Fallback
     }
 
+    /*
+     * TICKET 68 added the `driver_` prefix, and it is the one entry class here that is NOT an OS.
+     *
+     * A Driver is a side-level passive that sits BESIDE a unit's firmware rather than replacing it
+     * (`data/driverRegistry.ts` attaches its hook ids to `IBattleEntity.hooks`, leaving `activeOS`
+     * alone). It is loaded through this function anyway because the two things a Driver needs are
+     * exactly the two things this function does: its hooks have to reach `registerHook`, or
+     * `Hooks.ts` cannot find them by id; and its name and rule text have to be readable by id, or
+     * the offer screen cannot telegraph it.
+     *
+     * Building a parallel loader to say the same two sentences would have meant a second place for
+     * a hooks.json entry to be silently missed — which is the failure mode this whole file's
+     * comments are about. The naming law is kept where it belongs instead: in the id. Nothing
+     * prefixed `driver_` is ever set as an `activeOS`, and `driverRegistry` is the only door to one.
+     */
     const firmwareKeys = Object.keys(validatedData).filter(key =>
-        key.endsWith('_v1') || key.endsWith('_v2') || key.startsWith('boss_relic_')
+        key.endsWith('_v1') || key.endsWith('_v2')
+        || key.startsWith('boss_relic_') || key.startsWith('driver_')
     );
 
     firmwareKeys.forEach(key => {

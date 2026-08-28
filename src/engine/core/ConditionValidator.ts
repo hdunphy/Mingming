@@ -164,6 +164,11 @@ export const ConditionValidator = {
             if (operator === 'EQ' && !(currentVal === value)) return false;
         }
 
+        // 11. Clock Check (ticket 68). `state.turn` is a full round, not a side-turn — see
+        // `HookCondition.turnAtLeast` for why an escalating aura written against side-turns would
+        // tick twice as fast for the side that moves first.
+        if (condition.turnAtLeast !== undefined && context.state.turn < condition.turnAtLeast) return false;
+
         return true;
     },
 

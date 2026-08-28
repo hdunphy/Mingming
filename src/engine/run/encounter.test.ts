@@ -29,11 +29,13 @@ import {
     isOpeningFight,
     enemyLoadoutFor,
     gradeFor,
+    gymDriverForNode,
     rollEncounter,
 } from './encounter';
 import { buildBattleSetup, toMingmingState } from './battleSetup';
 import { STARTER_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
 import { GYM_REGISTRY, type IGymOffer } from './gyms';
+import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { createBattleState } from '../data/battleFactories';
 import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
 import { GetProgramData } from '../data/programRegistry';
@@ -720,5 +722,61 @@ describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u
         for (const enemy of encounter.enemyParty) {
             expect(GetMingmingData(enemy.definitionId).primaryElement).toBe('Fire');
         }
+    });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The region's final elites carry the gym's Driver (ticket 68 ruling 4)
+// ---------------------------------------------------------------------------------------------
+
+describe('gymDriverForNode — the telegraph’s second half', () => {
+    const party = [KRAKEN];
+
+    it('gives the gym’s Driver to an elite in the gym’s OWN biome, and to nothing else', () => {
+        const run = makeRun(['Water', 'Nature', 'Fire']);
+        const last = run.biomes.length - 1;
+
+        expect(gymDriverForNode(run, node({ kind: 'elite', biomeIndex: last }))).toBe(DRIVER_WAR_FOOTING);
+
+        // Not the elites two biomes back — the clause is about the approach to the gauntlet, and an
+        // aura met at biome 0 would be a spoiler for a fight the player may never reach.
+        for (const biomeIndex of [0, 1]) {
+            expect(gymDriverForNode(run, node({ kind: 'elite', biomeIndex }))).toBeUndefined();
+        }
+        // Not the wilds standing beside it, whatever the biome.
+        for (const kind of ['wild', 'ambush', 'alpha'] as const) {
+            expect(gymDriverForNode(run, node({ kind, biomeIndex: last }))).toBeUndefined();
+        }
+    });
+
+    it('gives nothing at an un-authored gym — there is no Driver to carry (ruling 6)', () => {
+        const offer: IGymOffer = {
+            gym: GYM_REGISTRY.gym_tidewrack,
+            biomes: ['Nature', 'Fire', 'Water'].map((element, index) => biome(element, index)),
+        };
+        const run = { ...createRun({ seed: 'tidewrack-elite', offer, party, startedAt: 0 }), fightsResolved: 1 };
+        expect(gymDriverForNode(run, node({ kind: 'elite', biomeIndex: run.biomes.length - 1 }))).toBeUndefined();
+    });
+
+    it('reaches the rolled encounter, and changes NOTHING else about the elite', () => {
+        /*
+         * Ruling 4 says the elite runs the gym's Driver *unmodified*. The risk in an "and also"
+         * wiring is that it becomes an "and therefore" — a rung that quietly gains a stat bump or a
+         * better AI grade alongside the Driver would make ticket 67's elite band unreadable against
+         * its own history, which is the one instrument this ticket has to keep pointing at the same
+         * thing.
+         */
+        const run = makeRun(['Water', 'Nature', 'Fire']);
+        const at = node({ id: 'b2l2n0', kind: 'elite', biomeIndex: 2, layer: 2, visited: 1 });
+
+        const withDriver = rollEncounter({ run, node: at, party });
+        expect(withDriver.enemyDrivers).toEqual([DRIVER_WAR_FOOTING]);
+
+        // The same elite two biomes back: same rung, same grade, no Driver.
+        const plain = rollEncounter({ run, node: node({ ...at, id: 'b0l2n0', biomeIndex: 0 }), party });
+        expect(plain.enemyDrivers).toBeUndefined();
+        expect(withDriver.enemyAiTier).toBe(plain.enemyAiTier);
+        expect(withDriver.enemyParty).toHaveLength(plain.enemyParty.length);
+        expect(withDriver.enemyParty.every((e) => e.activeOS !== undefined)).toBe(true);
     });
 });

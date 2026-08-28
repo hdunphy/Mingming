@@ -84,9 +84,14 @@ export function codexLaunchSpeciesIds(): string[] {
  *
  * **Not** `Object.keys(FIRMWARE_REGISTRY)`, for two reasons. It is lazily populated — it is empty
  * until something calls `getOSBehavior`, so enumerating it directly is a race with whatever else
- * the app happened to do first. And it contains the three `boss_relic_*` signatures (ticket 18),
- * which are gym-boss firmware the player can never equip: counting them would make the codex
- * permanently incompletable by three.
+ * the app happened to do first. And it contains entries the player can never equip: the three
+ * `boss_relic_*` signatures (ticket 18) and, since ticket 68, the `driver_*` enemy Drivers — which
+ * ruling 4 puts explicitly out of the player's reach (*"enemy signature Drivers never enter the
+ * player pool"*). Counting either would make the codex permanently incompletable.
+ *
+ * Deriving from `availableOS` means that stays true without a filter anyone has to maintain: a
+ * Driver is never on a species' list, so it can never be counted, and the next authored gym's
+ * Driver needs no edit here.
  */
 export function codexOsIds(): string[] {
     const ids: string[] = [];

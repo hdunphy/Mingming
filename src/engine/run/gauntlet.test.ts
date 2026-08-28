@@ -33,9 +33,12 @@ import {
     bossFirmwareFor,
     gauntletFightSeed,
     gauntletOpponentElements,
+    gymSignatures,
     isBossFight,
     rollGauntletFight,
 } from './gauntlet';
+import { authoredBossFor } from './bosses';
+import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { ENEMY_LADDER, gradeFor } from './encounter';
 import { buildBattleSetup } from './battleSetup';
 import { createRun } from './createRun';
@@ -75,15 +78,34 @@ const biome = (element: string): IBiome => ({
  * these tests roll from is the gym node the game would walk onto. The biome order is the one
  * `offerGyms` produces for a Fire leader (rule 4: the gym's own element is last).
  */
+/*
+ * TICKET 68 REPOINTED THE DEFAULT GYM, AND THE REASON IS THE POINT OF THE TICKET.
+ *
+ * Everything below that is about ticket 18's FORMULA boss — one species per biome, a different
+ * `boss_relic_*` on each — is still true, but it is now true of the gyms ruling 6 has NOT migrated.
+ * Emberfall fields a hand-authored trio behind a Driver, so a formula assertion pointed at it would
+ * be asserting the thing this ticket deleted.
+ *
+ * So the default is **Tidewrack**, which is what those tests were always really about, and the
+ * authored path gets its own describe block with its own run. Ruling 6's "exactly one gym migrates
+ * per session" is why both sets have to keep passing at once.
+ */
 function makeRun(
     party: ReadonlyArray<IMingmingState> = [KRAKEN, FENRIR, RATATOSKR],
     seed = 'gauntlet-test-seed',
+    gym = GYM_REGISTRY.gym_tidewrack,
+    biomes: ReadonlyArray<IBiome> = [biome('Nature'), biome('Fire'), biome('Water')],
 ): IRunState {
-    const offer: IGymOffer = {
-        gym: GYM_REGISTRY.gym_emberfall,
-        biomes: [biome('Water'), biome('Nature'), biome('Fire')],
-    };
+    const offer: IGymOffer = { gym, biomes: [...biomes] };
     return createRun({ seed, offer, party, startedAt: 0 });
+}
+
+/** A run walking into the one gym ticket 68 authored (`AUTHORED_BOSSES`). */
+function makeEmberfallRun(
+    party: ReadonlyArray<IMingmingState> = [KRAKEN, FENRIR, RATATOSKR],
+    seed = 'gauntlet-test-seed',
+): IRunState {
+    return makeRun(party, seed, GYM_REGISTRY.gym_emberfall, [biome('Water'), biome('Nature'), biome('Fire')]);
 }
 
 function gymNodeOf(run: IRunState): IRegionNode {
@@ -262,10 +284,15 @@ describe('rollGauntletFight — the boss team (fight 3)', () => {
     });
 
     it('carries signature firmware — a different boss_relic each', () => {
+        // Ticket 68 ruling 6: still the shape at Tidewrack and Rootfall, until their own sessions.
         for (const enemy of fight.enemyParty) {
             expect(BOSS_RELIC_IDS).toContain(enemy.activeOS);
         }
         expect(new Set(fight.enemyParty.map((e) => e.activeOS)).size).toBe(3);
+    });
+
+    it('runs NO enemy Driver — an un-authored gym has none to run (ticket 68 ruling 6)', () => {
+        expect(fight.enemyDrivers).toBeUndefined();
     });
 
     it('is at its natural HP — the 1.5x warden multiplier is gone (ticket 21)', () => {
@@ -489,6 +516,100 @@ describe('no healing between the three fights', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+// The authored boss (ticket 68)
+// ---------------------------------------------------------------------------------------------
+
+describe('rollGauntletFight — Emberfall, the authored boss (ticket 68)', () => {
+    const run = makeEmberfallRun();
+    const node = gymNodeOf(run);
+    const fight = rollGauntletFight({ run, node, fightIndex: BOSS });
+    const authored = authoredBossFor('gym_emberfall')!;
+
+    it('fields the authored trio, in the authored order', () => {
+        expect(fight.enemyParty.map((e) => e.definitionId))
+            .toEqual(authored.members.map((m) => m.species));
+    });
+
+    it('KEEPS EACH MEMBER’S OWN TUNED OS — the Driver is additive, not a replacement (ruling 2)', () => {
+        // This is the whole redesign in one assertion. Ticket 18's boss had its `activeOS`
+        // OVERWRITTEN with a `boss_relic_*`, which silently cost it its real firmware and left
+        // `getDeckForOS` resolving the deck through a documented fallback.
+        expect(fight.enemyParty.map((e) => e.activeOS)).toEqual(authored.members.map((m) => m.os));
+        for (const enemy of fight.enemyParty) {
+            expect(GetMingmingData(enemy.definitionId).availableOS).toContain(enemy.activeOS);
+            expect(enemy.activeOS?.startsWith('boss_relic_')).toBe(false);
+        }
+    });
+
+    it('holds the species’ REAL tuned deck, with no fallback in the path', () => {
+        // The quieter half of ruling 2: because `activeOS` is one of the species' own, the deck
+        // lookup returns that OS's tuned list directly — a deck the player could build.
+        const expected = authored.members.flatMap((m) => getDeckForOS(m.species, m.os));
+        expect([...fight.enemyDeckIds]).toEqual(expected);
+    });
+
+    it('runs exactly ONE side-level Driver, and it is not a relic (ruling 1)', () => {
+        expect(fight.enemyDrivers).toEqual([DRIVER_WAR_FOOTING]);
+        expect(DRIVER_WAR_FOOTING.startsWith('boss_relic_')).toBe(false);
+    });
+
+    it('still takes the authored IVs — BOSS_IVS is untouched by this ticket (ruling 7)', () => {
+        fight.enemyParty.forEach((enemy, slot) => {
+            expect(enemy.hpIV).toBe(BOSS_IVS[slot].hp);
+            expect(enemy.attackIV).toBe(BOSS_IVS[slot].attack);
+            expect(enemy.defenseIV).toBe(BOSS_IVS[slot].defense);
+        });
+    });
+
+    it('leaves fights 1 and 2 rolled, not authored', () => {
+        for (const fightIndex of [0, 1]) {
+            const earlier = rollGauntletFight({ run, node, fightIndex });
+            expect(earlier.enemyDrivers).toBeUndefined();
+            // The leader's own teams draw from the whole region; the authored trio is fight 3 only.
+            for (const enemy of earlier.enemyParty) {
+                expect(GetMingmingData(enemy.definitionId).availableOS).toContain(enemy.activeOS);
+            }
+        }
+    });
+
+    it('does not disturb what the OTHER gyms roll — the authored branch reads gymId and nothing else', () => {
+        // Stream-position discipline: authoring one gym must not silently re-roll another's teams.
+        const tidewrack = makeRun();
+        const before = rollGauntletFight({ run: tidewrack, node: gymNodeOf(tidewrack), fightIndex: BOSS });
+        expect(before.enemyParty.map((e) => e.definitionId)).toHaveLength(GAUNTLET_ENEMY_COUNT);
+        expect(before.enemyDrivers).toBeUndefined();
+    });
+});
+
+describe('gymSignatures — the offer screen telegraph (ticket 68 ruling 4)', () => {
+    const emberfallBiomes = [biome('Water'), biome('Nature'), biome('Fire')];
+
+    it('gives an authored gym its ONE Driver, by name and rule text', () => {
+        const signatures = gymSignatures('gym_emberfall', emberfallBiomes);
+        expect(signatures).toHaveLength(1);
+        expect(signatures[0].id).toBe(DRIVER_WAR_FOOTING);
+        expect(signatures[0].name).toBe('WAR FOOTING');
+        // The rule has to be READABLE, not just present — this string is the whole telegraph.
+        expect(signatures[0].description).toContain('Strengthened');
+        expect(signatures[0].description).toContain('turn 4');
+    });
+
+    it('gives an un-authored gym the three relic texts its OWN offer will produce', () => {
+        const biomes = [biome('Nature'), biome('Fire'), biome('Water')];
+        const signatures = gymSignatures('gym_tidewrack', biomes);
+        expect(signatures).toHaveLength(GAUNTLET_ENEMY_COUNT);
+        // Derived off the offer rather than guessed: the same `bossFirmwareFor` the roll uses, in
+        // the same order, so the screen promises exactly what walks out.
+        expect(signatures.map((s) => s.id)).toEqual([
+            bossFirmwareFor('Nature', []),
+            bossFirmwareFor('Fire', [bossFirmwareFor('Nature', [])]),
+            bossFirmwareFor('Water', [bossFirmwareFor('Nature', []), bossFirmwareFor('Fire', [bossFirmwareFor('Nature', [])])]),
+        ]);
+        for (const signature of signatures) expect(signature.description.length).toBeGreaterThan(0);
+    });
+});
+
+// ---------------------------------------------------------------------------------------------
 // What the Pit Stop is allowed to say
 // ---------------------------------------------------------------------------------------------
 
@@ -504,5 +625,21 @@ describe('gauntletOpponentElements', () => {
         expect(promised).toEqual(delivered);
         // Types visible, contents hidden (`exploration-map.md`) — elements, never species ids.
         expect(promised).toEqual(run.biomes.map((b) => b.elements[0]));
+    });
+
+    it('reports the AUTHORED trio’s elements at Emberfall, which are not the biome order', () => {
+        // Ticket 68: an authored team is composed by ruling 3's heuristic (two of the leader's own
+        // element plus one countering the counter), so it deliberately does NOT read one-per-biome.
+        // The Pit Stop's contract is unchanged — what it promises is what walks out — and that is
+        // the thing worth pinning, not the particular elements.
+        const run = makeEmberfallRun();
+        const node = gymNodeOf(run);
+
+        const promised = gauntletOpponentElements({ run, node, fightIndex: BOSS });
+        const delivered = rollGauntletFight({ run, node, fightIndex: BOSS })
+            .enemyParty.map((e) => e.primaryElement as string);
+
+        expect(promised).toEqual(delivered);
+        expect(promised).toEqual(['Fire', 'Fire', 'Nature']);
     });
 });
