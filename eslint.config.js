@@ -11,7 +11,10 @@ export default defineConfig([
   // CustomFirmware.ts and statusCensus.ts cite them as the provenance of live constants —
   // but they are throwaway harnesses, so holding them to the app's lint bar is noise.
   // They accounted for 76 of the 588 problems the tree reported before ticket 03.
-  globalIgnores(['dist', 'scratch']),
+  // TICKET 42: `desktop/app` is a COPY of `dist` and `desktop/release` is the packaged Electron
+  // build. Both are generated, both contain minified bundles, and `dist` is ignored above for
+  // exactly the same reason — they are only listed separately because the pattern is a path.
+  globalIgnores(['dist', 'scratch', 'desktop/app', 'desktop/release']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

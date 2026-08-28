@@ -26,6 +26,7 @@ import battleReducer from '../store/battleSlice';
 import gameReducer from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import uiReducer from '../store/uiSlice';
+import { DEFAULT_SETTINGS, saveSettings } from './settings';
 import { emptyRunLog, writeRunLog } from '../../engine/run/runLog';
 import { resetSaveStorage, setSaveStorage, type ISaveStorage } from '../../engine/save/storage';
 
@@ -117,5 +118,87 @@ describe('exporting the run log', () => {
     it('returns null rather than claiming a save that did not happen', () => {
         expect(storedRunLogCount()).toBe(0);
         expect(exportRunLogs()).toBeNull();
+    });
+});
+
+/**
+ * TICKET 42: the same click, in the packaged build, must go to a PATH and not to a download.
+ *
+ * This is the half of ticket 59 the wrapper exists to finish — Henry asked for *"send me the files
+ * from {file location}"* — and it is worth a test because the failure is invisible: a build that
+ * silently kept downloading would still say "Saved as …", and the tester would look in a folder
+ * that never fills up.
+ */
+describe('the desktop route', () => {
+    const logs = new Map<string, string>();
+    let failWrites = false;
+
+    beforeEach(() => {
+        logs.clear();
+        failWrites = false;
+        (window as unknown as Record<string, unknown>).mingmingDesktop = {
+            isDesktop: true,
+            read: () => null,
+            write: () => ({ ok: true }),
+            remove: () => ({ ok: true }),
+            keys: () => [],
+            writeRunLog: (fileName: string, contents: string) => {
+                if (failWrites) return { ok: false, error: 'disk full' };
+                logs.set(fileName, contents);
+                return { ok: true, path: `C:\\Users\\test\\AppData\\Roaming\\Mingming\\run-logs\\${fileName}` };
+            },
+            paths: () => ({
+                userData: 'C:\\Users\\test\\AppData\\Roaming\\Mingming',
+                saves: 'C:\\Users\\test\\AppData\\Roaming\\Mingming\\saves',
+                runLogs: 'C:\\Users\\test\\AppData\\Roaming\\Mingming\\run-logs',
+            }),
+            revealRunLogs: () => ({ ok: true }),
+        };
+    });
+
+    afterEach(() => {
+        delete (window as unknown as Record<string, unknown>).mingmingDesktop;
+    });
+
+    it('writes through the bridge instead of downloading', async () => {
+        writeRunLog(emptyRunLog('seed-a', 1000));
+        await mount();
+
+        const clicked = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+        await act(async () => {
+            exportButton()!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+
+        expect(logs.size).toBe(1);
+        // No anchor, no object URL — the download path was not taken at all.
+        expect(clicked).not.toHaveBeenCalled();
+        expect(created).toHaveLength(0);
+        clicked.mockRestore();
+    });
+
+    it('falls back to a download when the main process cannot write', async () => {
+        // A transcript that reaches the player's Downloads folder is worth more than one that is
+        // lost because `userData` was read-only.
+        failWrites = true;
+        writeRunLog(emptyRunLog('seed-a', 1000));
+        await mount();
+
+        const clicked = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+        await act(async () => {
+            exportButton()!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+
+        expect(logs.size).toBe(0);
+        expect(clicked).toHaveBeenCalledTimes(1);
+        clicked.mockRestore();
+    });
+
+    it('names the real folder in the settings copy rather than "your downloads folder"', async () => {
+        saveSettings({ ...DEFAULT_SETTINGS, autoSaveRunLog: true });
+        await mount();
+
+        expect(host.textContent).toContain('AppData\\Roaming\\Mingming\\run-logs');
+        expect(host.textContent).not.toContain('downloads folder');
+        expect([...host.querySelectorAll('button')].some(b => b.textContent === 'Open the folder')).toBe(true);
     });
 });

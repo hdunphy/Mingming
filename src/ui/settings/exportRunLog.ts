@@ -16,6 +16,7 @@
  * the build. Twelve duplicated lines is the correct price for that boundary.
  */
 
+import { desktopBridge } from '../../engine/save/desktopStorage';
 import {
     RUN_LOG_RUNS,
     findRunLog,
@@ -60,6 +61,32 @@ function downloadJson(fileName: string, contents: string): void {
 }
 
 /**
+ * WRITE ONE JSON FILE, by whichever route this build has — ticket 42.
+ *
+ * On the desktop it goes into `userData/run-logs/`, a real directory the tester can be pointed at.
+ * In the browser it is the download it has always been. Both callers below go through here, so the
+ * two routes can never drift apart, and neither caller has to know which build it is in.
+ *
+ * A desktop write that FAILS falls back to the download rather than reporting nothing: the whole
+ * value of this feature is that the transcript survives, and a browser-style download inside an
+ * Electron window still lands in the player's Downloads folder. Returns where it went, for copy
+ * that tells the tester where to look.
+ */
+function writeRunLogFile(fileName: string, contents: string): { fileName: string; path?: string } {
+    const bridge = desktopBridge();
+    if (bridge) {
+        try {
+            const result = bridge.writeRunLog(fileName, contents);
+            if (result?.ok) return { fileName, path: result.path };
+        } catch {
+            // Fall through to the download.
+        }
+    }
+    downloadJson(fileName, contents);
+    return { fileName };
+}
+
+/**
  * Write every stored transcript to a file and return the name it was saved as.
  *
  * Returns null when there is nothing to write, so the caller never claims a save that did not
@@ -72,8 +99,30 @@ export function exportRunLogs(): string | null {
 
     const now = new Date();
     const fileName = `mingming-run-log-${stampOf(now)}.json`;
-    downloadJson(fileName, serializeRunLogs(now.getTime()));
+    writeRunLogFile(fileName, serializeRunLogs(now.getTime()));
     return fileName;
+}
+
+/** Where auto-saved run logs land in this build, or null in the browser (they are downloads). */
+export function runLogDirectory(): string | null {
+    const bridge = desktopBridge();
+    if (!bridge) return null;
+    try {
+        return bridge.paths().runLogs;
+    } catch {
+        return null;
+    }
+}
+
+/** Open that directory in the OS file manager. False when there is nothing to open. */
+export function revealRunLogDirectory(): boolean {
+    const bridge = desktopBridge();
+    if (!bridge) return false;
+    try {
+        return bridge.revealRunLogs()?.ok === true;
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -83,7 +132,11 @@ export function exportRunLogs(): string | null {
  * an export a tester has to remember is an export that does not happen, and the data was already
  * being recorded perfectly and then thrown away three runs later.
  *
- * # WHY A DOWNLOAD AND NOT A PATH
+ * # WHY A DOWNLOAD AND NOT A PATH — IN THE BROWSER
+ *
+ * **Ticket 42 resolved the second bullet below: the desktop build writes to a path.**
+ * `writeRunLogFile` takes it when the bridge is there, so the paragraph that follows now describes
+ * the web build only, and is kept because the web build still ships.
  *
  * A browser page cannot write to a chosen folder on its own. The two things that could:
  *
@@ -131,6 +184,6 @@ export function autoSaveRunLog(runKey: string, outcome: string): string | null {
     const suffix = outcome.replace(/[^a-z]/gi, '') || 'ended';
     const fileName = `mingming-run-${stampOf(now)}-${suffix}-${seed}.json`;
 
-    downloadJson(fileName, serializeOneRunLog(log, now.getTime()));
+    writeRunLogFile(fileName, serializeOneRunLog(log, now.getTime()));
     return fileName;
 }

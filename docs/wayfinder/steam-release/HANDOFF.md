@@ -4,7 +4,7 @@
 
 **Git on this mount, the short version.** It cannot `unlink`, which has three consequences worth knowing before you fight them: `git checkout` / branch switching **does not work** (in-place `git show HEAD:<path> > <path>` is the restore fallback); `.git/index.lock` and `.git/HEAD.lock` survive every command, so `mv .git/*.lock _to_delete/git-locks/` before each git call and ignore the `tmp_obj_*` warnings; and files are moved to `_to_delete/`, never deleted. `.github/workflows/*.yml` is additionally **write-protected against `device_commit_files`** — write those through `device_bash` instead. Long gates (`tsc -b`, `vitest run`, `npm run balance`) exceed the device VM's 45-second kill; tarball the tree to a cloud container and run them there. `git add --renormalize -u .` over the whole tree is one of the commands that silently dies at 45 s — chunk it 50 paths at a time.
 
-*Last updated: 2026-08-28 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion, 68-legion). **State: 67 tickets, 37 closed.** The critical path is complete, the run's four edit surfaces are built, ticket 60's enemy ladder is in, and **ticket 68 rebuilt the gym boss**. **THE BOSS WALL IS GONE — AND THE FIGHT OVERSHOT.** Emberfall's boss goes **0/60 -> 48/60 (80.0%) prepared**, 39/60 (65.0%) control, against a 60% target; its three fights now read **83.3 / 90.0 / 80.0** where they read 68.3 / 81.7 / 3.3. The relics are retired as a concept: enemy passives are **DRIVERS**, side-scoped, additive to a member's own OS, on the same machinery as the player's. For the PREPARED player the other two bands still grade (Q3): **wilds 95.7% vs 95 - PASS. Elites 73.7% vs 75 - PASS.** **WAITING ON HENRY: the boss is now 15pt ABOVE the target the prepared arm grades.** Nothing was turned - the unturned levers are `BOSS_IVS` (ruling 7's re-check against the new Driver, NOT yet run), WAR FOOTING's numbers, the authored composition, and the 60% target itself, which was set against a boss nobody had designed. Also worth a decision: **WAR FOOTING's turn-4 escalation barely fires** (fights average 4.1 turns). Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) SS13. **Tidewrack and Rootfall are NOT authored** (68 ruling 6) and still field ticket 18's `boss_relic_*` formula boss at 0/60 - one gym per design session. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass** (deck-archetypes, 24-36 cards - the fight it was aimed at no longer exists; the handover report is [research/68-what-the-boss-redesign-asks-of-the-cards.md](research/68-what-the-boss-redesign-asks-of-the-cards.md) and it asks him three questions before the pass is worth starting), **57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40 - **109 is the single highest-leverage ticket on the board**, nine steam-release tickets sit behind it. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22** (142 of 216 card descriptions print their power figure) and the anti-boss power tier. **Ticket 69 CLOSED + ROUND TWO APPLIED: the pick pool is your ELEMENTS now, for the shop AND for drops** (Henry 2026-08-28, closing economy-session's last open item) - a solo party's pool goes 5 -> 33 cards, the stall stocks 7 (five pool, one reserved neutral, one stranger), and the calibration-content exclusion moved into `RewardSystem.isRewardable` because an element pool would otherwise offer the control species' `baseline_*` cards to everyone. **Ticket 34 CLOSED** (theme tokens, 31 SVG icons, the winding-route map, ticket 66's card chassis, 26 screens x 2 resolutions in `research/34-screens/`); the battle-HUD glyph vocabulary and the engine's combat-log emoji remain, excluded by name from the emoji sweep so the exclusion list is the to-do list. **`scripts/debug-generate.ts` deleted — it was failing `eslint .`, i.e. CI has been red on HEAD since ticket 55; every session missed it by linting a drifted cloud copy.** **New tool: `npm run decks`** writes `docs/balance/deck_browser.html`, a standalone at-a-glance reference for all 32 decks that badges its own numbers stale by registry hash. Suite green at 132 files / 1849 tests. **LINT IS BLOCKING IN CI as of ticket 55** - the tree is at 0 errors, so a new one fails the build.** Branch `steam-release-prep`.*
+*Last updated: 2026-08-28 (agent sessions: 02, 03, 04, 26, 06, 21, 23, 20, 09-15, 18, 19, 22, 24, 36, 55, 31, 57, 59, 61, 67-build, 67-legion, 68-legion, 42-legion). **State: 67 tickets, 38 closed.** The critical path is complete, the run's four edit surfaces are built, ticket 60's enemy ladder is in, and **ticket 68 rebuilt the gym boss**. **THE BOSS WALL IS GONE — AND THE FIGHT OVERSHOT.** Emberfall's boss goes **0/60 -> 48/60 (80.0%) prepared**, 39/60 (65.0%) control, against a 60% target; its three fights now read **83.3 / 90.0 / 80.0** where they read 68.3 / 81.7 / 3.3. The relics are retired as a concept: enemy passives are **DRIVERS**, side-scoped, additive to a member's own OS, on the same machinery as the player's. For the PREPARED player the other two bands still grade (Q3): **wilds 95.7% vs 95 - PASS. Elites 73.7% vs 75 - PASS.** **WAITING ON HENRY: the boss is now 15pt ABOVE the target the prepared arm grades.** Nothing was turned - the unturned levers are `BOSS_IVS` (ruling 7's re-check against the new Driver, NOT yet run), WAR FOOTING's numbers, the authored composition, and the 60% target itself, which was set against a boss nobody had designed. Also worth a decision: **WAR FOOTING's turn-4 escalation barely fires** (fights average 4.1 turns). Full write-up: [research/67-gate-validity-and-the-power-ceiling.md](research/67-gate-validity-and-the-power-ceiling.md) SS13. **Tidewrack and Rootfall are NOT authored** (68 ruling 6) and still field ticket 18's `boss_relic_*` formula boss at 0/60 - one gym per design session. **ALSO WAITING ON HENRY: the Q2 anti-boss card design pass** (deck-archetypes, 24-36 cards - the fight it was aimed at no longer exists; the handover report is [research/68-what-the-boss-redesign-asks-of-the-cards.md](research/68-what-the-boss-redesign-asks-of-the-cards.md) and it asks him three questions before the pass is worth starting), **57, 31, 25.** Blocked on deck-archetypes 109: 16, 17, 40 - **109 is the single highest-leverage ticket on the board**, nine steam-release tickets sit behind it. **OPEN REQUEST TO DECK-ARCHETYPES: ticket 22** (142 of 216 card descriptions print their power figure) and the anti-boss power tier. **Ticket 69 CLOSED + ROUND TWO APPLIED: the pick pool is your ELEMENTS now, for the shop AND for drops** (Henry 2026-08-28, closing economy-session's last open item) - a solo party's pool goes 5 -> 33 cards, the stall stocks 7 (five pool, one reserved neutral, one stranger), and the calibration-content exclusion moved into `RewardSystem.isRewardable` because an element pool would otherwise offer the control species' `baseline_*` cards to everyone. **Ticket 34 CLOSED** (theme tokens, 31 SVG icons, the winding-route map, ticket 66's card chassis, 26 screens x 2 resolutions in `research/34-screens/`); the battle-HUD glyph vocabulary and the engine's combat-log emoji remain, excluded by name from the emoji sweep so the exclusion list is the to-do list. **`scripts/debug-generate.ts` deleted — it was failing `eslint .`, i.e. CI has been red on HEAD since ticket 55; every session missed it by linting a drifted cloud copy.** **New tool: `npm run decks`** writes `docs/balance/deck_browser.html`, a standalone at-a-glance reference for all 32 decks that badges its own numbers stale by registry hash. Suite green at 132 files / 1849 tests. **LINT IS BLOCKING IN CI as of ticket 55** - the tree is at 0 errors, so a new one fails the build.** **TICKET 42 CLOSED - THE DESKTOP APP EXISTS AND THE SAVES ARE FILES.** Henry ruled Electron, no code signing, Windows + Linux, placeholder icon. `desktop/` is an Electron wrapper (`main.cjs` + a `contextBridge` preload, synchronous save IPC); saves are one atomic JSON per key under `userData/saves/`, which is what Steam Auto-Cloud is pointed at in ticket 43 - a path rule, no code. **Ticket 23's seam held: not one existing save caller changed**, the swap is one line in `main.tsx`. **Ticket 59's other half landed with it** - run logs go to `userData/run-logs/` and the settings screen names and opens that folder. **`npm run desktop:build`** (a Node script, because Henry is on Windows; `-- --linux` / `--win` / `--dir`). Proven on the packaged **Linux** binary over CDP under Xvfb: mounts, `localStorage` empty, writes its slot index and ranch save as files, and **relaunches straight to the ranch with the blueprint intact**. **WINDOWS WAS BUILT BUT NOT RUN** - real PE32+ exe with the icon embedded, but the NSIS installer needs Wine to cross-build, so **Henry should run `npm run desktop:build -- --win` on his own machine** (the zip is 146 MB, past what a session can hand over) - that is the one outstanding verification on 42. Two ticket errors flagged not faked: the icon is a **PLACEHOLDER** (34 made no logo - it is commissioned), and **`release-check` does not exist**, it is ticket 40's. Suite green at **133 files / 1863 tests**. Branch `steam-release-prep`.*
 
 ---
 
@@ -40,6 +40,69 @@ The map lives at `docs/wayfinder/steam-release/map.md`. Read it first — destin
 ---
 
 ## Where things stand (findings log — newest first)
+
+### 2026-08-28 - The desktop app exists, and the saves are FILES (ticket 42)
+
+Henry's three answers, taken as rulings: **Electron. No code signing. Windows and Linux, placeholder
+icon.**
+
+**The headline is how little of the game changed.** Ticket 23 cut the storage seam a month early and
+its header made a promise - *"ticket 42 implements `FileSaveStorage` behind this interface; nothing
+else needs to change when it does"*. It held exactly: `SaveSystem`, `SaveSlots`, `runLog`,
+`runTelemetry`, `settings` and `AudioEngine` are untouched, and the whole desktop save port is one
+new file plus one call at the top of `main.tsx`. That is what cutting a seam before you need it buys.
+
+**Why the IPC is SYNCHRONOUS, in case a future session is tempted to "modernise" it.** `ISaveStorage`
+is synchronous by ruling, because an async save API leaks into every reducer that touches persistence
+and into `store.ts`'s autosave subscription. Node has sync `fs` and Electron has a sync channel, so
+the cost of keeping that true is paid in a main process that is doing nothing else, on single JSON
+files of a few KB, on a save rather than per frame. Making it async would be a refactor of the state
+layer wearing a performance costume.
+
+**Three traps recorded because they cost time or would have:**
+
+- **`base` must be `'./'`.** A `dist/` built for Pages has absolute `/Mingming/...` asset paths,
+  which under `file://` resolve against the filesystem root and 404 - the window opens **blank with
+  no error a player could report**. `MINGMING_DESKTOP=1` switches it, and `scripts/desktop-build.mjs`
+  now greps the built `index.html` and refuses rather than shipping a black box.
+- **The build script is Node, not shell.** `VAR=1 cmd && cp -r` does not run on Windows, which is the
+  machine that has to run it.
+- **`electron` is NOT a root dependency.** ~250 MB of binary that `tsc`, `vitest` and `eslint` never
+  touch. `desktop/` is its own npm project, installed on demand.
+
+**What was actually verified, and what was not.** The packaged **Linux** build was driven over CDP
+under Xvfb: the renderer mounts, `localStorage.length === 0` (the swap took and nothing fell back),
+the game wrote `saves/mingming_saves.json` unprompted, picking a starter wrote
+`saves/mingming_ranch__slot_1.json`, and **killing it and relaunching opened at the ranch, not the
+starter picker**, with the blueprint intact. That is load and save proven on a real binary.
+**Windows was built but not run** - `Mingming.exe` is a real PE32+ x86-64 binary with all seven icon
+images embedded, but the **NSIS installer needs Wine to cross-build from Linux** and fails with
+`wine process failed ENOENT`, leaving a truncated `Setup .exe` that was deleted. **Henry: run
+`npm run desktop:build -- --win` on your own machine** - it produces the installer with no caveat,
+and the zip is 146 MB, well past what can be handed through a session.
+
+**Ticket 59's other half is done.** `autoSaveRunLog` and `exportRunLogs` both go through one
+`writeRunLogFile`, which takes the bridge when it exists and **falls back to the browser download
+when a desktop write fails** - a transcript in Downloads beats one lost to a read-only `userData`.
+`SettingsScreen` prints the real path instead of "your downloads folder" and grows an *Open the
+folder* button, so the tester instruction is now one sentence with a real path in it.
+
+**Two ticket errors, flagged rather than quietly satisfied** (the task protocol's rule):
+
+- The ticket says the icon set comes *"from ticket 34's logo"*. **Ticket 34 produced no logo** - the
+  identity art is commissioned (ticket 32). Henry ruled a placeholder; `desktop/build/icon.{png,ico}`
+  is two fanned cards and a diamond, drawn against `tokens.css`'s own background.
+- The Done-when says *"`release-check` passes on the desktop bundle"*. **There is no such script** -
+  it is [ticket 40](tickets/40-standing-gates.md)'s deliverable, and 40 is open and blocked. Read as
+  the existing gates on the desktop bundle, which is what ran.
+
+**For ticket 43, written where it bites (`main.cjs`):** `electron-builder` does not pick up
+`steamworks.js`'s `dist/{win64,linux64}/` redistributables by default; they must be copied into the
+build root explicitly. And Auto-Cloud comes free - `userData/saves/` is one JSON per slot, so it is a
+path rule with no code.
+
+**Sizes:** 283 MB unpacked Linux, 368 MB Windows, 146 MB win zip. The game itself is `app.asar` at
+**1.18 MB** - ticket 26's ~314 MB estimate was close. Suite **133 files / 1863 tests**, lint 0.
 
 ### 2026-08-28 — The pick pool is your ELEMENTS now, for the shop AND for drops
 

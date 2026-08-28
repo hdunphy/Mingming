@@ -15,7 +15,13 @@ import {
     type MotionChoice,
 } from '../settings/settings';
 import { wipeSave } from '../settings/wipeSave';
-import { RUN_LOG_RUNS, exportRunLogs, storedRunLogCount } from '../settings/exportRunLog';
+import {
+    RUN_LOG_RUNS,
+    exportRunLogs,
+    revealRunLogDirectory,
+    runLogDirectory,
+    storedRunLogCount,
+} from '../settings/exportRunLog';
 import { playSfx } from '../audio/AudioEngine';
 import './SettingsScreen.css';
 
@@ -64,6 +70,14 @@ export default function SettingsScreen(): ReactNode {
     // Ticket 59. Read once on mount: the count only changes when a run ends, which cannot happen
     // while this overlay is up.
     const [runLogCount] = useState(() => storedRunLogCount());
+
+    /*
+     * TICKET 42. The copy below was written for a browser and says "downloads folder" four times.
+     * In the packaged build that is wrong in the way that matters most — the tester goes looking in
+     * the place the game named and finds nothing — so the path is read once here and the sentences
+     * branch on it. Null in the web build, which keeps the original wording exactly.
+     */
+    const [logsDir] = useState(() => runLogDirectory());
     const [exported, setExported] = useState<string | null>(null);
 
     const update = (next: ISettings): void => {
@@ -205,14 +219,42 @@ export default function SettingsScreen(): ReactNode {
                     </div>
                     <p className="settings-note">
                         {settings.autoSaveRunLog
-                            ? `On. Every run writes itself to your downloads folder the moment it ends,
-                               as mingming-run-<date>-<outcome>.json. Your browser may ask once to allow
-                               multiple downloads — say yes, or nothing will be saved. When you are done,
-                               send every mingming-run-*.json you have.`
-                            : `Off. Runs are still recorded and you can save them below, but only the
-                               last ${RUN_LOG_RUNS} are kept — turn this on and each one writes itself to
-                               your downloads folder as it ends, so nothing is lost to that window.`}
+                            ? logsDir
+                                ? `On. Every run writes itself to ${logsDir} the moment it ends, as
+                                   mingming-run-<date>-<outcome>.json. When you are done, send everything
+                                   in that folder.`
+                                : `On. Every run writes itself to your downloads folder the moment it ends,
+                                   as mingming-run-<date>-<outcome>.json. Your browser may ask once to allow
+                                   multiple downloads — say yes, or nothing will be saved. When you are done,
+                                   send every mingming-run-*.json you have.`
+                            : logsDir
+                              ? `Off. Runs are still recorded and you can save them below, but only the
+                                 last ${RUN_LOG_RUNS} are kept — turn this on and each one writes itself to
+                                 ${logsDir} as it ends, so nothing is lost to that window.`
+                              : `Off. Runs are still recorded and you can save them below, but only the
+                                 last ${RUN_LOG_RUNS} are kept — turn this on and each one writes itself to
+                                 your downloads folder as it ends, so nothing is lost to that window.`}
                     </p>
+
+                    {/*
+                      * Desktop only, and only when the toggle is on: a folder the player has been told
+                      * about is a folder they should be able to open without hunting for AppData.
+                      */}
+                    {logsDir && settings.autoSaveRunLog ? (
+                        <div className="settings-row">
+                            <span className="settings-label">Run log folder</span>
+                            <button
+                                type="button"
+                                className="settings-button"
+                                onClick={() => {
+                                    playSfx('uiClick');
+                                    revealRunLogDirectory();
+                                }}
+                            >
+                                Open the folder
+                            </button>
+                        </div>
+                    ) : null}
 
                     <div className="settings-row">
                         <span className="settings-label">Export run log</span>
