@@ -345,3 +345,36 @@ exactly where the run is hardest — the two biggest per-spot gaps are both the 
 The two overrides are **run-scoped CLI flags** (`--boss-ivs`, `--boss-relics off`) and print on the
 report header. **No shipped constant moved, and the boss AI grade stays locked at full lookahead per
 R2.**
+
+
+## Round-4 rulings (Henry, 2026-08-28) — review of the rebuilt boss (research/68)
+
+Context: [research/68-what-the-boss-redesign-asks-of-the-cards.md](../research/68-what-the-boss-redesign-asks-of-the-cards.md)
+reports rebuilt Emberfall at 83.3 / 90.0 / 80.0 prepared per fight. The review adds the number the
+report missed: **the compound is 0.833 x 0.900 x 0.800 = 60.0% end-to-end, exactly on the 60 figure,
+untuned** — and real HP carry (absent from the harness) pulls a played gauntlet a few points below
+that, which the per-fight overage quietly absorbs. One factual correction to the report's SS6:
+ratatoskr is not the only launch Weakened source — **huldra_v1's ALLURE_PROXY applies 1 Weakened to
+a random enemy on every buff she grants**. Both sources are Nature, so the conclusion stands: the
+type-recommended Water counter-team has no Weakened access, and the fight's texture is *race it
+with Water, or answer it with Nature and pay the Fire tax*.
+
+1. **The gauntlet target stays HELD — now until all three gyms are rebuilt.** R3 deferred it for
+   the isolation numbers; those are in, and the per-fight-vs-end-to-end choice is deliberately not
+   ruled against a single authored gym. One number will govern three real fights, after Tidewrack
+   and Rootfall. Emberfall is NOT tuned in the meantime (no BOSS_IVS re-check applied, WAR FOOTING
+   numbers untouched) — the 80/90/83 shape is plausibly right once HP carry is priced in, and
+   nothing moves until the target exists.
+2. **Q2's anti-boss brief is RETIRED as a problem statement.** "2-3 cards per deck to help defeat
+   the boss" was ruled against an unbeatable fight that no longer exists at Emberfall and is
+   scheduled to stop existing at the other two gyms. Whether a power tier above the base decks
+   ships at EA is RE-ASKED after Tidewrack and Rootfall are authored and measured — if it returns,
+   it returns with a different job (chase content / Finding B's ceiling), designed against three
+   real fights. No 24-36 card pass starts before then. The ICE_RELIC-vs-jormungandr_v2 asymmetry
+   dies naturally when Tidewrack is authored.
+3. **The Weakened gap is ruled INTENDED, with the cheap hedge.** The Driver is meant to be raced by
+   the type-smart team and answered by the type-brave one. The hedge: `hamstring` (None-element,
+   1e, 20 power, 2 Weakened, in no launch deck) becomes REACHABLE — the market's off-pool stock
+   slot (already in ticket 63's ruled design) draws from a small curated neutral-utility list that
+   includes it, so any party CAN buy the mechanical answer without any species pool changing.
+   Build: [ticket 69](69-neutral-market-slot.md).
