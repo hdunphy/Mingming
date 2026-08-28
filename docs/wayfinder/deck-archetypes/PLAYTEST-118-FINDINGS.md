@@ -24,29 +24,42 @@ generally, since `panel-zoo` runs both scalers.
 
 ---
 
-## Bugs and clear improvements — I can do these, none need a design call
+## Bugs and clear improvements
 
-**`rimebreaker` snowballs at 1v1** (*"consistently did above 25 damage after one turn of setup"*).
-It reads `ANY_STATUS` — every distinct status on the target, **buffs, debuffs, anyone's** — uncapped,
-and a control deck applying four different debuffs arms the opponent's own payoff. Henry's proposal
-(*"should probably consume or maybe just reduce some stacks"*) is the right shape and matches the
-ticket-26 law that a payoff should pay for what it eats. **Recommend: consume the statuses it counts.**
+**`rimebreaker` snowballs at 1v1 — FIXED, ticket 124.** It reads `ANY_STATUS`, every distinct status
+on the target, and paid nothing for it, so the pile only grew and each cast was bigger than the last.
+It now takes **one stack of each type it counted**. Henry offered "consume or maybe just reduce some
+stacks"; a stack is the right half, because `StatusExecutor`'s own hexbloom note records that
+consuming turns a card into a hoard dump priced off how long you saved up (×3 measured 13.90 against
+a 6.5 band) while reading without consuming keeps it a rate. A stack keeps the rate and still kills
+the snowball.
 
-**`hexbloom` has no damage preview** (*"no indication what it will do"*). It scales off the target's
-Weakened. `computeDamagePreview` handles ATTACK scalers; hexbloom's payoff is a STATUS action, so it
-falls outside the preview path. Fixable in the same shared-helper shape as ticket 90.
+**`hexbloom` has no preview — FIXED, ticket 125.** It failed *both* of the preview's gates: no ATTACK
+action, and no HP lost. The preview now diffs the target's statuses out of the same simulated play
+that produces the damage number, so it covers **every** status card rather than hexbloom alone, and
+there is no second implementation to drift from. A chip row renders the deltas. **Caveat: I cannot
+see the UI from here — the data layer and the chip are test-covered, but you should eyeball the
+rendering.**
 
 **Regen is dead on arrival** (*"I just put it on there, it triggered for no gain"*). Regen fires at
 **end of turn** — your own turn — so you heal *before* the enemy hits you, then lose a stack. Henry:
-*"I feel like it should be start of your turn."* **He is right and it is a one-line move.** Start of
-turn means it heals the damage you just took, which is what a regeneration effect is for. Worth
-checking it does not break `audhumbla_v1`'s overheal ramp, which keys off healing.
+*"I feel like it should be start of your turn."* He is right — start of turn means it heals the damage
+you just took, which is what a regeneration effect is for.
+
+**NOT DONE, and I was wrong to call it a one-line move.** Regen ticks inside the shared end-of-turn
+loop that also runs Burn and Poison, alongside defeat detection, HP-threshold crossings and
+`STATUS_REMOVED` events. Moving only Regen needs that per-entity processing extracted so it can run a
+second pass over the party that is about to act. That is a real reducer refactor, and it moves
+`audhumbla_v2`'s Regen battery — which ticket 101 measured on a knife edge, 3 per heal accumulating
+where 1 exactly cancels decay — plus `huldra_v1`. **It needs the refactor, tests, and a 1v1
+re-baseline.** Worth doing, but not something to slip in beside three other fixes.
 
 **Enemy turns are slow** (*"taking a couple seconds to even play a card"*, *"3v3 enemies take a long
 time"*). Not cosmetic — it is the same cost that has been blowing my own 10-minute run budgets all
 week, and it got worse with side-scoped cards. The AI scores candidate plays through the real
 reducer, so a 3-body side with side-wide effects multiplies the search. This is `0-AI-SIM-COUNTS`
-territory and wants its own performance ticket.
+territory and wants its own performance ticket. **NOT DONE** — it is an investigation, not a fix, and
+it deserves a real profiling pass rather than a guess.
 
 ---
 
@@ -54,12 +67,22 @@ territory and wants its own performance ticket.
 
 **The 3v2 snowball** (*"Once it was 3v2 it was a landslide. That's something we might have to fix.
 We need something to help balance when the first mingming dies"*). **This is the most important item
-in the whole playtest** and it is bigger than any card. Losing a body costs you a share of the
-damage, but the shared deck and hand stay the same size, so the survivors get *more* cards each while
-the enemy's output falls by a third. The advantage compounds instead of decaying — which is why every
-3v3 measurement in this arc has been so lopsided in both directions. Options worth considering: a
-comeback bonus on the down side, per-mingming draw so losing a body shrinks your hand, or reduced
-energy. Each changes the shape of 3v3 substantially, so it is yours.
+in the whole playtest** and it is bigger than any card.
+
+> **CORRECTION.** This section first claimed the shared hand stays the same size when a body dies.
+> **That is wrong, and Henry said so.** `battleReducer` recomputes the draw from `aliveUnits` every
+> turn — `sum(cardDraw) − aliveUnits + 1` — so with 3 cardDraw each it is **7 cards at three bodies,
+> 5 at two, 3 at one**. Energy is per-mingming, so that scales down too. Losing a body costs you
+> cards, energy and damage roughly in proportion. I asserted a mechanism without reading the code.
+
+So the snowball is not an asymmetry in the resources — it is that **there is no comeback mechanism at
+all.** Both sides scale down proportionally, which means the side that lands the first kill
+permanently removes a third of the incoming damage and nothing pushes back. Ordinary focus-fire
+dynamics with nothing damping them, which is why every 3v3 measurement in this arc has been lopsided
+in both directions. Options worth considering: a comeback
+bonus on the down side (extra energy or draw while behind on bodies), a scaling defensive buff, or
+accepting it as the intended shape of a fight. What is NOT an option is the one I first suggested —
+shrinking the hand on death — because that already happens.
 
 **Sharp at 5–6 stacks blocks everything.** Working exactly as specified, and the specification is the
 problem. Under ticket 102 the duality statuses are **flat power, uncapped**:

@@ -1,4 +1,4 @@
-import type { IBattleState, IBattleEntity, ProgramData, Element } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance } from '../types';
 import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, StatusType } from '../types';
 import type { HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
@@ -254,7 +254,26 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             damage = Math.floor(damage * getDamageScalingMultiplier(state, scaling, element || programToUse.element, target, source));
         }
 
-        return applyMutations(state, [{
+        // TICKET 124: an ANY_STATUS scaler PAYS one stack of each status it counted.
+        //
+        // Henry, ticket-118 playtest: *"Rimebreaker in a 1v1 is very easy to snowball. It
+        // should probably consume or maybe just reduce some stacks. It consistently did above
+        // 25 damage after one turn of setup"*. The card read the pile without paying for it,
+        // so the pile only grew and every cast was bigger than the last.
+        //
+        // ONE STACK per counted type, not a full consume, on `StatusExecutor`'s hexbloom
+        // precedent below: consuming makes a card a hoard dump priced off how long you saved
+        // up (x3 measured 13.90 against a 6.5 band), while reading without consuming makes it
+        // a RATE. A stack keeps the rate and still kills the snowball, because the count
+        // feeding the next cast is now strictly smaller unless something re-applies.
+        //
+        // Counted BEFORE the damage lands, from the same predicate `getEffectiveAttackPower`
+        // used, so the decrement and the damage cannot disagree about what a status is.
+        const countedTypes = scaling === 'ANY_STATUS'
+            ? [...new Set((target.statusEffects ?? []).filter(s => s.stacks > 0).map(s => s.type))]
+            : [];
+
+        let next = applyMutations(state, [{
             type: 'HP',
             sourceId: sourceId,
             targetId: targetId,
@@ -264,6 +283,37 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
                 element: element || program?.element
             }
         }]);
+
+        // Direct party mutation, matching how the `consume` branch in StatusExecutor removes
+        // stacks. A STATUS mutation with negative stacks does NOT work: it routes through
+        // handleApplyStatus, which returns early unless the stack count is positive, so the
+        // first version of this change silently did nothing and the test caught it.
+        if (countedTypes.length > 0) {
+            const removed: string[] = [];
+            const pay = (party: ReadonlyArray<IBattleEntity>) => party.map(e => {
+                if (e.id !== targetId) return e;
+                const kept: StatusEffectInstance[] = [];
+                for (const s of e.statusEffects) {
+                    if (!countedTypes.includes(s.type)) { kept.push(s); continue; }
+                    const stacks = s.stacks - 1;
+                    if (stacks > 0) kept.push({ ...s, stacks });
+                    else removed.push(s.type);
+                }
+                return { ...e, statusEffects: kept };
+            });
+            next = { ...next, playerParty: pay(next.playerParty), enemyParty: pay(next.enemyParty) };
+            // STATUS_REMOVED is emitted for real removals only - draugr_v1's PERMAFROST_WAKE
+            // listens on it, so a spurious emit would hand him a free wake.
+            for (const status of removed) {
+                globalBattleEventBus.emit({
+                    type: 'STATUS_REMOVED', targetId, status, timestamp: Date.now(),
+                });
+            }
+            next = addLog(next, `  \u2744\ufe0f ${target.name} loses 1 stack of `
+                + `${countedTypes.join(', ')} to the break`);
+        }
+
+        return next;
     }
 }
 
