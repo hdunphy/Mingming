@@ -149,6 +149,18 @@ turn 4 on, 2"* is decoration. Built, tested and live; just not part of the measu
 - **The elite band was not re-measured** under the new final-elite Driver — one cell,
   `elite:biome2 --gym gym_emberfall`, ~15 min at 100 iterations.
 
+### Report to the design agent
+
+[research/68-what-the-boss-redesign-asks-of-the-cards.md](../research/68-what-the-boss-redesign-asks-of-the-cards.md)
+— written for the deck-archetypes map, because **the Q2 anti-boss card brief was aimed at a fight
+that no longer exists**. It carries the redesign, the numbers, which rows of Q2's counter-lever table
+are now dead (and which are alive at two gyms until their own sessions), the two constraints the new
+fight imposes (WAR FOOTING is worth 3-5 stacks at a 4.1-turn fight length; anti-boss cards have to be
+good on the turn they are drawn), and one finding worth the rest of the document: **the only launch
+species that can cancel WAR FOOTING with Weakened is ratatoskr, and ratatoskr is on the boss's side.**
+A player who brings the counter-team the type chart tells them to bring has no access to the
+mechanical answer to the fight's central rule.
+
 ### Gates
 
 `tsc -b`, `eslint .` (0), `vite build`, `assert-no-debug`, and `liveness.ts` (STATIC findings: none —
