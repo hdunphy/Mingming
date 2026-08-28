@@ -340,7 +340,11 @@ describe('MarketplaceNode', () => {
             // Name, energy rack and type mark are the chassis's three identifiers, and the price plate is
             // the affordance's whole label — there is no `Buy —` verb on a stall tile, because the
             // tile IS the button.
-            expect(tiles[i].name).toBe(nameOf(offer.card.dataId));
+            // `escapeHtml`, because the name is read back out of rendered markup. Henry's element
+            // ruling widened the pool from a party's deck lists to its whole element, and the first
+            // card with an apostrophe in it — Serpent's Coil — walked straight into a comparison
+            // that had never met one. The fixture was narrow, not the assertion wrong.
+            expect(tiles[i].name).toBe(escapeHtml(nameOf(offer.card.dataId)));
             expect(tiles[i].plate).toBe(`${offer.price} scrap`);
             expect(tiles[i].disabled).toBe(false);
             expect(['ATTACK', 'SKILL', 'DAEMON']).toContain(tiles[i].banner);

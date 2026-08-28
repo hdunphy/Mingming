@@ -21,6 +21,7 @@ import {
     SCRAP_PER_EXTRA_ENEMY,
     scrapForWin,
     getScrapYield,
+    isRewardable,
     rewardCardPool,
     rollDraftRounds,
     rollDropTable,
@@ -377,8 +378,18 @@ describe('RewardSystem', () => {
     });
 
     describe('the pick pool is the party (ticket 12, piece 4)', () => {
-        it('draws only from the party species per-OS deck lists', () => {
-            const allowed = new Set(getDeckForOS('fenrir', 'fenrir_v1'));
+        it('draws only from the party’s ELEMENTS — ruled by Henry, 2026-08-28', () => {
+            /*
+             * This test used to pin the pool to fenrir_v1's own deck LIST. Henry widened it:
+             * *"the main 5 should be any card from your element not just your deck"*, asked about
+             * the marketplace and ruled to apply to drops as well, because the two share this
+             * function on purpose. So the claim moves down a level — from species to element — and
+             * what it still forbids is the thing that matters: an offer of an element nobody in your
+             * party runs.
+             */
+            const allowed = new Set(rewardCardPool(FENRIR_V1));
+            expect(allowed.size, 'the element pool should be much wider than one deck list')
+                .toBeGreaterThan(getDeckForOS('fenrir', 'fenrir_v1').length);
             for (let i = 0; i < 40; i++) {
                 const bundle = rollDropTable({
                     defeated: deadParty(3, 'jormungandr', 'Water'),
@@ -388,7 +399,8 @@ describe('RewardSystem', () => {
                 });
                 for (const choice of bundle.cardChoices) {
                     for (const option of choice.options) {
-                        expect(allowed, `${option.dataId} is not a fenrir_v1 card`).toContain(option.dataId);
+                        expect(allowed, `${option.dataId} is not a Fire/neutral card`).toContain(option.dataId);
+                        expect(['Fire', 'None']).toContain(ProgramRegistry[option.dataId].element);
                     }
                 }
             }
@@ -423,14 +435,49 @@ describe('RewardSystem', () => {
             for (const id of kit) expect(pool).toContain(id);
         });
 
-        it('unions every party member, and only party members', () => {
+        it('unions every party member’s element, and only those elements', () => {
             const pool = rewardCardPool(FENRIR_AND_KRAKEN);
-            const fenrir = getDeckForOS('fenrir', 'fenrir_v1');
-            const kraken = getDeckForOS('kraken', 'kraken_v1');
 
-            for (const id of fenrir) expect(pool).toContain(id);
-            for (const id of kraken) expect(pool).toContain(id);
-            for (const id of pool) expect([...fenrir, ...kraken]).toContain(id);
+            // Both members' own deck lists are still in there — widening a pool cannot lose cards.
+            for (const id of getDeckForOS('fenrir', 'fenrir_v1')) expect(pool).toContain(id);
+            for (const id of getDeckForOS('kraken', 'kraken_v1')) expect(pool).toContain(id);
+
+            // And nothing outside Fire, Water and neutral, which is what keeps recruiting a
+            // decision: who you field still decides what you can draft, one level up from the card.
+            for (const id of pool) {
+                expect(['Fire', 'Water', 'None'], `${id} is off-element`)
+                    .toContain(ProgramRegistry[id].element);
+            }
+        });
+
+        it('offers cards from OUTSIDE the party’s own decks — the point of the ruling', () => {
+            // The old rule made a solo party's pool five cards, which is why the shop felt like the
+            // same shelf every visit. The widening is the deliverable, so it is asserted directly
+            // rather than left implied by the exclusions above.
+            const pool = rewardCardPool([{ definitionId: 'kraken', activeOS: 'kraken_v1' }]);
+            const ownDeck = new Set(getDeckForOS('kraken', 'kraken_v1'));
+            const beyond = pool.filter((id) => !ownDeck.has(id));
+
+            expect(beyond.length, 'the pool should reach past the party’s own list').toBeGreaterThan(10);
+            for (const id of beyond) expect(['Water', 'None']).toContain(ProgramRegistry[id].element);
+        });
+
+        it('never offers CALIBRATION content, which the element rule would otherwise expose', () => {
+            /*
+             * The control species is the balance corpus's deliberate floor and is not playable, and
+             * its six `baseline_*` cards are element `None` — so they are in EVERY element's pool.
+             * Under the old species rule they were unreachable; under this one they would be offered
+             * to every party in the game. `isRewardable` excludes them.
+             */
+            const calibration = getDeckForOS('control', 'control_v1');
+            expect(calibration.length).toBeGreaterThan(0);
+            for (const party of [FENRIR_V1, FENRIR_AND_KRAKEN]) {
+                const pool = rewardCardPool(party);
+                for (const id of calibration) {
+                    expect(pool, `${id} is a calibration card`).not.toContain(id);
+                    expect(isRewardable(id)).toBe(false);
+                }
+            }
         });
 
         it('follows the party you are FIELDING, so swapping who is deployed changes what drops', () => {

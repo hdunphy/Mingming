@@ -230,7 +230,7 @@ export default function MarketplaceNode({
                         </button>
                     </div>
 
-                    <h2 className="mk-h">STOCK — CARDS (party pools + one off-pool)</h2>
+                    <h2 className="mk-h">STOCK — CARDS (your elements + one off-pool)</h2>
                     <div className="mk-grid" style={STALL_TILE}>
                         {stock.offers.map((offer) => {
                             const face = cardFace(offer.card.dataId);

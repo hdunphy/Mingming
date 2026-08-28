@@ -42,8 +42,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 import * as marketplace from './marketplace';
 import {
     CARD_PRICE_BY_ENERGY,
+    MARKET_NEUTRAL_SLOTS,
     MARKET_NEUTRAL_UTILITY,
     MARKET_STOCK_SIZE,
+    MARKET_TOTAL_SLOTS,
     MARKET_VISITS_PER_RUN,
     MARKET_WILDCARD_SLOTS,
     MAX_PRICED_ENERGY,
@@ -158,18 +160,23 @@ describe('the market re-rolls per visit, and only per visit', () => {
 // ---------------------------------------------------------------------------------------------
 
 describe('what is in the stock', () => {
-    it('is MARKET_STOCK_SIZE cards from the reward pool plus MARKET_WILDCARD_SLOTS from outside it', () => {
+    it('is MARKET_STOCK_SIZE from the pool plus a neutral and a stranger — seven, ruled 2026-08-28', () => {
         const stock = stockAt(MARKET);
         const pool = rewardCardPool(SOLO);
 
-        expect(stock.offers.length).toBe(MARKET_STOCK_SIZE + MARKET_WILDCARD_SLOTS);
+        expect(stock.offers.length).toBe(MARKET_TOTAL_SLOTS);
+        expect(MARKET_TOTAL_SLOTS).toBe(MARKET_STOCK_SIZE + MARKET_NEUTRAL_SLOTS + MARKET_WILDCARD_SLOTS);
 
-        const fromPool = stock.offers.filter((o) => !o.wildcard);
-        const wild = stock.offers.filter((o) => o.wildcard);
+        const bySlot = (slot: string) => stock.offers.filter((o) => o.slot === slot);
+        expect(bySlot('pool').length).toBe(MARKET_STOCK_SIZE);
+        expect(bySlot('neutral').length).toBe(MARKET_NEUTRAL_SLOTS);
+        expect(bySlot('stranger').length).toBe(MARKET_WILDCARD_SLOTS);
 
-        expect(fromPool.length).toBe(MARKET_STOCK_SIZE);
-        expect(wild.length).toBe(MARKET_WILDCARD_SLOTS);
-        for (const offer of fromPool) expect(pool).toContain(offer.card.dataId);
+        for (const offer of bySlot('pool')) expect(pool).toContain(offer.card.dataId);
+        // `wildcard` means the STRANGER now, and only it. Henry's element ruling made a neutral card
+        // part of every party's pool, so calling that slot off-pool would be untrue.
+        expect(stock.offers.filter((o) => o.wildcard).map((o) => o.slot)).toEqual(['stranger']);
+        for (const offer of bySlot('stranger')) expect(pool).not.toContain(offer.card.dataId);
     });
 
     it('draws the wild-card from genuinely OFF the pool — the thing that saves a mono-species run', () => {
@@ -252,13 +259,36 @@ describe('what is in the stock', () => {
             }
         });
 
-        it('is what the wild-card slot actually draws from, at every market and every visit', () => {
+        it('reserves its slot at EVERY market and visit — the shelf is never six', () => {
+            /*
+             * This is the test the element ruling nearly broke, and the reason the draw filters on
+             * "not already taken" rather than "not in the pool".
+             *
+             * Under the old species rule the neutral list was outside every party pool, so
+             * `!pool.includes(id)` was a no-op on it. Henry's ruling folds every neutral card into
+             * every party's pool, so that same filter would have emptied this source and dropped
+             * the shelf to six with nothing failing — `drawDistinct` stops on an exhausted source
+             * rather than throwing.
+             */
             for (const node of MARKETS) {
                 for (const visit of [1, 2, 3]) {
-                    for (const offer of stockAt(visited(node, visit)).offers) {
-                        if (!offer.wildcard) continue;
+                    const offers = stockAt(visited(node, visit)).offers;
+                    const neutral = offers.filter((o) => o.slot === 'neutral');
+                    expect(neutral.length).toBe(MARKET_NEUTRAL_SLOTS);
+                    for (const offer of neutral) {
                         expect(MARKET_NEUTRAL_UTILITY).toContain(offer.card.dataId);
                     }
+                }
+            }
+        });
+
+        it('never shows the same card twice on one shelf', () => {
+            // The two off-pool sources are disjoint by construction (`stranger` excludes the neutral
+            // list) — this is the claim that stays true if either source is edited.
+            for (const node of MARKETS) {
+                for (const visit of [1, 2, 3]) {
+                    const ids = stockAt(visited(node, visit)).offers.map((o) => o.card.dataId);
+                    expect(new Set(ids).size).toBe(ids.length);
                 }
             }
         });

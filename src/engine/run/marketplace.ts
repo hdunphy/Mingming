@@ -139,13 +139,38 @@ export const MARKET_STOCK_SIZE = 5;
 export const MARKET_WILDCARD_SLOTS = 1;
 
 /**
- * WHAT THE OFF-POOL SLOT DRAWS FROM — **ticket 69**, off ticket 67's round-4 ruling 3.
+ * **RULED by Henry, 2026-08-28: the stall stocks SEVEN, and the seventh is a second off-pool slot.**
+ *
+ * Ticket 69 narrowed the one off-pool slot from a 207-card complement to a four-card neutral list,
+ * because a 1.4%-per-run draw is not a hedge. That bought reachability and cost the slot its OTHER
+ * job — the anti-monotony one written up above, *"three guaranteed strangers across a run"*, which
+ * matters most to exactly the player it was written for: a solo party's pool is five cards.
+ *
+ * Henry's answer keeps both rather than trading one for the other. **Two off-pool slots, doing two
+ * different jobs:**
+ *
+ * - `MARKET_NEUTRAL_SLOTS` draws from `MARKET_NEUTRAL_UTILITY` — the reliable route to a neutral
+ *   answer (`hamstring` and friends), which no species pool can ever offer.
+ * - `MARKET_WILDCARD_SLOTS` draws from everything else off-pool — the stranger, restored.
+ *
+ * Both are flagged `wildcard` on the offer and both wear the same `off-pool` tag, because from the
+ * player's side they are one idea: *this is not one of your team's cards*. The split is a stocking
+ * rule, not a thing the stall explains.
+ */
+export const MARKET_NEUTRAL_SLOTS = 1;
+
+/** What a visit puts on the shelf, all told. 5 + 1 + 1 = 7. */
+export const MARKET_TOTAL_SLOTS = MARKET_STOCK_SIZE + MARKET_NEUTRAL_SLOTS + MARKET_WILDCARD_SLOTS;
+
+/**
+ * WHAT THE NEUTRAL SLOT RESERVES — **ticket 69**, off ticket 67's round-4 ruling 3.
  *
  * # THE PROBLEM THIS FIXES IS A PROBABILITY, NOT A MISSING RULE
  *
- * The slot always had a source: everything `isRewardable` that the party's pool does not contain.
- * For a solo party that complement is **207 cards**, so any *particular* card was a 0.48% draw per
- * visit and **1.4% across a whole run's three markets**. Reachable on paper, unreachable in play.
+ * The one off-pool slot always had a source: everything `isRewardable` the party's pool did not
+ * contain. For a solo party that complement was **207 cards**, so any *particular* card was a 0.48%
+ * draw per visit and **1.4% across a whole run's three markets**. Reachable on paper, unreachable in
+ * play.
  *
  * That mattered the moment a specific card became an answer to a specific fight. Research/68 §6:
  * WAR FOOTING is cancelled by Weakened, every launch Weakened source is Nature, and the
@@ -170,23 +195,30 @@ export const MARKET_WILDCARD_SLOTS = 1;
  *    for a reason that does not exist until those species ship.
  * 3. **Not the control species' calibration content** — see below.
  *
- * # THIS ALSO CLOSES A LIVE BUG: THE FLOOR DECK WAS ON SALE
+ * # THIS ALSO CLOSED A LIVE BUG: THE FLOOR DECK WAS ON SALE
  *
  * The old complement included `baseline_jab`, `baseline_scuff`, `baseline_strike`, `baseline_snare`,
  * `baseline_slam` and `baseline_purge`. Those six are the **control species'** deck — deliberately
  * *"the worst deck in the game"* (`mingmingRegistry`), the balance corpus's reference floor. `control`
  * is not in `PLAYABLE_SPECIES`, so its cards fell straight through the "not in the party's pool"
  * filter and onto the shelf: roughly a **3% chance per visit of being sold a calibration fixture**.
- * Nothing was watching for it because nothing had a reason to look at what the slot contained.
+ * Nothing was watching for it because nothing had a reason to look at what the slot contained. The
+ * exclusion now lives in `RewardSystem.isRewardable`, so it covers drops as well and cannot be
+ * re-opened by widening a source — which the seventh slot promptly tried to do.
  *
- * # WHAT THIS COSTS, STATED PLAINLY
+ * # WHAT THIS SLOT IS *NOW*, AFTER HENRY'S ELEMENT RULING
  *
- * The slot's *shipped* purpose (see `MARKET_WILDCARD_SLOTS` above) was anti-monotony: *"three
- * guaranteed strangers across a run"* for a mono-species party. Narrowing 207 cards to four trades
- * that away — a solo party now sees three of these four rather than three of two hundred. That is a
- * real loss and ticket 69's resolution reports it with the numbers rather than burying it. The list
- * is **Henry's to extend** (the ticket says so), and extending it is the fix if the variety is
- * missed: every new entry restores breadth AND stays reachable, which the complement never was.
+ * Ticket 69 narrowed the single off-pool slot to this list, which bought reachability and cost the
+ * slot its anti-monotony job. Henry answered both on 2026-08-28: **a seventh stock slot** restores
+ * the stranger (see `MARKET_NEUTRAL_SLOTS`), and **the main five now draw from the party's ELEMENTS**
+ * rather than its deck lists.
+ *
+ * That second ruling changes what this list IS. `getPoolForElement` folds every `None` card into
+ * every element's pool, so all four entries are now in every party's main pool already — a solo
+ * party's pool went from 5 cards to 33, and these four are among them. **The slot stopped being a
+ * way IN and became a RESERVATION**: the answer to a fight is never crowded out by a 33-card draw.
+ * That is why the draw below filters on "not already taken" rather than on "not in the pool" — the
+ * old filter would now match everything and silently leave the shelf at six.
  *
  * Ordered, not sorted, so the file reads as a curated list and a diff shows an addition as an
  * addition.
@@ -397,11 +429,29 @@ export interface IMarketOffer {
     /** `cardPrice(card.dataId)`, carried so a render never re-derives a price the reducer checks. */
     readonly price: number;
     /**
-     * True for the off-pool slot. Surfaced to the screen because the point of the slot is that the
-     * player can *see* something arrive from outside their party's lists.
+     * Which of the three stocking slots put this on the shelf.
+     *
+     * A named slot rather than a boolean, because Henry's 2026-08-28 element ruling made the old
+     * boolean untrue. Under the species rule, "not from the party's pool" described BOTH extra slots
+     * and `wildcard` said it in one word. Under the element rule a neutral card **is** in every
+     * party's pool (`getPoolForElement` folds `None` cards into every element), so the neutral slot
+     * is no longer off-pool at all — it is a *guarantee*, not an outsider.
+     *
+     * - `pool` — one of the five drawn from your party's elements.
+     * - `neutral` — the guaranteed neutral-utility slot (`MARKET_NEUTRAL_UTILITY`). In your pool,
+     *   but reserved, so the answer to a fight is never crowded out by a 33-card draw.
+     * - `stranger` — the genuinely off-pool slot: a card of an element nobody in your party runs.
+     */
+    readonly slot: MarketSlot;
+    /**
+     * True for the `stranger` slot only. Kept as a derived convenience because it is what the screen
+     * tags and what "off-pool" means to a player — see `slot` for why it stopped covering two slots.
      */
     readonly wildcard: boolean;
 }
+
+/** Where an offer came from. See `IMarketOffer.slot`. */
+export type MarketSlot = 'pool' | 'neutral' | 'stranger';
 
 export interface IMarketStock {
     readonly offers: ReadonlyArray<IMarketOffer>;
@@ -473,6 +523,9 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
     const seed = nodeSeed(run, node, 'market');
     const poolStream = new SeedStream(new SeedStream(seed).fork('market-pool'));
     const wildStream = new SeedStream(new SeedStream(seed).fork('market-wildcard'));
+    // Its own fork, for the reason every fork here has one: adding or removing the neutral slot must
+    // not shift which STRANGER the wildcard slot draws, or which cards the pool slots show.
+    const neutralStream = new SeedStream(new SeedStream(seed).fork('market-neutral'));
     const idStream = new SeedStream(new SeedStream(seed).fork('market-card-ids'));
 
     // **The same pool rule as rewards, by ticket 13's own words.** Not a copy of the rule — the
@@ -490,14 +543,48 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
      * future entry that IS in some deck degrades to "not offered twice" rather than to a duplicate
      * row on the same shelf.
      */
-    const offPool = MARKET_NEUTRAL_UTILITY.filter((id) => isRewardable(id) && !pool.includes(id));
+    /*
+     * THE THREE SLOTS ARE DRAWN IN ORDER AND EACH EXCLUDES WHAT THE ONES BEFORE IT TOOK.
+     *
+     * That sequencing is what Henry's element ruling forced. Under the old species rule the three
+     * sources were disjoint by construction — the pool was your deck lists, the neutral list was in
+     * no deck, and the stranger was the complement of both. Under the element rule the pool is your
+     * elements plus every `None` card, **so the neutral list is now a SUBSET of the pool**, and a
+     * `!pool.includes` filter on the neutral slot would empty it and silently drop the shelf to six.
+     *
+     * Excluding what has already been drawn is the rule that survives both, and it is the one the
+     * player would state: a shelf never shows the same card twice.
+     */
+    const taken = new Set<string>();
+    const take = (source: ReadonlyArray<string>, count: number, stream: SeedStream): string[] => {
+        const picked = drawDistinct(source.filter((id) => !taken.has(id)), count, stream);
+        for (const id of picked) taken.add(id);
+        return picked;
+    };
 
-    const drawn: Array<{ dataId: string; wildcard: boolean }> = [
-        ...drawDistinct(pool, MARKET_STOCK_SIZE, poolStream).map((dataId) => ({ dataId, wildcard: false })),
-        ...drawDistinct(offPool, MARKET_WILDCARD_SLOTS, wildStream).map((dataId) => ({ dataId, wildcard: true })),
+    // The neutral slot is a RESERVATION, not an outsider: `hamstring` and friends are in every
+    // party's pool now, and the point of the slot is that a 33-card draw cannot crowd them out.
+    const neutral = MARKET_NEUTRAL_UTILITY.filter((id) => isRewardable(id));
+
+    /*
+     * The stranger: a card of an element nobody in your party runs. This is the slot that stops a
+     * mono-species run seeing one element all game, and it is the only one still honestly "off-pool".
+     *
+     * `isRewardable` carries the calibration exclusion (`RewardSystem.CALIBRATION_ONLY`) — which
+     * this slot is the reason for. The control species' six `baseline_*` cards are real, non-token
+     * registry entries in no playable deck, so they sit squarely in this complement; they reached
+     * the shelf at ~3% a visit before ticket 69, and restoring this slot would have put them back.
+     */
+    const stranger = Object.keys(ProgramRegistry)
+        .filter((id) => isRewardable(id) && !pool.includes(id) && !MARKET_NEUTRAL_UTILITY.includes(id));
+
+    const drawn: Array<{ dataId: string; slot: MarketSlot }> = [
+        ...take(pool, MARKET_STOCK_SIZE, poolStream).map((dataId) => ({ dataId, slot: 'pool' as const })),
+        ...take(neutral, MARKET_NEUTRAL_SLOTS, neutralStream).map((dataId) => ({ dataId, slot: 'neutral' as const })),
+        ...take(stranger, MARKET_WILDCARD_SLOTS, wildStream).map((dataId) => ({ dataId, slot: 'stranger' as const })),
     ];
 
-    const offers: IMarketOffer[] = drawn.map(({ dataId, wildcard }) => ({
+    const offers: IMarketOffer[] = drawn.map(({ dataId, slot }) => ({
         card: {
             instanceId: idStream.nextId('bought'),
             dataId,
@@ -507,7 +594,8 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
             ownerId: null,
         },
         price: cardPrice(dataId),
-        wildcard,
+        slot,
+        wildcard: slot === 'stranger',
     }));
 
     return { offers, seed, visit: node.visited };

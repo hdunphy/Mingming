@@ -32,7 +32,7 @@
 import { PRNG, type PrngSeed } from './core/PRNG';
 import { SeedStream } from './core/SeedStream';
 import { ProgramRegistry } from './data/programRegistry';
-import { getDeckForOS } from './data/mingmingRegistry';
+import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
 import { FIGHT_KINDS } from './run/encounter';
@@ -226,13 +226,14 @@ export interface IRewardPartyMember {
  * tokens.
  */
 function getPoolForElement(element: Element): string[] {
-    const nonTokenPool = Object.values(ProgramRegistry)
-        .filter(p => !p.isToken && (p.rarity as string) !== 'Token');
+    // `isRewardable` rather than an inline token check: it carries the calibration exclusion too,
+    // and a second copy of "is this a real card" is one flag away from disagreeing with the first.
+    const realPool = Object.values(ProgramRegistry).filter(p => isRewardable(p.id));
 
-    const elementalPool = nonTokenPool
+    const elementalPool = realPool
         .filter(p => p.element === element || p.element === 'None');
 
-    return (elementalPool.length > 0 ? elementalPool : nonTokenPool).map(p => p.id);
+    return (elementalPool.length > 0 ? elementalPool : realPool).map(p => p.id);
 }
 
 /**
@@ -242,48 +243,82 @@ function getPoolForElement(element: Element): string[] {
  * `rewardCardPool` did *not* return, which means it needs the same "is this a real card" rule — and
  * a second copy of it would be one `isToken` flag away from putting a generated token on sale.
  */
+/**
+ * Cards that belong to a species the player can never field — **calibration content, not game
+ * content.**
+ *
+ * `control` is the balance corpus's deliberate FLOOR, described in `mingmingRegistry` as *"the worst
+ * deck in the game"*. It is not in `PLAYABLE_SPECIES`, and its six `baseline_*` cards are element
+ * `None`, which is the combination that makes them dangerous here: they are real registry entries,
+ * they are not tokens, and a NEUTRAL card is in every element's pool. Under the element rule below
+ * they would be offered to every party in the game.
+ *
+ * They already leaked once, through the marketplace's off-pool slot, at roughly 3% a visit (ticket
+ * 69). That was closed by narrowing that slot; this closes the class of bug instead.
+ *
+ * Derived rather than listed: a card is calibration content if it appears in a NON-playable species'
+ * deck and in no playable one. The next reference species added to the registry is excluded the day
+ * it lands, without anyone remembering this file exists.
+ */
+const CALIBRATION_ONLY: ReadonlySet<string> = (() => {
+    const playable = new Set<string>();
+    const other = new Set<string>();
+    for (const species of Object.keys(MingmingRegistry)) {
+        const isPlayable = (PLAYABLE_SPECIES as ReadonlyArray<string>).includes(species);
+        for (const os of MingmingRegistry[species]?.availableOS ?? []) {
+            for (const dataId of getDeckForOS(species, os)) (isPlayable ? playable : other).add(dataId);
+        }
+    }
+    return new Set([...other].filter((dataId) => !playable.has(dataId)));
+})();
+
 export function isRewardable(dataId: string): boolean {
     const data = ProgramRegistry[dataId];
-    return !!data && !data.isToken && (data.rarity as string) !== 'Token';
+    if (!data || data.isToken || (data.rarity as string) === 'Token') return false;
+    return !CALIBRATION_ONLY.has(dataId);
 }
 
 /**
  * **THE PICK POOL. ONE FUNCTION, ONE RULE — CHANGING THE RULE MEANS CHANGING THIS FUNCTION AND
  * NOTHING ELSE.**
  *
- * ## The rule implemented here is a RECOMMENDATION, NOT A RULING
+ * ## RULED by Henry, 2026-08-28: **the pool is your party's ELEMENTS.**
  *
- * `economy-session.md` lists the reward-pool source as **the last open economy item**, with the
- * designer's recommendation and "Henry deciding" next to it:
+ * `economy-session.md` had listed the reward-pool source as the last open economy item, with a
+ * recommendation and "Henry deciding" beside it. It is decided:
  *
- * > picks draw from the **CURRENT PARTY'S species pools** (recruiting = choosing your draft pool;
- * > mono vs spread teams draft different runs; optional off-pool wild-cards at events).
+ * > *"the main 5 should be any card from your element not just your deck"*
  *
- * That is what this function does, because ticket 12 says to default to the recommendation. **It is
- * not ratified.** The three alternatives, and what each would cost to adopt:
+ * — asked about the marketplace, and ruled to apply **here**, which means the shop and the
+ * post-fight picks both widen. That was the choice offered and taken: this function is deliberately
+ * the single rule behind both (`marketplace.rollMarketStock` calls it), and splitting them so the
+ * stall could be generous while drops stayed narrow would have created exactly the drift this
+ * function exists to prevent.
  *
- * - **Biome / enemy element pool** — what the code did before this ticket, still present as
- *   `getPoolForElement` and still used as this function's fallback. Adopting it means returning
- *   `getPoolForElement(fallbackElement)` unconditionally. Reads naturally ("you loot what you
- *   killed") but makes the party irrelevant to the deck it builds, and in a mono-element biome
- *   (ticket 05) three fights in a row offer from one narrow list.
- * - **Global pool** — every non-token card in the registry. One line: `getPoolForElement('None')`
- *   already nearly does it. Maximum variance, minimum identity; the 3v3 decks are tuned as
- *   *species* lists, so a global pool mostly offers cards no member has synergy with.
- * - **Hybrid** — party pool with an off-pool wild-card slot (the parenthesis in the recommendation
- *   above proposes exactly this, at events). Would be a second exported function beside this one,
- *   or a `wildcardChance` parameter here; either way it starts from this rule rather than replacing
- *   it.
+ * A member contributes its primary element and its secondary, and `getPoolForElement` folds in the
+ * neutral (`None`) cards on top, so a Water party is offered Water and neutral cards — every one of
+ * them, not just the ones its own species happen to run.
  *
- * ## Why the party pool is the whole per-OS deck list, not just the kit
+ * ## What this changed, and what it cost
  *
- * Ticket 08, clause 3: *"a species' untagged kit cards enter the pick / marketplace pool while it is
- * in the party — recruiting IS drafting; the kit completes through play."* So a member contributes
- * its **full `getDeckForOS` list**, and the cards *not* in its `startKit` are the interesting half:
- * fenrir_v1 opens holding `blood_rite`/`berserk_rush`/`battle_rhythm`/`crimson_draw` and its
- * `ragnarok_edge` finishers are in the pool, waiting. That is the sentence "the team is the deck"
- * turned into a data flow — the run rebuilds the tuned list the balance corpus is calibrated on,
- * and *which* tuned list is a consequence of who you recruited.
+ * The old rule was the party's **`getDeckForOS` lists**, off ticket 08 clause 3 (*"recruiting IS
+ * drafting; the kit completes through play"*). It made a solo run's pool **five cards**, which is
+ * why the shop felt like the same shelf every visit and why the off-pool slot had to exist at all.
+ * Identity was the argument for it: every offer was a card some member actually runs.
+ *
+ * Identity is not gone, it moved down a level — from the SPECIES to the ELEMENT. A Fire party still
+ * never sees Water cards, so who you recruit still decides what you can draft; it no longer decides
+ * it down to the individual card list. The thing genuinely traded away is the guarantee that an
+ * offered card is one a member's tuned deck was calibrated around. Ticket 08's sentence still holds
+ * for the START of a run (a member arrives with its ratified engine); it no longer describes how the
+ * deck GROWS.
+ *
+ * ## Calibration content cannot reach a pool
+ *
+ * This rule made that load-bearing. `getPoolForElement` includes every `None`-element card in EVERY
+ * element's pool, and the control species' six `baseline_*` cards are `None` — so under the old
+ * species rule they were unreachable, and under this one they would be offered to every party in the
+ * game. `isRewardable` excludes them; see `CALIBRATION_ONLY`.
  *
  * ## Duplicates
  *
@@ -303,11 +338,24 @@ export function rewardCardPool(
     party: ReadonlyArray<IRewardPartyMember>,
     fallbackElement: Element = 'None',
 ): string[] {
-    const ids: string[] = [];
-
+    /*
+     * The party's ELEMENTS, in party order, each member's primary then its secondary.
+     *
+     * Ordered rather than a set-of-strings sorted, because the pool's order is the order a draw
+     * walks: a mixed party's first member should not be systematically under-represented because
+     * its element sorted late in the alphabet.
+     */
+    const elements: Element[] = [];
     for (const member of party) {
-        for (const dataId of getDeckForOS(member.definitionId, member.activeOS)) {
-            if (!isRewardable(dataId)) continue;
+        const definition = GetMingmingData(member.definitionId);
+        for (const element of [definition?.primaryElement, definition?.secondaryElement]) {
+            if (element && element !== 'None' && !elements.includes(element)) elements.push(element);
+        }
+    }
+
+    const ids: string[] = [];
+    for (const element of elements) {
+        for (const dataId of getPoolForElement(element)) {
             if (!ids.includes(dataId)) ids.push(dataId);
         }
     }

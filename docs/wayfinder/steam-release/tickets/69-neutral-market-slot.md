@@ -112,3 +112,82 @@ limitation), so measuring this needs a new flag to inject a card into the sample
 machinery inside a ticket scoped as small and decision-free. It is about 35 minutes plus a 30-minute
 arm. Worth doing when the gauntlet target exists (67 R4.1 holds it until all three gyms are rebuilt),
 because that is when a number about the hedge has something to be measured against.
+
+## Round two — Henry's rulings, 2026-08-28. Applied same day.
+
+Three answers, after the round-one resolution was read back to him.
+
+> *"shop should have 7 cards also the main 5 should be any card from your element not just your deck."*
+> *"no keep it the same"* (the pricing question) · *"leave it alone"* (the battle-HUD emoji and the logo)
+
+### 1. SEVEN cards, and the two off-pool jobs are split
+
+Round one traded the slot's anti-monotony job for reachability. This buys both back instead of
+choosing: `MARKET_TOTAL_SLOTS = 5 + 1 + 1`.
+
+| slot | draws from | job |
+|---|---|---|
+| `pool` x5 | the party's elements | your stock |
+| `neutral` x1 | `MARKET_NEUTRAL_UTILITY` | the guaranteed route to a neutral answer |
+| `stranger` x1 | everything off-pool | the card you could not otherwise be offered |
+
+### 2. The pool is your ELEMENTS, not your deck lists — **and it applies to drops too**
+
+Asked about the marketplace, ruled to apply to both. `RewardSystem.rewardCardPool` is deliberately
+the single rule behind the shop *and* the post-fight picks, and splitting them so the stall could be
+generous while drops stayed narrow would have created exactly the drift that function exists to
+prevent. This closes `economy-session.md`'s **last open economy item**.
+
+**A solo party's pool goes from 5 cards to 33.** A full Fire+Water+Nature trio sees 94 of the 206
+real cards. Identity did not disappear, it moved from the SPECIES to the ELEMENT: a Fire party still
+never sees Water cards, so who you recruit still decides what you can draft — it no longer decides it
+down to the individual card list.
+
+**What is genuinely traded away:** ticket 08 clause 3's *"recruiting IS drafting; the kit completes
+through play"* described a pool that WAS the party's tuned lists, so every offer was a card some
+member's deck was calibrated around. That is no longer true. The clause still holds for the START of
+a run — a member arrives with its ratified engine — but it no longer describes how the deck grows.
+
+### 3. Two things the widening broke, both caught by tests rather than by eye
+
+- **The neutral slot would have silently emptied.** `getPoolForElement` folds every `None` card into
+  every element's pool, so all four neutral-utility cards became members of every party's pool — and
+  the slot's `!pool.includes(id)` filter would then have matched all of them. `drawDistinct` stops on
+  an exhausted source rather than throwing, so the shelf would have quietly dropped to six. The draw
+  now excludes *what the earlier slots already took* rather than *what the pool contains*, which is
+  the rule that survives both regimes and the one a player would state: a shelf never shows the same
+  card twice.
+- **`wildcard` stopped being true.** A neutral card is IN your pool now, so tagging that slot
+  "off-pool" was a lie. Offers carry `slot: 'pool' | 'neutral' | 'stranger'`; `wildcard` survives as
+  a derived convenience meaning `stranger`, which is what the screen tags and what "off-pool" means
+  to a player.
+
+### 4. The calibration exclusion moved, and the ruling is why
+
+Round one closed the floor-deck leak by narrowing the one off-pool slot. That fix does not survive
+this ruling twice over: the seventh slot re-widens the same complement, **and** the six `baseline_*`
+cards are element `None`, which under an element pool puts them in *every party's* pool — the leak
+would have gone from a 3%-per-visit shop bug to a card offered to everyone, everywhere.
+
+So it is no longer a marketplace filter. `RewardSystem.isRewardable` now excludes any card that
+appears in a non-playable species' deck and in no playable one, which covers drops and the shop from
+one place and is derived rather than listed. Rewardable content: 212 → 206.
+
+### 5. One observation, not a decision I made
+
+**The stranger slot can offer cards of elements that do not ship at Early Access.** The capture
+after this change put `Sacred Spring` (Light) on the shelf. Those cards are real, implemented and
+priced, and a neutral-to-you card is arguably exactly what a "stranger" should be — but ticket 05
+ships Fire/Water/Nature, so this is the one place a player meets a fourth element. Left as it is,
+because restricting it would be a content-scope decision rather than a bug fix. **Flagged for Henry.**
+
+### Gates
+
+`tsc -b`, eslint 0, **1849** vitest across 132 files (1846 → 1849), build, assert-no-debug.
+
+Test changes are inversions, not weakenings: `RewardSystem.test.ts`'s two species-pool assertions
+became element assertions plus a new one that the pool *reaches past* the party's own decks (the
+deliverable, asserted directly), plus one that calibration content can never reach a pool. One
+pre-existing fixture fragility surfaced and was fixed rather than worked around: a tile's name was
+compared unescaped, which had never met a card with an apostrophe until the pool widened far enough
+to include `Serpent's Coil`.
