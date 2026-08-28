@@ -139,6 +139,73 @@ export const MARKET_STOCK_SIZE = 5;
 export const MARKET_WILDCARD_SLOTS = 1;
 
 /**
+ * WHAT THE OFF-POOL SLOT DRAWS FROM — **ticket 69**, off ticket 67's round-4 ruling 3.
+ *
+ * # THE PROBLEM THIS FIXES IS A PROBABILITY, NOT A MISSING RULE
+ *
+ * The slot always had a source: everything `isRewardable` that the party's pool does not contain.
+ * For a solo party that complement is **207 cards**, so any *particular* card was a 0.48% draw per
+ * visit and **1.4% across a whole run's three markets**. Reachable on paper, unreachable in play.
+ *
+ * That mattered the moment a specific card became an answer to a specific fight. Research/68 §6:
+ * WAR FOOTING is cancelled by Weakened, every launch Weakened source is Nature, and the
+ * type-recommended Water counter-team therefore cannot answer the Emberfall Driver. Henry ruled the
+ * texture INTENDED — *race it with Water, or answer it with Nature and pay the Fire tax* — with one
+ * hedge: **the mechanical answer must be PURCHASABLE by any party, without changing any species
+ * pool.** `hamstring` is that answer (None-element, 1e, 20 power, 2 Weakened) and it sits in no
+ * playable deck, so the pool rule can never offer it and the 1.4% slot may as well not exist.
+ *
+ * # THE LIST IS DERIVED, NOT TASTED
+ *
+ * Every entry satisfies three mechanical conditions, asserted in `marketplace.test.ts`:
+ *
+ * 1. **`element: 'None'`** — it is *neutral utility*, so it is equally at home in any deck. A
+ *    neutral card gains no STAB anywhere, which is the same reason it is priced as it is.
+ * 2. **In no LAUNCH species' deck** — the set an Early Access party's pool can never contain, which
+ *    is exactly what the hedge is about. LAUNCH rather than PLAYABLE deliberately: all three of the
+ *    non-daemon entries below DO appear in a post-launch species' list (hamstring in `hel_v1`,
+ *    adrenaline in `sleipnir_v1`, squirrel_away in `fafnir_v2` / `hel_v2`). That is not a conflict —
+ *    the draw below keeps its `!pool.includes` filter, so a future party fielding hel is simply not
+ *    offered a card it already drafts. Requiring "no playable deck" would forbid three cards today
+ *    for a reason that does not exist until those species ship.
+ * 3. **Not the control species' calibration content** — see below.
+ *
+ * # THIS ALSO CLOSES A LIVE BUG: THE FLOOR DECK WAS ON SALE
+ *
+ * The old complement included `baseline_jab`, `baseline_scuff`, `baseline_strike`, `baseline_snare`,
+ * `baseline_slam` and `baseline_purge`. Those six are the **control species'** deck — deliberately
+ * *"the worst deck in the game"* (`mingmingRegistry`), the balance corpus's reference floor. `control`
+ * is not in `PLAYABLE_SPECIES`, so its cards fell straight through the "not in the party's pool"
+ * filter and onto the shelf: roughly a **3% chance per visit of being sold a calibration fixture**.
+ * Nothing was watching for it because nothing had a reason to look at what the slot contained.
+ *
+ * # WHAT THIS COSTS, STATED PLAINLY
+ *
+ * The slot's *shipped* purpose (see `MARKET_WILDCARD_SLOTS` above) was anti-monotony: *"three
+ * guaranteed strangers across a run"* for a mono-species party. Narrowing 207 cards to four trades
+ * that away — a solo party now sees three of these four rather than three of two hundred. That is a
+ * real loss and ticket 69's resolution reports it with the numbers rather than burying it. The list
+ * is **Henry's to extend** (the ticket says so), and extending it is the fix if the variety is
+ * missed: every new entry restores breadth AND stays reachable, which the complement never was.
+ *
+ * Ordered, not sorted, so the file reads as a curated list and a diff shows an addition as an
+ * addition.
+ */
+export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = [
+    // The ruled seed entry (67 R4.3). The answer to an escalating Strengthened aura, buyable by a
+    // party that brought none of it.
+    'hamstring',
+    // 18 power + 2 Strengthened. The other side of the same duality, for a party with no buff of
+    // its own.
+    'adrenaline',
+    // Draw 2 at 1e. Card flow is the one thing every archetype wants and several launch decks have
+    // no source of.
+    'squirrel_away',
+    // Daemon: gain 1 Sharp. A permanent, and the only neutral one.
+    'harden_daemon',
+];
+
+/**
  * WHAT A CARD COSTS — **RULED by Henry in ticket 56, applied by ticket 57.**
  *
  * > *"Market buy: 0e 15 / 1e 25 / 2e 35 / 3e 45."*
@@ -413,11 +480,17 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
     // shop and the drops move together instead of one of them being forgotten.
     const pool = rewardCardPool(party, fallbackElement);
 
-    // Everything real that the party pool does NOT contain. This is the wild-card's source and the
-    // reason it is "off-pool" in more than name: it is the set complement, computed against the same
-    // rewardability rule the pool uses, so a wild-card can never be a card the party could have been
-    // offered anyway.
-    const offPool = Object.keys(ProgramRegistry).filter((id) => isRewardable(id) && !pool.includes(id));
+    /*
+     * TICKET 69: the off-pool slot draws from the curated neutral-utility list, not from the whole
+     * set complement. See `MARKET_NEUTRAL_UTILITY` for why — the short version is that a complement
+     * 207 cards wide makes any *particular* card a 1.4%-per-run draw, which is not a hedge.
+     *
+     * `isRewardable` is still applied, and the `!pool.includes` filter is kept even though no entry
+     * can currently be in a party pool (condition 2 of the list). It costs nothing and it means a
+     * future entry that IS in some deck degrades to "not offered twice" rather than to a duplicate
+     * row on the same shelf.
+     */
+    const offPool = MARKET_NEUTRAL_UTILITY.filter((id) => isRewardable(id) && !pool.includes(id));
 
     const drawn: Array<{ dataId: string; wildcard: boolean }> = [
         ...drawDistinct(pool, MARKET_STOCK_SIZE, poolStream).map((dataId) => ({ dataId, wildcard: false })),

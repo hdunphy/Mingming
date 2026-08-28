@@ -42,6 +42,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import * as marketplace from './marketplace';
 import {
     CARD_PRICE_BY_ENERGY,
+    MARKET_NEUTRAL_UTILITY,
     MARKET_STOCK_SIZE,
     MARKET_VISITS_PER_RUN,
     MARKET_WILDCARD_SLOTS,
@@ -59,8 +60,8 @@ import { encounterSeed } from './encounter';
 import { nodeSeed } from './nodeSeed';
 import { offerGyms } from './gyms';
 import { PARTY_SIZE } from '../party';
-import { rewardCardPool, scrapForWin } from '../RewardSystem';
-import { GENERIC_HIT } from '../data/mingmingRegistry';
+import { isRewardable, rewardCardPool, scrapForWin } from '../RewardSystem';
+import { GENERIC_HIT, LAUNCH_SPECIES, MingmingRegistry, getDeckForOS } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
 import { numericBaseCost } from '../types';
 import type { ProgramData, Rarity } from '../types';
@@ -184,6 +185,119 @@ describe('what is in the stock', () => {
                 }
             }
         }
+    });
+
+    /**
+     * TICKET 69 — the off-pool slot's draw list.
+     *
+     * The list is PINNED here, which the ticket asks for by name: *"a test pins the slot's draw
+     * list so a future card pass cannot silently empty it."* An emptied list is the failure mode
+     * with no other alarm — `drawDistinct` stops on an exhausted source rather than throwing, so a
+     * card pass that renamed `hamstring` would silently produce a five-row shop with no wild-card
+     * slot at all, and every other test here would still pass.
+     */
+    describe('the neutral-utility list (ticket 69)', () => {
+        it('holds the ruled seed entry, and is not empty', () => {
+            expect(MARKET_NEUTRAL_UTILITY.length).toBeGreaterThan(0);
+            // 67 R4.3 names this card. It is the hedge; the rest of the list is breadth.
+            expect(MARKET_NEUTRAL_UTILITY).toContain('hamstring');
+            expect(new Set(MARKET_NEUTRAL_UTILITY).size).toBe(MARKET_NEUTRAL_UTILITY.length);
+        });
+
+        it('every entry satisfies the three conditions the list is DERIVED from', () => {
+            const inSomeLaunchDeck = new Set<string>();
+            for (const species of LAUNCH_SPECIES) {
+                for (const os of MingmingRegistry[species].availableOS) {
+                    for (const id of getDeckForOS(species, os)) inSomeLaunchDeck.add(id);
+                }
+            }
+
+            for (const id of MARKET_NEUTRAL_UTILITY) {
+                const data = ProgramRegistry[id];
+                expect(data, `${id} is not a real card`).toBeTruthy();
+                // 1. Neutral, so it is equally at home in any deck and gains STAB nowhere.
+                expect(data.element, `${id} is not element None`).toBe('None');
+                /*
+                 * 2. In no LAUNCH species' deck — the set an EA party's pool can never contain,
+                 *    which is the whole reason the hedge is needed. LAUNCH rather than PLAYABLE
+                 *    deliberately: all three shipped entries DO appear in a post-launch species'
+                 *    list (hamstring in hel_v1, adrenaline in sleipnir_v1, squirrel_away in
+                 *    fafnir_v2 / hel_v2), and that is not a conflict — `rollMarketStock` keeps the
+                 *    `!pool.includes` filter, so a future party fielding hel simply is not offered
+                 *    a card it already drafts. Asserting PLAYABLE here would forbid three cards for
+                 *    a reason that will not exist until those species ship, and would then be wrong
+                 *    in the other direction.
+                 */
+                expect(inSomeLaunchDeck.has(id), `${id} is already in a launch deck`).toBe(false);
+                // 3. Real content, not an internal token.
+                expect(isRewardable(id), `${id} is not rewardable`).toBe(true);
+            }
+        });
+
+        it('NEVER puts the control species’ calibration deck on sale — the bug this closed', () => {
+            // `control` is the balance corpus's deliberate FLOOR ("the worst deck in the game") and
+            // is not in PLAYABLE_SPECIES, so its six `baseline_*` cards fell straight through the
+            // old "not in the party's pool" filter and onto the shelf at roughly 3% a visit.
+            const calibration = getDeckForOS('control', 'control_v1');
+            expect(calibration.length).toBeGreaterThan(0);
+            for (const id of calibration) expect(MARKET_NEUTRAL_UTILITY).not.toContain(id);
+
+            for (const node of MARKETS) {
+                for (const visit of [1, 2, 3]) {
+                    for (const offer of stockAt(visited(node, visit)).offers) {
+                        expect(calibration, 'a calibration card reached the shelf')
+                            .not.toContain(offer.card.dataId);
+                    }
+                }
+            }
+        });
+
+        it('is what the wild-card slot actually draws from, at every market and every visit', () => {
+            for (const node of MARKETS) {
+                for (const visit of [1, 2, 3]) {
+                    for (const offer of stockAt(visited(node, visit)).offers) {
+                        if (!offer.wildcard) continue;
+                        expect(MARKET_NEUTRAL_UTILITY).toContain(offer.card.dataId);
+                    }
+                }
+            }
+        });
+
+        it('reaches EVERY party — a solo of any launch species can be offered hamstring', () => {
+            /*
+             * The ruling's actual requirement (67 R4.3): the mechanical answer must be *purchasable*
+             * by any party, without changing any species pool. Not guaranteed — purchasable. So this
+             * asserts the card is REACHABLE for each launch species rather than that it always
+             * appears, and it does it by walking real markets rather than by inspecting the list,
+             * because the list being right and the draw being right are two different claims.
+             */
+            for (const species of LAUNCH_SPECIES) {
+                const party = [member('mm1', species, MingmingRegistry[species].availableOS[0])];
+                let seen = false;
+                for (let seed = 0; seed < 12 && !seen; seed += 1) {
+                    const run = makeRun(`neutral-reach-${species}-${seed}`, party);
+                    for (const node of run.nodes.filter((n) => n.kind === 'marketplace')) {
+                        for (const visit of [1, 2, 3]) {
+                            const stock = stockAt(visited(node, visit), run, party);
+                            if (stock.offers.some((o) => o.card.dataId === 'hamstring')) seen = true;
+                        }
+                    }
+                }
+                expect(seen, `a solo ${species} was never offered hamstring`).toBe(true);
+            }
+        });
+
+        it('prices it off ENERGY alone, with no neutral premium — ticket 56 is unchanged', () => {
+            // Ticket 69's brief mentions a "~+20% None-element" pricing law. There is no such law in
+            // the code and adding one would contradict ticket 56's ruling, which is explicit that a
+            // card's price is its energy and nothing else ("a 2-energy Common and a 2-energy Rare
+            // both cost 35... a design statement, not a simplification"). Flagged in the resolution.
+            for (const id of MARKET_NEUTRAL_UTILITY) {
+                const energy = numericBaseCost(ProgramRegistry[id].baseCost);
+                expect(cardPrice(id)).toBe(CARD_PRICE_BY_ENERGY[Math.min(Math.max(energy, 0), 3)]);
+            }
+            expect(cardPrice('hamstring')).toBe(CARD_PRICE_BY_ENERGY[1]);
+        });
     });
 
     it('never offers a token, in either slot', () => {
