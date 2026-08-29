@@ -563,9 +563,22 @@ const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
  *    free, because without lookahead it simply plays something else. A power knob is usually
  *    exactly that kind of change. **Greedy is a decision-density probe (ticket 99), not a screen.**
  */
-// `env` guard kept from legion/balance (0939d95): `process` is undefined in the browser build,
-// and steam-release-prep reads `process.env` directly.
-const env = typeof process !== 'undefined' ? process.env : ({} as Record<string, string | undefined>);
+/**
+ * The process environment, read in a form Vite's `define` cannot statically rewrite.
+ *
+ * `vite.config.ts` sets `define: { 'process.env': {} }` so a stray env read cannot throw in the
+ * browser bundle. That substitution is textual and it fires on anything Vite transforms - which
+ * includes this file when it is loaded through vite-node. A plain `process.env` read here
+ * therefore becomes `{}` in every harness, and AI_LITE / AI_GREEDY / AI_BEAM silently stop
+ * working: every measurement runs at full tier with the beam off, whatever it was asked for.
+ *
+ * Reaching the object off `globalThis` by a computed key leaves no `process.env` token for the
+ * define to match, and still yields `{}` in the browser where `globalThis.process` is undefined -
+ * so it keeps the browser guard from 0939d95 rather than replacing it.
+ */
+const ENV_PROP = 'env';
+const env = ((globalThis as unknown as Record<string, Record<string, Record<string, string | undefined>>>)
+    .process?.[ENV_PROP] ?? {}) as Record<string, string | undefined>;
 const LITE = env.AI_LITE === '1';
 const LOOKAHEAD_REPLY_DEPTH = 2;
 
