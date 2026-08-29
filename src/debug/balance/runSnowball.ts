@@ -8,24 +8,38 @@
  * Usage:
  *
  *     npm run balance:snowball                      # the reference panel, 3 paired seeds per pair
- *     npm run balance:snowball -- --iterations 6    # more samples
+ *     npm run balance:snowball -- --iterations 1    # fewer samples; ~1 hour, the shape
  *     npm run balance:snowball -- --pairs           # add the per-pair table
+ *     npm run balance:snowball -- --out snowball.txt   # ALSO write the report to a file
  *     npm run balance:snowball -- --max-turns 60
  *
- * # COST
+ * # COST — THIS IS AN HOUR, NOT A MINUTE
  *
  * Six comps round-robin is **30 ordered pairs**, and `runPairedBatch` runs each under both turn
  * orders, so one iteration is 60 battles. These are 3v3s under the full lookahead — the expensive
- * cell. Budget from a measured rate rather than a guess: the run gate's own header prices a 3v3
- * gauntlet battle at roughly 20-25 s on a 2-core box, so `--iterations 3` (180 battles) is an hour
- * or more. Start at 1 to see the shape, then raise it.
+ * cell. Measured on a 2-core box: **~120 s per pair**, so `--iterations 1` is about an hour and
+ * `--iterations 3` is most of a morning.
+ *
+ * # WHY `--out` EXISTS
+ *
+ * An hour of measurement that only ever reached a terminal scrollback is an hour that has to be
+ * spent again. Node line-buffers to a TTY but BLOCK-buffers to a pipe, so `> file.txt` shows
+ * nothing for minutes at a time and a run killed part-way leaves an empty file — the progress
+ * lines are in a 64 KB buffer that never flushed. `--out` writes the finished report directly,
+ * independently of stdout, so the numbers survive a closed terminal either way.
+ *
+ * Nothing is written unless `--out` is passed, and the path is the caller's to choose: this is not
+ * a committed artifact like `docs/balance/deck_report.json`, and dropping an unrequested file into
+ * a tracked directory is how a report-only tool starts showing up in diffs.
  *
  * # REPORT-ONLY, AND IT EXITS 0
  *
  * Ticket 70 asks for measurement *before* a grilling. There is no threshold to fail here because
- * nothing has been ruled yet — that is the entire point of running it first. No file is written and
- * no constant is touched.
+ * nothing has been ruled yet — that is the entire point of running it first. No constant is
+ * touched and no ruling is implied by any number below.
  */
+
+import fs from 'node:fs';
 
 import { measureSnowball, SNOWBALL_MAX_TURNS, summarizeSnowball } from './snowball';
 import { REFERENCE_PANEL } from './teamComps';
@@ -52,15 +66,30 @@ function main(): void {
     const iterations = Number.parseInt(flag('iterations', '3'), 10);
     const maxTurns = Number.parseInt(flag('max-turns', String(SNOWBALL_MAX_TURNS)), 10);
     const showPairs = process.argv.includes('--pairs');
+    const out = flag('out', '');
+
+    /*
+     * Every line goes to stdout AND, when `--out` is set, straight to the file with an immediate
+     * `appendFileSync`. Appending per line rather than buffering the report and writing it at the
+     * end is the whole point: a run killed at pair 18 of 30 then still leaves eighteen pairs of
+     * evidence on disk instead of an empty file. This measurement takes an hour, and an hour of
+     * work that only existed in a doomed process is an hour spent twice — which is exactly how
+     * this flag came to be written.
+     */
+    if (out) fs.writeFileSync(out, '');
+    const say = (line = ''): void => {
+        console.log(line);
+        if (out) fs.appendFileSync(out, `${line}\n`);
+    };
 
     const pairs = REFERENCE_PANEL.length * (REFERENCE_PANEL.length - 1);
     const battles = pairs * iterations * 2;
 
-    console.log('[balance:snowball] Ticket 70 — the first-KO snowball, measured before the grilling.');
-    console.log(`[balance:snowball]   population  REFERENCE_PANEL round-robin, mirrors excluded`);
-    console.log(`[balance:snowball]   pairs       ${pairs} ordered  ·  ${iterations} paired seeds  ->  ${battles} battles`);
-    console.log(`[balance:snowball]   maxTurns    ${maxTurns}   (standalone 3v3s — NOT a run: no HP carries between fights)`);
-    console.log('');
+    say('[balance:snowball] Ticket 70 — the first-KO snowball, measured before the grilling.');
+    say(`[balance:snowball]   population  REFERENCE_PANEL round-robin, mirrors excluded`);
+    say(`[balance:snowball]   pairs       ${pairs} ordered  ·  ${iterations} paired seeds  ->  ${battles} battles`);
+    say(`[balance:snowball]   maxTurns    ${maxTurns}   (standalone 3v3s — NOT a run: no HP carries between fights)`);
+    say();
 
     const started = Date.now();
     const { report, perPair } = measureSnowball({
@@ -68,64 +97,65 @@ function main(): void {
         maxTurns,
         onPair: (label, done, total) => {
             const elapsed = Math.round((Date.now() - started) / 1000);
-            console.log(`[balance:snowball]   ${String(done).padStart(2)}/${total}  ${label.padEnd(32)} ${elapsed}s`);
+            say(`[balance:snowball]   ${String(done).padStart(2)}/${total}  ${label.padEnd(32)} ${elapsed}s`);
         },
     });
 
-    console.log('');
-    console.log('=========================================================================');
-    console.log(`  TICKET 70 — ${report.battles} battles, ${Math.round((Date.now() - started) / 1000)}s`);
-    console.log('=========================================================================');
-    console.log('');
+    say();
+    say('=========================================================================');
+    say(`  TICKET 70 — ${report.battles} battles, ${Math.round((Date.now() - started) / 1000)}s`);
+    say('=========================================================================');
+    say();
 
-    console.log('  1. HOW DECISIVE IS THE FIRST KO');
-    console.log(`     P(win | scored first KO)      ${pct(report.winAfterScoringFirstKo)}   (n=${report.line1Samples})`);
-    console.log(`     P(win | conceded first KO)    ${pct(report.winAfterConcedingFirstKo)}   <- the comeback rate`);
-    console.log(`     battles reaching a KO         ${report.decisiveKo} of ${report.battles}`);
+    say('  1. HOW DECISIVE IS THE FIRST KO');
+    say(`     P(win | scored first KO)      ${pct(report.winAfterScoringFirstKo)}   (n=${report.line1Samples})`);
+    say(`     P(win | conceded first KO)    ${pct(report.winAfterConcedingFirstKo)}   <- the comeback rate`);
+    say(`     battles reaching a KO         ${report.decisiveKo} of ${report.battles}`);
     if (report.simultaneousKo > 0) {
-        console.log(`     simultaneous first KOs        ${report.simultaneousKo}  (excluded from line 1 — no side scored it)`);
+        say(`     simultaneous first KOs        ${report.simultaneousKo}  (excluded from line 1 — no side scored it)`);
     }
-    console.log('');
+    say();
 
-    console.log('  2. IS THE REST OF THE FIGHT REAL PLAY');
-    console.log(`     mean turns after first KO     ${n1(report.meanTurnsAfterFirstKo)}   (median ${n1(report.medianTurnsAfterFirstKo)})`);
-    console.log(`     mean battle length            ${n1(report.meanTurnsTotal)} turns`);
-    console.log(`     share of the fight after it   ${pct(report.fractionOfFightAfterFirstKo)}`);
-    console.log('');
+    say('  2. IS THE REST OF THE FIGHT REAL PLAY');
+    say(`     mean turns after first KO     ${n1(report.meanTurnsAfterFirstKo)}   (median ${n1(report.medianTurnsAfterFirstKo)})`);
+    say(`     mean battle length            ${n1(report.meanTurnsTotal)} turns`);
+    say(`     share of the fight after it   ${pct(report.fractionOfFightAfterFirstKo)}`);
+    say();
 
-    console.log('  3. THE OVERKILL INCENTIVE');
-    console.log(`     mean wasted per battle        ${n1(report.meanOverkillPerBattle)} damage   (median ${n1(report.medianOverkillPerBattle)})`);
-    console.log(`     as a share of one side's HP   ${pct(report.overkillAsShareOfStartingHp)}`);
-    console.log('');
+    say('  3. THE OVERKILL INCENTIVE');
+    say(`     mean wasted per battle        ${n1(report.meanOverkillPerBattle)} damage   (median ${n1(report.medianOverkillPerBattle)})`);
+    say(`     as a share of one side's HP   ${pct(report.overkillAsShareOfStartingHp)}`);
+    say();
 
-    console.log('  4. DOES THE BIGGER TEAM STILL WIN');
-    console.log(`     P(win | higher starting HP)   ${pct(report.winWithHigherStartingHp)}   (n=${report.line4Samples})`);
+    say('  4. DOES THE BIGGER TEAM STILL WIN');
+    say(`     P(win | higher starting HP)   ${pct(report.winWithHigherStartingHp)}   (n=${report.line4Samples})`);
     if (report.equalHpBattles > 0) {
-        console.log(`     equal-HP battles              ${report.equalHpBattles}  (excluded — line 4 is undefined for them)`);
+        say(`     equal-HP battles              ${report.equalHpBattles}  (excluded — line 4 is undefined for them)`);
     }
-    console.log('');
+    say();
 
-    console.log('  DEPTH OF THE SNOWBALL');
-    console.log(`     members lost by the loser     ${n1(report.meanLossesLoser)} of 3`);
-    console.log(`     members lost by the winner    ${n1(report.meanLossesWinner)} of 3`);
+    say('  DEPTH OF THE SNOWBALL');
+    say(`     members lost by the loser     ${n1(report.meanLossesLoser)} of 3`);
+    say(`     members lost by the winner    ${n1(report.meanLossesWinner)} of 3`);
     if (report.truncated > 0) {
-        console.log('');
-        console.log(`  ${report.truncated} battle(s) never resolved and are counted in every line above.`);
+        say();
+        say(`  ${report.truncated} battle(s) never resolved and are counted in every line above.`);
     }
 
     if (showPairs) {
-        console.log('');
-        console.log('  --- per pair ---');
+        say();
+        say('  --- per pair ---');
         for (const { label, runs } of perPair) {
             const r = summarizeSnowball(runs);
-            console.log(`    ${label.padEnd(34)} P(win|first KO) ${pct(r.winAfterScoringFirstKo).padStart(6)}`
+            say(`    ${label.padEnd(34)} P(win|first KO) ${pct(r.winAfterScoringFirstKo).padStart(6)}`
                 + `   after-KO ${n1(r.meanTurnsAfterFirstKo).padStart(4)}t`
                 + `   overkill ${n1(r.meanOverkillPerBattle).padStart(6)}`);
         }
     }
 
-    console.log('');
-    console.log('  Report-only. Nothing here rules anything — ticket 70 § "The grilling" is Henry\'s.');
+    say();
+    say('  Report-only. Nothing here rules anything — ticket 70 § "The grilling" is Henry\'s.');
+    if (out) console.log(`\n  Written to ${out}`);
 }
 
 main();

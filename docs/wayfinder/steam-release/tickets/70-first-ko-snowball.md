@@ -58,7 +58,18 @@ These four numbers frame every option below; the grilling should not run without
 ## Measurement instrument — BUILT 2026-08-29
 
 `npm run balance:snowball` (`src/debug/balance/runSnowball.ts` -> `snowball.ts`), report-only, exits
-0, writes no file. It prints the four numbers this section asks for, in this section's order.
+0, rules nothing. It prints the four numbers this section asks for, in this section's order.
+
+**RUN IT ON A REAL MACHINE, WITH `--out`.** Measured cost is **~120 s per pair**, so 30 pairs at
+`--iterations 1` is about an hour. Two things learned the hard way on 2026-08-29: an agent's cloud
+container reclaims background processes during idle gaps (a run died at pair 5 of 30 with nothing
+to show), and Node BLOCK-buffers stdout to a pipe, so `> file.txt` leaves an empty file for minutes
+and loses everything if the run is killed. `--out <path>` appends each line as it happens, so a
+run that dies at pair 18 still leaves eighteen pairs of evidence:
+
+```
+npm run balance:snowball -- --iterations 1 --pairs --out snowball-70.txt
+```
 
 **Population:** `REFERENCE_PANEL` round-robin, mirrors excluded — 30 ordered pairs, both turn
 orders. That is the repo's standing 3v3 reference set (ticket 109), which is what *"the existing 3v3
