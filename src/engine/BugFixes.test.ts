@@ -133,10 +133,15 @@ describe('Bug fix: negative STATUS stacks decrement instead of wiping', () => {
     });
 });
 
-describe('Bug fix: dying to two DoTs in one end-turn counts as ONE defeat', () => {
+describe('Bug fix: dying to two DoTs in one tick counts as ONE defeat', () => {
     it('logs a single status defeat for a Burn+Poison death', () => {
+        // TICKET 126 moved Burn and Poison to the START of their owner's turn, so the tick that
+        // kills this unit fires as the ENEMY turn BEGINS. The side is flipped to PLAYER here so
+        // that END_TURN hands the turn to the enemy and runs their start-of-turn tick; the
+        // invariant under test - two DoTs killing in one pass log ONE defeat, not two - is
+        // unchanged.
         const state = makeState({
-            activeSide: 'ENEMY',
+            activeSide: 'PLAYER',
             enemyParty: [makeEntity({
                 id: 'e1', name: 'Foe', currentHp: 1,
                 statusEffects: [

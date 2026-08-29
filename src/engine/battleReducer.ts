@@ -16,7 +16,7 @@ import { type HookContext } from './core/Hooks';
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
-import { getMacro, type IMacroDefinition } from './data/macroRegistry';
+import { numericBaseCost } from './types';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
@@ -30,33 +30,15 @@ function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
 }
 
-// Ticket 55: `GetBaseCost` lived here and had no callers. `getEffectiveCardCost` is the one
-// cost entry point — it handles X-cost and the next-program discount, which a bare base-cost
-// lookup could not, and every reader (AI, cost pip, this reducer) already goes through it.
+// Use the Registry to look up base costs.
+const GetBaseCost = (dataId: string): number => {
+    return numericBaseCost(GetProgramData(dataId).baseCost);
+};
 
 // --- Actions ---
 
 export type BattleAction =
     | { type: 'PLAY_PROGRAM'; payload: { sourceId: string; targetId: string; programId: string } }
-    /**
-     * Ticket 15 — MACROS. A `PLAY_PROGRAM`-shaped action with no card, no hand and no Energy:
-     * `macros-and-drivers.md` rules macros "single-use, **fired free on your turn**". The slot it
-     * came out of is emptied by `runSlice.consumeMacro`, which is run state and cannot be reached
-     * from here; the screen fires both, and only after `canFireMacro` says the shot will land.
-     */
-    | { type: 'FIRE_MACRO'; payload: { macroId: string; sourceId: string; targetId: string } }
-    /**
-     * **UNWIRED, PENDING A RULING — do not build UI for this.**
-     *
-     * Ticket 22 (3v3 game-side completion) found that this action is fully implemented and tested
-     * (`handleTransferEnergy` below; `Kernel.test.ts`, `battleReducer.test.ts`) and that
-     * `battleSlice.transferEnergy` forwards it faithfully — but that **nothing in the game dispatches
-     * either one**, and the 3v3 ruling never mentions party Energy transfer at all.
-     *
-     * The ticket is explicit that Henry decides keep-or-cut and that no UI may be built for it until
-     * he has, so 22 left the whole path exactly as it found it rather than wiring it up or deleting
-     * it. It is not rotting — the tests exercise it — it simply has no way in from a fight.
-     */
     | { type: 'TRANSFER_ENERGY'; payload: { sourceId: string; targetId: string } }
     | { type: 'END_TURN' }
     | { type: 'APPLY_STATUS'; payload: { targetId: string; status: StatusType; stacks: number; sourceId?: string } }
@@ -89,9 +71,6 @@ export function battleReducer(state: IBattleState, action: BattleAction): IBattl
     switch (action.type) {
         case 'PLAY_PROGRAM':
             return handlePlayProgram(state, action.payload);
-
-        case 'FIRE_MACRO':
-            return handleFireMacro(state, action.payload);
 
         case 'TRANSFER_ENERGY':
             return handleTransferEnergy(state, action.payload);
@@ -283,9 +262,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     // the instance through every pile.
     const growthKey = `card_growth:${card.id}`;
     const growth = programData.growPerPlay ? (state.counters?.[growthKey] || 0) : 0;
-    // Ticket 55: a second, unused copy of the discount arithmetic used to sit here.
-    // `getEffectiveCardCost` (above) already applies `nextProgramModifier.costReduction` through
-    // `doesModifierApply`, so this recomputation fed nothing and could only ever disagree.
+    const appliedCostReduction = modifierApplies ? (modifier?.costReduction || 0) : 0;
     const baseCost = getEffectiveCardCost(sourceEntity, programData, card.currentCost);
 
     const costRes = executeCostCalculated(state, sourceEntity, targetEntity, programData, baseCost);
@@ -342,11 +319,6 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         // resolving - `drawCards` holds it out of any reshuffle until resolution finishes.
         resolvingCardInstanceId: card.id,
         lastStatusConsumed: 0,
-        // `damageLedger` is per-ACTION (see `IDamageRecord`). Cleared here rather than at the top
-        // of `battleReducer` on purpose: every refusal above returns `state` by identity, and
-        // `damagePreview.simulatePlay` uses `after === state` to detect a refused play. Clearing
-        // upstream of those guards would hand it a fresh object for a play that never happened.
-        damageLedger: [],
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0, 'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0,
             ...(snapshot.elementPlays || {}),
@@ -428,7 +400,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
             // DISCARD reads `count` as "how many cards leave the hand" (the ticket-21
             // self-discard cost), not as a repeat count - resolve it once and let the
             // executor move all N in a single seeded shuffle.
-            const hitCount: number = action.type === 'DISCARD' ? 1 : (action.count || 1);
+            const hitCount = action.type === 'DISCARD' ? 1 : ((action as any).count || 1);
 
             for (let i = 0; i < hitCount; i++) {
                 // Target Resolution (per hit)
@@ -477,31 +449,31 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     finalState = afterMod;
 
                     // Execution
-                    const modifiedAction = { ...action };
+                    let modifiedAction = { ...action };
                     if (growth > 0 && modifiedAction.type === 'ATTACK'
-                        && modifiedAction.power !== undefined) {
-                        modifiedAction.power = modifiedAction.power + growth;
+                        && (modifiedAction as any).power !== undefined) {
+                        (modifiedAction as any).power = (modifiedAction as any).power + growth;
                     }
                     if (modifier && modifierApplies) {
                         if (!powerBonusSpent && modifier.powerBonus && modifiedAction.type === 'ATTACK'
-                            && modifiedAction.power !== undefined) {
-                            modifiedAction.power = modifiedAction.power + modifier.powerBonus;
+                            && (modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = (modifiedAction as any).power + modifier.powerBonus;
                             powerBonusSpent = true;
                         }
-                        if (modifiedAction.power !== undefined) {
-                            modifiedAction.power = Math.floor((modifiedAction.power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        if ((modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
-                        if (modifiedAction.type === 'STATUS' && modifiedAction.stacks !== undefined) {
-                            modifiedAction.stacks = Math.floor((modifiedAction.stacks + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        if (modifiedAction.type === 'STATUS' && (modifiedAction as any).stacks !== undefined) {
+                            (modifiedAction as any).stacks = Math.floor(((modifiedAction as any).stacks + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
-                        if (modifiedAction.type === 'HEAL' && modifiedAction.power !== undefined) {
-                            modifiedAction.power = Math.floor((modifiedAction.power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
+                        if (modifiedAction.type === 'HEAL' && (modifiedAction as any).power !== undefined) {
+                            (modifiedAction as any).power = Math.floor(((modifiedAction as any).power + (modifier.flatBonus || 0)) * (modifier.multiplier || 1));
                         }
                     }
 
                     const executor = ActionExecutorRegistry[modifiedAction.type];
                     if (executor) {
-                        finalState = executor.execute(finalState, sourceId, tId, modifiedAction, programData, hitContext);
+                        finalState = executor.execute(finalState, sourceId, tId, modifiedAction as any, programData, hitContext);
                     } else {
                         console.warn(`[BattleReducer] No executor found for action type: ${modifiedAction.type}`);
                     }
@@ -562,216 +534,6 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     return finalState;
 }
 
-// =================================================================================================
-// MACROS — ticket 15
-// =================================================================================================
-
-/**
- * Why a macro cannot be fired right now. `null` means it can.
- *
- * Exported because **both** the rack UI and the reducer need it and they must not disagree: the
- * screen greys the slot and prints the reason, and only fires when this is `null`. That matters more
- * for a macro than for a card, because firing is a two-slice operation — the battle resolves it and
- * `runSlice.consumeMacro` spends the slot — and a slot spent on a shot the reducer refused would be
- * a consumable destroyed for nothing. There is no way for one reducer to guarantee that, so the
- * guarantee is this shared predicate plus the reducer's own independent refusal below.
- */
-export type MacroFireBlock =
-    | 'wrong-phase'
-    | 'not-your-turn'
-    | 'battle-over'
-    | 'unknown-macro'
-    | 'map-only'
-    | 'no-source'
-    | 'bad-target'
-    | 'nothing-to-echo';
-
-/**
- * Where a macro's actions land, given the macro's declared targeting and the player's pick.
- * `undefined` means the pick is not a legal target for this macro.
- */
-function resolveMacroTargetId(
-    state: IBattleState,
-    macro: IMacroDefinition,
-    sourceId: string,
-    targetId: string,
-): string | undefined {
-    switch (macro.targeting) {
-        case 'SELF':
-            // The chosen pick is ignored outright rather than validated: a SELF macro is about the
-            // unit firing it, and letting a stray targetId through would make Recharge silently
-            // energise whoever the player last clicked.
-            return sourceId;
-        case 'ENEMY': {
-            const enemy = state.enemyParty.find(e => e.id === targetId);
-            return enemy && enemy.currentHp > 0 ? enemy.id : undefined;
-        }
-        case 'ALLY': {
-            const ally = state.playerParty.find(e => e.id === targetId);
-            return ally && ally.currentHp > 0 ? ally.id : undefined;
-        }
-        case 'DOWNED_ALLY': {
-            // The one inversion in the engine: this target is legal precisely because it is at 0 HP.
-            const downed = state.playerParty.find(e => e.id === targetId);
-            return downed && downed.currentHp <= 0 ? downed.id : undefined;
-        }
-        case 'MAP':
-        default:
-            return undefined;
-    }
-}
-
-export function canFireMacro(
-    state: IBattleState,
-    payload: { macroId: string; sourceId: string; targetId: string },
-): MacroFireBlock | null {
-    const { macroId, sourceId, targetId } = payload;
-
-    const macro = getMacro(macroId);
-    if (!macro) return 'unknown-macro';
-    // The map-reveal is a run-state effect and has no battle behaviour at all. Refusing it here
-    // rather than letting it resolve to nothing is what stops a mis-wired rack from eating the slot.
-    if (macro.targeting === 'MAP') return 'map-only';
-
-    if (state.phase !== 'ACTION') return 'wrong-phase';
-    // Macros are the PLAYER's resource. Nothing gives the enemy a rack, and gating on the active
-    // side is what keeps "fired free on your turn" literally true.
-    if (state.activeSide !== 'PLAYER') return 'not-your-turn';
-
-    const battleOver = (state.playerParty.length > 0 && state.playerParty.every(p => p.currentHp <= 0))
-        || (state.enemyParty.length > 0 && state.enemyParty.every(e => e.currentHp <= 0));
-    if (battleOver) return 'battle-over';
-
-    const source = state.playerParty.find(e => e.id === sourceId);
-    if (!source || source.currentHp <= 0) return 'no-source';
-
-    if (resolveMacroTargetId(state, macro, sourceId, targetId) === undefined) return 'bad-target';
-
-    // Echo with nothing behind it. `lastProgramPlayed` is null until the first card of the battle
-    // resolves, and `PlayLastCardExecutor` would otherwise log "no program was played previously"
-    // and return — a rare consumable spent on a log line.
-    if (macro.actions.some(a => a.type === 'PLAY_LAST_CARD') && !state.lastProgramPlayed) {
-        return 'nothing-to-echo';
-    }
-
-    return null;
-}
-
-/**
- * Fire a macro. **Free, single-use, and not a card play.**
- *
- * # WHAT THIS DELIBERATELY DOES NOT TOUCH, AND WHY
- *
- * Ticket 15 asks for a reading on this and no ruling exists, so here is the reading, in one place:
- * **a macro is NOT a card play.** Nothing below increments any of the counters a card play moves.
- *
- * - **`cardsPlayedThisTurn`** — the `CARDS_PLAYED` damage scaler reads it (`stampede`,
- *   `momentum_crash`), and ticket 74 rules that family deliberately uncapped because it rewards
- *   playing smart *out of your deck*. A free off-deck consumable that inflated it would be a
- *   multiplier you can buy, which is a different game. It is also what the HUD's "CARDS PLAYED"
- *   readout means, and that readout is how Henry pilots a momentum deck.
- * - **`playsThisTurn`** — the per-unit OS card limit (YMIR v2's GLACIAL_PACE_OS: two cards a turn).
- *   A macro is not one of your two cards, so it neither counts against the limit nor is refused by
- *   it. The alternative would make the Glacial Pace player's macros strictly worse than everyone
- *   else's for no stated reason.
- * - **`lastProgramPlayed`** — left pointing at the last *card*, which is what makes Echo's ruled
- *   text ("replay your last card") true. Firing Surge and then Echo replays the card before Surge,
- *   not Surge; firing Echo twice replays the same card twice.
- * - **`elementPlays`** and **`lastEnergySpent`** — a macro has no element and pays no Energy, so
- *   writing either would be recording a fiction for the scalers that read them.
- * - **`nextProgramModifier`** — a macro neither benefits from a primed buff nor spends it. Free Exec
- *   priming a charge that the next macro immediately ate would make the rare macro unusable next to
- *   any other macro.
- *
- * # WHICH HOOK PHASES RUN
- *
- * `onModifierPhase` and `onPostDamage` per hit — the damage plumbing every source in the game runs
- * through, including enemy intents. `onActionStart` / `onActionEnd` do **not**: they are the
- * per-PROGRAM phases (hel_v2 flips her stance on `onActionEnd`, UNDERWORLD_GATEWAY charges blood on
- * `onActionStart`), and firing them for a macro would make a consumable trigger "when you cast a
- * card" firmware. `handleExecuteIntent` already sets that precedent for a non-card action source and
- * this follows it exactly.
- */
-function handleFireMacro(
-    state: IBattleState,
-    payload: { macroId: string; sourceId: string; targetId: string },
-): IBattleState {
-    if (canFireMacro(state, payload) !== null) return state;
-
-    const { macroId, sourceId } = payload;
-    const macro = getMacro(macroId)!;
-    const macroTargetId = resolveMacroTargetId(state, macro, sourceId, payload.targetId)!;
-
-    const sourceEntity = state.playerParty.find(e => e.id === sourceId)!;
-    const targetEntity = state.playerParty.find(e => e.id === macroTargetId)
-        || state.enemyParty.find(e => e.id === macroTargetId);
-
-    // A macro is not a program, but the executors and hooks all take one. This stand-in carries the
-    // macro's identity into the log and the hook context without pretending to be a real card: it is
-    // never in a hand, never in a pile, and `lastProgramPlayed` is never set to it.
-    const macroProgram: ProgramData = {
-        id: macro.id,
-        name: macro.name,
-        description: macro.description,
-        element: 'None',
-        target: 'Single',
-        category: 'Skill',
-        rarity: macro.rarity,
-        baseCost: 0,
-        constraints: [],
-        actions: macro.actions,
-    };
-
-    // `lastStatusConsumed` is reset exactly as the card path resets it, so a macro that replays a
-    // consume-scaled card (Echo) reads that card's own consume count and never a stale one.
-    let finalState: IBattleState = applyMutations({ ...state, lastStatusConsumed: 0, damageLedger: [] }, [{
-        type: 'LOG',
-        targetId: '',
-        payload: `⚡ ${sourceEntity.name} fires ${macro.name}${targetEntity && targetEntity.id !== sourceId ? ` → ${targetEntity.name}` : ''}`
-    }]);
-
-    const context: HookContext = {
-        source: sourceEntity,
-        target: targetEntity,
-        program: macroProgram,
-        state: finalState,
-        triggerDepth: 0
-    };
-
-    for (const action of macro.actions) {
-        // SELF-declared actions land on the firing unit whatever the macro is aimed at, the same
-        // rule `handlePlayProgram` applies to a card's SELF actions.
-        const tId = (action.target === 'SELF' || action.target === 'Self') ? sourceId : macroTargetId;
-        const currentTarget = finalState.playerParty.find(e => e.id === tId)
-            || finalState.enemyParty.find(e => e.id === tId);
-        if (!currentTarget) continue;
-        // THE ONE PLACE THE ENGINE LETS AN ACTION REACH A DOWNED UNIT, and it is narrowed to the one
-        // action type that exists to do it. Everything else keeps the standard alive-check, so a
-        // multi-action revive macro could not sneak a damage action onto a corpse.
-        if (currentTarget.currentHp <= 0 && action.type !== 'REVIVE') continue;
-
-        const latestSource = finalState.playerParty.find(e => e.id === sourceId);
-        if (!latestSource || latestSource.currentHp <= 0) break;
-
-        const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
-        const { state: afterMod, isCancelled } = executeResolutionStack('onModifierPhase', hitContext);
-        if (isCancelled) continue;
-        finalState = afterMod;
-
-        const executor = ActionExecutorRegistry[action.type];
-        if (executor) {
-            finalState = executor.execute(finalState, sourceId, tId, action, macroProgram, hitContext);
-        } else {
-            console.warn(`[BattleReducer] No executor found for macro action type: ${action.type}`);
-        }
-
-        const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
-        finalState = afterPost;
-    }
-
-    return finalState;
-}
-
 function handleExecuteIntent(state: IBattleState, payload: { sourceId: string }): IBattleState {
     if (state.phase !== 'ACTION') return state;
 
@@ -813,11 +575,9 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
 
     const intent = sourceEntity.currentIntent;
 
-    // 1. Initial State Updates (clear the intent). `damageLedger` is per-action — see the note in
-    // `handlePlayProgram` for why it is cleared past the refusal guards rather than above them.
+    // 1. Initial State Updates (clear the intent)
     let snapshot: IBattleState = {
         ...state,
-        damageLedger: [],
         enemyParty: state.enemyParty.map((e, idx) => idx === sourceIndex ? { ...e, currentIntent: null } : e) as ReadonlyArray<IBattleEntity>
     };
 
@@ -845,12 +605,12 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
     // 3. Action Execution loop
     let finalState = snapshot;
     for (const action of intent.actions) {
-        const hitCount: number = action.count || 1;
+        const hitCount = (action as any).count || 1;
 
         for (let i = 0; i < hitCount; i++) {
             // Target Selection Helper (Deterministic via lowest HP for single, Side/Self logic)
             let targetIds: string[] = [];
-            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp', 'StableOS', 'BarkShield'].includes(action.status));
+            const isHealOrBuff = action.type === 'HEAL' || (action.type === 'STATUS' && ['Regen', 'Energized', 'Strengthened', 'Sharp', 'StableOS', 'BarkShield'].includes((action as any).status));
 
             if (action.target === 'SELF' || action.target === 'Self') {
                 targetIds = [sourceId];
@@ -906,7 +666,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 // Execution
                 const executor = ActionExecutorRegistry[action.type];
                 if (executor) {
-                    finalState = executor.execute(finalState, sourceId, tId, action, dummyProgram, hitContext);
+                    finalState = executor.execute(finalState, sourceId, tId, action as any, dummyProgram, hitContext);
                 } else {
                     console.warn(`[BattleReducer] No executor found for intent action type: ${action.type}`);
                 }
@@ -952,9 +712,7 @@ function handleEndTurn(state: IBattleState): IBattleState {
     if (state.phase !== 'ACTION') return state;
 
     let newState = addLog(state, `--- ${state.activeSide} ends their turn ---`);
-    // Per-action ledger, and end of turn is an action: DoT ticks and end-of-turn hooks deal real
-    // damage and belong to this action, not to the card that happened to resolve before it.
-    newState = { ...newState, phase: 'POST_TURN' as TurnPhase, damageLedger: [] };
+    newState = { ...newState, phase: 'POST_TURN' as TurnPhase };
 
     // Execute Post-Turn Logic
     newState = processPostTurn(newState);
@@ -988,10 +746,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     // Process each entity's status effects via behavior.endTurn()
     const statusLogs: string[] = [];
     const defeatedThisTurn: string[] = [];
-    // `status` is a StatusType, not a bare string: every push below is a
-    // `StatusEffectInstance['type']`, and HookContext.statusApplied — which is what this
-    // queue feeds at the onStatusRemoved dispatch — is typed StatusType.
-    const removedStatusQueue: { targetId: string, status: StatusType }[] = [];
+    const removedStatusQueue: { targetId: string, status: string }[] = [];
     const hpCrossingsThisTick: string[] = [];
 
     const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
@@ -1003,16 +758,30 @@ function processPostTurn(state: IBattleState): IBattleState {
 
         for (const effect of entity.statusEffects) {
             const behavior = getStatusBehavior(effect.type);
+
+            // TICKET 126: a status that ticks at its owner's turn START is handled in the
+            // PRE_TURN block instead. It is carried through untouched here - NOT skipped, which
+            // would drop it from `newEffects` and delete the status outright.
+            if (behavior.ticksAt === 'OWNER_TURN_START') {
+                newEffects.push(effect);
+                continue;
+            }
+
             const result = behavior.endTurn(effect, entity);
 
             let damage = result.damage;
 
-            // Apply scaling hooks (e.g., Thermal Overload boosting Burn damage).
-            //
-            // Ticket 55 removed a hand-built `HookContext` here that nothing read:
-            // `executeStatusDamageCalculated` builds its own, so the local was scaffolding left
-            // behind when this call replaced a direct hook invocation.
+            // Apply scaling hooks (e.g., Thermal Overload boosting Burn damage)
             if (damage > 0) {
+                const context: HookContext = {
+                    source: undefined, // System or self?
+                    target: entity,
+                    state: state,
+                    triggerDepth: 0
+                };
+
+                // We use calculateStatusDamage naming or just reuse the logic
+                // For simplicity, let's call it 'onStatusDamageCalculated'
                 const { state: _, damage: finalDamage } = executeStatusDamageCalculated(state, entity, damage, effect.type);
                 damage = finalDamage;
             }
@@ -1117,13 +886,13 @@ function processPostTurn(state: IBattleState): IBattleState {
     for (const item of removedStatusQueue) {
         const afterTurnTarget = nextState.playerParty.find(e => e.id === item.targetId) || nextState.enemyParty.find(e => e.id === item.targetId);
         if (afterTurnTarget) {
-            const context: HookContext = {
+            const context = {
                 target: afterTurnTarget,
                 statusApplied: item.status,
                 state: nextState,
                 triggerDepth: 0
             };
-            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
+            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
             nextState = afterHook;
         }
     }
@@ -1160,6 +929,7 @@ function processPreTurn(state: IBattleState): IBattleState {
     const activeDeckKey = nextSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
 
     const activeParty = state[activePartyKey];
+    const activeDeck = state[activeDeckKey];
 
     // Emit TURN_START
     globalBattleEventBus.emit({
@@ -1186,12 +956,79 @@ function processPreTurn(state: IBattleState): IBattleState {
         };
     });
 
+    // TICKET 126: statuses that tick at their owner's turn START, for the party about to act.
+    //
+    // Regen is the only one. Henry, ticket-118 playtest: *"Regen triggers at the end of the turn.
+    // So I just put it on there it triggered for no gain."* Ticking on the way out of your own
+    // turn spends a stack before the enemy has hit you; ticking on the way in heals what you just
+    // took.
+    //
+    // Deliberately NOT a second call to the end-of-turn loop. That loop also does defeat
+    // detection, HP-threshold crossings and DoT damage, none of which a healing tick needs, and
+    // duplicating it would be two places to keep in step. This pass handles healing, defense
+    // shred and stack decay only - the constraint documented on `StatusBehavior.ticksAt`, with a
+    // test that fails if a damaging status ever opts in.
+    const startTickLogs: string[] = [];
+    const startTickRemovals: { targetId: string; status: string }[] = [];
+    const tickedParty = refreshedParty.map(entity => {
+        if (entity.currentHp <= 0) return entity;
+        if (!entity.statusEffects.some(s => getStatusBehavior(s.type).ticksAt === 'OWNER_TURN_START')) {
+            return entity;
+        }
+
+        let currentHp = entity.currentHp;
+        let defense = entity.defense;
+        const kept: StatusEffectInstance[] = [];
+
+        for (const effect of entity.statusEffects) {
+            const behavior = getStatusBehavior(effect.type);
+            if (behavior.ticksAt !== 'OWNER_TURN_START') { kept.push(effect); continue; }
+
+            const result = behavior.endTurn(effect, entity);
+
+            if (result.healing && result.healing > 0) {
+                currentHp = Math.min(entity.maxHp, currentHp + result.healing);
+                globalBattleEventBus.emit({
+                    type: 'HEAL', targetId: entity.id, amount: result.healing, timestamp: Date.now(),
+                });
+            }
+            if (result.defenseShred > 0) defense = Math.max(0, defense - result.defenseShred);
+            // Same recorder call the end-turn loop makes, so DoT/HoT census totals do not change
+            // shape just because Regen moved.
+            recordDotTick(effect.type, result.damage ?? 0, result.healing ?? 0);
+
+            if (result.updatedInstance) {
+                kept.push(result.updatedInstance);
+            } else {
+                globalBattleEventBus.emit({
+                    type: 'STATUS_REMOVED', targetId: entity.id, status: effect.type, timestamp: Date.now(),
+                });
+                startTickRemovals.push({ targetId: entity.id, status: effect.type });
+            }
+            startTickLogs.push(...result.logs);
+        }
+
+        return { ...entity, currentHp, defense, statusEffects: kept };
+    });
+
     let nextState: IBattleState = {
         ...state,
         turn: nextTurn,
         activeSide: nextSide,
-        [activePartyKey]: refreshedParty
+        [activePartyKey]: tickedParty
     };
+    for (const log of startTickLogs) nextState = addLog(nextState, log);
+    // onStatusRemoved is what draugr_v1's PERMAFROST_WAKE listens on, so a Regen falling off at
+    // the start of a turn must drive the same stack the end-of-turn path does.
+    for (const removal of startTickRemovals) {
+        const owner = nextState[activePartyKey].find((e: IBattleEntity) => e.id === removal.targetId);
+        if (!owner) continue;
+        const { state: afterHook } = executeResolutionStack('onStatusRemoved', {
+            source: owner, target: owner, state: nextState, triggerDepth: 0,
+            statusRemoved: removal.status,
+        } as never);
+        nextState = afterHook;
+    }
 
     // Execute onTurnStart hooks
     const currentParty = nextState[activePartyKey];
@@ -1239,7 +1076,7 @@ function processPreTurn(state: IBattleState): IBattleState {
         : nextState.enemyParty;
     const finalPlayerParty = nextState.playerParty;
 
-    let newState: IBattleState = {
+    let newState = {
         ...nextState,
         turn: nextTurn,
         phase: 'ACTION',
@@ -1252,7 +1089,7 @@ function processPreTurn(state: IBattleState): IBattleState {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         }
-    };
+    } as any;
 
     newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
 
@@ -1422,13 +1259,13 @@ function handleRemoveStatus(
 
         const afterRemovalTarget = findBattleEntity(newState, entityId);
         if (!afterRemovalTarget) continue;
-        const context: HookContext = {
+        const context = {
             target: afterRemovalTarget,
             statusApplied: effect.type,
             state: newState,
             triggerDepth: 0
         };
-        const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
+        const { state: afterHook } = executeResolutionStack('onStatusRemoved', context as any);
         newState = afterHook;
     }
 
