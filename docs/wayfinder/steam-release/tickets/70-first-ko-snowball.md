@@ -2,7 +2,7 @@
 
 - Type: wayfinder:grilling
 - Status: open
-- Assignee: 
+- Assignee: legion-70-measure (MEASUREMENT STEP ONLY - the grilling is Henry's)
 - Blocked by: nothing hard - the measurement step below should run BEFORE the grilling session
 - Phase: Vertical Slice
 - Scope note: this ticket rules DIRECTION. Anything it decides that touches cards, statuses, OS
@@ -54,6 +54,45 @@ damage wasted. Then report across the existing 3v3 cells:
    first-kill team, or does HP advantage still carry (Henry's second, unconfirmed issue).
 
 These four numbers frame every option below; the grilling should not run without them.
+
+## Measurement instrument — BUILT 2026-08-29
+
+`npm run balance:snowball` (`src/debug/balance/runSnowball.ts` -> `snowball.ts`), report-only, exits
+0, writes no file. It prints the four numbers this section asks for, in this section's order.
+
+**Population:** `REFERENCE_PANEL` round-robin, mirrors excluded — 30 ordered pairs, both turn
+orders. That is the repo's standing 3v3 reference set (ticket 109), which is what *"the existing 3v3
+cells"* means here. Deliberately role-diverse rather than launch-scoped: the snowball is a mechanism
+question, and restricting to the EA elements would measure the same effect through a smaller and
+more lopsided sample. **These are standalone battles, not a run** — no HP carries between fights, so
+nothing here speaks to gauntlet attrition.
+
+**Overkill comes off the DAMAGE LEDGER, and that is the load-bearing decision.**
+`effectHandlers.handleAttack` floors HP at zero, so a 60-damage hit on a 5 HP target moves 5 HP: an
+HP-diff instrument cannot see overkill *by construction* and would have reported ~0 with a straight
+face. `IDamageRecord` (added 2026-08-24, at Henry's *"it's really important to know the exact
+damage"*) records `raw` before the floor and before shields, so the measure is
+`max(0, raw - absorbed - applied)` summed over every hit. The ledger is cleared per action, so the
+instrument reads it after **every** dispatch — including the forced `END_TURN`, because a Burn or
+Poison tick killing a unit is a KO like any other and skipping it would under-count DoT deaths.
+
+**First-KO attribution is by whose member DIED, not by `state.activeSide`** — a unit dying to its
+own end-of-turn Burn dies on its own side's turn, and crediting the actor would hand that kill to
+the wrong team. A KO on both sides in one dispatch records `firstKoBy: null` and is excluded from
+line 1 rather than assigned to one side.
+
+**Three exclusions, each of which would otherwise fake a result:** draws are out of line 1 (a draw
+says nothing about whether the first KO decided the fight, and counting it against the killer
+manufactures a comeback rate); simultaneous KOs are out of line 1; equal-HP battles are out of line
+4 (folding them in at 50% biases it toward "no effect" using samples that carry no signal). Each
+exclusion is counted and printed, never silent.
+
+`snowball.test.ts` pins the arithmetic against fabricated runs with hand-worked answers — the only
+way these ratios get checked at all, since a real batch cannot be given a known result.
+
+**Smoke check (4 battles, panel-zoo vs panel-control both ways):** first-KO side won 4/4; mean
+overkill 18.5 damage = 7.8% of a side's starting pool; the loser lost all 3 members every time.
+Shape is right; the real numbers follow.
 
 ## The grilling - questions for Henry
 

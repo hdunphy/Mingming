@@ -178,6 +178,57 @@ export interface RunResult {
     cardsSeen: { player: number; enemy: number };
     /** Ticket 26: present only when `BatchOptions.telemetry` was set. */
     telemetry?: RunTelemetry;
+    /** Ticket 70's four numbers. Always collected — see `SnowballRecord`. */
+    snowball?: SnowballRecord;
+}
+
+/**
+ * THE FIRST-KO SNOWBALL, PER BATTLE — steam-release ticket 70's measurement step.
+ *
+ * Henry, 2026-08-28: *"the first mingming defeated causes a massive advantage… I avoided playing
+ * two Stampedes on a mingming because it would have overkilled by 40 damage - but then I lost."*
+ * The ticket asks for four numbers before its grilling runs, and not one of them can be recovered
+ * from a win rate: **who** killed first, **when**, how much fight came after, and how much damage
+ * the HP floor ate.
+ *
+ * # WHY THIS IS COLLECTED UNCONDITIONALLY
+ *
+ * Unlike ticket 26's telemetry, which allocates six records and several maps per run, this is four
+ * scalars and a scan of two parties per dispatch. Behind a flag, the numbers would exist only in
+ * the runs somebody remembered to ask for them in — and the interesting battles are the ones
+ * nobody thought to instrument. The cost is far below the AI lookahead that dominates every run.
+ *
+ * # OVERKILL IS READ FROM THE DAMAGE LEDGER, NOT FROM HP — AND THAT IS THE WHOLE POINT
+ *
+ * `effectHandlers.handleAttack` floors HP at zero, so a 60-damage hit on a 5 HP target moves 5 HP.
+ * An HP-diff instrument would record **5** and report no overkill at all: it cannot see the
+ * quantity ticket 70 asks about, *by construction*. `IDamageRecord` exists (2026-08-24) precisely
+ * because Henry asked for the number before the floor — so:
+ *
+ *     overkill = max(0, raw - absorbed - applied)
+ *
+ * `raw - absorbed` is what reached the HP pool; `applied` is what the pool could take; the
+ * difference is the waste Henry declined to spend a second Stampede on.
+ *
+ * The ledger is **per-action** — `battleReducer` clears it at the top of each dispatch — so it has
+ * to be read after every one. Accumulating it is this instrument's job, not the engine's.
+ */
+export interface SnowballRecord {
+    /** The side that scored the first KO, or null if no member ever died (a draw, or a stall). */
+    firstKoBy: Side | null;
+    /** `IBattleState.turn` when the first KO landed. */
+    firstKoTurn: number | null;
+    /**
+     * Turns of battle AFTER the first KO — ticket 70 line 2, *"is the rest of the fight real play
+     * or a formality"*. Null when no KO happened.
+     */
+    turnsAfterFirstKo: number | null;
+    /** Ticket 70 line 3, summed over every hit of the battle: damage the HP floor ate. */
+    overkillWasted: number;
+    /** Ticket 70 line 4's predictor: total party HP at battle start, before a card is played. */
+    startingHp: { player: number; enemy: number };
+    /** Members lost by each side by the end — the snowball's depth, not just its start. */
+    losses: { player: number; enemy: number };
 }
 
 export interface BatchResult {
@@ -354,6 +405,27 @@ export function runOne(
 
     observeHands(state);
 
+    /*
+     * TICKET 70's snowball bookkeeping. See `SnowballRecord` for why it is unconditional and why
+     * overkill comes off the damage ledger rather than out of an HP diff.
+     *
+     * `aliveOn` is the whole KO detector: a member is alive at `currentHp > 0`, which is the same
+     * test `battleReducer` itself uses for targeting and for the draw scaler. Comparing the count
+     * either side of a dispatch attributes the KO to the side that was ACTING, which is what
+     * "scored the first KO" has to mean — a member dying to its own Burn tick on its own turn is
+     * still the opponent's kill, and `state.activeSide` alone would credit it backwards.
+     */
+    const aliveOn = (s: IBattleState, side: Side): number =>
+        (side === 'PLAYER' ? s.playerParty : s.enemyParty).filter(e => e.currentHp > 0).length;
+    const hpOn = (s: IBattleState, side: Side): number =>
+        (side === 'PLAYER' ? s.playerParty : s.enemyParty).reduce((a, e) => a + e.currentHp, 0);
+
+    const startAlive = { PLAYER: aliveOn(state, 'PLAYER'), ENEMY: aliveOn(state, 'ENEMY') };
+    const startingHp = { player: hpOn(state, 'PLAYER'), enemy: hpOn(state, 'ENEMY') };
+    let firstKoBy: Side | null = null;
+    let firstKoTurn: number | null = null;
+    let overkillWasted = 0;
+
     let winner: BattleOutcome | null = decideOutcome(state);
     let truncated = false;
     let actionsThisTurn = 0;
@@ -410,6 +482,34 @@ export function runOne(
             state = nextState;
         }
 
+        /*
+         * TICKET 70, read after EVERY dispatch — including the forced `END_TURN` above, because a
+         * Burn or Poison tick resolving at end of turn is a KO like any other and skipping it
+         * would systematically under-count deaths by damage-over-time.
+         *
+         * The ledger is per-action, so this is the only moment its entries exist.
+         */
+        for (const hit of state.damageLedger ?? []) {
+            overkillWasted += Math.max(0, hit.raw - hit.absorbed - hit.applied);
+        }
+        if (firstKoTurn === null) {
+            // Attributed to whoever the DEAD member does not belong to. Deliberately not
+            // `state.activeSide`: a unit dying to its own end-of-turn Burn dies on its own side's
+            // turn, and crediting the actor would hand that kill to the wrong team.
+            //
+            // Guarded on `firstKoTurn` rather than on `firstKoBy`, because a simultaneous KO
+            // records `firstKoBy: null` — guarding on the side would let the NEXT dispatch
+            // overwrite the tie and report a first KO one dispatch too late.
+            const playerLost = aliveOn(state, 'PLAYER') < startAlive.PLAYER;
+            const enemyLost = aliveOn(state, 'ENEMY') < startAlive.ENEMY;
+            if (playerLost || enemyLost) {
+                // Both in one dispatch (a side-scope card, a mutual tick) is a genuine tie, and
+                // recording it as neither is more honest than picking one.
+                firstKoBy = playerLost && enemyLost ? null : playerLost ? 'ENEMY' : 'PLAYER';
+                firstKoTurn = state.turn;
+            }
+        }
+
         observeHands(state);
 
         const fingerprint = `${state.turn}:${state.activeSide}`;
@@ -452,6 +552,20 @@ export function runOne(
         deadCards: { player: deadRatio('PLAYER'), enemy: deadRatio('ENEMY') },
         cardsSeen: { player: seen.PLAYER.size, enemy: seen.ENEMY.size },
         ...(telemetry ? { telemetry } : {}),
+        snowball: {
+            firstKoBy,
+            firstKoTurn,
+            // `state.turn` is where the battle stopped. A truncated run still reports this
+            // honestly: it says how long the fight went on after the KO, and that it never
+            // resolved is `truncated`'s job to say, not this field's.
+            turnsAfterFirstKo: firstKoTurn === null ? null : Math.max(0, state.turn - firstKoTurn),
+            overkillWasted,
+            startingHp,
+            losses: {
+                player: startAlive.PLAYER - aliveOn(state, 'PLAYER'),
+                enemy: startAlive.ENEMY - aliveOn(state, 'ENEMY'),
+            },
+        },
     };
 }
 
