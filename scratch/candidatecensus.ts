@@ -12,6 +12,7 @@ import { census, censusReset, censusNewDecision, getBestAction, AI_TIER } from '
 import { buildScenarioState } from '../src/debug/scenarios/buildScenarioState';
 import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { battleReducer } from '../src/engine/battleReducer';
+import { ENV } from './_env';
 type St = import('../src/engine/types').IBattleState;
 
 const SQUAD: Array<readonly [string, string]> = [
@@ -21,7 +22,7 @@ const FOE: Array<readonly [string, string]> = [
     ['hel', 'hel_v2'], ['kraken', 'kraken_v1'], ['fenrir', 'fenrir_v1'],
 ];
 
-for (const n of (process.env.N ?? '1,2,3').split(',').map(Number)) {
+for (const n of (ENV.N ?? '1,2,3').split(',').map(Number)) {
     const setup = teamScenario({ player: SQUAD.slice(0, n), enemy: FOE.slice(0, n), seed: `cen:${n}` });
     let st = buildScenarioState({ ...setup, seed: `cen:${n}` }) as St;
     const alive = (p: ReadonlyArray<{ currentHp: number }>) => p.some(e => e.currentHp > 0);
@@ -37,7 +38,7 @@ for (const n of (process.env.N ?? '1,2,3').split(',').map(Number)) {
     }
     const ms = performance.now() - t0;
     const c = census;
-    console.error(`${n}v${n} tier=${AI_TIER} beam=${process.env.AI_BEAM ?? 0}  ` +
+    console.error(`${n}v${n} tier=${AI_TIER} beam=${ENV.AI_BEAM ?? 0}  ` +
         `${(ms / 1000).toFixed(1)}s  decisions ${c.decisions}`);
     console.error(`   reducer sims ${c.simulated}  (${(c.simulated / c.decisions).toFixed(0)} per decision, ` +
         `${(ms * 1000 / c.simulated).toFixed(0)}us each)   pruned by beam ${c.pruned}`);

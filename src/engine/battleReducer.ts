@@ -338,6 +338,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         // The X in an X-cost card, read by the ENERGY_SPENT* scalings while this card
         // resolves. Recorded for every card so the scalings never see a stale value.
         lastEnergySpent: finalCost,
+        // TICKET 111: the card is in the discard from this line on, so mark it as the one
+        // resolving - `drawCards` holds it out of any reshuffle until resolution finishes.
+        resolvingCardInstanceId: card.id,
         lastStatusConsumed: 0,
         // `damageLedger` is per-ACTION (see `IDamageRecord`). Cleared here rather than at the top
         // of `battleReducer` on purpose: every refusal above returns `state` by identity, and
@@ -551,7 +554,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     finalState = {
         ...finalState,
         [activePartyKey]: activePartyAfter,
-        lastProgramPlayed: card.dataId
+        lastProgramPlayed: card.dataId,
+        // Resolution is over: the card rejoins the reshuffle pool like any other discard.
+        resolvingCardInstanceId: null
     };
 
     return finalState;

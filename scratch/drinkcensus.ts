@@ -15,12 +15,13 @@
  */
 import PROGRAMS from '../src/engine/data/programs.json';
 import HOOKS from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
 const P = PROGRAMS as unknown as Record<string, { actions: Array<Record<string, unknown>> }>;
 const H = HOOKS as unknown as Record<string, { hooks: Array<{ do: Array<Record<string, unknown>> }> }>;
-if (process.env.OS_REGEN) H.audhumbla_v2.hooks[0].do[0].stacks = Number(process.env.OS_REGEN);
-if (process.env.DEW) (P.morning_dew.actions[0] as { stacks: number }).stacks = Number(process.env.DEW);
-if (process.env.DRINK) (P.drink_deep.actions[1] as { power: number }).power = Number(process.env.DRINK);
+if (ENV.OS_REGEN) H.audhumbla_v2.hooks[0].do[0].stacks = Number(ENV.OS_REGEN);
+if (ENV.DEW) (P.morning_dew.actions[0] as { stacks: number }).stacks = Number(ENV.DEW);
+if (ENV.DRINK) (P.drink_deep.actions[1] as { power: number }).power = Number(ENV.DRINK);
 
 const HEALS = ['pale_mercy', 'pale_mercy', 'healing_light', 'sacred_spring'];
 const ARMS: Record<string, string[]> = {
@@ -30,7 +31,7 @@ const ARMS: Record<string, string[]> = {
         'smite', 'radiant_spark', 'dawnstrike', 'dawnstrike'],
     A3x2: [...HEALS, 'morning_dew', 'drink_deep', 'drink_deep', 'smite', 'dawnstrike'],
 };
-const ARM = process.env.ARM ?? 'A3';
+const ARM = ENV.ARM ?? 'A3';
 
 const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry');
 (MingmingRegistry.audhumbla.decks as Record<string, string[]>).audhumbla_v2 = ARMS[ARM];
@@ -42,7 +43,7 @@ const { battleReducer } = await import('../src/engine/battleReducer');
 const { getBestAction } = await import('../src/engine/ai/TacticalAI');
 type St = import('../src/engine/types').IBattleState;
 
-const ITER = Number(process.env.ITER ?? 4);
+const ITER = Number(ENV.ITER ?? 4);
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== 'audhumbla')
     for (const d of MingmingRegistry[sp].availableOS) opponents.push({ sp, deck: d });

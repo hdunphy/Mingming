@@ -1,8 +1,9 @@
 /** Ticket 103: can kraken_v2's Sharp live on a card that stays INSIDE its budget band? */
 import PROGRAMS from '../src/engine/data/programs.json';
+import { ENV } from './_env';
 const P = PROGRAMS as unknown as Record<string, { baseCost: number; actions: unknown[] }>;
 const S = (st: string, n: number) => ({ type: 'STATUS', status: st, stacks: n, target: 'SELF' });
-const ARM = process.env.ARM ?? 'W0';
+const ARM = ENV.ARM ?? 'W0';
 const SURGE = [{ type: 'ATTACK', power: 40, target: 'TARGET' },
     { type: 'ENERGY', amount: 1, target: 'SELF', conditionals: [{ id: 'card_drawn_check' }] }];
 
@@ -35,7 +36,7 @@ let sum = 0, dead = 0; const cells: number[] = [];
 for (const o of opponents) {
     const r = runPairedBatch(matchupScenario({
         player: 'kraken', enemy: o.sp, playerOS: 'kraken_v2', enemyOS: o.deck, seed: `grid:kraken_v2:${o.deck}`,
-    }), { iterations: Number(process.env.ITER ?? 10) });
+    }), { iterations: Number(ENV.ITER ?? 10) });
     sum += r.pooled.decisiveWinRate; dead += r.pooled.deadCardRatio; cells.push(r.pooled.decisiveWinRate * 100);
 }
 const n = opponents.length;

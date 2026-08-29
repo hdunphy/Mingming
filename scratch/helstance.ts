@@ -21,10 +21,11 @@ import { GetProgramData } from '../src/engine/data/programRegistry';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import type { IBattleState, IBattleEntity } from '../src/engine/types';
 import { writeFileSync } from 'node:fs';
+import { ENV } from './_env';
 
-const OS = process.env.OS_ID ?? 'hel_v1';
+const OS = ENV.OS_ID ?? 'hel_v1';
 const SPECIES = 'hel';
-const ITER = Number(process.env.ITER ?? 12);
+const ITER = Number(ENV.ITER ?? 12);
 
 const stanceOf = (e: IBattleEntity): 'Dark' | 'Light' | 'none' =>
     e.statusEffects?.some(s => s.type === 'DarkStance') ? 'Dark'

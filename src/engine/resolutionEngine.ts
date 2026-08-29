@@ -529,7 +529,8 @@ export function executeCostCalculated(
  */
 export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean, sourceId?: string): IBattleState {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const { state: newDeck, nextSeed, shuffled } = drawCards(state[deckKey], count, state.seed);
+    const { state: newDeck, nextSeed, shuffled } = drawCards(
+        state[deckKey], count, state.seed, state.resolvingCardInstanceId);
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
     let newState: IBattleState = {
         ...state,

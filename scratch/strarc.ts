@@ -15,9 +15,10 @@
  * env: OPPONENT (default control), ITER (default 12), MINT (override the OS grant), TURNS (8)
  */
 import HOOKS_DATA from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
 const H = HOOKS_DATA as unknown as Record<string, { hooks: Array<any> }>;
-if (process.env.MINT) H.sleipnir_v1.hooks[0].do[0].stacks = Number(process.env.MINT);
+if (ENV.MINT) H.sleipnir_v1.hooks[0].do[0].stacks = Number(ENV.MINT);
 
 /**
  * TICKET 103 ramp arm, off Henry's round-3 feel note: *"the problem is EARLY VELOCITY, not the
@@ -25,12 +26,12 @@ if (process.env.MINT) H.sleipnir_v1.hooks[0].do[0].stacks = Number(process.env.M
  * holds RAMP_AT. That is a CONDITION, not a cap: it slows the opener and leaves the late climb
  * alone, which is the exact shape he described enjoying (4 -> 14 -> 22 over five turns).
  */
-if (process.env.RAMP_AT) {
+if (ENV.RAMP_AT) {
     H.sleipnir_v1.hooks.push({
         id: 'sleipnir_v1_ramp',
         trigger: 'onActionStart',
         priority: 39,
-        when: { source: 'SELF', baseCost: 0, sourceStatus: { status: 'Strengthened', minStacks: Number(process.env.RAMP_AT) } },
+        when: { source: 'SELF', baseCost: 0, sourceStatus: { status: 'Strengthened', minStacks: Number(ENV.RAMP_AT) } },
         do: [{ type: 'STATUS', target: 'SELF', status: 'Strengthened', stacks: 1 }],
     });
 }
@@ -43,9 +44,9 @@ const { getBestAction } = await import('../src/engine/ai/TacticalAI');
 const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry');
 type St = Awaited<ReturnType<typeof buildScenarioState>>;
 
-const OPPONENT = process.env.OPPONENT ?? 'control';
-const ITER = Number(process.env.ITER ?? 12);
-const MAX_TURN = Number(process.env.TURNS ?? 8);
+const OPPONENT = ENV.OPPONENT ?? 'control';
+const ITER = Number(ENV.ITER ?? 12);
+const MAX_TURN = Number(ENV.TURNS ?? 8);
 
 const enemyOS = MingmingRegistry[OPPONENT]?.availableOS?.[0] ?? `${OPPONENT}_v1`;
 const setup = matchupScenario({

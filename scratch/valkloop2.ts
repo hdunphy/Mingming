@@ -6,8 +6,9 @@ import { battleReducer } from '../src/engine/battleReducer';
 import { getBestAction } from '../src/engine/ai/TacticalAI';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import type { IBattleState } from '../src/engine/types';
+import { ENV } from './_env';
 
-const DECK = process.env.DECK ?? 'valkyrie_v2';
+const DECK = ENV.DECK ?? 'valkyrie_v2';
 const SP = DECK.replace(/_v[12]$/, '');
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== SP)

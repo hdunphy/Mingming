@@ -563,7 +563,23 @@ const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
  *    free, because without lookahead it simply plays something else. A power knob is usually
  *    exactly that kind of change. **Greedy is a decision-density probe (ticket 99), not a screen.**
  */
-const LITE = process.env.AI_LITE === '1';
+/**
+ * The process environment, read in a form Vite's `define` cannot statically rewrite.
+ *
+ * `vite.config.ts` sets `define: { 'process.env': {} }` so a stray env read cannot throw in the
+ * browser bundle. That substitution is textual and it fires on anything Vite transforms - which
+ * includes this file when it is loaded through vite-node. A plain `process.env` read here
+ * therefore becomes `{}` in every harness, and AI_LITE / AI_GREEDY / AI_BEAM silently stop
+ * working: every measurement runs at full tier with the beam off, whatever it was asked for.
+ *
+ * Reaching the object off `globalThis` by a computed key leaves no `process.env` token for the
+ * define to match, and still yields `{}` in the browser where `globalThis.process` is undefined -
+ * so it keeps the browser guard from 0939d95 rather than replacing it.
+ */
+const ENV_PROP = 'env';
+const env = ((globalThis as unknown as Record<string, Record<string, Record<string, string | undefined>>>)
+    .process?.[ENV_PROP] ?? {}) as Record<string, string | undefined>;
+const LITE = env.AI_LITE === '1';
 const LOOKAHEAD_REPLY_DEPTH = 2;
 
 /**
@@ -603,7 +619,7 @@ const lookaheadDeterminizations = (tier: AiTier): number => (tier === 'lite' ? 1
  * 83 reducer simulations per decision at 1v1 against 16,677 at 3v3, and 18.1% of the 3v3 ones
  * byte-identical repeats (research/3v3-optimisation.md).
  */
-const CENSUS = process.env.AI_CENSUS === '1';
+const CENSUS = env.AI_CENSUS === '1';
 export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0 };
 export function censusReset(): void {
     census.enumerated = 0; census.duplicate = 0; census.simulated = 0;
@@ -638,7 +654,7 @@ export function censusNewDecision(): void { census.decisions++; }
  * is never beamed - that is the layer producing the candidate list `getBestAction` ranks, and
  * truncating it would hide legal plays from the decision entirely.
  */
-const BEAM = Number(process.env.AI_BEAM ?? 0);
+const BEAM = Number(env.AI_BEAM ?? 0);
 
 /**
  * The PROCESS-WIDE default tier, for a harness that wants to record it beside its numbers.
@@ -648,7 +664,7 @@ const BEAM = Number(process.env.AI_BEAM ?? 0);
  * side only; see `AiTier` above.
  */
 export const AI_TIER: AiTier =
-    process.env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
+    env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
 
 /**
  * Which grade plays this decision.

@@ -67,3 +67,12 @@ converted into Energy, not in the display. Say so and I will chase that instead.
     but the timer never expired so the immunity never fired. Sleep now always ends within 3 turns and
     is always followed by an awake turn. Costs draugr_v1 - the sleep deck - 6 points of field win
     rate, 47.6 -> 41.6, and she stays in band with FEWER blowout cells.)
+
+
+[ ] Debug view doesn't auto add the base deck for enemies.
+[ ] We still have levels in the debug view.
+[ ] I should be able to edit the scenario.json from the debug Launcher view
+[ ] 3v3 enemies take a long time it feels so slow
+[ ] Gulinbursti_v1: I'm not convinced it works and hard to understand description. Seems like it worked a couple of times, but there is no indicator/status to show me.
+[ ] sleipnir_v1 description is confusing
+

@@ -1,4 +1,4 @@
-import type { IBattleState, IBattleEntity, ProgramData, Element } from '../types';
+import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance } from '../types';
 import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
 import type { HookAction, HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
@@ -185,10 +185,29 @@ export function getDamageScalingMultiplier(
     scaling: string | undefined,
     element: Element | undefined,
     target: IBattleEntity | undefined,
+    /** TICKET 123: the CASTER, for scalers that count the caster's own actions. */
+    source?: IBattleEntity,
 ): number {
     switch (scaling) {
         case 'CARDS_PLAYED':
-            return state.cardsPlayedThisTurn;
+            // TICKET 123: the CASTER's plays, not the whole active side's.
+            //
+            // All three cards using this scaler already say so in their own text:
+            // `stampede` and `serpents_coil` read "for every card YOU played this turn",
+            // and `seed_bomb_v2` reads "per card played by HOST this turn". At 1v1 the
+            // caster IS the side, so the distinction never existed and the note above -
+            // that reading side history is deliberate per ticket 26 - was written when it
+            // could not have meant anything else. 3v3 with a SHARED hand made it mean
+            // something and nobody revisited it: every ally's cast pumps your scaler.
+            // Henry, playtest: `stampede` for 42 in one game and 78 in a stacked comp,
+            // off an 11-power card.
+            //
+            // `playsThisTurn` is incremented in the SAME reducer snapshot as
+            // `cardsPlayedThisTurn`, so the resolving card counts itself either way and
+            // the off-by-one is unchanged. At width 1 the two values are equal, so no 1v1
+            // cell moves. The `??` is a safety net only - `selfPumpsOnly` in
+            // `cardsPlayedScaling.test.ts` is what actually guards this.
+            return source?.playsThisTurn ?? state.cardsPlayedThisTurn;
         case 'STATUS_COUNT': {
             const stacks = (target?.statusEffects ?? []).reduce((acc, s) => acc + s.stacks, 0);
             return 1 + stacks * 0.25; // +25% per status stack
@@ -247,10 +266,29 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             damage = calculateDamage(source, target, programToUse, effectivePower, state);
 
             // Ticket 90: one source of truth, shared with the UI preview.
-            damage = Math.floor(damage * getDamageScalingMultiplier(state, scaling, element || programToUse.element, target));
+            damage = Math.floor(damage * getDamageScalingMultiplier(state, scaling, element || programToUse.element, target, source));
         }
 
-        return applyMutations(state, [{
+        // TICKET 124: an ANY_STATUS scaler PAYS one stack of each status it counted.
+        //
+        // Henry, ticket-118 playtest: *"Rimebreaker in a 1v1 is very easy to snowball. It
+        // should probably consume or maybe just reduce some stacks. It consistently did above
+        // 25 damage after one turn of setup"*. The card read the pile without paying for it,
+        // so the pile only grew and every cast was bigger than the last.
+        //
+        // ONE STACK per counted type, not a full consume, on `StatusExecutor`'s hexbloom
+        // precedent below: consuming makes a card a hoard dump priced off how long you saved
+        // up (x3 measured 13.90 against a 6.5 band), while reading without consuming makes it
+        // a RATE. A stack keeps the rate and still kills the snowball, because the count
+        // feeding the next cast is now strictly smaller unless something re-applies.
+        //
+        // Counted BEFORE the damage lands, from the same predicate `getEffectiveAttackPower`
+        // used, so the decrement and the damage cannot disagree about what a status is.
+        const countedTypes = scaling === 'ANY_STATUS'
+            ? [...new Set((target.statusEffects ?? []).filter(s => s.stacks > 0).map(s => s.type))]
+            : [];
+
+        let next = applyMutations(state, [{
             type: 'HP',
             sourceId: sourceId,
             targetId: targetId,
@@ -260,6 +298,37 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
                 element: element || program?.element
             }
         }]);
+
+        // Direct party mutation, matching how the `consume` branch in StatusExecutor removes
+        // stacks. A STATUS mutation with negative stacks does NOT work: it routes through
+        // handleApplyStatus, which returns early unless the stack count is positive, so the
+        // first version of this change silently did nothing and the test caught it.
+        if (countedTypes.length > 0) {
+            const removed: StatusType[] = [];
+            const pay = (party: ReadonlyArray<IBattleEntity>) => party.map(e => {
+                if (e.id !== targetId) return e;
+                const kept: StatusEffectInstance[] = [];
+                for (const s of e.statusEffects) {
+                    if (!countedTypes.includes(s.type)) { kept.push(s); continue; }
+                    const stacks = s.stacks - 1;
+                    if (stacks > 0) kept.push({ ...s, stacks });
+                    else removed.push(s.type);
+                }
+                return { ...e, statusEffects: kept };
+            });
+            next = { ...next, playerParty: pay(next.playerParty), enemyParty: pay(next.enemyParty) };
+            // STATUS_REMOVED is emitted for real removals only - draugr_v1's PERMAFROST_WAKE
+            // listens on it, so a spurious emit would hand him a free wake.
+            for (const status of removed) {
+                globalBattleEventBus.emit({
+                    type: 'STATUS_REMOVED', targetId, status, timestamp: Date.now(),
+                });
+            }
+            next = addLog(next, `  \u2744\ufe0f ${target.name} loses 1 stack of `
+                + `${countedTypes.join(', ')} to the break`);
+        }
+
+        return next;
     }
 }
 

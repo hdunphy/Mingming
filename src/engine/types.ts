@@ -570,6 +570,20 @@ export interface IBattleState {
   readonly discardedByEffect?: ReadonlyArray<string>;
   readonly lastProgramPlayed: string | null;
   /**
+   * TICKET 111: the INSTANCE id of the card whose actions are resolving right now, or null.
+   *
+   * `handlePlayProgram` moves the played card to the discard while paying its cost - at step 3,
+   * BEFORE any of its actions run - and `drawCards` reshuffles the discard whenever the drawpile
+   * is empty. Without this marker a 0-cost "draw a card" played on an empty drawpile finds its own
+   * copy in the discard it was just placed in, shuffles it back and draws it into hand, leaving the
+   * state identical and the Energy unspent: an unbounded loop. Measured on `valkyrie_v2`, 213 plays
+   * a game and 43 of 60 games in one cell never deciding.
+   *
+   * Deliberately the instance id and not the dataId: a deck may hold several copies of the card,
+   * and only the ONE being resolved is excluded - the others reshuffle normally.
+   */
+  readonly resolvingCardInstanceId?: string | null;
+  /**
    * How the enemy side fights, decided once at battle creation:
    * 'MOVES' (default) — Slay-the-Spire style: telegraphed intents only, no cards.
    * 'CARDS' — enemies draw a hand and play cards via the tactical AI (no intents).

@@ -25,9 +25,10 @@ import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { BALANCE_SPECIES, matchupScenario } from '../src/debug/balance/balanceScenarios';
 import { buildScenarioState } from '../src/debug/scenarios/buildScenarioState';
 import type { IBattleState, IBattleEntity, ProgramData, StatusType } from '../src/engine/types';
+import { ENV } from './_env';
 
-const ONLY_SPECIES = process.env.SPECIES;
-const ONLY_CARD = process.env.CARD;
+const ONLY_SPECIES = ENV.SPECIES;
+const ONLY_CARD = ENV.CARD;
 
 /**
  * The sampled states. Each one is a knob the reported breaks actually rode:
@@ -206,11 +207,11 @@ for (const [card, ms] of rows) {
 }
 console.error(`\nregistry has ${Object.keys(ProgramRegistry).length} cards; this sweep covers ` +
     `both OS decks of every balance species.`);
-if (process.env.SHOW === 'skips') {
+if (ENV.SHOW === 'skips') {
     console.error(`\nSKIPPED (${skipReasons.length}) - no damage to the target, so no preview:`);
     console.error('  ' + [...new Set(skipReasons.map(r => r.split('/')[0]))].join('  '));
 }
-if (process.env.SHOW === 'previews') {
+if (ENV.SHOW === 'previews') {
     console.error(`\nEVERY PREVIEW (${previews.length}):`);
     for (const line of previews) console.error('  ' + line);
 }

@@ -1,8 +1,9 @@
 /** Ticket 103: audhumbla_v2 arms, priced AND simmed, after the 2e purify made her worse (27.6%). */
 import PROGRAMS from '../src/engine/data/programs.json';
+import { ENV } from './_env';
 const P = PROGRAMS as unknown as Record<string, { baseCost: number; actions: unknown[] }>;
 const S = (st: string, n: number, t = 'SELF') => ({ type: 'STATUS', status: st, stacks: n, target: t });
-const ARM = process.env.ARM ?? 'V0';
+const ARM = ENV.ARM ?? 'V0';
 let STAT_ATTACK = 0;
 
 switch (ARM) {
@@ -62,7 +63,7 @@ for (const o of opponents) {
     const r = runPairedBatch(matchupScenario({
         player: 'audhumbla', enemy: o.sp, playerOS: 'audhumbla_v2', enemyOS: o.deck,
         seed: `grid:audhumbla_v2:${o.deck}`,
-    }), { iterations: Number(process.env.ITER ?? 10) });
+    }), { iterations: Number(ENV.ITER ?? 10) });
     sum += r.pooled.decisiveWinRate; dead += r.pooled.deadCardRatio; turns += r.pooled.averageTurns;
     cells.push(r.pooled.decisiveWinRate * 100);
 }

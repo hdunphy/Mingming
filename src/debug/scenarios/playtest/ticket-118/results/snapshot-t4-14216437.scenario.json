@@ -1,0 +1,857 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t4-14216437",
+  "description": "Auto-captured at turn 4, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_t118-04-triple-jormungandr-vs-zoo",
+    "seed": "1421643776",
+    "turn": 4,
+    "phase": "ACTION",
+    "activeSide": "ENEMY",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_1718etc_1",
+        "definitionId": "jormungandr",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "name": "Jormungandr",
+        "maxHp": 89,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 0,
+        "currentEnergy": 1,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "8cd394b9-34b5-4292-8c97-3ae9277f18c2",
+            "type": "Dazed",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Jormungandr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_04arytc_2",
+        "definitionId": "jormungandr",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "name": "Jormungandr",
+        "maxHp": 89,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Jormungandr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_1o48f0g_3",
+        "definitionId": "jormungandr",
+        "level": 15,
+        "experience": 2844,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "name": "Jormungandr",
+        "maxHp": 89,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "1c02f764-063b-4ca1-8efb-cded07d78d46",
+            "type": "Poison",
+            "stacks": 3
+          },
+          {
+            "id": "4e00a8dc-8c4e-4db3-adec-1eed15bd8d2b",
+            "type": "Energized",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Jormungandr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 3,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_0qma9ds_4",
+        "definitionId": "jormungandr",
+        "level": 15,
+        "experience": 2868,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "name": "Jormungandr",
+        "maxHp": 89,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 69,
+        "currentEnergy": 1,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "b1dcd6a6-a524-414d-8773-362b7a19c3dc",
+            "type": "Strengthened",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Jormungandr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 3,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_17311ts_5",
+        "definitionId": "sleipnir",
+        "level": 15,
+        "experience": 2796,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "name": "Sleipnir",
+        "maxHp": 78,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 32,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "7586d731-be6b-4e93-9c8d-938d70264dca",
+            "type": "Strengthened",
+            "stacks": 14
+          },
+          {
+            "id": "1cd5a544-fc24-4fd7-8f06-e8ef346c1d86",
+            "type": "Dazed",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Sleipnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 5,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_1vhpibk_6",
+        "definitionId": "hraesvelgr",
+        "level": 15,
+        "experience": 2868,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "name": "Hraesvelgr",
+        "maxHp": 77,
+        "cardDraw": 4,
+        "maxEnergy": 2,
+        "attack": 36,
+        "defense": 30,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 60,
+        "currentEnergy": 1,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "82583789-1133-4761-959c-b9db3d5eeb20",
+            "type": "Strengthened",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Hraesvelgr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1f6lw5c_q",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1qvphxc_v",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_00p9lz4_7",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0hv8cg0_l",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_0fp09s0_i",
+          "dataId": "blind_spot",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_01mn1fk_o",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1nn1m9s_k",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1lzfbi8_f",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1qe0jcw_c",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ual5ds_e",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_10db7k0_x",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0hci0hs_9",
+          "dataId": "blind_spot",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0nbmcjk_r",
+          "dataId": "blind_spot",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0f9ppj4_a",
+          "dataId": "corrosive_leak",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0okqjnk_8",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1s9sg74_w",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1hjfrpc_g",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1iypdkw_p",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_06tbpj4_h",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1g7vx1c_u",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_142pr5s_m",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_05wwzy8_j",
+          "dataId": "corrosive_leak",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_19j9l6o_n",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_14s20hs_t",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0waaha8_s",
+          "dataId": "corrosive_leak",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03cyayo_b",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0e3zdhc_d",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1s1rhfk_1j",
+          "dataId": "feather_cache",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1yjyio0_17",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1wteagw_1i",
+          "dataId": "hoofbeat_daemon",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1xdicxs_1q",
+          "dataId": "tempest",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_104a680_15",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0upwbnk_1m",
+          "dataId": "war_molt",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_14s0v7k_18",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0o3xc00_1h",
+          "dataId": "momentum_crash",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0bm9iio_1o",
+          "dataId": "sky_burial",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_01cuj9c_1g",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0xmgpz4_1k",
+          "dataId": "feather_cache",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_11tqo00_10",
+          "dataId": "blind_spot",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0wocr7k_1l",
+          "dataId": "war_molt",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1o4kf7k_1s",
+          "dataId": "carrion_swoop",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0m2m03k_19",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1i2gmww_1t",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0kcf2tc_14",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0kdoem8_1u",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_126vgn4_1p",
+          "dataId": "tempest",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_07who1s_1r",
+          "dataId": "carrion_swoop",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_0318em8_11",
+          "dataId": "corrosive_leak",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1a5xedc_1b",
+          "dataId": "disorienting_gust",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_19vv6yo_1a",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1yvbvxc_1f",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0oplhq8_1c",
+          "dataId": "adrenaline",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_1yrn3eo_1d",
+          "dataId": "tailwind",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1tvxo1s_16",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0qzna4g_13",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1jpszy8_1n",
+          "dataId": "sky_burial",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0idlaf4_y",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_09a9la8_1e",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_16kxgxs_z",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_07tr1mo_12",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "Jormungandr plays Blind Spot → Sleipnir",
+      "  → Sleipnir takes 1 damage",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Jormungandr plays Ink Stream → Jormungandr",
+      "  → Jormungandr takes 0 damage",
+      "Jormungandr plays Surge Protection → Sleipnir",
+      "  → Sleipnir takes 11 damage",
+      "Jormungandr plays Ink Stream → Sleipnir",
+      "  → Sleipnir takes 0 damage",
+      "Jormungandr plays Serpent's Coil → Sleipnir",
+      "  → Sleipnir takes 15 damage",
+      "Jormungandr plays Ink Stream → Sleipnir",
+      "  → Sleipnir takes 0 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Jormungandr plays Adrenaline → Jormungandr",
+      "  → Jormungandr takes 3 damage",
+      "  → Jormungandr gains Strengthened (2 stacks)",
+      "Hraesvelgr plays War Molt → Jormungandr",
+      "  → Jormungandr takes 4 damage",
+      "Hraesvelgr plays Zephyr Strike → Jormungandr",
+      "  → Jormungandr takes 4 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Disorienting Gust → Jormungandr",
+      "  → Jormungandr gains Dazed (1 stacks)",
+      "  ✨ Sleipnir's Dazed canceled by Sharp",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Feather Cache → Jormungandr",
+      "  → Jormungandr takes 2 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Tackle → Jormungandr",
+      "  → Jormungandr takes 3 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Feather Cache → Jormungandr",
+      "  → Jormungandr takes 2 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Undertow → Sleipnir",
+      "Sleipnir plays Tempest → Sleipnir",
+      "Sleipnir discards Momentum Crash!",
+      "Sleipnir discards Serpent's Coil!",
+      "Jormungandr plays Slipstream → Jormungandr",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Undertow → Sleipnir",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Corrosive Leak → Sleipnir",
+      "  → Sleipnir gains Poison (2 stacks)",
+      "  → Sleipnir gains Energized (1 stacks)",
+      "Sleipnir plays Stampede → Jormungandr",
+      "  → Jormungandr takes 78 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 3 allies",
+      "--- ENEMY ends their turn ---",
+      "  → Sleipnir takes 1 damage from Poison",
+      "  ☠️ Sleipnir — Poison deals 1 damage (2 stacks)",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "Jormungandr plays Blind Spot → Sleipnir",
+      "  → Sleipnir takes 1 damage",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Jormungandr plays Blind Spot → Sleipnir",
+      "  → Sleipnir takes 1 damage",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Jormungandr plays Corrosive Leak → Jormungandr",
+      "  → Jormungandr gains Poison (2 stacks)",
+      "  → Jormungandr gains Energized (1 stacks)",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr's OUROBOROS_LOOP triggers!",
+      "Jormungandr plays Ink Stream → Sleipnir",
+      "  → Sleipnir takes 18 damage",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Serpent's Coil → Sleipnir",
+      "  → Sleipnir takes 27 damage",
+      "Jormungandr plays Serpent's Coil → Jormungandr",
+      "  → Jormungandr takes 20 damage",
+      "--- PLAYER ends their turn ---",
+      "  → Jormungandr takes 1 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 1 damage (2 stacks)",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "Sleipnir plays Zephyr Strike → Jormungandr",
+      "  → Jormungandr takes 8 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Blind Spot → Jormungandr",
+      "  → Jormungandr takes 4 damage",
+      "  → Jormungandr gains Dazed (1 stacks)",
+      "Hraesvelgr plays Sky Burial → Jormungandr",
+      "  → Jormungandr takes 4 damage",
+      "Sleipnir plays Serpent's Coil → Jormungandr",
+      "  → Jormungandr takes 25 damage",
+      "Hraesvelgr plays Sky Burial → Jormungandr",
+      "  → Jormungandr takes 4 damage",
+      "Jormungandr plays Surge Protection → Jormungandr",
+      "  → Jormungandr takes 11 damage",
+      "Jormungandr plays Carrion Swoop → Jormungandr",
+      "  → Jormungandr takes 0 damage",
+      "Sleipnir plays Stampede → Jormungandr",
+      "  → Jormungandr takes 72 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 3 allies",
+      "--- ENEMY ends their turn ---",
+      "  → Sleipnir takes 1 damage from Poison",
+      "  ☠️ Sleipnir — Poison deals 1 damage (1 stacks)",
+      "  ✅ Sleipnir — Poison wore off",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "Jormungandr plays Corrosive Leak → Jormungandr",
+      "  → Jormungandr gains Poison (2 stacks)",
+      "  → Jormungandr gains Energized (1 stacks)",
+      "Jormungandr plays Ink Stream → Hraesvelgr",
+      "  → Hraesvelgr takes 0 damage",
+      "Jormungandr plays Surge Protection → Sleipnir",
+      "  → Sleipnir takes 11 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 1 allies",
+      "--- PLAYER ends their turn ---",
+      "  → Jormungandr takes 2 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 2 damage (3 stacks)",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Hraesvelgr plays Tempest → Hraesvelgr",
+      "  → Jormungandr takes 2 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Jormungandr takes 1 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Jormungandr takes 2 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Jormungandr takes 1 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Jormungandr takes 2 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "Hraesvelgr discards War Molt!",
+      "  ✨ War Molt discard effect triggered!",
+      "  → Hraesvelgr gains Strengthened (2 stacks)",
+      "Hraesvelgr discards Tackle!",
+      "Hraesvelgr discards Slipstream!",
+      "Hraesvelgr discards Ink Stream!",
+      "Hraesvelgr discards Hoofbeat Daemon!",
+      "Hraesvelgr plays Tailwind → Hraesvelgr",
+      "Jormungandr plays Ink Stream → Jormungandr",
+      "  → Jormungandr takes 36 damage",
+      "Jormungandr plays Serpent's Coil → Jormungandr",
+      "  → Jormungandr takes 12 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "Jormungandr plays Corrosive Leak → Jormungandr",
+      "  → Jormungandr gains Poison (2 stacks)",
+      "  → Jormungandr gains Energized (1 stacks)",
+      "Jormungandr plays Surge Protection → Hraesvelgr",
+      "  → Hraesvelgr takes 11 damage",
+      "Jormungandr plays Serpent's Coil → Hraesvelgr",
+      "  → Hraesvelgr takes 6 damage",
+      "--- PLAYER ends their turn ---",
+      "  → Jormungandr takes 3 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 3 damage (4 stacks)",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Zephyr Strike → Jormungandr",
+      "  → Jormungandr takes 3 damage",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Hraesvelgr plays Surge Protection → Jormungandr",
+      "  → Jormungandr takes 8 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 2 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 4,
+    "cardsDrawnThisTurn": 9,
+    "nonNaturalCardsDrawnThisTurn": 3,
+    "lastProgramPlayed": "surge_protection",
+    "counters": {
+      "jorm_water:mm_1718etc_1": 0,
+      "jorm_water:mm_04arytc_2": 0,
+      "jorm_water:mm_1o48f0g_3": 0,
+      "jorm_ouroboros_used:mm_1718etc_1": 0,
+      "jorm_ouroboros_used:mm_04arytc_2": 0,
+      "jorm_ouroboros_used:mm_1o48f0g_3": 0,
+      "jorm_water:mm_0qma9ds_4": 2,
+      "jorm_ouroboros_used:mm_0qma9ds_4": 0,
+      "deck_shuffles": 1
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 3,
+      "Earth": 0,
+      "Air": 1,
+      "Nature": 0,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 2,
+    "resolvingCardInstanceId": null,
+    "cardsDiscardedThisTurn": 0,
+    "discardedByEffect": [
+      "ENEMY:card_0o3xc00_1h",
+      "ENEMY:card_0kcf2tc_14",
+      "ENEMY:card_0upwbnk_1m",
+      "ENEMY:card_1yjyio0_17",
+      "ENEMY:card_0m2m03k_19",
+      "ENEMY:card_104a680_15",
+      "ENEMY:card_1wteagw_1i"
+    ]
+  },
+  "version": 1,
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-28T02:04:25.096Z"
+}

@@ -2,8 +2,9 @@
 import { calculatePowerscale, budgetBandFor } from '../src/debug/balance/powerscale';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import type { ProgramData } from '../src/engine/types';
+import { ENV } from './_env';
 
-for (const id of (process.env.CARDS ?? 'momentum_crash,capacitor,purify,shrug_off,glass_cannon').split(',')) {
+for (const id of (ENV.CARDS ?? 'momentum_crash,capacitor,purify,shrug_off,glass_cannon').split(',')) {
     const card = (ProgramRegistry as Record<string, ProgramData>)[id];
     const r = calculatePowerscale(card);
     const b = budgetBandFor(card.baseCost as number);

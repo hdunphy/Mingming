@@ -26,9 +26,10 @@ import { getBestAction } from '../src/engine/ai/TacticalAI';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { NEGATIVE_STATUSES } from '../src/engine/core/ConditionValidator';
 import type { IBattleState, IBattleEntity } from '../src/engine/types';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 3);
-const STEP = Number(process.env.STEP ?? 3);
+const ITER = Number(ENV.ITER ?? 3);
+const STEP = Number(ENV.STEP ?? 3);
 
 const decks: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) for (const d of MingmingRegistry[sp].availableOS) decks.push({ sp, deck: d });

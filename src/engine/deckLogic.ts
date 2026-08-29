@@ -13,7 +13,18 @@ export const HAND_SIZE_LIMIT = 9;
  * Automatically shuffles discard into drawpile if drawpile is empty.
  * Emits CARD_DRAWN and DECK_SHUFFLED events.
  */
-export function drawCards(deckState: IDeckState, count: number, seed: string): { state: IDeckState; nextSeed: string; shuffled: boolean } {
+export function drawCards(
+    deckState: IDeckState,
+    count: number,
+    seed: string,
+    /**
+     * TICKET 111: instance id of the card currently RESOLVING, which is already sitting in the
+     * discard because `handlePlayProgram` put it there while paying its cost. It is held out of a
+     * reshuffle so a card cannot draw itself. Everything else in the discard shuffles as normal.
+     */
+    excludeInstanceId?: string | null,
+): { state: IDeckState; nextSeed: string; shuffled: boolean } {
+    // `const`: steam-release-prep tightened this and the body only pushes, never reassigns.
     const currentHand = [...deckState.hand];
     let currentDrawpile = [...deckState.drawpile];
     let currentDiscard = [...deckState.discard];
@@ -27,12 +38,31 @@ export function drawCards(deckState: IDeckState, count: number, seed: string): {
         if (currentDrawpile.length === 0) {
             if (currentDiscard.length === 0) break; // No cards left
 
-            // Seeded Fisher-Yates Shuffle
+            // Seeded Fisher-Yates Shuffle.
+            //
+            // TICKET 111: the resolving card is EXCLUDED AFTER the shuffle, not before it. Filtering
+            // first would shuffle n-1 cards instead of n and consume a different amount of the PRNG,
+            // which re-rolls the drawpile order for every reshuffle in the game - measured, that is
+            // most reshuffles on all 32 decks, i.e. a full 1v1 re-baseline for a correctness fix.
+            // Shuffling the whole discard first keeps the stream byte-identical to the old behaviour
+            // and changes exactly one thing: the card that is mid-resolution is not available to be
+            // drawn by its own action. It goes back to the discard and is drawable again next time.
             const prng = new PRNG(currentSeed);
             const { shuffled, nextSeed } = prng.shuffle(currentDiscard);
 
-            currentDrawpile = shuffled;
-            currentDiscard = [];
+            currentDrawpile = excludeInstanceId
+                ? shuffled.filter(c => c.id !== excludeInstanceId)
+                : shuffled;
+            currentDiscard = excludeInstanceId
+                ? shuffled.filter(c => c.id === excludeInstanceId)
+                : [];
+
+            if (currentDrawpile.length === 0) {
+                // The discard held nothing but the resolving card: there is genuinely nothing to
+                // draw. This is the case that used to loop forever.
+                currentSeed = nextSeed;
+                break;
+            }
             currentSeed = nextSeed;
             didShuffle = true;
 

@@ -20,9 +20,10 @@
  *   ITER  - iterations per opponent per turn order (default 30)
  */
 import HOOKS_DATA from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
-const DECK = process.env.DECK ?? 'hel_v2';
-const ARM = process.env.ARM ?? 'live';
+const DECK = ENV.DECK ?? 'hel_v2';
+const ARM = ENV.ARM ?? 'live';
 const knob: Record<string, string> = {};
 for (const kv of ARM.split(',')) { const [k, v] = kv.split('='); if (k) knob[k] = v ?? '1'; }
 const H = HOOKS_DATA as unknown as Record<string, {
@@ -229,7 +230,7 @@ for (const k of ['swap2', 'swap3'] as const) {
     REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c));
 }
 
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 const hp = (p: ReadonlyArray<IBattleEntity>) => p.reduce((t, e) => t + e.currentHp, 0);
 
 /** The payoff card each deck is built around, and the gate it has to open. */

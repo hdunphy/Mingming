@@ -6,11 +6,12 @@ import { buildScenarioState } from '../src/debug/scenarios/buildScenarioState';
 import { matchupScenario } from '../src/debug/balance/balanceScenarios';
 import { GetProgramData } from '../src/engine/data/programRegistry';
 import type { IBattleState, IBattleEntity } from '../src/engine/types';
+import { ENV } from './_env';
 
-const CELLS: Array<[string, string, string]> = (process.env.CELLS ??
+const CELLS: Array<[string, string, string]> = (ENV.CELLS ??
     'skoll:jormungandr:skoll_v1;jormungandr:skoll:jormungandr_v1;skoll:jormungandr:skoll_v2;fenrir:jormungandr:fenrir_v2')
     .split(';').map(c => c.split(':') as [string, string, string]);
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 const hp = (p: ReadonlyArray<IBattleEntity>) => p.reduce((t, e) => t + e.currentHp, 0);
 
 for (const [sp, opp, os] of CELLS) {

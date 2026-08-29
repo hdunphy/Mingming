@@ -25,11 +25,12 @@ import { statusCensus, statusCensusReset } from '../src/engine/statusCensus';
 import { globalBattleEventBus } from '../src/engine/events';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
-const MODE = process.env.MODE ?? 'panel';
-const ITER = Number(process.env.ITER ?? 2);
-const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? `/tmp/109_${MODE}.json`;
+const MODE = ENV.MODE ?? 'panel';
+const ITER = Number(ENV.ITER ?? 2);
+const ONLY = (ENV.ONLY ?? '').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? `/tmp/109_${MODE}.json`;
 
 // Reshuffles ride the bus, which the AI mutes - so a plain subscriber is already sim-clean.
 let reshuffles = 0;
@@ -78,7 +79,7 @@ function pairing(a: Comp, b: Comp): Row {
             statusLanded[k] = (statusLanded[k] ?? 0) + v;
     }
     return {
-        a: a.id, b: b.id, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+        a: a.id, b: b.id, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
         winRate: r.pooled.decisiveWinRate, turns: r.pooled.averageTurns,
         truncated: r.pooled.truncatedCount, ftk: r.pooled.ftkCount,
         deadA: r.pooled.deadCardRatio, deadB: r.pooled.enemyDeadCardRatio,

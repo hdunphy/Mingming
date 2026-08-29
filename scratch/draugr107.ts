@@ -11,18 +11,19 @@
  */
 import PROGRAMS from '../src/engine/data/programs.json';
 import HOOKS from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
 const P = PROGRAMS as unknown as Record<string, { actions: Array<Record<string, unknown>> }>;
 const H = HOOKS as unknown as Record<string, { hooks: Array<Record<string, unknown>> }>;
 
 /** rimebreaker: `any` = the rework, `debuff` = as it was, plus an explicit power override. */
-const RIME = process.env.RIME ?? 'any';
-const RIME_POWER = Number(process.env.RIME_POWER ?? (RIME === 'any' ? 20 : 25));
+const RIME = ENV.RIME ?? 'any';
+const RIME_POWER = Number(ENV.RIME_POWER ?? (RIME === 'any' ? 20 : 25));
 (P.rimebreaker.actions[0] as Record<string, unknown>).scaling = RIME === 'any' ? 'ANY_STATUS' : 'DISTINCT_STATUS';
 (P.rimebreaker.actions[0] as Record<string, unknown>).power = RIME_POWER;
 
 /** The Poison rider: 0 removes the hook entirely, N sets its stack count. */
-const RIDER = Number(process.env.RIDER ?? 1);
+const RIDER = Number(ENV.RIDER ?? 1);
 if (RIDER === 0) {
     H.draugr_v2.hooks = H.draugr_v2.hooks.filter(h => h.id !== 'draugr_v2_seep');
 } else {
@@ -35,12 +36,12 @@ if (RIDER === 0) {
         // RIDER_ONLY: fire only on ONE named status. A condition, not a cap, and it needs no
         // program in the hook context - which `baseCost` does, and `onStatusApplied` does not
         // provide, so RIDER_MINCOST silently disables the hook entirely (see the report).
-        if (process.env.RIDER_ONLY) {
-            (seep.when as Record<string, unknown>).statusApplied = process.env.RIDER_ONLY;
+        if (ENV.RIDER_ONLY) {
+            (seep.when as Record<string, unknown>).statusApplied = ENV.RIDER_ONLY;
         }
-        if (process.env.RIDER_MINCOST) {
+        if (ENV.RIDER_MINCOST) {
             (seep.when as Record<string, unknown>).baseCost =
-                { operator: 'GTE', value: Number(process.env.RIDER_MINCOST) };
+                { operator: 'GTE', value: Number(ENV.RIDER_MINCOST) };
         }
     }
 }
@@ -49,7 +50,7 @@ const { runPairedBatch } = await import('../src/debug/balance/runBatch');
 const { matchupScenario, BALANCE_SPECIES } = await import('../src/debug/balance/balanceScenarios');
 const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry');
 
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 const label = `rime ${RIME}/${RIME_POWER}  rider ${RIDER}`;
 
 // THE cell first - it is the gate, and it is cheap.
@@ -61,7 +62,7 @@ const a = cell('grid'); const b = cell('alt');
 console.error(`\nDRAUGR ${label}`);
 console.error(`  THE CELL draugr_v2 vs huldra_v1   ${a.toFixed(1)}% / ${b.toFixed(1)}%   (target 15-35, was 6.7)`);
 
-if (process.env.CELL_ONLY) process.exit(0);
+if (ENV.CELL_ONLY) process.exit(0);
 
 for (const deck of ['draugr_v2', 'huldra_v1']) {
     const sp = deck.replace(/_v[12]$/, '');

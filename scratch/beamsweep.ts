@@ -12,8 +12,9 @@
  */
 import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { teamScenario } from '../src/debug/balance/balanceScenarios';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 3);
+const ITER = Number(ENV.ITER ?? 3);
 const started = Date.now();
 const r = runPairedBatch(teamScenario({
     player: [['draugr', 'draugr_v2'], ['huldra', 'huldra_v1'], ['sleipnir', 'sleipnir_v1']],
@@ -21,6 +22,6 @@ const r = runPairedBatch(teamScenario({
     seed: 'beam:fixed',
 }), { iterations: ITER });
 const ms = Date.now() - started;
-console.error(`beam=${(process.env.AI_BEAM ?? '0').padStart(2)}  ${(ms / 1000).toFixed(1)}s  ` +
+console.error(`beam=${(ENV.AI_BEAM ?? '0').padStart(2)}  ${(ms / 1000).toFixed(1)}s  ` +
     `${ITER * 2} games  win ${(r.pooled.decisiveWinRate * 100).toFixed(1)}%  ` +
     `turns ${r.pooled.averageTurns.toFixed(1)}  truncated ${r.pooled.truncatedCount}`);

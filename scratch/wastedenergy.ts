@@ -23,6 +23,7 @@ import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { battleReducer } from '../src/engine/battleReducer';
 import { getBestAction } from '../src/engine/ai/TacticalAI';
 import { deriveSeeds } from '../src/debug/balance/runBatch';
+import { ENV } from './_env';
 type St = import('../src/engine/types').IBattleState;
 
 const SQUAD: Array<readonly [string, string]> = [
@@ -31,9 +32,9 @@ const SQUAD: Array<readonly [string, string]> = [
 const FOE: Array<readonly [string, string]> = [
     ['hel', 'hel_v2'], ['kraken', 'kraken_v1'], ['fenrir', 'fenrir_v1'],
 ];
-const ITER = Number(process.env.ITER ?? 2);
+const ITER = Number(ENV.ITER ?? 2);
 
-for (const n of (process.env.N ?? '1,3').split(',').map(Number)) {
+for (const n of (ENV.N ?? '1,3').split(',').map(Number)) {
     const setup = teamScenario({ player: SQUAD.slice(0, n), enemy: FOE.slice(0, n), seed: `waste:${n}` });
     let unspent = 0, capacity = 0, idleMembers = 0, memberTurns = 0, turnsSeen = 0;
 

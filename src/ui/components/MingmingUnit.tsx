@@ -555,6 +555,24 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     <span className="hud-hp-text">{entity.currentHp}/{entity.maxHp} HP {previewDamage > 0 && <span style={{ color: '#ff4444' }}>(-{previewDamage})</span>}</span>
                 </div>
 
+                {/* TICKET 125: what this card will do to the target's STATUSES.
+                    Henry, ticket-118 playtest: "Hexbloom has no indication what it will do.
+                    There should be some preview." Rendered above the damage chips and on its
+                    own condition, because a status-only card has no damage to explain - it
+                    previously showed nothing at all. Read from a diff of the simulated play,
+                    so it covers every status card rather than hexbloom specifically. */}
+                {preview && preview.statusChanges.length > 0 && (
+                    <div className="hud-preview-tags">
+                        {preview.statusChanges.map(({ status, delta }) => (
+                            <span
+                                key={status}
+                                className={`hud-preview-chip ${delta > 0 ? 'hud-preview-chip-super' : 'hud-preview-chip-weak'}`}
+                            >
+                                {delta > 0 ? '+' : ''}{delta} {status.toUpperCase()}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 {/* Elemental breakdown of the hover preview: STAB / type effectiveness / Sharp scaling */}
                 {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0 || preview.scalingMultiplier !== 1 || preview.hitCount > 1 || preview.lethal) && (
                     <div className="hud-preview-tags">

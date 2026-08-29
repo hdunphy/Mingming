@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "Q2 — one draugr against three, side cards isolated",
+  "description": "One draugr_v2 facing the whole zoo panel. Deliberately unfair; the point is to SEE a side card land. killing_frost puts 2 Weakened and 2 Dazed on all three at once for 1 Energy. This is the change in its purest form - and the fastest way to judge whether side-wide resolution is satisfying or just slow.",
+  "tags": [
+    "playtest",
+    "ticket-118",
+    "control",
+    "side-cards",
+    "feel"
+  ],
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-26T00:00:00.000Z",
+  "setup": {
+    "seed": "t118-02-draugr-alone-vs-three",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "draugr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "draugr_v2"
+        }
+      ],
+      "deck": [
+        "rimefrost",
+        "rimefrost",
+        "water_slap",
+        "frost_bite",
+        "numbing_gale",
+        "killing_frost",
+        "ice_spear",
+        "glacial_slam",
+        "rimebreaker",
+        "rimebreaker"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "jormungandr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "deck": [
+          "undertow",
+          "undertow",
+          "blind_spot",
+          "corrosive_leak",
+          "surge_protection",
+          "serpents_coil",
+          "serpents_coil",
+          "ink_stream",
+          "ink_stream"
+        ]
+      },
+      {
+        "definitionId": "sleipnir",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "deck": [
+          "water_slap",
+          "water_slap",
+          "slipstream",
+          "slipstream",
+          "disorienting_gust",
+          "adrenaline",
+          "tailwind",
+          "zephyr_strike",
+          "stampede",
+          "stampede",
+          "momentum_crash",
+          "hoofbeat_daemon"
+        ]
+      },
+      {
+        "definitionId": "hraesvelgr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "deck": [
+          "feather_cache",
+          "feather_cache",
+          "war_molt",
+          "war_molt",
+          "sky_burial",
+          "sky_burial",
+          "tempest",
+          "tempest",
+          "carrion_swoop",
+          "carrion_swoop",
+          "zephyr_strike",
+          "slipstream"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}
