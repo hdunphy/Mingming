@@ -44,7 +44,7 @@
 
 import { quietly } from './balanceReporting';
 import { teamScenario } from './balanceScenarios';
-import { runPairedBatch, type BereavementEnergy, type RunResult } from './runBatch';
+import { runPairedBatch, type BereavementDraw, type BereavementEnergy, type RunResult } from './runBatch';
 import { REFERENCE_PANEL, type Comp } from './teamComps';
 
 /** A battle length cap above the 30-turn stall redline, for `gauntlet-boss.balance.ts`'s reason. */
@@ -60,6 +60,8 @@ export interface SnowballOptions {
     onPair?: (label: string, done: number, total: number) => void;
     /** EXPERIMENTAL arm, ticket 70 Q2b. Undefined is the baseline. */
     bereavementEnergy?: BereavementEnergy;
+    /** EXPERIMENTAL arm, ticket 70 Q3b — the card half. Composes with the energy arm. */
+    bereavementDraw?: BereavementDraw;
 }
 
 export interface SnowballReport {
@@ -112,6 +114,8 @@ export interface SnowballReport {
      * report of this experiment must state this figure next to its conclusion.
      */
     energizedGranted: number;
+    /** Extra cards the draw arm drew. Same liveness rule: zero means VOID, not null. */
+    cardsGranted: number;
 }
 
 const mean = (xs: readonly number[]): number =>
@@ -194,6 +198,7 @@ export function summarizeSnowball(runs: readonly RunResult[]): SnowballReport {
             lossesOf(r, r.winner === 'PLAYER' ? 'PLAYER' : 'ENEMY'))),
 
         energizedGranted: withSnowball.reduce((a, r) => a + (r.snowball!.energizedGranted ?? 0), 0),
+        cardsGranted: withSnowball.reduce((a, r) => a + (r.snowball!.cardsGranted ?? 0), 0),
     };
 }
 
@@ -235,7 +240,9 @@ export function measureSnowball(options: SnowballOptions = {}): {
          * comes from `onPair` instead, which is the thing a caller actually wants to watch.
          */
         const paired = quietly(() => runPairedBatch(setup, {
-            iterations, maxTurns, bereavementEnergy: options.bereavementEnergy,
+            iterations, maxTurns,
+            bereavementEnergy: options.bereavementEnergy,
+            bereavementDraw: options.bereavementDraw,
         }));
         const label = `${player.id} vs ${enemy.id}`;
         perPair.push({ label, runs: paired.pooled.runs });

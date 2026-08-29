@@ -338,6 +338,57 @@ sized rather than merely detected.
 **Nothing here is a ruling.** Q2b now has evidence behind it; Q2a, Q2c, Q2d, Q1 and Q3 do not, and
 this measurement does not compare the options against each other.
 
+### THE CARD ARM — built 2026-08-29, on Henry's follow-up
+
+Henry, after seeing the energy results: *"I don't like the games ending faster so I like the once
+energize. can we do another run that does the same with card draw. both permanent card draw and a
+one turn boost then see them combined with the energized. I want to maintain game length but fine
+with 15-20% comeback rate."*
+
+**A stated target, for the first time in this ticket: comeback rate 15-20%, battle length HELD at
+the baseline's 6.5 turns.**
+
+```
+npm run balance:snowball -- --iterations 1 --pairs --draw once                  --out arm-draw-once.txt
+npm run balance:snowball -- --iterations 1 --pairs --draw standing              --out arm-draw-standing.txt
+npm run balance:snowball -- --iterations 1 --pairs --energized once --draw once     --out arm-both-once.txt
+npm run balance:snowball -- --iterations 1 --pairs --energized once --draw standing --out arm-both-mixed.txt
+```
+
+**`--draw-cards` defaults to 2, which is the FULL card cliff** — `sum(cardDraw over ALIVE) -
+aliveCount + 1` takes a three-member side from **7 cards to 5** on a death. That is the honest
+parallel to the energy arm, where one Energized per survivor restored the whole 2-energy loss.
+`--draw-cards 1` is the half-repair if 2 overshoots.
+
+**Timing mirrors the reducer, not the death.** Cards arrive at the bereaved side's **turn start**,
+capped by `HAND_SIZE_LIMIT`, because that is where the refill happens — handing them over at the
+instant of the death would put cards in a hand mid-turn, which no rule in this game does. `once` is
+the first turn after the death only; `standing` is every turn while down. The grant does **not**
+scale with a second death; that is a separate question and folding it in would measure two changes
+as one.
+
+**Liveness validated on one battle** (same scenario and seed throughout):
+
+| arm | turns | losses P/E | winner | energized | cards |
+| --- | --- | --- | --- | --- | --- |
+| baseline | 7 | 2 / 3 | PLAYER | 0 | 0 |
+| `draw once` | 5 | 1 / 3 | PLAYER | 0 | 4 |
+| `draw standing` | 6 | 3 / 2 | **ENEMY** | 0 | 16 |
+| `energized once + draw once` | 5 | 1 / 3 | PLAYER | 5 | 4 |
+| `energized once + draw standing` | 5 | 1 / 3 | PLAYER | 5 | 10 |
+
+Both arms fire and compose; `draw standing` flipped the winner outright in this one battle. The
+report prints a per-arm liveness line and calls a zero-grant arm **VOID rather than null**.
+
+**A warning the single battle already raises:** four of the five arms made this fight *shorter*
+(7 turns -> 5 or 6), which is the thing Henry explicitly does not want. n=1 means nothing, but it is
+the number to read first in the real runs.
+
+**AND THE RESULT ALREADY IN HAND MAY BE THE ANSWER.** `energized once` measured **16.7% comebacks**
+— inside the stated 15-20% band — at **6.5 turns and 4.3 after the KO**, i.e. length-neutral to a
+tenth of a turn against the baseline. If the card arms come back shorter, `energized once` is the
+lever that already meets both halves of the target.
+
 ## The grilling - questions for Henry
 
 **Q1 - Overkill: forgive, convert, or keep the waste?**

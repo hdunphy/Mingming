@@ -21,6 +21,12 @@
  *     npm run balance:snowball -- --iterations 1 --energized standing  # the cliff actually repaired
  *     npm run balance:snowball -- --iterations 1 --energized once --energized-stacks 2
  *
+ * THE CARD HALF (Henry, 2026-08-29): `--draw once|standing`, default 2 cards, which is the FULL
+ * card cliff (7 -> 5 on a death). Composes with `--energized`, so the four-cell matrix is:
+ *
+ *     --draw once                        --draw standing
+ *     --energized once --draw once       --energized once --draw standing
+ *
  * # COST — THIS IS AN HOUR, NOT A MINUTE
  *
  * Six comps round-robin is **30 ordered pairs**, and `runPairedBatch` runs each under both turn
@@ -88,6 +94,19 @@ function main(): void {
         console.error(`--energized takes 'once' or 'standing', not '${energizedMode}'`);
         process.exit(1);
     }
+    const drawMode = flag('draw', '');
+    if (drawMode && drawMode !== 'once' && drawMode !== 'standing') {
+        console.error(`--draw takes 'once' or 'standing', not '${drawMode}'`);
+        process.exit(1);
+    }
+    const bereavementDraw = drawMode
+        ? {
+            mode: drawMode as 'once' | 'standing',
+            cards: Number.parseInt(flag('draw-cards', '2'), 10),
+            side: 'BOTH' as const,
+        }
+        : undefined;
+
     const bereavementEnergy = energizedMode
         ? {
             mode: energizedMode as 'once' | 'standing',
@@ -117,10 +136,19 @@ function main(): void {
     say(`[balance:snowball]   population  REFERENCE_PANEL round-robin, mirrors excluded`);
     say(`[balance:snowball]   pairs       ${pairs} ordered  ·  ${iterations} paired seeds  ->  ${battles} battles`);
     say(`[balance:snowball]   maxTurns    ${maxTurns}   (standalone 3v3s — NOT a run: no HP carries between fights)`);
-    say(bereavementEnergy
-        ? `[balance:snowball]   ARM         EXPERIMENTAL — on a death, each surviving member of that side`
-          + ` gains ${bereavementEnergy.stacks} Energized (${bereavementEnergy.mode}), both sides`
-        : `[balance:snowball]   arm         baseline (no experimental rule)`);
+    if (!bereavementEnergy && !bereavementDraw) {
+        say(`[balance:snowball]   arm         baseline (no experimental rule)`);
+    } else {
+        say(`[balance:snowball]   ARM         EXPERIMENTAL, both sides:`);
+        if (bereavementEnergy) {
+            say(`[balance:snowball]     energy    on a death, each surviving member gains`
+                + ` ${bereavementEnergy.stacks} Energized (${bereavementEnergy.mode})`);
+        }
+        if (bereavementDraw) {
+            say(`[balance:snowball]     draw      the bereaved side draws +${bereavementDraw.cards}`
+                + ` at its turn start (${bereavementDraw.mode})`);
+        }
+    }
     say();
 
     const started = Date.now();
@@ -128,6 +156,7 @@ function main(): void {
         iterations,
         maxTurns,
         bereavementEnergy,
+        bereavementDraw,
         onPair: (label, done, total) => {
             const elapsed = Math.round((Date.now() - started) / 1000);
             say(`[balance:snowball]   ${String(done).padStart(2)}/${total}  ${label.padEnd(32)} ${elapsed}s`);
@@ -187,7 +216,7 @@ function main(): void {
     }
 
     say();
-    if (bereavementEnergy) {
+    if (bereavementEnergy || bereavementDraw) {
         /*
          * THE ARM-LIVENESS CHECK, printed next to the result and not buried.
          *
@@ -196,10 +225,20 @@ function main(): void {
          * it did something is not evidence of no effect — it is not evidence at all.
          */
         say('  ARM LIVENESS');
-        say(`     Energized stacks granted      ${report.energizedGranted}`);
-        say(report.energizedGranted === 0
-            ? '     *** ZERO. THE ARM DID NOTHING. This run is VOID, not a null result. ***'
-            : `     ...across ${report.battles} battles = ${(report.energizedGranted / report.battles).toFixed(1)} per battle. The arm fired.`);
+        const dead: string[] = [];
+        if (bereavementEnergy) {
+            say(`     Energized stacks granted      ${report.energizedGranted}`
+                + ` (${(report.energizedGranted / Math.max(1, report.battles)).toFixed(1)}/battle)`);
+            if (report.energizedGranted === 0) dead.push('energy');
+        }
+        if (bereavementDraw) {
+            say(`     Extra cards drawn             ${report.cardsGranted}`
+                + ` (${(report.cardsGranted / Math.max(1, report.battles)).toFixed(1)}/battle)`);
+            if (report.cardsGranted === 0) dead.push('draw');
+        }
+        say(dead.length > 0
+            ? `     *** ZERO on: ${dead.join(', ')}. THAT ARM DID NOTHING — VOID, not a null result. ***`
+            : '     Every declared arm fired.');
         say();
         say('  Compare line 1 against the baseline run at the same --iterations. Both arms are');
         say('  seeded identically, so the comeback rate is the only thing that moved.');

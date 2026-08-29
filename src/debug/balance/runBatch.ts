@@ -33,6 +33,8 @@
  */
 
 import { battleReducer, type BattleAction } from '../../engine/battleReducer';
+import { executeDraw } from '../../engine/resolutionEngine';
+import { HAND_SIZE_LIMIT } from '../../engine/deckLogic';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
@@ -107,6 +109,14 @@ export interface BatchOptions {
      * ships changes and every existing suite is bit-identical. See `bereavementEnergy`.
      */
     bereavementEnergy?: BereavementEnergy;
+    /**
+     * TICKET 70's Q3b, as an EXPERIMENTAL ARM — Henry, 2026-08-29, after seeing the energy arms:
+     * *"can we do another run that does the same with card draw. both permanent card draw and a one
+     * turn boost then see them combined with the energized."*
+     *
+     * The other half of the KO cliff. Off by default; composes with `bereavementEnergy`.
+     */
+    bereavementDraw?: BereavementDraw;
 }
 
 /**
@@ -141,6 +151,38 @@ export interface BatchOptions {
  * because an arm that moves the comeback rate a little is otherwise easy to read as "energy is not
  * the problem" when the untouched half is the larger one.
  */
+/**
+ * The card half of the cliff, as a grant. See `BatchOptions.bereavementDraw`.
+ *
+ * # WHY THE DEFAULT IS 2 CARDS
+ *
+ * `battleReducer`'s PRE_TURN draw is `sum(cardDraw over ALIVE) - aliveCount + 1`, so a three-member
+ * side on `cardDraw 3` goes **7 cards -> 5** when one member dies. Two cards is therefore the FULL
+ * repair, which is the honest parallel to the energy arm: one Energized per survivor restored the
+ * whole 2-energy loss too. `--draw-cards 1` is the half-repair if that turns out to overshoot.
+ *
+ * # TIMING MIRRORS THE REDUCER, NOT THE DEATH
+ *
+ * Cards arrive at the bereaved side's **turn start**, which is where the reducer's own refill
+ * happens, and are capped by `HAND_SIZE_LIMIT` exactly as the refill is. Handing them over at the
+ * instant of the death would put cards in a hand mid-turn, which no rule in this game does.
+ *
+ * - **`once`** — the first turn after the death, and no more.
+ * - **`standing`** — every turn the side is down a member.
+ *
+ * # IT DOES NOT SCALE WITH THE NUMBER OF DEATHS
+ *
+ * A side down two members gets the same grant as a side down one. That is deliberate and it is the
+ * simpler lever; whether the SECOND death should also be cushioned is a different question, and
+ * folding it in here would mean two changes measured as one.
+ */
+export interface BereavementDraw {
+    mode: 'once' | 'standing';
+    /** Extra cards at the bereaved side's turn start. 2 = the full card cliff. */
+    cards: number;
+    side?: Side | 'BOTH';
+}
+
 export interface BereavementEnergy {
     mode: 'once' | 'standing';
     /** Energized stacks per surviving member. 1 is Henry's ask; the dead unit had 2 energy. */
@@ -288,6 +330,8 @@ export interface SnowballRecord {
      * refuses to interpret a run where this is zero.
      */
     energizedGranted: number;
+    /** EXPERIMENTAL ARMS ONLY: extra cards drawn. Same liveness argument as `energizedGranted`. */
+    cardsGranted: number;
 }
 
 export interface BatchResult {
@@ -401,6 +445,8 @@ export function runOne(
     enemyAiTier?: AiTier,
     /** EXPERIMENTAL, ticket 70 Q2b. Undefined in every shipped path. */
     bereavement?: BereavementEnergy,
+    /** EXPERIMENTAL, ticket 70 Q3b. Undefined in every shipped path. */
+    bereavementDraw?: BereavementDraw,
 ): RunResult {
     const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
     let state: IBattleState = {
@@ -526,6 +572,30 @@ export function runOne(
         return changed ? ({ ...s0, [key]: party } as IBattleState) : s0;
     };
 
+    let cardsGranted = 0;
+    /** Turns a side has already been topped up on, so `standing` grants once per turn not per dispatch. */
+    const drawnOnTurn: Record<Side, string> = { PLAYER: '', ENEMY: '' };
+    /** `once` mode: the side has had its single draw grant. */
+    const drawUsed: Record<Side, boolean> = { PLAYER: false, ENEMY: false };
+
+    /*
+     * The card half of the cliff. Timed to the side's TURN START, which is where the reducer's own
+     * refill happens and is capped the same way — handing cards over at the instant of the death
+     * would put them in a hand mid-turn, which no rule in this game does.
+     */
+    const grantCards = (s0: IBattleState, side: Side, count: number): IBattleState => {
+        const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+        const room = HAND_SIZE_LIMIT - s0[deckKey].hand.length;
+        const toDraw = Math.max(0, Math.min(count, room));
+        if (toDraw === 0) return s0;
+        const before = s0[deckKey].hand.length;
+        // `isNatural: true` — this stands in for the turn-start refill, not for a card effect, so it
+        // must not inflate `nonNaturalCardsDrawnThisTurn` and mislead any hook that reads it.
+        const next = executeDraw(s0, side, toDraw, true);
+        cardsGranted += next[deckKey].hand.length - before;
+        return next;
+    };
+
     const armCovers = (side: Side): boolean =>
         bereavement !== undefined
         && (bereavement.side === undefined || bereavement.side === 'BOTH' || bereavement.side === side);
@@ -615,6 +685,26 @@ export function runOne(
                 state = grantEnergized(state, side, bereavement.stacks);
             }
         }
+
+        /*
+         * The draw arm. Fires on the bereaved side's TURN START — detected as "this side is active
+         * and we have not already topped it up on this turn fingerprint" — so a side that takes
+         * several actions in one turn is topped up once, not once per card played.
+         */
+        if (bereavementDraw !== undefined) {
+            const side = state.activeSide as Side;
+            const covered = bereavementDraw.side === undefined
+                || bereavementDraw.side === 'BOTH' || bereavementDraw.side === side;
+            const turnKey = `${state.turn}:${side}`;
+            const down = startAlive[side] - aliveOn(state, side) > 0;
+            const fresh = drawnOnTurn[side] !== turnKey;
+            const allowed = bereavementDraw.mode === 'standing' || !drawUsed[side];
+            if (covered && down && fresh && allowed && aliveOn(state, side) > 0) {
+                drawnOnTurn[side] = turnKey;
+                drawUsed[side] = true;
+                state = grantCards(state, side, bereavementDraw.cards);
+            }
+        }
         if (firstKoTurn === null) {
             // Attributed to whoever the DEAD member does not belong to. Deliberately not
             // `state.activeSide`: a unit dying to its own end-of-turn Burn dies on its own side's
@@ -689,6 +779,7 @@ export function runOne(
                 enemy: startAlive.ENEMY - aliveOn(state, 'ENEMY'),
             },
             energizedGranted,
+            cardsGranted,
         },
     };
 }
@@ -776,7 +867,7 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
             runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier,
-                options.bereavementEnergy)),
+                options.bereavementEnergy, options.bereavementDraw)),
     );
 }
 
