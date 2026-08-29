@@ -39,12 +39,13 @@
  */
 import HOOKS from '../src/engine/data/lib/hooks.json';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
-const ARM = process.env.ARM ?? 'SHIPPED';
-const ITER = Number(process.env.ITER ?? 10);
-const WIDTH = Number(process.env.WIDTH ?? 3);
-const LEAD = process.env.LEAD ?? 'kraken';
-const OUT = process.env.OUT ?? '/root/probe/osarms.json';
+const ARM = ENV.ARM ?? 'SHIPPED';
+const ITER = Number(ENV.ITER ?? 10);
+const WIDTH = Number(ENV.WIDTH ?? 3);
+const LEAD = ENV.LEAD ?? 'kraken';
+const OUT = ENV.OUT ?? '/root/probe/osarms.json';
 
 /** Which firmware each arm widens. */
 const ARM_TARGETS: Record<string, string[]> = {
@@ -121,7 +122,7 @@ let landed = 0;
 for (const run of r.pooled.runs) landed += sumDebuffs(run.telemetry as never);
 
 const row = {
-    arm: ARM, width: WIDTH, lead: LEAD, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+    arm: ARM, width: WIDTH, lead: LEAD, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
     widened: touched,
     ctlWin: r.pooled.decisiveWinRate,
     games, turns: +r.pooled.averageTurns.toFixed(2),

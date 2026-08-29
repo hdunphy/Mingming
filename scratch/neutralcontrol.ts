@@ -26,6 +26,7 @@ import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 interface GridCell {
     deck: string; species: string; opponent: string; opponentSpecies: string;
@@ -38,8 +39,8 @@ const grid: { cells: GridCell[] } = JSON.parse(
 /** Every neutral cell whose SUBJECT is a control deck - the rows that produced the claim. */
 const CELLS = grid.cells.filter(c => c.role === 'CONTROL' && c.bucket === 'NEU');
 
-const ITER = Number(process.env.ITER ?? 30);
-const OUT = process.env.OUT ?? '/root/probe/neutralcontrol.json';
+const ITER = Number(ENV.ITER ?? 30);
+const OUT = ENV.OUT ?? '/root/probe/neutralcontrol.json';
 
 interface Row {
     deck: string; opponent: string; opponentRole: string; tier: string;
@@ -61,7 +62,7 @@ for (const c of CELLS) {
     }), { iterations: ITER });
     const row: Row = {
         deck: c.deck, opponent: c.opponent, opponentRole: c.opponentRole,
-        tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+        tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
         gridWinRate: c.winRate, freshWinRate: r.pooled.decisiveWinRate,
         delta: +((r.pooled.decisiveWinRate - c.winRate) * 100).toFixed(1),
         games: r.pooled.iterations, turns: +r.pooled.averageTurns.toFixed(2),

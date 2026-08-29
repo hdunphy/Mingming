@@ -33,6 +33,7 @@ import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { globalBattleEventBus } from '../src/engine/events';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 /** The loop class: 0-cost, non-exhaust, puts a card in hand. `forage` is bounded by killing you. */
 const LOOPERS: Record<string, string> = {
@@ -53,9 +54,9 @@ const SPECIES: Record<string, string> = {
 /** A fixed, ordinary opponent holding no loop-class card. */
 const OPPONENT = [['huldra', 'huldra_v1']] as const;
 
-const ITER = Number(process.env.ITER ?? 25);
-const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? '/root/probe/loopfreq.json';
+const ITER = Number(ENV.ITER ?? 25);
+const ONLY = (ENV.ONLY ?? '').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? '/root/probe/loopfreq.json';
 
 let streak = 0, lastCard = '', subject = '';
 let maxStreak = 0, playsThisTurn = 0, maxPlaysInTurn = 0, shuffles = 0, looperPlays = 0;

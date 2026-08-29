@@ -9,9 +9,10 @@
  * env: SHAPE_A (default PERCENT), SHAPE_B (default POWER)
  */
 import { STATUS_MODEL } from '../src/engine/core/Hooks';
+import { ENV } from './_env';
 
-const A = (process.env.SHAPE_A ?? 'PERCENT') as 'PERCENT' | 'POWER';
-const B = (process.env.SHAPE_B ?? 'POWER') as 'PERCENT' | 'POWER';
+const A = (ENV.SHAPE_A ?? 'PERCENT') as 'PERCENT' | 'POWER';
+const B = (ENV.SHAPE_B ?? 'POWER') as 'PERCENT' | 'POWER';
 
 async function priceAll(shape: 'PERCENT' | 'POWER', pwr?: number): Promise<Map<string, number>> {
     STATUS_MODEL.shape = shape;
@@ -29,8 +30,8 @@ async function priceAll(shape: 'PERCENT' | 'POWER', pwr?: number): Promise<Map<s
     return out;
 }
 
-const a = await priceAll(A, process.env.PWR_A ? Number(process.env.PWR_A) : undefined);
-const b = await priceAll(B, process.env.PWR_B ? Number(process.env.PWR_B) : undefined);
+const a = await priceAll(A, ENV.PWR_A ? Number(ENV.PWR_A) : undefined);
+const b = await priceAll(B, ENV.PWR_B ? Number(ENV.PWR_B) : undefined);
 
 const moved: Array<[string, number, number]> = [];
 for (const [id, va] of a) {

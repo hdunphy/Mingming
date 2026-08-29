@@ -4,8 +4,9 @@ import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceSc
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { DRAW_SCALING_CAP, PLAY_COUNT_SCALING_CAP } from '../src/engine/actions/ActionExecutors';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 /** The 14 cells ticket 69 found, as `deck:opponent`. */
 const KNOWN = 'skoll_v1:jormungandr,jormungandr_v1:skoll,skoll_v2:jormungandr,fenrir_v2:jormungandr,jormungandr_v1:fenrir,jormungandr_v1:fafnir,gullinbursti_v2:jormungandr,fenrir_v1:jormungandr,fafnir_v1:jormungandr,jormungandr_v1:gullinbursti,jormungandr_v1:ratatoskr,jormungandr_v1:hel,gullinbursti_v1:jormungandr,hel_v2:jormungandr';
 
@@ -14,9 +15,9 @@ for (const sp of BALANCE_SPECIES)
     for (const os of (MingmingRegistry as any)[sp].availableOS)
         for (const opp of BALANCE_SPECIES) if (opp !== sp) all.push([sp, os, opp]);
 
-const cells = process.env.FULL
+const cells = ENV.FULL
     ? all
-    : (process.env.CELLS ?? KNOWN).split(',').map(c => {
+    : (ENV.CELLS ?? KNOWN).split(',').map(c => {
         const [os, opp] = c.split(':');
         const sp = all.find(a => a[1] === os)![0];
         return [sp, os, opp] as [string, string, string];
@@ -38,7 +39,7 @@ function scan(label: string) {
 }
 
 const results: any[] = [];
-for (const spec of (process.env.ARMS ?? 'live').split(';')) {
+for (const spec of (ENV.ARMS ?? 'live').split(';')) {
     const [name, capS, inkS, playS] = spec.split('|');
     // Each cap is set INDEPENDENTLY. An earlier version derived the play cap from the draw cap
     // and silently overwrote an explicit `playS`, so every arm that looked like "play 5" was

@@ -15,8 +15,9 @@ import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceSc
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { ElementalMatrix } from '../src/engine/combatUtils';
 import { writeFileSync } from 'node:fs';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 
 /** The slice of a pooled batch result the grid actually reads - and therefore all the cache keeps. */
 interface PooledResult {

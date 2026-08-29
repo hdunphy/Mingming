@@ -23,9 +23,10 @@ import { getBestAction } from '../src/engine/ai/TacticalAI';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { DEBUFFS } from '../src/debug/balance/powerscale';
 import type { IBattleState, IBattleEntity, BattleAction } from '../src/engine/types';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 3);
-const PAIR_LIMIT = Number(process.env.PAIRS ?? 90);
+const ITER = Number(ENV.ITER ?? 3);
+const PAIR_LIMIT = Number(ENV.PAIRS ?? 90);
 
 const pairs: Array<{ a: string; b: string }> = [];
 for (const a of BALANCE_SPECIES) for (const b of BALANCE_SPECIES) if (a !== b) pairs.push({ a, b });

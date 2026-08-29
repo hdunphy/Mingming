@@ -304,7 +304,7 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         // handleApplyStatus, which returns early unless the stack count is positive, so the
         // first version of this change silently did nothing and the test caught it.
         if (countedTypes.length > 0) {
-            const removed: string[] = [];
+            const removed: StatusType[] = [];
             const pay = (party: ReadonlyArray<IBattleEntity>) => party.map(e => {
                 if (e.id !== targetId) return e;
                 const kept: StatusEffectInstance[] = [];

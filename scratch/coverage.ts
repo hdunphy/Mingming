@@ -40,6 +40,7 @@ import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import { statusCensus, statusCensusReset } from '../src/engine/statusCensus';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 type Member = readonly [string, string];
 
@@ -53,9 +54,9 @@ const CTL: Member[] = [
 /** Side-scoped ANSWER cards that already exist in the pool - no new card design needed to test this. */
 const EXTRAS = ['winters_grasp', 'winters_grasp', 'ink_cloud', 'ink_cloud'];
 
-const ITER = Number(process.env.ITER ?? 30);
-const ARMS = (process.env.ARMS ?? 'BASE,SIDE,SINGLE').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? '/root/probe/coverage.json';
+const ITER = Number(ENV.ITER ?? 30);
+const ARMS = (ENV.ARMS ?? 'BASE,SIDE,SINGLE').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? '/root/probe/coverage.json';
 
 /**
  * Flip the extras' target scope in memory. Returns a restore function.
@@ -101,7 +102,7 @@ function runArm(arm: string): Row {
             seed: `coverage:${arm}`,
         }), { iterations: ITER });
         return {
-            arm, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+            arm, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
             zooWin: r.pooled.decisiveWinRate, games: r.pooled.iterations,
             turns: +r.pooled.averageTurns.toFixed(2),
             truncated: r.pooled.truncatedCount, ftk: r.pooled.ftkCount,

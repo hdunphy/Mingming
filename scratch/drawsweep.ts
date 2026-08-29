@@ -7,6 +7,7 @@ import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { applyStatJitter, deriveSeeds } from '../src/debug/balance/runBatch';
+import { ENV } from './_env';
 
 const decks: Array<[string, string]> = [];
 for (const [sp, d] of Object.entries(MingmingRegistry) as any) {
@@ -17,7 +18,7 @@ for (const [sp, d] of Object.entries(MingmingRegistry) as any) {
     }
 }
 const hp = (p: ReadonlyArray<IBattleEntity>) => p.reduce((t, e) => t + e.currentHp, 0);
-const SCALING = process.env.SCALING ?? 'CARDS_DRAWN_TRIGGERED';
+const SCALING = ENV.SCALING ?? 'CARDS_DRAWN_TRIGGERED';
 const setPower = (id: string, power: number) => {
     (ProgramRegistry as any)[id].actions[0].power = power;
     (ProgramRegistry as any)[id].actions[0].scaling = SCALING;
@@ -59,6 +60,6 @@ function arm(inkPower: number, starPower: number) {
     for (const o of out) console.error('ARM ' + o);
 }
 
-const arms: Array<[number, number]> = (process.env.ARMS ?? '')
+const arms: Array<[number, number]> = (ENV.ARMS ?? '')
     .split(';').filter(Boolean).map(a => a.split(',').map(Number) as [number, number]);
 for (const [i, s] of arms) arm(i, s);

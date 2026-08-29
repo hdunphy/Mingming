@@ -17,14 +17,15 @@
  * env: DECK, CARD (program id), ITER (default 10), SEEDBASE, ZERO=1 to null the card
  */
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
+import { ENV } from './_env';
 
-const CARD = process.env.CARD ?? 'momentum_crash';
+const CARD = ENV.CARD ?? 'momentum_crash';
 
 // ZERO nulls the card's payoff without removing it from the deck - the deck keeps its shape, its
 // energy curve and its card count, so the delta is the card's CONTRIBUTION rather than the
 // difference between two different decks.
 // POWER is the same knob at arbitrary values - a real sweep arm. ZERO=1 is POWER=0 with a name.
-const POWER = process.env.ZERO === '1' ? '0' : process.env.POWER;
+const POWER = ENV.ZERO === '1' ? '0' : ENV.POWER;
 if (POWER !== undefined) {
     const card = (ProgramRegistry as Record<string, { actions: Array<Record<string, unknown>> }>)[CARD];
     if (!card) throw new Error(`no such program: ${CARD}`);
@@ -36,10 +37,10 @@ const { runPairedBatch } = await import('../src/debug/balance/runBatch');
 const { matchupScenario, BALANCE_SPECIES } = await import('../src/debug/balance/balanceScenarios');
 const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry');
 
-const DECK = process.env.DECK ?? 'sleipnir_v1';
+const DECK = ENV.DECK ?? 'sleipnir_v1';
 const SPECIES = DECK.replace(/_v[12]$/, '');
-const ITER = Number(process.env.ITER ?? 10);
-const SEEDBASE = process.env.SEEDBASE ?? 'grid';
+const ITER = Number(ENV.ITER ?? 10);
+const SEEDBASE = ENV.SEEDBASE ?? 'grid';
 
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== SPECIES)

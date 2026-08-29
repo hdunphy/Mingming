@@ -20,8 +20,9 @@ import { ComposedScenarioSchema, CURRENT_SCENARIO_VERSION } from '../src/debug/s
 import { computeRegistryHash } from '../src/debug/scenarios/registryHash';
 import fs from 'node:fs';
 import path from 'node:path';
+import { ENV } from './_env';
 
-const OUTDIR = process.env.OUTDIR ?? 'src/debug/scenarios/playtest/ticket-118';
+const OUTDIR = ENV.OUTDIR ?? 'src/debug/scenarios/playtest/ticket-118';
 const HASH = computeRegistryHash();
 
 const deckOf = (os: string): string[] => {

@@ -11,14 +11,15 @@ import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { STANCE_BONUS } from '../src/engine/core/Hooks';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 const opponents: Array<{ species: string; deck: string }> = [];
 for (const species of BALANCE_SPECIES)
     if (species !== 'hel')
         for (const deck of MingmingRegistry[species].availableOS) opponents.push({ species, deck });
 
-for (const spec of (process.env.ARMS ?? '0.50').split(';')) {
+for (const spec of (ENV.ARMS ?? '0.50').split(';')) {
     const [d, l] = spec.split(',');
     STANCE_BONUS.dark = Number(d);
     STANCE_BONUS.light = Number(l ?? d);

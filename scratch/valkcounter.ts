@@ -29,9 +29,10 @@ import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import { globalBattleEventBus } from '../src/engine/events';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 30);
-const OUT = process.env.OUT ?? '/root/probe/valkcounter.json';
+const ITER = Number(ENV.ITER ?? 30);
+const OUT = ENV.OUT ?? '/root/probe/valkcounter.json';
 
 let glimmerPlays = 0, maxStreak = 0, streak = 0, last = '';
 globalBattleEventBus.subscribe(e => {

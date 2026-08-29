@@ -20,9 +20,10 @@
  *   ITER  - iterations per opponent per turn order (default 30)
  */
 import HOOKS_DATA from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
-const DECK = process.env.DECK ?? 'hel_v2';
-const ARM = process.env.ARM ?? 'live';
+const DECK = ENV.DECK ?? 'hel_v2';
+const ARM = ENV.ARM ?? 'live';
 const knob: Record<string, string> = {};
 for (const kv of ARM.split(',')) { const [k, v] = kv.split('='); if (k) knob[k] = v ?? '1'; }
 const H = HOOKS_DATA as unknown as Record<string, {
@@ -196,7 +197,7 @@ if (knob.burnperm) {
 if (knob.cut) REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].filter((c, i, a) => !(c === knob.cut && a.indexOf(c) === i));
 if (knob.swap) { const [from, to] = knob.swap.split(':'); REG[SPECIES].decks[DECK] = REG[SPECIES].decks[DECK].map(c => (c === from ? to : c)); }
 
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 const hp = (p: ReadonlyArray<IBattleEntity>) => p.reduce((t, e) => t + e.currentHp, 0);
 
 /** The payoff card each deck is built around, and the gate it has to open. */
@@ -271,7 +272,7 @@ let energySpent = 0, energyAvailable = 0, myTurns = 0, games = 0;
 
 for (const o of SAMPLE) {
     const setup = matchupScenario({ player: SPECIES, enemy: o.sp, playerOS: DECK, enemyOS: o.deck, seed: `shape:${DECK}:${o.deck}` });
-    for (const seed of deriveSeeds(setup.seed, Number(process.env.ITER ?? 6))) for (const side of ['PLAYER', 'ENEMY'] as const) {
+    for (const seed of deriveSeeds(setup.seed, Number(ENV.ITER ?? 6))) for (const side of ['PLAYER', 'ENEMY'] as const) {
         const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
         let st: IBattleState = side === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
         let g = 0; games++;

@@ -16,9 +16,10 @@ import { REFERENCE_PANEL } from '../src/debug/balance/teamComps';
 import { statusCensus, statusCensusReset } from '../src/engine/statusCensus';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 4);
-const OUT = process.env.OUT ?? '/tmp/109_base1v1.json';
+const ITER = Number(ENV.ITER ?? 4);
+const OUT = ENV.OUT ?? '/tmp/109_base1v1.json';
 
 // The decks the panel is made of - the like-for-like population.
 const decks = [...new Set(REFERENCE_PANEL.flatMap(c => c.members.map(m => `${m[0]}|${m[1]}`)))]
@@ -54,7 +55,7 @@ for (let i = 0; i < decks.length; i++) {
                         statusLanded[st] = (statusLanded[st] ?? 0) + stacks;
         }
         rows.push({
-            a: osA, b: osB, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+            a: osA, b: osB, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
             winRate: r.pooled.decisiveWinRate, turns: r.pooled.averageTurns,
             truncated: r.pooled.truncatedCount, ftk: r.pooled.ftkCount, games: r.pooled.iterations,
             dot: { ...statusCensus.dotDamage }, hot: { ...statusCensus.hotHealing },

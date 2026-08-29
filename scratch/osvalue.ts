@@ -31,6 +31,7 @@ import { getOSBehavior } from '../src/engine/data/firmwareRegistry';
 import { getHook } from '../src/engine/core/HookRegistry';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 type Member = readonly [string, string];
 
@@ -88,9 +89,9 @@ function neuter(osId: string): () => void {
     return () => { for (const r of restores) r(); };
 }
 
-const ITER = Number(process.env.ITER ?? 25);
-const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? '/root/probe/osvalue.json';
+const ITER = Number(ENV.ITER ?? 25);
+const ONLY = (ENV.ONLY ?? '').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? '/root/probe/osvalue.json';
 
 interface Row {
     os: string; width: number; arm: 'ON' | 'OFF'; tier: string;
@@ -109,7 +110,7 @@ function run(s: Subject, width: number, arm: 'ON' | 'OFF'): Row {
             seed: `osvalue:${s.os}:w${width}`,   // SAME seed both arms - the only difference is the firmware
         }), { iterations: ITER });
         return {
-            os: s.os, width, arm, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+            os: s.os, width, arm, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
             winRate: r.pooled.decisiveWinRate, games: r.pooled.iterations,
             turns: +r.pooled.averageTurns.toFixed(2), truncated: r.pooled.truncatedCount, note: s.note,
         };

@@ -13,6 +13,7 @@
 import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 interface Cell { deck: string; species: string; opponent: string; opponentSpecies: string }
 const grid: { cells: Cell[] } = JSON.parse(fs.readFileSync('docs/balance/deck_grid.json', 'utf8'));
@@ -20,9 +21,9 @@ const decks = [...new Map(grid.cells.map(c => [c.deck, c])).values()];
 const SPREAD = ['huldra_v1', 'kraken_v1', 'skoll_v1', 'ymir_v1', 'audhumbla_v2'];
 const oppOf = (id: string) => grid.cells.find(c => c.opponent === id)!;
 
-const ARM = process.env.ARM ?? 'AFTER';
-const ITER = Number(process.env.ITER ?? 10);
-const OUT = process.env.OUT ?? '/root/probe/gridgate111.json';
+const ARM = ENV.ARM ?? 'AFTER';
+const ITER = Number(ENV.ITER ?? 10);
+const OUT = ENV.OUT ?? '/root/probe/gridgate111.json';
 
 const rows: Array<{ arm: string; deck: string; opponent: string; winRate: number; turns: number; decided: number }> =
     fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : [];

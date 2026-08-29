@@ -23,15 +23,16 @@ import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import { globalBattleEventBus } from '../src/engine/events';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 interface GridCell { deck: string; opponent: string; opponentSpecies: string; winRate: number; decisive: number; games: number }
 const grid: { cells: GridCell[] } = JSON.parse(fs.readFileSync('docs/balance/deck_grid.json', 'utf8'));
 
 const SUBJECTS = ['valkyrie_v1', 'valkyrie_v2'];
-const ITER = Number(process.env.ITER ?? 30);
-const BASE = process.env.BASE ?? 'A';
-const ARMS = (process.env.ARMS ?? 'BEFORE,AFTER').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? '/root/probe/valkgate.json';
+const ITER = Number(ENV.ITER ?? 30);
+const BASE = ENV.BASE ?? 'A';
+const ARMS = (ENV.ARMS ?? 'BEFORE,AFTER').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? '/root/probe/valkgate.json';
 
 /** The shipped state is now exhaust-less; BEFORE puts it back for the control arm. */
 function setExhaust(on: boolean): void {

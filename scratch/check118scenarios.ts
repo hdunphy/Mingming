@@ -19,8 +19,9 @@ import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import type { ComposedScenario } from '../src/debug/scenarios/scenarioSchema';
 import fs from 'node:fs';
 import path from 'node:path';
+import { ENV } from './_env';
 
-const DIR = process.env.DIR ?? 'src/debug/scenarios/playtest/ticket-118';
+const DIR = ENV.DIR ?? 'src/debug/scenarios/playtest/ticket-118';
 const files = fs.readdirSync(DIR).filter(f => f.endsWith('.scenario.json')).sort();
 if (!files.length) throw new Error(`no scenario files in ${DIR}`);
 

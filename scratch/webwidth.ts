@@ -40,6 +40,7 @@ import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { statusCensus, statusCensusReset } from '../src/engine/statusCensus';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 type Member = readonly [string, string];
 
@@ -56,10 +57,10 @@ const CTL: readonly Member[] = [
     ['draugr', 'draugr_v2'],
 ];
 
-const WIDTH = Number(process.env.WIDTH ?? 1);
-const ITER = Number(process.env.ITER ?? 5);
-const SEEDBASE = process.env.SEEDBASE ?? 'A';
-const OUT = process.env.OUT ?? `/tmp/webwidth_w${WIDTH}_${SEEDBASE}.json`;
+const WIDTH = Number(ENV.WIDTH ?? 1);
+const ITER = Number(ENV.ITER ?? 5);
+const SEEDBASE = ENV.SEEDBASE ?? 'A';
+const OUT = ENV.OUT ?? `/tmp/webwidth_w${WIDTH}_${SEEDBASE}.json`;
 
 /** Ordered k-subsets of a list, order preserved - keeps a pairing id stable and readable. */
 function subsets<T>(xs: readonly T[], k: number): T[][] {
@@ -114,7 +115,7 @@ function pairing(zoo: Member[], ctl: Member[]): Row {
             statusLanded[k] = (statusLanded[k] ?? 0) + v;
     }
     return {
-        width: WIDTH, seedBase: SEEDBASE, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+        width: WIDTH, seedBase: SEEDBASE, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
         zoo: zooId, ctl: ctlId,
         winRate: r.pooled.decisiveWinRate, games: r.pooled.iterations,
         turns: r.pooled.averageTurns, truncated: r.pooled.truncatedCount, ftk: r.pooled.ftkCount,
@@ -136,7 +137,7 @@ for (const z of subsets(ZOO, WIDTH))
 const todo = pairs.filter(([z, c]) =>
     !done.has(key({ width: WIDTH, zoo: z.map(m => m[1]).join('+'), ctl: c.map(m => m[1]).join('+') })));
 
-console.error(`WIDTH=${WIDTH} SEEDBASE=${SEEDBASE} tier=${AI_TIER}/beam${process.env.AI_BEAM ?? 0} ` +
+console.error(`WIDTH=${WIDTH} SEEDBASE=${SEEDBASE} tier=${AI_TIER}/beam${ENV.AI_BEAM ?? 0} ` +
     `ITER=${ITER} (games=${2 * ITER}/pairing)  pairings ${todo.length} to run, ${done.size} already done`);
 
 const started = Date.now();

@@ -25,8 +25,9 @@ import { GetProgramData, ProgramRegistry } from '../src/engine/data/programRegis
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { STANCE_BONUS } from '../src/engine/core/Hooks';
 import type { IBattleState, IBattleEntity } from '../src/engine/types';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 12);
+const ITER = Number(ENV.ITER ?? 12);
 const BASE_DECK: string[] = [...(MingmingRegistry as never as Record<string, { decks: Record<string, string[]> }>).hel.decks.hel_v1];
 
 const stanceOf = (e: IBattleEntity): 'Dark' | 'Light' | 'none' =>
@@ -168,7 +169,7 @@ function playableAnything(st: IBattleState): boolean {
 }
 void elementOf;
 
-for (const spec of (process.env.ARMS ?? 'live|||||').split(';').filter(Boolean)) {
+for (const spec of (ENV.ARMS ?? 'live|||||').split(';').filter(Boolean)) {
     const [label, dark, light, deck, ec, ep, policy] = spec.split('|');
     run({
         label, dark: dark ? Number(dark) : undefined, light: light ? Number(light) : undefined,

@@ -35,6 +35,7 @@ import { getOSBehavior } from '../src/engine/data/firmwareRegistry';
 import { getHook } from '../src/engine/core/HookRegistry';
 import { globalBattleEventBus } from '../src/engine/events';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 type Member = readonly [string, string];
 
@@ -144,9 +145,9 @@ function instrument(): void {
     }
 }
 
-const ITER = Number(process.env.ITER ?? 10);
-const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? '/root/probe/oscensus.json';
+const ITER = Number(ENV.ITER ?? 10);
+const ONLY = (ENV.ONLY ?? '').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? '/root/probe/oscensus.json';
 
 instrument();
 

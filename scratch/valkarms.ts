@@ -36,6 +36,7 @@ import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry, getDeckForOS } from '../src/engine/data/mingmingRegistry';
 import { globalBattleEventBus } from '../src/engine/events';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 const SHIPPED = ['falling_star', 'falling_star', 'morning_light', 'starfall', 'starfall',
     'ascension', 'radiant_spark', 'glimmer'];
@@ -92,9 +93,9 @@ const OPPONENTS: Array<[string, string, number]> = [
     ['skoll', 'skoll_v1', 0.867],
 ];
 
-const ITER = Number(process.env.ITER ?? 30);
-const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? '/root/probe/valkarms.json';
+const ITER = Number(ENV.ITER ?? 30);
+const ONLY = (ENV.ONLY ?? '').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? '/root/probe/valkarms.json';
 
 let maxStreak = 0, streak = 0, last = '', glimmerPlays = 0;
 globalBattleEventBus.subscribe(e => {

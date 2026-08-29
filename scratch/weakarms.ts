@@ -37,6 +37,7 @@ import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 type Member = readonly [string, string];
 
@@ -82,10 +83,10 @@ function scaleDebuffs(factor: number): () => void {
     };
 }
 
-const ITER = Number(process.env.ITER ?? 15);
-const ARMS = (process.env.ARMS ?? 'NONE,SHIPPED,DOUBLE').split(',').filter(Boolean);
-const WIDTHS = (process.env.WIDTHS ?? '1,3').split(',').map(Number);
-const OUT = process.env.OUT ?? '/root/probe/weakarms.json';
+const ITER = Number(ENV.ITER ?? 15);
+const ARMS = (ENV.ARMS ?? 'NONE,SHIPPED,DOUBLE').split(',').filter(Boolean);
+const WIDTHS = (ENV.WIDTHS ?? '1,3').split(',').map(Number);
+const OUT = ENV.OUT ?? '/root/probe/weakarms.json';
 const FACTOR: Record<string, number> = { NONE: 0, SHIPPED: 1, DOUBLE: 2 };
 
 interface Row {
@@ -124,7 +125,7 @@ for (const arm of ARMS) {
             let landed = 0;
             for (const run of r.pooled.runs) landed += sumDebuffs(run.telemetry);
             const row: Row = {
-                arm, width, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+                arm, width, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
                 // CONTROL is the player side here, so `decisiveWinRate` IS control's rate.
                 // (An earlier version inverted this and reported control winning 96.7% at 3v3,
                 //  which contradicted every other measurement - the tell that it was a sign bug.)

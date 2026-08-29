@@ -15,6 +15,7 @@
 import { battleReducer } from '../src/engine/battleReducer';
 import { createSparseBattleState, createSparseEntity } from '../src/debug/scenarios/scenarioTestSupport';
 import type { IBattleState, ProgramEntity } from '../src/engine/types';
+import { ENV } from './_env';
 
 const card = (id: string, dataId: string): ProgramEntity =>
     ({ id, dataId, currentCost: 0, isPlayable: true } as ProgramEntity);
@@ -64,8 +65,8 @@ function run(label: string): void {
 }
 
 console.log('The ally casts twice, THEN the caster casts stampede.\n');
-process.env.T123_OFF = '1';
+ENV.T123_OFF = '1';
 run('OLD RULE  (state.cardsPlayedThisTurn - the whole side)');
-delete process.env.T123_OFF;
+delete ENV.T123_OFF;
 run('NEW RULE  (source.playsThisTurn - the caster only)');
 console.log('\nIf the two damage numbers match, the change did NOT take.');

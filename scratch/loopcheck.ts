@@ -25,9 +25,10 @@
 import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { globalBattleEventBus } from '../src/engine/events';
+import { ENV } from './_env';
 
-const WIDTH = Number(process.env.WIDTH ?? 3);
-const ITER = Number(process.env.ITER ?? 3);
+const WIDTH = Number(ENV.WIDTH ?? 3);
+const ITER = Number(ENV.ITER ?? 3);
 
 const ZOO = [['jormungandr', 'jormungandr_v1'], ['sleipnir', 'sleipnir_v1'], ['hraesvelgr', 'hraesvelgr_v1']] as const;
 const CTL = [['kraken', 'kraken_v1'], ['huldra', 'huldra_v1'], ['draugr', 'draugr_v2']] as const;

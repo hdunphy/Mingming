@@ -63,6 +63,7 @@ import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 type Member = readonly [string, string];
 
@@ -90,7 +91,7 @@ const CTL_BASE: Member[] = [
  * side-wide effect facing one body hits one body. What was never measured is the ENERGY bill, and
  * that is what this exists to measure.
  */
-const LEAD = process.env.LEAD ?? 'kraken';
+const LEAD = ENV.LEAD ?? 'kraken';
 const CTL: Member[] = (() => {
     const i = CTL_BASE.findIndex(([s]) => s === LEAD);
     if (i === -1) throw new Error(`LEAD=${LEAD} is not one of ${CTL_BASE.map(([s]) => s).join(',')}`);
@@ -240,10 +241,10 @@ const DEFAULT_WIDTHS: Record<string, number[]> = {
     SIDE_COSTED: [1, 3],
 };
 
-const ITER = Number(process.env.ITER ?? 30);
-const ARMS = (process.env.ARMS ?? 'SHIPPED,SIDE,SIDE_ALL,FREE,TANK,BIGDMG').split(',').filter(Boolean);
-const WIDTH_OVERRIDE = process.env.WIDTHS ? process.env.WIDTHS.split(',').map(Number) : null;
-const OUT = process.env.OUT ?? '/root/probe/sidescope.json';
+const ITER = Number(ENV.ITER ?? 30);
+const ARMS = (ENV.ARMS ?? 'SHIPPED,SIDE,SIDE_ALL,FREE,TANK,BIGDMG').split(',').filter(Boolean);
+const WIDTH_OVERRIDE = ENV.WIDTHS ? ENV.WIDTHS.split(',').map(Number) : null;
+const OUT = ENV.OUT ?? '/root/probe/sidescope.json';
 
 interface Row {
     arm: string; width: number; tier: string;
@@ -287,7 +288,7 @@ for (const arm of ARMS) {
             let landed = 0;
             for (const run of r.pooled.runs) landed += sumDebuffs(run.telemetry);
             const row: Row = {
-                arm, width, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+                arm, width, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
                 ctlWin: r.pooled.decisiveWinRate,
                 games, turns: +r.pooled.averageTurns.toFixed(2),
                 truncated: r.pooled.truncatedCount, ftk: r.pooled.ftkCount,

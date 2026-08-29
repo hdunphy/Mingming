@@ -30,6 +30,7 @@ import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { teamScenario } from '../src/debug/balance/balanceScenarios';
 import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import fs from 'node:fs';
+import { ENV } from './_env';
 
 type Member = readonly [string, string];
 const m = (sp: string, os: string): Member => [sp, os];
@@ -82,9 +83,9 @@ const OPPONENTS: Comp[] = [
     },
 ];
 
-const ITER = Number(process.env.ITER ?? 30);
-const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
-const OUT = process.env.OUT ?? '/root/probe/dupcomps.json';
+const ITER = Number(ENV.ITER ?? 30);
+const ONLY = (ENV.ONLY ?? '').split(',').filter(Boolean);
+const OUT = ENV.OUT ?? '/root/probe/dupcomps.json';
 
 interface Row {
     subject: string; opponent: string; tier: string;
@@ -103,7 +104,7 @@ for (const s of SUBJECTS) {
             player: s.members, enemy: o.members, seed: `dupcomps:${s.id}:${o.id}`,
         }), { iterations: ITER });
         const row: Row = {
-            subject: s.id, opponent: o.id, tier: `${AI_TIER}/beam${process.env.AI_BEAM ?? 0}`,
+            subject: s.id, opponent: o.id, tier: `${AI_TIER}/beam${ENV.AI_BEAM ?? 0}`,
             subjectWin: r.pooled.decisiveWinRate, games: r.pooled.iterations,
             turns: +r.pooled.averageTurns.toFixed(2), truncated: r.pooled.truncatedCount,
             ftk: r.pooled.ftkCount, firstMoverEdge: +r.firstMoverEdge.toFixed(3), intent: s.intent,

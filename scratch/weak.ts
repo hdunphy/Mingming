@@ -14,8 +14,9 @@
  * env: ARM (required), ITER (default 10), STEP (opponent spread, default 1 = all)
  */
 import PROGRAMS from '../src/engine/data/programs.json';
+import { ENV } from './_env';
 
-const ARM = process.env.ARM ?? 'live';
+const ARM = ENV.ARM ?? 'live';
 const P = PROGRAMS as unknown as Record<string, { actions: unknown[]; description?: string }>;
 
 /** Which deck this arm is measuring - set by the switch below. */
@@ -91,8 +92,8 @@ const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry')
 const SPECIES = DECK.replace(/_v[12]$/, '');
 if (STAT_PATCH) STAT_PATCH(MingmingRegistry[SPECIES].baseStats as unknown as Record<string, number>);
 
-const ITER = Number(process.env.ITER ?? 10);
-const STEP = Number(process.env.STEP ?? 1);
+const ITER = Number(ENV.ITER ?? 10);
+const STEP = Number(ENV.STEP ?? 1);
 
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== SPECIES)

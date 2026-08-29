@@ -15,8 +15,9 @@
  *   deckcut        - one Undertow and one Ink Stream replaced with Water Slap (reference)
  */
 import HOOKS_DATA from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
-const ARM = process.env.ARM ?? 'base';
+const ARM = ENV.ARM ?? 'base';
 
 // --- mutate the OS BEFORE anything imports the firmware registry ---
 const jorm = (HOOKS_DATA as any).jormungandr_v1;

@@ -6,6 +6,7 @@
  * REPLAY=1 narrates the surviving ones action by action.
  */
 import HOOKS_DATA from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
 // The chosen arm, applied before the firmware registry builds its hooks.
 const jorm = (HOOKS_DATA as any).jormungandr_v1;
@@ -50,8 +51,8 @@ const KNOWN = new Set(['skoll_v1:jormungandr', 'jormungandr_v1:skoll', 'skoll_v2
     'jormungandr_v1:fenrir', 'jormungandr_v1:fafnir', 'gullinbursti_v2:jormungandr', 'fenrir_v1:jormungandr',
     'fafnir_v1:jormungandr', 'jormungandr_v1:gullinbursti', 'jormungandr_v1:ratatoskr', 'jormungandr_v1:hel',
     'gullinbursti_v1:jormungandr', 'hel_v2:jormungandr']);
-const cells = process.env.FULL ? all : all.filter(([, os, opp]) => KNOWN.has(`${os}:${opp}`));
-const ITER = Number(process.env.ITER ?? 30);
+const cells = ENV.FULL ? all : all.filter(([, os, opp]) => KNOWN.has(`${os}:${opp}`));
+const ITER = Number(ENV.ITER ?? 30);
 
 let total = 0;
 const hits: Array<{ sp: string; os: string; opp: string; seed: string; side: 'PLAYER' | 'ENEMY' }> = [];
@@ -66,7 +67,7 @@ for (const [sp, os, opp] of cells) {
 }
 console.error(`TOTAL ${total} first-turn kills across ${cells.length} cells at ${ITER}x2 games each`);
 
-if (process.env.REPLAY) for (const h of hits) {
+if (ENV.REPLAY) for (const h of hits) {
     const setup = matchupScenario({ player: h.sp, enemy: h.opp, playerOS: h.os, seed: `band:${h.os}:${h.opp}` });
     const built = buildScenarioState({ ...applyStatJitter(setup, h.seed), seed: h.seed });
     let st: IBattleState = h.side === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
