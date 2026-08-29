@@ -12,6 +12,8 @@
  */
 import { spawn } from 'node:child_process';
 import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
 
 const arg = (name, dflt) => {
     const i = process.argv.indexOf(`--${name}`);
@@ -26,9 +28,26 @@ const SEEDBASE = arg('seedbase', 'grid');
 // the lanes finish slower than a smaller pool would.
 const LANES = Number(arg('lanes', String(Math.max(1, os.cpus().length - 1))));
 
+/** vite-node's entry, resolved from this repo's node_modules rather than from PATH. */
+const VITE_NODE = path.join(
+    path.dirname(createRequire(import.meta.url).resolve('vite-node/package.json')),
+    'vite-node.mjs',
+);
+
+
 function runLane(shard, shards) {
     return new Promise((resolve, reject) => {
-        const child = spawn('npx', ['tsx', 'scratch/gridshard.ts'], {
+        // Lanes run vite-node's JS ENTRY under the current `node`, not `npx tsx`.
+        //
+        // Two bugs in the old form, both Windows-only and both invisible on Linux where this was
+        // written. `npx` is `npx.cmd` on Windows and Node's spawn will not resolve a .cmd without
+        // a shell, so every lane died with ENOENT. And `tsx` is not a dependency of this repo at
+        // all - `npx tsx` was reaching for the NETWORK on every lane, which would have been slow
+        // and non-deterministic even where it worked.
+        //
+        // `vite-node` IS a real dependency (it comes with vitest), and invoking its .mjs entry
+        // with process.execPath sidesteps shell resolution, PATH and file extensions entirely.
+        const child = spawn(process.execPath, [VITE_NODE, 'scratch/gridshard.ts'], {
             env: { ...process.env, DECK, ITER, SEEDBASE, SHARD: String(shard), SHARDS: String(shards) },
             cwd: process.cwd(),
         });
@@ -37,6 +56,9 @@ function runLane(shard, shards) {
         // Lane stderr is the engine's own noise; surface it only on failure so a green run is quiet.
         let err = '';
         child.stderr.on('data', d => { err += d; });
+        // A spawn failure emits 'error', not 'close'. Without this the pool threw an unhandled
+        // 'error' event and took the whole run down with a stack trace instead of naming the lane.
+        child.on('error', err => reject(new Error(`lane ${shard} failed to start: ${err.message}`)));
         child.on('close', code => code === 0 ? resolve(out) : reject(new Error(`lane ${shard} exit ${code}\n${err.slice(-2000)}`)));
     });
 }
