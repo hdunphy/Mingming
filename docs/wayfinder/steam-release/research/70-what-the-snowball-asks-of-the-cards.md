@@ -49,6 +49,14 @@ Stated limit: this is *starting* HP, not a mid-fight lead.
 
 ## 3. THE MECHANISM IS TWICE AS STEEP AS THE TICKET SAYS
 
+> **CORRECTED 2026-08-29, by measurement.** The arithmetic below is right — a KO costs -33.3% energy
+> and -28.9% cards, compounding to -52.5%. **The inference this section originally drew from it was
+> wrong.** It treated the two halves as comparable levers and warned that the untouched card half was
+> *"the larger half"*. Six arms later: **repairing the card half does nothing at all** (see §5b), and
+> the card cliff is larger *arithmetically* while being inert *behaviourally*. The section is left
+> standing with this note rather than rewritten, because the reasoning that produced the error is
+> worth seeing.
+
 Ticket 70's engine-facts section lists the energy cliff: *"a 3×2e side runs 6e/turn; after one KO it
 runs 4e/turn… a permanent -33% throughput cliff from a single event."* That is correct and it is
 **half the story**.
@@ -103,7 +111,7 @@ AI lands through deck-archetypes coordination."* Mapping its four questions onto
 | **Q2c** death rattle | **shared** | Overlaps `skoll_v1` TREACHERY_KERNEL and WAR FOOTING — keep distinguishable. |
 | **Q2d** an ally inherits the fallen engine | **yours, and large** | Real mechanism work on STAB/OS ownership. |
 | **Q3a** the Revive macro IS the comeback | **yours** | Is it priced and distributed to carry that job? |
-| **Q3b** underdog draw (+1 down a member) | engine | Directly edits the formula in §3 — it would cut the −28.9% to roughly zero. |
+| **Q3b** underdog draw (+1 down a member) | engine | **MEASURED — see §5b. It is a NULL.** It does cut the −28.9%, and that changes nothing. |
 | **Q3c** none; comebacks fight the vision | — | Defensible: *"difficulty = never stat scaling"*. |
 
 ## 5. THREE OF THESE OPTIONS COLLIDE WITH DRIVERS YOU HAVE ALREADY RULED
@@ -157,9 +165,9 @@ Arm liveness: 269 and 869 stacks granted. Neither run is void.
 
 **Three things in this that bear on your work:**
 
-1. **It repairs only the ENERGY half.** The card cliff (−28.9%) is untouched. So this is *half* a
-   repair producing a 2.4x comeback lift — evidence that the resource asymmetry drives the snowball,
-   not that energy alone is the whole of it. A full-repair arm has not been run.
+1. ~~**It repairs only the ENERGY half**, so this is *half* a repair and energy alone may not be the
+   whole of it.~~ **WRONG, and corrected by the card arms — see §5b.** The card half has now been
+   repaired, alone and in combination, and it does **nothing**. Energy alone IS the whole of it.
 2. **It made fights SHORTER** (6.5 → 6.0 turns; 4.3 → 3.9 after the KO), against the intuition that
    helping the loser drags decided fights out. The bereaved side turns it around or dies faster
    either way — so it improves §2's *experience* problem as well as the comeback rate.
@@ -172,6 +180,44 @@ has been measured. A ruling that picks Q2b because it is the one with a number a
 choosing on availability rather than merit — and the cheapest way to fix that is to run the other
 engine-side option (Q3b, underdog draw) through the same harness, which is a few lines and the same
 40 minutes.
+
+## 5b. THE CARD HALF WAS MEASURED TOO, AND IT IS A NULL
+
+Henry asked for the card equivalent on 2026-08-29 (*"both permanent card draw and a one turn boost
+then see them combined with the energized"*). Four more arms, 60 battles each, same seeds.
+
+| arm | comeback rate | flips to / away | McNemar p | battle length | overkill |
+| --- | --- | --- | --- | --- | --- |
+| baseline | 8.3% | — | — | 6.5 | 17.8 |
+| `energized once` | 16.7% | 6 / 1 | 0.125 | 6.5 | 22.2 |
+| `energized standing` | 20.0% | 8 / 1 | **0.039** | 6.0 | 21.9 |
+| **`draw once`** | **8.3%** | **3 / 3** | **1.000** | 6.4 | **16.8** |
+| **`draw standing`** | **10.0%** | **4 / 3** | **1.000** | 6.2 | **17.1** |
+| `E once + D once` | 13.3% | 5 / 2 | 0.453 | 6.3 | 21.0 |
+| `E once + D standing` | 13.3% | 5 / 2 | 0.453 | 5.8 | 21.6 |
+
+`draw once` granted **206** cards and landed on the baseline exactly. `draw standing` granted
+**836** and moved one battle. Their flips are **3:3 and 4:3 — symmetric churn**, which is the shape
+of a disconnected lever and is distinguishable from `energized once`'s 6:1. **Adding cards to the
+energy arm made it worse**, 16.7% -> 13.3%, in both combinations.
+
+**The mechanism: the bereaved side is ENERGY-constrained, not card-constrained.** Extra cards land
+in a hand it cannot afford to play. Two independent numbers corroborate it — **overkill rises with
+energy (17.8 -> 22.2) and not with cards (17.8 -> 16.8)**, because more energy means more plays
+resolve while more cards means no additional plays at all; and battle length moves the same way.
+
+### What this changes for you
+
+- **A card-draw answer to the snowball is not worth designing.** Whatever shape it takes — a Driver,
+  a card, an OS — the resource it hands over is the one that is not binding.
+- **Ticket 16's `Deep Cache`** (*"first bonus draw each turn -> small effect"*) should not be
+  expected to help the snowball. It may be a fine Driver for other reasons; this is not one of them.
+- **[Ticket 119](../../deck-archetypes/tickets/119-side-multiplier-width-blind.md) gains a data
+  point.** If cards are not the binding constraint at 3v2, the value of a card is not linear in how
+  many are drawn, which is adjacent to the width-blind pricing question.
+- **Energy is the pressure point.** Any lever aimed at the snowball — including anything in your
+  scope — should move energy, or move what energy buys.
+
 
 ## 6. The one thing you can act on before Henry rules
 

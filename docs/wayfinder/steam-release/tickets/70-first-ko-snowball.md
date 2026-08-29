@@ -384,10 +384,78 @@ report prints a per-arm liveness line and calls a zero-grant arm **VOID rather t
 (7 turns -> 5 or 6), which is the thing Henry explicitly does not want. n=1 means nothing, but it is
 the number to read first in the real runs.
 
-**AND THE RESULT ALREADY IN HAND MAY BE THE ANSWER.** `energized once` measured **16.7% comebacks**
+**AND THE RESULT ALREADY IN HAND MAY BE THE ANSWER** (it was - see the arm results below)**.** `energized once` measured **16.7% comebacks**
 — inside the stated 15-20% band — at **6.5 turns and 4.3 after the KO**, i.e. length-neutral to a
 tenth of a turn against the baseline. If the card arms come back shorter, `energized once` is the
 lever that already meets both halves of the target.
+
+### ALL SIX ARMS — measured 2026-08-29. THE CLIFF BITES THROUGH ENERGY, NOT CARDS.
+
+360 battles total, six arms of 60, every one seeded identically to the baseline. **Every arm's
+liveness counter is non-zero** — no run here is void.
+
+| arm | comeback rate | 95% CI | flips to / away | McNemar p | length | after KO | overkill |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| baseline | 8.3% (5/60) | 3.6-18.1 | — | — | **6.5** | 4.3 | 17.8 |
+| **`energized once`** | **16.7%** (10) | 9.3-28.0 | **6 / 1** | 0.125 | **6.5** | **4.3** | 22.2 |
+| `energized standing` | 20.0% (12) | 11.8-31.8 | **8 / 1** | **0.039** | 6.0 | 3.9 | 21.9 |
+| `draw once` | **8.3%** (5) | 3.6-18.1 | **3 / 3** | **1.000** | 6.4 | 4.2 | 16.8 |
+| `draw standing` | 10.0% (6) | 4.7-20.1 | **4 / 3** | **1.000** | 6.2 | 4.0 | 17.1 |
+| `E once + D once` | 13.3% (8) | 6.9-24.2 | 5 / 2 | 0.453 | 6.3 | 4.2 | 21.0 |
+| `E once + D standing` | 13.3% (8) | 6.9-24.2 | 5 / 2 | 0.453 | 5.8 | 3.7 | 21.6 |
+
+#### The finding: cards are a NULL, and it is a clean one
+
+`draw once` grants 206 cards and lands on **exactly the baseline** — 5 comebacks, 8.3%. `draw
+standing` grants **836** cards and moves one battle.
+
+**Their flip counts are 3:3 and 4:3 — symmetric churn.** That is the shape of a lever connected to
+nothing, and it is a different object from `energized once`'s 6:1, which is a real signal short of
+samples. This measurement can tell those two apart, which is the whole reason the arms are paired.
+
+**Combining made it WORSE, twice.** `energized once` alone is 16.7%; adding either card arm drops it
+to 13.3%. Both combinations land on the same 5:2, so this is not one odd run.
+
+#### Why — and the corroboration that makes it more than a story
+
+**The bereaved side is ENERGY-constrained, not card-constrained.** Extra cards arrive in a hand it
+cannot afford to play. Two independent numbers agree:
+
+- **Overkill rises with energy and not with cards.** Energy arms: 17.8 -> 22.2 / 21.9. Card arms:
+  17.8 -> **16.8 / 17.1**, i.e. flat or slightly down. More energy means more plays resolve, which
+  is why the waste goes up. More cards means no additional plays at all.
+- **Battle length moves the same way.** Energy shortens the fight (6.5 -> 6.0); cards barely touch
+  it (6.5 -> 6.4 / 6.2) — because nothing extra is being *done* with them.
+
+#### THIS CORRECTS THIS TICKET AND ITS DESIGN-AGENT REPORT
+
+The card cliff was measured at **-28.9%** against energy's **-33.3%**, and both this ticket and
+[research/70](../research/70-what-the-snowball-asks-of-the-cards.md) went on to treat the card half
+as comparable — the report warned in as many words that a small energy movement *"must NOT be read
+as 'energy is not the problem'"* because the untouched card half was *"the larger half"*.
+
+**That inference was wrong, and the experiment is what overturned it.** The card half is larger
+**arithmetically** and inert **behaviourally**. An arithmetic cliff is not a behavioural one, and
+nothing short of measuring it could have told the difference. Both documents are corrected rather
+than quietly reworded, because the reasoning that produced the error is the part worth keeping
+visible.
+
+#### Against Henry's stated target
+
+Henry, 2026-08-29: *"I don't like the games ending faster… I want to maintain game length but fine
+with 15-20% comeback rate."*
+
+**Exactly one arm meets both halves: `energized once` — 16.7% comebacks, 6.5 turns, 4.3 after the
+KO.** Length-neutral to a tenth of a turn against the baseline, and dead centre of the band.
+`energized standing` clears the comeback bar at 20.0% but costs half a turn of battle length; every
+card arm either misses the band or shortens the game for nothing.
+
+Its p is 0.125 — **6:1 in the right direction, short of significance at this sample.** If the
+choice is to be defended on the number rather than on the mechanism, `--iterations 3` on that one
+arm (~2 hours) is what would settle it.
+
+**Ticket 70 stays OPEN.** This measures Q2b and Q3b only. Q1, Q2a, Q2c, Q2d and Q3a still have no
+numbers, and the grilling is Henry's.
 
 ## The grilling - questions for Henry
 
