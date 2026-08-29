@@ -99,7 +99,7 @@ AI lands through deck-archetypes coordination."* Mapping its four questions onto
 | **Q1b** overkill refunds energy or draws | **yours** | A conversion rule; feeds the snowball through a different pipe. |
 | **Q1c** keep the waste | — | No work. Precision stays a skill test. |
 | **Q2a** nothing; protection is the counterplay | **yours, and BLOCKED — see §5** | Then Bulwark Reflex and BarkShield-type cards **are** the answer, and their pricing and distribution is the deliverable. |
-| **Q2b** partial energy inheritance | engine | The smallest lever. Halves one of the two cliffs. |
+| **Q2b** partial energy inheritance | engine | The smallest lever. Halves one of the two cliffs. **MEASURED — see §5a. It works.** |
 | **Q2c** death rattle | **shared** | Overlaps `skoll_v1` TREACHERY_KERNEL and WAR FOOTING — keep distinguishable. |
 | **Q2d** an ally inherits the fallen engine | **yours, and large** | Real mechanism work on STAB/OS ownership. |
 | **Q3a** the Revive macro IS the comeback | **yours** | Is it priced and distributed to carry that job? |
@@ -133,6 +133,45 @@ behind ticket 109.** If Henry rules Q2a, the answer to the snowball is a Driver 
 built, gated on the ticket the steam-release HANDOFF already calls the single highest-leverage item
 on the board with nine tickets behind it. **109 is on the critical path for this question too**,
 which is worth knowing when you decide what to work on next.
+
+## 5a. Q2b HAS BEEN MEASURED, AND IT MOVES THE NUMBER
+
+Henry asked for it directly on 2026-08-29 — *"if an ally dies that side gets a stack of energized,
+see if that allows more comebacks"* — and it was run as an arm in the harness (never in
+`battleReducer`; the engine is bit-identical). 60 battles per arm, seeded identically to the
+baseline.
+
+| | baseline | `once` (one-shot) | `standing` (cliff repaired) |
+| --- | --- | --- | --- |
+| **comeback rate** | 8.3% (5/60) | 16.7% (10/60) | **20.0% (12/60)** |
+| turns after first KO | 4.3 | 4.3 | 3.9 |
+| battle length | 6.5 | 6.5 | 6.0 |
+| overkill wasted | 17.8 | 22.2 | 21.9 |
+
+**Paired (same battles, one rule changed), McNemar exact: `standing` p = 0.039** — 8 battles flipped
+to a comeback, 1 flipped away. `once` is 6:1 in the same direction at p = 0.125, which is
+underpowered rather than null, and is what the mechanism predicts: a one-shot grant against a
+permanent cliff should do less, and does.
+
+Arm liveness: 269 and 869 stacks granted. Neither run is void.
+
+**Three things in this that bear on your work:**
+
+1. **It repairs only the ENERGY half.** The card cliff (−28.9%) is untouched. So this is *half* a
+   repair producing a 2.4x comeback lift — evidence that the resource asymmetry drives the snowball,
+   not that energy alone is the whole of it. A full-repair arm has not been run.
+2. **It made fights SHORTER** (6.5 → 6.0 turns; 4.3 → 3.9 after the KO), against the intuition that
+   helping the loser drags decided fights out. The bereaved side turns it around or dies faster
+   either way — so it improves §2's *experience* problem as well as the comeback rate.
+3. **It made overkill WORSE** (17.8 → 22.2). More energy means more cards played means more damage
+   thrown at nearly-dead units. **So Q1 and Q2 are not independent**: this lever improves Q2's
+   problem and mildly worsens Q1's. If they are ruled separately, that interaction is a trap.
+
+**What this does not do:** compare Q2b against Q2a, Q2c, Q2d or the Q3 options. Only one of the ten
+has been measured. A ruling that picks Q2b because it is the one with a number attached would be
+choosing on availability rather than merit — and the cheapest way to fix that is to run the other
+engine-side option (Q3b, underdog draw) through the same harness, which is a few lines and the same
+40 minutes.
 
 ## 6. The one thing you can act on before Henry rules
 

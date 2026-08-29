@@ -259,6 +259,85 @@ either way. More importantly: the baseline comeback rate is **5 battles in 60**,
 baseline, so the honest comparison is per-pair (`--pairs`) rather than the headline rate; if the
 effect looks small, `--iterations 2` or 3 is needed before concluding anything.
 
+**Superseded by the results below** — the pairing rescued the power problem. McNemar on the
+same-seed battles gives `standing` p = 0.039 where an unpaired test on the identical data gives
+p = 0.114.
+
+### ARM RESULTS — measured 2026-08-29, 60 battles each, both arms
+
+Run on Henry's machine, `--iterations 1 --pairs`, seeded identically to the baseline.
+
+**ARM LIVENESS FIRST, because a dead arm reads exactly like a null result.** `once` granted **269**
+Energized stacks (4.5/battle); `standing` granted **869** (14.5/battle). Both arms fired. Neither
+result is void.
+
+| | baseline | `once` | `standing` |
+| --- | --- | --- | --- |
+| P(win \| scored first KO) | 91.7% | **83.3%** | **80.0%** |
+| **comeback rate** | **8.3%** (5/60) | **16.7%** (10/60) | **20.0%** (12/60) |
+| mean turns after first KO | 4.3 | 4.3 | **3.9** |
+| mean battle length | 6.5 | 6.5 | **6.0** |
+| share of fight after first KO | 66.9% | 66.8% | **64.4%** |
+| mean overkill wasted | 17.8 | **22.2** | **21.9** |
+| P(win \| higher starting HP) | 50.0% | 51.7% | 55.0% |
+| members lost by the winner | 0.9 | 1.1 | 1.1 |
+
+#### The paired test, which is the one that settles it
+
+Both arms replay the **same 60 battles** with one rule changed, so the comparison is paired and
+McNemar's exact test applies. Counted in battles:
+
+| | flipped TO a comeback | flipped AWAY | pairs unchanged | **McNemar exact, two-sided** |
+| --- | --- | --- | --- | --- |
+| `once` | 6 | 1 | 23 of 30 | **p = 0.125** |
+| `standing` | 8 | 1 | 21 of 30 | **p = 0.039** |
+
+**Pairing is what makes this readable at n=60.** Treated as independent samples the same data gives
+Fisher p = 0.269 (`once`) and p = 0.114 (`standing`) — both unremarkable. Throwing away the fact
+that every battle is the *same* battle with one rule changed costs most of the power in the
+experiment. The 95% Wilson intervals on the raw rates overlap heavily (baseline 3.6-18.1%,
+`standing` 11.8-31.8%), which is the same point from the other side.
+
+#### Reading it honestly
+
+**`standing` — an effect. 8 battles flipped to a comeback and 1 flipped away, p = 0.039.** The
+comeback rate goes 8.3% -> 20.0%, a 2.4x lift, and the direction is consistent (8:1). At this sample
+size that is a real signal, but NOT a good estimate of the effect's *size* — the interval is wide.
+
+**`once` — underpowered to tell, and pointing the same way.** 6:1 in the same direction, p = 0.125.
+That is not "no effect"; it is a smaller sample of the same phenomenon failing to clear the bar. It
+is also exactly what the mechanism predicts: `once` pays one extra energy on one turn against a
+cliff that is permanent, so it should do *less* than `standing`, and it does.
+
+**Two things moved that nobody asked about, and both matter:**
+
+1. **`standing` made fights SHORTER, not longer** — 6.5 -> 6.0 turns, and 4.3 -> 3.9 after the first
+   KO. The intuition was that helping the losing side would drag decided fights out. The opposite
+   happened: the bereaved side either turns it around or dies faster, so **there is less time spent
+   in the decided-but-not-over state** that line 2 identifies as the experience problem. This lever
+   improves both measurements at once, slightly.
+2. **Overkill went UP in both arms** — 17.8 -> 22.2 / 21.9 damage per battle. More energy means more
+   cards played means more damage thrown at nearly-dead units. So this lever **mildly worsens Q1's
+   problem while improving Q2's**, which is worth knowing before the two are ruled separately.
+
+#### The confound, stated whichever way it is read
+
+**Both arms repair only the ENERGY half of the cliff.** The card half — `sum(cardDraw over ALIVE) -
+aliveCount + 1`, i.e. -28.9% — is untouched, and the two compound to -52.5%. So this is **half a
+repair producing a 2.4x comeback lift**, and the honest reading is that the resource asymmetry is a
+real driver of the snowball rather than that it is the whole of it.
+
+#### What would settle it
+
+`--iterations 3` (180 battles per arm, ~2 hours each) would turn `once`'s 6:1 into a verdict and put
+a usable interval on `standing`'s effect size. A `standing` arm that also repaired the card cliff
+would measure the full mechanism rather than half of it. Neither is needed before the grilling —
+these numbers are enough to frame Q2 and Q3 — and both are cheap to run if Henry wants the lever
+sized rather than merely detected.
+
+**Nothing here is a ruling.** Q2b now has evidence behind it; Q2a, Q2c, Q2d, Q1 and Q3 do not, and
+this measurement does not compare the options against each other.
+
 ## The grilling - questions for Henry
 
 **Q1 - Overkill: forgive, convert, or keep the waste?**
