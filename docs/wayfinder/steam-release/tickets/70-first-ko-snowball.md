@@ -209,6 +209,56 @@ the KO cliff is **twice as steep as this ticket's engine-facts section says**, `
 and `First Blood` are **already-ruled Driver names that collide with Q1 and Q2**, and **Q2a is not a
 do-nothing option** — it is ticket 16, blocked behind deck-archetypes 109.
 
+### EXPERIMENTAL ARM built 2026-08-29 — Q2b, on Henry's ask
+
+Henry: *"run another test where if an ally dies that side gets a stack of energized, see if that
+allows more comebacks."* Built as an arm in the harness, **not** in `battleReducer` — the reducer has
+a committed scenario corpus behind it, and a rule added there to answer a grilling question would
+change every recorded battle in the repo and have to be reverted whichever way this ticket is ruled.
+The harness expresses the same rule over the same states and leaves the engine bit-identical.
+
+```
+npm run balance:snowball -- --iterations 1 --energized once     --pairs --out arm-once.txt
+npm run balance:snowball -- --iterations 1 --energized standing --pairs --out arm-standing.txt
+```
+
+**There are two modes because "a stack of Energized" is a ONE-SHOT.** `battleReducer`'s PRE_TURN
+refill reads the stacks, adds them to that unit's refill, and then **strips the status**. So the
+literal ask pays out once, on the bereaved side's next turn, and never again — against a cliff that
+is *permanent* and has 4.3 turns left to run. Measuring only that would answer *"does a small
+one-off cushion produce comebacks"* while looking like it had answered *"does removing the energy
+cliff produce comebacks"*.
+
+- **`once`** — the literal ask. Survivors gain 1 Energized at the death; paid once.
+- **`standing`** — re-topped every dispatch, so the side keeps +1 energy per survivor for as long as
+  it is down a member. This is the energy cliff actually repaired.
+
+**It does not touch the CARD cliff**, which is the larger half (-28.9% vs -33.3%, compounding to
+-52.5%). So a small movement in the comeback rate must NOT be read as "energy is not the problem" —
+half the mechanism is still in place.
+
+**ARM LIVENESS IS PRINTED NEXT TO THE RESULT.** The report states how many Energized stacks were
+granted, and calls a zero-grant run **VOID rather than null**. That is the merge report's costliest
+lesson applied directly: *"a dead arm reads exactly like a null result."*
+
+**Validated on a single battle** (identical scenario and seed, three arms):
+
+| arm | turns | losses P/E | stacks granted |
+| --- | --- | --- | --- |
+| baseline | 4 | 0 / 3 | 0 |
+| `once` x1 | 4 | 0 / 3 | 3 |
+| `standing` x1 | **7** | **2** / 3 | 19 |
+
+`once` fired and changed nothing; `standing` turned a 4-turn shutout into a 7-turn fight the winner
+paid two members for. The arm demonstrably works, and the two modes are demonstrably different.
+
+**Not yet run at scale, and a power warning.** A 4-battle CLI smoke granted 54 stacks under
+`standing` and moved neither the comeback rate nor the battle length — n=4, so it means nothing
+either way. More importantly: the baseline comeback rate is **5 battles in 60**, so at
+`--iterations 1` only a *large* effect is detectable. Both arms are seeded identically to the
+baseline, so the honest comparison is per-pair (`--pairs`) rather than the headline rate; if the
+effect looks small, `--iterations 2` or 3 is needed before concluding anything.
+
 ## The grilling - questions for Henry
 
 **Q1 - Overkill: forgive, convert, or keep the waste?**

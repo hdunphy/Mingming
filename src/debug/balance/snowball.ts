@@ -44,7 +44,7 @@
 
 import { quietly } from './balanceReporting';
 import { teamScenario } from './balanceScenarios';
-import { runPairedBatch, type RunResult } from './runBatch';
+import { runPairedBatch, type BereavementEnergy, type RunResult } from './runBatch';
 import { REFERENCE_PANEL, type Comp } from './teamComps';
 
 /** A battle length cap above the 30-turn stall redline, for `gauntlet-boss.balance.ts`'s reason. */
@@ -58,6 +58,8 @@ export interface SnowballOptions {
     comps?: readonly Comp[];
     /** Called after each pair, for progress on a run measured in minutes. */
     onPair?: (label: string, done: number, total: number) => void;
+    /** EXPERIMENTAL arm, ticket 70 Q2b. Undefined is the baseline. */
+    bereavementEnergy?: BereavementEnergy;
 }
 
 export interface SnowballReport {
@@ -99,6 +101,17 @@ export interface SnowballReport {
     /** Depth, not just onset: mean members lost by the loser and by the winner. */
     meanLossesLoser: number;
     meanLossesWinner: number;
+
+    /**
+     * Total Energized stacks the experimental arm granted across every battle.
+     *
+     * **Zero here means the arm did nothing and the run is void, not null.** The merge report's
+     * costliest lesson is that *"a dead arm reads exactly like a null result"* — a mutation applied
+     * to a discarded copy, an edit on an unreached path, a filter excluding the very thing it meant
+     * to change. All four produced numbers indistinguishable from "this lever does nothing". Any
+     * report of this experiment must state this figure next to its conclusion.
+     */
+    energizedGranted: number;
 }
 
 const mean = (xs: readonly number[]): number =>
@@ -179,6 +192,8 @@ export function summarizeSnowball(runs: readonly RunResult[]): SnowballReport {
             lossesOf(r, r.winner === 'PLAYER' ? 'ENEMY' : 'PLAYER'))),
         meanLossesWinner: mean(decided.map(r =>
             lossesOf(r, r.winner === 'PLAYER' ? 'PLAYER' : 'ENEMY'))),
+
+        energizedGranted: withSnowball.reduce((a, r) => a + (r.snowball!.energizedGranted ?? 0), 0),
     };
 }
 
@@ -219,7 +234,9 @@ export function measureSnowball(options: SnowballOptions = {}): {
          * battles it produced 2,114 lines and buried the report inside its own output. Progress
          * comes from `onPair` instead, which is the thing a caller actually wants to watch.
          */
-        const paired = quietly(() => runPairedBatch(setup, { iterations, maxTurns }));
+        const paired = quietly(() => runPairedBatch(setup, {
+            iterations, maxTurns, bereavementEnergy: options.bereavementEnergy,
+        }));
         const label = `${player.id} vs ${enemy.id}`;
         perPair.push({ label, runs: paired.pooled.runs });
         runs.push(...paired.pooled.runs);

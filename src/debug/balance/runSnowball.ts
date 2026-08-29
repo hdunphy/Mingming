@@ -13,6 +13,14 @@
  *     npm run balance:snowball -- --out snowball.txt   # ALSO write the report to a file
  *     npm run balance:snowball -- --max-turns 60
  *
+ * EXPERIMENTAL ARM — ticket 70 Q2b (Henry, 2026-08-29: *"if an ally dies that side gets a stack of
+ * energized, see if that allows more comebacks"*). Compare against a baseline run of the same
+ * `--iterations`; the arms are seeded identically, so the only difference is the grant.
+ *
+ *     npm run balance:snowball -- --iterations 1 --energized once      # the literal ask
+ *     npm run balance:snowball -- --iterations 1 --energized standing  # the cliff actually repaired
+ *     npm run balance:snowball -- --iterations 1 --energized once --energized-stacks 2
+ *
  * # COST — THIS IS AN HOUR, NOT A MINUTE
  *
  * Six comps round-robin is **30 ordered pairs**, and `runPairedBatch` runs each under both turn
@@ -69,6 +77,26 @@ function main(): void {
     const out = flag('out', '');
 
     /*
+     * The experimental arm. Absent = baseline, which is what every other caller gets.
+     *
+     * `BOTH` sides, deliberately: granting it only to the player would measure "does a handicap
+     * produce comebacks" rather than "does this rule produce comebacks", and the AI plays both
+     * seats here.
+     */
+    const energizedMode = flag('energized', '');
+    if (energizedMode && energizedMode !== 'once' && energizedMode !== 'standing') {
+        console.error(`--energized takes 'once' or 'standing', not '${energizedMode}'`);
+        process.exit(1);
+    }
+    const bereavementEnergy = energizedMode
+        ? {
+            mode: energizedMode as 'once' | 'standing',
+            stacks: Number.parseInt(flag('energized-stacks', '1'), 10),
+            side: 'BOTH' as const,
+        }
+        : undefined;
+
+    /*
      * Every line goes to stdout AND, when `--out` is set, straight to the file with an immediate
      * `appendFileSync`. Appending per line rather than buffering the report and writing it at the
      * end is the whole point: a run killed at pair 18 of 30 then still leaves eighteen pairs of
@@ -89,12 +117,17 @@ function main(): void {
     say(`[balance:snowball]   population  REFERENCE_PANEL round-robin, mirrors excluded`);
     say(`[balance:snowball]   pairs       ${pairs} ordered  ·  ${iterations} paired seeds  ->  ${battles} battles`);
     say(`[balance:snowball]   maxTurns    ${maxTurns}   (standalone 3v3s — NOT a run: no HP carries between fights)`);
+    say(bereavementEnergy
+        ? `[balance:snowball]   ARM         EXPERIMENTAL — on a death, each surviving member of that side`
+          + ` gains ${bereavementEnergy.stacks} Energized (${bereavementEnergy.mode}), both sides`
+        : `[balance:snowball]   arm         baseline (no experimental rule)`);
     say();
 
     const started = Date.now();
     const { report, perPair } = measureSnowball({
         iterations,
         maxTurns,
+        bereavementEnergy,
         onPair: (label, done, total) => {
             const elapsed = Math.round((Date.now() - started) / 1000);
             say(`[balance:snowball]   ${String(done).padStart(2)}/${total}  ${label.padEnd(32)} ${elapsed}s`);
@@ -154,6 +187,24 @@ function main(): void {
     }
 
     say();
+    if (bereavementEnergy) {
+        /*
+         * THE ARM-LIVENESS CHECK, printed next to the result and not buried.
+         *
+         * The merge report's costliest lesson: *"a dead arm reads exactly like a null result."* Four
+         * measurements in one arc stayed green and measured nothing. An experiment that cannot prove
+         * it did something is not evidence of no effect — it is not evidence at all.
+         */
+        say('  ARM LIVENESS');
+        say(`     Energized stacks granted      ${report.energizedGranted}`);
+        say(report.energizedGranted === 0
+            ? '     *** ZERO. THE ARM DID NOTHING. This run is VOID, not a null result. ***'
+            : `     ...across ${report.battles} battles = ${(report.energizedGranted / report.battles).toFixed(1)} per battle. The arm fired.`);
+        say();
+        say('  Compare line 1 against the baseline run at the same --iterations. Both arms are');
+        say('  seeded identically, so the comeback rate is the only thing that moved.');
+        say();
+    }
     say('  Report-only. Nothing here rules anything — ticket 70 § "The grilling" is Henry\'s.');
     if (out) console.log(`\n  Written to ${out}`);
 }

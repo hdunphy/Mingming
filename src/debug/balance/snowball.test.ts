@@ -33,6 +33,7 @@ function run(partial: Omit<Partial<RunResult>, 'snowball'> & { snowball?: Partia
         overkillWasted: 0,
         startingHp: { player: 200, enemy: 200 },
         losses: { player: 0, enemy: 3 },
+        energizedGranted: 0,
         ...partial.snowball,
     };
     return {

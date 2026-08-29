@@ -99,6 +99,54 @@ export interface BatchOptions {
      * at once.
      */
     enemyAiTier?: AiTier;
+    /**
+     * TICKET 70's Q2b, as an EXPERIMENTAL ARM — Henry, 2026-08-29: *"if an ally dies that side gets
+     * a stack of energized, see if that allows more comebacks."*
+     *
+     * Off by default and applied by the harness rather than by `battleReducer`, so nothing that
+     * ships changes and every existing suite is bit-identical. See `bereavementEnergy`.
+     */
+    bereavementEnergy?: BereavementEnergy;
+}
+
+/**
+ * The shape of the experimental energy grant. See `BatchOptions.bereavementEnergy`.
+ *
+ * # WHY THERE ARE TWO MODES AND NOT ONE
+ *
+ * "A stack of Energized" is a one-shot: `battleReducer`'s PRE_TURN refill reads the stacks, adds
+ * them to that unit's refill, and then **strips the status entirely**. So the literal reading of
+ * Henry's ask pays out **once**, on the bereaved side's next turn, and never again.
+ *
+ * The cliff it is meant to answer is **permanent** — the dead unit stops refilling for the rest of
+ * the battle, and the fight averages 4.3 more turns after the first KO. So a one-shot grant repairs
+ * roughly a quarter of one cliff for one turn, and measuring only that would answer "does a small
+ * one-off cushion produce comebacks" while looking like it had answered "does removing the energy
+ * cliff produce comebacks". Those are different questions and only the second one tests the
+ * mechanism.
+ *
+ * Hence both, as separate arms:
+ *
+ * - **`once`** — Henry's literal ask. Each surviving member of the bereaved side gains `stacks`
+ *   Energized at the moment of the death, paid out on their next refill and then gone.
+ * - **`standing`** — the same grant, re-topped every dispatch, so the side runs with `stacks` extra
+ *   energy per surviving member for as long as it is down a member. This is what "the energy cliff
+ *   is repaired" actually looks like.
+ *
+ * # ONE MORE THING THIS DELIBERATELY DOES NOT DO
+ *
+ * It does not touch the **card** cliff. A KO costs ~33% of a side's energy AND ~29% of its draw
+ * (`sum(cardDraw over ALIVE) - aliveCount + 1`), compounding to about −52% of a turn. This arm
+ * addresses the energy half only, which is the half Henry named — and the report should say so,
+ * because an arm that moves the comeback rate a little is otherwise easy to read as "energy is not
+ * the problem" when the untouched half is the larger one.
+ */
+export interface BereavementEnergy {
+    mode: 'once' | 'standing';
+    /** Energized stacks per surviving member. 1 is Henry's ask; the dead unit had 2 energy. */
+    stacks: number;
+    /** Which side gets it. `'BOTH'` keeps the experiment symmetric, which is the honest default. */
+    side?: Side | 'BOTH';
 }
 
 /**
@@ -229,6 +277,17 @@ export interface SnowballRecord {
     startingHp: { player: number; enemy: number };
     /** Members lost by each side by the end — the snowball's depth, not just its start. */
     losses: { player: number; enemy: number };
+    /**
+     * EXPERIMENTAL ARMS ONLY: Energized stacks this run actually granted.
+     *
+     * **This field exists to make a dead arm impossible to mistake for a null result.** The
+     * balance merge report's hardest-won lesson is that *"a dead arm reads exactly like a null
+     * result"* — four separate measurements in one arc "worked", stayed green, and measured
+     * nothing. An experiment that reports "no change in the comeback rate" is worthless unless it
+     * can also prove it did something, so the harness counts its own grants and the reporter
+     * refuses to interpret a run where this is zero.
+     */
+    energizedGranted: number;
 }
 
 export interface BatchResult {
@@ -340,6 +399,8 @@ export function runOne(
     startingSide: Side = 'PLAYER',
     collectTelemetry = false,
     enemyAiTier?: AiTier,
+    /** EXPERIMENTAL, ticket 70 Q2b. Undefined in every shipped path. */
+    bereavement?: BereavementEnergy,
 ): RunResult {
     const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
     let state: IBattleState = {
@@ -425,6 +486,49 @@ export function runOne(
     let firstKoBy: Side | null = null;
     let firstKoTurn: number | null = null;
     let overkillWasted = 0;
+    let energizedGranted = 0;
+    /** `once` mode fires on each NEW death, not on every dispatch after one. */
+    const lostSoFar: Record<Side, number> = { PLAYER: 0, ENEMY: 0 };
+
+    /*
+     * THE EXPERIMENTAL ARM — ticket 70 Q2b. A no-op unless `bereavement` is set, which it never is
+     * outside a deliberate experiment.
+     *
+     * Applied HERE rather than in `battleReducer` on purpose. The reducer is shipped code with a
+     * committed scenario corpus behind it; adding a rule there to answer a grilling question would
+     * change every recorded battle in the repo and would have to be reverted whichever way Henry
+     * rules. The harness expresses the same rule over the same states and leaves the engine
+     * bit-identical.
+     *
+     * The grant TOPS UP to a target rather than accumulating. The refill reads `stacks` and then
+     * strips the status, so in `standing` mode re-topping each dispatch is what keeps one extra
+     * energy available per turn; and taking the max rather than adding means the arm cannot pile on
+     * top of an `Energized` that a CARD granted and silently inflate itself.
+     */
+    const grantEnergized = (s0: IBattleState, side: Side, target: number): IBattleState => {
+        const key = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+        let changed = false;
+        const party = s0[key].map((e: IBattleEntity) => {
+            if (e.currentHp <= 0) return e;
+            const existing = e.statusEffects.find(x => x.type === 'Energized');
+            const now = existing?.stacks ?? 0;
+            if (now >= target) return e;
+            changed = true;
+            energizedGranted += target - now;
+            return {
+                ...e,
+                statusEffects: [
+                    ...e.statusEffects.filter(x => x.type !== 'Energized'),
+                    { type: 'Energized', stacks: target, duration: -1 },
+                ] as IBattleEntity['statusEffects'],
+            };
+        });
+        return changed ? ({ ...s0, [key]: party } as IBattleState) : s0;
+    };
+
+    const armCovers = (side: Side): boolean =>
+        bereavement !== undefined
+        && (bereavement.side === undefined || bereavement.side === 'BOTH' || bereavement.side === side);
 
     let winner: BattleOutcome | null = decideOutcome(state);
     let truncated = false;
@@ -491,6 +595,25 @@ export function runOne(
          */
         for (const hit of state.damageLedger ?? []) {
             overkillWasted += Math.max(0, hit.raw - hit.absorbed - hit.applied);
+        }
+
+        /*
+         * The experimental grant, applied after the dispatch that produced the death so the arm
+         * sees the same state the snowball bookkeeping does.
+         *
+         * `once` fires only on the dispatch a member is lost on. `standing` re-tops every dispatch
+         * while the side is down, which is what makes the extra energy survive the refill that
+         * strips the status.
+         */
+        if (bereavement !== undefined) {
+            for (const side of ['PLAYER', 'ENEMY'] as const) {
+                if (!armCovers(side)) continue;
+                const lost = startAlive[side] - aliveOn(state, side);
+                if (lost <= 0) continue;
+                if (bereavement.mode === 'once' && lost === lostSoFar[side]) continue;
+                lostSoFar[side] = lost;
+                state = grantEnergized(state, side, bereavement.stacks);
+            }
         }
         if (firstKoTurn === null) {
             // Attributed to whoever the DEAD member does not belong to. Deliberately not
@@ -565,6 +688,7 @@ export function runOne(
                 player: startAlive.PLAYER - aliveOn(state, 'PLAYER'),
                 enemy: startAlive.ENEMY - aliveOn(state, 'ENEMY'),
             },
+            energizedGranted,
         },
     };
 }
@@ -651,7 +775,8 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
 
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
-            runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier)),
+            runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier,
+                options.bereavementEnergy)),
     );
 }
 
