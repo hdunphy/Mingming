@@ -65,8 +65,13 @@ layer wearing a performance costume.
   which under `file://` resolve against the filesystem root and 404 - the window opens **blank with
   no error a player could report**. `MINGMING_DESKTOP=1` switches it, and `scripts/desktop-build.mjs`
   now greps the built `index.html` and refuses rather than shipping a black box.
-- **The build script is Node, not shell.** `VAR=1 cmd && cp -r` does not run on Windows, which is the
-  machine that has to run it.
+- **The build script is Node, not shell.** `VAR=1 cmd && cp -r` does not run on Windows, which is
+  the machine that has to run it. **And that was not enough** (fixed 2026-08-29): it first called
+  `npx.cmd`, and **Node 20+ refuses to `execFile` a `.cmd` at all** without `shell: true` (the
+  CVE-2024-27980 fix) - `spawnSync npx.cmd EINVAL` on Henry's machine. It now runs every child as
+  `process.execPath <bin.js>` (`vite`, `electron-builder`) or via `npm_execpath` (`npm install`),
+  which needs no shim, no shell and no PATH lookup. **If you ever spawn a tool from a script in
+  this repo, do it this way** - Henry is on Windows and nothing here catches it.
 - **`electron` is NOT a root dependency.** ~250 MB of binary that `tsc`, `vitest` and `eslint` never
   touch. `desktop/` is its own npm project, installed on demand.
 

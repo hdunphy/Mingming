@@ -48,18 +48,45 @@ const DIST = path.join(ROOT, 'dist');
 const args = process.argv.slice(2);
 const has = (flag) => args.includes(flag);
 
-/** `npm`/`npx` are `.cmd` shims on Windows, which `execFile` will not run without the extension. */
-const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+/*
+ * EVERY CHILD PROCESS HERE IS `node <a .js file>`, AND THAT IS THE FIX FOR A REAL BUG.
+ *
+ * The first version of this script called `npx`/`npm`, spelled `npx.cmd` on Windows because they
+ * are batch shims there. That is not enough, and it failed on Henry's machine with:
+ *
+ *     Error: spawnSync npx.cmd EINVAL
+ *
+ * **Node 20+ refuses to `execFile` a `.bat`/`.cmd` file at all** unless `shell: true` is passed —
+ * the fix for CVE-2024-27980, where arguments could break out of a batch shim into the command
+ * line. So the two ways forward are `shell: true` (which reintroduces quoting problems the moment
+ * a path contains a space, and Henry's repo lives under `C:\Users\...\GitHub\Mingming`) or not
+ * using the shims at all.
+ *
+ * Not using them is strictly better. `vite` and `electron-builder` are both plain Node CLIs
+ * sitting in `node_modules`; running them as `process.execPath <bin.js>` skips the shim, the shell
+ * and the PATH lookup in one go, and behaves identically on both platforms. For `npm install`
+ * there is no such file to point at — but npm sets **`npm_execpath`** to its own `npm-cli.js` when
+ * it runs a script, and this script is only ever run through `npm run desktop:build`.
+ */
+function nodeRun(script, scriptArgs, options = {}) {
+    console.log(`\n> node ${path.relative(ROOT, script)} ${scriptArgs.join(' ')}`);
+    execFileSync(process.execPath, [script, ...scriptArgs], { stdio: 'inherit', cwd: ROOT, ...options });
+}
 
-function run(cmd, cmdArgs, options = {}) {
-    console.log(`\n> ${cmd} ${cmdArgs.join(' ')}`);
-    execFileSync(cmd, cmdArgs, { stdio: 'inherit', cwd: ROOT, ...options });
+/** A CLI's entry script inside a `node_modules`, or a clear failure naming what to install. */
+function binOf(packageDir, relative, hint) {
+    const file = path.join(packageDir, relative);
+    if (!fs.existsSync(file)) {
+        console.error(`\nMissing ${file}\n${hint}`);
+        process.exit(1);
+    }
+    return file;
 }
 
 // --- 1. the web build, with the desktop base ------------------------------------------------
 if (!has('--skip-web')) {
-    run(npxCmd, ['vite', 'build'], { env: { ...process.env, MINGMING_DESKTOP: '1' } });
+    const vite = binOf(path.join(ROOT, 'node_modules', 'vite'), 'bin/vite.js', 'Run `npm install` in the repo root.');
+    nodeRun(vite, ['build'], { env: { ...process.env, MINGMING_DESKTOP: '1' } });
 } else {
     console.log('\n> skipping vite build (--skip-web)');
 }
@@ -88,11 +115,29 @@ fs.cpSync(DIST, APP_DIR, { recursive: true });
 console.log(`\n> copied dist/ -> desktop/app/`);
 
 // --- 3. package ------------------------------------------------------------------------------
-if (!fs.existsSync(path.join(DESKTOP, 'node_modules', 'electron-builder'))) {
+const builderDir = path.join(DESKTOP, 'node_modules', 'electron-builder');
+if (!fs.existsSync(builderDir)) {
     console.log('\n> desktop/node_modules is missing electron-builder; installing (this downloads Electron)');
-    run(npmCmd, ['install'], { cwd: DESKTOP });
+    // `npm_execpath` is npm's own `npm-cli.js`, set by npm for every script it runs — so this is
+    // the same npm that launched us, invoked as a plain Node script rather than through the shim.
+    const npmCli = process.env.npm_execpath;
+    if (!npmCli || !npmCli.endsWith('.js')) {
+        console.error('\nCannot locate npm. Run this through `npm run desktop:build`, or install the');
+        console.error(`desktop dependencies yourself:  cd ${DESKTOP} && npm install`);
+        process.exit(1);
+    }
+    nodeRun(npmCli, ['install'], { cwd: DESKTOP });
 }
 
+/*
+ * A word on the `--`, because it is a trap npm sets rather than one this script sets.
+ *
+ * `npm run desktop:build -- --win` passes the flag. `npm run desktop:build --win` does NOT: npm
+ * eats `--win` as one of its own config options, warns about it in a line that scrolls past, and
+ * runs this script with **no arguments at all** — which silently builds both targets instead of
+ * the one that was asked for. So when no target flag arrives, say what is about to happen and how
+ * to have asked for less, rather than quietly doing the expensive thing.
+ */
 const targets = has('--dir')
     ? ['--linux', 'dir']
     : has('--linux')
@@ -101,6 +146,12 @@ const targets = has('--dir')
         ? ['--win']
         : ['--win', '--linux'];
 
-run(npxCmd, ['electron-builder', ...targets], { cwd: DESKTOP });
+if (targets.length === 2 && targets[0] === '--win') {
+    console.log('\n> no target given — building BOTH Windows and Linux.');
+    console.log('  For one, note the `--`:  npm run desktop:build -- --win');
+}
+
+const builder = binOf(builderDir, 'cli.js', `Run \`npm install\` in ${DESKTOP}.`);
+nodeRun(builder, targets, { cwd: DESKTOP });
 
 console.log(`\nDone. Artefacts are in ${path.join(DESKTOP, 'release')}`);

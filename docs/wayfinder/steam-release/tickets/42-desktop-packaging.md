@@ -123,6 +123,29 @@ machine produces the installer with no such caveat, and that is the recommended 
 **Sizes:** `linux-unpacked` 283 MB, `win-unpacked` 368 MB, win zip 146 MB. The game itself is
 `app.asar` at **1.18 MB** — ticket 26's ~314 MB estimate was close.
 
+### Post-close fix, 2026-08-29 — the build script did not run on Windows
+
+The one thing that could not be tested here, and it was broken. `npm run desktop:build -- --win` on
+Henry's machine died with **`spawnSync npx.cmd EINVAL`**.
+
+The script called `npx`/`npm`, spelled `npx.cmd` on Windows because they are batch shims there. That
+is necessary and **not sufficient**: since the fix for CVE-2024-27980, **Node 20+ refuses to
+`execFile` a `.bat`/`.cmd` at all** without `shell: true`, because arguments could otherwise break
+out of a batch shim into the command line.
+
+`shell: true` would have worked and was not taken — it reintroduces quoting problems the moment a
+path contains a space, and this repo lives under `C:\Users\hdunp\Documents\...`. Instead the
+script no longer uses the shims: `vite` and `electron-builder` are plain Node CLIs, so they run as
+`process.execPath node_modules/…/bin.js`, which skips the shim, the shell and the PATH lookup and
+behaves the same on both platforms. `npm install` has no such file to point at, so it uses
+**`npm_execpath`** — npm's own `npm-cli.js`, which npm sets for every script it runs.
+
+Also added, because npm sets this trap rather than the script: `npm run desktop:build --win`
+(no `--`) is eaten by npm as one of its own config options and runs with **no arguments**, silently
+building both targets. The script now says so when no target flag arrives.
+
+Verified again end to end (`--dir`) after the change; lint 0.
+
 ### Left for other tickets
 
 - **Ticket 43 (steamworks.js).** Noted in `main.cjs` where it bites: `electron-builder` does not pick
