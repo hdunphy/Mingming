@@ -139,6 +139,7 @@ Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 
 | [67 The enemy ladder, and the three bands the run gate says we are failing](tickets/67-enemy-ladder-and-bands.md) **BUILT — awaiting the grilling** | grilling | Henry | [61](tickets/61-apply-60.md) |
 | ~~[68 Boss redesign: enemy-side Drivers, hand-authored gym trios, the telegraph](tickets/68-boss-redesign-drivers.md)~~ **CLOSED — 0/60 -> 80.0% prepared; now 15pt ABOVE target, Henry's call** | task | agent (Tidewrack/Rootfall authoring: Henry) | [67](tickets/67-enemy-ladder-and-bands.md) |
 | ~~[69 Neutral utility cards reach the market: the off-pool slot gets a curated list](tickets/69-neutral-market-slot.md)~~ **CLOSED** | task | agent | [57](tickets/57-apply-56.md) |
+| [70 The first-KO snowball: action economy, overkill aversion, comebacks](tickets/70-first-ko-snowball.md) — **measure first, then grill** | grilling | Henry (measurement: agent) | — |
 
 ### Phase 2 — Content Complete (~December 2026 → ~March 2027)
 
