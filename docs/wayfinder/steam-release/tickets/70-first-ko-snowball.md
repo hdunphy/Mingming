@@ -105,6 +105,99 @@ way these ratios get checked at all, since a real batch cannot be given a known 
 overkill 18.5 damage = 7.8% of a side's starting pool; the loser lost all 3 members every time.
 Shape is right; the real numbers follow.
 
+### THE NUMBERS — measured 2026-08-29, 60 battles, 39 minutes
+
+Run on Henry's machine (the agent container reclaims long jobs): `--iterations 1 --pairs`,
+30 ordered pairs of `REFERENCE_PANEL`, both turn orders, `maxTurns 40`. **Every one of the 60
+battles reached a KO**, so nothing here rests on a stalled sample.
+
+| # | measure | result |
+| --- | --- | --- |
+| 1 | **P(win \| scored first KO)** | **91.7%** (n=60) |
+| 1 | P(win \| conceded first KO) — *the comeback rate* | **8.3%** — 5 battles in 60 |
+| 2 | mean turns after the first KO | **4.3** (median 4.0) |
+| 2 | mean battle length | 6.5 turns |
+| 2 | **share of the fight that happens after the first KO** | **66.9%** |
+| 3 | mean overkill wasted per battle | **17.8 damage** (median 13.5) |
+| 3 | as a share of one side's starting HP | **7.4%** |
+| 4 | **P(win \| higher total starting HP)** | **50.0%** (n=60) |
+| — | members lost by the loser | **3.0 of 3** |
+| — | members lost by the winner | 0.9 of 3 |
+
+#### Line 1 — Henry's felt answer was right, and it is 91.7%
+
+*"The first mingming defeated causes a massive advantage"* and the round-5 report's *"the first KO
+usually means a win"* are both confirmed. **The comeback rate is 8.3%.** The loser loses all three
+members in every single decided battle (3.0 of 3), while the winner averages 0.9 — so this is not
+a close game that tips, it is a rout that begins at the first death.
+
+#### Line 2 — the surprise, and the finding that changes the framing
+
+The ticket asked whether the rest of the fight is *"real play or a formality"*. It is **both, and
+that is worse than either**: **two thirds of the average battle (4.3 of 6.5 turns) is played out
+AFTER the first KO**, in a position that is lost 91.7% of the time.
+
+A fast rout would be a balance problem. This is an **experience** problem — the player spends the
+majority of every fight in a decided position, and the game does not end. That is the shape Henry
+described from the other side ("*while the enemy had 3 low mingmings he was able to get one kill
+then outnumber me*"), and it is the strongest argument in the measurement for doing something,
+whatever Q2 rules.
+
+#### Line 3 — the overkill incentive is real but smaller than it feels
+
+**17.8 damage a battle on average, 7.4% of a side's pool** — but the median is 13.5 and one pair
+reached 66.5, so the distribution is right-skewed and Henry's remembered 40 is in the tail rather
+than at the centre. Two things worth holding together before Q1:
+
+- This is the waste an AI incurs while **not** avoiding it. It is the price of playing greedily.
+- The price of *avoiding* it, in Henry's own game, was losing — because line 1 says the kill was
+  worth 91.7% and the 40 wasted damage was worth 7.4% of a health bar.
+
+So the incentive is not merely mispriced, it is **inverted at the scale that matters**: the thing
+the player is tempted to protect is worth an order of magnitude less than the thing they give up by
+protecting it.
+
+#### Line 4 — a clean null, and it holds at a 36% HP advantage
+
+**50.0% exactly, n=60.** Starting HP predicts the winner not at all.
+
+This was checked rather than reported, because a flat 50% is exactly what a measurement with no
+spread in its predictor would produce. It has spread: the six comps' base HP pools run **217
+(panel-mixed-a) to 312 (panel-ramp), a 43.8% range**, with a **median pairwise gap of 11.2%** and a
+maximum of **35.9%**; only 6 of the 30 pairs are inside 5%. So the null is real across a genuine
+range of advantages, not an artefact of comparing near-identical teams.
+
+**This is the half of the ticket that can close with no change.** Henry: *"I'm not sold on this
+second part as a problem - maybe that's the drawback if you want to focus fire."* The measurement
+says the bigger team does **not** systematically lose to the first-kill team. It also says HP
+advantage buys nothing — which is a different fact from the one Q4 asks about, and is not by itself
+a problem.
+
+**The limit of line 4, stated:** it measures **starting** HP, not a mid-fight HP lead. A team that
+is ahead on total HP at turn 4 is a different population from a team that began with more, and this
+number does not speak to it.
+
+#### An observation for Q2/Q3, offered as a hypothesis and NOT a finding
+
+**`panel-ramp` — the highest HP pool (312) and the sustain/shield comp — appears in 4 of the 5
+comeback battles.** It sits in 10 of the 30 ordered pairs, so uniform comebacks would put it in
+about 1.7 of 5.
+
+If that survives more samples it matters for Q3, because it would mean **a comeback mechanism
+already exists and is called sustain** — the question would become whether it is distributed and
+priced to do that job, rather than whether to build a new one. At n=5 comebacks it is nowhere near
+established; the way to settle it is `--iterations 5` or a targeted ramp-versus-field run.
+
+#### What was NOT measured
+
+- **This is not a run.** Standalone 3v3s, no HP carried between fights, so nothing here speaks to
+  gauntlet attrition — the run gate owns that.
+- **Mid-fight HP leads**, per line 4's limit above.
+- **Ticket 59's run logs** were not read: no player has generated any yet, so the harness route is
+  the only one with data in it.
+
+Raw output: `snowball-70.txt` (untracked, Henry's machine).
+
 ## The grilling - questions for Henry
 
 **Q1 - Overkill: forgive, convert, or keep the waste?**
