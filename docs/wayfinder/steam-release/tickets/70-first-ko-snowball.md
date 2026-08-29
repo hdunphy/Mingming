@@ -28,7 +28,11 @@ wrong end of it at Emberfall, but the mechanism is symmetric and run-wide.
 - **Energy is per member and dies with the member.** Each unit refills to its own `maxEnergy` at
   turn start; *"defeated units get no energy refill"* (`battleReducer`, turn-start refresh). A
   3x2e side runs 6e/turn; after one KO it runs 4e/turn against an intact enemy's 6e - a permanent
-  -33% throughput cliff from a single event.
+  -33% throughput cliff from a single event. **AND THAT IS HALF THE CLIFF (measured 2026-08-29):**
+  `battleReducer`'s PRE_TURN draw is `sum(cardDraw over ALIVE) - aliveCount + 1`, so the same death
+  also costs **-28.9%** of the hand. Compounded across the reference panel, averaged over which
+  member dies: **one KO costs a side -52.5% of its turn throughput**, within a point on all six
+  comps. That is what the 91.7% below is made of.
 - **A KO silences the member's OS** - the enabler its 5-card engine was tuned around. The engine
   cards stay in the side's shared deck as devalued draws (castable by a living caster, losing STAB
   and the OS trigger - exact caster rules to be pinned in the facts pass).
@@ -197,6 +201,13 @@ established; the way to settle it is `--iterations 5` or a targeted ramp-versus-
   the only one with data in it.
 
 Raw output: `snowball-70.txt` (untracked, Henry's machine).
+
+**Handover to the design agent:**
+[research/70-what-the-snowball-asks-of-the-cards.md](../research/70-what-the-snowball-asks-of-the-cards.md)
+— what each option below would cost the card pool, and three findings that came out of writing it:
+the KO cliff is **twice as steep as this ticket's engine-facts section says**, `Overkill Recovery`
+and `First Blood` are **already-ruled Driver names that collide with Q1 and Q2**, and **Q2a is not a
+do-nothing option** — it is ticket 16, blocked behind deck-archetypes 109.
 
 ## The grilling - questions for Henry
 
