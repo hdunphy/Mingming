@@ -93,7 +93,7 @@ describe('the two carrier cards are wired to the triggered scaler at the compens
         // The branch stays in ActionExecutors so nothing that wants "any draw" loses it, but a
         // card arriving on it is almost certainly the ticket-71 mistake being made again.
         const offenders: string[] = [];
-        for (const [id, raw] of Object.entries(ProgramRegistry as Record<string, any>))
+        for (const [id, raw] of Object.entries(ProgramRegistry))
             for (const a of raw.actions ?? [])
                 if (a.scaling === 'CARDS_DRAWN') offenders.push(id);
         expect(offenders).toEqual([]);

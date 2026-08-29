@@ -1,5 +1,5 @@
 
-import type { Element, IBattleEntity, ProgramData, StatusType, TurnPhase } from './types';
+import type { Element, IDamageRecord, StatusType, TurnPhase } from './types';
 
 export type BattleEventType =
     | 'BATTLE_STARTED'
@@ -51,9 +51,20 @@ export interface ProgramDiscardedEvent extends BaseEvent {
 export interface DamageTakenEvent extends BaseEvent {
     readonly type: 'DAMAGE_TAKEN';
     readonly targetId: string;
+    /**
+     * Post-shield, pre-floor damage. **Not** the number to put on a card face — it is what got past
+     * the shield, so a fully absorbed hit reports 0. Left with its original meaning so that adding
+     * `damage` below changed no existing listener.
+     */
     readonly amount: number;
     readonly element: Element;
     readonly isCritical?: boolean;
+    /**
+     * The full accounting of this hit — raw, absorbed, applied. Optional only because a few test
+     * fixtures hand-build this event; `handleAttack`, the sole production emitter, always sets it.
+     * Read this, not `amount`, whenever the question is "how much did that hit for".
+     */
+    readonly damage?: IDamageRecord;
 }
 
 export interface HealEvent extends BaseEvent {

@@ -6,9 +6,8 @@
  *   - `composed`  — a battle-start setup the launcher/sims can build a battle from.
  *   - `snapshot`  — a full mid-battle `IBattleState`, normalized per §3.
  *
- * Validation mirrors `src/engine/SaveSystem.ts`: `parse -> migrate -> validate`, with
- * IV bounds (int 0..31) and the max-3 party cap copied from `MingmingInstanceSchema` /
- * `PlayerSaveSchema`.
+ * Validation mirrors `src/engine/SaveSystem.ts`, with IV bounds (int 0..31) and the max-3 party
+ * cap copied from `RanchMemberSchema` / `engine/party.ts`'s `PARTY_SIZE`.
  *
  * Nothing outside `src/debug/` may import this module.
  */
@@ -87,15 +86,6 @@ const NextProgramModifierSchema = z.object({
     appliesTo: z.enum(['Attack', 'Skill', 'Daemon', 'Status', 'Heal']).optional(),
 });
 
-const LevelUpEventSchema = z.object({
-    entityId: z.string(),
-    nickname: z.string(),
-    oldLevel: z.number(),
-    newLevel: z.number(),
-    oldStats: z.object({ hp: z.number(), attack: z.number(), defense: z.number() }),
-    newStats: z.object({ hp: z.number(), attack: z.number(), defense: z.number() }),
-});
-
 // --- Snapshot: IBattleState --------------------------------------------------
 
 const BattleEntitySchema = z.object({
@@ -103,8 +93,6 @@ const BattleEntitySchema = z.object({
     id: z.string(),
     definitionId: z.string(),
     nickname: z.string().optional(),
-    level: z.number().int().min(1),
-    experience: z.number().int().min(0),
     activeOS: z.string().optional(),
     blueprintsCollected: z.number().int().min(0),
     attackIV: IVSchema,
@@ -169,23 +157,62 @@ export const BattleStateSchema = z.object({
     lastStatusConsumed: z.number().optional(),
     elementPlays: z.record(z.string(), z.number()).optional(),
     counters: z.record(z.string(), z.number()),
-    levelUpQueue: z.array(LevelUpEventSchema),
 });
 
 // --- Composed: ComposedSetup -------------------------------------------------
 
-/** Mirrors `GauntletStateSchema` (SaveSystem.ts:41-52). */
+/**
+ * Gauntlet context — **reconciled with `IGauntletProgress` by ticket 18.**
+ *
+ * This used to mirror v3's `GauntletStateSchema`: `type: 'Gym' | 'Sector'`, `element`,
+ * `currentBattleIndex`, `totalBattles`, `persistedStats: { [id]: { hp } }`. Every one of those five
+ * fields is now wrong about the game:
+ *
+ * - **`type`** — v3's 'Sector' arm had no caller and ticket 11 deleted the last of it. A gauntlet is
+ *   a gym's, and there is no second kind.
+ * - **`element`** — `IGauntletProgress` deliberately carries none (ticket 06): in a run the gauntlet
+ *   is always `GYM_REGISTRY[run.gymId]`'s, so a second copy could only drift from the first.
+ * - **`currentBattleIndex` / `totalBattles`** — renamed to `fightIndex` / `totalFights` in the
+ *   ratified type, and the schema following the ratified name is the point of reconciling at all.
+ * - **`persistedStats: { hp }`** — the per-member object was a place for a second carried stat to be
+ *   added quietly. Ticket 06 flattened it to `persistedHp: Record<string, number>` precisely because
+ *   only HP persists: *"Energy, statuses and everything else reset fresh each battle."*
+ *
+ * And one field is added: **`downedMemberIds`**, which `economy-session.md`'s "revivable, never
+ * gone-for-gauntlet" needs and v3 had nowhere to put.
+ *
+ * # WHY THIS IS NOT A SCENARIO VERSION BUMP
+ *
+ * `CURRENT_SCENARIO_VERSION` is bumped "only when a shape change cannot be expressed as an optional
+ * field", and the reason to bump is always **stored files that would stop loading**. There are none:
+ *
+ * - `gauntlet` is a **composed**-only field, and every stored `composed` scenario in the repo (37
+ *   `.scenario.json` files) carries `"gauntlet": null` or omits it. Nothing on disk has ever held a
+ *   v3-shaped object here.
+ * - The 14 files in `playtest-results/` are `kind: "snapshot"` — they have no `setup` at all, so
+ *   they cannot be affected by this either way. (They also carry their own `registryHash`, which is
+ *   what actually governs their staleness, and this change touches no registry.)
+ * - `composeScenario.createDraft` hardcodes `gauntlet: null` and the launcher is the only thing that
+ *   writes these files, so a non-null v3 gauntlet is not merely absent — it was unreachable.
+ *
+ * A bump with no file to migrate would re-stamp every future save as v2 to describe a migration that
+ * does nothing, which is worse than useless: it makes the version number stop meaning "the shape
+ * changed under stored data". If a hand-written file somewhere does carry the old shape, zod rejects
+ * it by name (`fightIndex` required) and `loadScenario` reports it — a visible failure on a field
+ * `buildScenarioState` ignores anyway.
+ */
 const GauntletContextSchema = z.object({
-    type: z.enum(['Gym', 'Sector']),
-    element: z.string(),
-    currentBattleIndex: z.number(),
-    totalBattles: z.number(),
-    persistedStats: z.record(z.string(), z.object({ hp: z.number() })),
+    fightIndex: z.number().int().min(0),
+    totalFights: z.number().int().min(1),
+    persistedHp: z.record(z.string(), z.number().int().min(0)),
+    downedMemberIds: z.array(z.string()).default([]),
 });
 
+// Ticket 21: `level` is gone from every setup schema. Existing scenario files still carry it —
+// zod strips unknown keys by default (nothing here is `.strict()`), so all 51 committed
+// `.scenario.json` files and playtest snapshots keep loading, with the stale field ignored.
 const PartyMemberSetupSchema = z.object({
     definitionId: z.string(),
-    level: z.number().int().min(1),
     attackIV: IVSchema,
     defenseIV: IVSchema,
     hpIV: IVSchema,
@@ -212,13 +239,22 @@ export const ComposedSetupSchema = z.object({
     /** Explicit in files; no undefined-means-MOVES on disk. */
     enemyMode: z.enum(['MOVES', 'CARDS']),
     player: z.object({
-        /** Max 3, mirroring `PlayerSaveSchema.activeParty` (SaveSystem.ts:61). */
+        /** Max 3, mirroring `engine/party.ts`'s `PARTY_SIZE` and `RunStateSchema.partyIds`. */
         party: z.array(PartyMemberSetupSchema).max(3),
         deck: z.array(z.string()),
         relics: z.array(z.string()),
     }),
     /** Explicit list; never the procedural encounter branch. */
     enemies: z.array(EnemySetupSchema),
+    /**
+     * Ticket 68: the enemy side's Drivers, the mirror of `player.relics`. Applied to every enemy by
+     * `buildScenarioState` through the same `data/driverRegistry.applyDrivers` the live game uses,
+     * so a boss measured in the harness is the boss that ships.
+     *
+     * Optional so that every scenario file written before this ticket still validates unchanged —
+     * `migrateScenario` stays a no-op, which is the rule this file format keeps.
+     */
+    enemyDrivers: z.array(z.string()).optional(),
     gauntlet: GauntletContextSchema.nullable().optional(),
     /**
      * Ticket 19 (deck-archetypes): per-seed IV jitter magnitude. When set, every unit's
@@ -272,17 +308,25 @@ export const ScenarioSchema = z.discriminatedUnion('kind', [
 // Written by hand rather than inferred so `state` keeps its `IBattleState` identity
 // for the materializer and `battleSlice.setBattleState`.
 
+/**
+ * Ticket 18: field-for-field `engine/runTypes.IGauntletProgress`, minus its `readonly`s (the rest of
+ * this file's public surface is mutable draft state that the launcher edits in place).
+ *
+ * It is written out rather than imported because `scenarioSchema` is a **file format** and
+ * `IGauntletProgress` is a ratified save type: a debug file that silently followed a save-shape
+ * change would be a stored file that stops loading without anyone deciding it should. Copying the
+ * shape deliberately, with the divergence spelled out above `GauntletContextSchema`, is what keeps
+ * the two in step *on purpose*.
+ */
 export interface GauntletContext {
-    type: 'Gym' | 'Sector';
-    element: string;
-    currentBattleIndex: number;
-    totalBattles: number;
-    persistedStats: Record<string, { hp: number }>;
+    fightIndex: number;
+    totalFights: number;
+    persistedHp: Record<string, number>;
+    downedMemberIds: string[];
 }
 
 export interface PartyMemberSetup {
     definitionId: string;
-    level: number;
     attackIV: number;
     defenseIV: number;
     hpIV: number;
@@ -306,6 +350,8 @@ export interface ComposedSetup {
         relics: string[];
     };
     enemies: EnemySetup[];
+    /** Ticket 68: the enemy side's Drivers — the mirror of `player.relics`. */
+    enemyDrivers?: string[];
     gauntlet?: GauntletContext | null;
     /** Per-seed IV jitter magnitude (see ComposedSetupSchema.statJitter). */
     statJitter?: number;
@@ -349,12 +395,14 @@ export type ScenarioDraft =
 
 /**
  * Version-keyed migration of raw (already JSON-parsed) scenario data. Runs BEFORE
- * schema validation, exactly like `migrateSave` (SaveSystem.ts:78-94).
+ * schema validation, the same ordering the save layer's own version handling uses.
  *
  * At `CURRENT_SCENARIO_VERSION = 1` there is nothing to migrate: the only change since
  * the schema was locked is the optional `tape` field, which by construction needs no
- * version bump. The single normalization here matches `migrateSave`'s precedent of
- * treating an unversioned file as v1.
+ * version bump. The single normalization here treats an unversioned file as v1.
+ *
+ * Note this is scenario versioning, which is INDEPENDENT of save versioning: ticket 23 made save
+ * v4 a floor with no upgrade path, while scenarios keep theirs. Battle snapshots are not saves.
  */
 export function migrateScenario(raw: unknown): unknown {
     if (raw === null || typeof raw !== 'object') return raw;

@@ -16,14 +16,12 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { simulate1v1, runBatchSimulation } from '../../engine/sim/Simulator';
-import type { BatchReport, SIM_TTK_Result } from '../../engine/sim/Simulator';
+import type { BatchReport } from '../../engine/sim/Simulator';
 import './BalanceTester.css';
 
 const BalanceTester: React.FC = () => {
     const [idA, setIdA] = useState(Object.keys(MingmingRegistry)[0]);
     const [idB, setIdB] = useState(Object.keys(MingmingRegistry)[1]);
-    const [levelA, setLevelA] = useState(5);
-    const [levelB, setLevelB] = useState(5);
     const [power, setPower] = useState(40);
     const [batchReport, setBatchReport] = useState<BatchReport | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -34,17 +32,17 @@ const BalanceTester: React.FC = () => {
 
     const results = useMemo(() => {
         try {
-            return simulate1v1(idA, levelA, idB, levelB, power);
-        } catch (e) {
+            return simulate1v1(idA, idB, power);
+        } catch {
             return null;
         }
-    }, [idA, levelA, idB, levelB, power]);
+    }, [idA, idB, power]);
 
     const sortedMatchups = useMemo(() => {
         if (!batchReport || !sortConfig) return batchReport?.results || [];
 
         return [...batchReport.results].sort((a, b) => {
-            let valA: any, valB: any;
+            let valA: string | number, valB: string | number;
             switch (sortConfig.key) {
                 case 'attacker': valA = MingmingRegistry[a.sideA.attackerId].name; valB = MingmingRegistry[b.sideA.attackerId].name; break;
                 case 'target': valA = MingmingRegistry[a.sideA.targetId].name; valB = MingmingRegistry[b.sideA.targetId].name; break;
@@ -53,8 +51,11 @@ const BalanceTester: React.FC = () => {
                 default: return 0;
             }
 
-            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            // Name columns sort as strings, damage/ttk as numbers; `<`/`>` reject the union at
+            // type level, so the comparison goes through an erased cast and behaves as before.
+            const cmpA = valA as number, cmpB = valB as number;
+            if (cmpA < cmpB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (cmpA > cmpB) return sortConfig.direction === 'asc' ? 1 : -1;
             return 0;
         });
     }, [batchReport, sortConfig]);
@@ -63,7 +64,7 @@ const BalanceTester: React.FC = () => {
         if (!batchReport || !avgSortConfig) return batchReport?.attackerAverages || [];
 
         return [...batchReport.attackerAverages].sort((a, b) => {
-            let valA: any, valB: any;
+            let valA: string | number, valB: string | number;
             switch (avgSortConfig.key) {
                 case 'name': valA = MingmingRegistry[a.id].name; valB = MingmingRegistry[b.id].name; break;
                 case 'damage': valA = a.avgDamage; valB = b.avgDamage; break;
@@ -71,8 +72,10 @@ const BalanceTester: React.FC = () => {
                 default: return 0;
             }
 
-            if (valA < valB) return avgSortConfig.direction === 'asc' ? -1 : 1;
-            if (valA > valB) return avgSortConfig.direction === 'asc' ? 1 : -1;
+            // Same erased cast as `sortedMatchups` above - see the note there.
+            const cmpA = valA as number, cmpB = valB as number;
+            if (cmpA < cmpB) return avgSortConfig.direction === 'asc' ? -1 : 1;
+            if (cmpA > cmpB) return avgSortConfig.direction === 'asc' ? 1 : -1;
             return 0;
         });
     }, [batchReport, avgSortConfig]);
@@ -94,7 +97,7 @@ const BalanceTester: React.FC = () => {
     };
 
     const runBatch = () => {
-        const report = runBatchSimulation(levelA, power); // Use levelA as reference for all
+        const report = runBatchSimulation(power);
         setBatchReport(report);
         setModalTab('summary');
         setAvgSortConfig(null);
@@ -106,7 +109,7 @@ const BalanceTester: React.FC = () => {
         return config.direction === 'asc' ? '🔼' : '🔽';
     };
 
-    const downloadCSV = (filename: string, headers: string[], rows: any[][]) => {
+    const downloadCSV = (filename: string, headers: string[], rows: (string | number)[][]) => {
         const csvContent = [
             headers.join(','),
             ...rows.map(row => row.join(','))
@@ -131,7 +134,7 @@ const BalanceTester: React.FC = () => {
             avg.avgDamage.toFixed(2),
             avg.avgTTK.toFixed(2)
         ]);
-        downloadCSV(`averages_level${levelA}_pwr${power}.csv`, headers, rows);
+        downloadCSV(`averages_pwr${power}.csv`, headers, rows);
     };
 
     const exportMatchups = () => {
@@ -143,7 +146,7 @@ const BalanceTester: React.FC = () => {
             r.sideA.damage,
             r.sideA.ttk
         ]);
-        downloadCSV(`matchups_level${levelA}_pwr${power}.csv`, headers, rows);
+        downloadCSV(`matchups_pwr${power}.csv`, headers, rows);
     };
 
     return (
@@ -176,8 +179,6 @@ const BalanceTester: React.FC = () => {
                         </select>
                     </div>
                     <div className="control-group">
-                        <label>Level: {levelA}</label>
-                        <input type="range" min="1" max="100" value={levelA} onChange={(e) => setLevelA(parseInt(e.target.value))} />
                     </div>
                     <div className="stats-preview">
                         <div className="stat">HP: {results?.sideB.hp}</div>
@@ -204,8 +205,6 @@ const BalanceTester: React.FC = () => {
                         </select>
                     </div>
                     <div className="control-group">
-                        <label>Level: {levelB}</label>
-                        <input type="range" min="1" max="100" value={levelB} onChange={(e) => setLevelB(parseInt(e.target.value))} />
                     </div>
                     <div className="stats-preview">
                         <div className="stat">HP: {results?.sideA.hp}</div>
@@ -265,7 +264,7 @@ const BalanceTester: React.FC = () => {
                         >
                             <div className="modal-header">
                                 <div className="modal-title-row">
-                                    <h2>Matchup Analysis (Level {levelA}, Pwr {power})</h2>
+                                    <h2>Matchup Analysis (Pwr {power})</h2>
                                     <button className="close-icon" onClick={() => setBatchReport(null)}>✕</button>
                                 </div>
 

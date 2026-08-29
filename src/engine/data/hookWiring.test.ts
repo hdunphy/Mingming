@@ -3,10 +3,35 @@ import PROGRAMS from './programs.json';
 import HOOKS_DATA from './lib/hooks.json';
 import { initDaemonHooks } from './daemonHooks';
 import { getOSBehavior } from './firmwareRegistry';
+import { DRIVER_WAR_FOOTING, getDriver } from './driverRegistry';
 import { getHook } from '../core/HookRegistry';
 import { HookFactory } from '../core/HookFactory';
 import { createBattleState } from './battleFactories';
-import type { IPlayerSave } from '../gameTypes';
+import type { IBattleSetup } from './battleFactories';
+import { createRun } from '../run/createRun';
+import { GAUNTLET_FIGHTS, rollGauntletFight } from '../run/gauntlet';
+import { GYM_REGISTRY } from '../run/gyms';
+import type { IBiome } from '../runTypes';
+import type { IBattleEntity, IBattleState, IMingmingState, ProgramData, StatusEffectInstance } from '../types';
+import type { DataHookDefinition } from '../core/HookTypes';
+
+/** A run's three biomes at Early Access: one per launch element, mono (ticket 05). */
+const BIOMES: ReadonlyArray<IBiome> = [
+    { id: 'biome_water', name: 'Water', elements: ['Water'] },
+    { id: 'biome_nature', name: 'Nature', elements: ['Nature'] },
+    { id: 'biome_fire', name: 'Fire', elements: ['Fire'] },
+];
+
+const PARTY_MEMBER: IMingmingState = {
+    id: 'mm1',
+    definitionId: 'fenrir',
+    nickname: 'Iggy',
+    activeOS: 'fenrir_v1',
+    blueprintsCollected: 0,
+    hpIV: 10,
+    attackIV: 10,
+    defenseIV: 10,
+};
 
 // Force both registration paths before asserting anything.
 initDaemonHooks();
@@ -64,56 +89,135 @@ describe('boss relic OSes', () => {
         expect(getHook('boss_relic_ice_tax')?.onCostCalculated).toBeTypeOf('function');
     });
 
-    it('a gym tier-3 boss retains its boss_relic OS through createBattleState', () => {
-        const save: IPlayerSave = {
-            version: 2,
-            roster: [
-                {
-                    id: 'mm1',
-                    definitionId: 'fenrir',
-                    nickname: 'Iggy',
-                    level: 10,
-                    experience: 0,
-                    blueprintsCollected: 0,
-                    hpIV: 10,
-                    attackIV: 10,
-                    defenseIV: 10
-                }
-            ],
-            activeParty: ['mm1'],
-            cardInventory: [],
-            activeDeck: null,
-            scrapCount: 0,
-            blueprints: [],
-            relics: [],
-            gauntlet: {
-                type: 'Gym',
-                element: 'Fire',
-                currentBattleIndex: 2, // Tier 3: Gym Leader
-                totalBattles: 3,
-                persistedStats: {}
-            },
-            unlockedSectors: ['Fire', 'Water', 'Nature'],
-            baseDecksGranted: []
+    /**
+     * TICKET 18 REWROTE THIS TEST BECAUSE IT REWROTE WHAT A BOSS IS.
+     *
+     * It used to build a "Sector Warden" through `createBattleState`'s gym-tier branch and check the
+     * one entity in the middle of the line-up kept its relic. That branch is gone: the whole boss
+     * TEAM now carries signature firmware, it is rolled by `engine/run/gauntlet.ts`, and it reaches
+     * the factory pre-built through `setup.encounter`.
+     *
+     * What is still worth asserting here is the wiring claim this file exists for — a `boss_relic_*`
+     * id survives battle creation *and* resolves to a registered firmware with live hooks. A boss
+     * whose OS string is intact but whose hooks were never registered is a boss that does nothing,
+     * and nothing else in the suite would notice.
+     */
+    it('every member of an UN-AUTHORED gym’s boss team keeps a live boss_relic OS through createBattleState', () => {
+        // TICKET 68 repointed this at Tidewrack. Emberfall is authored now and fields real firmware
+        // behind a Driver (ruling 5); the relic shape this asserts is what ruling 6 keeps at the two
+        // gyms that have not had their design session yet, and it has to go on working meanwhile.
+        const run = createRun({
+            seed: 'hook-wiring-gauntlet',
+            offer: { gym: GYM_REGISTRY.gym_tidewrack, biomes: BIOMES },
+            party: [PARTY_MEMBER],
+            startedAt: 0,
+        });
+        const gymNode = run.nodes.find(n => n.kind === 'gym')!;
+        const fight = rollGauntletFight({ run, node: gymNode, fightIndex: GAUNTLET_FIGHTS - 1 });
+
+        const setup: IBattleSetup = {
+            party: [PARTY_MEMBER],
+            deck: [],
+            drivers: [],
+            persistedHp: {},
+            encounter: { enemyParty: fight.enemyParty, enemyDeckIds: fight.enemyDeckIds },
         };
 
-        const state = createBattleState(save, []);
+        const state = createBattleState(setup, [], undefined, { seed: fight.seed, enemyMode: 'CARDS' });
 
         expect(state.enemyParty).toHaveLength(3);
-        const boss = state.enemyParty.find(e => e.activeOS?.startsWith('boss_relic_'));
-        expect(boss, 'gym boss should keep its boss_relic OS').toBeDefined();
-        expect(boss!.activeOS).toBe('boss_relic_fire');
-        expect(getOSBehavior(boss!.activeOS!)).toBeDefined();
+        for (const boss of state.enemyParty) {
+            expect(boss.activeOS?.startsWith('boss_relic_'), `${boss.name} should carry signature firmware`).toBe(true);
+            expect(getOSBehavior(boss.activeOS!)).toBeDefined();
+            expect(getOSBehavior(boss.activeOS!)!.hooks.length).toBeGreaterThan(0);
+        }
+        // Three distinct signatures, not one tripled — `gauntlet.bossFirmwareFor`'s de-duplication.
+        expect(new Set(state.enemyParty.map(e => e.activeOS)).size).toBe(3);
+    });
+});
 
-        // Regular enemies (the guards) still have their OS stripped.
-        const others = state.enemyParty.filter(e => e.id !== boss!.id);
-        expect(others).toHaveLength(2);
-        others.forEach(guard => expect(guard.activeOS).toBeUndefined());
+/**
+ * TICKET 68 — the same wiring claim, for the system that replaces the relics at an authored gym.
+ *
+ * The failure this guards against is the one the relic test above was written for and the one
+ * ticket 55's liveness sweep exists to catch: a passive whose id survives every layer and whose
+ * HOOKS were never registered does nothing at all, and no balance number would look wrong — it
+ * would just look like a weak boss. A Driver has one more layer than a relic did (it rides
+ * `entity.hooks` rather than `activeOS`), so it has one more place to be silently dropped.
+ */
+describe('enemy Drivers (ticket 68)', () => {
+    it('getDriver returns a working definition, and both WAR FOOTING hooks are registered', () => {
+        const driver = getDriver(DRIVER_WAR_FOOTING);
+        expect(driver).toBeDefined();
+        expect(driver!.name).toBe('WAR FOOTING');
+        expect(driver!.hooks.length).toBe(2);
+        expect(getHook('driver_war_footing_rally')?.onTurnEnd).toBeTypeOf('function');
+        expect(getHook('driver_war_footing_escalate')?.onTurnEnd).toBeTypeOf('function');
+    });
+
+    it('reaches every enemy through createBattleState, ADDITIVELY — the OS is untouched', () => {
+        const run = createRun({
+            seed: 'hook-wiring-driver',
+            offer: { gym: GYM_REGISTRY.gym_emberfall, biomes: BIOMES },
+            party: [PARTY_MEMBER],
+            startedAt: 0,
+        });
+        const gymNode = run.nodes.find(n => n.kind === 'gym')!;
+        const fight = rollGauntletFight({ run, node: gymNode, fightIndex: GAUNTLET_FIGHTS - 1 });
+
+        expect(fight.enemyDrivers).toEqual([DRIVER_WAR_FOOTING]);
+
+        const setup: IBattleSetup = {
+            party: [PARTY_MEMBER],
+            deck: [],
+            drivers: [],
+            persistedHp: {},
+            encounter: {
+                enemyParty: fight.enemyParty,
+                enemyDeckIds: fight.enemyDeckIds,
+                enemyDrivers: fight.enemyDrivers,
+            },
+            enemyDrivers: fight.enemyDrivers,
+        };
+
+        const state = createBattleState(setup, [], undefined, { seed: fight.seed, enemyMode: 'CARDS' });
+
+        expect(state.enemyParty).toHaveLength(3);
+        for (const boss of state.enemyParty) {
+            expect(boss.hooks).toContain('driver_war_footing_rally');
+            expect(boss.hooks).toContain('driver_war_footing_escalate');
+            // Additive: the member still runs its own firmware, and it is not a relic (ruling 1/2).
+            expect(getOSBehavior(boss.activeOS!)!.hooks.length).toBeGreaterThan(0);
+            expect(boss.activeOS?.startsWith('boss_relic_')).toBe(false);
+        }
+        // The PLAYER side gets nothing from it — the list is side-scoped.
+        for (const member of state.playerParty) {
+            expect(member.hooks ?? []).not.toContain('driver_war_footing_rally');
+        }
+    });
+
+    it('leaves the enemy side alone when there is no Driver, allocating no hook list', () => {
+        const setup: IBattleSetup = {
+            party: [PARTY_MEMBER],
+            deck: [],
+            drivers: [],
+            persistedHp: {},
+            encounter: null,
+        };
+        const state = createBattleState(setup, ['fenrir'], undefined, { seed: 'no-driver' });
+        for (const enemy of state.enemyParty) {
+            expect(enemy.hooks ?? []).toEqual([]);
+        }
     });
 });
 
 describe('data-driven condition translations', () => {
-    const makeEntity = (id: string, statusEffects: any[] = []): any => ({
+    /** Partial entity — the hooks under test read only id, hp, energy, statusEffects and daemons.
+     *  Status fixtures may omit `id`; nothing here looks a status effect up by instance id. */
+    const makeEntity = (
+        id: string,
+        statusEffects: ReadonlyArray<Partial<StatusEffectInstance>> = []
+    ): IBattleEntity => ({
         id,
         name: id,
         currentHp: 100,
@@ -122,15 +226,16 @@ describe('data-driven condition translations', () => {
         maxEnergy: 3,
         statusEffects,
         daemons: []
-    });
+    } as unknown as IBattleEntity);
 
-    const makeState = (playerParty: any[], enemyParty: any[]): any => ({
+    /** Partial battle state — the hooks under test read only the two parties, logs, counters and seed. */
+    const makeState = (playerParty: IBattleEntity[], enemyParty: IBattleEntity[]): IBattleState => ({
         playerParty,
         enemyParty,
         logs: [],
         counters: {},
         seed: '42'
-    });
+    } as unknown as IBattleState);
 
     it('draugr_v2_chill (onDamageCalculated, ticket 12 rebuild) reduces damage 20% only when the source has 2+ debuff types', () => {
         const hook = getHook('draugr_v2_chill');
@@ -158,15 +263,16 @@ describe('data-driven condition translations', () => {
         // it (third occurrence of that trap - BLOOD_SCENT ticket 39, PERMAFROST_WAKE ticket 48).
         // It now reads distinct TYPES at turn start, so a self-debuff card pays once per turn
         // rather than once per cast.
-        const hook = HookFactory.createHook((HOOKS_DATA as any).fafnir_v2.hooks[0]);
+        const hooksData = HOOKS_DATA as unknown as Record<string, { hooks: DataHookDefinition[] }>;
+        const hook = HookFactory.createHook(hooksData.fafnir_v2.hooks[0]);
         expect(hook!.onTurnStart).toBeDefined();
         expect(hook!.onStatusApplied).toBeUndefined();
 
         const clean = makeEntity('fafnir');
         const cleanState = makeState([makeEntity('p')], [clean]);
-        const noDebuffs = hook!.onTurnStart!({ state: cleanState, source: clean, target: clean, triggerDepth: 0 } as any, clean);
-        const afterClean = noDebuffs.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(afterClean.statusEffects.some((s: any) => s.type === 'Strengthened')).toBe(false);
+        const noDebuffs = hook!.onTurnStart!({ state: cleanState, source: clean, target: clean, triggerDepth: 0 }, clean);
+        const afterClean = noDebuffs.state.enemyParty.find(e => e.id === 'fafnir')!;
+        expect(afterClean.statusEffects.some(s => s.type === 'Strengthened')).toBe(false);
 
         // Two DISTINCT types, six stacks between them: the grant reads types, not stacks.
         const rotted = makeEntity('fafnir', [
@@ -174,12 +280,12 @@ describe('data-driven condition translations', () => {
             { id: 's2', type: 'Dazed', stacks: 2 },
         ]);
         const rottedState = makeState([makeEntity('p')], [rotted]);
-        const result = hook!.onTurnStart!({ state: rottedState, source: rotted, target: rotted, triggerDepth: 0 } as any, rotted);
-        const after = result.state.enemyParty.find((e: any) => e.id === 'fafnir')!;
-        expect(after.statusEffects.find((s: any) => s.type === 'Strengthened')?.stacks).toBe(4);
+        const result = hook!.onTurnStart!({ state: rottedState, source: rotted, target: rotted, triggerDepth: 0 }, rotted);
+        const after = result.state.enemyParty.find(e => e.id === 'fafnir')!;
+        expect(after.statusEffects.find(s => s.type === 'Strengthened')?.stacks).toBe(4);
         // ...and each of those debuffs sheds a stack, which is what stops it compounding forever.
-        expect(after.statusEffects.find((s: any) => s.type === 'Poison')?.stacks).toBe(3);
-        expect(after.statusEffects.find((s: any) => s.type === 'Dazed')?.stacks).toBe(1);
+        expect(after.statusEffects.find(s => s.type === 'Poison')?.stacks).toBe(3);
+        expect(after.statusEffects.find(s => s.type === 'Dazed')?.stacks).toBe(1);
     });
 
     it('hel_v2_underworld_toll taxes DARK cards with a printed cost, and only those (ticket 57)', () => {
@@ -194,15 +300,16 @@ describe('data-driven condition translations', () => {
         const hel = makeEntity('hel');
         const state = makeState([hel], [makeEntity('e')]);
 
-        const darkAttack: any = { id: 'atk', category: 'Attack', element: 'Dark', baseCost: 2, actions: [] };
+        // Partial cards — onActionStart reads only category, element and baseCost.
+        const darkAttack = { id: 'atk', category: 'Attack', element: 'Dark', baseCost: 2, actions: [] } as unknown as ProgramData;
         const attackResult = hook!.onActionStart!({ state, source: hel, program: darkAttack, triggerDepth: 0 }, hel);
         expect(attackResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(true);
 
-        const lightSkill: any = { id: 'spell', category: 'Skill', element: 'Light', baseCost: 2, actions: [] };
+        const lightSkill = { id: 'spell', category: 'Skill', element: 'Light', baseCost: 2, actions: [] } as unknown as ProgramData;
         const spellResult = hook!.onActionStart!({ state, source: hel, program: lightSkill, triggerDepth: 0 }, hel);
         expect(spellResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
 
-        const freebie: any = { id: 'free', category: 'Attack', element: 'Dark', baseCost: 0, actions: [] };
+        const freebie = { id: 'free', category: 'Attack', element: 'Dark', baseCost: 0, actions: [] } as unknown as ProgramData;
         const freeResult = hook!.onActionStart!({ state, source: hel, program: freebie, triggerDepth: 0 }, hel);
         expect(freeResult.state.logs.some((l: string) => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
     });
@@ -212,8 +319,8 @@ describe('data-driven condition translations', () => {
         const hel = makeEntity('hel');
         const state = makeState([hel], [makeEntity('e')]);
 
-        const bigSpell: any = { id: 'soul_tithe', category: 'Attack', element: 'Dark', baseCost: 3, actions: [] };
-        expect(hook!.onCostCalculated!(3, { state, source: hel, program: bigSpell, triggerDepth: 0 } as any, hel)).toBe(0);
+        const bigSpell = { id: 'soul_tithe', category: 'Attack', element: 'Dark', baseCost: 3, actions: [] } as unknown as ProgramData;
+        expect(hook!.onCostCalculated!(3, { state, source: hel, program: bigSpell, triggerDepth: 0 }, hel)).toBe(0);
     });
 
     it('RANDOM_ENEMY targeting advances the state seed (no repeated picks forever)', () => {
@@ -228,22 +335,28 @@ describe('data-driven condition translations', () => {
 
 describe('HookFactory condition safety', () => {
     it('a non-function condition (e.g. a JS-source string in JSON) never crashes the hook', () => {
-        const hook = HookFactory.createHook({
+        // `condition` is deliberately a STRING where a function belongs — exactly what a
+        // JS-source condition smuggled into hooks.json deserialises to.
+        const badDefinition = {
             id: 'test_bad_condition_hook',
             trigger: 'onTurnEnd',
             priority: 40,
-            condition: '(context) => context.doesNotExist.boom' as any,
+            condition: '(context) => context.doesNotExist.boom',
             do: []
-        } as any);
+        } as unknown as DataHookDefinition;
+        const hook = HookFactory.createHook(badDefinition);
 
-        const owner: any = { id: 'o1', name: 'Owner', currentHp: 10, maxHp: 10, currentEnergy: 0, statusEffects: [], daemons: [] };
-        const state: any = {
+        // Partial fixtures — the hook is a no-op, so only `owner.id` and the state's party lists matter.
+        const owner = {
+            id: 'o1', name: 'Owner', currentHp: 10, maxHp: 10, currentEnergy: 0, statusEffects: [], daemons: []
+        } as unknown as IBattleEntity;
+        const state = {
             playerParty: [owner],
             enemyParty: [],
             logs: [],
             counters: {},
             seed: '1'
-        };
+        } as unknown as IBattleState;
 
         expect(() => hook.onTurnEnd!({ state, triggerDepth: 0, source: owner }, owner)).not.toThrow();
     });

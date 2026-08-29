@@ -1,0 +1,107 @@
+/*
+ * The run summary — ticket 19.
+ *
+ * Co-located with the component and prefixed `rs-`, following `GauntletNode.css`,
+ * `WorkshopNode.css` and `MarketplaceNode.css`: the global sheet is what these prefixes exist to
+ * stay out of, and a screen whose styles travel with it is a screen ticket 34's art pass can
+ * restyle in one file.
+ *
+ * The layout is a stat grid over two prose blocks, in that order on purpose. The numbers are what
+ * the player came for; the two paragraphs underneath are the reassurance — what is already banked,
+ * and what the run took with it — and reassurance read before the numbers is reassurance nobody
+ * believes. The grid is `auto-fit`/`minmax` so the 1280x800 Steam Deck frame (ticket 37) reflows to
+ * two columns instead of clipping the sixth stat off the right-hand edge.
+ */
+
+.rs-lead {
+    margin: 0 0 0.9rem;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    opacity: 0.9;
+}
+
+/* --- The numbers --- */
+
+.rs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+}
+
+.rs-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border: 1px solid rgba(120, 200, 255, 0.22);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.24);
+    padding: 0.55rem 0.65rem;
+}
+
+.rs-stat-label {
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.62;
+}
+
+.rs-stat-figure {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* The target beside every figure. A number with nothing to compare it against is not a result. */
+.rs-stat-note {
+    font-size: 0.68rem;
+    line-height: 1.35;
+    opacity: 0.66;
+}
+
+/* --- What is already at the ranch --- */
+
+.rs-banked-note,
+.rs-lost-note {
+    margin: 0 0 0.6rem;
+    font-size: 0.74rem;
+    line-height: 1.5;
+    opacity: 0.8;
+}
+
+.rs-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.rs-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.4rem;
+    border: 1px solid rgba(120, 255, 180, 0.2);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.4rem 0.6rem;
+}
+
+.rs-row-name {
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.rs-row-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.rs-leave {
+    align-self: flex-start;
+    margin-top: 0.3rem;
+}

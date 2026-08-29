@@ -1,6 +1,5 @@
-import { type HookDefinition, type HookContext, type HookResult, type MutationRequest, resolveCounterKey } from './HookTypes';
+import { type HookDefinition, type HookContext, type HookResult, resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
 import { resolveProgramFree } from '../actions/ActionExecutors';
@@ -358,6 +357,13 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
         // protects the owner's own actions and an end-of-turn one does not, so it is a real buff.
         // huldra_v2 sits at a healthy ~71% field and does not need it. If it ever does, this is
         // the cheapest lever on the deck: move this hook to `onTurnStart`.
+        //
+        // RE-CONFIRMED 2026-08-24. Henry hit this in a playtest and read it as a bug: *"Huldra_V2
+        // didn't start with a temp shield, she got it on her turn, so I could get free damage
+        // without her blocking it."* He was reading the OS description, which said "starts every
+        // battle with a massive, temporary shield" and had been lying since ticket 07 moved the
+        // grant to a turn boundary. His ruling: **fix the copy** - the shield stays at turn end.
+        // `hooks.json`'s description now says when it actually lands.
         {
             id: "huldra_v2_bark_end",
             priority: 40,

@@ -1,0 +1,173 @@
+/*
+ * BIOME-BOUNDARY ALERT — transcribed from `research/62-editor-proto/editor_C_boundary_alert.html`.
+ *
+ * The mockup draws the modal at a fixed 290/170 inside a 1280x800 frame. The game window is not
+ * fixed (ticket 37 owns resolution), so the offset becomes a centred box with the mockup's WIDTH
+ * kept exactly — 700px is the number that makes the two columns hold five 34px rows side by side,
+ * which is the layout, whereas 290/170 is only where that box happened to sit in a still frame.
+ *
+ * The scrim is the mockup's `filter: brightness(.45)` on the map expressed as an overlay instead:
+ * this component renders OVER the map screen rather than containing it, so it cannot filter it.
+ * Same result, and it costs no repaint of the map beneath.
+ */
+
+.ba {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.ba-scrim {
+    position: absolute;
+    inset: 0;
+    background: #0000008c;
+}
+
+.ba-modal {
+    position: relative;
+    width: 700px;
+    max-width: calc(100vw - 40px);
+    background: #10151d;
+    border: 1px solid #3d7ab5;
+    border-radius: 8px;
+    padding: 18px 20px;
+    box-shadow: 0 20px 60px #000c;
+    color: #dfe4ea;
+}
+
+.ba-modal h1 {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #fff;
+    margin: 0 0 4px;
+    font-weight: 700;
+}
+
+.ba-sub {
+    font-size: 11.5px;
+    color: #8fa0b3;
+    margin: 0 0 12px;
+    line-height: 1.45;
+}
+
+.ba-row { display: flex; gap: 10px; }
+
+.ba-col {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #232a35;
+    border-radius: 5px;
+    padding: 8px;
+    background: #0d1117;
+    display: flex;
+    flex-direction: column;
+}
+
+.ba-col h2 {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #9fb4c8;
+    margin: 0 0 6px;
+    font-weight: 600;
+}
+
+/* The mockup caps the column at 230px and simply hides the overflow — with SUGGESTION_LIMIT
+   holding the list to five rows, nothing reaches the cap, so it is a backstop rather than a
+   scroller. Kept as `hidden` deliberately: a scrollbar here would imply more to read. */
+.ba-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 230px;
+    overflow: hidden;
+    flex: 1;
+}
+
+/* --- party column --- */
+
+.ba-member {
+    border: 1px solid #2c3745;
+    border-radius: 4px;
+    background: #11161e;
+    padding: 8px;
+    flex: none;
+}
+.ba-member.benched { opacity: 0.55; border-style: dashed; }
+
+.ba-head { display: flex; align-items: center; gap: 8px; }
+
+.ba-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    background: var(--el);
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    color: #fff;
+    flex: none;
+}
+
+.ba-who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ba-nm { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; }
+.ba-os { font-size: 9px; color: #8fa0b3; letter-spacing: 1px; }
+.ba-en { font-size: 9.5px; color: var(--el); letter-spacing: 1px; flex: none; }
+
+/* --- suggested-card column (34px rows) --- */
+
+.ba-cardc {
+    border: 1px solid var(--el);
+    border-left: 4px solid var(--el);
+    background: #131820;
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 11.5px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    flex: none;
+}
+.ba-cost {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--el);
+    color: #0c0e12;
+    font-weight: 700;
+    font-size: 10.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+}
+.ba-cnm { flex: 1; white-space: nowrap; overflow: hidden; }
+.ba-tag { font-size: 8.5px; color: #7d8ea1; letter-spacing: 1px; flex: none; }
+
+.ba-hint {
+    font-size: 10px;
+    color: #4d5866;
+    font-style: italic;
+    margin: 6px 0 0;
+    line-height: 1.4;
+}
+
+/* --- actions --- */
+
+.ba-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+/* The duplicate ruling's badge — see the `suggested` block for why this column stacks rather than
+   lists, and why that matters more here than anywhere else. */
+.ba-x { color: #ffd479; font-weight: 700; font-size: 11px; flex: none; }

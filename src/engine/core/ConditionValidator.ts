@@ -1,4 +1,4 @@
-import type { IBattleState, IBattleEntity, ProgramData, StatusType, ProgramConstraint } from '../types';
+import type { IBattleState, IBattleEntity, ProgramConstraint } from '../types';
 import type { HookCondition, HookContext } from './HookTypes';
 import { resolveCounterKey } from './HookTypes';
 import { numericBaseCost } from '../types';
@@ -164,6 +164,11 @@ export const ConditionValidator = {
             if (operator === 'EQ' && !(currentVal === value)) return false;
         }
 
+        // 11. Clock Check (ticket 68). `state.turn` is a full round, not a side-turn — see
+        // `HookCondition.turnAtLeast` for why an escalating aura written against side-turns would
+        // tick twice as fast for the side that moves first.
+        if (condition.turnAtLeast !== undefined && context.state.turn < condition.turnAtLeast) return false;
+
         return true;
     },
 
@@ -184,8 +189,13 @@ export const ConditionValidator = {
                 break;
             }
 
-            case 'HEALTH_THRESHOLD':
+            case 'HEALTH_THRESHOLD': {
                 // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
+                //
+                // Ticket 55: braced. `const` in an unbraced case is scoped to the WHOLE switch, so
+                // `op`, `valStr` and `threshold` were visible (in the temporal dead zone) to every
+                // case below this one — which is what `no-case-declarations` is warning about. The
+                // neighbouring `AURA`/`STATUS` cases were already braced; this one was not.
                 if (typeof constraint.value !== 'string') break;
                 const [op, valStr] = constraint.value.split(':');
                 const threshold = parseInt(valStr);
@@ -194,6 +204,7 @@ export const ConditionValidator = {
                 if (op === 'LT' && hpPercent >= threshold) return false;
                 if (op === 'GT' && hpPercent <= threshold) return false;
                 break;
+            }
 
             case 'BASE':
                 // Base Energy Check

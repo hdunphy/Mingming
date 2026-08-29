@@ -1,0 +1,139 @@
+/*
+ * WORKSHOP — transcribed from `research/65-workshop-proto/workshop_I_bay.html` and
+ * `workshop_J_reflash.html`.
+ *
+ * The shared vocabulary — top bar, buttons, pill, panel, 27px row, roster chip — lives in
+ * `runShell.css`, because all three ruled mockups open with that block character for character.
+ * What is left here is what makes THIS screen a bay: the three-column body, the blueprint chip, the
+ * lit assembly stage, and the two-card comparison the reflash view replaces the body with.
+ *
+ * The stage is the only place in the game with a light source. That is deliberate and it is the
+ * mockup's: `radial-gradient(400px 200px at 50% 20%)` behind a glowing silhouette is what makes the
+ * assembly read as an event rather than a form, and ticket 65's reveal moment happens inside it.
+ */
+
+.ws-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 250px 1fr 300px;
+    gap: 12px;
+    padding: 12px 18px;
+    min-height: 0;
+}
+
+/* The reflash view is one wide panel — mockup J replaces the whole body with the comparison. */
+.ws-body.reflash { display: flex; flex-direction: column; gap: 10px; }
+
+/* --- the blueprint rack --- */
+
+.ws-bpc {
+    display: flex; gap: 8px; align-items: center;
+    border: 1px solid #2c3745;
+    border-radius: 5px;
+    background: #11161e;
+    padding: 7px 9px;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    flex: none;
+    width: 100%;
+}
+.ws-bpc.sel { border-color: var(--el); box-shadow: 0 0 0 1px var(--el); }
+.ws-bpc:disabled { opacity: 0.4; cursor: default; }
+
+.ws-bpdot {
+    width: 32px; height: 32px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--el), #0c0e12 160%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; color: #fff;
+    flex: none;
+}
+.ws-bptext { display: flex; flex-direction: column; min-width: 0; }
+.ws-bpnm { font-size: 12.5px; font-weight: 700; }
+.ws-bpct { font-size: 10px; color: #8fa0b3; }
+
+.ws-scroll { display: flex; flex-direction: column; gap: 4px; overflow: auto; flex: 1; min-height: 0; }
+.ws-foot { margin-top: 8px; flex: none; }
+
+/* --- the assembly stage --- */
+
+.ws-stage {
+    border: 1px solid #2c3745;
+    border-radius: 8px;
+    background: radial-gradient(400px 200px at 50% 20%, #1b2634, #0d1117 70%);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 0;
+    overflow: auto;
+}
+.ws-stage h2 {
+    letter-spacing: 2px; color: #9fb4c8; font-size: 11px;
+    margin: 0; font-weight: 600; flex: none;
+}
+
+.ws-silhouette {
+    width: 110px; height: 110px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--el), #0c0e12 170%);
+    opacity: 0.9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px; font-weight: 800; color: #fff;
+    box-shadow: 0 0 40px var(--glow, #43b45f44);
+    flex: none;
+}
+/* Nothing assembled yet: the chassis is a blank, not a preview of one. */
+.ws-silhouette.blank { background: linear-gradient(135deg, #2c3745, #0c0e12 170%); box-shadow: none; }
+
+.ws-roll { display: flex; gap: 10px; flex: none; }
+.ws-stat {
+    border: 1px solid #2c3745;
+    border-radius: 5px;
+    background: #10151d;
+    padding: 6px 12px;
+    text-align: center;
+}
+.ws-stat-v { font-size: 17px; font-weight: 800; color: #7fd6a4; display: block; }
+.ws-stat.unrolled .ws-stat-v { color: #4d5866; }
+.ws-stat-k { font-size: 9px; color: #8fa0b3; letter-spacing: 1px; display: block; }
+
+.ws-cols { display: flex; gap: 14px; width: 100%; justify-content: center; flex-wrap: wrap; }
+.ws-col { width: 260px; }
+.ws-col h3 {
+    font-size: 10px; letter-spacing: 2px; color: #9fb4c8;
+    margin: 0 0 4px; font-weight: 600;
+}
+
+.ws-cost { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; flex: none; }
+
+/* --- the reflash comparison (mockup J) --- */
+
+.ws-cmp { flex: 1; display: flex; gap: 0; align-items: stretch; min-height: 0; }
+
+.ws-oscard {
+    flex: 1;
+    border: 1px solid #2c3745;
+    border-radius: 7px;
+    background: #0f141c;
+    padding: 12px;
+    min-width: 0;
+    overflow: auto;
+}
+.ws-oscard.current { border-color: #3d9be0; }
+.ws-oscard.offer { border-color: #e05d43; }
+.ws-oscard h3 { font-size: 12.5px; letter-spacing: 1px; margin: 0 0 2px; }
+.ws-oscard h4 { font-size: 9.5px; letter-spacing: 2px; color: #9fb4c8; margin: 0 0 4px; font-weight: 600; }
+.ws-osdesc { font-size: 10.5px; color: #aeb9c6; margin: 0 0 8px; line-height: 1.4; }
+.ws-tagcur { color: #3d9be0; font-size: 9px; }
+.ws-tagnew { color: #e05d43; font-size: 9px; }
+
+.ws-vs { align-self: center; font-size: 16px; font-weight: 800; color: #5f6b7a; padding: 0 6px; }
+
+.ws-actions {
+    display: flex; gap: 10px; align-items: center; justify-content: flex-end;
+    flex-wrap: wrap; flex: none;
+}

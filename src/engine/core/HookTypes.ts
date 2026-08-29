@@ -1,4 +1,8 @@
-import type { IBattleState, IBattleEntity, ProgramData, StatusType, ActionType, ProgramCategory } from '../types';
+// `Element` is in this list for a reason worth keeping: without it, `HookAction.element` below
+// resolved to the DOM's global `Element` interface, because `lib: ["DOM"]` is on and the game's
+// union was never imported here. Found by ticket 55 — the `(action as any).element` reaches in
+// `HookFactory` were papering over it.
+import type { Element, IBattleState, IBattleEntity, ProgramData, StatusType, ActionType, ProgramCategory } from '../types';
 
 /**
  * Counter scoping: 'OWNER' (the default for hook counters) namespaces the key
@@ -25,6 +29,16 @@ export type MutationRequest = {
     type: 'HP' | 'ENERGY' | 'MAX_ENERGY' | 'STATUS' | 'LOG' | 'EVENT' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'COUNTER' | 'DRAW';
     targetId: string;
     sourceId?: string; // Optional source of the mutation
+    /*
+     * The second and last `any` ticket 55 left, for `ProgramAction`'s reason at one remove.
+     *
+     * A mutation's payload shape is decided by its `type`, and the fourteen types carry genuinely
+     * different ones — `{ amount, isHeal, element }` for HP, `{ key, operator, amount }` for
+     * COUNTER, a whole event object for EVENT. The right type is a discriminated union keyed on
+     * `type`, which is a day's work across `applyMutations`, `HookFactory` and every hook that
+     * builds one, and it is only worth doing at the same time as `ProgramAction`'s.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload: any;
 };
 
@@ -75,10 +89,27 @@ export type HookCondition = {
     /** Ticket 53: AND-list of counter checks, for hooks that need more than one (GENESIS_FIRMWARE). Composes with `counter`. */
     counters?: Array<{ key: string; operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number; scope?: CounterScope }>;
     currentEnergy?: { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
+    /**
+     * TICKET 68: passes from battle turn `N` onward (`state.turn >= N`). The escalation clause of an
+     * enemy Driver — WAR FOOTING grants 1 Strengthened a turn and 2 from turn 4 — and the first hook
+     * condition that reads the CLOCK rather than the board.
+     *
+     * `state.turn` is a full round, not a side-turn: `processPreTurn` increments it only when the
+     * active side flips back to PLAYER, so both sides see the same number and "turn 4" means the
+     * same moment whoever is asking. An escalating aura written against side-turns would tick twice
+     * as fast for the side that moves first.
+     *
+     * A floor rather than an operator pair, because escalation is the only thing anything has wanted
+     * from the clock and a floor cannot be written backwards. If a hook ever needs "before turn N",
+     * that grows a sibling here rather than an operator.
+     */
+    turnAtLeast?: number;
 };
 
 export type HookAction = {
-    type: ActionType | 'LOG' | 'COUNTER' | 'DRAW' | 'MAX_ENERGY'; // Hooks can perform actions or log
+    // `'HP'` is here because `lib/hooks.json` uses it and `HookFactory` dispatches on it; it was
+    // missing from this union, which is why that comparison needed a cast to compile (ticket 55).
+    type: ActionType | 'HP' | 'LOG' | 'COUNTER' | 'DRAW' | 'MAX_ENERGY'; // Hooks can perform actions or log
     target?: 'SELF' | 'TARGET' | 'SOURCE' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
     status?: StatusType;
     stacks?: number;

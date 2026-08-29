@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S1a - sleipnir on the leash (his seat)",
+  "description": "The round-3 S2 runaway matchup, replayed after ticket 103 bounded the mint instead of capping the pile. Find the turn where it tipped last time - does a tip point still exist, or is he now a fair ramp threat you can race? Play S1b right after from the sleipnir seat.   [you: fenrir_v1 | opponent: sleipnir_v1]",
+  "tags": ["playtest", "round-4", "ticket-103", "fenrir_v1"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S1a-fenrir_v1-vs-sleipnir_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "fenrir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "fenrir_v1" }
+      ],
+      "deck": ["ember_mend","blood_rite","blood_rite","berserk_rush","berserk_rush","battle_rhythm","crimson_draw","ragnarok_edge","ragnarok_edge"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "sleipnir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "sleipnir_v1",
+        "deck": ["water_slap","water_slap","slipstream","slipstream","disorienting_gust","adrenaline","tailwind","zephyr_strike","stampede","stampede","momentum_crash","hoofbeat_daemon"]
+      }
+    ]
+  }
+}

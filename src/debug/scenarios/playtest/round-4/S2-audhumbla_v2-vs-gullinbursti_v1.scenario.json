@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S2 - audhumbla drinks the milk",
+  "description": "Same opponent as round 3's S4, on purpose - that game was your before baseline (near-zero choices). The rebuild is live: her OS grants Regen on heals, morning_dew stacks it, drink_deep cashes the pile at 15 per stack. The hold-or-cash moment: was it a decision or the obvious play? Did you ever hold one turn too long and regret it? Fun 1-5 against your round-3 memory of the same matchup - this is the ship/iterate verdict on the whole rebuild.   [you: audhumbla_v2 | opponent: gullinbursti_v1]",
+  "tags": ["playtest", "round-4", "ticket-101", "audhumbla_v2"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S2-audhumbla_v2-vs-gullinbursti_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "audhumbla", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "audhumbla_v2" }
+      ],
+      "deck": ["pale_mercy","healing_light","sacred_spring","morning_dew","drink_deep","smite","radiant_spark","dawnstrike","dawnstrike"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "gullinbursti", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "gullinbursti_v1",
+        "deck": ["water_slap","keen_edge","keen_edge","shield_shards","shield_shards","stone_bark","stone_fist","stone_fist","motherlode","spiked_carapace"]
+      }
+    ]
+  }
+}

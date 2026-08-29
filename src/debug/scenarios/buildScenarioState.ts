@@ -5,13 +5,11 @@
  *
  * WHY THIS DOES NOT CALL `createBattleState`
  * ------------------------------------------
- * `createBattleState` picks one of four mutually exclusive branches from the *save* shape
- * (gym tier 1/2/3, sector, fixed). Only the last honours `enemyIds`, and it force-overrides
- * every enemy's level to `Math.max(...playerParty.level)` (battleFactories.ts, the "Fallback
- * or fixed encounters" branch) - precisely the thing a scenario must not do, since per-enemy
- * level is one of the audit gaps `ComposedSetup` exists to close. The other three branches
- * generate their enemies procedurally and ignore the list entirely. So the party is built
- * here, directly, from `initializeBattleEntity`.
+ * `createBattleState` picks one of four mutually exclusive branches from its input (gym tier
+ * 1/2/3, sector, fixed). Only the last honours `enemyIds`; the other three generate their enemies
+ * procedurally and ignore the list entirely, and the fixed branch builds each enemy from a species
+ * id with no room for the per-enemy overrides `ComposedSetup` exists to express. So the party is
+ * built here, directly, from `initializeBattleEntity`.
  *
  * Everything downstream of party construction *is* shared with the real creation path -
  * `instantiateDeck`, `drawCards`, `generateIntents`, and the same field-for-field battle
@@ -32,15 +30,15 @@
  * store. Callers take the returned state and inject it however the debug gating
  * architecture decides.
  *
- * `setup.gauntlet` is deliberately untouched: `IBattleState` has no gauntlet field (it
- * lives on the save / `gameSlice`), and the one way it reaches battle creation - patching
- * `currentHp` from `persistedStats` - is already expressed directly as per-member
- * `currentHp` here. It is run context for the injection layer to restore, not battle state.
+ * `setup.gauntlet` is deliberately untouched: `IBattleState` has no gauntlet field (it lives on
+ * the run - `IRunState.gauntlet`, ticket 11), and the one way it reaches battle creation - patching
+ * `currentHp` from the carried HP - is already expressed directly as per-member `currentHp` here.
+ * It is run context for the injection layer to restore, not battle state.
  *
- * No `IPlayerSave` shim turned out to be needed: nothing on the direct-build path takes
+ * No `IBattleSetup` shim turned out to be needed either: nothing on the direct-build path takes
  * one. `initializeBattleEntity` takes an instance + definition, `instantiateDeck` takes
  * dataIds, `drawCards` takes a deck. Only `createBattleState` - the function being
- * bypassed - wants a save.
+ * bypassed - wants the assembled setup.
  */
 
 import type {
@@ -51,9 +49,10 @@ import type {
     IMingmingState,
     ProgramEntity,
 } from '../../engine/types';
-import { getExpForLevel, initializeBattleEntity } from '../../engine/types';
+import { initializeBattleEntity } from '../../engine/types';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
+import { applyDrivers } from '../../engine/data/driverRegistry';
 import { instantiateDeck } from '../../engine/data/battleFactories';
 import { drawCards } from '../../engine/deckLogic';
 import { generateIntents } from '../../engine/core/IntentUtils';
@@ -65,19 +64,16 @@ import type { ComposedSetup, EnemySetup, PartyMemberSetup } from './scenarioSche
 const ENTITY_ID_PREFIX = 'mm';
 
 /**
- * One combat unit, built straight from its setup. No procedural rolling: level and all
- * three IVs come from the file verbatim, which is the whole point of the composed kind.
+ * One combat unit, built straight from its setup. No procedural rolling: all three IVs come from
+ * the file verbatim, which is the whole point of the composed kind.
  *
- * `experience` is not in the schema (a scenario describes a battle, not a save), so it is
- * derived from the level rather than zeroed - a level-20 unit sitting at 0 XP would
- * mis-trigger the post-battle level-up queue.
+ * Ticket 21: there is no `level` any more. Every unit is built at `CALIBRATION_LEVEL`, so the only
+ * thing a setup can vary is species, OS, deck and stat roll.
  */
 function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBattleEntity {
     const instance: IMingmingState = {
         id: rng.nextId(ENTITY_ID_PREFIX),
         definitionId: setup.definitionId,
-        level: setup.level,
-        experience: getExpForLevel(setup.level),
         blueprintsCollected: 0,
         attackIV: setup.attackIV,
         defenseIV: setup.defenseIV,
@@ -125,7 +121,12 @@ function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBa
 
 /**
  * The player-side relic bonuses `createBattleState` applies at battle start, mirrored here
- * so `player.relics` is not decorative. Enemies get none, same as the real path.
+ * so `player.relics` is not decorative.
+ *
+ * The enemy side has its own list since ticket 68 (`setup.enemyDrivers`) and goes through
+ * `driverRegistry.applyDrivers` instead — the same function the live factory calls, so the two
+ * sides cannot drift. This one stays because it carries ticket 02's registry-drift policy for the
+ * player's list, which `applyDrivers` deliberately does not replicate.
  *
  * `GetRelic` throws on an unknown id. Scenarios follow the registry-drift policy from
  * ticket 02 (warn, then continue) rather than hard-failing an entire scenario library over
@@ -200,7 +201,15 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
     // Enemies keep the activeOS `initializeBattleEntity` resolved. `createBattleState`
     // strips it (enemies use intents, not OS) but that strip is unrepresentable in
     // canonical form: the normalizer's fill class puts `availableOS[0]` straight back.
-    const enemyParty: IBattleEntity[] = setup.enemies.map(enemy => buildEntity(enemy, rng));
+    //
+    // Ticket 68: the enemy side's Drivers go on last, through the same `applyDrivers` the live
+    // factory uses. Additive by construction — a Driver attaches hook ids and never touches
+    // `activeOS` — so this composes with the note above rather than fighting it, and a boss
+    // measured in the harness runs the firmware AND the Driver the shipped fight gives it.
+    const enemyDrivers = setup.enemyDrivers ?? [];
+    const enemyParty: IBattleEntity[] = setup.enemies
+        .map(enemy => buildEntity(enemy, rng))
+        .map(entity => (enemyDrivers.length > 0 ? applyDrivers(entity, enemyDrivers) : entity));
 
     // v1 keeps the player deck shared across the party (ticket 02, "shared-deck watch
     // item"). Enemy decks are per-enemy in the file but flattened into one side deck here,
@@ -273,7 +282,6 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         nonNaturalCardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        levelUpQueue: [],
         enemyMode,
     });
 }

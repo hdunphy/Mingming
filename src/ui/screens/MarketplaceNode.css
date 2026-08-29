@@ -1,0 +1,84 @@
+/*
+ * MARKETPLACE — transcribed from `research/63-market-proto/market_G_stall.html`.
+ *
+ * The shared vocabulary — top bar, buttons, pill, panel, card tile, 27px row — lives in
+ * `runShell.css`, because all three ruled mockups open with that block character for character.
+ * What is left here is what makes THIS screen a stall: the two-column body, the merchant strip, the
+ * stock grid, and the always-visible 310px sell column.
+ *
+ * The tile size (170x216, 56px art) is set as `--cw/--ch/--ah` on the grid in the TSX, the mockup's
+ * own mechanism. It is smaller than the editor's book tile (196x252) on purpose: a shop is scanned
+ * against a price, a collection is read.
+ */
+
+.mk-body {
+    flex: 1;
+    display: flex;
+    gap: 12px;
+    padding: 12px 18px;
+    min-height: 0;
+}
+
+.mk-center { flex: 1; gap: 8px; min-width: 0; overflow: auto; }
+.mk-sell { width: 310px; flex: none; }
+
+/* --- the merchant strip --- */
+
+.mk-merchant { display: flex; align-items: center; gap: 10px; flex: none; }
+
+.mk-face {
+    width: 38px; height: 38px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #8a6c2f, #0c0e12 160%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px;
+    flex: none;
+}
+.mk-merchant-text { display: flex; flex-direction: column; }
+.mk-merchant-nm { font-size: 12.5px; font-weight: 700; }
+.mk-say { font-size: 11px; color: #c9b27a; font-style: italic; }
+
+/* --- the shelves --- */
+
+.mk-h {
+    font-size: 10.5px; letter-spacing: 2px; color: #9fb4c8;
+    margin: 8px 0 0; flex: none; font-weight: 600;
+}
+
+/*
+ * The mockup fixes this at `repeat(4, 170px)`. `auto-fill` instead, because the mockup is a 1280px
+ * still and the game window is not — four across is what 1280 gives, and a narrower window wraps to
+ * three rather than clipping the fourth. The TILE keeps its exact size either way, which is the
+ * part that is load-bearing.
+ */
+.mk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--cw));
+    gap: 22px 14px;
+    justify-content: center;
+    align-content: start;
+    padding-top: 14px;
+    flex: none;
+}
+/* The macro shelf is shorter — the mockup drops it to 200px. Same tile, less card. */
+.mk-macros { --ch: 200px; }
+
+/*
+ * The price plate sits OVER the bottom of the face, so the tag line has to stop short of it.
+ *
+ * 22px was not enough and the overlap was invisible until ticket 34's screenshots showed a stall
+ * with an off-pool tag on it: the plate is ~21px of type plus padding and border, pinned 10px up,
+ * so it occupies the last ~31px of the card and a 22px gap put the tag underneath it. This is the
+ * plate's full height plus a hairline — the two must not touch, because the only card that carries
+ * BOTH a tag and a plate is the off-pool slot, which is the one row on the shelf with news in it.
+ */
+.mk-tags { margin-bottom: 32px; }
+
+.mk-empty { grid-column: 1 / -1; text-align: center; color: #5f6b7a; font-size: 12px; }
+
+/* --- the sell column --- */
+
+.mk-sub { color: #5f6b7a; }
+.mk-rows { display: flex; flex-direction: column; gap: 3px; overflow: auto; flex: 1; }
+.mk-foot { margin-top: 8px; flex: none; }
+.mk-pill { margin-top: 6px; text-align: center; }

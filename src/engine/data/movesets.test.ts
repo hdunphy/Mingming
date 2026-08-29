@@ -30,7 +30,6 @@ function makeState(playerParty: IBattleEntity[], enemyParty: IBattleEntity[]): I
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        levelUpQueue: [],
         activeRelics: []
     } as unknown as IBattleState;
 }
@@ -69,7 +68,7 @@ describe('Mingming registry movesets', () => {
 
     it('generateIntents assigns a real move (never Struggle, no console warning) for every species', () => {
         const warnSpy = vi.spyOn(console, 'warn');
-        const party = Object.keys(MingmingRegistry).map(id => createMockEntity(`E_${id}`, id, 10));
+        const party = Object.keys(MingmingRegistry).map(id => createMockEntity(`E_${id}`, id));
         const withIntents = generateIntents(party, 'seed_x', 1);
 
         for (const entity of withIntents) {
@@ -84,8 +83,8 @@ describe('Mingming registry movesets', () => {
 
 describe('Valkyrie moveset (precision striker)', () => {
     const setup = () => {
-        const player = createMockEntity('Hero', 'fenrir', 10);
-        const valkyrie = createMockEntity('Valkyrie', 'valkyrie', 10);
+        const player = createMockEntity('Hero', 'fenrir');
+        const valkyrie = createMockEntity('Valkyrie', 'valkyrie');
         return makeState([player], [valkyrie]);
     };
 
@@ -120,9 +119,9 @@ describe('Valkyrie moveset (precision striker)', () => {
 
 describe('Audhumbla moveset (protector)', () => {
     const setup = () => {
-        const player = createMockEntity('Hero', 'fenrir', 10);
-        const audhumbla = createMockEntity('Audhumbla', 'audhumbla', 10);
-        const ally = createMockEntity('Ally', 'draugr', 10);
+        const player = createMockEntity('Hero', 'fenrir');
+        const audhumbla = createMockEntity('Audhumbla', 'audhumbla');
+        const ally = createMockEntity('Ally', 'draugr');
         // Wound the enemy side so heals are observable
         const wounded = (e: IBattleEntity): IBattleEntity => ({ ...e, currentHp: Math.floor(e.maxHp / 2) });
         return makeState([player], [wounded(audhumbla), wounded(ally)]);
@@ -168,8 +167,8 @@ describe('Audhumbla moveset (protector)', () => {
 
 describe('Hel moveset (glass cannon with recoil)', () => {
     const setup = () => {
-        const player = createMockEntity('Hero', 'fenrir', 10);
-        const hel = createMockEntity('Hel', 'hel', 10);
+        const player = createMockEntity('Hero', 'fenrir');
+        const hel = createMockEntity('Hel', 'hel');
         return makeState([player], [hel]);
     };
 
@@ -199,8 +198,8 @@ describe('Hel moveset (glass cannon with recoil)', () => {
 
 describe('Nidhoggr moveset (poison combo)', () => {
     const setup = () => {
-        const player = createMockEntity('Hero', 'fenrir', 10);
-        const nidhoggr = createMockEntity('Nidhoggr', 'nidhoggr', 10);
+        const player = createMockEntity('Hero', 'fenrir');
+        const nidhoggr = createMockEntity('Nidhoggr', 'nidhoggr');
         return makeState([player], [nidhoggr]);
     };
 
@@ -212,9 +211,9 @@ describe('Nidhoggr moveset (poison combo)', () => {
     });
 
     it('Corpse Venom poisons the entire player side', () => {
-        const player = createMockEntity('Hero', 'fenrir', 10);
-        const player2 = createMockEntity('Hero2', 'kraken', 10);
-        const nidhoggr = createMockEntity('Nidhoggr', 'nidhoggr', 10);
+        const player = createMockEntity('Hero', 'fenrir');
+        const player2 = createMockEntity('Hero2', 'kraken');
+        const nidhoggr = createMockEntity('Nidhoggr', 'nidhoggr');
         const state = makeState([player, player2], [nidhoggr]);
         const next = runIntent(state, 0, getMove('nidhoggr', 'nidhoggr_venom'));
         expect(findStatus(next.playerParty[0], 'Poison')).toBeTruthy();

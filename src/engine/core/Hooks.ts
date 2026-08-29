@@ -1,10 +1,5 @@
 import type { IBattleEntity } from '../types';
-import {
-    type HookDefinition,
-    type HookContext,
-    type HookResult,
-    HookPriority
-} from './HookTypes';
+import { type HookDefinition, type HookContext } from './HookTypes';
 import { getHook } from './HookRegistry';
 import { getOSBehavior } from '../data/firmwareRegistry';
 

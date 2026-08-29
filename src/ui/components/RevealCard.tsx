@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { ProgramData } from '../../engine/types';
-import ProgramCard, { getElementColor } from './ProgramCard';
+import ProgramCard from './ProgramCard';
+import { getElementColor } from './cardIcons';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 

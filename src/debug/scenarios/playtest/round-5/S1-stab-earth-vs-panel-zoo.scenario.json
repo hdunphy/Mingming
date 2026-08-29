@@ -1,0 +1,139 @@
+{
+  "kind": "composed",
+  "name": "S1 - The Earth Bastion (Stab-Earth vs Panel-Zoo)",
+  "description": "Can Earth's high defense, shield stacking (BarkShield), and status control withstand the sheer card velocity of the Zoo role? The simulator says Earth achieves a high 79.2% win rate against the panel, making it the non-zoo king. Let's see if a human player feels the same.   [you: stab-earth (fafnir_v2 + gullinbursti_v1 + ratatoskr_v1) | opponent: panel-zoo (jormungandr_v1 + sleipnir_v1 + hraesvelgr_v1)]",
+  "tags": [
+    "playtest",
+    "round-5",
+    "3v3"
+  ],
+  "setup": {
+    "seed": "S1-stab-earth-vs-panel-zoo",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "fafnir",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "fafnir_v2"
+        },
+        {
+          "definitionId": "gullinbursti",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "gullinbursti_v1"
+        },
+        {
+          "definitionId": "ratatoskr",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "ratatoskr_v1"
+        }
+      ],
+      "deck": [
+        "iron_will",
+        "iron_will",
+        "water_slap",
+        "rust_blood",
+        "rust_blood",
+        "boulder_smash",
+        "boulder_smash",
+        "squirrel_away",
+        "veinburst",
+        "veinburst",
+        "water_slap",
+        "keen_edge",
+        "keen_edge",
+        "shield_shards",
+        "shield_shards",
+        "stone_bark",
+        "stone_fist",
+        "stone_fist",
+        "motherlode",
+        "spiked_carapace",
+        "forage",
+        "forage",
+        "water_slap",
+        "water_slap",
+        "healing_mist",
+        "shrug_off",
+        "nettle_sting",
+        "nettle_sting",
+        "seed_bomb_v2",
+        "seed_bomb_v2",
+        "echo_chamber_v2"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "jormungandr",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "deck": [
+          "undertow",
+          "undertow",
+          "blind_spot",
+          "corrosive_leak",
+          "surge_protection",
+          "serpents_coil",
+          "serpents_coil",
+          "ink_stream",
+          "ink_stream"
+        ]
+      },
+      {
+        "definitionId": "sleipnir",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "deck": [
+          "water_slap",
+          "water_slap",
+          "slipstream",
+          "slipstream",
+          "disorienting_gust",
+          "adrenaline",
+          "tailwind",
+          "zephyr_strike",
+          "stampede",
+          "stampede",
+          "momentum_crash",
+          "hoofbeat_daemon"
+        ]
+      },
+      {
+        "definitionId": "hraesvelgr",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "deck": [
+          "feather_cache",
+          "feather_cache",
+          "war_molt",
+          "war_molt",
+          "sky_burial",
+          "sky_burial",
+          "tempest",
+          "tempest",
+          "carrion_swoop",
+          "carrion_swoop",
+          "zephyr_strike",
+          "slipstream"
+        ]
+      }
+    ],
+    "statJitter": 5
+  },
+  "version": 1,
+  "registryHash": "1:d5a18ed7",
+  "createdAt": "2026-08-25T01:18:34.056Z"
+}

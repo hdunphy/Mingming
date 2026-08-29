@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, StatusEffectInstance } from './types';
 import { battleReducer, getEffectiveCardCost } from './battleReducer';
 import { GetProgramData } from './data/programRegistry';
 import { runOne } from '../debug/balance/runBatch';
@@ -22,7 +22,7 @@ const unit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}):
     maxEnergy: 5, currentEnergy: 2,
     // Level 20, not 1: under the rev-3.3 curve an 11-power card at level 1 floors to 0
     // damage, which would make the CARDS_DISCARDED assertion meaningless.
-    level: 20, experience: 0, cardDraw: 3,
+    cardDraw: 3,
     statusEffects: [], definitionId: 'hraesvelgr', hooks: [], speed: 10,
     primaryElement: 'Air', daemons: [], blueprintsCollected: 0,
     hpIV: 0, attackIV: 0, defenseIV: 0,
@@ -45,7 +45,6 @@ function stateWith(hand: ProgramEntity[], energy: number, enemyOverrides: Partia
         enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], exhaust: [], deck: [] },
         logs: [], osLogs: [], procs: [],
         seed: '12345',
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         cardsDiscardedThisTurn: 0,
@@ -108,10 +107,11 @@ describe('X-cost cards (ticket 22)', () => {
         const noBurn = stateWith([entity('c1', 'firestorm_talon', 0)], 2);
         expect(damageDealt(noBurn, play(noBurn, 'c1'))).toBe(0);
 
+        // Stack-count-only stand-ins: the scaling reads `stacks`, never the instance `id`.
         const burn2 = stateWith([entity('c1', 'firestorm_talon', 0)], 2,
-            { statusEffects: [{ type: 'Burn', stacks: 2 }] as any });
+            { statusEffects: [{ type: 'Burn', stacks: 2 }] as unknown as StatusEffectInstance[] });
         const burn4 = stateWith([entity('c1', 'firestorm_talon', 0)], 2,
-            { statusEffects: [{ type: 'Burn', stacks: 4 }] as any });
+            { statusEffects: [{ type: 'Burn', stacks: 4 }] as unknown as StatusEffectInstance[] });
 
         const d2 = damageDealt(burn2, play(burn2, 'c1'));
         const d4 = damageDealt(burn4, play(burn4, 'c1'));

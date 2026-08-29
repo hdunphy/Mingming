@@ -8,11 +8,11 @@
  * THE LIVE-BATTLE HAZARD (the reason this file is not just three lines in the panel)
  *
  * A battle in flight is a pending write to whatever slot is active *when it ends*, not the
- * one that was active when it started. `BattleArena` dispatches `syncPartyStats`,
- * `applyRewardBundle`, `addRelic` and the gauntlet actions on victory, and the autosave in
- * `src/ui/store/store.ts:43-54` follows them into localStorage. Start a debug battle in slot
- * A, switch to the real save, finish the battle: the fabricated levels and rewards land on
- * the real roster — `syncPartyStats` matches by id, and debug scenarios reuse real ids.
+ * one that was active when it started. `BattleArena` dispatches `addBlueprint`,
+ * `markGymCleared` and `recordTierCleared` on victory (ticket 11: the scrap, cards and drivers
+ * go to the run instead), and the autosave in `src/ui/store/store.ts` follows them into
+ * localStorage. Start a debug battle in slot A, switch to the real save, finish the battle: the
+ * fabricated rewards land on the real ranch.
  *
  * So `switchToSlot` dispatches `setBattleState(null)` BEFORE `setActiveSlotId`. Ordering is
  * the whole guarantee: while the battle still exists the old slot is still the active one, and
@@ -27,10 +27,12 @@
  *
  * VALIDATION
  *
- * Reads go through `parseSaveFileText` from `./saveEdit` — the same JSON.parse -> `migrateSave`
- * -> `PlayerSaveSchema` path `loadGame` uses and the same one the save editor's file import
- * uses. A slot whose payload fails is refused *before* the pointer moves, so a corrupt slot
- * cannot become the active slot and wedge the autosave with nothing but a console.error.
+ * A slot's stored payload is a save v4 **ranch envelope** (ticket 23), so reads validate it with
+ * `RanchSaveSchema` and hand the inner ranch straight to `loadSave` — since ticket 11 that is
+ * literally the slice's state type, so there is no projection step left. There is no migration
+ * step either: v4 is the floor, and a payload that fails is refused *before* the pointer moves, so
+ * a corrupt slot cannot become the active slot and wedge the autosave with nothing but a
+ * console.error.
  *
  * React-free on purpose: `dispatch` is a parameter, so all of this is testable headlessly.
  */
@@ -44,10 +46,10 @@ import {
     setActiveSlotId,
     type SaveSlot,
 } from '../engine/SaveSlots';
-import type { IPlayerSave } from '../engine/gameTypes';
+import { RanchSaveSchema, type IRanchState } from '../engine/runTypes';
 import { setBattleState } from '../ui/store/battleSlice';
 import { loadSave, resetSave } from '../ui/store/gameSlice';
-import { parseSaveFileText, type SaveEditAction } from './saveEdit';
+import { type SaveEditAction } from './saveEdit';
 
 /** Same shape every debug write reports: applied, or refused with reasons and no side effect. */
 export interface SlotOpResult {
@@ -65,7 +67,7 @@ export type SlotDispatch = (action: SaveEditAction) => void;
 
 export type SlotSaveRead =
     | { readonly kind: 'empty' }
-    | { readonly kind: 'valid'; readonly save: IPlayerSave }
+    | { readonly kind: 'valid'; readonly save: IRanchState }
     | { readonly kind: 'invalid'; readonly issues: ReadonlyArray<string> };
 
 /**
@@ -77,8 +79,25 @@ export type SlotSaveRead =
 export function readSlotSave(slotId: string): SlotSaveRead {
     const raw = readSlotRaw(slotId);
     if (raw === null) return { kind: 'empty' };
-    const parsed = parseSaveFileText(raw);
-    return parsed.ok ? { kind: 'valid', save: parsed.save } : { kind: 'invalid', issues: parsed.issues };
+
+    let json: unknown;
+    try {
+        json = JSON.parse(raw);
+    } catch (err) {
+        return { kind: 'invalid', issues: [`not valid JSON: ${String(err)}`] };
+    }
+
+    const parsed = RanchSaveSchema.safeParse(json);
+    if (!parsed.success) {
+        return {
+            kind: 'invalid',
+            issues: parsed.error.issues.map((issue) => `[${issue.path.join('.')}] ${issue.message}`),
+        };
+    }
+
+    // Ticket 11: the envelope's `ranch` IS the slice's state. There is no projection step left —
+    // `loadSave` takes it verbatim, exactly as `App.tsx`'s boot effect does.
+    return { kind: 'valid', save: parsed.data.ranch };
 }
 
 function slotExists(slotId: string): boolean {
@@ -103,7 +122,7 @@ export function switchToSlot(slotId: string, dispatch: SlotDispatch): SlotOpResu
     const target = readSlotSave(slotId);
     if (target.kind === 'invalid') {
         return refuse(
-            `slot ${slotId} holds a save that fails PlayerSaveSchema — not switched, so the ` +
+            `slot ${slotId} holds a payload that fails RanchSaveSchema — not switched, so the ` +
                 'autosave is not wedged:',
             ...target.issues,
         );
@@ -116,7 +135,7 @@ export function switchToSlot(slotId: string, dispatch: SlotDispatch): SlotOpResu
         return refuse(`could not write the slot index — still on ${getActiveSlotId()}`);
     }
 
-    // (4) An empty slot loads the default save, which is the correct fresh-run state and also
+    // (4) An empty slot resets to an empty ranch, which is the correct fresh-run state and also
     // stops the previous slot's roster from being autosaved into this one.
     dispatch(target.kind === 'valid' ? loadSave(target.save) : resetSave());
     return ok();
@@ -134,7 +153,7 @@ export function createSlotOp(name: string, copyFromSlotId?: string): SlotOpResul
         if (!slotExists(copyFromSlotId)) return refuse(`unknown source slot: ${copyFromSlotId}`);
         const source = readSlotSave(copyFromSlotId);
         if (source.kind === 'invalid') {
-            return refuse(`source slot ${copyFromSlotId} fails PlayerSaveSchema — nothing branched:`, ...source.issues);
+            return refuse(`source slot ${copyFromSlotId} fails RanchSaveSchema — nothing branched:`, ...source.issues);
         }
     }
 

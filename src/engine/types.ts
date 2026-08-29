@@ -1,4 +1,3 @@
-import { object } from "zod";
 
 export type Element = 'Fire' | 'Water' | 'Earth' | 'Air' | 'Nature' | 'Ice' | 'Light' | 'Dark' | 'None';
 export const ELEMENTS: Element[] = ['Fire', 'Water', 'Earth', 'Air', 'Nature', 'Ice', 'Light', 'Dark', 'None'];
@@ -94,6 +93,20 @@ export interface IMingmingDefinition {
    * `getDeckForOS(definitionId, osId)` rather than indexing directly.
    */
   readonly decks: Record<string, string[]>;
+  /**
+   * Ticket 09: which five cards of a species' deck a run actually STARTS with,
+   * keyed by firmware id exactly as `decks` is.
+   *
+   * Ticket 08 ruled that a run does not hand the player the whole tuned deck. A member
+   * joins with 5 `startKit` cards plus 3 generics; a recruit joins with 3 plus 1. The
+   * tuned deck stays the design target the run builds back toward, so these tags name
+   * WHICH five of it survive the cut rather than describing a separate list — every id
+   * here must appear in that same species+OS `decks` entry, copy counts included.
+   *
+   * Optional because only the six launch species (`LAUNCH_SPECIES`) are tagged today;
+   * the other ten get their tags when their decks ship.
+   */
+  readonly startKits?: Record<string, ReadonlyArray<string>>;
   readonly moves?: ReadonlyArray<IMove>; // Signature moves for this entity (especially bosses/enemies)
   readonly artReference?: string;
   /**
@@ -112,8 +125,6 @@ export interface IMingmingState {
   id: string; // instance ID
   definitionId: string; // architecture name (e.g. 'fenrir')
   nickname?: string;
-  level: number;
-  experience: number;
   activeOS?: string;
   blueprintsCollected: number; // For OS swapping
   attackIV: number;
@@ -167,17 +178,44 @@ export interface IBattleEntity extends IMingmingState {
 // --- Transformation Logic ---
 
 /**
- * Calculates a standard stat (Attack/Defense) using the Unity Legacy Formula.
+ * THE CALIBRATION LEVEL — ticket 21 (steam-release map), from `vision.md`:
+ * *"LEVELING REMOVED. The engine freezes at the level-15 calibration point. No XP, no grind —
+ * progression IS acquisition (species, OS, cards, rolls). Difficulty = enemy team design, never
+ * stat inflation."*
+ *
+ * 15 is not arbitrary and is not new: it is `BALANCE_LEVEL` in `debug/balance/balanceScenarios.ts`,
+ * the level every row of the balance corpus has always been computed at ("low enough that base
+ * decks are still what a unit is fighting with, high enough that the stat curve is out of its
+ * early-level noise"). Freezing here is what makes the entire existing balance corpus become the
+ * shipped game's numbers permanently, rather than one sample of a moving curve.
+ *
+ * This constant is the ONLY survivor of the level system. Nothing reads a per-entity level any
+ * more, because no entity has one.
  */
-export function calculateStandardStat(base: number, modifier: number, level: number): number {
-  return Math.floor(((2 * base) + modifier + 25) * level / 100) + 5;
+export const CALIBRATION_LEVEL = 15;
+
+/**
+ * Standard stat (Attack/Defense), Unity Legacy Formula, frozen at `CALIBRATION_LEVEL`.
+ *
+ * The `level` parameter is GONE rather than defaulted. A default would leave a seam a future
+ * caller could pass 20 into and silently re-introduce stat inflation — the exact thing
+ * `vision.md` rules out ("difficulty = enemy team design, never stat inflation"). With no
+ * parameter, there is nothing to pass.
+ */
+export function calculateStandardStat(base: number, modifier: number): number {
+  return Math.floor(((2 * base) + modifier + 25) * CALIBRATION_LEVEL / 100) + 5;
 }
 
 /**
- * Calculates Health using the Unity Legacy Formula.
+ * The damage formula's base coefficient, frozen. Was `Math.floor((2 * level) / 5) + 2`, which at
+ * `CALIBRATION_LEVEL` is exactly 8. Lives here rather than in `combatUtils` so the one number the
+ * whole damage curve rests on sits next to the constant it was derived from.
  */
-export function calculateHealth(base: number, modifier: number, level: number): number {
-  return calculateStandardStat(base, modifier, level) + level + 30;
+export const CALIBRATION_LEVEL_DAMAGE_BASE = Math.floor((2 * CALIBRATION_LEVEL) / 5) + 2;
+
+/** Health, Unity Legacy Formula, frozen at `CALIBRATION_LEVEL`. Same reasoning as above. */
+export function calculateHealth(base: number, modifier: number): number {
+  return calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30;
 }
 
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {
@@ -185,7 +223,7 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
   const defenseIV = instance.defenseIV ?? 0;
   const hpIV = instance.hpIV ?? 0;
 
-  const finalHp = calculateHealth(definition.baseStats.hp, hpIV, instance.level);
+  const finalHp = calculateHealth(definition.baseStats.hp, hpIV);
 
   return {
     ...instance,
@@ -193,8 +231,8 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     maxHp: finalHp,
     cardDraw: definition.cardDraw,
     maxEnergy: definition.baseStats.energy,
-    attack: calculateStandardStat(definition.baseStats.attack, attackIV, instance.level),
-    defense: calculateStandardStat(definition.baseStats.defense, defenseIV, instance.level),
+    attack: calculateStandardStat(definition.baseStats.attack, attackIV),
+    defense: calculateStandardStat(definition.baseStats.defense, defenseIV),
     speed: 10, // Placeholder for future logic
 
     primaryElement: definition.primaryElement,
@@ -213,13 +251,6 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
 }
 
 /**
- * Calculates the total XP required to reach a specific level boundary.
- */
-export function getExpForLevel(level: number): number {
-  return Math.round(0.8 * Math.pow(level, 3));
-}
-
-/**
  * The cost an X-cost card is treated as for STATIC purposes - budget audit, sorting,
  * UI grouping. 3 is the practical ceiling: a species runs 2 base Energy and at most
  * one +1 ramp (hraesvelgr's UPDRAFT_KERNEL), so an X card can never be paid more than
@@ -233,7 +264,7 @@ export function numericBaseCost(baseCost: number | 'X'): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE' | 'REVIVE';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -251,6 +282,25 @@ export interface ProgramAction {
   readonly conditionals?: ReadonlyArray<ProgramConstraint>;
   readonly target?: TargetType | string; // Often target is defined on Action or on Program
   readonly error?: string; // Validation error
+  /*
+   * THE ONE `any` TICKET 55 DID NOT REMOVE, AND THE REASON.
+   *
+   * This index signature is the card data model. `programs.json` is a flat structure and every
+   * action variant below (`AttackActionData`, `StatusActionData`, ...) extends this interface with
+   * its own fields, so the signature is what lets a `ProgramAction` be read as `action.power`,
+   * `action.stacks`, `action.status` before it has been narrowed to a variant. Roughly 200 reads
+   * across the engine, the AI, the balance harness and the UI go through it.
+   *
+   * `unknown` would be the correct type and would break every one of those reads at once. The real
+   * fix is to make `ProgramAction` a discriminated union over `ActionType` and delete the signature,
+   * which is a redesign of how cards are authored — **deck-archetypes' territory, not this map's**
+   * (ticket 55 says so in as many words: "if step 4 turns out to need a public engine type changed,
+   * that is a deck-archetypes concern... file it there and stop").
+   *
+   * So it is disabled here, once, with this note — rather than left to fail a gate that is now
+   * blocking, or "fixed" by a rewrite nobody ruled.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly [key: string]: any; // Flat structure for JSON
 }
 
@@ -278,6 +328,30 @@ export interface StatusActionData extends ProgramAction {
 export interface HealActionData extends ProgramAction {
   readonly type: 'HEAL';
   readonly power: number;
+}
+
+/**
+ * Ticket 15 — the ONE action the macro set could not express with what was already here.
+ *
+ * Every resolution loop in the engine skips a target at 0 HP (`battleReducer`'s action loop,
+ * `handleExecuteIntent`, `resolveProgramFree`), which is correct for all 216 cards and is exactly
+ * what a revive must not do. HEAL cannot be pressed into service either: a heal on a downed unit
+ * would restore HP without ever being *about* the downing, and it would be reachable by accident
+ * from any existing heal card the day the loop guard was relaxed.
+ *
+ * So this is a distinct verb, and it is a verb the engine can only apply deliberately. It is a
+ * PERCENTAGE of max HP rather than a `power` figure because a revive is a rescue rather than a heal
+ * curve — the caller wants "back on their feet at half", not "back on their feet at whatever the
+ * calibration says 30 is worth today. Denominating it in power would also make it silently better
+ * on a big frame than a small one, which is the wrong way round for a safety net.
+ *
+ * `economy-session.md` rules the outcome ("Gauntlet death: revivable, never gone-for-gauntlet") and
+ * defers the shape; `macroRegistry.REVIVE_PERCENT_MAX_HP` carries the number and the argument.
+ */
+export interface ReviveActionData extends ProgramAction {
+  readonly type: 'REVIVE';
+  /** Percentage of the target's max HP to come back on. Clamped to 1..100 by the executor. */
+  readonly percent: number;
 }
 
 export interface DrawActionData extends ProgramAction {
@@ -442,15 +516,6 @@ export interface ProgramEntity {
 
 // --- Deck & State Definitions ---
 
-export interface LevelUpEvent {
-  readonly entityId: string;
-  readonly nickname: string;
-  readonly oldLevel: number;
-  readonly newLevel: number;
-  readonly oldStats: { hp: number; attack: number; defense: number };
-  readonly newStats: { hp: number; attack: number; defense: number };
-}
-
 export interface IDeckState {
   readonly ownerId: string;
   readonly deck: ReadonlyArray<string>; // Array of ProgramData IDs
@@ -525,9 +590,79 @@ export interface IBattleState {
    * Undefined is treated as 'MOVES' everywhere.
    */
   readonly enemyMode?: EnemyCombatMode;
+  /**
+   * Which grade of `TacticalAI` plays the ENEMY side — steam-release ticket 60's enemy ladder,
+   * wired by ticket 67. `'greedy'` skips the one-turn lookahead, `'lite'` narrows it, `'full'` is
+   * the shipped default.
+   *
+   * Decided once at battle creation, exactly as `enemyMode` is, and for the same reason: it is a
+   * property of the fight the run rolled, not a setting a turn can change. Undefined means the
+   * process-wide default (`TacticalAI.AI_TIER`, from the environment), which is what every battle
+   * outside a run still gets.
+   *
+   * **The player's half is never graded.** The AI does not play it in the shipped game, and in a
+   * harness that plays both sides the player deliberately stays on the process default — grading
+   * both would measure two changes at once.
+   */
+  readonly enemyAiTier?: 'greedy' | 'lite' | 'full';
   /** Stacks removed by the most recent STATUS consume action (for STATUS_CONSUMED heal scaling). Reset each card play. */
   readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;
   readonly counters: Record<string, number>;
-  readonly levelUpQueue: ReadonlyArray<LevelUpEvent>;
+  /**
+   * What every hit of the CURRENT action actually did — see `IDamageRecord`.
+   *
+   * Cleared at the top of each committed action (`handlePlayProgram`, `handleFireMacro`,
+   * `handleExecuteIntent`, `handleEndTurn`) and appended to by `handleAttack`, so it always reads
+   * "what this one play did", never "what this battle did". Optional so existing state fixtures
+   * keep compiling; every read defaults to `[]`.
+   */
+  readonly damageLedger?: ReadonlyArray<IDamageRecord>;
+}
+
+/**
+ * ONE HIT, AS THE ENGINE ACTUALLY RESOLVED IT.
+ *
+ * # Why this exists
+ *
+ * Henry, 2026-08-24: *"we had so many bugs last time... so we need to share damage calculation
+ * functions, just be able to pull out from it before it gets `Math.max(0, damage)`. Just no bugs,
+ * it's really important to know the exact damage."*
+ *
+ * Before this, the card face's damage number was **measured** rather than reported: the preview
+ * cast the card into a throwaway state and diffed the target's HP pool. That could not drift from
+ * the engine — which is why it was built that way; ticket 104 paid 52 parity mismatches to learn
+ * the lesson — but it could only ever see what HP *moved*, and two things move HP less than the
+ * card hits for:
+ *
+ * - the floor in `effectHandlers.handleAttack`, `Math.max(0, currentHp - finalDamage)`, so a lethal
+ *   blow read as the target's remaining HP — 5 damage on a 5 HP target, whatever the card;
+ * - BarkShield, which absorbs inside `onPostDamage` *before* HP is touched, so a shielded hit read
+ *   as **no number at all**.
+ *
+ * The fix is not a second calculation to check against — that is the drift trap again. It is for
+ * the one place that applies damage to *write down what it did*, and for the preview, the floating
+ * numbers and anything else that needs it to read that record. There is still exactly one
+ * calculation; it now reports itself instead of being inferred from its side effects.
+ *
+ * # The three numbers
+ *
+ * `raw = absorbed + applied + overkill`, always. Each answers a different question:
+ * - `raw` — what the card hit for. This is the number on the card face.
+ * - `absorbed` — what a shield ate. The player needs it to know how much bark is left.
+ * - `applied` — what HP actually lost. This is the health bar's movement.
+ *
+ * Overkill is deliberately not a field: it is `raw - absorbed - applied`, and a stored number that
+ * can disagree with its own inputs is exactly the class of bug this record exists to end.
+ */
+export interface IDamageRecord {
+  readonly sourceId: string;
+  readonly targetId: string;
+  /** Post-multiplier damage, before shields and before the HP floor. The card's true output. */
+  readonly raw: number;
+  /** Eaten by a shield status — BarkShield, and anything else with an `onPostDamage`. */
+  readonly absorbed: number;
+  /** What HP actually lost, after shields and after the floor at 0. */
+  readonly applied: number;
+  readonly element: Element;
 }

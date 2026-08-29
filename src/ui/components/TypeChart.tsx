@@ -1,10 +1,10 @@
 import React from 'react';
-import { ElementalMatrix, STAB_BONUS } from '../../engine/combatUtils';
+import { STAB_BONUS } from '../../engine/combatUtils';
 import { ELEMENTS } from '../../engine/types';
 import type { Element } from '../../engine/types';
 import { getElementAccent } from '../utils/contrastText';
-import { getElementIcon } from './ProgramCard';
-import { formatMultiplier } from './ElementMatchupTooltip';
+import { getElementIcon } from './cardIcons';
+import { formatMultiplier, getMatchupMultiplier } from './elementMatchups';
 
 /**
  * The 8 combat elements. 'None' is deliberately excluded from the chart:
@@ -14,15 +14,6 @@ import { formatMultiplier } from './ElementMatchupTooltip';
  * the player "Neutral — no matchups, no STAB" when they hover a None chip.)
  */
 export const CHART_ELEMENTS: Element[] = ELEMENTS.filter(e => e !== 'None');
-
-/**
- * Pure, runtime-derived matchup lookup: attacker row → defender column of
- * the engine's ElementalMatrix. Returns 1 for neutral (missing) entries so
- * the chart can never fall out of sync with combat math.
- */
-export function getMatchupMultiplier(attacker: string, defender: string): number {
-    return ElementalMatrix[attacker as Element]?.[defender as Element] ?? 1;
-}
 
 /** Compact cell text: 2 → "×2", 0.5 → "×½", other non-1 values → "×<n>". */
 const cellLabel = (mult: number): string =>

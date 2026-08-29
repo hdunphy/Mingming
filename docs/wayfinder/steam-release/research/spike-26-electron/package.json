@@ -1,0 +1,23 @@
+{
+  "name": "mingming-desktop-spike",
+  "productName": "Mingming",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ticket 26 spike — boots Mingming's built dist/ inside Electron to measure it. Not production packaging; that is ticket 42.",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-builder --linux dir"
+  },
+  "build": {
+    "appId": "com.hdunphy.mingming.spike",
+    "files": ["main.cjs", "app/**"],
+    "linux": { "target": ["dir"] },
+    "win": { "target": ["dir"] }
+  },
+  "devDependencies": {
+    "electron": "43.4.1",
+    "electron-builder": "^26.0.0",
+    "steamworks.js": "0.4.0"
+  }
+}

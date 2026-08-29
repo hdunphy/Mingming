@@ -51,12 +51,14 @@ function render(presentation: DebugPresentation): string {
 }
 
 describe('SaveSlotsPanel', () => {
-    it('renders the active slot and its storage key', () => {
+    it('renders the active slot and BOTH of its storage keys', () => {
+        // Ticket 23: a slot is two keys now — the ranch that persists and the run in progress.
         renameSlot('slot_1', 'Real Save');
         const markup = render('docked');
 
         expect(markup).toContain('ACTIVE SLOT: slot_1');
-        expect(markup).toContain('mingming_save__slot_1');
+        expect(markup).toContain('mingming_ranch__slot_1');
+        expect(markup).toContain('mingming_run__slot_1');
         expect(markup).toContain('Real Save');
     });
 

@@ -1,10 +1,11 @@
 import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, StatusType } from '../types';
-import type { HookContext } from '../core/Hooks';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
+import type { HookAction, HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
-import { checkDefeat } from '../effectHandlers'; // Need to refactor checkDefeat or keep it in effectHandlers for now
+ // Need to refactor checkDefeat or keep it in effectHandlers for now
 import { applyMutations, executeDraw, executeStatusDamageCalculated } from '../resolutionEngine';
 import { GetProgramData } from '../data/programRegistry';
+import { revivedHpFor } from '../data/macroRegistry';
 import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
@@ -14,11 +15,25 @@ function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
 }
 
+/** A writable view of a ProgramAction — every field of one, index signature included, is `readonly`. */
+type MutableProgramAction = { -readonly [K in keyof ProgramAction]: ProgramAction[K] };
+
+/**
+ * Every action shape an executor can be handed.
+ *
+ * Cards, macros and discard effects arrive as `ProgramAction`. Firmware hooks do NOT:
+ * `HookFactory.executeActions` routes a `HookAction` through this same registry, and a
+ * `HookAction` is not a `ProgramAction` (its `type` also covers 'LOG' | 'COUNTER' | 'DRAW' |
+ * 'MAX_ENERGY'). The registry's element type used to be `ActionExecutor<any>`, which hid that
+ * second caller completely.
+ */
+export type ExecutableAction = ProgramAction | HookAction;
+
 /**
  * Base abstract class for executing ProgramAction data.
  * Pure execution logic mapping state + pure-data -> new state.
  */
-export abstract class ActionExecutor<T extends ProgramAction> {
+export abstract class ActionExecutor<T extends ExecutableAction> {
     abstract execute(state: IBattleState, sourceId: string, targetId: string, actionData: T, program: ProgramData | undefined, context: HookContext): IBattleState;
 }
 
@@ -225,8 +240,8 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         const { element, scaling } = actionData;
 
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
-        let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
-        let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
         if (!target) return state;
 
@@ -416,8 +431,8 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, actionData: HealActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
         const { power } = actionData;
         const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
-        let source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
-        let target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
 
         if (!target) return state;
         if (!source) return state;
@@ -427,7 +442,7 @@ export class HealExecutor extends ActionExecutor<HealActionData> {
         // (effectHandlers.handleHealEffect) that every heal funnels through.
         // Ticket 43: `healOverride` is gone - every card heal is power-based, so it scales with
         // level. A flat heal was overpowered on a level-5 frame and negligible on a level-50 one.
-        const baseHeal = calculateHeal(source as any, target, power);
+        const baseHeal = calculateHeal(source, target, power);
         // STATUS_CONSUMED scaling: heal per stack removed by a preceding
         // consume action in the same card (e.g. Ash Reclamation).
         const healAmount = actionData.scaling === 'STATUS_CONSUMED'
@@ -546,10 +561,10 @@ export class DiscardExecutor extends ActionExecutor<DiscardActionData> {
 
                     if (owner) {
                         for (const effectAction of discardedData.discardEffect) {
-                            const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[effectAction.type];
+                            const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[effectAction.type];
                             if (executor) {
                                 // For discard effects, source and target are the owner of the deck
-                                newState = executor.execute(newState, targetId, targetId, effectAction as any, discardedData, _context);
+                                newState = executor.execute(newState, targetId, targetId, effectAction, discardedData, _context);
                             } else {
                                 console.warn(`[DiscardExecutor] No executor found for discard effect type: ${effectAction.type}`);
                             }
@@ -698,10 +713,10 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
                     continue;
                 }
 
-                const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[action.type];
+                const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[action.type];
                 if (executor) {
                     // For simplicity, we use the current target for the repeated actions
-                    finalState = executor.execute(finalState, sourceId, targetId, action as any, lastProgramData, _context);
+                    finalState = executor.execute(finalState, sourceId, targetId, action, lastProgramData, _context);
                 }
             }
         }
@@ -756,14 +771,18 @@ export function resolveProgramFree(
         const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
         if (!target || target.currentHp <= 0) continue;
 
-        let resolved: ProgramAction = { ...action };
-        if (growth > 0 && resolved.type === 'ATTACK' && (resolved as any).power !== undefined) {
-            (resolved as any).power = (resolved as any).power + growth;
+        // `resolved` is a fresh shallow copy, so mutating it is safe - but every field on a
+        // ProgramAction is declared readonly (the index signature included), hence the mutable
+        // view for the write. The read side goes through AttackActionData, which is what a
+        // `type === 'ATTACK'` action actually is.
+        const resolved: ProgramAction = { ...action };
+        if (growth > 0 && resolved.type === 'ATTACK' && (resolved as AttackActionData).power !== undefined) {
+            (resolved as MutableProgramAction).power = (resolved as AttackActionData).power + growth;
         }
 
-        const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<any>>)[resolved.type];
+        const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[resolved.type];
         if (executor) {
-            finalState = executor.execute(finalState, sourceId, tId, resolved as any, programData, { ...context, state: finalState });
+            finalState = executor.execute(finalState, sourceId, tId, resolved, programData, { ...context, state: finalState });
         }
     }
 
@@ -952,8 +971,65 @@ export class ShiftStanceExecutor extends ActionExecutor<ShiftStanceActionData> {
     }
 }
 
+/**
+ * REVIVE — ticket 15. Brings a unit at 0 HP back at a percentage of its max HP.
+ *
+ * The one thing in the engine that deliberately acts on a dead unit, and it is written so that it
+ * can only ever do that: a target with HP left is refused outright, so this can never be smuggled in
+ * as a percentage heal. `battleReducer.handleFireMacro` is what lets the target through its
+ * alive-check, and it does so only for this action type.
+ *
+ * **It does not run `checkDefeat` in reverse, because there is nothing to run.** `checkDefeat` fires
+ * `onUnitFainted` and clears the unit's daemons; the daemons are gone for good (a revived unit
+ * re-installs them like anyone else) and no hook phase exists for un-fainting. Death is derived from
+ * `currentHp <= 0` everywhere in the engine — there is no `isDead` flag to clear — so restoring HP
+ * IS the revival, and the unit is a legal target, a legal caster and a legal hook owner again the
+ * moment this returns.
+ *
+ * Statuses are deliberately left alone: whatever killed them (a Burn, a Poison) is still on them, so
+ * a revive into a burning board is a real decision rather than a full cleanse in disguise. Energy is
+ * left alone too — the unit gets its refill at the next `processPreTurn` like everyone else, so
+ * reviving does not hand the player a fresh caster mid-turn.
+ */
+export class ReviveExecutor extends ActionExecutor<ReviveActionData> {
+    execute(state: IBattleState, _sourceId: string, targetId: string, actionData: ReviveActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
+        const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
+        const target = findEntity(targetId, state.playerParty) || findEntity(targetId, state.enemyParty);
+        if (!target) return state;
+        // Only the downed. A revive on a living unit is a bug at the call site, not a small heal.
+        if (target.currentHp > 0) return state;
+
+        // Ticket 18 moved the arithmetic (the 1-100 clamp and the floor of 1) to
+        // `macroRegistry.revivedHpFor`, because the run has to record the same number this writes:
+        // `runSlice.reviveGauntletMember` takes the revived member out of `downedMemberIds` and puts
+        // this HP into `persistedHp`, or the next gauntlet fight re-downs them. Two copies of the
+        // formula would be two answers to "how much HP did that revive give".
+        const restored = revivedHpFor(target.maxHp, actionData.percent ?? 0);
+
+        const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
+            party.map(e => (e.id === targetId ? { ...e, currentHp: restored, tempHp: 0 } : e));
+
+        let newState: IBattleState = {
+            ...state,
+            playerParty: updateParty(state.playerParty),
+            enemyParty: updateParty(state.enemyParty)
+        };
+        newState = addLog(newState, `  ✨ ${target.name} is revived at ${restored}/${target.maxHp} HP!`);
+
+        globalBattleEventBus.emit({
+            type: 'HEAL',
+            targetId,
+            amount: restored,
+            sourceId: _sourceId,
+            timestamp: Date.now()
+        });
+
+        return newState;
+    }
+}
+
 // Registry to route ActionType to Executors
-export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
+export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<ExecutableAction>> = {
     'ATTACK': new AttackExecutor(),
     'STATUS': new StatusExecutor(),
     'HEAL': new HealExecutor(),
@@ -972,5 +1048,6 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<any>> = {
     'BUFF_NEXT_PROGRAM': new BuffNextProgramExecutor(),
     'REDIRECT_TARGET': new RedirectTargetExecutor(),
     'FORCE_DISCARD': new ForceDiscardExecutor(),
-    'SHIFT_STANCE': new ShiftStanceExecutor()
+    'SHIFT_STANCE': new ShiftStanceExecutor(),
+    'REVIVE': new ReviveExecutor()
 };

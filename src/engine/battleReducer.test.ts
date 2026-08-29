@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
 import { globalBattleEventBus } from './events';
-import { GetProgramData } from './data/programRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
@@ -27,8 +26,8 @@ function createMockState(): IBattleState {
         lastProgramPlayed: null,
         counters: {},
         playerParty: [
-            { id: 'p1', currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Hero', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Fire', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: [] } as IBattleEntity,
-            { id: 'p2', currentEnergy: 5, maxEnergy: 10, statusEffects: [], name: 'Ally', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'def1', primaryElement: 'Water', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: [] } as IBattleEntity
+            { id: 'p1', currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Hero', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, definitionId: 'def1', primaryElement: 'Fire', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: [] } as IBattleEntity,
+            { id: 'p2', currentEnergy: 5, maxEnergy: 10, statusEffects: [], name: 'Ally', hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, definitionId: 'def1', primaryElement: 'Water', currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: [] } as IBattleEntity
         ],
         enemyParty: [],
         playerDeck: {
@@ -49,7 +48,6 @@ function createMockState(): IBattleState {
             discard: [], exhaust: []
         },
         cardsPlayedThisTurn: 0,
-        levelUpQueue: [],
         activeRelics: []
     };
 }
@@ -193,9 +191,10 @@ describe('Battle Reducer State Machine', () => {
         expect(p1?.currentEnergy).toBe(9);
 
         // Power check: Card1 has 10 power. (10 + 10) * 2 = 40.
-        // Base damage under the rev-3.1 pace (ticket 23): floor(6 * 40 / 45) = 5 damage.
-        // P2 started with 100 HP, should have 95 HP.
-        expect(p2?.currentHp).toBe(95);
+        // Ticket 21: levelBase is frozen at 8 (was 6 at this suite's old level-10 default), so
+        // under the rev-3.1 pace (ticket 23) the hit is floor(8 * 40 / 45) = 7 damage.
+        // P2 started with 100 HP, so 93.
+        expect(p2?.currentHp).toBe(93);
 
         // Modifier should be consumed
         expect(p1?.nextProgramModifier).toBeUndefined();
@@ -274,7 +273,7 @@ describe('Battle Reducer State Machine', () => {
                 {
                     id: 'e1',
                     currentEnergy: 10, maxEnergy: 10, statusEffects: [], name: 'Boss', hpIV: 0, attackIV: 0, defenseIV: 0,
-                    blueprintsCollected: 0, level: 10, experience: 0, definitionId: 'fenrir', primaryElement: 'Fire',
+                    blueprintsCollected: 0, definitionId: 'fenrir', primaryElement: 'Fire',
                     currentHp: 100, maxHp: 100, attack: 10, defense: 10, speed: 10, cardDraw: 1, tempHp: 0, daemons: []
                 } as IBattleEntity
             ]

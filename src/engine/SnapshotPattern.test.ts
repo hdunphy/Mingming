@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
-import type { TurnPhase, IBattleEntity, ProgramEntity, IBattleState, ProgramData } from './types';
-import { globalBattleEventBus } from './events';
+import type { IBattleEntity, IBattleState } from './types';
 import { registerHook, HookPriority } from './core/Hooks';
 import { applyMutations } from './resolutionEngine';
 import { TestProgramRegistry } from './data/testProgramRegistry';
@@ -16,7 +15,7 @@ vi.mock('./data/programRegistry', async (importOriginal) => {
 
 function createMockState(): IBattleState {
     const p1: IBattleEntity = {
-        id: 'p1', name: 'Hero', level: 10, experience: 0,
+        id: 'p1', name: 'Hero', 
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Fire', statusEffects: [],
@@ -25,7 +24,7 @@ function createMockState(): IBattleState {
     };
 
     const e1: IBattleEntity = {
-        id: 'e1', name: 'Villain', level: 10, experience: 0,
+        id: 'e1', name: 'Villain', 
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Nature', statusEffects: [],
@@ -42,7 +41,6 @@ function createMockState(): IBattleState {
         logs: [],
         osLogs: [],
         procs: [],
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,

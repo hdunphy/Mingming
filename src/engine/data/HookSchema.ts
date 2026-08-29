@@ -30,7 +30,12 @@ const HookConditionSchema = z.object({
     // Ticket 53: the AND-list form. zod STRIPS unknown keys, so a `counters` block added to
     // hooks.json without this line would be silently dropped and the hook would fire unguarded.
     counters: z.array(z.object({ key: z.string(), operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number(), scope: z.enum(['GLOBAL', 'OWNER']).optional() })).optional(),
-    currentEnergy: z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional()
+    currentEnergy: z.object({ operator: z.enum(['LT', 'GT', 'LTE', 'GTE', 'EQ']), value: z.number() }).optional(),
+    // Ticket 68: the clock condition, for WAR FOOTING's escalation. Declared here for the same
+    // reason every field above says it: zod STRIPS undeclared keys, so a `turnAtLeast` in hooks.json
+    // that is missing from this object would be dropped between the file and the engine and the
+    // escalating half of the Driver would fire from turn 1 — an unguarded hook, not a dead one.
+    turnAtLeast: z.number().optional()
 });
 
 const HookActionSchema = z.object({

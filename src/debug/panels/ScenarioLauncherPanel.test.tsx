@@ -34,18 +34,20 @@ vi.stubGlobal('localStorage', {
 });
 
 import { renameSlot } from '../../engine/SaveSlots';
-import { createDefaultSave } from '../../engine/gameTypes';
-import type { IPlayerSave } from '../../engine/gameTypes';
+import type { IRanchState } from '../../engine/runTypes';
 import battleReducer from '../../ui/store/battleSlice';
-import gameReducer from '../../ui/store/gameSlice';
+import gameReducer, { createEmptyRanch } from '../../ui/store/gameSlice';
+import runReducer from '../../ui/store/runSlice';
 import { DebugUIContext, setActivePanel, setLastScenarioName, setOpen, toggleOpen } from '../debugUI';
 import type { DebugPresentation, DebugUIContextValue } from '../debugUI';
 import ScenarioLauncherPanel from './ScenarioLauncherPanel';
 
-function render(presentation: DebugPresentation = 'docked', save?: Partial<IPlayerSave>): string {
+// Ticket 11: the panel reads `state.run.run` as well as `state.game`, so the throwaway store needs
+// the run slice. `run: null` is the normal state — you are at the ranch.
+function render(presentation: DebugPresentation = 'docked', ranch?: Partial<IRanchState>): string {
     const store = configureStore({
-        reducer: { battle: battleReducer, game: gameReducer },
-        preloadedState: save ? { game: { ...createDefaultSave(), ...save } } : undefined,
+        reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
+        preloadedState: ranch ? { game: { ...createEmptyRanch(), ...ranch } } : undefined,
         middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
     });
 
@@ -75,7 +77,10 @@ describe('ScenarioLauncherPanel', () => {
         const markup = render();
 
         expect(markup).toContain('This battle will end into your &quot;Real Save&quot; save (slot_1).');
-        expect(markup).toContain('writes XP, rewards and relics into that save');
+        // Ticket 11 split the destination in two, and the banner has to say both halves: the
+        // ranch takes the blueprints and the gym clears, the run takes the scrap and the cards.
+        expect(markup).toContain('writes blueprints and gym clears into that save');
+        expect(markup).toContain('into whatever run is in progress');
         expect(markup).toContain('LAUNCH BATTLE INTO REAL SAVE');
     });
 
@@ -108,39 +113,38 @@ describe('ScenarioLauncherPanel', () => {
         const markup = render();
 
         expect(markup).toContain('Base decks');
-        expect(markup).toContain('Saved deck');
+        // Ticket 11 renamed the second mode: it reads `IRunState.deck` now, and DeckTerminal —
+        // the screen the old label pointed at — no longer exists.
+        expect(markup).toContain('Run deck');
         expect(markup).not.toContain('Ad-hoc');
-        expect(markup).toContain('DeckTerminal');
+        expect(markup).not.toContain('DeckTerminal');
     });
 
-    it('keeps relics, and says they override the save', () => {
+    it('keeps relics, and says they override game state', () => {
         const markup = render();
 
         expect(markup).toContain('RELICS');
         expect(markup).toContain('Expansion Slot');
-        expect(markup).toContain('is never read from the save');
+        expect(markup).toContain('is never read from game state');
     });
 
-    it('boots mirrored off the save with one enemy, using live registry pickers', () => {
+    it('boots mirrored off the ranch roster with one enemy, using live registry pickers', () => {
+        // Ticket 11: with no run in progress there is no party to mirror, so `mirrorSaveParty`
+        // falls back to the head of the roster — which is what this store has.
         const markup = render('docked', {
             roster: [
                 {
                     id: 'r1',
                     definitionId: 'kraken',
-                    level: 17,
-                    experience: 0,
-                    blueprintsCollected: 0,
                     attackIV: 31,
                     defenseIV: 31,
                     hpIV: 31,
                     activeOS: 'kraken_v2',
                 },
             ],
-            activeParty: ['r1'],
         });
 
         expect(markup).toContain('&quot;definitionId&quot;: &quot;kraken&quot;');
-        expect(markup).toContain('&quot;level&quot;: 17');
         // Enemy side defaults to one unit so the form is launchable immediately.
         expect(markup).toContain('&quot;definitionId&quot;: &quot;draugr&quot;');
         // The species select is the real registry, not the mockup's hardcoded list.

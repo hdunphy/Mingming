@@ -217,5 +217,113 @@ export const CANARY_COMPS: readonly CanaryComp[] = [
     },
 ];
 
-/** Every comp the suite knows about, for harnesses that want to iterate the lot. */
+// =================================================================================================
+// TICKET 18: the gym gauntlet's boss teams
+// =================================================================================================
+
+/**
+ * THE EIGHT BOSS TEAMS THE GAME CAN ACTUALLY FIELD.
+ *
+ * Ticket 18's Done-when: *"FTK/stall gates hold for the boss comps (`teamComps.ts` reused)"*. This
+ * is that reuse — the boss teams expressed in the same `Comp` shape as everything above, so
+ * `gauntlet-boss.balance.ts` can run them through `teamScenario` with no new machinery.
+ *
+ * # WHY EXACTLY EIGHT, AND WHY THESE
+ *
+ * `engine/run/gauntlet.rollGauntletFight` builds the boss team as **one species drawn from each of
+ * the run's three biomes**, and every Early Access run walks all three launch elements exactly once
+ * (`gyms.offerGyms` rule 3). The launch roster is two species per element — Fire: fenrir/skoll,
+ * Water: kraken/jormungandr, Nature: ratatoskr/huldra — so the set of teams the generator can
+ * produce is precisely the 2x2x2 product below. This is not a sample of the boss space; it IS the
+ * boss space, which is what makes a gate over it meaningful rather than indicative.
+ *
+ * # THE OS COLUMN IS THE SIGNATURE FIRMWARE, AND THAT IS NOT A CHEAT
+ *
+ * `Member` is `[species, os]` and a boss's `os` is its `boss_relic_*` id, because that is literally
+ * what the shipped entity runs. Its DECK still resolves correctly: no species has a deck keyed by a
+ * relic, so `getDeckForOS` falls back to `availableOS[0]`'s tuned list — the same fallback the engine
+ * relies on, so `teamScenario(BOSS_COMPS[i].members)` reproduces the shipped boss exactly, deck and
+ * firmware both. One shape, one resolution rule, nothing to keep in step by hand.
+ *
+ * The relic per element is `gauntlet.BOSS_RELIC_BY_ELEMENT`: Fire and Water have signatures named
+ * after them and Nature takes the element-neutral ice relic (an Energy tax on programs aimed at a
+ * poisoned target — the only one of the three whose effect names no element).
+ *
+ * # TICKET 68 MADE THIS TABLE PARTIAL, AND KNOWINGLY LEFT IT THAT WAY
+ *
+ * **These comps now describe Tidewrack and Rootfall only.** Emberfall's boss is hand-authored — a
+ * fixed trio running their own tuned OSes behind the side-level Driver WAR FOOTING (`run/bosses.ts`)
+ * — so it is not in the 2x2x2 product at all, and no `[species, os]` pair can express it: a Driver
+ * is not an `activeOS`, which is the whole of ruling 2.
+ *
+ * This file is **not** the instrument for the authored bosses and should not grow into one. The
+ * right measurement for a hand-authored fight is the run gate pinned to its gym
+ * (`npm run balance:run-gate -- --cells gauntlet:fight2 --gym gym_emberfall`), which fights the
+ * shipped entity through the shipped roll rather than a reconstruction of it. What this gate is
+ * still exactly right for is the FORMULA boss space, and that space shrinks by one gym per authoring
+ * session until it is empty — at which point this table goes, rather than being ported.
+ *
+ * # WHAT A GATE OVER THESE IS WATCHING FOR
+ *
+ * Two shapes, both of which the relics make plausible rather than theoretical:
+ *
+ * - **FTK.** FIRE ignites the whole enemy side at the end of every boss turn, and three bosses means
+ *   three ticks per round. The player arrives on carried HP with no heal between fights, so a boss
+ *   team that can kill on turn one is a run-ender nobody can play around.
+ * - **STALL.** WATER heals the boss side 5% max HP *whenever any of them is hit*, which is an
+ *   anti-damage engine that scales with how hard the player swings. Three bodies behind it is the
+ *   classic unkillable shape, and `triple-sustain-STALL` above is the same watch item on the player
+ *   side.
+ */
+export const BOSS_COMPS: readonly Comp[] = [
+    {
+        id: 'boss-fenrir-kraken-ratatoskr',
+        members: [['fenrir', 'boss_relic_fire'], ['kraken', 'boss_relic_water'], ['ratatoskr', 'boss_relic_ice']],
+        intent: 'The default draw: burst Fire, the Poison clock, and control — the fire relic\'s side-wide tick behind a heal engine.',
+    },
+    {
+        id: 'boss-fenrir-kraken-huldra',
+        members: [['fenrir', 'boss_relic_fire'], ['kraken', 'boss_relic_water'], ['huldra', 'boss_relic_ice']],
+        intent: 'Fire burst plus huldra\'s Sharp pile — the shape that beat draugr in 1v1, now with a team heal under it.',
+    },
+    {
+        id: 'boss-fenrir-jormungandr-ratatoskr',
+        members: [['fenrir', 'boss_relic_fire'], ['jormungandr', 'boss_relic_water'], ['ratatoskr', 'boss_relic_ice']],
+        intent: 'Poison at length behind the water relic: the ice relic taxes programs aimed at poisoned targets, so the two compound.',
+    },
+    {
+        id: 'boss-fenrir-jormungandr-huldra',
+        members: [['fenrir', 'boss_relic_fire'], ['jormungandr', 'boss_relic_water'], ['huldra', 'boss_relic_ice']],
+        intent: 'The attrition draw — Poison, Sharp and a reactive team heal. The stall candidate of the eight.',
+    },
+    {
+        id: 'boss-skoll-kraken-ratatoskr',
+        members: [['skoll', 'boss_relic_fire'], ['kraken', 'boss_relic_water'], ['ratatoskr', 'boss_relic_ice']],
+        intent: 'skoll on the fire relic: SHARP_STACKS scaling meets a Strength engine, the FTK candidate of the eight.',
+    },
+    {
+        id: 'boss-skoll-kraken-huldra',
+        members: [['skoll', 'boss_relic_fire'], ['kraken', 'boss_relic_water'], ['huldra', 'boss_relic_ice']],
+        intent: 'skoll burst with two debuff bodies — the draw that punishes a player arriving on low carried HP.',
+    },
+    {
+        id: 'boss-skoll-jormungandr-ratatoskr',
+        members: [['skoll', 'boss_relic_fire'], ['jormungandr', 'boss_relic_water'], ['ratatoskr', 'boss_relic_ice']],
+        intent: 'Both clocks at once: Burn from the fire relic and Poison from jormungandr, against a party that cannot heal between fights.',
+    },
+    {
+        id: 'boss-skoll-jormungandr-huldra',
+        members: [['skoll', 'boss_relic_fire'], ['jormungandr', 'boss_relic_water'], ['huldra', 'boss_relic_ice']],
+        intent: 'The meanest draw on paper — burst, Poison and Sharp with a reactive heal. If any boss team is over the line, expect it here.',
+    },
+];
+
+/**
+ * Every comp the suite knows about, for harnesses that want to iterate the lot.
+ *
+ * **`BOSS_COMPS` is deliberately NOT in here.** This list is the player-side corpus — comps built to
+ * be *measured against each other* — and a boss team is an opponent the game fields, not a team a
+ * player can build (nothing in the run grants a `boss_relic_*` OS). Folding them in would silently
+ * change what every existing harness iterating `ALL_COMPS` measures.
+ */
 export const ALL_COMPS: readonly Comp[] = [...REFERENCE_PANEL, ...CANARY_COMPS];

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { GetProgramData, getInflatedProgramRegistry } from '../../engine/data/programRegistry';
+import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 import { budgetBandFor, calculatePowerscale } from '../balance/powerscale';
 import CardForm from '../../ui/screens/CardForm';
@@ -35,8 +35,8 @@ const CardStudio: React.FC = () => {
 
     const sortedCards = useMemo(() => {
         return [...cards].sort((a, b) => {
-            let valA: any;
-            let valB: any;
+            let valA: unknown;
+            let valB: unknown;
 
             if (sortKey === 'powerscale') {
                 valA = calculatePowerscale(a).score;
@@ -45,15 +45,20 @@ const CardStudio: React.FC = () => {
                 valA = calculatePowerscale(a).perEnergy;
                 valB = calculatePowerscale(b).perEnergy;
             } else {
-                valA = (a as any)[sortKey];
-                valB = (b as any)[sortKey];
+                valA = a[sortKey];
+                valB = b[sortKey];
             }
 
             if (valA === undefined || valA === null) valA = '';
             if (valB === undefined || valB === null) valB = '';
 
-            if (valA < valB) return sortDir === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+            // A column can hold a string, a number or a boolean, and `<`/`>` reject that union
+            // (and `unknown`) at type level. The casts are erased: the comparison below is the
+            // same JS relational compare this sort has always done.
+            const cmpA = valA as number;
+            const cmpB = valB as number;
+            if (cmpA < cmpB) return sortDir === 'asc' ? -1 : 1;
+            if (cmpA > cmpB) return sortDir === 'asc' ? 1 : -1;
             return 0;
         });
     }, [cards, sortKey, sortDir]);

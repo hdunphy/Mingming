@@ -1,3 +1,12 @@
+/*
+ * TICKET 34: the token block that used to sit here is now `ui/theme/tokens.css`, imported above
+ * everything so a screen sheet can rely on the vocabulary being defined. Every name it declared is
+ * still declared — see that file's LEGACY ALIASES block — so nothing below changed appearance when
+ * it moved. New rules should reach for `--surface-*`, `--ink-*`, `--el-*`, `--fs-*` and `--gap-*`;
+ * the old names are a migration path, not a second vocabulary to choose from.
+ */
+@import './ui/theme/tokens.css';
+
 :root {
   font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -6,26 +15,6 @@
   color-scheme: dark;
   color: #f0f0f5;
   background-color: #050508;
-
-  /* Design Tokens */
-  --bg-dark: #050508;
-  --bg-card: rgba(18, 18, 24, 0.85);
-  --accent-primary: #7c3aed;
-  --hp-green: #22c55e;
-  --hp-red: #ef4444;
-  --energy-blue: #3b82f6;
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --premium-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.9);
-
-  /* Elemental Colors */
-  --fire: #ff3333;
-  --water: #3399ff;
-  --nature: #33cc33;
-  --earth: #996633;
-  --air: #87ceeb;
-  --ice: #00ffff;
-  --light: #ffff80;
-  --dark: #8000ff;
 }
 
 body {
@@ -438,18 +427,57 @@ body {
   text-align: right;
 }
 
+/* ── Energy pips (ticket 22) ─────────────────────────────────────────────────
+   THE FIT, AS ARITHMETIC — the ticket asks for the sums to live in the CSS rather
+   than in someone's eye. A `.hud-card` is 300px; `.hud-sidebar` takes 80 and
+   `.hud-body` 24 of horizontal padding, leaving 196px of content. The row spends
+   16px on the `E` label, 6px on the label gap, 8px on the row gap and 40px on the
+   `3 / 3 EP` readout (which never goes away — it is the un-hidden number), so the
+   pips get 196 − 16 − 6 − 8 − 40 = **126px**.
+
+   At the 0.6rem row below, a pip is 1.6em = 15.36px and a gap is 0.34em = 3.26px.
+   N pips cost N×15.36 + (N−1)×3.26, so six cost 108.6px and **seven cost 127.1px** —
+   the ceiling is six, and it is six by one pixel of margin rather than by rounding.
+   `ENERGY_PIP_BUDGET` in MingmingUnit.tsx holds that number, and the component swaps
+   to `.hud-energy-track` — the continuous bar — past it rather than wrapping. The
+   vertical budget is why wrapping loses: a party column spends
+   100 + 3×115 + 2×30 = 505px of the 535px a 1280×800 frame leaves under the 265px
+   console, so three wrapped rows would eat all 30px of slack. `flex-wrap: nowrap`
+   plus `overflow: hidden` make the 115px card height a guarantee rather than a hope.
+
+   Sized in `em` off the row so the whole readout scales with one font-size change
+   when ticket 37 does the general Steam Deck pass. */
+.hud-energy-pips {
+  flex: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.34em;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.6rem;
+}
+
 .hud-energy-pip {
-  width: 16px;
-  height: 8px;
+  flex: 0 0 auto;
+  width: 1.6em;
+  height: 0.8em;
   border-radius: 2px;
-  background: var(--energy-blue);
-  box-shadow: 0 0 4px rgba(59, 130, 246, 0.4);
-  transition: background 0.3s ease;
+  background: #ffcc00;
+  box-shadow: 0 0 4px rgba(255, 204, 0, 0.45);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .hud-energy-pip.empty {
   background: rgba(255, 255, 255, 0.08);
   box-shadow: none;
+}
+
+/* Energized carryover: the one Energy a player can lose by ending the turn, so it
+   gets its own colour rather than extending the gold run. */
+.hud-energy-pip.overflow {
+  background: #00e5ff;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.75);
 }
 
 /* ── XP Track ── */
@@ -1956,24 +1984,42 @@ body {
 }
 
 /* Reduced motion: glitch degrades to a simple opacity pulse */
+/*
+ * REDUCED MOTION — three states since ticket 36, not two.
+ *
+ * `system` (no attribute): the media query decides, exactly as before the settings screen existed.
+ * `on`: the player asked for less motion even though the OS did not — the same rules, applied by
+ *   attribute instead of by query.
+ * `off`: the player asked for motion even though the OS says reduce — so the media query must NOT
+ *   fire, which is why every block below is scoped to `:root:not([data-reduced-motion])`.
+ *
+ * The JS half of the same decision is `motionPrefs.prefersReducedMotion()`, and both are set in one
+ * call by `settings.applySettings` so they cannot come apart.
+ *
+ * `hud-death-fade` is hoisted out of the query it used to live inside: two blocks now reference it.
+ */
+@keyframes hud-death-fade {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hud-card.hud-death-glitch {
+  :root:not([data-reduced-motion]) .hud-card.hud-death-glitch {
     animation: hud-death-fade 0.45s ease-out both;
   }
+}
 
-  @keyframes hud-death-fade {
-    0% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0.35;
-    }
-
-    100% {
-      opacity: 1;
-    }
-  }
+:root[data-reduced-motion="on"] .hud-card.hud-death-glitch {
+  animation: hud-death-fade 0.45s ease-out both;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2099,6 +2145,65 @@ body {
 /* Unresolved choice groups breathe until the player picks.
    Pulses box-shadow only — each group keeps its own (inline) border color,
    and the cyan glow matches the CONTINUE button's "needs input" accent. */
+/* Decline one card pick (ruling 4, 2026-08-24). Deliberately understated: skipping is a real play
+   — a lean deck is what makes a 20-scrap removal worth anything — but taking a card is still the
+   thing the screen is for, so the button never outshouts the three cards next to it. */
+.reward-skip-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reward-skip-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Once declined it becomes the undo, so it has to read as ON rather than as a second offer. */
+.reward-skip-btn.skipped {
+  border-color: rgba(0, 210, 255, 0.5);
+  color: #00d2ff;
+}
+
+/* TICKET 61 §2 — where a taken card goes. Two buttons rather than a checkbox, because both
+   destinations are real choices and a checkbox would make one of them the absence of the other;
+   understated for the same reason SKIP is, since the pick itself is the decision the screen is for. */
+.reward-dest {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.reward-dest-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reward-dest-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.reward-dest-btn.on {
+  border-color: rgba(0, 210, 255, 0.5);
+  color: #00d2ff;
+}
+
 .choice-group-pending {
   animation: choice-pending-pulse 1.8s ease-in-out infinite;
 }
@@ -2141,11 +2246,17 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .choice-group-pending,
-  .report-continue-btn.armed,
-  .blueprint-flash {
+  :root:not([data-reduced-motion]) .choice-group-pending,
+  :root:not([data-reduced-motion]) .report-continue-btn.armed,
+  :root:not([data-reduced-motion]) .blueprint-flash {
     animation: none;
   }
+}
+
+:root[data-reduced-motion="on"] .choice-group-pending,
+:root[data-reduced-motion="on"] .report-continue-btn.armed,
+:root[data-reduced-motion="on"] .blueprint-flash {
+  animation: none;
 }
 
 /* === Type Chart (shared elemental matchup matrix) === */
@@ -2287,8 +2398,10 @@ body {
     50% { box-shadow: 0 0 12px rgba(46, 229, 132, 1); }
 }
 @media (prefers-reduced-motion: reduce) {
-    .card-cost.card-cost-discounted { animation: none; }
+    :root:not([data-reduced-motion]) .card-cost.card-cost-discounted { animation: none; }
 }
+
+:root[data-reduced-motion="on"] .card-cost.card-cost-discounted { animation: none; }
 
 /* ═══════════════════════════════════════════════════
    Battle Stage — Pokémon-style center spotlights
@@ -2420,9 +2533,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage-death-glitch {
+  :root:not([data-reduced-motion]) .stage-death-glitch {
     animation: hud-death-fade 0.45s ease-out both;
   }
+}
+
+:root[data-reduced-motion="on"] .stage-death-glitch {
+  animation: hud-death-fade 0.45s ease-out both;
 }
 
 /* Stage floats read larger than the HUD-card ones */
@@ -2564,4 +2681,232 @@ body {
 .stage-spot-targeted .stage-plaque {
   border-color: rgba(239, 68, 68, 0.7);
   box-shadow: 0 0 16px rgba(239, 68, 68, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TICKET 22 — 3v3 GAME-SIDE COMPLETION
+   Target validity you can see before you commit, true numbers in the hand, and
+   the draw formula's arithmetic. Nothing here is a size pass: ticket 37 owns the
+   general Steam Deck work. What IS load-bearing is that none of it changes the
+   115px height of a `.hud-card`, because six of those are what has to fit a
+   1280x800 frame — see the arithmetic on `.hud-energy-pips`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Target validity on the unit ──
+   A legal target gets a quiet green edge; an illegal one is dimmed AND carries
+   its own sentence. Tickets 13/14/20 set the convention and MacroRack states it:
+   a silently inert control is indistinguishable from a bug. */
+/* `:not(...)` so the green never steals the frame from the two selections that
+   outrank it — the purple "this is my caster" and the red "this is my target" are
+   answers to different questions and must survive a card being picked up. */
+.hud-card.hud-target-legal:not(.hud-selected):not(.hud-targeted) {
+  border-color: rgba(34, 197, 94, 0.55);
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.25), 0 4px 20px rgba(0, 0, 0, 0.7);
+}
+
+/* Dimmed on the INNER panels rather than on `.hud-card`, following the `.hud-dead`
+   precedent above: an opacity on the card would take the refusal sentence down with
+   it, and an unreadable explanation is the same as no explanation. */
+.hud-card.hud-target-illegal .hud-sidebar,
+.hud-card.hud-target-illegal .hud-body {
+  opacity: 0.5;
+  filter: saturate(0.3);
+}
+
+.hud-target-flag {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  line-height: 1.35;
+  /* Wraps rather than truncating: the whole point of the sentence is that it can
+     be read. Absolutely positioned so a two-line refusal cannot grow the card. */
+  white-space: normal;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.hud-target-flag.legal {
+  color: #7ef0a6;
+  background: rgba(6, 26, 14, 0.92);
+  border: 1px solid rgba(34, 197, 94, 0.6);
+}
+
+.hud-target-flag.illegal {
+  color: #ffb3b3;
+  background: rgba(30, 8, 8, 0.94);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  text-transform: none;
+  font-weight: 600;
+}
+
+.hud-card[data-side="enemy"] .hud-target-flag {
+  left: auto;
+  right: 0;
+  text-align: right;
+}
+
+/* ── The hand's true readout ──
+   Always on, never hover-gated: the player is choosing BETWEEN cards, so the
+   numbers have to be legible without probing each one. */
+.card-true-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 5px;
+  margin-top: 5px;
+  padding: 4px 5px;
+  border-radius: 5px;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.card-true-readout.lethal {
+  background: rgba(255, 68, 68, 0.2);
+  border-color: rgba(255, 68, 68, 0.75);
+}
+
+.card-true-number {
+  font-size: 0.86rem;
+  font-weight: 900;
+  color: #ff6b6b;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+.card-true-target {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.card-true-chip {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.card-true-chip.super {
+  color: #4dff88;
+  border-color: rgba(77, 255, 136, 0.6);
+}
+
+.card-true-chip.weak {
+  color: #c98080;
+  border-color: rgba(201, 128, 128, 0.6);
+}
+
+.card-true-chip.lethal {
+  color: #fff;
+  background: rgba(239, 68, 68, 0.85);
+  border-color: #ff6b6b;
+}
+
+/* How much of the number above a shield will eat (ruling 2, 2026-08-24). Bark green, matching
+   the ABSORBED float, so the chip on the card and the number over the unit read as one thing. */
+.card-true-chip.shielded {
+  color: #9ad9a0;
+  border-color: rgba(154, 217, 160, 0.6);
+}
+
+/* ── Console centre: whose numbers these are, and how to drive without a mouse ──
+   `.battle-controls` is absolutely positioned, so this sits in the flow gap the
+   two pile indicators leave and never fights the END TURN button for space. */
+.hand-console-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hand-caster-banner {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.hand-caster-banner strong {
+  color: var(--accent-primary, #a78bfa);
+  font-weight: 900;
+}
+
+.hand-hotkeys {
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+}
+
+/* The draw formula's answer, beside the pile the player already reads. The full
+   arithmetic is in the tooltip - see drawFormula.ts for why it is spelled out. */
+.pile-formula {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: rgba(96, 165, 250, 0.95);
+  font-variant-numeric: tabular-nums;
+}
+
+.draw-pile {
+  cursor: help;
+}
+
+/* Stage spotlights carry the same verdict as the sidebar cards (ticket 22). The
+   spotlight is a drop surface, so it owes the same answer.
+
+   `.stage-spot` is deliberately NOT re-declared here. It is already
+   `position: absolute` (see ~line 2345), which is a containing block, and a later
+   `position: relative` at equal specificity would silently drop both spotlights out
+   of their `left: 17%` / `right: 13%` placement and collapse the stage into flow.
+   The flag anchors off the existing absolute box. */
+.stage-spot-illegal .stage-sprite-frame {
+  opacity: 0.5;
+  filter: saturate(0.3);
+}
+
+.stage-target-flag {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.stage-target-flag.legal {
+  color: #7ef0a6;
+  background: rgba(6, 26, 14, 0.92);
+  border: 1px solid rgba(34, 197, 94, 0.6);
+}
+
+.stage-target-flag.illegal {
+  color: #ffb3b3;
+  background: rgba(30, 8, 8, 0.94);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  font-weight: 600;
 }

@@ -1,0 +1,134 @@
+{
+  "kind": "composed",
+  "name": "S5 - Fire Storm Clock (Stab-Fire vs Panel-Ramp)",
+  "description": "Fire STAB team focusing on stacking permanent Burn. Can the Burn clock tick down the high HP, heals, and shields of the Ramp panel before they stabilize?   [you: stab-fire (fenrir_v1 + skoll_v2 + hel_v1) | opponent: panel-ramp (audhumbla_v1 + ymir_v1 + fafnir_v1)]",
+  "tags": [
+    "playtest",
+    "round-5",
+    "3v3"
+  ],
+  "setup": {
+    "seed": "S5-stab-fire-vs-panel-ramp",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "fenrir",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "fenrir_v1"
+        },
+        {
+          "definitionId": "skoll",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "skoll_v2"
+        },
+        {
+          "definitionId": "hel",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "hel_v1"
+        }
+      ],
+      "deck": [
+        "ember_mend",
+        "blood_rite",
+        "blood_rite",
+        "berserk_rush",
+        "berserk_rush",
+        "battle_rhythm",
+        "crimson_draw",
+        "ragnarok_edge",
+        "ragnarok_edge",
+        "strength_burst",
+        "fury_strike",
+        "fury_strike",
+        "all_in",
+        "desperate_strike",
+        "reckless_charge",
+        "overdrive",
+        "glass_cannon",
+        "water_slap",
+        "shadow_claw",
+        "shadow_claw",
+        "pale_mercy",
+        "pale_mercy",
+        "water_slap",
+        "nights_bite",
+        "nights_bite",
+        "eclipse",
+        "lumen_surge",
+        "hamstring",
+        "eclipse"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "audhumbla",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "audhumbla_v1",
+        "deck": [
+          "pale_mercy",
+          "pale_mercy",
+          "dawnstrike",
+          "healing_light",
+          "sacred_spring",
+          "supernova_v2",
+          "genesis_surge",
+          "dawn_of_creation",
+          "radiant_spark"
+        ]
+      },
+      {
+        "definitionId": "ymir",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "ymir_v1",
+        "deck": [
+          "frost_ward",
+          "frost_ward",
+          "rimeguard",
+          "rimeguard",
+          "thaw",
+          "ice_spear",
+          "ice_spear",
+          "avalanche",
+          "avalanche",
+          "flash_freeze"
+        ]
+      },
+      {
+        "definitionId": "fafnir",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "fafnir_v1",
+        "deck": [
+          "iron_will",
+          "iron_will",
+          "water_slap",
+          "grit",
+          "boulder_smash",
+          "boulder_smash",
+          "motherlode",
+          "motherlode",
+          "hoardbreaker",
+          "deep_vein",
+          "deep_vein"
+        ]
+      }
+    ],
+    "statJitter": 5
+  },
+  "version": 1,
+  "registryHash": "1:d5a18ed7",
+  "createdAt": "2026-08-25T01:18:34.068Z"
+}

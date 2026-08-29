@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getMatchupMultiplier, CHART_ELEMENTS } from './TypeChart';
+import { CHART_ELEMENTS } from './TypeChart';
+import { getMatchupMultiplier } from './elementMatchups';
 import { ElementalMatrix } from '../../engine/combatUtils';
 import { ELEMENTS } from '../../engine/types';
 import type { Element } from '../../engine/types';

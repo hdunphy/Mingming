@@ -9,14 +9,14 @@
  * until one falls over. Real battles in this engine are decided by which cards the
  * `TacticalAI` finds and which statuses stick, none of which exists here.
  *
- * So a number out of this file is a stat-curve sanity check - does a level-40 fenrir
- * two-shot a level-5 kraken - and not a balance verdict. The balance verdict lives in
+ * So a number out of this file is a stat-curve sanity check - does fenrir two-shot kraken -
+ * and not a balance verdict. The balance verdict lives in
  * `src/debug/balance/`: seeded `battleReducer` battles with both sides played by the
  * `TacticalAI`, written to `docs/balance/balance_report.json` by `npm run balance`.
  *
  * WHY IT IS KEPT ANYWAY
  * ---------------------
- * It is instant. `BalanceTester` recomputes the whole matrix as a level slider drags, which
+ * It is instant. `BalanceTester` recomputes the whole matrix as the power slider drags, which
  * a real batch (seconds per matchup, minutes per suite) cannot do at any quality of
  * implementation. Deleting it would cost that interaction and buy nothing.
  *
@@ -26,7 +26,7 @@
  */
 import { calculateDamage } from '../combatUtils';
 import { initializeBattleEntity } from '../types';
-import type { IBattleEntity, ProgramData, IBattleState } from '../types';
+import type { ProgramData, IBattleState, IMingmingState } from '../types';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 
 export interface SIM_TTK_Result {
@@ -47,9 +47,7 @@ export interface MatchupResult {
  */
 export function simulate1v1(
     idA: string,
-    levelA: number,
     idB: string,
-    levelB: number,
     power: number
 ): MatchupResult {
     const defA = MingmingRegistry[idA];
@@ -57,13 +55,16 @@ export function simulate1v1(
 
     if (!defA || !defB) throw new Error("Invalid Mingming ID");
 
-    // Initialize as Persistent Instance
-    const instanceA = { id: 'A', definitionId: idA, level: levelA, experience: 0 };
-    const instanceB = { id: 'B', definitionId: idB, level: levelB, experience: 0 };
+    // Initialize as Persistent Instance. Ticket 21: no level — `initializeBattleEntity` builds
+    // every unit at CALIBRATION_LEVEL, so there is no per-side level to pass in any more.
+    // Asserted rather than filled in: `initializeBattleEntity` defaults every IV to 0 and this
+    // model never reads `blueprintsCollected`, so the entities stay exactly what they were.
+    const instanceA = { id: 'A', definitionId: idA } as IMingmingState;
+    const instanceB = { id: 'B', definitionId: idB } as IMingmingState;
 
     // Initialize as Battle Entity
-    const entityA = initializeBattleEntity(instanceA as any, defA);
-    const entityB = initializeBattleEntity(instanceB as any, defB);
+    const entityA = initializeBattleEntity(instanceA, defA);
+    const entityB = initializeBattleEntity(instanceB, defB);
 
     // Mock State for calculateDamage
     const mockState: IBattleState = {
@@ -78,7 +79,6 @@ export function simulate1v1(
         enemyParty: [entityB],
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         nonNaturalCardsDrawnThisTurn: 0,
@@ -153,7 +153,7 @@ export interface BatchReport {
 /**
  * Runs simulation for every pair in the registry.
  */
-export function runBatchSimulation(level: number, power: number): BatchReport {
+export function runBatchSimulation(power: number): BatchReport {
     const ids = Object.keys(MingmingRegistry);
     const results: MatchupResult[] = [];
     let totalTTK = 0;
@@ -168,7 +168,7 @@ export function runBatchSimulation(level: number, power: number): BatchReport {
         for (let j = 0; j < ids.length; j++) {
             if (i === j) continue;
 
-            const res = simulate1v1(ids[i], level, ids[j], level, power);
+            const res = simulate1v1(ids[i], ids[j], power);
             results.push(res);
 
             // We care about how fast A kills B

@@ -563,11 +563,41 @@ const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
  *    free, because without lookahead it simply plays something else. A power knob is usually
  *    exactly that kind of change. **Greedy is a decision-density probe (ticket 99), not a screen.**
  */
+// `env` guard kept from legion/balance (0939d95): `process` is undefined in the browser build,
+// and steam-release-prep reads `process.env` directly.
 const env = typeof process !== 'undefined' ? process.env : ({} as Record<string, string | undefined>);
 const LITE = env.AI_LITE === '1';
-const LOOKAHEAD_TOP_N = LITE ? 2 : 3;
-const LOOKAHEAD_DETERMINIZATIONS = LITE ? 1 : 2;
 const LOOKAHEAD_REPLY_DEPTH = 2;
+
+/**
+ * THE THREE GRADES, AND WHY THEY ARE A PER-BATTLE FACT NOW — steam-release ticket 67.
+ *
+ * They already existed, as `AI_GREEDY=1` and `AI_LITE=1`: process-wide switches read once at module
+ * load, which is exactly right for what they were built for (ticket 99 measures what thinking one
+ * turn ahead is WORTH by running the same corpus twice, and a corpus has one grade by definition).
+ *
+ * Ticket 60 ruled a different use for the same three grades — **the enemy ladder**: a wild plays
+ * greedy, an elite plays lite, the gauntlet plays the full lookahead, and the tier field raises a
+ * wild's grade rather than its numbers. That is three grades **inside one run**, so a module-level
+ * constant cannot express it: every fight in a session shares the process.
+ *
+ * So the grade becomes a property of the BATTLE (`IBattleState.enemyAiTier`, set once at creation
+ * exactly as `enemyMode` is), and the env vars stay as the process-wide default for the balance
+ * corpus. Two consequences worth stating rather than discovering:
+ *
+ * 1. **The field describes the ENEMY only.** In the shipped game the AI never plays the player's
+ *    half, so there is no second grade to carry. In a harness both sides are `getBestAction`, and
+ *    the player's side deliberately stays on the process default — a measurement of the enemy ladder
+ *    that also handicapped the player would be measuring two changes at once.
+ * 2. **An unset field means the process default**, so every existing caller — the balance suites,
+ *    the debug scenarios, the pre-roguelike battle path — keeps the behaviour it had.
+ */
+export type AiTier = 'greedy' | 'lite' | 'full';
+
+/** Candidates the lookahead re-ranks. Lite narrows the lookahead rather than removing it. */
+const lookaheadTopN = (tier: AiTier): number => (tier === 'lite' ? 2 : 3);
+/** Determinized draws averaged per candidate. Same argument: narrower, not absent. */
+const lookaheadDeterminizations = (tier: AiTier): number => (tier === 'lite' ? 1 : 2);
 
 /**
  * `AI_CENSUS=1`: count what the same-turn enumeration actually walks. Off by default and behind a
@@ -613,9 +643,27 @@ export function censusNewDecision(): void { census.decisions++; }
  */
 const BEAM = Number(env.AI_BEAM ?? 0);
 
-/** What tier is live, for a harness that wants to record it beside its numbers. */
-export const AI_TIER: 'greedy' | 'lite' | 'full' =
+/**
+ * The PROCESS-WIDE default tier, for a harness that wants to record it beside its numbers.
+ *
+ * Still read from the environment, and still the answer for every battle that does not name a grade
+ * of its own. A battle that does — every run battle, since ticket 67 — overrides it for the enemy
+ * side only; see `AiTier` above.
+ */
+export const AI_TIER: AiTier =
     env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
+
+/**
+ * Which grade plays this decision.
+ *
+ * The enemy's grade comes off the battle when the battle names one; everything else — the player's
+ * half in a harness, and any battle created before the field existed — takes the process default.
+ * That is the whole of the ladder's plumbing, and it is one function so the rule is checkable.
+ */
+function tierFor(state: IBattleState, side: 'PLAYER' | 'ENEMY'): AiTier {
+    if (side === 'ENEMY' && state.enemyAiTier !== undefined) return state.enemyAiTier;
+    return AI_TIER;
+}
 /**
  * Dominance pruning: when the best same-turn candidate leads the runner-up by more
  * than this many eval points (12 = 6 HP), the decision is not close and the
@@ -666,7 +714,6 @@ export function setDecisionTap(tap: ((record: DecisionRecord) => void) | null): 
  * one turn ahead is WORTH on a given deck. A deck that scores the same either way is a deck whose
  * decisions do not matter - which is exactly the complaint the ticket exists to quantify.
  */
-const GREEDY_ONLY = env.AI_GREEDY === '1';
 
 function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
     return party.every(e => e.currentHp <= 0);
@@ -680,12 +727,15 @@ function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
 function lookaheadValue(
     leaf: IBattleState,
     side: 'PLAYER' | 'ENEMY',
-    candidateIndex: number
+    candidateIndex: number,
+    // Passed rather than read from a constant, because the grade is a property of the battle now
+    // and not of the process — see `AiTier`.
+    determinizations: number
 ): number {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     let total = 0;
 
-    for (let d = 0; d < LOOKAHEAD_DETERMINIZATIONS; d++) {
+    for (let d = 0; d < determinizations; d++) {
         // Determinize the unknown draw order: reshuffle our own drawpile copy.
         const rng = new PRNG(`lookahead|${leaf.seed}|${leaf.turn}|${candidateIndex}|${d}`);
         const { shuffled } = rng.shuffle([...leaf[deckKey].drawpile]);
@@ -712,7 +762,7 @@ function lookaheadValue(
         total += findBestSequence(afterTheirPass, side, 0, LOOKAHEAD_REPLY_DEPTH).score;
     }
 
-    return total / LOOKAHEAD_DETERMINIZATIONS;
+    return total / determinizations;
 }
 
 export function getBestAction(state: IBattleState): BattleAction {
@@ -774,7 +824,8 @@ export function getBestAction(state: IBattleState): BattleAction {
             return improving[0].action;
         }
 
-        const topN = improving.slice(0, LOOKAHEAD_TOP_N);
+        const tier = tierFor(state, side);
+        const topN = improving.slice(0, lookaheadTopN(tier));
         if (topN.length === 1) {
             decisionTap?.({
                 side, turn: state.turn, candidates: improving.length,
@@ -790,7 +841,7 @@ export function getBestAction(state: IBattleState): BattleAction {
             });
             return topN[0].action;
         }
-        if (GREEDY_ONLY) {
+        if (tier === 'greedy') {
             decisionTap?.({
                 side, turn: state.turn, candidates: improving.length,
                 gap, close: true, lookaheadRan: false, flipped: false,
@@ -813,7 +864,7 @@ export function getBestAction(state: IBattleState): BattleAction {
         let best = topN[0];
         let bestValue = -Infinity;
         for (let i = 0; i < topN.length; i++) {
-            const value = lookaheadValue(topN[i].leafState, side, i);
+            const value = lookaheadValue(topN[i].leafState, side, i, lookaheadDeterminizations(tier));
             if (value > bestValue) {
                 bestValue = value;
                 best = topN[i];

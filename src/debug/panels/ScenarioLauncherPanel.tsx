@@ -10,13 +10,14 @@
  *
  * WHERE THIS DEVIATES FROM THE MOCKUP — ticket 23's "Changes from the approved prototype":
  *   - the JSON column has a show/hide button, visible by default;
- *   - ad-hoc deck mode is CUT. Deck modes are base decks / saved deck. An arbitrary deck is
- *     authored in `DeckTerminal` and picked up here as the saved deck;
- *   - relics stay here and take precedence over the save, because
- *     `ComposedSetup.player.relics` is an explicit list that is never read from `IPlayerSave`.
+ *   - ad-hoc deck mode is CUT. Deck modes are base decks / saved deck. Ticket 11 retargeted
+ *     "saved deck" at the RUN's deck (`IRunState.deck`), since the persistent deck and its
+ *     builder are both gone;
+ *   - relics stay here and take precedence over anything in the store, because
+ *     `ComposedSetup.player.relics` is an explicit list that is never read from game state.
  *
  * THE DESTINATION-SLOT LINE ABOVE THE LAUNCH BUTTON IS LOAD-BEARING. Ending a scenario
- * battle writes XP, rewards and relics into whatever save slot is active — see
+ * battle writes blueprints and gym clears into whatever save slot is active — see
  * `destinationSlot()` in `../scenarios/composeScenario` for the mechanism. `Mirror my save
  * party` makes it very easy to be composing against your real run without noticing, so the
  * slot is named in plain words, in a warning banner, immediately above Launch.
@@ -47,7 +48,6 @@ import {
     launchBlockers,
     launchScenario,
     makeStatus,
-    matchPlayerLevel,
     mirrorSaveParty,
     osOptions,
     relicOptions,
@@ -271,15 +271,6 @@ function UnitEditor({ unit, index, isEnemy, cardIds, onChange, onRemove }: UnitE
                         </option>
                     ))}
                 </select>
-                <span style={labelStyle}>LV</span>
-                <input
-                    style={numberStyle}
-                    type="number"
-                    min={1}
-                    aria-label={`${side} ${index + 1} level`}
-                    value={unit.level}
-                    onChange={(e) => patch({ level: Math.max(1, readNumber(e.target.value, unit.level)) })}
-                />
                 <button type="button" style={buttonStyle(true)} onClick={onRemove} title="remove">
                     ×
                 </button>
@@ -503,7 +494,11 @@ interface PanelStatus {
 
 export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps): ReactNode {
     const dispatch = useDispatch();
-    const save = useSelector((state: RootState) => state.game);
+    const ranch = useSelector((state: RootState) => state.game);
+    // Ticket 11: the deck the "saved deck" mode reads is the RUN's, and so is the party that
+    // `Mirror my save party` mirrors when there is one. Null is the normal state — you are at the
+    // ranch — and the panel says so rather than pointing at a screen that no longer exists.
+    const run = useSelector((state: RootState) => state.run.run);
     const { setOpen, setLastScenarioName } = useDebugUI();
 
     // Boots mirrored-plus-one-enemy, the state the approved mockup opens in: the party you
@@ -511,7 +506,7 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
     // makes `Mirror my save party` look like an extra step rather than the default.
     const [draft, setDraft] = useState<LauncherDraft>(() => ({
         ...createDraft(),
-        party: mirrorSaveParty(save),
+        party: mirrorSaveParty(ranch, run),
         enemies: [createEnemyUnit()],
     }));
     const [showJson, setShowJson] = useState(true);
@@ -525,15 +520,15 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
     const cardIds = useMemo(() => cardOptions(), []);
     const relics = useMemo(() => relicOptions(), []);
 
-    const setup = toComposedSetup(draft, save);
-    const deck = resolveDeck(draft, save);
+    const setup = toComposedSetup(draft, run);
+    const deck = resolveDeck(draft, run);
     const blockers = launchBlockers(draft);
     const cardsWarning = cardsModeWarning(draft);
     // Read at render time, not memoized: localStorage is not reactive, and switching slots in
     // the Slots panel must be reflected the next time this panel draws.
     const slot = destinationSlot();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- slotRevision is the invalidator
-    const slots = useMemo(() => listSlots(), [slotRevision, save]);
+    const slots = useMemo(() => listSlots(), [slotRevision, ranch]);
 
     /**
      * Retarget the launch without leaving the panel.
@@ -597,11 +592,10 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
     // --- Actions ---
 
     const onLaunch = () => {
-        // The save is passed so an *empty* slot is seeded from this battle's party and deck —
-        // otherwise the battle ends into a rosterless save, `App.tsx` falls through to the
-        // starter picker (no nav bar, no way back to Debug) and syncPartyStats has nothing to
-        // write into. A slot that already has a roster is never touched.
-        const result = launchScenario(setup, dispatch, save);
+        // The ranch is passed so an *empty* slot is seeded with this battle's party — otherwise the
+        // battle ends into a rosterless ranch and `App.tsx` falls through to the starter picker
+        // (no nav bar, no way back to Debug). A slot that already has a roster is never touched.
+        const result = launchScenario(setup, dispatch, ranch);
         if (!result.ok) {
             setStatus({ ok: false, text: result.error ?? 'Launch failed.' });
             return;
@@ -613,15 +607,15 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
         const lines = [`Launched "${draft.name}" with seed ${result.seed}.`];
         if (result.seeded) {
             lines.push(
-                `Seeded the empty "${slot.name}" save from this battle: ${setup.player.party.length} ` +
-                    `mingming(s) (roster ids taken from the battle, so XP syncs back), ${deck.cards.length} ` +
-                    `card(s) and ${setup.player.relics.length} relic(s). ` +
-                    'Finish the battle and you land in the hub with them.',
+                `Seeded the empty "${slot.name}" ranch from this battle: ${setup.player.party.length} ` +
+                    'mingming(s), with the battle\'s own roster ids. The deck and the drivers are NOT ' +
+                    'seeded — they are run-scoped (ticket 11) and a scratch slot has no run. ' +
+                    'Finish the battle and you land at the ranch with those individuals.',
             );
         } else if (result.seedIssues) {
             lines.push(
-                `⚠ NOT seeded — the resulting save failed PlayerSaveSchema, so nothing was written ` +
-                    `(a bad save wedges every autosave after it):\n${result.seedIssues.join('\n')}`,
+                `⚠ NOT seeded — the resulting ranch failed RanchStateSchema, so nothing was written ` +
+                    `(a bad ranch wedges every autosave after it):\n${result.seedIssues.join('\n')}`,
             );
         }
         setStatus({ ok: true, text: lines.join('\n') });
@@ -692,7 +686,7 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                 <button
                     type="button"
                     style={{ ...buttonStyle(), flex: '1 1 auto' }}
-                    onClick={() => patch({ party: mirrorSaveParty(save) })}
+                    onClick={() => patch({ party: mirrorSaveParty(ranch, run) })}
                 >
                     ⤓ Mirror my save party
                 </button>
@@ -707,8 +701,8 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
             </div>
             {draft.party.length === 0 ? (
                 <div style={noteStyle}>
-                    No units. `Mirror my save party` copies the active party's species, levels, IVs and
-                    activeOS out of the save verbatim.
+                    No units. `Mirror my save party` copies the run's party — or the head of the ranch
+                    roster when there is no run — species, IVs and activeOS verbatim.
                 </div>
             ) : (
                 draft.party.map((unit, index) => (
@@ -735,7 +729,7 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                         style={segmentStyle(draft.deckMode === mode)}
                         onClick={() => patch({ deckMode: mode })}
                     >
-                        {mode === 'base' ? 'Base decks' : 'Saved deck'}
+                        {mode === 'base' ? 'Base decks' : 'Run deck'}
                     </button>
                 ))}
                 {draft.deckMode === 'loaded' && (
@@ -746,14 +740,14 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                 {deck.source}
                 {draft.deckMode === 'base' &&
                     ' — one shared pool across the party, per schema v1. Changing species rebuilds it.'}
-                {draft.deckMode === 'saved' && ' — whatever is currently built in DeckTerminal.'}
+                {draft.deckMode === 'saved' && ' — the deck the run in progress is carrying.'}
                 {draft.deckMode === 'loaded' &&
                     ' — kept read-only so loading and re-saving a scenario does not rewrite its deck. Pick a mode above to replace it.'}
             </div>
             <div style={noteStyle}>
-                No ad-hoc deck builder here, by decision: grant the cards in the save editor, build the
-                list in DeckTerminal (the real builder, constrained to cardInventory), then pick it up
-                above as the saved deck.
+                No ad-hoc deck builder here, by decision. Ticket 11 deleted the persistent deck and its
+                builder along with it: a deck belongs to a run, so the two honest sources are the party's
+                base decks and whatever a live run has built up.
             </div>
             {deck.issues.map((issue) => (
                 <div key={issue} style={{ ...noteStyle, color: WARN, opacity: 1 }}>
@@ -785,8 +779,8 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
             </div>
             <div style={noteStyle}>
                 This list is the scenario's relics outright — `ComposedSetup.player.relics` is never
-                read from the save, so what is picked here is what the battle starts with, whatever
-                the active save holds.
+                read from game state, so what is picked here is what the battle starts with, whatever
+                the ranch or the run in progress holds.
             </div>
         </div>
     );
@@ -804,13 +798,6 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                     onClick={() => patch({ enemies: [...draft.enemies, createEnemyUnit()] })}
                 >
                     + Enemy
-                </button>
-                <button
-                    type="button"
-                    style={buttonStyle()}
-                    onClick={() => patch({ enemies: matchPlayerLevel(draft.party, draft.enemies) })}
-                >
-                    ≡ Match player level
                 </button>
             </div>
             {draft.enemies.length === 0 ? (
@@ -910,13 +897,16 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                             checked={draft.gauntlet !== null}
                             onChange={(e) =>
                                 patch({
+                                    // Ticket 18: the shape is `IGauntletProgress`'s now — no `type`
+                                    // (a gauntlet is a gym's; v3's 'Sector' arm had no caller) and
+                                    // no `element` (it comes from `GYM_REGISTRY[run.gymId]`, so a
+                                    // copy here could only drift). Three fights is the ruled length.
                                     gauntlet: e.target.checked
                                         ? {
-                                              type: 'Gym',
-                                              element: 'Fire',
-                                              currentBattleIndex: 0,
-                                              totalBattles: 3,
-                                              persistedStats: {},
+                                              fightIndex: 0,
+                                              totalFights: 3,
+                                              persistedHp: {},
+                                              downedMemberIds: [],
                                           }
                                         : null,
                                 })
@@ -928,37 +918,18 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
 
                 {draft.gauntlet && (
                     <div style={rowStyle}>
-                        <span style={labelStyle}>TYPE</span>
-                        <select
-                            style={controlStyle}
-                            aria-label="gauntlet type"
-                            value={draft.gauntlet.type}
-                            onChange={(e) =>
-                                patch({ gauntlet: { ...draft.gauntlet!, type: e.target.value as 'Gym' | 'Sector' } })
-                            }
-                        >
-                            <option value="Gym">Gym</option>
-                            <option value="Sector">Sector</option>
-                        </select>
-                        <span style={labelStyle}>ELEMENT</span>
-                        <input
-                            style={{ ...controlStyle, width: '90px' }}
-                            aria-label="gauntlet element"
-                            value={draft.gauntlet.element}
-                            onChange={(e) => patch({ gauntlet: { ...draft.gauntlet!, element: e.target.value } })}
-                        />
-                        <span style={labelStyle}>BATTLE</span>
+                        <span style={labelStyle}>FIGHT</span>
                         <input
                             style={numberStyle}
                             type="number"
                             min={0}
-                            aria-label="gauntlet battle index"
-                            value={draft.gauntlet.currentBattleIndex}
+                            aria-label="gauntlet fight index"
+                            value={draft.gauntlet.fightIndex}
                             onChange={(e) =>
                                 patch({
                                     gauntlet: {
                                         ...draft.gauntlet!,
-                                        currentBattleIndex: readNumber(e.target.value, 0),
+                                        fightIndex: readNumber(e.target.value, 0),
                                     },
                                 })
                             }
@@ -968,15 +939,23 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
                             style={numberStyle}
                             type="number"
                             min={1}
-                            aria-label="gauntlet total battles"
-                            value={draft.gauntlet.totalBattles}
+                            aria-label="gauntlet total fights"
+                            value={draft.gauntlet.totalFights}
                             onChange={(e) =>
                                 patch({
-                                    gauntlet: { ...draft.gauntlet!, totalBattles: readNumber(e.target.value, 1) },
+                                    gauntlet: { ...draft.gauntlet!, totalFights: readNumber(e.target.value, 1) },
                                 })
                             }
                         />
                         <span style={{ ...labelStyle, opacity: 0.45 }}>
+                            {/*
+                              * Ticket 18: still context-only, and still for the same reason —
+                              * `buildScenarioState` ignores this field entirely, because HP is set
+                              * per unit on the composed setup and `IBattleState` has no gauntlet.
+                              * `persistedHp` / `downedMemberIds` are carried through a load/save
+                              * round trip but have no editor here: a scenario that wants a member at
+                              * 12 HP sets that member's `currentHp`.
+                              */}
                             run context for the injection layer — `IBattleState` has no gauntlet field
                         </span>
                     </div>
@@ -1014,9 +993,9 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
             <div style={{ ...bannerStyle(WARN), marginTop: '10px', marginBottom: '6px' }}>
                 <strong>⚠ {slot.headline}</strong>
                 {'\n'}
-                Finishing this battle writes XP, rewards and relics into that save — syncPartyStats
-                matches roster members by id, and a mirrored party reuses real ones. To break things
-                safely, launch into a scratch slot.
+                Finishing this battle writes blueprints and gym clears into that save, and its scrap,
+                cards and drivers into whatever run is in progress. A mirrored party reuses real
+                roster ids. To break things safely, launch into a scratch slot.
                 <div
                     style={{
                         display: 'flex',

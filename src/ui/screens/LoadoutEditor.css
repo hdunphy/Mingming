@@ -1,0 +1,75 @@
+/*
+ * LOADOUT EDITOR — transcribed from `research/62-editor-proto/editor_F_big_paged.html`.
+ *
+ * The shared vocabulary — the top bar, the buttons, the pill, the panel, the card tile, the 27px
+ * deck row, the roster chip — lives in `runShell.css`, because the three ruled mockups open with
+ * that block character for character. What is left here is what makes THIS screen: the card SIZE,
+ * the book grid, the pager, and the two swap states a chip can be in.
+ *
+ * The sizes are the mockup's, not approximations of it: 196x252 cards with a 78px art box, a 4x2
+ * grid on an 18/16 gap, a 300px deck column. Henry's requirement was that **energy cost,
+ * attack-vs-skill and the full description are readable on every card**, and each of those is a
+ * font size that only works at that card size — so the sizes are the design, not styling around it.
+ *
+ * The mockup is a fixed 1280x800 frame. This is not: the game runs windowed and ticket 37 owns
+ * resolution. So the frame's fixed dimensions become `flex` and the CARD keeps its exact size — a
+ * shrunken card is the one thing that would break the requirement above. At narrower widths the
+ * book pages sooner rather than scaling down.
+ */
+
+.led {
+    /* The mockup's `.grid{--cw:196px;--ch:252px;--ah:78px}` for the book — the biggest of the three
+       screens' tiles, and the reason this one is the collection browser. */
+    --cw: 196px;
+    --ch: 252px;
+    --ah: 78px;
+}
+
+/* The editor's card carries a full description rather than the market's clipped one, so its two
+   text fields step up a size with the tile. */
+.led .rs-cnm { font-size: 14px; }
+.led .rs-desc { font-size: 11px; }
+
+/* --- roster strip --- */
+
+.led-roster { display: flex; gap: 10px; padding: 10px 18px 0; flex: none; flex-wrap: wrap; }
+/* Every party chip is a landing site while a benched member is picked up. */
+.led-target { border-color: #3d7ab5; }
+.led-bench-hint { align-self: center; max-width: 42ch; }
+
+/* --- body --- */
+
+.led-body { flex: 1; display: flex; gap: 12px; padding: 10px 18px 14px; min-height: 0; }
+.led-center { flex: 1; gap: 8px; min-width: 0; }
+.led-deck { width: 300px; flex: none; }
+
+.led-filters { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: none; }
+
+/* --- the book: 4 x 2 big cards --- */
+
+.led-grid {
+    display: grid;
+    grid-template-columns: repeat(4, var(--cw));
+    grid-auto-rows: var(--ch);
+    gap: 18px 16px;
+    justify-content: center;
+    align-content: center;
+    flex: 1;
+    min-height: 0;
+}
+.led-empty { grid-column: 1 / -1; text-align: center; color: #5f6b7a; font-size: 12px; }
+
+.led-pager {
+    display: flex; justify-content: center; gap: 14px; align-items: center;
+    flex: none; color: #8fa0b3; font-size: 12px;
+}
+.led-page-btn {
+    border: 1px solid #2c3745; background: #12171f; color: #8fa0b3;
+    border-radius: 3px; padding: 2px 10px; cursor: pointer; font-size: 12px;
+}
+.led-page-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* --- deck column --- */
+
+.led-rows { display: flex; flex-direction: column; gap: 3px; overflow: auto; flex: 1; }
+.led-foot { margin-top: 8px; flex: none; }

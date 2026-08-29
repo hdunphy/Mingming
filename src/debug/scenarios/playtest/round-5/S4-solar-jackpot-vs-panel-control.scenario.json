@@ -1,0 +1,131 @@
+{
+  "kind": "composed",
+  "name": "S4 - The Solar Jackpot (Solar-Jackpot vs Panel-Control)",
+  "description": "Stacking Strengthened under SOLAR_OVERDRIVE (uncapped +15%/stack multiplier) alongside the core overclock daemon. The sim says it's only 45.8% (mid-table), but how does it feel in human hands? Does it feel like a massive jackpot turn when pulled off?   [you: tag-solar-jackpot (skoll_v2 + fenrir_v2 + gullinbursti_v1) + core_overclock_daemon | opponent: panel-control (kraken_v1 + huldra_v1 + draugr_v2)]",
+  "tags": [
+    "playtest",
+    "round-5",
+    "3v3"
+  ],
+  "setup": {
+    "seed": "S4-solar-jackpot-vs-panel-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "skoll",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "skoll_v2"
+        },
+        {
+          "definitionId": "fenrir",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "fenrir_v2"
+        },
+        {
+          "definitionId": "gullinbursti",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "gullinbursti_v1"
+        }
+      ],
+      "deck": [
+        "strength_burst",
+        "fury_strike",
+        "fury_strike",
+        "all_in",
+        "desperate_strike",
+        "reckless_charge",
+        "overdrive",
+        "glass_cannon",
+        "water_slap",
+        "ignite",
+        "ignite",
+        "molten_core",
+        "molten_core",
+        "slag_strike",
+        "water_slap",
+        "pyre_sacrifice",
+        "ash_communion",
+        "cinder_lance",
+        "water_slap",
+        "keen_edge",
+        "keen_edge",
+        "shield_shards",
+        "shield_shards",
+        "stone_bark",
+        "stone_fist",
+        "stone_fist",
+        "motherlode",
+        "spiked_carapace",
+        "core_overclock_daemon"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "kraken",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "kraken_v1",
+        "deck": [
+          "whirlpool_v2",
+          "whirlpool_v2",
+          "pressure_point",
+          "pressure_point",
+          "ink_stream",
+          "ink_stream",
+          "surge_protection",
+          "undertow"
+        ]
+      },
+      {
+        "definitionId": "huldra",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "deck": [
+          "growth",
+          "growth",
+          "soothe",
+          "water_slap",
+          "iron_bark",
+          "iron_bark",
+          "thorn_tithe",
+          "thorn_tithe",
+          "hexbloom"
+        ]
+      },
+      {
+        "definitionId": "draugr",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "draugr_v2",
+        "deck": [
+          "rimefrost",
+          "rimefrost",
+          "water_slap",
+          "frost_bite",
+          "numbing_gale",
+          "killing_frost",
+          "ice_spear",
+          "glacial_slam",
+          "rimebreaker",
+          "rimebreaker"
+        ]
+      }
+    ],
+    "statJitter": 5
+  },
+  "version": 1,
+  "registryHash": "1:d5a18ed7",
+  "createdAt": "2026-08-25T01:18:34.066Z"
+}

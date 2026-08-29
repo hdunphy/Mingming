@@ -9,11 +9,11 @@ import { vi } from 'vitest';
 
 // Mock GetProgramData to use our test registry
 vi.mock('./data/programRegistry', async () => {
-    const actual = await vi.importActual('./data/programRegistry');
+    const actual = await vi.importActual<typeof import('./data/programRegistry')>('./data/programRegistry');
     return {
-        ...actual as any,
+        ...actual,
         GetProgramData: (id: string) => {
-            return TestProgramRegistry[id] || (actual as any).GetProgramData(id);
+            return TestProgramRegistry[id] || actual.GetProgramData(id);
         }
     };
 });
@@ -30,8 +30,6 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         defense: 10,
         maxEnergy: 5,
         currentEnergy: 5,
-        level: 1,
-        experience: 0,
         cardDraw: 3,
         statusEffects: [],
         definitionId: 'fenrir',
@@ -56,8 +54,6 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         defense: 10,
         maxEnergy: 5,
         currentEnergy: 5,
-        level: 1,
-        experience: 0,
         cardDraw: 3,
         statusEffects: [],
         definitionId: 'kraken',
@@ -86,7 +82,6 @@ const createInitialState = (playerOS?: string, enemyOS?: string): IBattleState =
         osLogs: [],
         procs: [],
         seed: '12345',
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
