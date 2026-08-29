@@ -47,8 +47,13 @@ function runLane(shard, shards) {
         //
         // `vite-node` IS a real dependency (it comes with vitest), and invoking its .mjs entry
         // with process.execPath sidesteps shell resolution, PATH and file extensions entirely.
-        const child = spawn(process.execPath, [VITE_NODE, 'scratch/gridshard.ts'], {
-            env: { ...process.env, DECK, ITER, SEEDBASE, SHARD: String(shard), SHARDS: String(shards) },
+        // Flags, not env: vite.config.ts substitutes `process.env` to `{}` in anything vite-node
+        // transforms, so an env-passed DECK arrives as undefined and the lane silently measures
+        // the default deck. See the header of gridshard.ts.
+        const child = spawn(process.execPath, [VITE_NODE, 'scratch/gridshard.ts',
+            '--deck', DECK, '--iter', String(ITER), '--seedbase', SEEDBASE,
+            '--shard', String(shard), '--shards', String(shards)], {
+            env: process.env,
             cwd: process.cwd(),
         });
         let out = '';
