@@ -46,6 +46,17 @@
  * a committed artifact like `docs/balance/deck_report.json`, and dropping an unrequested file into
  * a tracked directory is how a report-only tool starts showing up in diffs.
  *
+ * # THE BASELINE MOVED ON 2026-08-29 — READ THIS BEFORE COMPARING TO OLD NUMBERS
+ *
+ * Henry ruled ticket 70's Q2b and **the rally is now a real engine rule** (`effectHandlers`
+ * `applyBereavementRally`): every survivor of a KO gains one Energized. So a run of this harness
+ * with NO arm is no longer the 8.3%-comeback baseline recorded in `snowball-70.txt` — it should now
+ * land near **16.7%**, because the thing that arm was testing ships.
+ *
+ * The `--energized` arm therefore stacks **on top of** the shipped rule rather than creating it.
+ * That is still a valid experiment (it measures a bigger grant), but it is a different one, and any
+ * comparison against the pre-ruling files has to say which engine it ran on.
+ *
  * # REPORT-ONLY, AND IT EXITS 0
  *
  * Ticket 70 asks for measurement *before* a grilling. There is no threshold to fail here because
@@ -149,6 +160,8 @@ function main(): void {
                 + ` at its turn start (${bereavementDraw.mode})`);
         }
     }
+    say(`[balance:snowball]   engine      the ticket-70 rally SHIPS (+1 Energized to each survivor on a`
+        + ` KO), so the no-arm baseline here is ~16.7%, not the old 8.3%`);
     say();
 
     const started = Date.now();

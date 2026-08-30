@@ -496,6 +496,68 @@ with no change. Rule it only after the numbers.
 - The AI's lookahead will exploit whatever is ruled (e.g. splash overkill makes focus fire
   strictly better for the ENEMY too).
 
+## RULED AND SHIPPED, 2026-08-29 — Q2b
+
+Henry, after the six arms: *"okay please implement that change."* Referring to **`energized once`**,
+the only arm that met both halves of his stated target.
+
+**THE RULE.** On any KO, every surviving member of the bereaved side gains **one `Energized`**.
+Both sides, always. It lives in `effectHandlers.applyBereavementRally`, called from `checkDefeat` —
+the single chokepoint every death in the engine passes through, whose three call sites are each
+guarded on the alive-to-dead transition, so it fires exactly once per death.
+
+**Measured effect:** comebacks **8.3% -> 16.7%**, battle length **6.5 -> 6.5**, turns after the
+first KO **4.3 -> 4.3**. Inside the 15-20% band and length-neutral to a tenth of a turn.
+
+### What was ruled, and what was NOT
+
+| question | status |
+| --- | --- |
+| **Q2b** partial energy inheritance | **RULED AND SHIPPED** — this rule |
+| **Q3b** underdog draw | **RULED OUT by measurement** — a null across four arms |
+| Q1 (overkill), Q2a, Q2c, Q2d, Q3a, Q3c | **still open, still unmeasured** |
+
+**The ticket stays OPEN.** Six of its ten options have no numbers and no ruling.
+
+### Three implementation decisions, and why
+
+**Through `EnergizedBehavior.onApply`, not a pushed literal.** That is what builds a well-formed
+`StatusEffectInstance` (with its `id`) and what stacks correctly on top of an `Energized` a card
+already granted. The measurement harness pushed an object literal with a bogus `duration` field and
+no `id` and got away with it because the refill reads only `type` and `stacks` — shipped code does
+not get to rely on that. **A deliberate divergence from the measurement:** where a survivor already
+holds Energized, the harness granted nothing and the engine adds one. The engine behaviour is the
+correct rule; the harness's was an artefact of topping up to a target.
+
+**After `onUnitFainted`, not before**, so those hooks still see the side as it was at the moment of
+death.
+
+**PROC-VISIBLE.** The rally writes a combat-log line. Ticket 16's standing law is that no passive is
+invisible, and a rule that silently hands out energy is exactly the modifier the vision bans.
+
+### WHAT THIS INVALIDATES — read before trusting any measured number in this repo
+
+The rule changes every battle in which anything dies, which is nearly all of them. Confirmed on a
+fixed seed: the same matchup that went **7 turns, PLAYER, losses 2/3** before now goes **6 turns,
+ENEMY, losses 3/2**. The winner flipped.
+
+Stale as of this commit:
+
+- **`docs/balance/deck_grid.json`** — all 960 cells, and every band verdict read off it.
+- **The gym-boss numbers**, [67](67-enemy-ladder-and-bands.md) SS13 and [68](68-boss-redesign-drivers.md):
+  Emberfall's 80.0% prepared / 65.0% control were measured on the old engine. They were already
+  stale from the balance merge; this compounds it.
+- **`snowball-70.txt` itself.** A no-arm run of `npm run balance:snowball` should now report ~16.7%,
+  not 8.3%. **`--energized` now stacks ON TOP of the shipped rule** rather than creating it — the
+  CLI header says so.
+
+**Not yet done: a confirming full run.** `npm run balance:snowball -- --iterations 1 --pairs --out
+confirm.txt` on the new engine should land near 16.7% with no arm. That is the check that the
+shipped rule matches the arm that justified it, and it has not been run.
+
+Gates at the time of the change: `tsc --noEmit -p tsconfig.app.json` clean, `eslint .` at 0,
+**140 files / 2001 tests green** — no existing test broke.
+
 ## Resolution
 
 _(open)_
