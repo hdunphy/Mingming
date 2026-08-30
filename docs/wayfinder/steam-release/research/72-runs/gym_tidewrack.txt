@@ -1,0 +1,54 @@
+[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.
+[balance:run-gate]   bands      wild, elite, gauntlet  (1 cells: gauntlet:fight2)
+[balance:run-gate]   iterations 30 per cell  ->  30 battles, PLAYER moves first (as a run does)
+[balance:run-gate]   sample     12 tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample
+[balance:run-gate]   AI tier    full   maxTurns 60   registry 1:a3163ac4
+
+[balance:run-gate]   gauntlet:fight2 1/30 WIN   140.0s into cell, 2m 20s total
+[balance:run-gate]   gauntlet:fight2 2/30 loss  231.5s into cell, 3m 51s total
+[balance:run-gate]   gauntlet:fight2 3/30 loss  291.5s into cell, 4m 52s total
+[balance:run-gate]   gauntlet:fight2 4/30 WIN   359.4s into cell, 5m 59s total
+[balance:run-gate]   gauntlet:fight2 5/30 WIN   458.0s into cell, 7m 38s total
+[balance:run-gate]   gauntlet:fight2 6/30 loss  509.7s into cell, 8m 30s total
+[balance:run-gate]   gauntlet:fight2 7/30 loss  591.9s into cell, 9m 52s total
+[balance:run-gate]   gauntlet:fight2 8/30 loss  668.7s into cell, 11m 09s total
+[balance:run-gate]   gauntlet:fight2 9/30 loss  785.1s into cell, 13m 05s total
+[balance:run-gate]   gauntlet:fight2 10/30 loss  895.1s into cell, 14m 55s total
+[balance:run-gate]   gauntlet:fight2 11/30 loss  966.1s into cell, 16m 06s total
+[balance:run-gate]   gauntlet:fight2 12/30 loss  1050.7s into cell, 17m 31s total
+[balance:run-gate]   gauntlet:fight2 13/30 loss  1150.5s into cell, 19m 10s total
+[balance:run-gate]   gauntlet:fight2 14/30 WIN   1213.7s into cell, 20m 14s total
+[balance:run-gate]   gauntlet:fight2 15/30 WIN   1283.0s into cell, 21m 23s total
+[balance:run-gate]   gauntlet:fight2 16/30 loss  1381.1s into cell, 23m 01s total
+[balance:run-gate]   gauntlet:fight2 17/30 loss  1480.0s into cell, 24m 40s total
+[balance:run-gate]   gauntlet:fight2 18/30 loss  1554.4s into cell, 25m 54s total
+[balance:run-gate]   gauntlet:fight2 19/30 WIN   1640.4s into cell, 27m 20s total
+[balance:run-gate]   gauntlet:fight2 20/30 loss  1719.0s into cell, 28m 39s total
+[balance:run-gate]   gauntlet:fight2 21/30 loss  1807.9s into cell, 30m 08s total
+[balance:run-gate]   gauntlet:fight2 22/30 loss  1831.7s into cell, 30m 32s total
+[balance:run-gate]   gauntlet:fight2 23/30 loss  1916.3s into cell, 31m 56s total
+[balance:run-gate]   gauntlet:fight2 24/30 WIN   1977.8s into cell, 32m 58s total
+[balance:run-gate]   gauntlet:fight2 25/30 loss  2036.7s into cell, 33m 57s total
+[balance:run-gate]   gauntlet:fight2 26/30 loss  2091.3s into cell, 34m 51s total
+[balance:run-gate]   gauntlet:fight2 27/30 loss  2166.4s into cell, 36m 06s total
+[balance:run-gate]   gauntlet:fight2 28/30 loss  2218.4s into cell, 36m 58s total
+[balance:run-gate]   gauntlet:fight2 29/30 loss  2252.2s into cell, 37m 32s total
+[balance:run-gate]   gauntlet:fight2 30/30 loss  2283.7s into cell, 38m 04s total
+
+================================================================================================================
+  RUN GATE — ticket 61   ·   PREPARED player (brings the counter-element — THIS is the arm 95/75/60 grade)
+  boss as shipped
+  PINNED to gym_tidewrack — not comparable to an unpinned number (ticket 68)
+================================================================================================================
+
+  GAUNTLET (the gym's three fights)
+    target 60.0% (window 55.0%-65.0%)   measured 23.3% (7/30, -36.7pt)   95% CI 11.8%-40.9%
+    FAIL — outside the ±5 window by 31.7pt   [2283.7s]  <- UNDER-SAMPLED: the 95% interval (±14.6pt) is wider than the ±5 window, so this verdict is not yet evidence
+    gauntlet fight 3/3 (boss)  3v3    7/30  =  23.3%  decisive= 23.3%  avgTurns= 3.4  ftk=0  stalled=0  2283.7s
+
+----------------------------------------------------------------------------------------------------------------
+  1 BAND(S) OUTSIDE WINDOW: gauntlet
+  1 BAND(S) UNDER-SAMPLED (gauntlet): their 95% interval is wider than the ±5 window, so the verdicts above are provisional. Raise --iterations.
+  wall clock 38m 04s (2283739 ms) for 30 battles
+  76.1s per battle averaged over every cell
+----------------------------------------------------------------------------------------------------------------

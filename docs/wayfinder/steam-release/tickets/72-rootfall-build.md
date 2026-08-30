@@ -135,6 +135,53 @@ npm run balance:run-gate -- --bands gauntlet --gym gym_rootfall  --matchup contr
 poison, so if it under-shows, the number to move is its **+1 → +2**, and that is Henry's call in
 this ticket rather than a tuning pass.
 
+### 5b. PART OF THE TABLE IS IN (Henry asked for it directly, 2026-08-30)
+
+> *"can you run tests against the new bosses with a prepared player. make sure the deck has counters
+> and also try to match the 2-1 type advantage so bring two nature and a water vs the water boss."*
+
+Run at **n = 30 on the boss cell only** rather than the six full arms of 60 above — sized to
+separate the three bosses from each other, not to grade any one of them. Full write-up:
+[research/72-the-three-gym-prepared-table.md](../research/72-the-three-gym-prepared-table.md); raw
+output in [research/72-runs/](../research/72-runs/).
+
+| boss | prepared | 95% CI | avg turns | vs the 60% target |
+| --- | --- | --- | --- | --- |
+| Emberfall (Fire) | **83.3%** (25/30) | 66.4 – 92.7 | 4.1 | +23.3pt |
+| Rootfall (Nature) | **76.7%** (23/30) | 59.1 – 88.2 | 5.2 | +16.7pt |
+| **Tidewrack** (Water) | **23.3%** (7/30) | 11.8 – 40.9 | 3.4 | **−36.7pt** |
+
+**Tidewrack's interval overlaps neither of the others**, so the separation is solid even though each
+figure is provisional. Three findings, in order of how much they change what to do next:
+
+1. **TIDAL SURGE IS NOT THE REASON.** `--boss-relics off` gives 26.7% against the Driver's 23.3% —
+   paired, **exactly one discordant pair in thirty battles, McNemar p = 1.000**. It is not broken:
+   instrumented, the boss side plays 12–27 cards, so the 10-card threshold trips once or twice a
+   fight. It just pays 10 power into a fight the boss is already winning by ~240. **Do not tune the
+   Driver believing it is the wall** — and note that lowering Tidewrack's damage makes the Driver a
+   *larger* share of the fight, not a smaller one.
+2. **The wall is raw damage rate.** Boss damage per turn: **Tidewrack 55.8**, Emberfall 32.3,
+   Rootfall 27.6 — 1.7× and 2.0×. A party pool is ~240 and Tidewrack deletes it in two to three
+   turns; in the losses the player gets 12–21 cards played against 28–37 in the wins. Un-separated
+   suspects: **`kraken_v1`'s +20 at 3v3** (balance-merge t116) and **`skoll_v2`'s Strength scaling**,
+   which lands 1.5× into two of the player's three bodies by design.
+3. **The counter-pick may be a TRAP here.** Control (2 Water + 1) beats prepared (2 Nature + 1 Water)
+   **40.0% to 23.3%**, paired 7 flips to 2, McNemar **p = 0.180** — underpowered, not null, and the
+   same 7:2 shape ticket 70's arms had before they turned out real. If it holds, the type-advantaged
+   team is *worse* than the neutral one against this gym. **`--iterations 90` on both arms settles
+   it**, and it is the one number here worth the battles before Henry rules.
+
+Also confirmed, and it is what makes the arm the right arm: **the prepared lineup is exactly the 2-1
+Henry specified** for all three bosses, with the single filler always the answer to the boss's odd
+member. That is a coincidence of the arm's roster arithmetic and ruling 3's boss heuristic, and is
+now pinned as a test. Emberfall's 83.3% is statistically indistinguishable from ticket 68's 80.0%,
+so **that number survived the merge and the Rally unchanged.**
+
+**STILL OUTSTANDING:** the six control/favourable arms of **60 over the full gauntlet band** (all
+three fights, not just the boss), which is the population the HELD gauntlet-target ruling was
+specified against. `--out <file>` now exists on `balance:run-gate` so an hours-long run cannot be
+lost to a closed terminal.
+
 ### Gates
 
 `tsc --noEmit -p tsconfig.app.json` clean, `eslint .` at 0, `liveness.ts` re-run after the hooks.json

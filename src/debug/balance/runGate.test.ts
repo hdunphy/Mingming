@@ -8,6 +8,7 @@ import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import { ElementalMatrix } from '../../engine/combatUtils';
 import { minimumActiveDeck } from '../../engine/run/createRun';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
+import { authoredBossFor } from '../../engine/run/bosses';
 import {
     CELLS,
     describeBossOverride,
@@ -342,6 +343,73 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
         for (let i = 0; i < 12; i += 1) {
             const fight = sampleFight(cell, i, 'favourable');
             expect(fight.targetElement).toBe(GYM_REGISTRY[fight.gymId].element);
+        }
+    });
+
+    it('brings 2-1 against every authored boss, and the ONE is the answer to the odd member', () => {
+        /*
+         * Henry, 2026-08-30: *"make sure the deck has counters and also try to match the 2-1 type
+         * advantage so bring two nature and a water vs the water boss. the one water will beat the
+         * skoll that the water boss uses."*
+         *
+         * The prepared arm already does this, and the reason is worth writing down because it is a
+         * COINCIDENCE OF TWO SEPARATE RULES rather than something either one intends:
+         *
+         *  - `lineupAgainst('favourable')` fills from `countersOf(target)` first and rides the
+         *    remainder on the target's own element. The EA roster has exactly two species per
+         *    element, so slots 1-2 are the counter and slot 3 is the leader's element: 2-1.
+         *  - Ticket 68 ruling 3's boss heuristic builds every trio as two of the leader's element
+         *    plus one of the element that counters the player's expected counter. So the odd boss
+         *    member is beaten by the leader's own element — which is exactly what slot 3 carries.
+         *
+         * Neither rule mentions the other. `lineupAgainst`'s own comment still calls slot 3 *"1.0x
+         * both ways, the only neutral choice"* — true against a mono-element enemy and an
+         * understatement against every authored trio, where it is the one member that answers the
+         * boss's Fire closer.
+         *
+         * Pinned because the coincidence is load-bearing and silent: a future boss built 3-0, or a
+         * fourth species added to an element, would break the 2-1 shape while every band number
+         * kept printing.
+         */
+        const expected: Readonly<Record<string, { counter: string; filler: string }>> = {
+            gym_tidewrack: { counter: 'Nature', filler: 'Water' },  // vs 2 Water + skoll_v2 (Fire)
+            gym_emberfall: { counter: 'Water', filler: 'Fire' },    // vs 2 Fire  + ratatoskr_v2 (Nature)
+            gym_rootfall: { counter: 'Fire', filler: 'Nature' },    // vs 2 Nature + jormungandr_v2 (Water)
+        };
+        const cell = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
+
+        for (const [gymId, shape] of Object.entries(expected)) {
+            const boss = authoredBossFor(gymId)!;
+            const bossElements = boss.members.map((m) => MingmingRegistry[m.species].primaryElement);
+            const odd = bossElements.find((e) => e !== GYM_REGISTRY[gymId].element)!;
+
+            for (let i = 0; i < 12; i += 1) {
+                const mine = sampleFight(cell, i, 'favourable', undefined, gymId).lineup.map(elementOf);
+                const counters = mine.filter((e) => e === shape.counter).length;
+                const fillers = mine.filter((e) => e === shape.filler).length;
+
+                expect(counters, `${gymId} sample ${i}: two of the counter element`).toBe(2);
+                expect(fillers, `${gymId} sample ${i}: one of the leader's element`).toBe(1);
+                /*
+                 * The standoff this produces, spelled out because it is NOT "I counter everything"
+                 * and a test asserting that would be asserting the wrong thing:
+                 *
+                 *   my 2 counter  ->  beat the leader and its twin, and are EATEN by the odd member
+                 *   my 1 filler   ->  beats the odd member, neutral into the other two
+                 *
+                 * The odd boss member is *designed* to eat my counter pair — ticket 68 ruling 3:
+                 * "the third slot exists to counter the player's expected counter." So the prepared
+                 * player is not immune, they are answered, and the one filler is the answer to the
+                 * answer. That is the fight, and it is why 2-1 rather than 3-0.
+                 */
+                expect(beats(shape.counter, GYM_REGISTRY[gymId].element)).toBe(true);
+                expect(beats(odd, shape.counter), `${gymId}: the odd member eats my counter`).toBe(true);
+                expect(beats(shape.filler, odd), `${gymId}: my one answers the odd member`).toBe(true);
+                // Nothing the boss fields is FOOD for the filler's own element beyond that, and the
+                // filler is never itself food — it shares the leader's element, so their pair is
+                // neutral into it.
+                expect(bossElements.some((b) => beats(b, shape.filler))).toBe(false);
+            }
         }
     });
 
