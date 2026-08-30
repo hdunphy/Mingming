@@ -233,6 +233,87 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
     return newState;
 }
 
+/**
+ * THE BEREAVEMENT RALLY — one Energized to every survivor on the side that just lost a member.
+ *
+ * Steam-release [ticket 70](../../docs/wayfinder/steam-release/tickets/70-first-ko-snowball.md),
+ * ruled by Henry on 2026-08-29 after six measured arms.
+ *
+ * # WHAT IT IS FOR
+ *
+ * A KO used to cost its side **~52% of a turn**: -33.3% energy (the dead unit stops refilling) and
+ * -28.9% cards (`battleReducer`'s PRE_TURN draw is `sum(cardDraw over ALIVE) - aliveCount + 1`).
+ * Measured over 60 battles, the side that scored the first KO won **91.7%** of the time and the
+ * loser lost all three members in every decided game. Henry's own play report named it: *"the first
+ * mingming defeated causes a massive advantage for the remaining 3 roster."*
+ *
+ * This grant takes the comeback rate from **8.3% to 16.7%** while leaving battle length untouched
+ * at **6.5 turns** — which was the whole requirement: *"I don't like the games ending faster… I want
+ * to maintain game length but fine with 15-20% comeback rate."*
+ *
+ * # WHY ENERGY AND NOT CARDS, WHICH IS THE COUNTERINTUITIVE PART
+ *
+ * The card half of the cliff was measured too, alone and combined, across four further arms. **It
+ * does nothing.** Granting the bereaved side 2 cards a turn moved the comeback rate from 8.3% to
+ * 8.3% (206 cards) and 10.0% (836 cards) — paired flips of 3:3 and 4:3, symmetric churn rather than
+ * a weak signal. Adding cards to *this* rule made it worse, 16.7% -> 13.3%, twice.
+ *
+ * The side is **energy-constrained, not card-constrained**: extra cards arrive in a hand it cannot
+ * afford to play. Corroborated independently by overkill, which rises when energy is granted
+ * (17.8 -> 22.2 damage, because more plays actually resolve) and not when cards are (17.8 -> 16.8).
+ *
+ * **So do not "complete" this rule by adding a draw bonus.** That was measured and it is inert.
+ *
+ * # WHY IT IS ONE STACK, ONCE, TO EACH SURVIVOR
+ *
+ * `Energized` is consumed whole at the unit's next PRE_TURN refill, so this is a **single extra
+ * energy on the turn after the death** — not a standing repair. The standing version was measured
+ * too: it reaches 20.0% comebacks but shortens fights to 6.0 turns, which is the trade Henry
+ * rejected.
+ *
+ * # BOTH SIDES, ALWAYS
+ *
+ * The enemy gets it as readily as the player. That is what was measured, and a rule that only
+ * rescued the player would be a difficulty setting wearing a mechanic's clothes — the map's
+ * standing law is that difficulty is never stat scaling.
+ */
+export const BEREAVEMENT_ENERGIZED_STACKS = 1;
+
+/**
+ * Apply the rally to the side that just lost `faintedIsPlayer`'s member.
+ *
+ * Routed through `getStatusBehavior('Energized').onApply` rather than pushing a status object
+ * directly — that is what builds a well-formed `StatusEffectInstance` (with its `id`) and what
+ * stacks correctly on top of an `Energized` a card already granted. The measurement harness pushed
+ * a literal and got away with it because the refill only reads `type` and `stacks`; shipped code
+ * does not get to rely on that.
+ */
+function applyBereavementRally(state: IBattleState, faintedIsPlayer: boolean): IBattleState {
+    const key = faintedIsPlayer ? 'playerParty' : 'enemyParty';
+    const behavior = getStatusBehavior('Energized' as StatusType);
+    let granted = 0;
+
+    const party = state[key].map((entity: IBattleEntity) => {
+        // The fallen member is skipped by the same `currentHp > 0` test the refill uses; a dead
+        // unit holding Energized would be a status nothing will ever consume.
+        if (entity.currentHp <= 0) return entity;
+        const { updatedEffects } = behavior.onApply(
+            [...entity.statusEffects], BEREAVEMENT_ENERGIZED_STACKS, entity);
+        granted += 1;
+        return { ...entity, statusEffects: updatedEffects };
+    });
+
+    if (granted === 0) return state;
+
+    return {
+        ...state,
+        [key]: party,
+        // PROC-VISIBLE, the standing law for passives (ticket 16): a rule that silently hands out
+        // energy is exactly the invisible modifier the vision bans. The player is told.
+        logs: [...state.logs, `  ⚡ The fallen rally: +${BEREAVEMENT_ENERGIZED_STACKS} Energized to ${granted} survivor${granted === 1 ? '' : 's'}`],
+    } as IBattleState;
+}
+
 export function checkDefeat(state: IBattleState, targetId: string): IBattleState {
     const target = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
     if (!target) return state;
@@ -266,6 +347,11 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
         const { state: afterHook } = executeResolutionStack('onUnitFainted', context);
         newState = afterHook;
     }
+
+    // TICKET 70: the rally, AFTER `onUnitFainted` so those hooks still see the side as it was at
+    // the moment of death. `checkDefeat` is the single chokepoint for a faint and all three of its
+    // call sites are guarded on the alive->dead transition, so this fires exactly once per death.
+    newState = applyBereavementRally(newState, targetIsPlayer);
 
     return newState;
 }
