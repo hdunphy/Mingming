@@ -31,6 +31,34 @@ Any party can be offered `hamstring` at a marketplace visit; the draw list is pi
 green (`tsc -b`, vitest, build, lint 0). Optional, report-only: one prepared Emberfall arm with
 hamstring purchased, to size what the hedge is worth.
 
+## The toolbox (Henry, 2026-08-29) — the curated list, expanded
+
+**Standing law (now in map Notes): every gym boss ships with at least THREE counter flavors
+reachable by any party.** Henry: *"otherwise you build the same deck every time and it feels bad if
+you can't find the one card."* The off-pool slot's curated list is where the neutral entries live;
+card DESIGN and costing happen in the deck-archetypes pass — the entries below are Henry-ruled
+direction, not printings.
+
+**vs Emberfall (WAR FOOTING):** `hamstring` (exists, None 1e, 20 power + 2 Weakened) ·
+**Reactive Plating** (new None daemon: when an ally takes attack damage it gains 1 Sharp, MAX 3
+GAINED PER TURN — uncapped it trivializes Tidewrack's zoo, capped it is a fair race vs the aura;
+deliberately also anti-Tidewrack) · **Overheat** (new None 1e: remove up to 4 Strengthened from the
+target, apply 1 Burn per 2 removed — scales with the problem, Burn cap self-limits).
+
+**vs Tidewrack (TIDAL SURGE):** **riptide** (ruled in this ticket: None daemon punishing enemy
+cards PLAYED) · **Short Circuit** (new None daemon, Henry 2026-08-29: deal damage whenever an enemy
+gains a card OUTSIDE its draw phase — the inverse of FEEDBACK_LOOP, aimed at kraken_v1/jorm_v1's
+engines; the off-phase-draw trigger already exists as ABYSSAL_INK's hook shape, mirrored) ·
+Weakened appliers (Nature pool + hamstring double-duty) · `FEEDBACK_LOOP` (exists, Water 2e daemon,
+7 damage per own draw) stays an in-pool Water bonus, not a toolbox entry.
+
+**vs Rootfall (ROOT ROT), all three ruled:** **cleanse daemon** (None: end of turn, remove 1-2
+Poison from each ally — continuous answer to a continuous clock) · **0e pulse cleanse** (None:
+remove 2-3 Poison from one ally) · **Regen daemon** (None: grant Regen to a poisoned ally each
+turn — counters the damage, preserves jorm_v2-style stack payoffs against you).
+
+Deliverable amendment: the slot's draw list is this toolbox; the pin test covers every entry.
+
 ## Resolution
 
 **CLOSED 2026-08-28 (LEGION).** `MARKET_NEUTRAL_UTILITY` in `engine/run/marketplace.ts`; the

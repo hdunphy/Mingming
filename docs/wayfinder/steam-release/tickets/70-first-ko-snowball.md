@@ -561,3 +561,33 @@ Gates at the time of the change: `tsc --noEmit -p tsconfig.app.json` clean, `esl
 ## Resolution
 
 _(open)_
+
+
+## Rulings (Henry, 2026-08-29 grilling — both rounds)
+
+The four measurements were taken (research/70, verified: energy formula and draw formula both
+confirmed against `battleReducer`; the "-52.5% compound" framing is corrected to "both pipes shrink
+~30% each; true throughput loss lies between -33% and -52% depending on which binds").
+
+1. **Q1 OVERKILL: keep the waste.** Precision is a skill test. Revisit only if the cliff work
+   changes the feel.
+2. **Q2 KO CLIFF: the death-Energized rule, as a SYMMETRIC ENGINE RULE.** Any side that loses a
+   member gains Energized — player and enemy alike. Henry's experiment (Legion) sizes it. The
+   **draw-formula patch is the reserved second lever**, built only if Energized is not enough.
+   Spec note for the feel pass: Energized is consumed at the next refill, so the base form is a
+   one-turn cushion over a permanent cliff. The escalation ladder if "not enough": bigger one-time
+   grant → Energized RENEWED each turn a side is down a member (true inheritance) → the draw patch.
+3. **"Enough" is ruled by FEEL, not a numeric bar.** Legion reports the new comeback rate
+   (baseline 8.3%); Henry plays with the rule on and rules from feel.
+4. **Q3 COMEBACKS: Revive stays Rare.** Purchasable comebacks stay premium; no structural
+   underdog mechanic.
+5. **Q4 RATIFIED AS A NULL and closed.** Starting HP does not predict the winner (50.0%, n=60);
+   the focus-fire-drawback reading stands. The panel-ramp sustain probe is SKIPPED.
+6. **No concede, no fast-forward.** With comebacks live, watching it slip away is stakes and an
+   early concede is often a misplay. No UX ticket.
+7. **Driver renames (Overkill Recovery, First Blood) wait for ticket 16.**
+
+Consequence: the death-Energized rule shifts every 3v3 number — all three gym fights re-measure
+under it (tickets 71/72 carry this) BEFORE the gauntlet-target ruling, which stays HELD.
+
+Ticket stays OPEN until Henry's feel verdict on the experiment closes Q2.
