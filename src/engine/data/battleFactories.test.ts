@@ -39,7 +39,7 @@ function gauntletSetup(
      * still fields ticket 18's `boss_relic_*` formula boss, which ruling 6 keeps until its own
      * session. Both shapes have to reach the factory intact, so both are exercised from here.
      */
-    gym = GYM_REGISTRY.gym_tidewrack,
+    gym = GYM_REGISTRY.gym_rootfall,
 ): { setup: IBattleSetup; seed: string } {
     const run = createRun({
         seed: 'battle-factories-gauntlet',

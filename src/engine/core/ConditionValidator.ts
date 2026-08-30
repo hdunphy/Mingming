@@ -1,6 +1,6 @@
 import type { IBattleState, IBattleEntity, ProgramConstraint } from '../types';
 import type { HookCondition, HookContext } from './HookTypes';
-import { resolveCounterKey } from './HookTypes';
+import { resolveCounterKey, resolveSideCounterKey } from './HookTypes';
 import { numericBaseCost } from '../types';
 
 /**
@@ -145,7 +145,12 @@ export const ConditionValidator = {
         for (const check of counterChecks) {
             const { key, operator, value, scope } = check;
             const currentCounters = context.state.counters || {};
-            const currentVal = currentCounters[resolveCounterKey(key, scope, owner)] || 0;
+            // Ticket 71: SIDE needs the state to know which party the owner is in, so it cannot
+            // go through `resolveCounterKey` — see `resolveSideCounterKey`.
+            const resolved = scope === 'SIDE'
+                ? resolveSideCounterKey(key, owner, context.state)
+                : resolveCounterKey(key, scope, owner);
+            const currentVal = currentCounters[resolved] || 0;
             if (operator === 'LT' && !(currentVal < value)) return false;
             if (operator === 'GT' && !(currentVal > value)) return false;
             if (operator === 'LTE' && !(currentVal <= value)) return false;

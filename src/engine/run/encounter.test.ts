@@ -751,7 +751,7 @@ describe('gymDriverForNode — the telegraph’s second half', () => {
 
     it('gives nothing at an un-authored gym — there is no Driver to carry (ruling 6)', () => {
         const offer: IGymOffer = {
-            gym: GYM_REGISTRY.gym_tidewrack,
+            gym: GYM_REGISTRY.gym_rootfall,
             biomes: ['Nature', 'Fire', 'Water'].map((element, index) => biome(element, index)),
         };
         const run = { ...createRun({ seed: 'tidewrack-elite', offer, party, startedAt: 0 }), fightsResolved: 1 };

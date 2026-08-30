@@ -63,14 +63,17 @@ export const DRIVER_ID_PREFIX = 'driver_';
 /** WAR FOOTING — Emberfall's leader Driver (ticket 68 ruling 5). */
 export const DRIVER_WAR_FOOTING = 'driver_war_footing';
 
+/** TIDAL SURGE — Tidewrack's leader Driver (ticket 71). The first user of the SIDE counter scope. */
+export const DRIVER_TIDAL_SURGE = 'driver_tidal_surge';
+
 /**
  * Every hook-bearing Driver that ships, in a stable order.
  *
- * One entry today. It is a list rather than a constant because the authoring sessions for Tidewrack
- * and Rootfall (ruling 6) each add one, and because `driverRegistry.test.ts` sweeps it — a Driver
- * added to `hooks.json` and forgotten here is a Driver nothing checks.
+ * Two entries: WAR FOOTING (Emberfall, ticket 68) and TIDAL SURGE (Tidewrack, ticket 71). Rootfall's
+ * ROOT ROT is ticket 72. It is a list rather than a constant because `driverRegistry.test.ts`
+ * sweeps it — a Driver added to `hooks.json` and forgotten here is a Driver nothing checks.
  */
-export const DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING];
+export const DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING, DRIVER_TIDAL_SURGE];
 
 /** Is this a hook-bearing Driver id (as opposed to a stat Driver from `RelicRegistry`)? */
 export function isHookDriver(id: string): boolean {

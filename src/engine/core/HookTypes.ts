@@ -10,10 +10,41 @@ import type { Element, IBattleState, IBattleEntity, ProgramData, StatusType, Act
  * independent counts. 'GLOBAL' uses the raw key for genuinely battle-wide
  * counters (e.g. deck_shuffles, last_overheal).
  */
-export type CounterScope = 'GLOBAL' | 'OWNER';
+export type CounterScope = 'GLOBAL' | 'OWNER' | 'SIDE';
 
 export function resolveCounterKey(key: string, scope: CounterScope | undefined, owner: IBattleEntity): string {
     return scope === 'GLOBAL' ? key : `${key}:${owner.id}`;
+}
+
+/**
+ * TICKET 71: the SIDE scope — one count shared by a whole party, and by nobody else.
+ *
+ * # WHY NEITHER EXISTING SCOPE COULD DO IT
+ *
+ * TIDAL SURGE counts *"every 10 cards this side plays"*. A Driver attaches its hooks to every
+ * member, so:
+ *
+ * - **OWNER** (`key:entityId`) gives each of the three members a private count and the Driver fires
+ *   at 30 cards instead of 10;
+ * - **GLOBAL** (the raw key) is shared with the *opponent*, so the player's own plays would charge
+ *   the boss's Driver.
+ *
+ * Both are wrong in a way that looks like a tuning problem rather than a bug, which is the class of
+ * mistake this repo keeps paying for.
+ *
+ * # WHY IT IS A SEPARATE FUNCTION AND NOT A THIRD BRANCH ABOVE
+ *
+ * A side cannot be derived from an entity — `IBattleEntity` has no side field, by design; which
+ * party an entity is in is a fact about the STATE. So resolving a SIDE key needs the state, and
+ * folding it into `resolveCounterKey` would mean an optional `state` parameter that silently
+ * degrades to an owner-scoped or global key when a caller forgets it. That is the exact failure
+ * mode `HookSchema`'s comments keep warning about — a lever that looks connected and is not.
+ *
+ * A separate function with a REQUIRED state parameter makes the compiler ask for it.
+ */
+export function resolveSideCounterKey(key: string, owner: IBattleEntity, state: { playerParty: ReadonlyArray<IBattleEntity> }): string {
+    const side = state.playerParty.some((e) => e.id === owner.id) ? 'PLAYER' : 'ENEMY';
+    return `${key}@${side}`;
 }
 
 export enum HookPriority {

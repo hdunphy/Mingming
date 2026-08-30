@@ -103,12 +103,14 @@ describe('boss relic OSes', () => {
      * and nothing else in the suite would notice.
      */
     it('every member of an UN-AUTHORED gym’s boss team keeps a live boss_relic OS through createBattleState', () => {
-        // TICKET 68 repointed this at Tidewrack. Emberfall is authored now and fields real firmware
-        // behind a Driver (ruling 5); the relic shape this asserts is what ruling 6 keeps at the two
-        // gyms that have not had their design session yet, and it has to go on working meanwhile.
+        // TICKET 68 repointed this at Tidewrack; TICKET 71 authored Tidewrack, so it moves again to
+        // **Rootfall — the last gym still fielding the formula boss.** That is the whole life of
+        // this test: it follows the shrinking set of un-authored gyms, and when ticket 72 authors
+        // Rootfall there will be none left and the relic firmware becomes dead code. This test is
+        // deleted with it rather than repointed a third time.
         const run = createRun({
             seed: 'hook-wiring-gauntlet',
-            offer: { gym: GYM_REGISTRY.gym_tidewrack, biomes: BIOMES },
+            offer: { gym: GYM_REGISTRY.gym_rootfall, biomes: BIOMES },
             party: [PARTY_MEMBER],
             startedAt: 0,
         });

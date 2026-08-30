@@ -20,6 +20,7 @@ import RunScreen from './RunScreen';
 import battleReducer from '../store/battleSlice';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
+import { gauntletOpponentElements } from '../../engine/run/gauntlet';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { ALL_TIP_IDS } from '../../engine/tips';
@@ -249,8 +250,16 @@ describe('RunScreen — the gauntlet takes the screen', () => {
         const run = inGauntlet({}, { fightIndex: 2 });
         const markup = render(run);
 
-        for (const biome of run.biomes) {
-            expect(markup).toContain(biome.elements[0]);
+        // TICKET 71: this used to read the run's BIOME elements, which was the same list only
+        // because every gym rolled one species per biome. An authored gym fields a fixed trio, so
+        // at Tidewrack (authored here) the opponent elements are the trio's — Water, Water, Fire —
+        // and the run's Nature biome contributes nobody. Asking the engine what the fight will
+        // ACTUALLY field keeps the test about the visibility rule rather than about the roll.
+        const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
+        const elements = gauntletOpponentElements({ run, node, fightIndex: 2 });
+        expect(elements.length).toBeGreaterThan(0);
+        for (const element of new Set(elements)) {
+            expect(markup).toContain(element);
         }
         expect(markup).toContain('signature firmware');
     });

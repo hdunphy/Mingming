@@ -93,7 +93,7 @@ const biome = (element: string): IBiome => ({
 function makeRun(
     party: ReadonlyArray<IMingmingState> = [KRAKEN, FENRIR, RATATOSKR],
     seed = 'gauntlet-test-seed',
-    gym = GYM_REGISTRY.gym_tidewrack,
+    gym = GYM_REGISTRY.gym_rootfall,
     biomes: ReadonlyArray<IBiome> = [biome('Nature'), biome('Fire'), biome('Water')],
 ): IRunState {
     const offer: IGymOffer = { gym, biomes: [...biomes] };
@@ -596,7 +596,7 @@ describe('gymSignatures — the offer screen telegraph (ticket 68 ruling 4)', ()
 
     it('gives an un-authored gym the three relic texts its OWN offer will produce', () => {
         const biomes = [biome('Nature'), biome('Fire'), biome('Water')];
-        const signatures = gymSignatures('gym_tidewrack', biomes);
+        const signatures = gymSignatures('gym_rootfall', biomes);
         expect(signatures).toHaveLength(GAUNTLET_ENEMY_COUNT);
         // Derived off the offer rather than guessed: the same `bossFirmwareFor` the roll uses, in
         // the same order, so the screen promises exactly what walks out.

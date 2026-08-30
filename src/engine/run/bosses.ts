@@ -50,7 +50,7 @@
  * `Date.now()`.
  */
 
-import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
+import { DRIVER_TIDAL_SURGE, DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 
 export interface IAuthoredBossMember {
     /** A `MingmingRegistry` species id. */
@@ -83,6 +83,31 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
             { species: 'ratatoskr', os: 'ratatoskr_v2' },
         ],
         driver: DRIVER_WAR_FOOTING,
+    },
+    /*
+     * TIDEWRACK (ticket 71): jormungandr_v1 (OUROBOROS_LOOP) + kraken_v1 (ABYSSAL_INK_SYS) +
+     * skoll_v2 (SOLAR_OVERDRIVE), under TIDAL SURGE.
+     *
+     * The zoo core — the two card-count-and-draw engines — with a Strength-scaling Fire closer. The
+     * Driver is *about* that core: a side that plays five to seven cards a turn charges a 10-card
+     * threshold every turn and a half.
+     *
+     * **skoll_v2 rather than a Nature third, deliberately** (Henry, 2026-08-29): a Nature member
+     * would give the Nature counter-team nothing to fear, and the heuristic's third slot exists to
+     * counter the player's expected counter. Skoll fields v1 at Emberfall and v2 here on purpose —
+     * leaders build differently, and the same OS at two gyms would make the roster read as a pool.
+     *
+     * Intended counter, for the gate's record: **Nature** — the only launch element with Weakened,
+     * which is maximally efficient against many small hits — plus ticket 69's toolbox (riptide,
+     * Short Circuit).
+     */
+    gym_tidewrack: {
+        members: [
+            { species: 'jormungandr', os: 'jormungandr_v1' },
+            { species: 'kraken', os: 'kraken_v1' },
+            { species: 'skoll', os: 'skoll_v2' },
+        ],
+        driver: DRIVER_TIDAL_SURGE,
     },
 };
 
