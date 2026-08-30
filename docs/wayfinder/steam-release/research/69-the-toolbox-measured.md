@@ -105,6 +105,48 @@ rate and raised the boss's, and lost ten points.
 Worth stating plainly for the knob decision: **the scoping fix nerfed Tidewrack ~16% on its rate for
 free, and that is most of what a proportional nerf has to give.**
 
+### 1.2 Where the boss's 194 actually comes from — the nerf removed POTENTIAL, not delivered damage
+
+*"We nerfed the card by ~30 damage a play, so why is the damage still so high?"* Decomposed, 8
+samples, bare favourable arm:
+
+| boss card | dmg/battle | share | casts/battle | per cast |
+| --- | --- | --- | --- | --- |
+| `ink_stream` | **63.1** | **33%** | 3.13 | 20.2 |
+| `serpents_coil` | 25.1 | 13% | 1.75 | 14.4 |
+| `fury_strike` | 23.9 | 12% | 1.75 | 13.6 |
+| `surge_protection` | 22.3 | 11% | 1.63 | 13.7 |
+| `overdrive` | 15.1 | 8% | 0.75 | 20.2 |
+| `pressure_point` | 14.6 | 8% | 2.13 | 6.9 |
+| `glass_cannon` | 7.9 | 4% | 0.63 | 12.6 |
+| `reckless_charge` | 7.4 | 4% | 0.88 | 8.4 |
+| the rest | ~14 | 7% | | |
+
+Two things fall out.
+
+**`ink_stream` is still the single largest source at 33%, but 131 of the boss's 194 comes from eight
+other cards the fix never touched.** Nerfing one card in a nine-card damage spread cannot move the
+total by more than that card's share.
+
+**And the share it did remove was never being delivered.** At the pre-fix 52.9 a cast, 3.13 casts is
+**165 damage a battle from `ink_stream` alone** — a boss with ~296 of potential against a 235-point
+party. It was **over-killing by ~25%**. Cutting it removed the surplus, so the boss stopped killing
+in 3.5 turns and started killing in 4.1. It did not stop killing.
+
+That is why the total is flat and the win rate barely moved: **a nerf only converts into win rate
+once the boss's kill clock is slower than the player's.** They are currently a dead heat:
+
+- boss pool 240 ÷ player 47.7 dmg/turn = **5.0 turns for the player to win**
+- player pool 235 ÷ boss 46.9 dmg/turn = **5.0 turns for the boss to win**
+
+A photo finish, decided by which side's variance lands first — which is exactly what a 26.7% win rate
+on a knife-edge looks like once the boss also has the first-KO snowball working for it.
+
+**To move it by damage alone, the cut has to clear the dead heat, not approach it.** Taking the boss
+to ~38 dmg/turn (a further ~19%) puts its clock at 6.2 turns against the player's 5.0, which is the
+first point where the player is favoured rather than tied. Everything smaller is bought back by the
+extra turns it hands the boss.
+
 ### What this does and does not decide
 
 - It **does** rule out "Tidewrack is fine once its counters exist". They exist, they are stocked,
