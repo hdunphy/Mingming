@@ -591,3 +591,20 @@ Consequence: the death-Energized rule shifts every 3v3 number — all three gym 
 under it (tickets 71/72 carry this) BEFORE the gauntlet-target ruling, which stays HELD.
 
 Ticket stays OPEN until Henry's feel verdict on the experiment closes Q2.
+
+
+## RECONCILIATION (wayfinder, 2026-08-30) — read the two ruling sections together
+
+The "Rulings (Henry, 2026-08-29 grilling)" section above was recorded from the chat session and
+lands AFTER Legion's six-arm measurement in file order but was written BEFORE it in time. Where
+they disagree, **the measurement wins**:
+
+- Round 1's *"draw-formula patch is the reserved second lever"* is SUPERSEDED — the card arms are a
+  measured null (symmetric flip churn, no behavioural effect; the bereaved side is
+  energy-constrained, not card-constrained). The escalation ladder if 16.7% does not FEEL like
+  enough is now: **larger one-time Energized grant → `energized standing` (20.0%, at the cost of
+  half a turn of battle length) → never the draw patch.**
+- Round 1's "Legion reports the rate, Henry plays, rules from feel" stands as the CLOSE condition:
+  Q2b is ruled and shipped as the **Bereavement Rally** (`energized once`, 8.3% → 16.7%,
+  length-neutral); Henry's feel pass on it is what closes this ticket's Q2. Everything Legion's
+  table lists as still open stays open.
