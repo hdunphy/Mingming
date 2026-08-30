@@ -75,7 +75,7 @@ import { cardFace, colorFor, groupByData } from './runShell';
 import './runShell.css';
 import './MarketplaceNode.css';
 import { Icon } from '../theme/Icon';
-import { EnergyPips, TypeMark } from './CardChassis';
+import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
 
 /**
  * Ticket 19's deck-band constants, re-exported because this module's readers and tests import them
@@ -250,7 +250,10 @@ export default function MarketplaceNode({
                                     <span className="rs-art" />
                                     <span className="rs-cnm">{face.name}</span>
                                     <span className="rs-desc">{face.description}</span>
-                                    <span className="rs-tags mk-tags">{offer.wildcard ? 'off-pool' : ''}</span>
+                                    <span className="rs-tags mk-tags">
+                                        <ElementMark element={face.element} />
+                                        {offer.wildcard && <span className="rs-tg">off-pool</span>}
+                                    </span>
                                     <span className={`rs-price ${sold ? 'sold' : ''}`}>
                                         {sold ? 'SOLD' : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
                                     </span>
@@ -329,6 +332,7 @@ export default function MarketplaceNode({
                                     onClick={() => sell(stack)}
                                 >
                                     <span className="rs-g">{face.cost}</span>
+                                    <ElementMark element={face.element} compact />
                                     <span className="rs-rnm">{face.name}</span>
                                     {stack.instances[0].dataId === GENERIC_HIT && <span className="rs-t">generic</span>}
                                     <span className="rs-t">{stack.inDeck ? 'deck' : 'collection'}</span>
