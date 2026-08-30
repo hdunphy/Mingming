@@ -27,9 +27,10 @@ merely failing to help.
 
 ### Why — and it is one line
 
-Telemetry, 8 samples per arm, same seeds:
+Telemetry, 8 samples per arm, same seeds. **Every figure here is the PLAYER's own output** — an
+earlier draft of this table labelled it "total damage", which read as the boss's:
 
-| | total damage / battle | attributed to cards | **residual (hooks + DoT)** |
+| | **player** damage / battle | attributed to cards | **residual (hooks + DoT)** |
 | --- | --- | --- | --- |
 | bare | 197 | 180 | 16.6 |
 | **+ toolbox** | **129** | **110** | **19.5** |
@@ -37,6 +38,17 @@ Telemetry, 8 samples per arm, same seeds:
 **The three cards add 2.9 damage a battle and cost 70.** They are drawn and they are cast —
 `riptide` 0.75, `short_circuit` 0.88, `reactive_plating` 0.63 casts per battle — and their combined
 output is inside the noise of what the deck gave up to draw them.
+
+And the boss's side of the same samples, which is the half that explains the size of the drop:
+
+| | player dmg/turn | **boss dmg/turn** | turns |
+| --- | --- | --- | --- |
+| bare | 47.7 | 46.9 | 4.1 |
+| **+ toolbox** | **30.4** | **55.8** | 4.3 |
+
+The toolbox cuts the player's rate by 36% **and raises the boss's by 19%** — because a deck that
+kills nothing leaves all three boss bodies swinging. That asymmetry, not the dilution alone, is the
+ten points of win rate.
 
 `reactive_plating` is the clearest case: Sharp granted per battle goes **1.3 → 1.4**. Its cap is 3
 a turn and it is nowhere near it.
@@ -52,6 +64,47 @@ This is the same finding the hand-built deck produced from the other side (13.3%
 arm](72-the-handbuilt-tidewrack-arm.md)) and it now has a controlled number attached: **the counters
 are not underpowered, they are mistimed.** Nothing about their *effects* is wrong.
 
+### 1.1 The scoping fix landed, and it barely moved the win rate — here is why
+
+`CARDS_DRAWN_TRIGGERED` went per-Mingming in the previous session, and it did exactly what it was
+supposed to do to the boss's engine card:
+
+| boss `ink_stream` | before scoping | now |
+| --- | --- | --- |
+| damage per cast | 52.9 | **20.2** |
+| triggered draws counted per cast | 6.6 | **2.5** |
+
+**A 62% cut to the card that was 49% of the winning deck's output — and Tidewrack's win rate moved
+23.3% → 26.7%.** That is not a contradiction, and the reason is structural enough to be worth
+keeping:
+
+| | boss dmg/turn | turns | **boss damage / battle** |
+| --- | --- | --- | --- |
+| before scoping | 55.8 | 3.5 | **195** |
+| after scoping | 46.9 | 4.1 | **194** |
+
+**Total boss damage is flat.** It has to be: the boss swings until someone dies, so its total
+converges on the player's HP pool whatever its rate is. Cutting the rate bought *turns*, and turns
+are handed to **both** sides.
+
+The pools and rates are what make that near-neutral:
+
+- boss HP pool **240**, player HP pool **235** — within 2%;
+- player **47.7** dmg/turn, boss **46.9** — within 2%;
+- the player takes 82% of the boss's pool; the boss takes 83% of the player's.
+
+**This fight is a knife-edge race between two nearly identical sides.** A proportional damage nerf
+lengthens it symmetrically and changes how long the coin takes to land, not which way it lands. It
+took 8.9 points off the boss's rate for 3.4 points of win rate.
+
+**The lever that moves this fight is asymmetry**, and the data already names two: *removing a body*
+(cuts their rate, not yours — the mechanism behind the 73% control deck in the three-gym table) and
+*raising the player's rate*. The toolbox arm is the same law running backwards — it cut the player's
+rate and raised the boss's, and lost ten points.
+
+Worth stating plainly for the knob decision: **the scoping fix nerfed Tidewrack ~16% on its rate for
+free, and that is most of what a proportional nerf has to give.**
+
 ### What this does and does not decide
 
 - It **does** rule out "Tidewrack is fine once its counters exist". They exist, they are stocked,
@@ -64,9 +117,9 @@ are not underpowered, they are mistimed.** Nothing about their *effects* is wron
 
 1. **Re-cost the installs to 1 energy**, or give them an effect on the turn they land. The doc's knob
    ranges are about power; this says the problem is *cost and timing*, which is outside them.
-2. **Bring Tidewrack's damage down** until a 4-turn fight becomes a 6-turn one. At 55.8 damage/turn
-   against Emberfall's 32.3 it is the outlier, and every installed answer in the game is priced for
-   the longer fight.
+2. **Bring Tidewrack's damage down** until a 4-turn fight becomes a 6-turn one — but see §1.1
+   first, because a proportional damage nerf has just been measured and it is nearly win-rate-neutral.
+   The lever that works here has to be **asymmetric**.
 
 They are the same question from two ends. **Nothing here supports a knob round on the cards' power
 numbers** — a bigger `riptide` still arrives too late.
