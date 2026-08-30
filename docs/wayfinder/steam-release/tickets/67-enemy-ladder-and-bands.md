@@ -378,3 +378,20 @@ with Water, or answer it with Nature and pay the Fire tax*.
    slot (already in ticket 63's ruled design) draws from a small curated neutral-utility list that
    includes it, so any party CAN buy the mechanical answer without any species pool changing.
    Build: [ticket 69](69-neutral-market-slot.md).
+
+
+## Round-5 ruling (Henry, 2026-08-30) — THE GAUNTLET TARGET IS RULED
+
+The hold placed in round 4 lifts: all three gyms are authored and measured (tickets 68/71/72,
+research/72-the-three-gym-prepared-table.md). Henry, in the ticket-72 report exchange, verbatim in
+substance: *"the 60% number is for the gauntlet... you need 60% win rate against the gauntlet, not
+against the specific boss battle. so this specific boss battle should be about 80%."*
+
+1. **60 +/- 5 grades the GAUNTLET COMPOUND** for the prepared arm. Per-fight ~84.3% (0.60^(1/3))
+   is a working guide, never a gate.
+2. **`bandVerdict` grades `gauntletCompound()`** — Legion's proposed verdict change is RATIFIED.
+   Historical per-fight FAIL verdicts are re-read under the new rule, not re-run.
+3. Consequences already on record: Emberfall is CALIBRATED (60.0% compound, never "15pt over");
+   Rootfall reads ~7.6pt under WITH NO TOOLBOX CARDS in the deck; Tidewrack's 37-point outlier is
+   the open problem and its verdict waits on the five remaining toolbox cards
+   (research/69-toolbox-printings.md) plus the firmware-pairing harness fix.

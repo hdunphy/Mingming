@@ -59,6 +59,14 @@ turn — counters the damage, preserves jorm_v2-style stack payoffs against you)
 
 Deliverable amendment: the slot's draw list is this toolbox; the pin test covers every entry.
 
+## Printings (Henry, 2026-08-30) — the toolbox is no longer direction
+
+The costing pass ran; the caveat above is superseded. Full printings, shipped-state reconciliation
+(riptide 8 power / short_circuit 15 power stand as printed; "Overheat" renamed **`discharge`** over
+an id collision), acquisition list and knob ranges:
+[research/69-toolbox-printings.md](../research/69-toolbox-printings.md). Five cards remain to
+implement: reactive_plating, discharge, scrubber, vent, drip_feed.
+
 ## Resolution
 
 **CLOSED 2026-08-28 (LEGION).** `MARKET_NEUTRAL_UTILITY` in `engine/run/marketplace.ts`; the
