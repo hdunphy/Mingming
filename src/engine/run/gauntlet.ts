@@ -52,7 +52,6 @@
 
 import { SeedStream } from '../core/SeedStream';
 import { describeDriver } from '../data/driverRegistry';
-import { getOSBehavior } from '../data/firmwareRegistry';
 import { GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
 import type { IBattleEntity, IMingmingState } from '../types';
@@ -105,19 +104,6 @@ export function isBossFight(fightIndex: number, totalFights: number = GAUNTLET_F
 // Signature firmware (ticket 28 authors the real bosses)
 // ---------------------------------------------------------------------------------------------
 
-/**
- * The three `boss_relic_*` firmwares that exist in `lib/hooks.json`, in a stable order.
- *
- * They are the ones ticket 18 names — *"carries signature firmware (the `boss_relic_*` OSes
- * exist; authored bosses are ticket 28)"* — and they are the reason a boss reads differently from
- * an overtuned wild: FIRE ignites the field at end of turn, WATER heals the whole enemy side
- * whenever it is hit, ICE taxes programs aimed at a poisoned target.
- */
-export const BOSS_RELIC_IDS: ReadonlyArray<string> = [
-    'boss_relic_fire',
-    'boss_relic_water',
-    'boss_relic_ice',
-];
 
 /**
  * **THE BOSS DOES NOT ROLL. RULED by Henry on ticket 67, 2026-08-26.**
@@ -156,31 +142,6 @@ export const BOSS_IVS: ReadonlyArray<{ readonly hp: number; readonly attack: num
     { hp: 20, attack: 20, defense: 20 },
 ];
 
-/**
- * Which signature a boss drawn from a given biome runs.
- *
- * **Two of the three launch elements have a relic named after them and Nature does not**, so Nature
- * takes the ice relic — and that is less arbitrary than it looks: `boss_relic_ice` is the only one of
- * the three whose effect contains no element at all (it is an Energy tax on programs aimed at a
- * poisoned target, where FIRE deals Fire damage and WATER heals). Handing the element-neutral
- * signature to the element with no signature of its own is the assignment that costs the least
- * fiction, and it keeps the boss team's three firmwares **distinct**, which is what makes the fight
- * read as three threats rather than one tripled.
- *
- * **This is placeholder casting, exactly like `GYM_REGISTRY`'s leader names.** [Ticket
- * 28](../../../docs/wayfinder/steam-release/tickets/28-gym-leaders.md) authors the real gym leaders
- * and their teams, and should replace this table wholesale; what it should keep is the property
- * below, that no two members of one boss team run the same signature.
- */
-const BOSS_RELIC_BY_ELEMENT: Readonly<Record<string, string>> = {
-    Fire: 'boss_relic_fire',
-    Water: 'boss_relic_water',
-    Nature: 'boss_relic_ice',
-    // Not reachable at Early Access (ticket 05 ships the three above), but a post-launch biome must
-    // not fall through to "no firmware at all", which would field a boss weaker than the elite two
-    // nodes back. Ice matches by name; everything else takes the fallback below.
-    Ice: 'boss_relic_ice',
-};
 
 // ---------------------------------------------------------------------------------------------
 // The authored bosses (ticket 68) — the table itself lives in `bosses.ts`
@@ -195,61 +156,25 @@ const BOSS_RELIC_BY_ELEMENT: Readonly<Record<string, string>> = {
  * — which gym you walk toward — is made on this screen. Printing the Driver there is what makes the
  * party-selection decision a real one rather than something you learn by losing.
  *
- * Two shapes come back, because two kinds of gym exist right now:
+ * TICKET 72: there is only ONE shape now. Every gym in `GYM_REGISTRY` is authored, so this always
+ * returns the gym's single Driver — the whole fight's rule, in one line the offer screen can print.
+ * The old second shape (three `boss_relic_*` texts derived from the offer's biomes) went with the
+ * relics; `gyms.authoredCoverage.test` fails loudly if a gym is ever added without a boss, rather
+ * than letting this fall back to firmware that no longer exists.
  *
- * - An **authored** gym returns its ONE Driver. That is the whole fight's rule.
- * - A **formula** gym (Tidewrack, Rootfall — ruling 6) returns the three `boss_relic_*` its biome
- *   elements will produce, derived through `bossFirmwareFor` off the OFFER's biomes rather than
- *   guessed, so the screen promises exactly what walks out. Ruling 4 asks for their existing relic
- *   text *unchanged*, and derived-from-the-offer is the only way for it to be both unchanged and
- *   true.
- *
- * Takes the offer's biomes rather than an `IRunState` because it is called before a run exists.
+ * Takes the offer's biomes rather than an `IRunState` because it is called before a run exists —
+ * the parameter is kept for that call-shape even though the biomes no longer decide anything.
  */
 export function gymSignatures(
     gymId: string,
     biomes: ReadonlyArray<{ readonly elements: ReadonlyArray<string> }>,
 ): ReadonlyArray<{ readonly id: string; readonly name: string; readonly description: string }> {
+    void biomes;
     const authored = authoredBossFor(gymId);
-    if (authored) {
-        return [{ id: authored.driver, ...describeDriver(authored.driver) }];
-    }
-
-    const taken: string[] = [];
-    const signatures: Array<{ id: string; name: string; description: string }> = [];
-    for (let slot = 0; slot < GAUNTLET_ENEMY_COUNT; slot += 1) {
-        const element = biomes[Math.min(slot, biomes.length - 1)]?.elements[0] ?? '';
-        const id = bossFirmwareFor(element, taken);
-        taken.push(id);
-        const behaviour = getOSBehavior(id);
-        signatures.push({
-            id,
-            name: behaviour?.name ?? id,
-            description: behaviour?.description ?? '',
-        });
-    }
-    return signatures;
+    if (!authored) return [];
+    return [{ id: authored.driver, ...describeDriver(authored.driver) }];
 }
 
-/**
- * The signature for a biome's element, avoiding one already taken by an earlier member of the same
- * boss team.
- *
- * The de-duplication is the interesting half. At Early Access every run walks all three launch
- * elements exactly once (`gyms.offerGyms` rule 3), so the table alone already yields three different
- * relics — but `IBiome.elements` is a 1-or-2 list precisely because that is *not* permanent
- * (`runTypes.ts`, `IBiome`), and two biomes sharing an element would otherwise put two identical
- * WATER relics on one side, stacking a team-wide heal on every hit. Falling through to the first
- * unused relic makes that unrepresentable rather than merely unlikely.
- */
-export function bossFirmwareFor(element: string, taken: ReadonlyArray<string>): string {
-    const preferred = BOSS_RELIC_BY_ELEMENT[element];
-    if (preferred && !taken.includes(preferred)) return preferred;
-    const free = BOSS_RELIC_IDS.find((id) => !taken.includes(id));
-    // Every relic taken means a boss team larger than the relic list, which `GAUNTLET_ENEMY_COUNT`
-    // forbids. Repeating the preferred one is a better answer than an entity with no firmware.
-    return free ?? preferred ?? BOSS_RELIC_IDS[0];
-}
 
 // ---------------------------------------------------------------------------------------------
 // The seed
@@ -424,7 +349,6 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];
     const species: string[] = [];
-    const firmwares: string[] = [];
 
     for (let slot = 0; slot < GAUNTLET_ENEMY_COUNT; slot += 1) {
         // The boss team is one species per biome, IN BIOME ORDER, so the member fought last in the
@@ -445,16 +369,11 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
         const definitionId = authored?.members[slot]?.species ?? rolled;
         species.push(definitionId);
 
-        const rolledFirmware = boss
-            ? bossFirmwareFor(run.biomes[biomeIndex]?.elements[0] ?? '', firmwares)
-            : null;
-        if (rolledFirmware) firmwares.push(rolledFirmware);
-
-        // An authored member's firmware IS its own tuned OS — ruling 2: *"members keep their OSes;
-        // the Driver is additive, not an OS replacement"*. So the id handed to `buildEnemy` is a
-        // real `availableOS` entry rather than a `boss_relic_*`, which is also what makes its deck
-        // lookup return the species' real tuned list with no fallback in the path.
-        const firmware = authored ? (authored.members[slot]?.os ?? null) : rolledFirmware;
+        // TICKET 72: the rolled `boss_relic_*` branch is gone with the relics. Every gym is
+        // authored now, so a boss member's firmware IS its own tuned OS — ruling 2: *"members keep
+        // their OSes; the Driver is additive, not an OS replacement"*. A non-boss slot has no
+        // firmware override at all, exactly as before.
+        const firmware = authored ? (authored.members[slot]?.os ?? null) : null;
 
         // Ticket 28 authors the real names. Until it does, the nickname says which gym's team this
         // is and whether it is the leader's own — a player who cannot tell fight 3 from fight 2 by

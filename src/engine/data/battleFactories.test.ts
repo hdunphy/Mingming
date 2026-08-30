@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getOSBehavior } from './firmwareRegistry';
 import { createBattleState } from './battleFactories';
 import type { IBattleSetup } from './battleFactories';
 import { createMingmingInstance } from '../gameTypes';
@@ -77,15 +78,21 @@ describe('createBattleState — the gym-tier branch is gone (ticket 18)', () => 
         expect(() => createBattleState(bare, [])).toThrow(/No enemies generated/);
     });
 
-    it('builds the boss team it is handed, with signature firmware intact', () => {
+    it('builds the boss team it is handed, with its firmware intact', () => {
         const { setup, seed } = gauntletSetup(GAUNTLET_FIGHTS - 1);
         const state = createBattleState(setup, [], undefined, { seed, enemyMode: 'CARDS' });
 
         expect(state.enemyParty).toHaveLength(3);
         // The OS strip that fires for intent-driven enemies is skipped for a pre-rolled encounter
-        // (ticket 11), which is what lets the boss team run its relics at all.
+        // (ticket 11), which is what lets the boss team run any firmware at all.
+        //
+        // TICKET 72: this used to assert the firmware was a `boss_relic_*`. Every gym is authored
+        // now, so a boss member runs its OWN tuned OS — the claim that survives is that whatever
+        // the encounter handed over is still on the entity and is real, registered firmware.
         for (const boss of state.enemyParty) {
-            expect(boss.activeOS?.startsWith('boss_relic_')).toBe(true);
+            expect(boss.activeOS).toBeDefined();
+            expect(boss.activeOS?.startsWith('boss_relic_')).toBe(false);
+            expect(getOSBehavior(boss.activeOS!)).toBeDefined();
         }
         // No multiplied health bars anywhere. The old warden was `maxHp * 1.5`; ticket 21 froze the
         // engine, so a boss sits at exactly the HP its species and IVs give it.

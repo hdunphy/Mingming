@@ -34,6 +34,7 @@ import {
 } from './encounter';
 import { buildBattleSetup, toMingmingState } from './battleSetup';
 import { STARTER_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
+import { authoredBossFor } from './bosses';
 import { GYM_REGISTRY, type IGymOffer } from './gyms';
 import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { createBattleState } from '../data/battleFactories';
@@ -749,13 +750,19 @@ describe('gymDriverForNode — the telegraph’s second half', () => {
         }
     });
 
-    it('gives nothing at an un-authored gym — there is no Driver to carry (ruling 6)', () => {
-        const offer: IGymOffer = {
-            gym: GYM_REGISTRY.gym_rootfall,
-            biomes: ['Nature', 'Fire', 'Water'].map((element, index) => biome(element, index)),
-        };
-        const run = { ...createRun({ seed: 'tidewrack-elite', offer, party, startedAt: 0 }), fightsResolved: 1 };
-        expect(gymDriverForNode(run, node({ kind: 'elite', biomeIndex: run.biomes.length - 1 }))).toBeUndefined();
+    it('carries EVERY gym’s Driver — there is no un-authored gym left (ticket 72)', () => {
+        // This used to assert the opposite at an un-authored gym: no authored boss, no Driver to
+        // carry. Tickets 71 and 72 authored the last two, so the claim inverts — each of the three
+        // leaders now hands its own Driver to the elites guarding its gauntlet.
+        for (const gymId of ['gym_emberfall', 'gym_tidewrack', 'gym_rootfall'] as const) {
+            const offer: IGymOffer = {
+                gym: GYM_REGISTRY[gymId],
+                biomes: ['Nature', 'Fire', 'Water'].map((element, index) => biome(element, index)),
+            };
+            const run = { ...createRun({ seed: `${gymId}-elite`, offer, party, startedAt: 0 }), fightsResolved: 1 };
+            const carried = gymDriverForNode(run, node({ kind: 'elite', biomeIndex: run.biomes.length - 1 }));
+            expect(carried, `${gymId} should carry a Driver`).toBe(authoredBossFor(gymId)!.driver);
+        }
     });
 
     it('reaches the rolled encounter, and changes NOTHING else about the elite', () => {

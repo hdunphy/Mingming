@@ -674,10 +674,15 @@ function withBossOverride(
         const stats = override.ivs
             ? { hpIV: override.ivs.hp, attackIV: override.ivs.attack, defenseIV: override.ivs.defense }
             : {};
-        const firmware = override.relics === 'off'
-            ? { activeOS: MingmingRegistry[enemy.definitionId]?.availableOS[0] ?? enemy.activeOS }
-            : {};
-        return { ...enemy, ...stats, ...firmware };
+        // TICKET 72: the `activeOS` swap that used to live here is GONE with the relics.
+        //
+        // It existed to replace a `boss_relic_*` id with the species' own first OS, so that turning
+        // the signature passive off left the boss with real firmware instead of none. Every gym is
+        // authored now, so a boss member ALREADY runs its own tuned OS — and the swap had quietly
+        // become harmful: it would have replaced an authored `skoll_v2` with `availableOS[0]`
+        // (`skoll_v1`), changing the boss's DECK in an arm that is supposed to change one thing.
+        // The Driver strip below is the whole of the lever now.
+        return { ...enemy, ...stats };
     });
 }
 
@@ -688,7 +693,7 @@ export function describeBossOverride(override: BossOverride | undefined): string
     }
     const parts: string[] = [];
     if (override.ivs) parts.push(`BOSS_IVS ${override.ivs.hp}/${override.ivs.attack}/${override.ivs.defense}`);
-    if (override.relics === 'off') parts.push('boss signature passive OFF (relic hooks / Driver; tuned OS, same deck)');
+    if (override.relics === 'off') parts.push('boss signature passive OFF (the gym Driver; tuned OS and deck untouched)');
     return `ISOLATION — ${parts.join(' + ')}`;
 }
 

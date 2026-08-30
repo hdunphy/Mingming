@@ -1211,80 +1211,6 @@
             }
         ]
     },
-    "boss_relic_fire": {
-        "id": "boss_relic_fire",
-        "name": "FIRE_RELIC_OS",
-        "description": "Boss Relic: At the end of the boss's turn, it ignites the field, dealing Fire damage to all enemies scaled by its Sharp stacks.",
-        "hooks": [
-            {
-                "id": "boss_relic_fire_end",
-                "trigger": "onTurnEnd",
-                "priority": 100,
-                "when": {
-                    "source": "SELF"
-                },
-                "do": [
-                    {
-                        "type": "ATTACK",
-                        "target": "ENEMIES",
-                        "power": 3,
-                        "element": "Fire",
-                        "scaling": "SHARP_STACKS"
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s FIRE RELIC ignites the field!"
-                    }
-                ]
-            }
-        ]
-    },
-    "boss_relic_water": {
-        "id": "boss_relic_water",
-        "name": "WATER_RELIC_OS",
-        "description": "Boss Relic: Whenever the boss's side takes damage, the whole team is soothed, healing 5% Max HP.",
-        "hooks": [
-            {
-                "id": "boss_relic_water_reactive",
-                "trigger": "onPostDamage",
-                "priority": 100,
-                "when": {
-                    "target": "ALLY"
-                },
-                "do": [
-                    {
-                        "type": "HP",
-                        "target": "ALLIES",
-                        "percentMaxHP": 5
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s WATER RELIC soothes the team!"
-                    }
-                ]
-            }
-        ]
-    },
-    "boss_relic_ice": {
-        "id": "boss_relic_ice",
-        "name": "ICE_RELIC_OS",
-        "description": "Boss Relic: Opposing programs aimed at a poisoned target cost 1 additional Energy.",
-        "hooks": [
-            {
-                "id": "boss_relic_ice_tax",
-                "trigger": "onCostCalculated",
-                "priority": 100,
-                "when": {
-                    "source": "OPPONENT",
-                    "targetStatus": {
-                        "status": "Poison",
-                        "minStacks": 1
-                    }
-                },
-                "bonus": 1
-            }
-        ]
-    },
     "driver_war_footing": {
         "id": "driver_war_footing",
         "name": "WAR FOOTING",
@@ -1382,6 +1308,55 @@
                     {
                         "type": "LOG",
                         "text": "TIDAL SURGE breaks over the enemy side!"
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_root_rot": {
+        "id": "driver_root_rot",
+        "name": "ROOT ROT",
+        "description": "Whenever this side's card applies Poison, it applies 1 more.",
+        "hooks": [
+            {
+                "id": "driver_root_rot_spread",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "statusApplied": "Poison",
+                    "counter": {
+                        "key": "root_rot_reentry",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "root_rot_reentry",
+                        "scope": "SIDE",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Poison",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "root_rot_reentry",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "ROOT ROT deepens the poison."
                     }
                 ]
             }

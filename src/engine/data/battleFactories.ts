@@ -257,15 +257,12 @@ export function createBattleState(
     // and a biome-1 enemy runs its own, and `engine/run/encounter.ts` has already said which. A
     // blanket strip here would silently delete that rule and make every depth field the same enemy.
     //
-    // Ticket 18: the `boss_relic_*` exemption below is now the ONLY thing left of the old gym
-    // branch, and it is kept for the paths that still build enemies here (the debug/legacy ones).
-    // A run's boss arrives through `setup.encounter` with its signature firmware already on it, so
-    // it never reaches this line at all.
+    // TICKET 72: the `boss_relic_*` exemption that used to sit here is gone with the relics — every
+    // gym is authored now, and an authored boss arrives through `setup.encounter` carrying its
+    // members' own tuned OSes. What remains is the plain strip: an enemy built HERE (the debug and
+    // legacy paths) runs no firmware unless the encounter said so.
     if (!setup.encounter) {
-        enemyParty = enemyParty.map(e => ({
-            ...e,
-            activeOS: e.activeOS?.startsWith('boss_relic_') ? e.activeOS : undefined
-        }));
+        enemyParty = enemyParty.map(e => ({ ...e, activeOS: undefined }));
     }
 
     /*

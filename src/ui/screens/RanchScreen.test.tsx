@@ -151,14 +151,17 @@ describe('RanchScreen — the gym offer telegraph (ticket 68)', () => {
         expect(markup).toContain('turn 4');
     });
 
-    it('still prints the un-authored leaders’ existing relic text, unchanged (ruling 6)', () => {
+    it('prints ALL THREE leaders’ Drivers now that every gym is authored (ticket 72)', () => {
         const markup = render({ roster }, 'expedition');
 
         expect(markup).toContain('Tidewrack');
         expect(markup).toContain('Rootfall');
-        // One of the three relic names, whichever the biomes produce — the point is that a gym
-        // ruling 6 has not migrated is not left with a blank signature block.
-        expect(markup).toMatch(/FIRE_RELIC_OS|WATER_RELIC_OS|ICE_RELIC_OS/);
+        // The relic texts this used to look for are deleted. Each leader telegraphs its ONE Driver,
+        // which is the whole point of ruling 4 — a single rule the player can be told in advance.
+        expect(markup).toContain('WAR FOOTING');
+        expect(markup).toContain('TIDAL SURGE');
+        expect(markup).toContain('ROOT ROT');
+        expect(markup).not.toMatch(/FIRE_RELIC_OS|WATER_RELIC_OS|ICE_RELIC_OS/);
     });
 
     it('never calls either of them a relic in the player-facing name (ruling 1)', () => {

@@ -187,10 +187,12 @@ describe('run gate — the fight it builds is the fight the run rolls', () => {
         expect(trio.enemies.slice(1).every((e) => e.deck!.length === 0)).toBe(true);
     });
 
-    it('gives the last gauntlet fight the boss signatures, and the earlier two ordinary firmware', () => {
+    it('gives the last gauntlet fight an authored trio, each on its OWN tuned firmware', () => {
+        // TICKET 72: this asserted `boss_relic_*` on every boss member. With all three gyms
+        // authored the relics are deleted, and the claim that replaces it is the one ruling 2 is
+        // actually about — a boss member runs its own real OS, and no two members share one.
         const boss = sampleFight(CELLS.find((c) => c.id === `gauntlet:fight${GAUNTLET_FIGHTS - 1}`)!, 0).setup;
-        expect(boss.enemies.every((e) => e.activeOS!.startsWith('boss_relic_'))).toBe(true);
-        // Ticket 18: no two members of one boss team share a signature.
+        expect(boss.enemies.every((e) => e.activeOS && !e.activeOS.startsWith('boss_relic_'))).toBe(true);
         expect(new Set(boss.enemies.map((e) => e.activeOS)).size).toBe(boss.enemies.length);
 
         const first = sampleFight(CELLS.find((c) => c.id === 'gauntlet:fight0')!, 0).setup;
@@ -348,20 +350,20 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
         fight.setup.enemies.flatMap((e) => e.deck ?? []).join(',');
 
     /*
-     * TICKET 68 MADE THE BOSS CELL HETEROGENEOUS, AND THESE TESTS HAVE TO SAY WHICH KIND THEY MEAN.
+     * TICKET 68 MADE THE BOSS CELL HETEROGENEOUS; TICKET 72 MADE IT UNIFORM AGAIN.
      *
      * `sampleFight` picks the gym offer as `index % 3`, so the `gauntlet:fight2` cell walks all
-     * three leaders. Emberfall is authored now — real firmware, one side-level Driver — while
-     * Tidewrack and Rootfall still field ticket 18's `boss_relic_*` formula boss (ruling 6). A
-     * sample index hardcoded to 3 was fine when every gym had the same shape; it is now a coin flip
-     * on which shape you get, decided by a seeded shuffle.
+     * three leaders. For a while that meant two shapes in one cell — Emberfall authored, the other
+     * two on ticket 18's formula boss — and these tests had to FIND an index of each. With all
+     * three gyms authored every index is the same shape: an authored trio under one Driver.
      *
-     * So the indices are FOUND rather than written down, and the two shapes are asserted separately.
+     * The lookups are kept (rather than hardcoding 0) because they still assert something real —
+     * that EVERY sample of this cell now carries a Driver, which is the invariant the deletion of
+     * the relic path depends on.
      */
     const at = (index: number, override?: BossOverride): SampledFight =>
         sampleFight(boss(), index, 'favourable', override);
     const INDICES = [0, 1, 2, 3, 4, 5];
-    const relicIndex = INDICES.find((i) => at(i).enemyDrivers.length === 0)!;
     const driverIndex = INDICES.find((i) => at(i).enemyDrivers.length > 0)!;
 
     it('changes ONLY the named knob — the deck, the player and the seed are the baseline\'s', () => {
@@ -374,9 +376,9 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          * Asserted per arm, because the two overrides reach different fields and a shared assertion
          * would pass while one of them quietly did nothing.
          */
-        const base = at(relicIndex);
-        const lowered = at(relicIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
-        const stripped = at(relicIndex, { relics: 'off' });
+        const base = at(driverIndex);
+        const lowered = at(driverIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
+        const stripped = at(driverIndex, { relics: 'off' });
 
         for (const arm of [lowered, stripped]) {
             expect(decksOf(arm)).toBe(decksOf(base));
@@ -386,36 +388,45 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
         }
     });
 
-    it('ARM A lowers every boss slot\'s stats and leaves the relics on', () => {
-        const arm = at(relicIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
+    it('ARM A lowers every boss slot\'s stats and leaves the SIGNATURE PASSIVE on', () => {
+        const arm = at(driverIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
         for (const enemy of arm.setup.enemies) {
             expect({ hp: enemy.hpIV, attack: enemy.attackIV, defense: enemy.defenseIV })
                 .toEqual({ hp: 10, attack: 10, defense: 10 });
-            expect(enemy.activeOS!.startsWith('boss_relic')).toBe(true);
         }
+        // Ticket 72: the passive is the gym's Driver now, not a relic OS. Arm A must leave it on,
+        // which is the half of the isolation that makes it an isolation.
+        expect(arm.enemyDrivers.length).toBeGreaterThan(0);
     });
 
-    it('ARM B strips the relic hooks for a REAL firmware, not for nothing', () => {
+    it('ARM B drops the gym Driver and changes NOTHING else', () => {
         /*
-         * `relics: 'off'` swaps the `boss_relic_*` id for the species' own `availableOS[0]`. Two
-         * things have to be true for that to be an isolation rather than a second change:
+         * TICKET 72 NARROWED THIS ARM, AND THE NARROWING IS THE POINT.
          *
-         * 1. the replacement must RESOLVE — a firmware the registry does not know would silently
-         *    field an enemy running no hooks at all, which is a different experiment;
-         * 2. the deck must not move — and it does not, because `getDeckForOS` already falls back to
-         *    `availableOS[0]`'s tuned list for a boss (`gauntlet.buildEnemy` documents this), so the
-         *    boss was fighting with that deck all along.
+         * `relics: 'off'` used to do two things: drop the signature passive AND swap the boss's
+         * `boss_relic_*` id for the species' `availableOS[0]`, so that turning the passive off left
+         * the boss with real firmware rather than none. With every gym authored, a boss member
+         * already runs its own tuned OS — and the swap had become actively harmful, because it
+         * would replace an authored `skoll_v2` with `skoll_v1` and change the boss's DECK inside an
+         * arm whose whole purpose is to change one thing.
+         *
+         * So the arm is now exactly "the boss without its Driver". The flag keeps its name because
+         * research run-lines quote `--boss-relics off`.
          */
-        const base = at(relicIndex);
-        const arm = at(relicIndex, { relics: 'off' });
+        const base = at(driverIndex);
+        const arm = at(driverIndex, { relics: 'off' });
 
-        for (const enemy of arm.setup.enemies) {
-            expect(enemy.activeOS!.startsWith('boss_relic')).toBe(false);
+        expect(base.enemyDrivers.length).toBeGreaterThan(0);
+        expect(arm.enemyDrivers).toEqual([]);
+
+        for (let i = 0; i < arm.setup.enemies.length; i += 1) {
+            const enemy = arm.setup.enemies[i];
+            // Firmware, deck and stats are the baseline's: only the Driver moved.
+            expect(enemy.activeOS).toBe(base.setup.enemies[i].activeOS);
             expect(getOSBehavior(enemy.activeOS!)).toBeDefined();
-            // Stats untouched: this arm is about the relics and nothing else.
             expect(enemy.hpIV).toBe(20);
         }
-        expect(base.setup.enemies.every((e) => e.activeOS!.startsWith('boss_relic'))).toBe(true);
+        expect(decksOf(arm)).toBe(decksOf(base));
     });
 
     it('touches no fight that is not a boss fight', () => {
@@ -433,16 +444,18 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
 
     it('is absent by default, so the shipped boss is what an unflagged run measures', () => {
         // Ruling R2 leaves BOSS_IVS open as a lever and ticket 68 left it untouched, so the authored
-        // constants must not move while the question is being measured. Asserted for BOTH boss
-        // shapes: every sample carries a signature, whichever system provides it.
-        for (const index of [relicIndex, driverIndex]) {
+        // constants must not move while the question is being measured.
+        //
+        // TICKET 72: swept across EVERY index rather than one of each shape — with all three gyms
+        // authored there is only one shape, and the stronger claim is that no sample of this cell
+        // is ever missing its Driver.
+        for (const index of INDICES) {
             const plain = at(index);
             expect(plain.bossOverride).toBeUndefined();
             for (const enemy of plain.setup.enemies) {
                 expect(enemy.hpIV).toBe(BOSS_IVS[0].hp);
             }
-            const relics = plain.setup.enemies.every((e) => e.activeOS!.startsWith('boss_relic'));
-            expect(relics || plain.enemyDrivers.length > 0).toBe(true);
+            expect(plain.enemyDrivers.length, `sample ${index} has no Driver`).toBeGreaterThan(0);
         }
     });
 

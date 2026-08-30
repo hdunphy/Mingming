@@ -50,7 +50,7 @@
  * `Date.now()`.
  */
 
-import { DRIVER_TIDAL_SURGE, DRIVER_WAR_FOOTING } from '../data/driverRegistry';
+import { DRIVER_ROOT_ROT, DRIVER_TIDAL_SURGE, DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 
 export interface IAuthoredBossMember {
     /** A `MingmingRegistry` species id. */
@@ -108,6 +108,29 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
             { species: 'skoll', os: 'skoll_v2' },
         ],
         driver: DRIVER_TIDAL_SURGE,
+    },
+    /*
+     * ROOTFALL (ticket 72): huldra_v2 (BARK_SHIELD_OS) + ratatoskr_v1 (GOSSIP_NODE) +
+     * jormungandr_v2 (TOXIN_FANG_OS), under ROOT ROT — the strangler.
+     *
+     * Shield-poison, party-wide 0-cost sustain with nettle chip, and a poison execute. Three
+     * distinct species, 2 Nature + 1 Water on ruling 3's heuristic. Rejected and recorded (Henry,
+     * 2026-08-29): twin-huldra builds (they read as a species-clause violation even where legal),
+     * reusing ratatoskr_v2 (the same OS at two gyms makes the roster read as a pool), and a
+     * kraken_v2 control-burst sketch (it drops the poison identity the fight is about).
+     *
+     * Intended counter, for the gate's record: **Fire** by type — fenrir_v1's missing-HP scaling
+     * converts poison pressure into damage — plus ticket 69's cleanse toolbox. The landscape fact
+     * that motivated the toolbox: `soothe` (0e, 1 stack) loses the race, and `purify` is Light and
+     * so off-EA.
+     */
+    gym_rootfall: {
+        members: [
+            { species: 'huldra', os: 'huldra_v2' },
+            { species: 'ratatoskr', os: 'ratatoskr_v1' },
+            { species: 'jormungandr', os: 'jormungandr_v2' },
+        ],
+        driver: DRIVER_ROOT_ROT,
     },
 };
 
