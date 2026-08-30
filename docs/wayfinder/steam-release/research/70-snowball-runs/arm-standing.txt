@@ -1,0 +1,102 @@
+[balance:snowball] Ticket 70 — the first-KO snowball, measured before the grilling.
+[balance:snowball]   population  REFERENCE_PANEL round-robin, mirrors excluded
+[balance:snowball]   pairs       30 ordered  ·  1 paired seeds  ->  60 battles
+[balance:snowball]   maxTurns    40   (standalone 3v3s — NOT a run: no HP carries between fights)
+[balance:snowball]   ARM         EXPERIMENTAL — on a death, each surviving member of that side gains 1 Energized (standing), both sides
+
+[balance:snowball]    1/30  panel-zoo vs panel-control       113s
+[balance:snowball]    2/30  panel-zoo vs panel-ramp          171s
+[balance:snowball]    3/30  panel-zoo vs panel-burst         236s
+[balance:snowball]    4/30  panel-zoo vs panel-mixed-a       334s
+[balance:snowball]    5/30  panel-zoo vs panel-mixed-b       405s
+[balance:snowball]    6/30  panel-control vs panel-zoo       521s
+[balance:snowball]    7/30  panel-control vs panel-ramp      644s
+[balance:snowball]    8/30  panel-control vs panel-burst     830s
+[balance:snowball]    9/30  panel-control vs panel-mixed-a   965s
+[balance:snowball]   10/30  panel-control vs panel-mixed-b   1067s
+[balance:snowball]   11/30  panel-ramp vs panel-zoo          1115s
+[balance:snowball]   12/30  panel-ramp vs panel-control      1191s
+[balance:snowball]   13/30  panel-ramp vs panel-burst        1235s
+[balance:snowball]   14/30  panel-ramp vs panel-mixed-a      1292s
+[balance:snowball]   15/30  panel-ramp vs panel-mixed-b      1331s
+[balance:snowball]   16/30  panel-burst vs panel-zoo         1402s
+[balance:snowball]   17/30  panel-burst vs panel-control     1530s
+[balance:snowball]   18/30  panel-burst vs panel-ramp        1571s
+[balance:snowball]   19/30  panel-burst vs panel-mixed-a     1660s
+[balance:snowball]   20/30  panel-burst vs panel-mixed-b     1693s
+[balance:snowball]   21/30  panel-mixed-a vs panel-zoo       1767s
+[balance:snowball]   22/30  panel-mixed-a vs panel-control   1824s
+[balance:snowball]   23/30  panel-mixed-a vs panel-ramp      1909s
+[balance:snowball]   24/30  panel-mixed-a vs panel-burst     1974s
+[balance:snowball]   25/30  panel-mixed-a vs panel-mixed-b   2009s
+[balance:snowball]   26/30  panel-mixed-b vs panel-zoo       2087s
+[balance:snowball]   27/30  panel-mixed-b vs panel-control   2201s
+[balance:snowball]   28/30  panel-mixed-b vs panel-ramp      2234s
+[balance:snowball]   29/30  panel-mixed-b vs panel-burst     2288s
+[balance:snowball]   30/30  panel-mixed-b vs panel-mixed-a   2333s
+
+=========================================================================
+  TICKET 70 — 60 battles, 2333s
+=========================================================================
+
+  1. HOW DECISIVE IS THE FIRST KO
+     P(win | scored first KO)      80.0%   (n=60)
+     P(win | conceded first KO)    20.0%   <- the comeback rate
+     battles reaching a KO         60 of 60
+
+  2. IS THE REST OF THE FIGHT REAL PLAY
+     mean turns after first KO     3.9   (median 3.0)
+     mean battle length            6.0 turns
+     share of the fight after it   64.4%
+
+  3. THE OVERKILL INCENTIVE
+     mean wasted per battle        21.9 damage   (median 17.0)
+     as a share of one side's HP   9.1%
+
+  4. DOES THE BIGGER TEAM STILL WIN
+     P(win | higher starting HP)   55.0%   (n=60)
+
+  DEPTH OF THE SNOWBALL
+     members lost by the loser     3.0 of 3
+     members lost by the winner    1.1 of 3
+
+  --- per pair ---
+    panel-zoo vs panel-control         P(win|first KO) 100.0%   after-KO  5.0t   overkill   24.0
+    panel-zoo vs panel-ramp            P(win|first KO) 100.0%   after-KO  4.0t   overkill   12.5
+    panel-zoo vs panel-burst           P(win|first KO)  50.0%   after-KO  2.5t   overkill   63.0
+    panel-zoo vs panel-mixed-a         P(win|first KO) 100.0%   after-KO  3.5t   overkill    4.0
+    panel-zoo vs panel-mixed-b         P(win|first KO)  50.0%   after-KO  1.5t   overkill   22.0
+    panel-control vs panel-zoo         P(win|first KO) 100.0%   after-KO  2.0t   overkill   21.0
+    panel-control vs panel-ramp        P(win|first KO)  50.0%   after-KO  5.5t   overkill   25.0
+    panel-control vs panel-burst       P(win|first KO)  50.0%   after-KO  4.0t   overkill   17.0
+    panel-control vs panel-mixed-a     P(win|first KO)  50.0%   after-KO  3.0t   overkill   32.0
+    panel-control vs panel-mixed-b     P(win|first KO) 100.0%   after-KO  2.5t   overkill   13.0
+    panel-ramp vs panel-zoo            P(win|first KO) 100.0%   after-KO  5.0t   overkill   22.5
+    panel-ramp vs panel-control        P(win|first KO) 100.0%   after-KO  8.5t   overkill   27.0
+    panel-ramp vs panel-burst          P(win|first KO) 100.0%   after-KO  3.0t   overkill   15.5
+    panel-ramp vs panel-mixed-a        P(win|first KO) 100.0%   after-KO  4.0t   overkill    5.0
+    panel-ramp vs panel-mixed-b        P(win|first KO)  50.0%   after-KO  4.5t   overkill   30.5
+    panel-burst vs panel-zoo           P(win|first KO)  50.0%   after-KO  2.0t   overkill   13.0
+    panel-burst vs panel-control       P(win|first KO) 100.0%   after-KO  2.0t   overkill    7.0
+    panel-burst vs panel-ramp          P(win|first KO) 100.0%   after-KO  3.0t   overkill   10.5
+    panel-burst vs panel-mixed-a       P(win|first KO) 100.0%   after-KO  2.5t   overkill   20.5
+    panel-burst vs panel-mixed-b       P(win|first KO)  50.0%   after-KO  4.0t   overkill   26.5
+    panel-mixed-a vs panel-zoo         P(win|first KO) 100.0%   after-KO  2.5t   overkill   21.0
+    panel-mixed-a vs panel-control     P(win|first KO) 100.0%   after-KO  6.5t   overkill   35.5
+    panel-mixed-a vs panel-ramp        P(win|first KO)  50.0%   after-KO  4.0t   overkill   18.5
+    panel-mixed-a vs panel-burst       P(win|first KO)  50.0%   after-KO  3.5t   overkill   60.5
+    panel-mixed-a vs panel-mixed-b     P(win|first KO) 100.0%   after-KO  7.5t   overkill   13.5
+    panel-mixed-b vs panel-zoo         P(win|first KO) 100.0%   after-KO  2.5t   overkill   30.5
+    panel-mixed-b vs panel-control     P(win|first KO) 100.0%   after-KO  3.0t   overkill   14.0
+    panel-mixed-b vs panel-ramp        P(win|first KO)  50.0%   after-KO  3.5t   overkill   20.0
+    panel-mixed-b vs panel-burst       P(win|first KO) 100.0%   after-KO  4.0t   overkill   17.0
+    panel-mixed-b vs panel-mixed-a     P(win|first KO)  50.0%   after-KO  7.5t   overkill   15.0
+
+  ARM LIVENESS
+     Energized stacks granted      869
+     ...across 60 battles = 14.5 per battle. The arm fired.
+
+  Compare line 1 against the baseline run at the same --iterations. Both arms are
+  seeded identically, so the comeback rate is the only thing that moved.
+
+  Report-only. Nothing here rules anything — ticket 70 § "The grilling" is Henry's.
