@@ -1012,7 +1012,7 @@
     "feedback_loop_daemon": {
         "id": "feedback_loop_daemon",
         "name": "FEEDBACK_LOOP",
-        "description": "Daemon: Deal 7 damage to random enemy for each card draw.",
+        "description": "Daemon: whenever an EFFECT draws you a card, deal 5 damage to a random enemy. The draw-phase refill does not count.",
         "element": "Water",
         "target": "Self",
         "category": "Daemon",

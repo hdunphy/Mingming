@@ -161,6 +161,8 @@ interface Tile {
     readonly banner: string;
     readonly name: string;
     readonly description: string;
+    /** The element WORD the tile prints (2026-08-30 playtest) — `WATER`, `NEUTRAL`, … */
+    readonly element: string;
     readonly tags: string;
     /** The price plate on the card face: `35 scrap`, `35 scrap · 12 SHORT`, `SOLD`, or `RACK FULL`. */
     readonly plate: string;
@@ -191,7 +193,14 @@ const tilesIn = (markup: string, grid: 'mk-grid' | 'mk-macros' = 'mk-grid'): Til
         banner: (html.match(/class="rs-typ ([A-Z]+)"/) ?? [])[1] ?? '',
         name: spanText(html, 'rs-cnm'),
         description: spanText(html, 'rs-desc'),
-        tags: spanText(html, 'rs-tags[^"]*'),
+        // `rs-tags` is a CONTAINER since the element word joined it, and `spanText` is
+        // non-greedy — reading it would return half of the nested span. Its two children are read
+        // separately instead, which is also how a case can assert one without the other.
+        // Its own regex rather than `spanText`: the element word carries a `title` (the tooltip
+        // that spells the element out in full), and `spanText` matches a class attribute that is
+        // the span's LAST — it would read this one as empty.
+        element: (html.match(/class="rs-elw"[^>]*>([\s\S]*?)<\/span>/) ?? [])[1] ?? '',
+        tags: spanText(html, 'rs-tg'),
         plate: spanText(html, 'rs-price[^"]*'),
         disabled: /<button[^>]*disabled=""/.test(html),
         greyed: /class="rs-card [^"]*sold/.test(html),
@@ -355,6 +364,10 @@ describe('MarketplaceNode', () => {
         expect(tiles.filter((t) => t.tags === 'off-pool')).toHaveLength(
             stock.offers.filter((o) => o.wildcard).length,
         );
+        // And every tile says its element in words. Henry, 2026-08-30: *"The new cards are not
+        // clear which element they are."* Four of the nine palette hues are blues, so a stall of
+        // Water cards and the one off-pool Air card looked like one shelf of the same thing.
+        tiles.forEach((tile) => expect(tile.element).not.toBe(''));
     });
 
     it('disables what the player cannot afford AND says what they are short', () => {

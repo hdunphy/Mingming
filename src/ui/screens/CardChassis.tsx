@@ -52,6 +52,54 @@ const TYPE_MARK: Readonly<Record<Banner, string>> = {
     MACRO: '●',
 };
 
+/**
+ * THE ELEMENT, IN WORDS — the 2026-08-30 playtest.
+ *
+ * Henry: *"The new cards are not clear which element they are."* They were not, and colour was the
+ * whole reason. The chassis carried element as `--el` alone — a border, a pip fill and the art
+ * gradient — and `runShell.ELEMENT_COLOR` holds Water `#3d9be0`, Air `#8fc7f5`, Ice `#7fd6ff` and
+ * None `#9aa3ad`: four blues that are one glance apart on a 152px tile. A player picking a card in
+ * a shop is picking a TYPE MATCHUP, so the one fact the tile refused to state was the fact the
+ * decision runs on.
+ *
+ * **A word, not an icon.** `ProgramCard` (the fight) uses `cardIcons.getElementIcon`'s emoji, which
+ * is why the fight has never had this problem — but this file's own header rules emoji out of the
+ * chassis (they ignore `color`), and the eight elements have no geometry in `theme/icons`. A word
+ * needs no lookup, survives ticket 38's colourblind palette swap intact, and cannot be confused
+ * with the four type marks above.
+ *
+ * **It costs no layout.** The tile prints it inside `.rs-tags`, a metadata line that already exists
+ * and is usually empty, and the 27px row prints the three-letter code beside the cost gem. Neither
+ * takes a pixel from `.rs-desc` — ticket 63 put those descriptions there because Henry could not
+ * compare cards without them, and this fix may not quietly undo that one.
+ */
+const ELEMENT_WORD: Readonly<Record<string, string>> = {
+    Fire: 'FIRE', Water: 'WATER', Nature: 'NATURE', Earth: 'EARTH', Air: 'AIR',
+    Ice: 'ICE', Light: 'LIGHT', Dark: 'DARK', None: 'NEUTRAL',
+};
+
+/** The row form. Three letters, because a 27px row is a scan and not a read. */
+const ELEMENT_CODE: Readonly<Record<string, string>> = {
+    Fire: 'FIR', Water: 'WTR', Nature: 'NAT', Earth: 'ERT', Air: 'AIR',
+    Ice: 'ICE', Light: 'LGT', Dark: 'DRK', None: 'NEU',
+};
+
+export function ElementMark({ element, compact = false }: {
+    readonly element: string;
+    /** True on a 27px row: the three-letter code rather than the word. */
+    readonly compact?: boolean;
+}): ReactElement {
+    const table = compact ? ELEMENT_CODE : ELEMENT_WORD;
+    // An unknown element prints itself rather than an empty span: a card whose element is not in
+    // the palette is a data bug, and it should be visible on the card that has it.
+    const text = table[element] ?? element.toUpperCase();
+    return (
+        <span className={compact ? 'rs-elc' : 'rs-elw'} title={`${element} element`}>
+            {text}
+        </span>
+    );
+}
+
 export function TypeMark({ banner }: { readonly banner: Banner }): ReactElement {
     // `title` rather than visually-hidden text: the mark is a shorthand for a word the card's own
     // description already implies, so it earns a tooltip and not a line of layout.

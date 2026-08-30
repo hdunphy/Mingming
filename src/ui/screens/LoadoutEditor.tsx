@@ -55,7 +55,7 @@ import {
 import { cardFace, colorFor, groupByData, isPayoff, type Banner } from './runShell';
 import './runShell.css';
 import './LoadoutEditor.css';
-import { EnergyPips, TypeMark } from './CardChassis';
+import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
 
 /** Eight big cards, four across and two down. The mockup's page size, and the reason it pages. */
 export const CARDS_PER_PAGE = 8;
@@ -333,7 +333,10 @@ export default function LoadoutEditor({
                                 <span className="rs-art" />
                                 <span className="rs-cnm">{stack.name}</span>
                                 <span className="rs-desc">{stack.description}</span>
-                                <span className="rs-tags">{stack.tags}</span>
+                                <span className="rs-tags">
+                                    <ElementMark element={stack.element} />
+                                    {stack.tags && <span className="rs-tg">{stack.tags}</span>}
+                                </span>
                                 {stack.instances.length > 1 && (
                                     <span className="rs-nbadge">×{stack.instances.length}</span>
                                 )}
@@ -378,6 +381,7 @@ export default function LoadoutEditor({
                                     onClick={() => send(stack)}
                                 >
                                     <span className="rs-g">{stack.cost}</span>
+                                    <ElementMark element={stack.element} compact />
                                     <span className="rs-rnm">{stack.name}</span>
                                     {stack.tags && <span className="rs-t">{stack.tags}</span>}
                                     {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}

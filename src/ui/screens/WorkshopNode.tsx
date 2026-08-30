@@ -84,6 +84,7 @@ import { playSfx } from '../audio/AudioEngine';
 import { assembleMingming, swapOS } from '../store/gameSlice';
 import { benchPartyMember, recruitIntoParty, recruitToBench, reflashEngine } from '../store/runSlice';
 import type { RootState } from '../store/store';
+import { ElementMark } from './CardChassis';
 import { cardFace, colorFor } from './runShell';
 import './runShell.css';
 import './WorkshopNode.css';
@@ -147,6 +148,7 @@ function EngineRows({ ids }: { ids: ReadonlyArray<string> }): ReactNode {
                 return (
                     <div key={dataId} className="rs-row static" style={{ ['--el' as string]: colorFor(face.element) }}>
                         <span className="rs-g">{face.cost}</span>
+                        <ElementMark element={face.element} compact />
                         <span className="rs-rnm">{face.name}</span>
                         {/* Ticket 61's engine table puts the payoff first, so position IS the tag. */}
                         {index === 0 && <span className="rs-t">payoff</span>}
