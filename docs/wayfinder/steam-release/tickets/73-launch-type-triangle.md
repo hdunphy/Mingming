@@ -1,4 +1,4 @@
-# The launch triangle: 17.5% of EA matchups are decided at character select (ticket 71)
+# The launch triangle: 17.5% of EA matchups are decided at character select (ticket 73)
 
 - Type: wayfinder:grilling
 - Status: open

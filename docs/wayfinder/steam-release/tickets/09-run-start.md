@@ -135,3 +135,74 @@ Principle: the kit keeps the deck's engine and identity card; the biggest payoff
 | huldra_v2 | sap_vigor, sap_vigor, thornguard, thornguard, heartwood |
 
 Recruits (ticket 14) take the FIRST 3 of the list + 1 generic. This table is also the request to the deck-archetypes map (their content, ratified here); note it in their HANDOFF when you next touch it.
+
+## AMENDMENT — the walk order is inverted (Henry, 2026-08-30)
+
+This ticket's `offerGyms` shipped four rules. Rule 4 — *the gym's own element is the LAST biome* —
+was recorded in the resolution above as **a reading, not a ruling**, and flagged for Henry's eye
+along with the observation that "gym element last" + "three different openings" leaves an offer
+screen only **two** possible shapes. It has now been ruled, the other way.
+
+**THE RULE: the gym's own element is the FIRST biome, and the walk steps twice along the counter
+chain.** `[G, COUNTERED_BY[G], COUNTERED_BY[COUNTERED_BY[G]]]`.
+
+| | biome 1 | biome 2 | biome 3 | the gym |
+|---|---|---|---|---|
+| **Tidewrack** (Water) | Water | Nature | Fire | Water |
+| **Emberfall** (Fire) | Fire | Water | Nature | Fire |
+| **Rootfall** (Nature) | Nature | Fire | Water | Nature |
+
+### Why — Henry, verbatim
+
+> *"you ideally come with the advantage starter type and want an easy start so the water boss should
+> go water-nature-fire. Fire should be fire-water-nature and nature nature-fire-water. this way biome
+> one is easy, biome 2 is type adv null and biome 3 is hardest with an inverted boss. it doesn't work
+> thematically but it felt bad to go after the water boss with a nature mingming and get wiped in
+> biome 1 by fire or have to build up your blueprints in one boss just to lose them come to the boss
+> you want to battle"*
+
+The party is chosen AFTER the gym (ticket 07's consolidation), so picking Tidewrack means picking
+Nature. Under the old ordering that counter-pick could meet its own predator in biome 1 — the player
+was punished at depth 1 for answering the offer the way the offer invites. The counter-chain walk
+makes every offer a clean ramp for the team it asks for: **win, neutral, lose, then the boss you
+built for**. The difficulty curve now runs the right way round for the whole run instead of being
+decided by which direction the offer screen happened to roll.
+
+### What it costs, stated plainly
+
+**The gym no longer stands in a biome of its own element.** Tidewrack's Water leader is fought at
+the end of a *Fire* biome. That was rule 4's entire argument. Henry: *"it doesn't work
+thematically."* Ruled anyway — the thing it fixes is a player losing a run to the map's ordering
+rather than to a fight.
+
+### What it simplifies
+
+The `OfferDirection` roll is **gone**, and with it the two-shapes problem this ticket flagged. It
+existed only to satisfy rule 2 (three offers, three different openings), which needed a derangement
+of three elements — there are exactly two, so one direction was rolled per screen and shared by all
+three offers. Opening each offer on its own gym element satisfies rule 2 **by identity**: three
+gyms, three elements, three openings. One less rolled quantity, one less way for the screen to be
+subtly wrong. What still varies by seed is which of three *named* biomes stands in for each element.
+
+### The silent break this caught, and the one it fixed
+
+`runGate.targetElementFor` aimed the prepared arm at `biomes[2]` — correct only while that index
+happened to equal the leader. After the reorder it aimed at **the element the leader beats**, with
+nothing thrown and no test failing on the right grounds. It now reads `offer.gym.element`; an index
+is only ever incidentally the leader. Chasing it also surfaced a live defect in the CONTROL arm:
+`lineupAgainst` alternated *the order of a filtered list* rather than the matchup, which cancels
+only while the target is held fixed — it is not, so the control's neutrality was a coin flip that
+tilted bands by a few points without ever failing loudly. Now alternated on the matchup itself.
+
+### Files
+
+- `src/engine/run/gyms.ts` — `walkOrderFor`; `OfferDirection` / `OFFER_DIRECTIONS` /
+  `openingElementFor` and the per-screen roll deleted; rules 2 and 4 rewritten.
+- `src/engine/run/gyms.test.ts` — the ordered triple asserted per leader; the "uses both orderings"
+  test **flipped** rather than deleted (both "varies" and "is fixed" are bugs under the other rule);
+  the thematic cost pinned so a future theme fix has to argue with the ruling.
+- `src/debug/balance/runGate.ts` / `.test.ts` — the two fixes above.
+
+**Every measured band that sampled a wild or an elite is now stale**: the element at a given depth
+changed, and so did the control arm's lineups. The three-gym table outstanding on ticket 72 should
+be run under this rule.

@@ -61,14 +61,14 @@ export const GYM_REGISTRY: Readonly<Record<string, IGym>> = {
  */
 export const LAUNCH_ELEMENTS: ReadonlyArray<string> = ['Fire', 'Water', 'Nature'];
 
-/** `beats[e]` is the element `e` is strong against. Fire > Nature > Water > Fire. */
-const BEATS: Readonly<Record<string, string>> = {
-    Fire: 'Nature',
-    Nature: 'Water',
-    Water: 'Fire',
-};
-
-/** `COUNTERED_BY[e]` is the element that beats `e` — the inverse of `BEATS`. */
+/**
+ * `COUNTERED_BY[e]` is the element that beats `e` — the inverse of the engine's `BEATS` cycle
+ * (Fire > Nature > Water > Fire), which is where the *combat* multiplier lives.
+ *
+ * Only the inverse direction is needed here: `walkOrderFor` steps along it to build a region, and
+ * a local forward table would be dead weight. If the triangle ever changes, this is the second
+ * place it has to change.
+ */
 const COUNTERED_BY: Readonly<Record<string, string>> = {
     Nature: 'Fire',
     Water: 'Nature',
@@ -128,32 +128,64 @@ const BIOME_POOL: Readonly<Record<string, ReadonlyArray<IBiomeTemplate>>> = {
 
 export interface IGymOffer {
     readonly gym: IGym;
-    /** Exactly three, in walk order: `biomes[0]` is where the run starts, `biomes[2]` holds the gym. */
+    /**
+     * Exactly three, in walk order: `biomes[0]` is where the run starts and `biomes[2]` is the last
+     * one you cross before the leader.
+     *
+     * **`biomes[2]` is NOT the gym's element** — since Henry's 2026-08-30 ruling `biomes[0]` is.
+     * Read the leader's element off `gym.element`; anything deriving it from a biome index is
+     * reading the element the leader *beats*, and will do so silently.
+     */
     readonly biomes: ReadonlyArray<IBiome>;
 }
 
 /**
- * The two orderings an offer's biomes can take, and **the only two**.
+ * THE WALK ORDER — Henry's ruling, 2026-08-30, and it inverts what rule 4 used to say.
  *
- * Rule 4 (see `offerGyms`) puts the gym's own element last, so an offer's opening biome is one of
- * the other two elements — never the gym's own. Rule 2 says the three offers must open on three
- * *different* elements. An assignment of "opening element" to "gym element" that is both a bijection
- * over the three elements and never maps an element to itself is exactly a **derangement of three
- * items**, and there are precisely two of those: the two 3-cycles. In counter-cycle terms they are
- * "the gym opens on what it beats" and "the gym opens on what beats it".
+ * The order is **[the gym's own element, the element that beats it, the element that beats THAT]**
+ * — three steps along `COUNTERED_BY` starting from the leader. It is fully determined by the gym,
+ * so there is nothing to roll.
  *
- * That is why the direction is rolled **once per offer screen and applied to all three offers**,
- * rather than rolled per offer. Rolling per offer would produce a valid screen only sometimes (six
- * of the eight combinations collide on an opening element), and the alternatives — reroll until it
- * passes, or patch up a collision — are both a hidden rule of the kind ticket 05 was trying to
- * avoid. One shared direction makes rule 2 true by construction.
+ * # WHY, IN HENRY'S WORDS
+ *
+ * > *"you ideally come with the advantage starter type and want an easy start… it felt bad to go
+ * > after the water boss with a nature mingming and get wiped in biome 1 by fire, or have to build
+ * > up your blueprints in one boss just to lose them come to the boss you want to battle."*
+ *
+ * The party is chosen AFTER the gym, so a player picking Tidewrack picks Nature — the counter to
+ * Water. That choice then has to survive three biomes, and under the old ordering it could meet its
+ * own predator immediately. Walking the counter-chain makes the run a clean ramp for the team the
+ * offer invites you to bring:
+ *
+ * | | biome 1 | biome 2 | biome 3 | the gym |
+ * | --- | --- | --- | --- | --- |
+ * | **Tidewrack** (Water) | Water — *you win* | Nature — neutral | Fire — *you lose* | Water — you win |
+ * | **Emberfall** (Fire) | Fire — *you win* | Water — neutral | Nature — *you lose* | Fire — you win |
+ * | **Rootfall** (Nature) | Nature — *you win* | Fire — neutral | Water — *you lose* | Nature — you win |
+ *
+ * Easy opening, neutral middle, hardest biome last — and the boss on the far side of it is the one
+ * you built for. The difficulty curve now runs the right way round for the whole run instead of
+ * being decided by which direction the offer screen happened to roll.
+ *
+ * # WHAT THIS COSTS, STATED PLAINLY
+ *
+ * **The gym no longer stands in a biome of its own element** — Tidewrack's Water leader is fought
+ * at the end of a *Fire* biome. That was rule 4's entire argument, and rule 4 was explicitly *"a
+ * reading, not a ruling — it should be confirmed"*. It has now been confirmed the other way. Henry:
+ * *"it doesn't work thematically."* Ruled anyway, because the thing it fixes is a player losing a
+ * run to the map's ordering rather than to a fight.
+ *
+ * # AND WHAT IT SIMPLIFIES
+ *
+ * The old `OfferDirection` roll is **gone**. It existed to satisfy rule 2 — the three offers must
+ * open on three different elements — which needed a derangement, of which there are exactly two,
+ * so one direction was rolled per screen and shared by all three offers. Opening each offer on its
+ * own gym element satisfies rule 2 *by identity*: three gyms, three elements, three openings. One
+ * less rolled quantity, and one less way for the screen to be subtly wrong.
  */
-type OfferDirection = 'opens-on-prey' | 'opens-on-predator';
-
-const OFFER_DIRECTIONS: ReadonlyArray<OfferDirection> = ['opens-on-prey', 'opens-on-predator'];
-
-function openingElementFor(gymElement: string, direction: OfferDirection): string {
-    return direction === 'opens-on-prey' ? BEATS[gymElement] : COUNTERED_BY[gymElement];
+function walkOrderFor(gymElement: string): ReadonlyArray<string> {
+    const counter = COUNTERED_BY[gymElement];
+    return [gymElement, counter, COUNTERED_BY[counter]];
 }
 
 /**
@@ -163,23 +195,20 @@ function openingElementFor(gymElement: string, direction: OfferDirection): strin
  *
  * 1. **Exactly three offers** — ticket 05 ships three leaders, and all three are always on the
  *    table at launch because there is nothing yet to unlock.
- * 2. **The three offers open on three DIFFERENT biome elements.** This is the one generator
- *    guarantee ticket 07's resolution adds, and it is load-bearing: the party is chosen *after* the
- *    gym, so the player can always answer the opening biome with a starter that counters it — but
- *    only if the three offers actually present three different openings. Ticket 05's worry about
- *    unwinnable first-biome matchups is therefore solved by **ordering**, in the open, rather than
- *    by a hidden rule that quietly reshuffles a bad draw.
+ * 2. **The three offers open on three DIFFERENT biome elements.** Ticket 07's one generator
+ *    guarantee, and it is load-bearing: the party is chosen *after* the gym, so the player can
+ *    always answer the opening biome with a starter that counters it — but only if the three offers
+ *    actually present three different openings. Since Henry's 2026-08-30 ruling each offer opens on
+ *    its OWN gym element, so this holds by identity rather than by a shared rolled direction.
  * 3. **Each offer walks all three launch elements**, in some order. A run is three biomes
  *    (`exploration-map.md`) and Early Access has three elements, so a region is a permutation of
  *    the launch set rather than a sample from it — every run sees the whole triangle, which is what
  *    makes a two- or three-member party a real construction problem instead of a mono-element pick.
- * 4. **The gym's own element is the LAST biome.** *This is a reading, not a ruling — no ticket says
- *    it in so many words, and it should be confirmed.* The argument: the gym is the biome-3 exit
- *    node (ticket 07) and `runTypes.ts` calls the biome elements "the final exam's syllabus" whose
- *    gym "draws one member per biome". A Fire leader standing at the end of a Water biome would be
- *    a leader fought in someone else's region — incoherent both narratively and for a player
- *    reading the map to plan a team. Putting it last also means the element you are being tested on
- *    hardest is the one you have had the longest to prepare for.
+ * 4. **The gym's own element is the FIRST biome, and the walk follows the counter-chain.**
+ *    Henry's ruling, 2026-08-30 — see `walkOrderFor` for the reasoning and for what it costs. This
+ *    REPLACES the previous rule 4 (*"the gym's own element is the LAST biome"*), which that
+ *    comment flagged as *"a reading, not a ruling — it should be confirmed"*. It was confirmed the
+ *    other way.
  * 5. **Deterministic in `seed`** — same seed, same screen, which is what lets an offer be shown,
  *    saved, and shown again after an app close.
  */
@@ -189,20 +218,13 @@ export function offerGyms(seed: string): ReadonlyArray<IGymOffer> {
     // identical number sequence.
     const stream = new SeedStream(new SeedStream(seed).fork('gym-offers'));
 
-    // One direction for the whole screen — see `OfferDirection` for why this cannot be per offer.
-    const direction = OFFER_DIRECTIONS[stream.nextInt(0, OFFER_DIRECTIONS.length - 1)];
-
     // Presentation order only. All three leaders are always offered (rule 1), so this shuffles
     // which one sits leftmost rather than which ones appear.
     const gyms = stream.shuffle(Object.values(GYM_REGISTRY));
 
     return gyms.map((gym): IGymOffer => {
-        const opening = openingElementFor(gym.element, direction);
-        // With the opening and the last pinned, the middle biome is whatever element is left —
-        // there is no choice to roll here, which is a consequence of rules 3 and 4 rather than a
-        // decision this function makes.
-        const middle = LAUNCH_ELEMENTS.find((e) => e !== opening && e !== gym.element)!;
-        const walkOrder = [opening, middle, gym.element];
+        // Fully determined by the leader — see `walkOrderFor`. Nothing is rolled here.
+        const walkOrder = walkOrderFor(gym.element);
 
         return {
             gym,

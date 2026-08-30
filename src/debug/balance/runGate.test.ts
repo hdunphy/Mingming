@@ -7,6 +7,7 @@ import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegist
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import { ElementalMatrix } from '../../engine/combatUtils';
 import { minimumActiveDeck } from '../../engine/run/createRun';
+import { GYM_REGISTRY } from '../../engine/run/gyms';
 import {
     CELLS,
     describeBossOverride,
@@ -297,6 +298,11 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
          *
          * Asserted as a balance rather than as an absence, because "no advantage on any sample" is
          * unachievable here and a test claiming it would be a test of the wrong thing.
+         *
+         * The exact equality below is now a real guarantee rather than luck: `lineupAgainst`
+         * alternates on the MATCHUP, not on the order of a list whose favourable end moves with the
+         * target. Before that fix this assertion passed at 40 samples and failed at 40 samples the
+         * moment the targets shifted — which is how the bug was found.
          */
         const samples = walk('gauntlet:fight2', 'control', 40);
         const forMe = samples.filter(({ mine, target }) => mine.some((e) => beats(e, target))).length;
@@ -318,18 +324,24 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
         }
     });
 
-    it('aims the gauntlet at the GYM’s own element, not biome 0’s', () => {
+    it('aims the gauntlet at the GYM’s own element, read off the LEADER and not off a biome index', () => {
         /*
-         * The boss team is one species per biome in biome order, so its champion — the member the
-         * fight is named after — is the biome-2 one, and `offerGyms` rule 4 puts the gym's own
-         * element there. Countering the champion is what *"come into the grass boss with
-         * firestarters"* means. Aiming at biome 0 instead would counter the weakest member of the
-         * three and report it as a prepared player.
+         * The champion — the member the fight is named after — is the leader's own species, so the
+         * prepared arm is aimed at the leader's element. Countering it is what *"come into the
+         * grass boss with firestarters"* means; aiming anywhere else counters a different member of
+         * the boss trio and reports the result as a prepared player.
+         *
+         * WHY THIS ASSERTS THE LEADER AND NOT `biomeElements[0]`, even though the two are equal
+         * today: it used to assert `biomeElements[2]`, which was equal to the leader's element
+         * under the pre-2026-08-30 walk order. Henry's ruling moved the gym's element to the FIRST
+         * biome, and both the assertion and the harness under it went on reading index 2 — now the
+         * element the leader *beats* — without anything throwing. An index is only ever
+         * incidentally the leader. The registry is the leader.
          */
         const cell = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
         for (let i = 0; i < 12; i += 1) {
             const fight = sampleFight(cell, i, 'favourable');
-            expect(fight.targetElement).toBe(fight.biomeElements[fight.biomeElements.length - 1]);
+            expect(fight.targetElement).toBe(GYM_REGISTRY[fight.gymId].element);
         }
     });
 
