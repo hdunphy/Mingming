@@ -532,6 +532,9 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
     const { state: newDeck, nextSeed, shuffled } = drawCards(
         state[deckKey], count, state.seed, state.resolvingCardInstanceId);
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
+    const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const triggeredCount = isNatural ? 0 : cardsDrawnCount;
+
     let newState: IBattleState = {
         ...state,
         [deckKey]: newDeck,
@@ -540,8 +543,22 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
         // Ticket 68: the TRIGGERED counter - draws an effect caused, not the draw-phase refill.
         // `isNatural` was already threaded through here for hook dispatch and was simply never
         // consulted for a counter; this is that flag finally doing the second job it implies.
-        nonNaturalCardsDrawnThisTurn: (state.nonNaturalCardsDrawnThisTurn ?? 0)
-            + (isNatural ? 0 : cardsDrawnCount)
+        nonNaturalCardsDrawnThisTurn: (state.nonNaturalCardsDrawnThisTurn ?? 0) + triggeredCount,
+        /*
+         * THE PER-UNIT TWIN — Henry, 2026-08-30. `CARDS_DRAWN_TRIGGERED` reads THIS, not the
+         * side-wide number above. See `ActionExecutors.getScalingValue` for the ruling.
+         *
+         * The drawer is identified exactly as the `onCardDraw` dispatch further down identifies it
+         * — `sourceId` when one was threaded, otherwise slot 0 — so the counter and the hook can
+         * never disagree about who "you" is. The side-wide number stays because `CARDS_DRAWN` still
+         * reads it and because a caster-less call site has nothing else to fall back to.
+         */
+        [partyKey]: triggeredCount === 0 ? state[partyKey] : state[partyKey].map((entity, slot) => {
+            const isDrawer = sourceId === undefined ? slot === 0 : entity.id === sourceId;
+            return isDrawer
+                ? { ...entity, nonNaturalDrawsThisTurn: (entity.nonNaturalDrawsThisTurn ?? 0) + triggeredCount }
+                : entity;
+        }),
     };
 
     if (shuffled) {

@@ -229,7 +229,21 @@ export const ConditionValidator = {
                 // (it fails only when a full hand clamps the draw to zero), so a card priced
                 // for a conditional refund was getting an unconditional one.
                 if (!state) return true; // Fail safe, same as CARDS_DRAWN
-                if ((state.nonNaturalCardsDrawnThisTurn ?? 0) < (constraint.value as number)) return false;
+                /*
+                 * PER-CASTER since Henry's 2026-08-30 scope ruling, for the same reason the
+                 * `CARDS_DRAWN_TRIGGERED` scaler is — see `ActionExecutors.getScalingValue`.
+                 *
+                 * The one card on this path is `surge_protection`'s energy refund, whose constraint
+                 * is declared `"target": "SELF"` in `constraints.json` and whose text reads *"if a
+                 * card, OS or daemon drew YOU a card this turn"*. Both already said caster; only the
+                 * counter disagreed.
+                 *
+                 * **This is a real behaviour change and it makes the refund harder to get** — at 3v3
+                 * an ally's draw used to satisfy it. Called out rather than buried, because leaving
+                 * this half global while the scaler went per-unit would rebuild the exact
+                 * inconsistency the ruling removed.
+                 */
+                if ((source.nonNaturalDrawsThisTurn ?? 0) < (constraint.value as number)) return false;
                 break;
 
             case 'NOT_STATUS':

@@ -172,6 +172,14 @@ export interface IBattleEntity extends IMingmingState {
   readonly forcedTargetId?: string; // ID of the entity this unit is forced to target (Taunt)
   readonly nextProgramModifier?: { multiplier?: number; flatBonus?: number; costReduction?: number; powerBonus?: number; appliesTo?: ProgramCategory }; // Buffs the next card played (appliesTo restricts it to that category; non-matching cards don't consume it). `powerBonus` (ticket 52) hits only the FIRST ATTACK action, where `flatBonus` hits every power/stacks/heal field.
   readonly playsThisTurn?: number; // Cards played by THIS unit this turn (enforces per-unit OS limits like GLACIAL_PACE_OS)
+  /**
+   * Cards a card, OS or daemon drew THIS UNIT this turn — the draw-phase refill excluded.
+   *
+   * The per-unit twin of `state.nonNaturalCardsDrawnThisTurn`, and the number `CARDS_DRAWN_TRIGGERED`
+   * reads since Henry's 2026-08-30 ruling. See `ActionExecutors.getScalingValue` for what the
+   * side-wide counter was worth and why it was the wrong one.
+   */
+  readonly nonNaturalDrawsThisTurn?: number;
   readonly moves?: ReadonlyArray<IMove>; // Custom moveset for this instance
 }
 

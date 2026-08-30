@@ -982,6 +982,7 @@ function processPostTurn(state: IBattleState): IBattleState {
     });
 
     const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const inactivePartyKey = state.activeSide === 'PLAYER' ? 'enemyParty' : 'playerParty';
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const activeParty = state[activePartyKey];
 
@@ -1099,12 +1100,25 @@ function processPostTurn(state: IBattleState): IBattleState {
 
     let nextState: IBattleState = {
         ...state,
-        [activePartyKey]: processedActiveParty,
+        [activePartyKey]: processedActiveParty.map(e => ({ ...e, nonNaturalDrawsThisTurn: 0 })),
         [activeDeckKey]: newDeckState,
         logs: [...state.logs, ...statusLogs],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         nonNaturalCardsDrawnThisTurn: 0,
+        /*
+         * The per-unit twin resets HERE, in the same object literal as the side-wide counter, and on
+         * BOTH parties rather than just the active one — Henry's 2026-08-30 scope ruling.
+         *
+         * Both halves of that matter. Resetting it beside the side-wide number is what keeps the two
+         * counters on identical lifetimes, so `CARDS_DRAWN_TRIGGERED` can never read a per-unit
+         * count from one turn against a side-wide count from another. And resetting the INACTIVE
+         * party too is what stops a reactive off-turn draw (a hook that draws for you while the
+         * other side is acting) from banking a stale count into your next turn — the side-wide
+         * counter is cleared every POST_TURN regardless of whose turn it was, so the per-unit one
+         * must be as well or the two diverge exactly in the case nobody thinks to test.
+         */
+        [inactivePartyKey]: state[inactivePartyKey].map(e => ({ ...e, nonNaturalDrawsThisTurn: 0 })),
         cardsDiscardedThisTurn: 0
     };
 
