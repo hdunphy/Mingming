@@ -104,6 +104,7 @@ import {
 import { RUN_ENEMY_MODE, rollEncounter } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS, isBossFight, rollGauntletFight } from '../../engine/run/gauntlet';
 import { offerGyms } from '../../engine/run/gyms';
+import { GYM_COUNTER_ANSWERS } from '../../engine/run/marketplace';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IBattleEntity, IMingmingState } from '../../engine/types';
@@ -380,7 +381,37 @@ function drawFromElement(element: string, count: number, index: number, taken: S
         const name = species[(index + slot) % species.length];
         if (taken.has(name)) continue;
         const firmwares = bySpecies.get(name)!;
-        out.push(firmwares[index % firmwares.length]);
+        /*
+         * THE FIRMWARE-PAIRING FIX — Henry, 2026-08-30, after the first three-gym table.
+         *
+         * This line used to read `firmwares[index % firmwares.length]`, with the SAME `index` for
+         * every slot. With two firmwares per species that made every lineup **all-v1 on even
+         * samples and all-v2 on odd ones**, and a mixed-firmware team — which is what a player
+         * actually builds — literally unreachable.
+         *
+         * It was not a small distortion. It is the mechanism behind the whole per-deck split in the
+         * three-gym table: 15/15 vs 10/15 at Emberfall, 14/15 vs 9/15 at Rootfall, and 11/15 vs 1/15
+         * on Tidewrack's control arm. n=30 was never thirty decks; it was two decks fifteen times,
+         * and the v1 firmwares happen to share a draw-and-cantrip idiom, so an all-v1 team was
+         * *accidentally* synergistic. Nothing chose that.
+         *
+         * # WHY A BIT SHIFT AND NOT A SECOND MODULUS
+         *
+         * Each party slot reads a DIFFERENT BIT of the sample index, so the slots decorrelate
+         * completely: with 3 members and 2 firmwares apiece, samples 0-7 enumerate all eight
+         * v1/v2 combinations exactly once. A second modulus (`(index + slot) % 2`) would only ever
+         * produce alternating pairs — v1/v2/v1 and v2/v1/v2 — which is two more fixtures rather than
+         * a sample.
+         *
+         * `taken.size` rather than `slot` is the bit position on purpose: `lineupAgainst` calls this
+         * function TWICE for a favourable arm (once for the counter element, once for the filler),
+         * and `slot` restarts at 0 on the second call. `taken` is threaded across both, so it is the
+         * only counter that is monotonic over the whole party.
+         *
+         * `blind` is untouched — it goes through `lineupFor`, not here — so every pre-ruling number
+         * still reproduces.
+         */
+        out.push(firmwares[(index >>> taken.size) % firmwares.length]);
         taken.add(name);
     }
     return out;
@@ -866,6 +897,8 @@ export function sampleFight(
      * `targetElement` is still reported, because it is a property of the gym rather than of the arm.
      */
     handbuilt?: HandbuiltParty,
+    /** Append the pinned gym's three ruled counter answers to the deck — see below. */
+    toolbox?: boolean,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -896,7 +929,29 @@ export function sampleFight(
      * is that it is NOT the start deck. Taken verbatim instead, and the length is deliberately not
      * validated — a designed deck is 26 cards where the start deal is 18.
      */
-    const deck = handbuilt ? [...handbuilt.deck] : deckFor(created, party);
+    let deck = handbuilt ? [...handbuilt.deck] : deckFor(created, party);
+
+    /*
+     * `--toolbox`: the party arrives holding the gym's three ruled counter answers.
+     *
+     * # WHAT THIS MODELS, STATED PLAINLY, BECAUSE IT IS NOT THE AVERAGE PLAYER
+     *
+     * This is a CEILING, not a typical run. The neutral slot offers ONE card per market visit drawn
+     * from an eleven-entry list, so three specific answers across three visits is a lucky run, not a
+     * median one. Modelling the median would fold acquisition luck into a boss verdict and answer
+     * two questions at once.
+     *
+     * The ceiling is the right question for the HELD Tidewrack verdict specifically: *if the boss is
+     * still unbeatable by a player holding its designed counters, the counters are not the answer and
+     * the boss's own numbers are.* If it IS beatable, the open question becomes acquisition
+     * probability — a different measurement, on the market rather than on the gym.
+     *
+     * Read off `GYM_COUNTER_ANSWERS` rather than a list here, so the arm and the shop cannot drift.
+     */
+    if (toolbox) {
+        const answers = GYM_COUNTER_ANSWERS[offer.gym.id] ?? [];
+        deck = [...deck, ...answers];
+    }
 
     // Not the opening fight — see `fightsResolvedAt`. Written as a spread rather than mutated
     // because `IRunState` is deeply readonly, which is right for every consumer but this one.
@@ -1004,6 +1059,16 @@ export interface BandMeasurement {
     readonly high: number;
     readonly wins: number;
     readonly battles: number;
+    /**
+     * GAUNTLET ONLY: the product of the three fights' rates — the chance of clearing the gym, which
+     * is the quantity the 60% target is about. Present only on the gauntlet band, and it is the
+     * number `inBand` grades there. See `measureBand`.
+     */
+    readonly compound?: number;
+    /**
+     * Whether the band met its target. **For the gauntlet this grades `compound`, not `measured`**
+     * (Henry, 2026-08-30); for a wild or an elite the two are the same quantity.
+     */
     readonly inBand: boolean;
     readonly elapsedMs: number;
     readonly cells: ReadonlyArray<CellMeasurement>;
@@ -1045,6 +1110,8 @@ export interface MeasureOptions {
     readonly gymId?: string;
     /** A designed party and deck in place of the arm's generated one — see `HandbuiltParty`. */
     readonly handbuilt?: HandbuiltParty;
+    /** Give the party the gym's three ruled counter answers — the CEILING arm. See `sampleFight`. */
+    readonly toolbox?: boolean;
 }
 
 /**
@@ -1083,7 +1150,22 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
 
         let fight: SampledFight;
         try {
-            fight = sampleFight(cell, at, options.matchup ?? 'blind', options.bossOverride, options.gymId);
+            /*
+             * EVERY option is threaded here, and the completeness of this line is load-bearing.
+             *
+             * `handbuilt` and `toolbox` were both declared on `MeasureOptions`, accepted by the CLI,
+             * printed in the report banner — and DROPPED at this call. The arms ran, the banner said
+             * TOOLBOX, and the measurement was of the bare arm: 30 battles whose outcome sequence was
+             * byte-identical to the control, which is the only reason it was caught at all.
+             *
+             * `optionsThreading.test.ts` now asserts that a `measureCell` option actually reaches
+             * `sampleFight`, because the failure is silent, survives a full green suite, and costs
+             * whatever the run cost.
+             */
+            fight = sampleFight(
+                cell, at, options.matchup ?? 'blind', options.bossOverride, options.gymId,
+                options.handbuilt, options.toolbox,
+            );
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;
             throw error;
@@ -1143,7 +1225,7 @@ export function measureBand(
     const rate = battles === 0 ? 0 : wins / battles;
     const { low, high } = wilson(wins, battles);
 
-    return {
+    const result: BandMeasurement = {
         band,
         target: RUN_GATE_TARGETS[band],
         measured: rate,
@@ -1155,6 +1237,47 @@ export function measureBand(
         elapsedMs: Date.now() - started,
         cells: measured,
     };
+
+    /*
+     * THE GAUNTLET IS GRADED ON ITS COMPOUND — Henry, 2026-08-30, ratified in
+     * `research/69-toolbox-printings.md`.
+     *
+     * 60% is the chance of CLEARING THE GYM, which is three fights on one HP pool. Grading it
+     * against the pooled per-fight rate compares a per-fight number to a whole-gauntlet target, and
+     * they are not the same quantity: a uniform gauntlet needs `0.60^(1/3)` = **84.3% per fight** to
+     * clear at 60%.
+     *
+     * That mistake had a cost. Emberfall's three fights measured **83.3 / 90.0 / 80.0**, whose
+     * product is **60.0% — exactly on target** — and the gate called it FAIL by 23 points for
+     * several sessions running, which is where the HELD "the boss is 15pt ABOVE target" ruling came
+     * from. Those historical FAILs are re-read, not re-run.
+     *
+     * The compound was ALREADY computed here (`gauntletCompound`) and printed as a footnote. Only
+     * the verdict read the wrong number. Both are reported either way; the graded one is now the
+     * one the target is about, and `runRunGate` says which is which so the table cannot be misread
+     * the same way twice.
+     *
+     * The other two bands are unchanged: a wild and an elite are single fights, so their pooled rate
+     * IS the quantity their target describes.
+     */
+    if (band !== 'gauntlet') return result;
+
+    /*
+     * ...but ONLY when all three fights were actually measured. A compound over a partial cell set is
+     * not a clear rate — `--cells gauntlet:fight2` alone would report the boss's own win rate as "the
+     * chance of clearing all three fights", which is a worse misreading than the one this change
+     * fixes, and a more confident-sounding one.
+     *
+     * With a partial set the band falls back to the pooled rate and `compound` stays undefined, which
+     * is what `runRunGate` keys its wording off.
+     */
+    const measuredFights = new Set(measured.map((cell) => cell.id));
+    const complete = Array.from({ length: GAUNTLET_FIGHTS })
+        .every((_, i) => measuredFights.has(`gauntlet:fight${i}`));
+    if (!complete) return result;
+
+    const compound = gauntletCompound(result);
+    return { ...result, compound, inBand: bandVerdict(compound, RUN_GATE_TARGETS[band]) };
 }
 
 /**

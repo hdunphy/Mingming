@@ -250,7 +250,52 @@ export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = [
      */
     'riptide',
     'short_circuit',
+    /*
+     * THE REMAINING FIVE (`research/69-toolbox-printings.md`, Henry 2026-08-30). With these the
+     * standing law is satisfied for all three gyms: every boss has at least three counter flavors
+     * reachable by any party, none of them element-locked.
+     *
+     * By gym, so the list can be read as the answer set it is:
+     *   Emberfall (WAR FOOTING, a Strengthened aura) -> `hamstring`, `discharge`, `reactive_plating`
+     *   Tidewrack (TIDAL SURGE, a draw-zoo)          -> `riptide`, `short_circuit`, `reactive_plating`
+     *   Rootfall  (ROOT ROT, a poison clock)         -> `scrubber`, `vent`, `drip_feed`
+     *
+     * `reactive_plating` answers two of the three on purpose (ruled): a Strengthened aura and a zoo
+     * of small hits are the same problem from the defender's side.
+     */
+    'reactive_plating',
+    'discharge',
+    'scrubber',
+    'vent',
+    'drip_feed',
 ];
+
+/**
+ * THE RULED ANSWER SET PER GYM — ticket 69's standing law, as data rather than as prose.
+ *
+ * *"Every gym boss ships with at least THREE counter flavors reachable by any party."* Henry's
+ * reason is on the ticket: *"otherwise you build the same deck every time and it feels bad if you
+ * can't find the one card."*
+ *
+ * Exported because two separate things need to agree about it and had no shared source: the pin test
+ * that guards reachability, and the run gate's `--toolbox` arm, which measures what a player who
+ * FOUND these actually does against the boss. A second hand-written copy in the harness would drift
+ * from the shop the moment a printing moved.
+ *
+ * `reactive_plating` answers two gyms on purpose (ruled): a Strengthened aura and a zoo of small
+ * hits are the same problem seen from the defender's side.
+ *
+ * Every id here must also be in `MARKET_NEUTRAL_UTILITY` — an answer that is not stocked is not
+ * reachable, which is the same outcome as never printing it. `marketplace.test.ts` asserts that.
+ */
+export const GYM_COUNTER_ANSWERS: Readonly<Record<string, ReadonlyArray<string>>> = {
+    // WAR FOOTING — an escalating Strengthened aura.
+    gym_emberfall: ['hamstring', 'discharge', 'reactive_plating'],
+    // TIDAL SURGE — a draw-zoo that converts its own card flow into damage twice a turn.
+    gym_tidewrack: ['riptide', 'short_circuit', 'reactive_plating'],
+    // ROOT ROT — a poison clock.
+    gym_rootfall: ['scrubber', 'vent', 'drip_feed'],
+};
 
 /**
  * WHAT A CARD COSTS — **RULED by Henry in ticket 56, applied by ticket 57.**

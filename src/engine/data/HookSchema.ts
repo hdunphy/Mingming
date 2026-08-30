@@ -41,6 +41,10 @@ const HookConditionSchema = z.object({
 const HookActionSchema = z.object({
     type: z.string(),
     target: z.string().optional(),
+    // Ticket 69: per-target filter for the multi-target forms. Declared here for the same reason
+    // every field above says — zod strips what it does not know, and a dropped filter would make
+    // `drip_feed` grant Regen to healthy allies with nothing thrown.
+    targetHasStatus: z.string().optional(),
     status: z.string().optional(),
     stacks: z.number().optional(),
     power: z.number().optional(),

@@ -5867,5 +5867,119 @@
         "hooks": [
             "short_circuit_discharge"
         ]
+    },
+    "reactive_plating": {
+        "id": "reactive_plating",
+        "name": "Reactive Plating",
+        "description": "Daemon: When an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 Sharp granted per turn.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "reactive_plating_proc",
+            "reactive_plating_reset"
+        ]
+    },
+    "discharge": {
+        "id": "discharge",
+        "name": "Discharge",
+        "description": "Remove up to 4 Strengthened from the target. Apply 1 Burn per 2 removed.",
+        "element": "None",
+        "target": "Single",
+        "category": "Skill",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": -4,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 0.5,
+                "scaling": "STATUS_CONSUMED",
+                "target": "TARGET"
+            }
+        ]
+    },
+    "scrubber": {
+        "id": "scrubber",
+        "name": "Scrubber",
+        "description": "Daemon: At the end of your turn, remove 1 Poison from each ally.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "scrubber_purge"
+        ]
+    },
+    "vent": {
+        "id": "vent",
+        "name": "Vent",
+        "description": "Remove 3 Poison from an ally.",
+        "element": "None",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": -3,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "drip_feed": {
+        "id": "drip_feed",
+        "name": "Drip Feed",
+        "description": "Daemon: At the end of your turn, each poisoned ally gains 1 Regen.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "drip_feed_tick"
+        ]
     }
 }

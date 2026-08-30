@@ -306,11 +306,29 @@ export const HookFactory = {
                 continue;
             }
 
+            /*
+             * Ticket 69's per-target filter. Applied HERE rather than as a `when` clause because a
+             * `when` clause tests the context's single target, and these forms resolve a GROUP whose
+             * members differ — `drip_feed` grants Regen to *"each poisoned ally"*, so the healthy
+             * ones have to be skipped one at a time.
+             *
+             * Read off `currentState`, not `context.state`: the loop threads state forward, so an
+             * earlier action in the same `do` list may have applied or stripped the status this
+             * filters on.
+             */
+            const passesTargetFilter = (tId: string): boolean => {
+                if (scaledAction.targetHasStatus === undefined) return true;
+                const entity = currentState.playerParty.find(e => e.id === tId)
+                    ?? currentState.enemyParty.find(e => e.id === tId);
+                return entity?.statusEffects.some(s => s.type === scaledAction.targetHasStatus) ?? false;
+            };
+
             if (Array.isArray(targetId)) {
                 for (const tId of targetId) {
+                    if (!passesTargetFilter(tId)) continue;
                     currentState = executor.execute(currentState, owner.id, tId, scaledAction, context.program, { ...context, state: currentState });
                 }
-            } else if (targetId) {
+            } else if (targetId && passesTargetFilter(targetId)) {
                 currentState = executor.execute(currentState, owner.id, targetId, scaledAction, context.program, { ...context, state: currentState });
             }
         }

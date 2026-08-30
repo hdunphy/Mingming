@@ -203,6 +203,13 @@ interface Args {
      * `handbuiltParties.ts`.
      */
     handbuilt?: HandbuiltParty;
+    /**
+     * `--toolbox`: hand the party the pinned gym's three ruled counter answers.
+     *
+     * A CEILING arm — see `sampleFight`. It answers "can a player holding the designed counters beat
+     * this boss", not "does the average player find them".
+     */
+    toolbox?: boolean;
 }
 
 /** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
@@ -259,6 +266,7 @@ function parseArgs(argv: string[]): Args {
         gymId: get('--gym'),
         out: get('--out'),
         handbuilt: resolveHandbuilt(get('--handbuilt')),
+        toolbox: argv.includes('--toolbox'),
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
             relics: get('--boss-relics') === 'off' ? 'off' : undefined,
@@ -336,7 +344,17 @@ const underSampled = (band: BandMeasurement): boolean =>
 function bandLines(band: BandMeasurement): string[] {
     const target = RUN_GATE_TARGETS[band.band];
     const window = `${pct(target - RUN_GATE_TOLERANCE)}-${pct(target + RUN_GATE_TOLERANCE)}`;
-    const delta = band.measured - target;
+    /*
+     * THE GRADED NUMBER, and it is not always the pooled one.
+     *
+     * The gauntlet target is the chance of CLEARING three fights, so `measureBand` grades
+     * `band.compound` there and the pooled per-fight rate is context (Henry, 2026-08-30). Reading
+     * the delta off `measured` for the gauntlet is the exact mistake that made a calibrated
+     * Emberfall print FAIL by 23 points for several sessions, so the delta, the verdict and the
+     * caveat below all read the same figure — and the line SAYS which figure it is.
+     */
+    const graded = band.compound ?? band.measured;
+    const delta = graded - target;
     const signed = `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(1)}pt`;
     const caveat = underSampled(band)
         ? `  <- UNDER-SAMPLED: the 95% interval (±${(((band.high - band.low) / 2) * 100).toFixed(1)}pt) is wider than the ±5 window, so this verdict is not yet evidence`
@@ -345,8 +363,21 @@ function bandLines(band: BandMeasurement): string[] {
     return [
         '',
         `  ${BAND_LABEL[band.band]}`,
+        ...(band.band === 'gauntlet' && band.compound === undefined ? [
+            `    NOT GRADED ON THE COMPOUND — only part of the gauntlet was measured, so the clear rate ` +
+            `cannot be computed. The pooled per-fight rate below is graded instead,`,
+            `    against a target that describes CLEARING all three fights. Read it as a fight rate, ` +
+            `not as a verdict: ~84.3% per fight is what a 60% clear needs.`,
+        ] : []),
+        ...(band.compound === undefined ? [] : [
+            `    GRADED ON THE COMPOUND — ${pct(band.compound)} chance of clearing all three fights ` +
+            `(the product of the per-fight rates below). The 60% target is a CLEAR rate, not a fight rate;`,
+            `    a uniform gauntlet needs ~84.3% per fight to reach it. Pooled per-fight rate, for context: ` +
+            `${pct(band.measured)} (${band.wins}/${band.battles}).`,
+        ]),
         `    target ${pct(target)} (window ${window})   ` +
-        `measured ${pct(band.measured)} (${band.wins}/${band.battles}, ${signed})   ` +
+        `${band.compound === undefined ? 'measured' : 'compound'} ${pct(graded)} ` +
+        `(${band.wins}/${band.battles}, ${signed})   ` +
         `95% CI ${pct(band.low)}-${pct(band.high)}`,
         `    ${band.inBand ? 'PASS' : 'FAIL'} — ${band.inBand
             ? 'inside the ±5 window'
@@ -423,6 +454,7 @@ async function main(): Promise<void> {
             gymId: args.gymId,
             bossOverride: args.bossOverride,
             handbuilt: args.handbuilt,
+            toolbox: args.toolbox,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
@@ -441,6 +473,9 @@ async function main(): Promise<void> {
     // Ticket 68: a pinned arm is a different POPULATION from an unpinned one, so the header has to
     // say so — the whole value of these numbers is that they can be pasted somewhere and still mean
     // what they meant.
+    if (args.toolbox) {
+        say('  TOOLBOX ARM — the party holds this gym\'s three ruled counter answers (a CEILING, not a median run).');
+    }
     if (args.handbuilt) {
         say(`  HAND-BUILT PARTY "${args.handbuilt.id}" — ${args.handbuilt.label}`);
         say(`  ${args.handbuilt.lineup.join(' + ')}   (${args.handbuilt.deck.length} cards)`);

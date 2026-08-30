@@ -381,11 +381,24 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             ? ((state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId))
                 ?.statusEffects.find(s => s.type === 'Weakened')?.stacks ?? 0)
             : 0;
-        const effectiveStacks = actionData.scaling === 'STATUS_CONSUMED'
+        /*
+         * FLOORED, ticket 69. A scaled stack count must be a whole number of stacks — nothing
+         * downstream of here rounds, so a fractional value would reach `applyMutations` and a status
+         * would carry 1.5 stacks.
+         *
+         * It is a no-op for every card that predates this: `STATUS_CONSUMED` and `WEAKENED_STACKS`
+         * both multiplied integer `stacks` by an integer count. What it BUYS is a ratio below 1 —
+         * `discharge` prints "1 Burn per 2 removed" as `stacks: 0.5` against the removal count, and
+         * flooring is what makes 3 removed pay 1 Burn rather than 1.5.
+         */
+        const scaledStacks = actionData.scaling === 'STATUS_CONSUMED'
             ? (stacks || 0) * (state.lastStatusConsumed ?? 0)
             : actionData.scaling === 'WEAKENED_STACKS'
             ? (stacks || 0) * weakenedOnTarget
             : stacks;
+        const effectiveStacks = (actionData.scaling === 'STATUS_CONSUMED' || actionData.scaling === 'WEAKENED_STACKS')
+            ? Math.sign(scaledStacks) * Math.floor(Math.abs(scaledStacks))
+            : scaledStacks;
 
         if (consume) {
             // Remove ALL stacks of the status and record how many were consumed
@@ -428,6 +441,27 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             // Contract (types.ts): negative stacks removes that many stacks,
             // deleting the status only when it reaches 0.
             const removeCount = -effectiveStacks;
+
+            /*
+             * TICKET 69 (`discharge`): a CAPPED removal now records what it actually took, the way
+             * `consume` above records what it consumed.
+             *
+             * `consume` is all-or-nothing — it strips every stack — so a card that wants "remove up
+             * to N, then pay off the amount removed" had no way to express itself. `discharge`
+             * ("Remove up to 4 Strengthened from the target. Apply 1 Burn per 2 removed") is exactly
+             * that shape, and it needs the REAL figure: against a boss holding 2 Strengthened it
+             * must pay 1 Burn, not 2.
+             *
+             * Writing `lastStatusConsumed` here makes `scaling: 'STATUS_CONSUMED'` work after a
+             * capped removal as naturally as it already works after a consume. Nothing existing
+             * reads it in this position — no shipped card pairs a negative-stack STATUS with a
+             * STATUS_CONSUMED follow-up — so this adds a capability rather than changing one.
+             */
+            const currentStacks = (state.playerParty.find(e => e.id === targetId)
+                ?? state.enemyParty.find(e => e.id === targetId))
+                ?.statusEffects.find(s => s.type === status)?.stacks ?? 0;
+            const actuallyRemoved = Math.min(removeCount, currentStacks);
+
             const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                 party.map(e => {
                     if (e.id !== targetId) return e;
@@ -440,10 +474,13 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
                 });
             let newState: IBattleState = {
                 ...state,
+                lastStatusConsumed: actuallyRemoved,
                 playerParty: updateParty(state.playerParty),
                 enemyParty: updateParty(state.enemyParty)
             };
-            newState = addLog(newState, `  ✨ ${removeCount} stack(s) of ${status} removed from target`);
+            // The log reports what was REMOVED, not what was asked for — "4 stacks removed" off a
+            // target holding 2 is the kind of line that sends someone hunting a damage bug.
+            newState = addLog(newState, `  ✨ ${actuallyRemoved} stack(s) of ${status} removed from target`);
             return newState;
         }
 

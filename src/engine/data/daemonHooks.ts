@@ -41,7 +41,13 @@ export function initDaemonHooks() {
          * suite rather than by a measurement that reads "the counter is too weak".
          */
         'riptide',
-        'short_circuit'
+        'short_circuit',
+        // The remaining three toolbox daemons (69-toolbox-printings.md). `discharge` and `vent` are
+        // Skills and resolve through their `actions`, so they have no entry here by design —
+        // `daemonCoverage.test.ts` is what proves that is a shape and not an omission.
+        'reactive_plating',
+        'scrubber',
+        'drip_feed'
     ];
 
     // Validate JSON on boot
