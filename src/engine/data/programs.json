@@ -5827,5 +5827,45 @@
                 "target": "TARGET"
             }
         ]
+    },
+    "riptide": {
+        "id": "riptide",
+        "name": "Riptide",
+        "description": "Daemon: whenever an enemy plays a card, deal 8 power to it.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "riptide_undertow"
+        ]
+    },
+    "short_circuit": {
+        "id": "short_circuit",
+        "name": "Short Circuit",
+        "description": "Daemon: whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "short_circuit_discharge"
+        ]
     }
 }

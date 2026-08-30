@@ -26,6 +26,28 @@ these numbers.
 4. **$100** on a Steam-supported payment method.
 5. Legal name + address as they appear on your ID.
 
+## The LLC branch (Henry has Dunphy LLC, Delaware — added 2026-08-30)
+
+Valve's rule is the crux: **the bank account holder name must match the legal identity on the
+partner account.** So the entity choice decides the bank requirement, not the other way around:
+
+- **Sign up as Dunphy LLC** → the partner account's bank account must be in the name **Dunphy
+  LLC** — a business bank account is REQUIRED before the Steamworks verification step. To open
+  one (online banks approve in minutes-to-days; traditional banks can take weeks) you need: your
+  ID, the LLC's **certificate of formation / articles of organization**, and its **EIN** — some
+  banks accept the owner's SSN for a single-member LLC, but most want an EIN, and the IRS issues
+  one online, free, immediately (https://www.irs.gov/ein). Tax interview note: a single-member
+  LLC is a *disregarded entity* by default, so the W-9 side lists the owner — confirm SSN-vs-EIN
+  with an accountant, not with this file.
+- **Sign up as yourself** → personal bank account is fine, start immediately; the LLC simply is
+  not part of the Steam relationship (no liability separation for it, and moving the app into the
+  LLC later is real paperwork with Valve).
+
+**Sequencing rule either way: the entity is fixed at signup — do not sign the agreement or pay
+the $100 until the choice is final.** The LLC path costs roughly a week (EIN if needed → business
+account → then the signup below); against a ~Q3-2027 launch that week is cheap insurance.
+*Not legal or tax advice — the liability/tax weighing is an accountant question.*
+
 ## The steps (Valve's flow, in order)
 
 1. Go to https://partner.steamgames.com/steamdirect → start the sign-up.

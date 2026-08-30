@@ -114,6 +114,7 @@ import { DEFAULT_MAX_TURNS, aggregate, runBatch, type RunResult } from './runBat
 import { ElementalMatrix } from '../../engine/combatUtils';
 import type { Element } from '../../engine/types';
 import type { AiTier } from '../../engine/ai/TacticalAI';
+import type { HandbuiltParty } from './handbuiltParties';
 
 // ---------------------------------------------------------------------------------------------
 // The ruled targets
@@ -334,15 +335,29 @@ const countersOf = (target: string): string[] =>
  * The element the sampled fight is *about*.
  *
  * For a wild or an elite it is the biome the node stands in. **For the gauntlet it is the GYM's own
- * element**, which `offerGyms` rule 4 puts in `biomes[2]`: the boss team is one species per biome in
- * biome order, so its champion — the leader's own species, and the member the fight is named after —
- * is the biome-2 one. Countering the champion is what *"come into the grass boss with firestarters"*
- * means, and it necessarily leaves the other two boss members un-countered. That is the real shape
- * of the fight rather than a limitation of the harness.
+ * element**, read off the leader directly.
+ *
+ * # WHY THIS IS NO LONGER AN INDEX
+ *
+ * It used to be `biomes[2]` — under the pre-2026-08-30 walk order the gym's element *was* the last
+ * biome, so the index and the leader agreed and the index was the cheaper thing to write. Henry's
+ * biome-order ruling moved the gym's element to `biomes[0]`, which silently turned `biomes[2]` into
+ * *the element the leader beats* — the harness would have prepared the party against the wrong
+ * third of the triangle and reported the resulting losses as a boss being hard.
+ *
+ * Nothing would have thrown. Reading the leader is not just the fix, it is the correct expression:
+ * the champion — the leader's own species, and the member the fight is named after — is a property
+ * of the gym, not of where the gym happens to stand. Countering it is what *"come into the grass
+ * boss with firestarters"* means, and it necessarily leaves the other two boss members
+ * un-countered. That is the real shape of the fight rather than a limitation of the harness.
  */
-function targetElementFor(cell: RunGateCell, biomes: ReadonlyArray<{ elements: ReadonlyArray<string> }>): string {
-    const index = cell.kind === 'gauntlet' ? biomes.length - 1 : cell.biomeIndex;
-    return biomes[Math.min(index, biomes.length - 1)]?.elements[0] ?? 'None';
+function targetElementFor(
+    cell: RunGateCell,
+    gym: { readonly element: string },
+    biomes: ReadonlyArray<{ elements: ReadonlyArray<string> }>,
+): string {
+    if (cell.kind === 'gauntlet') return gym.element;
+    return biomes[Math.min(cell.biomeIndex, biomes.length - 1)]?.elements[0] ?? 'None';
 }
 
 /**
@@ -398,9 +413,27 @@ export function lineupAgainst(
         lineup.push(...drawFromElement(target, size - lineup.length, index, taken));
     } else {
         lineup.push(...drawFromElement(target, size - lineup.length, index, taken));
-        // Alternate the overflow between the two non-target elements so the arm averages neutral.
-        const others = [...new Set(TUNED_OS_IDS.map(elementOf))].filter((e) => e !== target);
-        const ordered = index % 2 === 0 ? others : [...others].reverse();
+        /*
+         * Alternate the overflow so the arm averages neutral: even samples take the element that
+         * BEATS the target, odd samples take the element the target beats.
+         *
+         * BUG FIXED 2026-08-30. This used to alternate the ORDER OF A FILTERED LIST — the two
+         * non-target elements in `TUNED_OS_IDS` order — which cancels only while the target is
+         * held fixed. It is not fixed: the gauntlet's target is the leader's element and
+         * `sampleFight` strides the leader with the sample index, so WHICH END of that list was
+         * the favourable one moved underneath the alternation. The result was a coin flip that
+         * happened to land near even, not the cancellation the comment claimed, and it would tilt
+         * a control band by a few points without ever failing loudly.
+         *
+         * Alternating on the MATCHUP is target-independent, so the two biases now cancel exactly:
+         * over any even number of samples the control leans my way exactly as often as theirs.
+         */
+        const favourable = countersOf(target);
+        const unfavourable = [...new Set(TUNED_OS_IDS.map(elementOf))]
+            .filter((element) => element !== target && !favourable.includes(element));
+        const ordered = index % 2 === 0
+            ? [...favourable, ...unfavourable]
+            : [...unfavourable, ...favourable];
         for (const element of ordered) {
             lineup.push(...drawFromElement(element, size - lineup.length, index, taken));
         }
@@ -674,10 +707,15 @@ function withBossOverride(
         const stats = override.ivs
             ? { hpIV: override.ivs.hp, attackIV: override.ivs.attack, defenseIV: override.ivs.defense }
             : {};
-        const firmware = override.relics === 'off'
-            ? { activeOS: MingmingRegistry[enemy.definitionId]?.availableOS[0] ?? enemy.activeOS }
-            : {};
-        return { ...enemy, ...stats, ...firmware };
+        // TICKET 72: the `activeOS` swap that used to live here is GONE with the relics.
+        //
+        // It existed to replace a `boss_relic_*` id with the species' own first OS, so that turning
+        // the signature passive off left the boss with real firmware instead of none. Every gym is
+        // authored now, so a boss member ALREADY runs its own tuned OS — and the swap had quietly
+        // become harmful: it would have replaced an authored `skoll_v2` with `availableOS[0]`
+        // (`skoll_v1`), changing the boss's DECK in an arm that is supposed to change one thing.
+        // The Driver strip below is the whole of the lever now.
+        return { ...enemy, ...stats };
     });
 }
 
@@ -688,7 +726,7 @@ export function describeBossOverride(override: BossOverride | undefined): string
     }
     const parts: string[] = [];
     if (override.ivs) parts.push(`BOSS_IVS ${override.ivs.hp}/${override.ivs.attack}/${override.ivs.defense}`);
-    if (override.relics === 'off') parts.push('boss signature passive OFF (relic hooks / Driver; tuned OS, same deck)');
+    if (override.relics === 'off') parts.push('boss signature passive OFF (the gym Driver; tuned OS and deck untouched)');
     return `ISOLATION — ${parts.join(' + ')}`;
 }
 
@@ -784,15 +822,17 @@ const describeEnemy = (definitionId: string, activeOS?: string): string =>
  * Every sample gets its **own run seed**, and that is the load-bearing choice in this function.
  * `rollEncounter` is deterministic in `(run.seed, node.id, node.visited)` — NOT in the battle seed —
  * so running one setup for 50 iterations would replay the same three enemies fifty times with only
- * the shuffle moving. Varying the run seed instead varies the region graph, the gym offer, the biome
- * elements and their walk order, which node the sample lands on, and the species and IVs the node
- * rolls. That is what makes a pooled cell a statement about "a wild at biome 1" rather than about
- * one particular pair of huldras.
+ * the shuffle moving. Varying the run seed instead varies the region graph, which biomes stand in
+ * for each element, which node the sample lands on, and the species and IVs the node rolls. That is
+ * what makes a pooled cell a statement about "a wild at biome 1" rather than about one particular
+ * pair of huldras.
  *
  * The gym offer is chosen as `index % 3` rather than randomly, so a run of `--iterations 3k` covers
- * the three leaders evenly. It matters more than it looks: `offerGyms` rule 4 puts the gym's own
- * element in the final biome, so the leader picks the whole element ORDER of the run, and with it
- * which counter matchups the player meets at which depth.
+ * the three leaders evenly. It matters more than it looks: since Henry's 2026-08-30 ruling the
+ * leader alone fixes the whole element ORDER of the run — gym element first, then twice along the
+ * counter-chain — and with it which counter matchups the player meets at which depth. The walk
+ * order is no longer a rolled quantity, so striding the leaders evenly is now the ONLY thing
+ * spreading this harness across the three orderings.
  */
 export function sampleFight(
     cell: RunGateCell,
@@ -814,6 +854,18 @@ export function sampleFight(
      * Emberfall beatable", unpinned answers "did the gauntlet band move".
      */
     gymId?: string,
+    /**
+     * A party and deck somebody DESIGNED, in place of the arm's generated lineup.
+     *
+     * Substitutes the lineup, the party instances and the deck — and nothing else. The offer, run
+     * seed, region graph, node, encounter roll, boss, Driver, IVs and AI tier are all still built by
+     * the code below from the same seed stride, so a hand-built number is directly comparable to the
+     * `favourable` and `control` numbers at the same cell and gym.
+     *
+     * `matchup` is ignored when this is set — the lineup is given rather than chosen — but
+     * `targetElement` is still reported, because it is a property of the gym rather than of the arm.
+     */
+    handbuilt?: HandbuiltParty,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -832,13 +884,19 @@ export function sampleFight(
     const offer = gymId
         ? offers.find((candidate) => candidate.gym.id === gymId) ?? offers[index % offers.length]
         : offers[index % offers.length];
-    const target = targetElementFor(cell, offer.biomes);
+    const target = targetElementFor(cell, offer.gym, offer.biomes);
 
-    const lineup = lineupAgainst(index, cell.partySize, target, matchup);
+    const lineup = handbuilt ? [...handbuilt.lineup] : lineupAgainst(index, cell.partySize, target, matchup);
     const party = partyFor(lineup);
 
     const created = createRun({ seed, offer, party, startedAt: 0 });
-    const deck = deckFor(created, party);
+    /*
+     * `deckFor` cross-checks against `createRun`'s own deal and throws on any mismatch, which is
+     * right for a generated arm and wrong for a hand-built one: the whole point of a hand-built deck
+     * is that it is NOT the start deck. Taken verbatim instead, and the length is deliberately not
+     * validated — a designed deck is 26 cards where the start deal is 18.
+     */
+    const deck = handbuilt ? [...handbuilt.deck] : deckFor(created, party);
 
     // Not the opening fight — see `fightsResolvedAt`. Written as a spread rather than mutated
     // because `IRunState` is deeply readonly, which is right for every consumer but this one.
@@ -985,6 +1043,8 @@ export interface MeasureOptions {
      * `sampleFight`'s `gymId` for why the two are different populations.
      */
     readonly gymId?: string;
+    /** A designed party and deck in place of the arm's generated one — see `HandbuiltParty`. */
+    readonly handbuilt?: HandbuiltParty;
 }
 
 /**

@@ -215,6 +215,36 @@ export function getDamageScalingMultiplier(
         case 'CARDS_DRAWN':
             return state.cardsDrawnThisTurn;
         case 'CARDS_DRAWN_TRIGGERED':
+            /*
+             * HENRY, 2026-08-30: the CASTER's triggered draws, not the whole battle's.
+             *
+             * This is the unfixed sibling of the CARDS_PLAYED bug above, found the same way — by
+             * asking where a deck's damage came from — and it was worth considerably more. The
+             * counter it used to read, `state.nonNaturalCardsDrawnThisTurn`, is a single number on
+             * the battle state: not per unit, not even per side. Every ally's engine draw pumped it,
+             * and so did an enemy's inside the same turn.
+             *
+             * MEASURED, on Tidewrack's boss fight: `ink_stream` counted **6.6 triggered draws per
+             * cast**, against the ~1.75 `jormungandr_v1` was measured at as a solo caster — a 3.8x
+             * amplification bought purely with party width. At 33 power a draw that is ~218 power
+             * from a ONE-energy card, landing 52.9 damage where a 3-energy `hydro_blast` (105 power)
+             * lands ~26. It was 49% of the winning deck's entire output, and the gym boss runs four
+             * copies off the same counter.
+             *
+             * The card text always said so: *"for each card a card, OS or daemon drew YOU this
+             * turn"* — the same second-person singular that settled CARDS_PLAYED.
+             *
+             * # WHY THIS IS NOT WRITTEN AS `source?.x ?? state.y`, UNLIKE CARDS_PLAYED
+             *
+             * `playsThisTurn` is written on every play, so it is always a real number by the time
+             * anything reads it and the `??` there is genuinely a safety net.
+             * `nonNaturalDrawsThisTurn` is written only when a triggered draw actually happens, so a
+             * caster who has drawn nothing this turn holds `undefined` — and
+             * `undefined ?? state.nonNaturalCardsDrawnThisTurn` would fall straight through to the
+             * battle-wide number in exactly the case this ruling exists to fix. The fallback
+             * therefore keys off whether a CASTER is known, not off whether the count is set.
+             */
+            if (source !== undefined) return source.nonNaturalDrawsThisTurn ?? 0;
             return state.nonNaturalCardsDrawnThisTurn ?? 0;
         case 'ELEMENT_PLAYED':
             return (element ? state.elementPlays?.[element] : undefined) || 1;

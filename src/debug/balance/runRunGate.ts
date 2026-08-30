@@ -109,9 +109,12 @@
  *    in this table and of every deck in the game, so it should be ruled on before any deck is.
  */
 
+import { appendFileSync, writeFileSync } from 'node:fs';
+
 import { computeRegistryHash } from '../scenarios/registryHash';
 import { AI_TIER } from '../../engine/ai/TacticalAI';
 import { DEFAULT_MAX_TURNS } from './runBatch';
+import { HANDBUILT_PARTIES, handbuiltParty, type HandbuiltParty } from './handbuiltParties';
 import {
     CELLS,
     RUN_GATE_TARGETS,
@@ -126,6 +129,30 @@ import {
     type BandMeasurement,
     type CellMeasurement,
 } from './runGate';
+
+/**
+ * `--out <file>` — mirror every reported line into a file, line by line, as it is produced.
+ *
+ * THIS IS NOT A CONVENIENCE. A full gauntlet arm is hours of wall clock, and the two ways those
+ * hours have already been lost are both silent:
+ *
+ *  - **Node BLOCK-buffers stdout when it is a pipe.** `... > gate.txt` holds the whole report in a
+ *    64 KiB buffer and flushes at exit, so a run that is killed — a closed terminal, a reclaimed
+ *    container, Ctrl-C at hour three — leaves an EMPTY file, not a partial one.
+ *  - **A long run dies.** Then the only thing that matters is how much of it survived.
+ *
+ * `appendFileSync` per line is the fix for both: the file is complete-to-the-second at every
+ * moment, so a killed run is a *short* measurement rather than no measurement. The per-line syscall
+ * costs microseconds against a battle that costs tens of seconds.
+ *
+ * Stdout still gets every line too — this tees, it does not redirect.
+ */
+let outFile: string | undefined;
+
+function say(line = ''): void {
+    console.log(line);
+    if (outFile !== undefined) appendFileSync(outFile, `${line}\n`);
+}
 
 /** See the header. Two samples per cell, ~5 minutes, ±20 points per band. */
 const ITERATIONS_DEFAULT = 2;
@@ -166,6 +193,16 @@ interface Args {
      * flag** — it is a different population, not a deeper sample of the same one.
      */
     gymId?: string;
+    /** `--out <file>`: tee every reported line into this file as it is produced. See `say`. */
+    out?: string;
+    /**
+     * `--handbuilt <id>`: measure a DESIGNED party and deck instead of a generated lineup.
+     *
+     * The generated arms can only field all-v1 or all-v2 teams holding the 18-card start deck, so
+     * they measure type preparation and nothing else. This measures the other thing. See
+     * `handbuiltParties.ts`.
+     */
+    handbuilt?: HandbuiltParty;
 }
 
 /** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
@@ -190,6 +227,18 @@ function parseBossIvs(raw: string | undefined): BossOverride['ivs'] {
  * carries `define: { 'process.env': {} }`, so under `vite-node` every `process.env` read in the
  * module graph is substituted to `{}` before the script ever starts. `process.argv` is untouched.
  */
+/** Resolve `--handbuilt <id>`, failing LOUDLY on a typo rather than silently measuring the arm. */
+function resolveHandbuilt(id: string | undefined): HandbuiltParty | undefined {
+    if (id === undefined) return undefined;
+    const found = handbuiltParty(id);
+    if (found === undefined) {
+        throw new Error(
+            `[run-gate] Unknown --handbuilt party "${id}". Known: ${Object.keys(HANDBUILT_PARTIES).join(', ')}`,
+        );
+    }
+    return found;
+}
+
 function parseArgs(argv: string[]): Args {
     const get = (flag: string): string | undefined => {
         const i = argv.indexOf(flag);
@@ -208,6 +257,8 @@ function parseArgs(argv: string[]): Args {
         maxTurns: Number(get('--max-turns') ?? DEFAULT_MAX_TURNS),
         matchup: (get('--matchup') as MatchupMode | undefined) ?? 'blind',
         gymId: get('--gym'),
+        out: get('--out'),
+        handbuilt: resolveHandbuilt(get('--handbuilt')),
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
             relics: get('--boss-relics') === 'off' ? 'off' : undefined,
@@ -308,8 +359,17 @@ function bandLines(band: BandMeasurement): string[] {
 async function main(): Promise<void> {
     const args = parseArgs(process.argv.slice(2));
 
+    if (args.out !== undefined) {
+        // Truncate ONCE, here, rather than appending to whatever was there. A second run writing
+        // its report underneath a first one produces a file whose two halves disagree and no way to
+        // tell which line belongs to which arm.
+        writeFileSync(args.out, '');
+        outFile = args.out;
+        console.log(`[balance:run-gate] teeing every line to ${args.out} as it is produced.`);
+    }
+
     if (args.list) {
-        for (const cell of CELLS) console.log(`${cell.id.padEnd(20)} ${cell.partySize}v? ${cell.label}`);
+        for (const cell of CELLS) say(`${cell.id.padEnd(20)} ${cell.partySize}v? ${cell.label}`);
         return;
     }
 
@@ -343,12 +403,12 @@ async function main(): Promise<void> {
     }
     const battles = cells.length * args.iterations;
 
-    console.log('[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.');
-    console.log(`[balance:run-gate]   bands      ${args.bands.join(', ')}  (${cells.length} cells: ${cells.map((c) => c.id).join(', ')})`);
-    console.log(`[balance:run-gate]   iterations ${args.iterations} per cell  ->  ${battles} battles, PLAYER moves first (as a run does)`);
-    console.log(`[balance:run-gate]   sample     ${TUNED_OS_IDS.length} tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample`);
-    console.log(`[balance:run-gate]   AI tier    ${AI_TIER}   maxTurns ${args.maxTurns}   registry ${computeRegistryHash()}`);
-    console.log('');
+    say('[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.');
+    say(`[balance:run-gate]   bands      ${args.bands.join(', ')}  (${cells.length} cells: ${cells.map((c) => c.id).join(', ')})`);
+    say(`[balance:run-gate]   iterations ${args.iterations} per cell  ->  ${battles} battles, PLAYER moves first (as a run does)`);
+    say(`[balance:run-gate]   sample     ${TUNED_OS_IDS.length} tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample`);
+    say(`[balance:run-gate]   AI tier    ${AI_TIER}   maxTurns ${args.maxTurns}   registry ${computeRegistryHash()}`);
+    say('');
 
     const started = Date.now();
     const results: BandMeasurement[] = [];
@@ -362,8 +422,9 @@ async function main(): Promise<void> {
             matchup: args.matchup,
             gymId: args.gymId,
             bossOverride: args.bossOverride,
+            handbuilt: args.handbuilt,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
-                console.log(
+                say(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
                     `${won ? 'WIN ' : 'loss'}  ${secs(elapsedMs)} into cell, ${clock(Date.now() - started)} total`,
                 );
@@ -373,55 +434,59 @@ async function main(): Promise<void> {
 
     const elapsed = Date.now() - started;
 
-    console.log('');
-    console.log('='.repeat(112));
-    console.log(`  RUN GATE — ticket 61   ·   ${MATCHUP_LABEL[args.matchup]}`);
-    console.log(`  ${describeBossOverride(args.bossOverride)}`);
+    say('');
+    say('='.repeat(112));
+    say(`  RUN GATE — ticket 61   ·   ${MATCHUP_LABEL[args.matchup]}`);
+    say(`  ${describeBossOverride(args.bossOverride)}`);
     // Ticket 68: a pinned arm is a different POPULATION from an unpinned one, so the header has to
     // say so — the whole value of these numbers is that they can be pasted somewhere and still mean
     // what they meant.
-    console.log(args.gymId
+    if (args.handbuilt) {
+        say(`  HAND-BUILT PARTY "${args.handbuilt.id}" — ${args.handbuilt.label}`);
+        say(`  ${args.handbuilt.lineup.join(' + ')}   (${args.handbuilt.deck.length} cards)`);
+    }
+    say(args.gymId
         ? `  PINNED to ${args.gymId} — not comparable to an unpinned number (ticket 68)`
         : '  all three leaders, evenly (unpinned)');
-    console.log('='.repeat(112));
-    for (const band of results) for (const line of bandLines(band)) console.log(line);
+    say('='.repeat(112));
+    for (const band of results) for (const line of bandLines(band)) say(line);
 
     const gauntlet = results.find((band) => band.band === 'gauntlet');
     if (gauntlet && gauntlet.cells.length === 3) {
-        console.log('');
-        console.log(
+        say('');
+        say(
             `    clears all three (product of the per-fight rates): ${pct(gauntletCompound(gauntlet))}` +
             '  — UNBANDED, and an UPPER BOUND: the gauntlet carries HP between fights and this',
         );
-        console.log('      harness fights each one from full. See `gauntletCompound` for why.');
+        say('      harness fights each one from full. See `gauntletCompound` for why.');
     }
 
-    console.log('');
-    console.log('-'.repeat(112));
+    say('');
+    say('-'.repeat(112));
     const failures = results.filter((band) => !band.inBand);
-    console.log(
+    say(
         `  ${failures.length === 0 ? 'ALL BANDS IN WINDOW' : `${failures.length} BAND(S) OUTSIDE WINDOW: ${failures.map((b) => b.band).join(', ')}`}`,
     );
     const thin = results.filter(underSampled);
     if (thin.length > 0) {
-        console.log(
+        say(
             `  ${thin.length} BAND(S) UNDER-SAMPLED (${thin.map((b) => b.band).join(', ')}): ` +
             'their 95% interval is wider than the ±5 window, so the verdicts above are provisional. ' +
             'Raise --iterations.',
         );
     }
-    console.log(`  wall clock ${clock(elapsed)} (${elapsed} ms) for ${results.reduce((n, b) => n + b.battles, 0)} battles`);
-    console.log(`  ${(elapsed / Math.max(1, results.reduce((n, b) => n + b.battles, 0)) / 1000).toFixed(1)}s per battle averaged over every cell`);
-    console.log('-'.repeat(112));
+    say(`  wall clock ${clock(elapsed)} (${elapsed} ms) for ${results.reduce((n, b) => n + b.battles, 0)} battles`);
+    say(`  ${(elapsed / Math.max(1, results.reduce((n, b) => n + b.battles, 0)) / 1000).toFixed(1)}s per battle averaged over every cell`);
+    say('-'.repeat(112));
 
     if (args.verbose) {
-        console.log('');
-        console.log('  SAMPLES (player lineup vs rolled enemy roster, in sample order)');
+        say('');
+        say('  SAMPLES (player lineup vs rolled enemy roster, in sample order)');
         for (const band of results) {
             for (const cell of band.cells) {
-                console.log(`    ${cell.id}`);
+                say(`    ${cell.id}`);
                 cell.lineupsSeen.forEach((lineup, i) => {
-                    console.log(`      ${String(i).padStart(3)}  ${lineup.padEnd(46)} vs  ${cell.enemiesSeen[i]}`);
+                    say(`      ${String(i).padStart(3)}  ${lineup.padEnd(46)} vs  ${cell.enemiesSeen[i]}`);
                 });
             }
         }

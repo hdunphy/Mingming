@@ -28,7 +28,20 @@ export function initDaemonHooks() {
         'feedback_loop_daemon',
         'fertile_ground_daemon',
         'einherjar_standard',
-        'hoofbeat_daemon'
+        'hoofbeat_daemon',
+        /*
+         * TICKET 69's Tidewrack toolbox, printed 2026-08-30. Both are `when.source: OPPONENT`
+         * daemons — `riptide` taxes cards PLAYED, `short_circuit` taxes engine draws.
+         *
+         * THIS LIST IS AN ALLOWLIST, AND THAT IS A TRAP. A daemon whose `hooks.json` entry is
+         * perfect and whose `programs.json` printing is perfect does NOTHING if its key is missing
+         * here — no error, no warning, no failing test. Both of these were built, schema-valid, and
+         * completely inert until this line existed. `daemonCoverage.test.ts` now fails for any
+         * Daemon in the registry whose hook ids do not resolve, so the next one is caught by the
+         * suite rather than by a measurement that reads "the counter is too weak".
+         */
+        'riptide',
+        'short_circuit'
     ];
 
     // Validate JSON on boot

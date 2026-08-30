@@ -50,7 +50,7 @@
  * `Date.now()`.
  */
 
-import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
+import { DRIVER_ROOT_ROT, DRIVER_TIDAL_SURGE, DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 
 export interface IAuthoredBossMember {
     /** A `MingmingRegistry` species id. */
@@ -83,6 +83,54 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
             { species: 'ratatoskr', os: 'ratatoskr_v2' },
         ],
         driver: DRIVER_WAR_FOOTING,
+    },
+    /*
+     * TIDEWRACK (ticket 71): jormungandr_v1 (OUROBOROS_LOOP) + kraken_v1 (ABYSSAL_INK_SYS) +
+     * skoll_v2 (SOLAR_OVERDRIVE), under TIDAL SURGE.
+     *
+     * The zoo core — the two card-count-and-draw engines — with a Strength-scaling Fire closer. The
+     * Driver is *about* that core: a side that plays five to seven cards a turn charges a 10-card
+     * threshold every turn and a half.
+     *
+     * **skoll_v2 rather than a Nature third, deliberately** (Henry, 2026-08-29): a Nature member
+     * would give the Nature counter-team nothing to fear, and the heuristic's third slot exists to
+     * counter the player's expected counter. Skoll fields v1 at Emberfall and v2 here on purpose —
+     * leaders build differently, and the same OS at two gyms would make the roster read as a pool.
+     *
+     * Intended counter, for the gate's record: **Nature** — the only launch element with Weakened,
+     * which is maximally efficient against many small hits — plus ticket 69's toolbox (riptide,
+     * Short Circuit).
+     */
+    gym_tidewrack: {
+        members: [
+            { species: 'jormungandr', os: 'jormungandr_v1' },
+            { species: 'kraken', os: 'kraken_v1' },
+            { species: 'skoll', os: 'skoll_v2' },
+        ],
+        driver: DRIVER_TIDAL_SURGE,
+    },
+    /*
+     * ROOTFALL (ticket 72): huldra_v2 (BARK_SHIELD_OS) + ratatoskr_v1 (GOSSIP_NODE) +
+     * jormungandr_v2 (TOXIN_FANG_OS), under ROOT ROT — the strangler.
+     *
+     * Shield-poison, party-wide 0-cost sustain with nettle chip, and a poison execute. Three
+     * distinct species, 2 Nature + 1 Water on ruling 3's heuristic. Rejected and recorded (Henry,
+     * 2026-08-29): twin-huldra builds (they read as a species-clause violation even where legal),
+     * reusing ratatoskr_v2 (the same OS at two gyms makes the roster read as a pool), and a
+     * kraken_v2 control-burst sketch (it drops the poison identity the fight is about).
+     *
+     * Intended counter, for the gate's record: **Fire** by type — fenrir_v1's missing-HP scaling
+     * converts poison pressure into damage — plus ticket 69's cleanse toolbox. The landscape fact
+     * that motivated the toolbox: `soothe` (0e, 1 stack) loses the race, and `purify` is Light and
+     * so off-EA.
+     */
+    gym_rootfall: {
+        members: [
+            { species: 'huldra', os: 'huldra_v2' },
+            { species: 'ratatoskr', os: 'ratatoskr_v1' },
+            { species: 'jormungandr', os: 'jormungandr_v2' },
+        ],
+        driver: DRIVER_ROOT_ROT,
     },
 };
 

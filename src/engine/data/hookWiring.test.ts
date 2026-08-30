@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import PROGRAMS from './programs.json';
 import HOOKS_DATA from './lib/hooks.json';
 import { initDaemonHooks } from './daemonHooks';
 import { getOSBehavior } from './firmwareRegistry';
@@ -15,7 +14,6 @@ import type { IBiome } from '../runTypes';
 import type { IBattleEntity, IBattleState, IMingmingState, ProgramData, StatusEffectInstance } from '../types';
 import type { DataHookDefinition } from '../core/HookTypes';
 
-/** A run's three biomes at Early Access: one per launch element, mono (ticket 05). */
 const BIOMES: ReadonlyArray<IBiome> = [
     { id: 'biome_water', name: 'Water', elements: ['Water'] },
     { id: 'biome_nature', name: 'Nature', elements: ['Nature'] },
@@ -35,106 +33,19 @@ const PARTY_MEMBER: IMingmingState = {
 
 // Force both registration paths before asserting anything.
 initDaemonHooks();
-getOSBehavior('fenrir_v1'); // triggers firmware init (OS + boss relic hooks)
+getOSBehavior('fenrir_v1');
 
-describe('programs.json hook wiring', () => {
-    it('every hook id referenced by a card resolves to a registered hook', () => {
-        const programs = PROGRAMS as Record<string, { hooks?: string[] }>;
-        const missing: string[] = [];
-
-        for (const [cardId, card] of Object.entries(programs)) {
-            if (!card.hooks) continue;
-            for (const hookId of card.hooks) {
-                if (!getHook(hookId)) {
-                    missing.push(`${cardId} -> ${hookId}`);
-                }
-            }
-        }
-
-        expect(missing, `Cards referencing unregistered hooks: ${missing.join(', ')}`).toEqual([]);
-    });
-
-    it('the five previously-inert daemon cards resolve to live hooks', () => {
-        const expectations: Record<string, string> = {
-            harden_daemon: 'defensive_daemon_hook',
-            core_overclock_daemon: 'daemon_double_strength',
-            cinder_armor_daemon: 'daemon_burn_sharp_synergy',
-            feedback_loop_daemon: 'daemon_draw_damage_proc',
-            fertile_ground_daemon: 'daemon_extra_draw'
-        };
-
-        const programs = PROGRAMS as Record<string, { hooks?: string[] }>;
-        for (const [cardId, hookId] of Object.entries(expectations)) {
-            expect(programs[cardId].hooks, `${cardId} should reference ${hookId}`).toContain(hookId);
-            expect(getHook(hookId), `${hookId} should be registered`).toBeDefined();
-        }
-    });
-});
-
-describe('boss relic OSes', () => {
-    it('getOSBehavior returns a working definition for each boss relic', () => {
-        const fire = getOSBehavior('boss_relic_fire');
-        expect(fire).toBeDefined();
-        expect(fire!.hooks.length).toBeGreaterThan(0);
-        expect(getHook('boss_relic_fire_end')?.onTurnEnd).toBeTypeOf('function');
-
-        const water = getOSBehavior('boss_relic_water');
-        expect(water).toBeDefined();
-        expect(water!.hooks.length).toBeGreaterThan(0);
-        expect(getHook('boss_relic_water_reactive')?.onPostDamage).toBeTypeOf('function');
-
-        const ice = getOSBehavior('boss_relic_ice');
-        expect(ice).toBeDefined();
-        expect(ice!.hooks.length).toBeGreaterThan(0);
-        expect(getHook('boss_relic_ice_tax')?.onCostCalculated).toBeTypeOf('function');
-    });
-
-    /**
-     * TICKET 18 REWROTE THIS TEST BECAUSE IT REWROTE WHAT A BOSS IS.
-     *
-     * It used to build a "Sector Warden" through `createBattleState`'s gym-tier branch and check the
-     * one entity in the middle of the line-up kept its relic. That branch is gone: the whole boss
-     * TEAM now carries signature firmware, it is rolled by `engine/run/gauntlet.ts`, and it reaches
-     * the factory pre-built through `setup.encounter`.
-     *
-     * What is still worth asserting here is the wiring claim this file exists for — a `boss_relic_*`
-     * id survives battle creation *and* resolves to a registered firmware with live hooks. A boss
-     * whose OS string is intact but whose hooks were never registered is a boss that does nothing,
-     * and nothing else in the suite would notice.
-     */
-    it('every member of an UN-AUTHORED gym’s boss team keeps a live boss_relic OS through createBattleState', () => {
-        // TICKET 68 repointed this at Tidewrack. Emberfall is authored now and fields real firmware
-        // behind a Driver (ruling 5); the relic shape this asserts is what ruling 6 keeps at the two
-        // gyms that have not had their design session yet, and it has to go on working meanwhile.
-        const run = createRun({
-            seed: 'hook-wiring-gauntlet',
-            offer: { gym: GYM_REGISTRY.gym_tidewrack, biomes: BIOMES },
-            party: [PARTY_MEMBER],
-            startedAt: 0,
-        });
-        const gymNode = run.nodes.find(n => n.kind === 'gym')!;
-        const fight = rollGauntletFight({ run, node: gymNode, fightIndex: GAUNTLET_FIGHTS - 1 });
-
-        const setup: IBattleSetup = {
-            party: [PARTY_MEMBER],
-            deck: [],
-            drivers: [],
-            persistedHp: {},
-            encounter: { enemyParty: fight.enemyParty, enemyDeckIds: fight.enemyDeckIds },
-        };
-
-        const state = createBattleState(setup, [], undefined, { seed: fight.seed, enemyMode: 'CARDS' });
-
-        expect(state.enemyParty).toHaveLength(3);
-        for (const boss of state.enemyParty) {
-            expect(boss.activeOS?.startsWith('boss_relic_'), `${boss.name} should carry signature firmware`).toBe(true);
-            expect(getOSBehavior(boss.activeOS!)).toBeDefined();
-            expect(getOSBehavior(boss.activeOS!)!.hooks.length).toBeGreaterThan(0);
-        }
-        // Three distinct signatures, not one tripled — `gauntlet.bossFirmwareFor`'s de-duplication.
-        expect(new Set(state.enemyParty.map(e => e.activeOS)).size).toBe(3);
-    });
-});
+/*
+ * TICKET 72: the `boss relic OSes` block that stood here is DELETED, not repointed.
+ *
+ * It asserted that a `boss_relic_*` id survives battle creation and resolves to registered firmware
+ * with live hooks — a real claim for as long as any gym fielded ticket 18's formula boss. Ticket 68
+ * authored Emberfall and moved it to Tidewrack; ticket 71 authored Tidewrack and moved it to
+ * Rootfall; this ticket authors Rootfall, so there is no gym left that fields relics and the three
+ * firmwares are gone from `hooks.json`. A test that follows a shrinking set to zero is finished, and
+ * `gauntlet.test.ts` now asserts the property that replaced it: every gym fields its authored trio
+ * and its own Driver.
+ */
 
 /**
  * TICKET 68 — the same wiring claim, for the system that replaces the relics at an authored gym.

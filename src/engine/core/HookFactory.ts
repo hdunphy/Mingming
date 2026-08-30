@@ -1,5 +1,5 @@
 import { type HookDefinition, type DataHookDefinition, type ModifierDataHookDefinition, type HookCondition, type HookAction, type HookContext, type HookResult, type MutationRequest } from './HookTypes';
-import { resolveCounterKey } from './HookTypes';
+import { resolveCounterKey, resolveSideCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ActionType } from '../types';
 import { PRNG } from './PRNG';
 import { ConditionValidator, NEGATIVE_STATUSES } from './ConditionValidator';
@@ -210,7 +210,13 @@ export const HookFactory = {
                     type: 'COUNTER',
                     targetId: '',
                     payload: {
-                        key: action.key ? resolveCounterKey(action.key, action.scope, owner) : action.key,
+                        // Ticket 71: SIDE resolves against the state, not the entity — one count
+                        // per party, shared by its members and not with the opponent.
+                        key: action.key
+                            ? (action.scope === 'SIDE'
+                                ? resolveSideCounterKey(action.key, owner, currentState)
+                                : resolveCounterKey(action.key, action.scope, owner))
+                            : action.key,
                         operator: action.operator,
                         amount: (action.amount || 1) * scaleFactor
                     }

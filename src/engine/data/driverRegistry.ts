@@ -63,14 +63,21 @@ export const DRIVER_ID_PREFIX = 'driver_';
 /** WAR FOOTING — Emberfall's leader Driver (ticket 68 ruling 5). */
 export const DRIVER_WAR_FOOTING = 'driver_war_footing';
 
+/** TIDAL SURGE — Tidewrack's leader Driver (ticket 71). The first user of the SIDE counter scope. */
+export const DRIVER_TIDAL_SURGE = 'driver_tidal_surge';
+
+/** ROOT ROT — Rootfall's leader Driver (ticket 72). The last gym to be authored. */
+export const DRIVER_ROOT_ROT = 'driver_root_rot';
+
 /**
  * Every hook-bearing Driver that ships, in a stable order.
  *
- * One entry today. It is a list rather than a constant because the authoring sessions for Tidewrack
- * and Rootfall (ruling 6) each add one, and because `driverRegistry.test.ts` sweeps it — a Driver
- * added to `hooks.json` and forgotten here is a Driver nothing checks.
+ * All three gym Drivers: WAR FOOTING (Emberfall, 68), TIDAL SURGE (Tidewrack, 71), ROOT ROT
+ * (Rootfall, 72). With Rootfall authored there is no gym left running ticket 18's formula boss. It
+ * is a list rather than a constant because `driverRegistry.test.ts` sweeps it — a Driver added to
+ * `hooks.json` and forgotten here is a Driver nothing checks.
  */
-export const DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING];
+export const DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING, DRIVER_TIDAL_SURGE, DRIVER_ROOT_ROT];
 
 /** Is this a hook-bearing Driver id (as opposed to a stat Driver from `RelicRegistry`)? */
 export function isHookDriver(id: string): boolean {

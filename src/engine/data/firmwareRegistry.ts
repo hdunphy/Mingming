@@ -65,7 +65,7 @@ function initFirmwareHooks() {
      */
     const firmwareKeys = Object.keys(validatedData).filter(key =>
         key.endsWith('_v1') || key.endsWith('_v2')
-        || key.startsWith('boss_relic_') || key.startsWith('driver_')
+        || key.startsWith('driver_')
     );
 
     firmwareKeys.forEach(key => {

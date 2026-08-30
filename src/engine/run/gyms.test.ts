@@ -71,12 +71,39 @@ describe('offerGyms', () => {
         }
     });
 
-    // Rule 4 — the reading this module took: you fight the leader at the end of its own region.
-    it('puts the gym\'s own element last, and never first', () => {
+    /*
+     * Rule 4 — Henry's 2026-08-30 ruling, which REPLACED the old reading ("you fight the leader at
+     * the end of its own region"). The gym's element opens the region and the walk steps twice
+     * along the counter-chain, so the counter-picked party the offer invites you to bring gets an
+     * easy first biome, a neutral second, and the hardest one immediately before the boss it was
+     * built for.
+     *
+     * Asserted as the whole ordered triple rather than as "gym element first": the difficulty ramp
+     * is the point, and a generator that opened correctly but then rolled the last two biomes
+     * either way round would pass a first-position check while handing half its players the
+     * inverted biome at depth 1 — exactly the thing this ruling exists to stop.
+     */
+    it('opens on the gym\'s own element, then walks the counter-chain', () => {
+        const expected: Readonly<Record<string, string[]>> = {
+            Water: ['Water', 'Nature', 'Fire'],
+            Fire: ['Fire', 'Water', 'Nature'],
+            Nature: ['Nature', 'Fire', 'Water'],
+        };
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
-                expect(lastElement(offer)).toBe(offer.gym.element);
-                expect(openingElement(offer)).not.toBe(offer.gym.element);
+                expect(offer.biomes.map((b) => b.elements[0])).toEqual(expected[offer.gym.element]);
+            }
+        }
+    });
+
+    it('never stands the leader in the LAST biome — the cost of rule 4, pinned', () => {
+        // The thematic price Henry ruled on knowingly: Tidewrack's Water leader is fought at the
+        // end of a Fire biome. Pinned so that a future "fix" to the theme has to argue with the
+        // ruling instead of quietly reverting it.
+        for (const seed of SWEEP) {
+            for (const offer of offerGyms(seed)) {
+                expect(lastElement(offer)).not.toBe(offer.gym.element);
+                expect(openingElement(offer)).toBe(offer.gym.element);
             }
         }
     });
@@ -120,16 +147,25 @@ describe('offerGyms', () => {
         expect(distinct.size).toBeGreaterThan(10);
     });
 
-    it('uses both biome orderings across the seed space', () => {
-        // There are exactly two derangements of three elements, so a generator that never rolled
-        // the second one would still pass every rule above while quietly offering one fixed screen
-        // shape forever. Pin the offer to one leader to read the ordering cleanly.
+    it('gives a leader ONE ordering across the whole seed space — the roll is gone', () => {
+        /*
+         * This test used to assert the opposite: two orderings had to appear, because there are
+         * exactly two derangements of three elements and a generator that never rolled the second
+         * would quietly offer one fixed screen shape forever.
+         *
+         * Henry's 2026-08-30 ruling deleted that roll. The ordering is now a function of the leader
+         * alone, so the seed space must produce exactly ONE ordering per gym — and the assertion
+         * has to flip with it rather than being deleted, because "the ordering varies" and "the
+         * ordering is fixed" are both bugs under the other rule. What still varies across seeds is
+         * which of three NAMED biomes stands in for each element; that is covered by
+         * `produces different screens for different seeds`.
+         */
         const orderings = new Set(
             SWEEP.map((seed) => {
                 const emberfall = offerGyms(seed).find((o) => o.gym.id === 'gym_emberfall')!;
                 return emberfall.biomes.map((b) => b.elements[0]).join('>');
             }),
         );
-        expect(orderings).toEqual(new Set(['Nature>Water>Fire', 'Water>Nature>Fire']));
+        expect(orderings).toEqual(new Set(['Fire>Water>Nature']));
     });
 });
