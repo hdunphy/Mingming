@@ -401,10 +401,16 @@ describe('LoadoutEditor — the run collection', () => {
         const markup = render(makeRun({ collection, bench: ['mm2'] }));
 
         expect(GetMingmingData('fenrir').startKits?.fenrir_v1[0]).toBe('ragnarok_edge');
-        expect(markup).toContain('<span class="rs-tags">payoff · benched</span>');
-        expect(markup).toContain('<span class="rs-tags">benched</span>');
-        expect(markup).toContain('<span class="rs-tags">generic</span>');
-        expect(markup).toContain('<span class="rs-tags">pick</span>');
+        // The tag line also carries the element word since the 2026-08-30 playtest — the tags
+        // themselves are still the assertion, and `rs-tg` is what separates them from it.
+        expect(markup).toContain('<span class="rs-tg">payoff · benched</span>');
+        expect(markup).toContain('<span class="rs-tg">benched</span>');
+        expect(markup).toContain('<span class="rs-tg">generic</span>');
+        expect(markup).toContain('<span class="rs-tg">pick</span>');
+        // And the element it is: colour alone could not tell Water from Air, Ice or None.
+        expect(markup).toContain('<span class="rs-elw" title="Fire element">FIRE</span>');
+        expect(markup).toContain('<span class="rs-elw" title="None element">NEUTRAL</span>');
+        expect(markup).toContain('<span class="rs-elc" title="Water element">WTR</span>');
         expect(markup).toContain('class="rs-card payoff"');
         // Exactly one payoff among the four: the tag is a position in an engine, not an adjective.
         expect(markup.match(/class="rs-card payoff"/g)?.length).toBe(1);

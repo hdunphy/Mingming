@@ -3,7 +3,7 @@
  *
  * The renderer runs with `contextIsolation: true` and `nodeIntegration: false`, so it cannot see
  * `fs`, `path` or `ipcRenderer`. This file is the only thing that can, and it hands the game a
- * **named, closed set of five functions** — not a channel, not `ipcRenderer` itself.
+ * **named, closed set of functions** — not a channel, not `ipcRenderer` itself.
  *
  * That distinction is the whole point of the file. Exposing `ipcRenderer` would let any code in the
  * renderer send any message on any channel, which is the same as having no isolation at all; a
@@ -41,4 +41,16 @@ contextBridge.exposeInMainWorld('mingmingDesktop', {
     /** So the settings screen can show the player the real path, and open it. */
     paths: () => ipcRenderer.sendSync('mingming:paths'),
     revealRunLogs: () => ipcRenderer.sendSync('mingming:reveal-run-logs'),
+
+    // --- ticket 42 follow-up (2026-08-30 playtest): the way out ------------------------------
+    /**
+     * Quit the game. `send`, not `sendSync` — nothing comes back from a process that is exiting,
+     * and blocking the renderer on it would be waiting for an answer that cannot arrive.
+     *
+     * Adding a verb to this surface is the thing the header warns about, so it is worth saying why
+     * this one is safe: quitting is something the player can already do from the window chrome at
+     * any moment, and the save is written on every state change rather than at exit. This makes an
+     * existing, always-available action reachable from inside the game; it grants no new power.
+     */
+    quit: () => ipcRenderer.send('mingming:quit'),
 });

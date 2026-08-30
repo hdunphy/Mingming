@@ -45,6 +45,25 @@ export abstract class StatusBehavior {
     abstract readonly type: StatusType;
 
     /**
+     * TICKET 126: WHEN this status's per-turn tick fires, relative to its OWNER's turn.
+     *
+     * Henry, ticket-118 playtest: *"Regen triggers at the end of the turn. So I just put i on
+     * there it triggered for no gain"*, and *"it felt bad for huldra to apply a huge stack of
+     * poison only for sleipnir to finish off one of our allies and then die at the end of our
+     * turn"*.
+     *
+     * Both complaints are the same timing. Ticking on the way OUT of a turn means Regen heals
+     * before the enemy has hit you - so a fresh stack is usually spent at full HP - and a
+     * poisoned attacker gets a full turn of actions it has already been killed by. Ticking on
+     * the way IN heals the damage you just took, and kills the poisoned unit before it acts.
+     *
+     * The three per-turn statuses (Burn, Poison, Regen) tick at the start. Everything else -
+     * Asleep and Stunned decay, StableOS expiry - still resolves at the owner's turn end, where
+     * a CC status wearing off at the END of the turn it was skipped is the correct rhythm.
+     */
+    readonly ticksAt: 'OWNER_TURN_END' | 'OWNER_TURN_START' = 'OWNER_TURN_END';
+
+    /**
      * Called when this status is applied to a target.
      * Handles stacking, caps, overflow, resets.
      */
@@ -237,6 +256,8 @@ export const BURN_CONFIG: BurnMechanicConfig = {
 
 class BurnBehavior extends StatusBehavior {
     readonly type = 'Burn' as const;
+    /** TICKET 126: burns on the way IN, so a burning unit can die before it acts. */
+    readonly ticksAt = 'OWNER_TURN_START' as const;
 
     onApply(currentEffects: StatusEffectInstance[], incomingStacks: number, target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
         const cfg = BURN_CONFIG;
@@ -323,6 +344,8 @@ class BurnBehavior extends StatusBehavior {
 
 class PoisonBehavior extends StatusBehavior {
     readonly type = 'Poison' as const;
+    /** TICKET 126: ticks on the way IN - Henry's "died at the end of our turn" case. */
+    readonly ticksAt = 'OWNER_TURN_START' as const;
 
     onApply(currentEffects: StatusEffectInstance[], finalStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
         const effects = [...currentEffects];
@@ -461,6 +484,8 @@ class StunnedBehavior extends StatusBehavior {
 
 class RegenBehavior extends StatusBehavior {
     readonly type = 'Regen' as const;
+    /** TICKET 126: heals on the way IN, so it covers the damage you just took. */
+    readonly ticksAt = 'OWNER_TURN_START' as const;
 
     onApply(currentEffects: StatusEffectInstance[], incomingStacks: number, _target: IBattleEntity, _source?: IBattleEntity, _power?: number): ApplyResult {
         const effects = [...currentEffects];

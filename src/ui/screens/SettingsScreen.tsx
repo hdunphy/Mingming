@@ -15,6 +15,7 @@ import {
     type MotionChoice,
 } from '../settings/settings';
 import { wipeSave } from '../settings/wipeSave';
+import { canQuit, quitGame } from '../settings/quitGame';
 import {
     RUN_LOG_RUNS,
     exportRunLogs,
@@ -67,6 +68,16 @@ export default function SettingsScreen(): ReactNode {
     const [settings, setSettings] = useState<ISettings>(() => loadSettings());
     const [wipeArmed, setWipeArmed] = useState(false);
     const [wiped, setWiped] = useState(false);
+    /*
+     * THE 2026-08-30 PLAYTEST: *"Only way to exit is the window X button."*
+     *
+     * Read once, at mount, like `logsDir` above and for the same reason — whether this build can
+     * quit is a property of the build, not a thing that changes while an overlay is open. The
+     * button is ABSENT in the web build rather than disabled: see `settings/quitGame.ts`, and the
+     * "Not here yet" section below, which exists because ticket 36 would not ship dead controls.
+     */
+    const [quitAvailable] = useState(() => canQuit());
+    const [quitArmed, setQuitArmed] = useState(false);
     // Ticket 59. Read once on mount: the count only changes when a run ends, which cannot happen
     // while this overlay is up.
     const [runLogCount] = useState(() => storedRunLogCount());
@@ -282,6 +293,64 @@ export default function SettingsScreen(): ReactNode {
                     </p>
                 </section>
 
+                {quitAvailable && (
+                    <section className="settings-group">
+                        <h3>Quit</h3>
+                        <div className="settings-row">
+                            <span className="settings-label">Leave the game</span>
+                            <div className="settings-control">
+                                {quitArmed ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="settings-button"
+                                            onClick={() => {
+                                                playSfx('uiClick');
+                                                quitGame();
+                                            }}
+                                        >
+                                            Quit now
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="settings-choice"
+                                            onClick={() => {
+                                                playSfx('uiClick');
+                                                setQuitArmed(false);
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="settings-button"
+                                        onClick={() => {
+                                            playSfx('uiClick');
+                                            setQuitArmed(true);
+                                        }}
+                                    >
+                                        Quit game
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <p className="settings-note">
+                            {/*
+                              * The two steps are about a stray click on a screen you opened to
+                              * change the volume — not about your progress, which is the point of
+                              * the second sentence. It is true: `store.subscribe` writes the ranch
+                              * and the run on every change, so quitting mid-fight costs the fight
+                              * and nothing else.
+                              */}
+                            Closes the game. Your ranch and any run in progress are already saved —
+                            the game writes them as they change, not on the way out, so a run you
+                            leave here is waiting where you left it.
+                        </p>
+                    </section>
+                )}
+
                 <section className="settings-group settings-danger">
                     <h3>Save</h3>
                     {wiped ? (
@@ -343,8 +412,9 @@ export default function SettingsScreen(): ReactNode {
                     <h3>Not here yet</h3>
                     <ul className="settings-pending">
                         <li>
-                            <strong>Fullscreen and resolution</strong> — the game has no windowing control
-                            of its own yet; your browser or the desktop build owns it until that lands.
+                            <strong>Fullscreen and resolution</strong> — F11 toggles fullscreen in the
+                            desktop build and quitting lives above; the rest of windowing is still your
+                            browser's or the OS's until that lands.
                         </li>
                         <li>
                             <strong>Colourblind-safe element colours</strong> — the eight element colours

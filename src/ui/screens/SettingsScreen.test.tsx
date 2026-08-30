@@ -77,6 +77,14 @@ describe('SettingsScreen', () => {
         expect(markup).not.toContain('Confirm — this cannot be undone');
     });
 
+    it('offers no quit control in a build that cannot quit', () => {
+        // The 2026-08-30 fix adds a QUIT section — to the DESKTOP build only. These tests render
+        // with no `window.mingmingDesktop`, which is the web build, and a quit button there would
+        // be the one thing this screen's own "Not here yet" section exists to avoid: a control that
+        // takes a click and does nothing. `quitGame.test.ts` owns the other half.
+        expect(render()).not.toContain('Quit game');
+    });
+
     it('names what it does not do yet instead of showing dead controls', () => {
         // Fullscreen/resolution (37), the colourblind palette (38) and remapping are all listed as
         // absent. A disabled control the player cannot use is indistinguishable from a bug.

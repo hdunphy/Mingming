@@ -233,6 +233,36 @@
 .rs-desc { font-size: 10px; color: #aeb9c6; line-height: 1.35; flex: 1; overflow: hidden; }
 .rs-tags { font-size: 8.5px; color: #7d8ea1; letter-spacing: 0.5px; min-height: 11px; }
 
+/*
+ * The element, said out loud (2026-08-30 playtest). `--el` alone could not carry it: four of the
+ * nine hues in `runShell.ts` are blues. Both forms tint themselves with the same custom property
+ * they are backing up, so the colour still does its work for anyone reading it - the word is what
+ * settles it when the colour is ambiguous, which on Water/Air/Ice/None is always.
+ *
+ * `.rs-elw` rides INSIDE the existing `.rs-tags` line and `.rs-elc` inside the row's flex, so
+ * neither costs the tile a pixel of description.
+ */
+.rs-elw {
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--el);
+    text-shadow: 0 0 6px currentColor;
+}
+/*
+ * The separator belongs to the TAG, not to the element word: a tag is rendered only when there is
+ * one, so a card with no tag cannot end up with a dangling middot. (`:only-child` could not do this
+ * job - a bare text node is not a child element, so it would have read "WATERoff-pool".)
+ */
+.rs-tg::before { content: ' · '; color: #55606d; font-weight: 400; }
+
+.rs-elc {
+    flex: none;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--el);
+}
+
 .rs-nbadge {
     position: absolute; bottom: -10px; right: -8px;
     background: #ffd479; color: #0c0e12;

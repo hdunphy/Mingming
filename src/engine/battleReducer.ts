@@ -459,8 +459,24 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     // argument was not passed.
                     if (action.conditionals) {
                         let allMet = true;
+                        // `TARGET` on a conditional means THE CARD'S target, not the target of the
+                        // action the conditional is written on. pressure_point is the case that
+                        // found it: "22 power. If Dazed, draw 1" is a DRAW action whose own target
+                        // is SELF, so `currentTarget` was the CASTER and the rider read the
+                        // caster's statuses - it never fired on a Dazed enemy and fired every time
+                        // on a Dazed caster. Both halves of that are wrong and it was silent.
+                        //
+                        // Per-hit `currentTarget` still wins wherever the action has a target of
+                        // its own, which is what keeps an AoE rider ("burn each target that is
+                        // already Burning") checking each victim rather than the first one.
+                        const cardTarget = finalState.playerParty.find(e => e.id === targetId)
+                            ?? finalState.enemyParty.find(e => e.id === targetId);
+                        const conditionSubject = (action.target === 'SELF' || action.target === 'Self'
+                            || action.type === 'DISCARD')
+                            ? (cardTarget ?? currentTarget)
+                            : currentTarget;
                         for (const constraint of action.conditionals) {
-                            const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
+                            const subject = constraint.target === 'SELF' ? sourceEntity : conditionSubject;
                             if (!validateSingleConstraint(constraint, sourceEntity, subject, 0, finalState)) {
                                 allMet = false;
                                 break;
@@ -887,8 +903,18 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 // Action-level Conditionals (see the ticket-68 note on the sibling path above)
                 if (action.conditionals) {
                     let allMet = true;
+                    // The same rule as the player path above: a conditional on a SELF-targeted
+                    // action asks about the unit the INTENT is aimed at, not about the caster.
+                    // An intent has no declared card target, so the aim is recovered the way the
+                    // intent's own attacks pick one - the lowest-HP living player.
+                    const intentTarget = [...finalState.playerParty]
+                        .filter(e => e.currentHp > 0)
+                        .sort((a, b) => a.currentHp - b.currentHp || a.id.localeCompare(b.id))[0];
+                    const conditionSubject = (action.target === 'SELF' || action.target === 'Self')
+                        ? (intentTarget ?? currentTarget)
+                        : currentTarget;
                     for (const constraint of action.conditionals) {
-                        const subject = constraint.target === 'SELF' ? sourceEntity : currentTarget;
+                        const subject = constraint.target === 'SELF' ? sourceEntity : conditionSubject;
                         if (!validateSingleConstraint(constraint, sourceEntity, subject, 0, finalState)) {
                             allMet = false;
                             break;
@@ -970,6 +996,138 @@ function handleEndTurn(state: IBattleState): IBattleState {
 
 import { getStatusBehavior } from './StatusBehaviors';
 
+/** TICKET 126: what one pass of per-turn status ticks did, for the caller to fold into state. */
+interface StatusTickResult {
+    party: IBattleEntity[];
+    logs: string[];
+    defeated: string[];
+    removed: { targetId: string; status: StatusType }[];
+    crossings: string[];
+}
+
+/**
+ * Run every status whose `ticksAt` matches `timing` for one party.
+ *
+ * Extracted from the end-of-turn block so the start-of-turn pass gets the SAME treatment rather
+ * than a simplified copy. A simplified copy was the first design and it was wrong: Burn and Poison
+ * tick at the start now and they can KILL, so the pass needs defeat detection, HP-threshold
+ * crossings and the DoT damage hook exactly as much as the end-of-turn one does.
+ *
+ * A status whose timing does not match is carried through UNTOUCHED - pushed to `newEffects`, not
+ * skipped, because skipping drops it from the rebuilt list and silently deletes the status.
+ *
+ * `clearTempHp` belongs to the end of a turn only: a shield expiring is a turn-end concern, and
+ * zeroing it on the way INTO a turn would delete a shield before its owner ever acted behind it.
+ */
+function tickStatuses(
+    state: IBattleState,
+    party: readonly IBattleEntity[],
+    timing: 'OWNER_TURN_END' | 'OWNER_TURN_START',
+    clearTempHp: boolean,
+): StatusTickResult {
+    const logs: string[] = [];
+    const defeated: string[] = [];
+    const removed: { targetId: string; status: StatusType }[] = [];
+    const crossings: string[] = [];
+
+    const partyAfter = party.map((entity: IBattleEntity) => {
+        let currentHp = entity.currentHp;
+        let defense = entity.defense;
+        const newEffects: StatusEffectInstance[] = [];
+
+        if (currentHp <= 0) return entity;
+
+        for (const effect of entity.statusEffects) {
+            const behavior = getStatusBehavior(effect.type);
+            if (behavior.ticksAt !== timing) { newEffects.push(effect); continue; }
+
+            const result = behavior.endTurn(effect, entity);
+            let damage = result.damage;
+
+            if (damage > 0) {
+                const { damage: finalDamage } = executeStatusDamageCalculated(state, entity, damage, effect.type);
+                damage = finalDamage;
+            }
+
+            if (damage > 0) {
+                currentHp = Math.max(0, currentHp - damage);
+                // Only record the defeat once, even if a second DoT ticks on the already-dead unit.
+                if (currentHp <= 0 && !defeated.includes(entity.id)) defeated.push(entity.id);
+                logs.push(`  \u2192 ${entity.name} takes ${damage} damage from ${effect.type}`);
+                globalBattleEventBus.emit({
+                    type: 'DAMAGE_TAKEN', targetId: entity.id, amount: damage,
+                    element: effect.type === 'Burn' ? 'Fire' : 'None', timestamp: Date.now(),
+                });
+            }
+
+            if (result.healing && result.healing > 0) {
+                currentHp = Math.min(entity.maxHp, currentHp + result.healing);
+                globalBattleEventBus.emit({
+                    type: 'HEAL', targetId: entity.id, amount: result.healing, timestamp: Date.now(),
+                });
+            }
+
+            // TICKET 109: the one site where DoT/HoT has an unambiguous cause.
+            recordDotTick(effect.type, result.damage ?? 0, result.healing ?? 0);
+
+            if (result.defenseShred > 0) defense = Math.max(0, defense - result.defenseShred);
+
+            if (result.updatedInstance) {
+                newEffects.push(result.updatedInstance);
+            } else {
+                globalBattleEventBus.emit({
+                    type: 'STATUS_REMOVED', targetId: entity.id, status: effect.type, timestamp: Date.now(),
+                });
+                removed.push({ targetId: entity.id, status: effect.type });
+
+                // Hard CC recovery -> 1 turn of StableOS immunity.
+                if (effect.type === 'Asleep' || effect.type === 'Stunned') {
+                    const stableBehavior = getStatusBehavior('StableOS');
+                    const stableApply = stableBehavior.onApply(newEffects, 1, entity);
+                    newEffects.push(...stableApply.updatedEffects.filter(s => s.type === 'StableOS'));
+                    logs.push(`  \ud83d\udee1\ufe0f ${entity.name} gained CC Immunity (StableOS)`);
+                }
+            }
+
+            logs.push(...result.logs);
+        }
+
+        // Threshold event (ticket 12): DoT ticks bypass handleAttack, so record the crossing here.
+        if (crossedDownHalf(entity.currentHp, currentHp, entity.maxHp)) crossings.push(entity.id);
+
+        return clearTempHp
+            ? { ...entity, currentHp, defense, statusEffects: newEffects, tempHp: 0 }
+            : { ...entity, currentHp, defense, statusEffects: newEffects };
+    });
+
+    return { party: partyAfter, logs, defeated, removed, crossings };
+}
+
+/** Fold a tick's crossings, status removals and deaths into state. Shared by both timings. */
+function applyStatusTickAftermath(state: IBattleState, tick: StatusTickResult): IBattleState {
+    let next = state;
+
+    for (const crossedId of tick.crossings) next = fireHpThresholdCrossed(next, crossedId);
+
+    for (const item of tick.removed) {
+        const target = next.playerParty.find(e => e.id === item.targetId)
+            ?? next.enemyParty.find(e => e.id === item.targetId);
+        if (!target) continue;
+        const context: HookContext = { target, statusApplied: item.status, state: next, triggerDepth: 0 };
+        const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
+        next = afterHook;
+    }
+
+    for (const dId of tick.defeated) {
+        next = checkDefeat(next, dId);
+        const name = next.playerParty.find(e => e.id === dId)?.name
+            ?? next.enemyParty.find(e => e.id === dId)?.name;
+        next = addLog(next, `  \u2620\ufe0f ${name} DEFEATED BY STATUS`);
+    }
+
+    return next;
+}
+
 function processPostTurn(state: IBattleState): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'POST_TURN', timestamp: Date.now() });
 
@@ -986,112 +1144,16 @@ function processPostTurn(state: IBattleState): IBattleState {
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     const activeParty = state[activePartyKey];
 
-    // Process each entity's status effects via behavior.endTurn()
-    const statusLogs: string[] = [];
-    const defeatedThisTurn: string[] = [];
-    // `status` is a StatusType, not a bare string: every push below is a
-    // `StatusEffectInstance['type']`, and HookContext.statusApplied — which is what this
-    // queue feeds at the onStatusRemoved dispatch — is typed StatusType.
-    const removedStatusQueue: { targetId: string, status: StatusType }[] = [];
-    const hpCrossingsThisTick: string[] = [];
-
-    const processedActiveParty = activeParty.map((entity: IBattleEntity) => {
-        let currentHp = entity.currentHp;
-        let defense = entity.defense;
-        const newEffects: StatusEffectInstance[] = [];
-
-        if (currentHp <= 0) return entity;
-
-        for (const effect of entity.statusEffects) {
-            const behavior = getStatusBehavior(effect.type);
-            const result = behavior.endTurn(effect, entity);
-
-            let damage = result.damage;
-
-            // Apply scaling hooks (e.g., Thermal Overload boosting Burn damage).
-            //
-            // Ticket 55 removed a hand-built `HookContext` here that nothing read:
-            // `executeStatusDamageCalculated` builds its own, so the local was scaffolding left
-            // behind when this call replaced a direct hook invocation.
-            if (damage > 0) {
-                const { state: _, damage: finalDamage } = executeStatusDamageCalculated(state, entity, damage, effect.type);
-                damage = finalDamage;
-            }
-
-            // Apply damage
-            if (damage > 0) {
-                currentHp = Math.max(0, currentHp - damage);
-
-                // Only record the defeat once, even if a second DoT (e.g. Burn +
-                // Poison) ticks on the already-dead entity in the same end-turn.
-                if (currentHp <= 0 && !defeatedThisTurn.includes(entity.id)) {
-                    defeatedThisTurn.push(entity.id);
-                }
-
-                statusLogs.push(`  → ${entity.name} takes ${damage} damage from ${effect.type}`);
-
-                globalBattleEventBus.emit({
-                    type: 'DAMAGE_TAKEN',
-                    targetId: entity.id,
-                    amount: damage,
-                    element: effect.type === 'Burn' ? 'Fire' : 'None',
-                    timestamp: Date.now()
-                });
-            }
-
-            // Apply healing
-            if (result.healing && result.healing > 0) {
-                currentHp = Math.min(entity.maxHp, currentHp + result.healing);
-                globalBattleEventBus.emit({
-                    type: 'HEAL',
-                    targetId: entity.id,
-                    amount: result.healing,
-                    timestamp: Date.now()
-                });
-            }
-
-            // TICKET 109: the one site where DoT/HoT has an unambiguous cause - this loop is per
-            // status effect. Gated and 0-AI-SIM-COUNTS-guarded inside the recorder.
-            recordDotTick(effect.type, result.damage ?? 0, result.healing ?? 0);
-
-            // Apply defense shred
-            if (result.defenseShred > 0) {
-                defense = Math.max(0, defense - result.defenseShred);
-            }
-
-            // Keep or remove
-            if (result.updatedInstance) {
-                newEffects.push(result.updatedInstance);
-            } else {
-                globalBattleEventBus.emit({
-                    type: 'STATUS_REMOVED',
-                    targetId: entity.id,
-                    status: effect.type,
-                    timestamp: Date.now()
-                });
-                removedStatusQueue.push({ targetId: entity.id, status: effect.type });
-
-                // Hard CC Recovery Logic -> 1 turn StableOS Immunity
-                if (effect.type === 'Asleep' || effect.type === 'Stunned') {
-                    const stableBehavior = getStatusBehavior('StableOS');
-                    const stableApply = stableBehavior.onApply(newEffects, 1, entity);
-                    newEffects.push(...stableApply.updatedEffects.filter(s => s.type === 'StableOS'));
-                    statusLogs.push(`  🛡️ ${entity.name} gained CC Immunity (StableOS)`);
-                }
-            }
-
-            // Collect logs
-            statusLogs.push(...result.logs);
-        }
-
-        // Threshold event (ticket 12): DoT ticks bypass handleAttack, so record
-        // the crossing here (fired below, once the processed party is in state).
-        if (crossedDownHalf(entity.currentHp, currentHp, entity.maxHp)) {
-            hpCrossingsThisTick.push(entity.id);
-        }
-
-        return { ...entity, currentHp, defense, statusEffects: newEffects, tempHp: 0 };
-    });
+    // TICKET 126: the per-entity tick is `tickStatuses`, shared by BOTH timings.
+    //
+    // Burn, Poison and Regen tick at the START of their owner's turn (StatusBehavior.ticksAt).
+    // That pass needs everything this one does - DoT damage through executeStatusDamageCalculated,
+    // defeat detection, HP-threshold crossings, StableOS on CC removal, STATUS_REMOVED queueing -
+    // because a Burn tick can now kill. The body is extracted rather than copied so there is one
+    // implementation, not two to keep in step.
+    const endTick = tickStatuses(state, activeParty, 'OWNER_TURN_END', true);
+    const statusLogs = endTick.logs;
+    const processedActiveParty = endTick.party;
 
     // 2. Discard Hand
     const newDeckState = discardHand(state[activeDeckKey]);
@@ -1122,32 +1184,8 @@ function processPostTurn(state: IBattleState): IBattleState {
         cardsDiscardedThisTurn: 0
     };
 
-    // 2.4 Fire threshold crossings from DoT ticks (ticket 12)
-    for (const crossedId of hpCrossingsThisTick) {
-        nextState = fireHpThresholdCrossed(nextState, crossedId);
-    }
-
-    // 2.5 Dispatch onStatusRemoved Hooks
-    for (const item of removedStatusQueue) {
-        const afterTurnTarget = nextState.playerParty.find(e => e.id === item.targetId) || nextState.enemyParty.find(e => e.id === item.targetId);
-        if (afterTurnTarget) {
-            const context: HookContext = {
-                target: afterTurnTarget,
-                statusApplied: item.status,
-                state: nextState,
-                triggerDepth: 0
-            };
-            const { state: afterHook } = executeResolutionStack('onStatusRemoved', context);
-            nextState = afterHook;
-        }
-    }
-
-    // Award XP for status effect deaths
-    for (const dId of defeatedThisTurn) {
-        nextState = checkDefeat(nextState, dId);
-        const name = nextState.playerParty.find(e => e.id === dId)?.name || nextState.enemyParty.find(e => e.id === dId)?.name;
-        nextState = addLog(nextState, `  ☠️ ${name} DEFEATED BY STATUS`);
-    }
+    // 2.4-2.6 crossings, onStatusRemoved and status deaths - shared with the start-of-turn tick.
+    nextState = applyStatusTickAftermath(nextState, endTick);
 
     // 3. Trigger onTurnEnd Hooks (ONLY for the side whose turn just ended)
     const candidates = [...nextState[activePartyKey]].filter(e => e.currentHp > 0);
@@ -1206,6 +1244,22 @@ function processPreTurn(state: IBattleState): IBattleState {
         activeSide: nextSide,
         [activePartyKey]: refreshedParty
     };
+
+    // TICKET 126: Burn, Poison and Regen tick HERE - at the start of their owner's turn.
+    // Henry, ticket-118 playtest: a fresh Regen "triggered for no gain", and "it felt bad for
+    // huldra to apply a huge stack of poison only for sleipnir to finish off one of our allies and
+    // then die at the end of our turn". Both are the same timing. On the way in, Regen covers the
+    // damage you just took and a poisoned unit dies BEFORE it acts - a real buff to DoT, not a
+    // reordering.
+    //
+    // After the energy refill, so a unit that dies here is already excluded from the draw below
+    // (which counts aliveUnits); before the onTurnStart hooks, so firmware sees the post-tick board.
+    const startTick = tickStatuses(nextState, refreshedParty, 'OWNER_TURN_START', false);
+    if (startTick.logs.length > 0 || startTick.defeated.length > 0) {
+        nextState = { ...nextState, [activePartyKey]: startTick.party };
+        for (const log of startTick.logs) nextState = addLog(nextState, log);
+        nextState = applyStatusTickAftermath(nextState, startTick);
+    }
 
     // Execute onTurnStart hooks
     const currentParty = nextState[activePartyKey];
