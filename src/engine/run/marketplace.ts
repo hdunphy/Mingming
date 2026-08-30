@@ -235,6 +235,21 @@ export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = [
     'squirrel_away',
     // Daemon: gain 1 Sharp. A permanent, and the only neutral one.
     'harden_daemon',
+    /*
+     * TICKET 69's TIDEWRACK ENTRIES, printed 2026-08-30 (Henry: *"riptide and short circuit need to
+     * be added"*). Ruled in that ticket as direction; the numbers below are the printing.
+     *
+     * Both answer the same thing — Tidewrack converts its own card flow into damage TWICE within a
+     * turn (`ink_stream` x4 at 33 power per triggered draw, `serpents_coil` x2 at 10 per card
+     * played) — and mitigation cannot: Sharp and Weakened are worth 1 power a stack against hits
+     * printed at 33-105. The lever is the flow itself, so these tax the flow.
+     *
+     * They are deliberately NOT redundant. `riptide` taxes BREADTH (how many cards a turn) and
+     * `short_circuit` taxes DEPTH (how much of that is engine rather than the natural draw), which
+     * is why a zoo pays both and an ordinary enemy pays almost nothing.
+     */
+    'riptide',
+    'short_circuit',
 ];
 
 /**

@@ -114,6 +114,7 @@ import { DEFAULT_MAX_TURNS, aggregate, runBatch, type RunResult } from './runBat
 import { ElementalMatrix } from '../../engine/combatUtils';
 import type { Element } from '../../engine/types';
 import type { AiTier } from '../../engine/ai/TacticalAI';
+import type { HandbuiltParty } from './handbuiltParties';
 
 // ---------------------------------------------------------------------------------------------
 // The ruled targets
@@ -853,6 +854,18 @@ export function sampleFight(
      * Emberfall beatable", unpinned answers "did the gauntlet band move".
      */
     gymId?: string,
+    /**
+     * A party and deck somebody DESIGNED, in place of the arm's generated lineup.
+     *
+     * Substitutes the lineup, the party instances and the deck — and nothing else. The offer, run
+     * seed, region graph, node, encounter roll, boss, Driver, IVs and AI tier are all still built by
+     * the code below from the same seed stride, so a hand-built number is directly comparable to the
+     * `favourable` and `control` numbers at the same cell and gym.
+     *
+     * `matchup` is ignored when this is set — the lineup is given rather than chosen — but
+     * `targetElement` is still reported, because it is a property of the gym rather than of the arm.
+     */
+    handbuilt?: HandbuiltParty,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -873,11 +886,17 @@ export function sampleFight(
         : offers[index % offers.length];
     const target = targetElementFor(cell, offer.gym, offer.biomes);
 
-    const lineup = lineupAgainst(index, cell.partySize, target, matchup);
+    const lineup = handbuilt ? [...handbuilt.lineup] : lineupAgainst(index, cell.partySize, target, matchup);
     const party = partyFor(lineup);
 
     const created = createRun({ seed, offer, party, startedAt: 0 });
-    const deck = deckFor(created, party);
+    /*
+     * `deckFor` cross-checks against `createRun`'s own deal and throws on any mismatch, which is
+     * right for a generated arm and wrong for a hand-built one: the whole point of a hand-built deck
+     * is that it is NOT the start deck. Taken verbatim instead, and the length is deliberately not
+     * validated — a designed deck is 26 cards where the start deal is 18.
+     */
+    const deck = handbuilt ? [...handbuilt.deck] : deckFor(created, party);
 
     // Not the opening fight — see `fightsResolvedAt`. Written as a spread rather than mutated
     // because `IRunState` is deeply readonly, which is right for every consumer but this one.
@@ -1024,6 +1043,8 @@ export interface MeasureOptions {
      * `sampleFight`'s `gymId` for why the two are different populations.
      */
     readonly gymId?: string;
+    /** A designed party and deck in place of the arm's generated one — see `HandbuiltParty`. */
+    readonly handbuilt?: HandbuiltParty;
 }
 
 /**

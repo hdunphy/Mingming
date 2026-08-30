@@ -114,6 +114,7 @@ import { appendFileSync, writeFileSync } from 'node:fs';
 import { computeRegistryHash } from '../scenarios/registryHash';
 import { AI_TIER } from '../../engine/ai/TacticalAI';
 import { DEFAULT_MAX_TURNS } from './runBatch';
+import { HANDBUILT_PARTIES, handbuiltParty, type HandbuiltParty } from './handbuiltParties';
 import {
     CELLS,
     RUN_GATE_TARGETS,
@@ -194,6 +195,14 @@ interface Args {
     gymId?: string;
     /** `--out <file>`: tee every reported line into this file as it is produced. See `say`. */
     out?: string;
+    /**
+     * `--handbuilt <id>`: measure a DESIGNED party and deck instead of a generated lineup.
+     *
+     * The generated arms can only field all-v1 or all-v2 teams holding the 18-card start deck, so
+     * they measure type preparation and nothing else. This measures the other thing. See
+     * `handbuiltParties.ts`.
+     */
+    handbuilt?: HandbuiltParty;
 }
 
 /** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
@@ -218,6 +227,18 @@ function parseBossIvs(raw: string | undefined): BossOverride['ivs'] {
  * carries `define: { 'process.env': {} }`, so under `vite-node` every `process.env` read in the
  * module graph is substituted to `{}` before the script ever starts. `process.argv` is untouched.
  */
+/** Resolve `--handbuilt <id>`, failing LOUDLY on a typo rather than silently measuring the arm. */
+function resolveHandbuilt(id: string | undefined): HandbuiltParty | undefined {
+    if (id === undefined) return undefined;
+    const found = handbuiltParty(id);
+    if (found === undefined) {
+        throw new Error(
+            `[run-gate] Unknown --handbuilt party "${id}". Known: ${Object.keys(HANDBUILT_PARTIES).join(', ')}`,
+        );
+    }
+    return found;
+}
+
 function parseArgs(argv: string[]): Args {
     const get = (flag: string): string | undefined => {
         const i = argv.indexOf(flag);
@@ -237,6 +258,7 @@ function parseArgs(argv: string[]): Args {
         matchup: (get('--matchup') as MatchupMode | undefined) ?? 'blind',
         gymId: get('--gym'),
         out: get('--out'),
+        handbuilt: resolveHandbuilt(get('--handbuilt')),
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
             relics: get('--boss-relics') === 'off' ? 'off' : undefined,
@@ -400,6 +422,7 @@ async function main(): Promise<void> {
             matchup: args.matchup,
             gymId: args.gymId,
             bossOverride: args.bossOverride,
+            handbuilt: args.handbuilt,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
@@ -418,6 +441,10 @@ async function main(): Promise<void> {
     // Ticket 68: a pinned arm is a different POPULATION from an unpinned one, so the header has to
     // say so — the whole value of these numbers is that they can be pasted somewhere and still mean
     // what they meant.
+    if (args.handbuilt) {
+        say(`  HAND-BUILT PARTY "${args.handbuilt.id}" — ${args.handbuilt.label}`);
+        say(`  ${args.handbuilt.lineup.join(' + ')}   (${args.handbuilt.deck.length} cards)`);
+    }
     say(args.gymId
         ? `  PINNED to ${args.gymId} — not comparable to an unpinned number (ticket 68)`
         : '  all three leaders, evenly (unpinned)');
