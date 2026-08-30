@@ -171,6 +171,27 @@ ipcMain.on('mingming:paths', (event) => {
     event.returnValue = { userData: app.getPath('userData'), saves: savesDir(), runLogs: runLogsDir() };
 });
 
+/*
+ * QUIT — the 2026-08-30 playtest. Henry: *"Only way to exit is the window X button."*
+ *
+ * It was: `autoHideMenuBar` hides the Electron menu that would otherwise carry File > Quit, and the
+ * renderer had no way to ask. So the game had no exit of its own, which is the one control every
+ * fullscreen game is expected to have — and on a Steam Deck, where F11 fullscreen is the normal way
+ * to play, "close the window" is not a gesture the player has.
+ *
+ * `on` rather than a `handle`/`sendSync` pair like the save bridge above: there is no answer to
+ * wait for. The renderer is not asking whether it may quit — the save is already on disk (every
+ * `runSlice`/`gameSlice` change writes through `store.subscribe`), so there is nothing left to
+ * flush and nothing this could usefully report back to a window that is about to stop existing.
+ *
+ * `app.quit()` rather than `win.close()`: closing the last window already quits (see
+ * `window-all-closed`), but going through `app.quit()` means the same path runs whether the player
+ * clicks this or the X, instead of two exits that could drift.
+ */
+ipcMain.on('mingming:quit', () => {
+    app.quit();
+});
+
 ipcMain.on('mingming:reveal-run-logs', (event) => {
     ensureDir(runLogsDir());
     shell.openPath(runLogsDir());

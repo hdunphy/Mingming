@@ -35,6 +35,16 @@ export interface IDesktopBridge {
     writeRunLog(fileName: string, contents: string): { ok: boolean; path?: string; error?: string };
     paths(): { userData: string; saves: string; runLogs: string };
     revealRunLogs(): { ok: boolean };
+    /**
+     * Quit the app (2026-08-30 playtest — the game had no exit of its own).
+     *
+     * OPTIONAL, and it is the only optional member here for a reason worth keeping: a packaged
+     * build ships its own `preload.cjs`, so a player running yesterday's desktop app against
+     * today's renderer has a bridge without this function. `?.()` at the call site degrades to
+     * "no quit button", which is exactly the state that build was already in — where a required
+     * member would make the whole bridge fail its own type and take the SAVES down with it.
+     */
+    quit?(): void;
 }
 
 /** The bridge, or undefined in the browser. The one test for "are we in the desktop build?". */
