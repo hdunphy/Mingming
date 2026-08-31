@@ -49,7 +49,8 @@ import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
-import { useBattleVfx } from '../hooks/useBattleVfx';
+import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
+import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import AudioControls from './AudioControls';
@@ -458,7 +459,20 @@ const BattleArena: React.FC = () => {
             // UI is still locked for the duration - the freeze now lands *during* the banner/beat
             // rather than after it. Un-freezing it needs the search off-thread (ticket 39 asks for
             // a Web Worker); this change only stops us paying for the same wait twice.
-            const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : 600;
+            // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL.
+            //
+            // Henry: *"show the cards that get played, animate them to show center screen ... That
+            // animation can eat up the time as well."* So the between-actions beat is no longer a
+            // blind 600ms - it is `PLAYED_CARD_REVEAL_MS` with the previous card on screen, and the
+            // search runs after it. Wall-clock is about what it was; the time now carries the
+            // information the player was having to dig out of the combat log.
+            //
+            // It has to be a REAL hold rather than something the search overlaps, and that is the
+            // one place this file cannot pretend: `getBestAction` is synchronous on the main thread,
+            // so a reveal animating "during" the search would simply freeze. Until the search moves
+            // off-thread (steam-release ticket 39) the honest choice is a short un-frozen window in
+            // which the reveal actually plays, and then the think.
+            const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : PLAYED_CARD_REVEAL_MS;
             const DEBOUNCE_MS = 50;
 
             await new Promise(r => setTimeout(r, DEBOUNCE_MS));
@@ -1168,6 +1182,13 @@ const BattleArena: React.FC = () => {
                     onEntityPointerUp={handleEntityPointerUp}
                     onEnemyHoverChange={setHoveredEntityId}
                 />
+
+                {/*
+                  * TICKET 127: the card that just resolved, held at centre stage. Inside
+                  * `stage-area` (which is `position: relative`) so it centres on the board rather
+                  * than the viewport, and rendered after `BattleStage` so it sits over the sprites.
+                  */}
+                <PlayedCardReveal played={vfx.playedCard} />
 
                 {renderParty(battleState.playerParty, false)}
 

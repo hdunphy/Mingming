@@ -654,7 +654,56 @@ export function censusNewDecision(): void { census.decisions++; }
  * is never beamed - that is the layer producing the candidate list `getBestAction` ranks, and
  * truncating it would hide legal plays from the decision entirely.
  */
-const BEAM = Number(env.AI_BEAM ?? 0);
+/**
+ * TICKET 127 - THE BEAM IS ON IN THE GAME AND OFF IN A HARNESS, AND THAT IS THE WHOLE RULE.
+ *
+ * It shipped as `Number(env.AI_BEAM ?? 0)`: off by default, opt-in per run. Correct for the work it
+ * was built for and **unreachable by the only build a player runs.** `vite.config.ts` substitutes
+ * `define: { 'process.env': {} }` into the app bundle and `globalThis.process` does not exist in a
+ * browser at all, so `env` is `{}` there, so `BEAM` was 0 in the game with no way to change it. A
+ * measured 2.3x sat in the codebase that the product could not touch.
+ *
+ * Flipping the default to 8 outright is the wrong fix and it is the failure family this project
+ * keeps paying for: every balance instrument in `scratch/` and every suite in `src/debug/` would
+ * silently start measuring a beamed search, and ticket 108's standing rule is *"confirm anything you
+ * intend to act on at full, BEAMLESS"*. A default that quietly beams a ship gate is worse than no
+ * beam at all.
+ *
+ * So the default is keyed on the thing that actually distinguishes the two callers: **a harness runs
+ * under Node and the game does not.** `globalThis.process` is present in vite-node, vitest and every
+ * `scratch/` lane, and absent in the browser and in the Electron renderer (which is a browser - the
+ * desktop build differs only in `base`). So:
+ *
+ *   - **browser: beam 8.** The player gets the 2.3x.
+ *   - **Node: beam 0.** Every measurement keeps the beamless search it was calibrated against,
+ *     unless it asks for the beam by name.
+ *   - **`AI_BEAM=<n>` overrides either way**, which is how the harness opts in and how a browser
+ *     build could opt out if it ever needed to.
+ *
+ * GATED, TWICE, ON THE CURRENT CARD POOL - ticket 127, `research/ai-decision-cost.md`. The original
+ * 90-cell 1v1 identity gate was stale (tickets 115/123/124/126 all changed the pool) so it was
+ * re-run: **0 of 90 cells moved**, with `scratch/beamgate.ts` asserting the beam actually loaded
+ * rather than trusting that it did. `scratch/beamgate3v3.ts` covers the case the original work
+ * explicitly left open - the beam is an APPROXIMATION at 3v3, and 3v3 is what the game ships.
+ */
+/** The width the beam runs at in the game. Sized in `3v3-optimisation.md`: 6 is the boundary, 8 keeps headroom. */
+export const GAME_BEAM_WIDTH = 8;
+
+/**
+ * The rule above, as a pure function, so both branches are testable.
+ *
+ * A test cannot reach the browser branch by running in a browser - vitest is Node, and jsdom does
+ * not remove `process` - so the decision is separated from the detection. `resolveBeam` is the rule;
+ * the two arguments below it are the only facts it needs.
+ */
+export function resolveBeam(hasNodeProcess: boolean, override: string | undefined): number {
+    if (override !== undefined) return Number(override);
+    return hasNodeProcess ? 0 : GAME_BEAM_WIDTH;
+}
+
+// A bare `globalThis.process` is safe to name: the define matches the token pair `process.env`, not
+// `process` alone - which is exactly why the `env` reader above reaches the bag by a computed key.
+const BEAM = resolveBeam((globalThis as unknown as Record<string, unknown>).process !== undefined, env.AI_BEAM);
 
 /**
  * The PROCESS-WIDE default tier, for a harness that wants to record it beside its numbers.

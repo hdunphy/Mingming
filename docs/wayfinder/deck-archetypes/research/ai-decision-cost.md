@@ -192,3 +192,144 @@ It is **not** exact: the lookahead re-ranks candidates at every decision, so rep
 skips that re-rank. It would need the same 90-cell gate. I have not measured it and I am not
 proposing it yet — recording it because it is the largest remaining lever and it is invisible unless
 you notice the search throws away most of what it computed.
+
+---
+
+# Part two: the beam is on, and the wait now shows you the card
+
+Added 2026-08-31 after Henry's ruling: *"That would be great. We should also show the cards that get
+played, animate them to show center screen so the player knows what was played rather than having to
+check the log. That animation can eat up the time as well."*
+
+## 6. The beam is on in the game and off in a harness
+
+Flipping `AI_BEAM`'s default to 8 outright would have been the wrong fix, and it is worth saying why
+rather than just not doing it. **Every `scratch/` instrument and every suite in `src/debug/` runs
+under Node**, and ticket 108's standing rule is *"confirm anything you intend to act on at full,
+BEAMLESS"*. A global default of 8 would have silently re-baselined the entire balance corpus with no
+commit saying so — the exact failure family this project keeps paying for.
+
+So the default is keyed on the thing that actually separates the two callers: **a harness runs under
+Node and the game does not.** `globalThis.process` is present in vite-node, vitest and every scratch
+lane, and absent in the browser and in the Electron renderer (the desktop build differs only in
+`base`).
+
+```
+browser  -> beam 8       the player gets the 2.3x
+Node     -> beam 0       every measurement keeps the search it was calibrated against
+AI_BEAM  -> overrides either way
+```
+
+The rule is extracted as `resolveBeam(hasNodeProcess, override)` and unit-tested on both branches,
+because a test **cannot** reach the browser branch by running in a browser — vitest is Node and jsdom
+does not remove `process`. Detection stays at the call site; the decision is pinned in a test.
+
+`AI_BEAM=0` deliberately means beamless rather than "unset", so a pre-127 number stays reproducible.
+
+## 7. The wait now carries information
+
+Henry's second instruction is the one that changes the shape of the fix: *"That animation can eat up
+the time as well."*
+
+The old between-actions beat was a blind 600 ms with nothing on screen, and then 1.3 s of thinking.
+It is now `PLAYED_CARD_REVEAL_MS` (700 ms) with the card that just resolved held at centre stage, and
+then the thinking. **Wall-clock is roughly what it was; the time now carries the information the
+player was having to dig out of the combat log.** With the beam on it is 700 + 569 ms against the old
+600 + 1320 ms — a third less, and the third that remains is showing you something.
+
+- `useBattleVfx` publishes a `PlayedCardAnnouncement` off `PROGRAM_PLAYED`. That event's `programId`
+  **is** the dataId (`battleReducer` emits `card.dataId`), so the reveal looks the program up and
+  renders the real `ProgramCard` — the same component the hand renders. A hand-built "played card"
+  panel would be a second card face, and a second card face drifts the next time a card gains a
+  keyword chip.
+- The reveal is **not** on an expiry timer. A timer would race the enemy loop's own hold. The next
+  play, or the turn ending, is the honest thing that replaces it.
+- It is `pointer-events: none`. The reveal sits over the stage while the player may be mid-drag on
+  their own turn, and a card face that swallowed a pointer-up would eat a play.
+- The player's own casts get the same reveal (arriving from their side of the stage instead of the
+  enemy's), but only the enemy loop paces itself to it.
+
+### The bug this walked into, recorded because it was invisible
+
+`VfxState` had exactly two fields for its whole life, and several `setVfx` branches rebuilt the
+object by **listing both by hand** instead of spreading `prev`. Adding a third field walked straight
+into it: the `DAMAGE_TAKEN` branch dropped `playedCard`, so a card that dealt damage — i.e. every
+attack in the game — cleared its own reveal before it rendered.
+
+`tsc -p tsconfig.app.json` caught it, which is worth noting given this project's history: the same
+class of error survived a full merge and 1984 green tests back when `tsc --noEmit` was being run
+against a solution file that typechecks nothing. There is now a test for it
+(`playedCardReveal.test.tsx`, *"survives the damage the card deals"*).
+
+### Still needs an eyeball
+
+The reveal's **rendering** is untested by construction — the data layer is covered, the visual is
+not, same caveat as ticket 125's status chips. Worth a playtest look at: whether 700 ms is the right
+hold at 3v3 (seven cards a turn is seven reveals), and whether the reveal wants to be smaller or
+further up so it does not cover the sprite that is being hit.
+
+## 8. Where the enemy turn stands
+
+| | think per decision | enemy turn (8 decisions) |
+|---|---|---|
+| before ticket 127 | 1320 ms | **~16.0 s**, blind |
+| pause/search reorder | 1320 ms | 10.6 s, blind |
+| **+ beam on in the browser** | **569 ms** | **~4.6 s** |
+| + the reveal's 700 ms hold | 569 ms | **~10.1 s, and every second of it shows a card** |
+
+The last row is the honest one and it is a deliberate trade Henry made: the reveal hold is real time,
+spent on purpose. The comparison that matters is not 4.6 s against 10.1 s — it is **10.1 s of legible
+fight against 16.0 s of a frozen screen and a scrolling log.**
+
+The freeze is still there. `getBestAction` is synchronous on the main thread, so the reveal animates
+in its 700 ms window and then the tab locks for 569 ms. That is what steam-release ticket 39's Web
+Worker is for, and it is now the largest remaining item: 569 ms still misses ticket 39's own p95
+target of 1.0 s at the tail.
+
+## 9. The 3v3 gate came back "moved", and the size is unresolved
+
+This is the check the original beam work explicitly left open, and it does **not** reproduce the 1v1
+result. `scratch/beamgate3v3.ts`, 6 team pairs x 6 iterations x 2 orders = 72 games per arm:
+
+| pair | beam 0 | beam 8 | delta | turns 0 | turns 8 |
+|---|---|---|---|---|---|
+| fenrir+skoll+sleipnir vs ratatoskr+valkyrie+nidhoggr | 58.33 | 50.00 | **-8.33** | 5.50 | 5.33 |
+| kraken+gullinbursti+ratatoskr vs ymir+audhumbla+kraken | 41.67 | 50.00 | **+8.33** | 12.50 | 15.83 |
+| skoll+hraesvelgr+ymir vs draugr+nidhoggr+fafnir | 66.67 | 75.00 | **+8.33** | 6.50 | 6.67 |
+| jormungandr+ratatoskr+draugr vs audhumbla+fenrir+jormungandr | 91.67 | 91.67 | 0.00 | 6.83 | 7.00 |
+| hraesvelgr+huldra+audhumbla vs hel+fafnir+gullinbursti | 33.33 | 33.33 | 0.00 | 10.25 | 9.75 |
+| sleipnir+draugr+hel vs fenrir+skoll+sleipnir | 16.67 | 33.33 | **+16.66** | 5.83 | 5.25 |
+
+- mean win rate **51.39 -> 55.55**, mean absolute delta **6.94**, max **16.66**
+- **72/72 decisive in both arms**, zero stalls, zero FTKs, mean turns 7.90 -> 8.30
+- the beam is doing real work here: **28.8M candidates pruned of 39.8M enumerated**, against 89.7M
+  enumerated beamless. So this is not a case of the arm failing to take.
+
+**So the beam is not identity-preserving at 3v3, and nobody should claim it is.** That is exactly what
+`3v3-optimisation.md` said it would be — it ranks the deferred candidates on their immediate score,
+so it under-reads lines whose payoff is one play further on.
+
+**But "moved" is not the same as "moved measurably", and 12 games cannot tell the difference.** At
+p = 0.5 a 12-game sample has a standard error of ~14 percentage points, so every delta in that table
+except possibly the last is inside one standard error of zero. Three deltas are exactly +/-8.33, which
+is *one game out of twelve* — the smallest step this sample can represent.
+
+The comparison that decides it is not beam-vs-beamless, it is **beam-vs-beamless against
+beamless-vs-itself.** Ticket 108 measured full tier disagreeing with ITSELF across seed bases at MAD
+6.0-13.2 at 1v1. The beam's mean absolute disagreement here is **6.94** — inside that band. A run at a
+second seed base is in flight to get the self-disagreement figure at 3v3 directly, which is the
+honest denominator.
+
+### Why this is shippable anyway, and what the risk actually is
+
+**The balance corpus is not exposed.** The whole point of the Node/browser split in §6 is that every
+instrument and suite keeps the beamless search it was calibrated against. Nothing on record
+re-baselines, and no future grid is silently beamed. The risk of the beam is confined to one thing:
+**at 3v3 the enemy sometimes picks a slightly different line.** It never stalled, never failed to
+resolve, and turn counts moved by 0.4.
+
+That is a different category of risk from a balance change, and it is worth naming plainly: an enemy
+that occasionally takes the second-best line is a *quality-of-play* cost, paid for a 2.3x speedup in
+the mode the game ships. Set against a 16-second frozen turn, that is a trade worth making — but it
+IS a trade, not a free win, and if Henry would rather not make it the single-line revert is
+`GAME_BEAM_WIDTH`.
