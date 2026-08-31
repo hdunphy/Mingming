@@ -1,6 +1,6 @@
 # The Tidewrack nerf arms — six measured arms on Henry's playtest party
 
-**Date:** 2026-08-31 · **Branch:** `steam-release-prep` · **Status:** measured, no ruling taken
+**Date:** 2026-08-31 · **Branch:** `steam-release-prep` · **Status:** RULED and shipped — [ticket 74](../tickets/74-tidewrack-comp-swap.md) CLOSED, [ticket 75](../tickets/75-tidewrack-rolled-fights.md) opened
 **Party under test:** `tidewrack_playtest_v1` = `ratatoskr_v2 + huldra_v1 + kraken_v2`, run-dealt 18-card start deck
 **Cell:** `gauntlet:fight2` pinned to `gym_tidewrack`, `--iterations 30`, paired seeds across every arm
 
@@ -13,10 +13,11 @@ named on the command line, printing a **NOT A BASELINE** banner into its own rep
 
 > **§§1–6 ARE A HISTORICAL RECORD — read [§7](#7-ticket-74--the-comp-swap-measured-and-where-the-failure-moved) for what shipped.**
 > Ticket 74 ruled on these arms 2026-08-31: the fix is a **comp swap** (`kraken_v1` → `kraken_v2`),
-> `ink_stream` **stays at 33**, and `thorn_tithe`'s transfer is **committed**. The `boss-cantrips*`
-> and `ink-power-*` knobs quoted below **no longer exist** — re-running a command line from §6 now
-> throws rather than silently measuring the baseline. Every number in §§1–6 was taken against
-> Tidewrack's **old** composition and none of them describes the shipped fight.
+> `ink_stream` **stays at 33**, and `thorn_tithe` is printed at **1 energy / 30 power / 3 Weakened on
+> the TARGET**. **Every knob quoted below has been deleted** — `boss-cantrips*`, `ink-power-*`,
+> `thorn-target` and `thorn-power-*` all throw now, naming the ruling that retired them, rather than
+> silently measuring the baseline. Every number in §§1–6 was taken against Tidewrack's **old**
+> composition and none of them describes the shipped fight.
 
 ---
 
@@ -241,19 +242,59 @@ Paired, n=60, same cell and options, against the committed 40-power card.
 both halves to something far closer to the curve: 1 energy, 30 power, 3 Weakened on the target,
 against hamstring's 1 / 20 / 2. **25 costs about 5 points and does not reach significance at n=60.**
 
-Recommendation, for Henry's number and not printed without it: **30**. It buys the curve discipline
-the ticket wanted at zero cost to a fight that is already the healthiest of the three. 25 is
-defensible if the card should visibly *pay* for the transfer; the arm cannot tell those apart.
+> **RULED (Henry, 2026-08-31): *"thorn_tithe should be 30 with 3 weakened to the enemy"*.**
+> **The card is printed at 1 energy / 30 power / 3 Weakened on the TARGET.**
+>
+> This is the happy case for a measured knob: **the printing that shipped is the printing that was
+> measured**, at that exact number, paired against the card it replaced. Most balance changes ship on
+> an argument; this one shipped on 60 paired battles saying it costs nothing.
 
-## 7.5 What I need a ruling on
+The `thorn-power-<N>` knob is **deleted** along with every other knob this document used — see §7.6.
 
-1. **Is ticket 74 done?** Its own goal is met — the boss fight is fixed and over-delivered. But the
-   gauntlet it sits in still fails by 21.5pt (handbuilt) / 31.9pt (favourable). Closing 74 and
-   opening a ticket on Tidewrack's *rolled* fights is my read; it is not my call.
-2. **`thorn_tithe`'s number** — 30, 25, or leave it at 40. Nothing is printed until you say.
-3. Both compound verdicts are flagged **UNDER-SAMPLED** (95% CI ±6.5pt and ±6.9pt against a ±5
-   window). At 38.5% and 28.1% they miss by far more than the interval, so the FAIL is safe; the
-   exact figures are not.
+## 7.5 Ruled, 2026-08-31 — and where the leftover number went
+
+Henry: *"74 is done. Lets close it and open a new ticket. thorn_tithe should be 30 with 3 weakened to
+the enemy."*
+
+1. **Ticket 74 is CLOSED.** Its own goal was met and over-delivered.
+2. **`thorn_tithe` is printed at 30 / 3 on the target.** See §7.4.
+3. **The gauntlet failure became [ticket 75](../tickets/75-tidewrack-rolled-fights.md)** — and
+   investigating it for that ticket turned up a finding that reframes §7.3 rather than extending it.
+
+### The finding that came out of opening 75
+
+§7.3 said fights 1 and 2 are rolled teams ticket 74 could not touch. That is true, and it is not the
+interesting half. **`regionSpeciesPool` is the union across all three biomes, and `walkOrderFor`
+steps a 3-cycle over `[Fire, Water, Nature]` — so every gym's region covers all three elements and
+the union pool is the same set everywhere.** Verified empirically at twelve samples per gym: all 12
+tuned OS ids appear in fights 1-2 at Emberfall, Tidewrack **and** Rootfall.
+
+**So the enemy side of the lead-in fights is identical at every gym.** The only thing that differs is
+the party the `favourable` arm brings, which `targetElementFor` picks against the gym's element:
+
+| gym | biome walk | rolled pool | favourable lineup | f1 / f2 |
+|---|---|---|---|---|
+| Emberfall | Fire → Water → Nature | all 12 | `kraken_v1, jormungandr_v1, fenrir_v1` | 83.3 / 90.0 * |
+| Tidewrack | Water → Nature → Fire | all 12 | `ratatoskr_v1, huldra_v1, kraken_v1` | 61.7 / 66.7 |
+| Rootfall | Nature → Fire → Water | all 12 | `fenrir_v1, skoll_v1, ratatoskr_v1` | not measured |
+
+\* **Not comparable** — ticket 68's conditions, not n=60 + toolbox on this tree. That row is why
+ticket 75's first build step is re-measuring the other two gyms at matched conditions rather than
+ruling off this table.
+
+The question is therefore **not** "why are Tidewrack's rolled fights badly authored" — they are not
+authored at all, and they are the same fight Emberfall's are. It is **why the Nature-leaning
+counter-party loses to a mixed pool the Water-leaning one beats**, which may be
+[ticket 73's launch triangle](../tickets/73-launch-type-triangle.md) surfacing in the gauntlet.
+
+The handbuilt party gains ~8 points a fight over the generated one at the same element, so **synergy
+is worth something and it is not worth twenty points.**
+
+### The caveat that survives the ruling
+
+Both compound verdicts are flagged **UNDER-SAMPLED** (95% CI ±6.5pt and ±6.9pt against a ±5 window).
+At 38.5% and 28.1% they miss by far more than the interval, so the FAIL is safe; the exact figures
+are not.
 
 ## 7.6 Reproducing
 
@@ -267,6 +308,12 @@ npx vite-node src/debug/balance/runRunGate.ts --bands gauntlet --cells gauntlet:
   --tweak thorn-power-<25|30>
 ```
 
-Raw reports in `74-runs/`. **The `--tweak` knobs used in §§1–6 no longer exist** — ticket 74 retired
-`boss-cantrips*` and `ink-power-*`, and `validateTweaks` now throws a message naming the ruling
-rather than letting a stale command line measure the baseline and read as a null result.
+Raw reports in `74-runs/`.
+
+**EVERY `--tweak` KNOB THIS DOCUMENT USES HAS BEEN DELETED.** `boss-cantrips*`, `ink-power-*`,
+`thorn-target` and `thorn-power-*` are all gone; `experimentalTweaks.ts` has **no live knobs** and
+`--tweak <anything>` now throws. Each retired name gets its own message naming the ruling that
+retired it and where the answer went, because the command lines above are committed and will be
+re-run: a flag that parses, prints a banner naming a change, and silently measures the baseline would
+be filed as *"the change did nothing"*, which is the most expensive wrong conclusion this harness can
+manufacture. The threading seam survives with zero knobs on purpose — see that file's header.

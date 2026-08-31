@@ -3964,7 +3964,7 @@
     "thorn_tithe": {
         "id": "thorn_tithe",
         "name": "Thorn Tithe",
-        "description": "40 power. Apply 3 Weakened.",
+        "description": "30 power. Apply 3 Weakened.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -3978,7 +3978,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 30,
                 "target": "TARGET"
             },
             {

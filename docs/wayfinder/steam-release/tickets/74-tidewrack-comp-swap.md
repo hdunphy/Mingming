@@ -1,7 +1,7 @@
 # Tidewrack re-authored: kraken_v2 replaces kraken_v1, and the thorn_tithe printing (ticket 74)
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: 
 - Blocked by: [71](71-tidewrack-build.md) (context), research/73-the-tidewrack-nerf-arms.md (the six arms)
 - Phase: Vertical Slice
@@ -51,4 +51,55 @@ obsolete tweak knobs removed, ticket 71 cross-referenced, HANDOFF State refreshe
 
 ## Resolution
 
-_(open)_
+**CLOSED 2026-08-31 (Henry: *"74 is done. Lets close it and open a new ticket"*).** All five build
+steps done, gates green, numbers in
+[research/73-the-tidewrack-nerf-arms.md](../research/73-the-tidewrack-nerf-arms.md) §7.
+
+### What the swap bought
+
+`gym_tidewrack` fields `jormungandr_v1 + kraken_v2 + skoll_v2`. The boss fight goes **30.0% ->
+75.0%** against `tidewrack_playtest_v1`, and it is now the **best** of its three fights rather than
+the worst. Ruling 1's expected side effect shows up in the clock rather than merely being asserted:
+fights run **7.9-8.4 turns** against the old composition's 5.8, which is TIDAL SURGE charging off a
+narrower base exactly as predicted.
+
+That 30.0 -> 75.0 pair is **not** a paired comparison — composition, n (30 -> 60) and the toolbox all
+differ. The toolbox confound runs *against* the swap (research/69 measured it making Tidewrack worse,
+favourable 26.7% -> 16.7%), so the composition accounts for the whole move and then some.
+
+### What it did NOT buy, which is why ticket 75 exists
+
+**The gauntlet still fails, and the failure MOVED.** `rollGauntletFight` consults `authoredBossFor`
+for the **boss slot only** — fights 1 and 2 are rolled from the region species pool at every gym, so
+this ticket could never have touched two of the three fights it is graded on. At n=60 with the
+toolbox, graded on the compound per 67 R5:
+
+| arm | fight 1 | fight 2 | boss | compound | vs 60 +/- 5 |
+| --- | --- | --- | --- | --- | --- |
+| favourable (the arm 60% grades) | 61.7% | 66.7% | 68.3% | **28.1%** | FAIL -31.9pt |
+| `tidewrack_playtest_v1`, toolbox | 70.0% | 73.3% | 75.0% | **38.5%** | FAIL -21.5pt |
+| Emberfall, calibrated (67 R5) | 83.3% | 90.0% | 80.0% | 60.0% | PASS |
+
+Tidewrack's lead-in fights sit **13-22 points under Emberfall's**. Three fights at ~72% multiply to
+38%, not to 72%. **The old 30% boss was masking a gauntlet-wide shortfall rather than being it** —
+a finding this ticket produced rather than a failure of it. Handed to
+[ticket 75](75-tidewrack-rolled-fights.md).
+
+### thorn_tithe, printed
+
+The transfer landed with the swap; the reprice arm reported and Henry ruled the number:
+*"thorn_tithe should be 30 with 3 weakened to the enemy"*. **The card is 1 energy, 30 power, 3
+Weakened on the TARGET** — and the shipped printing is the one that was measured (75.0%, p = 1.00
+paired against 40 power, i.e. free). `huldra_v1`'s own `thorn_tithe` -> `hexbloom` combo can finally
+fire, which was the printing error the report's §4 table identified.
+
+Against the curve, for the record: `50 x E - 10` puts a 1-energy attack at 40, and `hamstring` — the
+precedent for this effect — is 1 energy, 20 power, 2 Weakened on the target. At 30/3 the card sits
+between them rather than strictly above both, which is what the reprice was for.
+
+### Knobs retired
+
+`boss-cantrips`, `boss-cantrips-<N>`, `ink-power-<N>`, `thorn-target` and `thorn-power-<N>` are all
+**deleted** from `experimentalTweaks.ts`, each with a `validateTweaks` case that throws naming the
+ruling that retired it. There are now **no live knobs**. The threading seam is kept deliberately —
+see that file's header for why a retired flag must throw rather than silently no-op.

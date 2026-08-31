@@ -31,8 +31,7 @@ import { describe, expect, it } from 'vitest';
 import { CELLS, sampleFight } from './runGate';
 import { handbuiltParty } from './handbuiltParties';
 import { GYM_COUNTER_ANSWERS } from '../../engine/run/marketplace';
-import { applyRegistryTweaks, validateTweaks } from './experimentalTweaks';
-import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { applyRegistryTweaks, describeTweaks, tweakEnemyDeck, validateTweaks } from './experimentalTweaks';
 
 const CELL = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
 const GYM = 'gym_tidewrack';
@@ -93,85 +92,63 @@ describe('every measureCell option reaches the fight', () => {
         expect(armed.biomeElements).toEqual(bare.biomeElements);
     });
 
-    it('`--tweak` reaches the fight, and moves nothing else', () => {
+    it('`--tweak` still threads, with nothing live to thread', () => {
         /*
-         * The tweak knobs are the most dangerous thing on `MeasureOptions` to lose at the call site:
-         * unlike `--toolbox`, a dropped tweak produces a report whose banner names a change, whose
-         * numbers are the baseline's, and which reads as "the change did nothing" — the most
-         * expensive wrong conclusion available in this whole exercise.
-         *
-         * No knob currently edits the enemy pile (ticket 74 retired `boss-cantrips`), so the seam is
-         * asserted on the LIVE knob instead: `thorn-power` is registry-level, and what this proves is
-         * that passing tweaks does not perturb any of the quantities a paired arm holds fixed.
+         * There are no live knobs (ticket 74 printed the last one), so this asserts the SEAM rather
+         * than an effect: `sampleFight` still accepts the parameter and passing an empty list is
+         * indistinguishable from passing none. The seam is kept deliberately — the threading
+         * guarantee was earned by a bug (`--toolbox` declared, parsed, banner-printed and passed
+         * nowhere, measuring the bare arm for thirty battles) and deleting it would make the next
+         * knob re-earn it from scratch.
          */
-        const bare = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, []);
-        const tweaked = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, ['thorn-power-25']);
+        const none = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false);
+        const empty = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, []);
 
-        expect(tweaked.setup.seed).toBe(bare.setup.seed);
-        expect(tweaked.enemy).toEqual(bare.enemy);
-        expect(tweaked.enemyDrivers).toEqual(bare.enemyDrivers);
-        expect(tweaked.lineup).toEqual(bare.lineup);
-        expect([...tweaked.setup.player.deck]).toEqual([...bare.setup.player.deck]);
-        expect(tweaked.setup.enemies.flatMap((e) => e.deck ?? []))
-            .toEqual(bare.setup.enemies.flatMap((e) => e.deck ?? []));
+        expect(empty.setup.seed).toBe(none.setup.seed);
+        expect(empty.enemy).toEqual(none.enemy);
+        expect([...empty.setup.player.deck]).toEqual([...none.setup.player.deck]);
+        expect(empty.setup.enemies.flatMap((e) => e.deck ?? []))
+            .toEqual(none.setup.enemies.flatMap((e) => e.deck ?? []));
     });
 });
 
-describe('the experimental tweak knobs do what their names say', () => {
-    it('rejects a misspelled knob rather than measuring the baseline twice', () => {
-        expect(() => validateTweaks(['thorn-power'])).toThrow(/unknown tweak/);
-        expect(() => validateTweaks(['thorn_power_25'])).toThrow(/unknown tweak/);
-        expect(() => validateTweaks(['thorn-power-25', 'thorn-power-30'])).not.toThrow();
+describe('the tweak mechanism rejects every retired knob by name', () => {
+    /*
+     * research/73's "Reproducing" block still prints these strings, and so does anyone's shell
+     * history. Re-running one after it was ruled on must not quietly measure the baseline and get
+     * filed as "the change did nothing" — each error names the ruling and where the answer went.
+     */
+    const RETIRED: ReadonlyArray<readonly [string, RegExp]> = [
+        ['boss-cantrips', /RETIRED by ticket 74/],
+        ['boss-cantrips-2', /RETIRED by ticket 74/],
+        ['ink-power-12', /ink_stream stays at 33/],
+        ['thorn-target', /COMMITTED by ticket 74/],
+        ['thorn-power-25', /printed at 30 power/],
+        ['thorn-power-30', /printed at 30 power/],
+    ];
+
+    for (const [name, message] of RETIRED) {
+        it(`"${name}" throws, naming the ruling`, () => {
+            expect(() => validateTweaks([name])).toThrow(message);
+            // Every entry point, not just the validator — a knob that slipped past `describeTweaks`
+            // would print a banner line for an arm that never ran.
+            expect(() => describeTweaks([name])).toThrow();
+            expect(() => applyRegistryTweaks([name])).toThrow();
+        });
+    }
+
+    it('an unknown knob says there are none live, rather than failing vaguely', () => {
+        expect(() => validateTweaks(['nonsense'])).toThrow(/no live tweaks/i);
     });
 
-    it('names a RETIRED knob as retired, so a stale command line is not read as a null result', () => {
-        /*
-         * research/73's "Reproducing" block still prints these strings, and so does anyone's shell
-         * history. Re-running one after ticket 74 must not quietly measure the baseline and be filed
-         * as "the nerf did nothing" — the error says the lever was ruled on and where the answer went.
-         */
-        for (const retired of ['boss-cantrips', 'boss-cantrips-2', 'ink-power-12']) {
-            expect(() => validateTweaks([retired]), retired).toThrow(/RETIRED by ticket 74/);
-        }
-        expect(() => validateTweaks(['thorn-target'])).toThrow(/COMMITTED as of ticket 74/);
+    it('the empty list is the only accepted input', () => {
+        expect(() => validateTweaks([])).not.toThrow();
+        expect(applyRegistryTweaks([])).toEqual([]);
+        expect(describeTweaks([])).toEqual([]);
     });
 
-    it('`thorn-power` reprices the committed card and leaves the transfer alone', () => {
-        /*
-         * `applyRegistryTweaks` mutates a process-global, so this test SNAPSHOTS the card and puts it
-         * back. Without that, every test that runs after this one in the same worker would be
-         * measuring a card nobody printed — which is exactly the contamination the whole module
-         * exists to keep out of `programs.json`.
-         */
-        const thorn = structuredClone(ProgramRegistry['thorn_tithe']);
-
-        try {
-            expect(applyRegistryTweaks(['thorn-power-25'])).toEqual(['thorn-power-25']);
-
-            const card = ProgramRegistry['thorn_tithe'];
-            expect(card.actions?.find((a) => a.type === 'ATTACK')?.power).toBe(25);
-
-            const status = card.actions?.find((a) => a.type === 'STATUS');
-            expect(status?.target, 'the reprice must NOT disturb the committed transfer').toBe('TARGET');
-            expect(status?.stacks, 'the arm prices the 3 stacks, it does not change them').toBe(3);
-            expect(card.description, 'a repriced card whose text says 40 is a report that lies').toBe('25 power. Apply 3 Weakened.');
-        } finally {
-            ProgramRegistry['thorn_tithe'] = thorn;
-        }
-    });
-
-    it('refuses to reprice if the committed transfer is ever reverted', () => {
-        // Otherwise the arm silently prices a SELF-debuff card while the report says it priced the
-        // transfer — the same class of lie as a flag that parses and does nothing.
-        const thorn = structuredClone(ProgramRegistry['thorn_tithe']);
-        try {
-            ProgramRegistry['thorn_tithe'] = {
-                ...thorn,
-                actions: thorn.actions?.map((a) => (a.type === 'STATUS' ? { ...a, target: 'SELF' as const } : a)),
-            };
-            expect(() => applyRegistryTweaks(['thorn-power-25'])).toThrow(/no longer applies its Weakened to the TARGET/);
-        } finally {
-            ProgramRegistry['thorn_tithe'] = thorn;
-        }
+    it('`tweakEnemyDeck` returns the pile untouched', () => {
+        const pile = ['undertow', 'ink_stream', 'serpents_coil'];
+        expect(tweakEnemyDeck(pile, [])).toEqual(pile);
     });
 });
