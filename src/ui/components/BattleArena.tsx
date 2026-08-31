@@ -435,18 +435,42 @@ const BattleArena: React.FC = () => {
         let cancelled = false;
 
         const runAI = async () => {
-            // Wait for turn banner if this is the start of the enemy turn
-            if (aiPrevSideRef.current !== 'ENEMY') {
-                await new Promise(r => setTimeout(r, 1200));
-            } else {
-                // Delay between actions
-                await new Promise(r => setTimeout(r, 600));
-            }
+            // TICKET 127: THINK DURING THE PAUSE, NOT AFTER IT.
+            //
+            // This used to `await` the pause and only THEN call `getBestAction`, so the two costs
+            // were SERIAL and the player paid both. At 3v3 the search is ~1.3s a decision
+            // (measured, research/ai-decision-cost.md), so an 8-decision enemy turn was
+            // 5.4s of deliberate pacing PLUS 10.6s of thinking = ~16s. Nothing about the pause
+            // requires the board to be undecided while it elapses.
+            //
+            // Now the pause is a FLOOR on how fast a play may appear, not an addition to it: think
+            // first, then sleep whatever of the pause is left. A fast decision still waits its full
+            // beat (the pacing is deliberate - the player has to see what happened); a slow one has
+            // already spent the beat thinking and plays immediately.
+            //
+            // The short debounce in front is load-bearing. This effect re-runs on every
+            // `battleState` change, and the old 600ms pause was doubling as the thing that let a
+            // superseded run cancel before it spent a second in the search - React's dev-mode
+            // double-invoke included. Computing at the top of the effect would have run the search
+            // twice for one decision.
+            //
+            // It does NOT fix the freeze. `getBestAction` is synchronous on the main thread, so the
+            // UI is still locked for the duration - the freeze now lands *during* the banner/beat
+            // rather than after it. Un-freezing it needs the search off-thread (ticket 39 asks for
+            // a Web Worker); this change only stops us paying for the same wait twice.
+            const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : 600;
+            const DEBOUNCE_MS = 50;
 
+            await new Promise(r => setTimeout(r, DEBOUNCE_MS));
+            if (cancelled) return;
+
+            const thinkStart = performance.now();
+            const action = getBestAction(battleState);
+            const thoughtFor = performance.now() - thinkStart;
+
+            await new Promise(r => setTimeout(r, Math.max(0, pauseMs - DEBOUNCE_MS - thoughtFor)));
             if (cancelled) return;
             aiPrevSideRef.current = 'ENEMY';
-
-            const action = getBestAction(battleState);
 
             if (action.type === 'PLAY_PROGRAM') {
                 dispatch(playProgram(action.payload));
