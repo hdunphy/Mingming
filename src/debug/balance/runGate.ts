@@ -116,6 +116,7 @@ import { ElementalMatrix } from '../../engine/combatUtils';
 import type { Element } from '../../engine/types';
 import type { AiTier } from '../../engine/ai/TacticalAI';
 import type { HandbuiltParty } from './handbuiltParties';
+import { tweakEnemyDeck } from './experimentalTweaks';
 
 // ---------------------------------------------------------------------------------------------
 // The ruled targets
@@ -899,6 +900,14 @@ export function sampleFight(
     handbuilt?: HandbuiltParty,
     /** Append the pinned gym's three ruled counter answers to the deck — see below. */
     toolbox?: boolean,
+    /**
+     * Named, uncommitted balance knobs — see `experimentalTweaks.ts`.
+     *
+     * Only the ENEMY-PILE knob is read here; the registry-level ones (`ink-power-N`, `thorn-target`)
+     * were already applied process-wide before this ran. The whole list is carried anyway so the
+     * knobs thread through ONE parameter and a knob added later cannot be forgotten at this call.
+     */
+    tweaks?: ReadonlyArray<string>,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -928,8 +937,11 @@ export function sampleFight(
      * right for a generated arm and wrong for a hand-built one: the whole point of a hand-built deck
      * is that it is NOT the start deck. Taken verbatim instead, and the length is deliberately not
      * validated — a designed deck is 26 cards where the start deal is 18.
+     *
+     * A handbuilt party with NO `deck` falls through to the run-dealt one on purpose: that is the
+     * shape for measuring a PARTY rather than a deck list. See `HandbuiltParty.deck`.
      */
-    let deck = handbuilt ? [...handbuilt.deck] : deckFor(created, party);
+    let deck = handbuilt?.deck ? [...handbuilt.deck] : deckFor(created, party);
 
     /*
      * `--toolbox`: the party arrives holding the gym's three ruled counter answers.
@@ -978,8 +990,15 @@ export function sampleFight(
         && isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS);
     const enemyDrivers = stripSignature ? [] : (encounter.enemyDrivers ?? []);
 
+    /*
+     * The enemy-pile knob, applied AFTER the roll for the same reason `withBossOverride` is: the
+     * seed, the node, the bodies and the Drivers must all be the ones the unmodified arm rolled, or
+     * the paired comparison is measuring the knob plus a different fight. See `experimentalTweaks`.
+     */
+    const enemyDeckIds = tweakEnemyDeck(encounter.enemyDeckIds, tweaks ?? []);
+
     return {
-        setup: setupForEncounter(encounter.seed, party, deck, enemyParty, encounter.enemyDeckIds, enemyDrivers),
+        setup: setupForEncounter(encounter.seed, party, deck, enemyParty, enemyDeckIds, enemyDrivers),
         lineup,
         enemyDrivers,
         enemyAiTier: encounter.enemyAiTier,
@@ -1112,6 +1131,14 @@ export interface MeasureOptions {
     readonly handbuilt?: HandbuiltParty;
     /** Give the party the gym's three ruled counter answers — the CEILING arm. See `sampleFight`. */
     readonly toolbox?: boolean;
+    /**
+     * Named, uncommitted balance knobs for THIS measurement only — see `experimentalTweaks.ts`.
+     *
+     * A number taken with these set is not a baseline, and the report banner says so. The
+     * registry-level knobs are applied by the CLI before anything is built; only the enemy-pile knob
+     * is read down in `sampleFight`.
+     */
+    readonly tweaks?: ReadonlyArray<string>;
 }
 
 /**
@@ -1164,7 +1191,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
              */
             fight = sampleFight(
                 cell, at, options.matchup ?? 'blind', options.bossOverride, options.gymId,
-                options.handbuilt, options.toolbox,
+                options.handbuilt, options.toolbox, options.tweaks,
             );
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;

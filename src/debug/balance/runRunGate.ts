@@ -115,6 +115,7 @@ import { computeRegistryHash } from '../scenarios/registryHash';
 import { AI_TIER } from '../../engine/ai/TacticalAI';
 import { DEFAULT_MAX_TURNS } from './runBatch';
 import { HANDBUILT_PARTIES, handbuiltParty, type HandbuiltParty } from './handbuiltParties';
+import { applyRegistryTweaks, describeTweaks, validateTweaks } from './experimentalTweaks';
 import {
     CELLS,
     RUN_GATE_TARGETS,
@@ -210,6 +211,14 @@ interface Args {
      * this boss", not "does the average player find them".
      */
     toolbox?: boolean;
+    /**
+     * `--tweak <name>[,<name>]`: named, uncommitted balance knobs for this measurement only.
+     *
+     * `boss-cantrips`, `ink-power-<N>`, `thorn-target` — see `experimentalTweaks.ts` for what each
+     * one is testing and why none of them is an edit to `programs.json`. Composable on purpose, so a
+     * two-knob arm can be run once the single-knob arms say which two are worth combining.
+     */
+    tweaks: ReadonlyArray<string>;
 }
 
 /** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
@@ -256,6 +265,10 @@ function parseArgs(argv: string[]): Args {
 
     const bands = (list('--bands') as BandId[] | undefined) ?? [...ALL_BANDS];
     const iterations = Number(get('--iterations') ?? ITERATIONS_DEFAULT);
+    // Validated at PARSE time, not at use time: a misspelled knob that parses and changes nothing
+    // produces a banner describing an arm nobody ran. That is the `--toolbox` bug's failure class.
+    const tweaks = list('--tweak');
+    validateTweaks(tweaks ?? []);
 
     return {
         bands,
@@ -267,6 +280,7 @@ function parseArgs(argv: string[]): Args {
         out: get('--out'),
         handbuilt: resolveHandbuilt(get('--handbuilt')),
         toolbox: argv.includes('--toolbox'),
+        tweaks: tweaks ?? [],
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
             relics: get('--boss-relics') === 'off' ? 'off' : undefined,
@@ -404,6 +418,19 @@ async function main(): Promise<void> {
         return;
     }
 
+    /*
+     * The registry knobs are applied HERE and nowhere else — before the first party, run, encounter
+     * or battle is built. `GetProgramData` reads `ProgramRegistry` live, but
+     * `getInflatedProgramRegistry` memoises on first call, so a knob applied late would silently
+     * apply to some consumers and not others. This is the only safe point in the script.
+     */
+    if (args.tweaks.length > 0) {
+        applyRegistryTweaks(args.tweaks);
+        console.log(`[balance:run-gate] EXPERIMENTAL TWEAKS ACTIVE — ${args.tweaks.join(', ')}`);
+        for (const line of describeTweaks(args.tweaks)) console.log(`[balance:run-gate]   ${line}`);
+        console.log('[balance:run-gate] programs.json is UNTOUCHED. This number is not a baseline.');
+    }
+
     const unknown = args.bands.filter((band) => !ALL_BANDS.includes(band));
     if (unknown.length > 0) {
         console.error(`[balance:run-gate] Unknown band(s): ${unknown.join(', ')}`);
@@ -455,6 +482,7 @@ async function main(): Promise<void> {
             bossOverride: args.bossOverride,
             handbuilt: args.handbuilt,
             toolbox: args.toolbox,
+            tweaks: args.tweaks,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
@@ -476,9 +504,18 @@ async function main(): Promise<void> {
     if (args.toolbox) {
         say('  TOOLBOX ARM — the party holds this gym\'s three ruled counter answers (a CEILING, not a median run).');
     }
+    if (args.tweaks.length > 0) {
+        // Loud, and above the party line, because the one thing that must never happen to this
+        // report is being pasted somewhere as a baseline. `programs.json` still says otherwise.
+        say(`  ** EXPERIMENTAL TWEAKS — NOT A BASELINE, NOT COMMITTED (${args.tweaks.join(', ')}) **`);
+        for (const line of describeTweaks(args.tweaks)) say(`     ${line}`);
+    }
     if (args.handbuilt) {
         say(`  HAND-BUILT PARTY "${args.handbuilt.id}" — ${args.handbuilt.label}`);
-        say(`  ${args.handbuilt.lineup.join(' + ')}   (${args.handbuilt.deck.length} cards)`);
+        say(
+            `  ${args.handbuilt.lineup.join(' + ')}   ` +
+            `(${args.handbuilt.deck ? `${args.handbuilt.deck.length} cards` : 'run-dealt start deck'})`,
+        );
     }
     say(args.gymId
         ? `  PINNED to ${args.gymId} — not comparable to an unpinned number (ticket 68)`

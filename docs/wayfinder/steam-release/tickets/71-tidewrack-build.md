@@ -144,3 +144,28 @@ together — so running all six arms in one sitting is the efficient order.
 
 `tsc --noEmit -p tsconfig.app.json` clean, `eslint .` at 0, `liveness.ts` re-run after the hooks.json
 edit (all firmware LIVE), full suite green.
+
+---
+
+## SUPERSEDED IN PART BY TICKET 74 (2026-08-31) — the trio is no longer the one authored here
+
+The composition this ticket authored — `jormungandr_v1 + kraken_v1 + skoll_v2` — **was changed by
+[ticket 74](74-tidewrack-comp-swap.md): `kraken_v1` became `kraken_v2`.** Everything else this ticket
+built stands: TIDAL SURGE, the Driver carry to the region's final elite, `skoll_v2` in the third
+slot, the `water_slap` -> `undertow` change on `kraken_v1`'s own deck, and the intended counter on
+record.
+
+**Why, in one line:** this ticket's trio fielded TWO card-count-and-draw engines, and
+`research/73-the-tidewrack-nerf-arms.md` measured what that cost — 30.0% against Henry's own playtest
+party where the per-fight guide is ~84.3%. Six arms found the lever was the draw-cantrip MULTIPLIER
+rather than any printed power, and ticket 74 ruled the fix as a composition change rather than a card
+nerf, so every deck in the fight stays a real tuned deck (the 68 authoring law).
+
+Henry's diagnosis, kept because it is the read this ticket's design note did not have: *"the water
+boss hits too hard at ~44 dmg/turn while the other bosses sit at 30 and 25... at least kraken_v1
+doesn't feel op. I think it's when they're combined with jorm."*
+
+**The measurement this ticket left OUTSTANDING was never run against this trio and now never will
+be** — ticket 74 measures the swapped composition at n=60 on both arms instead, and grades the
+GAUNTLET COMPOUND per 67 R5 rather than the single fight this ticket asked for. Numbers land in
+`research/73-the-tidewrack-nerf-arms.md` §7.

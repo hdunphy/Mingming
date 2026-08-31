@@ -85,12 +85,29 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
         driver: DRIVER_WAR_FOOTING,
     },
     /*
-     * TIDEWRACK (ticket 71): jormungandr_v1 (OUROBOROS_LOOP) + kraken_v1 (ABYSSAL_INK_SYS) +
-     * skoll_v2 (SOLAR_OVERDRIVE), under TIDAL SURGE.
+     * TIDEWRACK (ticket 71, recomposed by ticket 74): jormungandr_v1 (OUROBOROS_LOOP) +
+     * **kraken_v2 (TIDAL_CRUSH)** + skoll_v2 (SOLAR_OVERDRIVE), under TIDAL SURGE.
      *
-     * The zoo core — the two card-count-and-draw engines — with a Strength-scaling Fire closer. The
-     * Driver is *about* that core: a side that plays five to seven cards a turn charges a 10-card
-     * threshold every turn and a half.
+     * # WHY THE THIRD SLOT CHANGED (ticket 74, Henry 2026-08-31)
+     *
+     * The original trio was TWO card-count-and-draw engines plus a closer, and research/73 measured
+     * what that actually cost. Against Henry's own playtest party the fight sat at **30.0%** against
+     * a ~84.3% per-fight guide, and the arms found the reason was not the payoff card's printed
+     * power — a 64% cut to `ink_stream` bought 13 points and did not clear (p = 0.22). It was the
+     * FLOW: `CARDS_DRAWN_TRIGGERED` is per-Mingming, so the cantrips feeding each engine were the
+     * multiplier, and pulling them moved the fight 30 to 93 points depending on dose.
+     *
+     * Ticket 74's ruling takes the composition route rather than the card route, and it is the
+     * cleaner one: `kraken_v1` (ABYSSAL_INK_SYS) IS the second engine. Swapping it for `kraken_v2`
+     * removes `ink_stream` x2, `whirlpool_v2` x2, `pressure_point` x2 and the third `undertow` from
+     * the pile in a single authored change — no `hooks.json` edit and no boss-only card printing,
+     * both of which the ticket rules out. What replaces them is TIDAL_CRUSH's ramp-into-3e shape
+     * (`maelstrom`, `hydro_blast`, `capacitor` x2), which is a different kind of pressure rather
+     * than less of it.
+     *
+     * The consequence worth stating: the fight keeps ONE engine (jormungandr_v1) instead of two, so
+     * TIDAL SURGE's 10-card threshold now charges off a narrower base. Whether the Driver still
+     * earns its slot is a question for the measurement, not an assumption here.
      *
      * **skoll_v2 rather than a Nature third, deliberately** (Henry, 2026-08-29): a Nature member
      * would give the Nature counter-team nothing to fear, and the heuristic's third slot exists to
@@ -104,7 +121,7 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
     gym_tidewrack: {
         members: [
             { species: 'jormungandr', os: 'jormungandr_v1' },
-            { species: 'kraken', os: 'kraken_v1' },
+            { species: 'kraken', os: 'kraken_v2' },
             { species: 'skoll', os: 'skoll_v2' },
         ],
         driver: DRIVER_TIDAL_SURGE,

@@ -8,9 +8,15 @@
 > fix thorn_tithe or give it someway to payoff... We still might be missing the mark with the nerfs,
 > but try those"*
 
-**Nothing here is committed.** Every knob lives in `src/debug/balance/experimentalTweaks.ts`, is
-named on the command line, and prints a **NOT A BASELINE** banner into its own report.
-`programs.json` is untouched and stays that way until Henry rules.
+**Nothing in §§1–6 was committed.** Every knob lived in `src/debug/balance/experimentalTweaks.ts`,
+named on the command line, printing a **NOT A BASELINE** banner into its own report.
+
+> **§§1–6 ARE A HISTORICAL RECORD — read [§7](#7-ticket-74--the-comp-swap-measured-and-where-the-failure-moved) for what shipped.**
+> Ticket 74 ruled on these arms 2026-08-31: the fix is a **comp swap** (`kraken_v1` → `kraken_v2`),
+> `ink_stream` **stays at 33**, and `thorn_tithe`'s transfer is **committed**. The `boss-cantrips*`
+> and `ink-power-*` knobs quoted below **no longer exist** — re-running a command line from §6 now
+> throws rather than silently measuring the baseline. Every number in §§1–6 was taken against
+> Tidewrack's **old** composition and none of them describes the shipped fight.
 
 ---
 
@@ -164,3 +170,103 @@ npx vite-node src/debug/balance/runRunGate.ts \
 
 Raw reports in `73-runs/`. Knobs and their rationale in
 `src/debug/balance/experimentalTweaks.ts`; threading guarded by `optionsThreading.test.ts`.
+
+---
+
+# 7. Ticket 74 — the comp swap measured, and where the failure moved
+
+**Date:** 2026-08-31 · **Change under test:** `gym_tidewrack`'s trio, `kraken_v1` → **`kraken_v2`**
+**n=60 per cell, all three gauntlet cells, toolbox arm, Bereavement Rally live, verdict on the
+COMPOUND per 67 R5.** `ink_stream` stays at 33 (ruling 2). `thorn_tithe`'s transfer is committed.
+
+## 7.1 The verdict
+
+| arm | fight 1 | fight 2 | fight 3 (boss) | **compound** | vs 60±5 |
+|---|---|---|---|---|---|
+| **H** — `tidewrack_playtest_v1`, toolbox | 70.0% | 73.3% | **75.0%** | **38.5%** | FAIL, −21.5pt |
+| **P** — favourable, toolbox *(the arm 60% grades)* | 61.7% | 66.7% | **68.3%** | **28.1%** | FAIL, −31.9pt |
+
+**The swap did what it was ruled to do, and the gauntlet still fails.** Those are two separate
+findings and they need to be read separately.
+
+## 7.2 The boss fight is fixed
+
+Against the same party, the boss fight goes **30.0% → 75.0%**. For the first time it is not the
+worst fight in its own gauntlet — it is now the *best* of the three.
+
+**The honest caveat on that pair of numbers:** they are not a paired comparison. Three things differ
+— the composition, n (30 → 60), and the toolbox (absent → present). Only the first is the ruling.
+The toolbox confound runs *against* the swap rather than flattering it: research/69 measured the
+toolbox making Tidewrack **worse** (favourable 26.7% bare → 16.7% with it; control 50.0% → 43.3%),
+so a toolbox-holding arm at 75.0% is if anything an understatement of what the composition bought.
+
+**Corroboration that the mechanism is the one the ticket named:** fights now run **7.9–8.4 turns**
+against the old comp's 5.8. The boss is killing far more slowly, which is what removing the second
+draw engine predicts — and it is also ruling 1's *"TIDAL SURGE fires slower... part of the nerf, not
+a bug"* showing up in the data rather than being asserted.
+
+## 7.3 The failure moved, and this is the finding that matters
+
+**Ticket 74 could only ever have fixed one fight in three.** `rollGauntletFight` consults
+`authoredBossFor` **only for the boss slot** — fights 1 and 2 are rolled from the region species pool
+at every gym. So their rates are untouched by the swap, and they are what the compound now fails on:
+
+| | fight 1 | fight 2 | boss | needed |
+|---|---|---|---|---|
+| Tidewrack, handbuilt | 70.0% | 73.3% | 75.0% | ~84.3% each |
+| Tidewrack, favourable | 61.7% | 66.7% | 68.3% | ~84.3% each |
+| **Emberfall (calibrated, 67 R5)** | **83.3%** | **90.0%** | **80.0%** | 60.0% compound ✓ |
+
+Tidewrack's lead-in fights sit **13–22 points under Emberfall's**, and nothing in ticket 74 touched
+them. The old 30% boss was masking a gauntlet-wide shortfall: with the boss at 75% the compound is
+still 38.5%, because three fights at ~72% multiply to 38%, not to 72%.
+
+**This is the compound's arithmetic doing exactly what 67 R5 said it would**, and it is the reason
+the ruling deserves to be read as a success on its own terms while the gate still says FAIL.
+
+I have no ruling to offer on why Tidewrack's *rolled* fights are soft — that is a different
+measurement (the region species pool and the tuned-OS ladder at a Water gym), not this one.
+
+## 7.4 `thorn_tithe` — the reprice arm
+
+Paired, n=60, same cell and options, against the committed 40-power card.
+
+| printed power | won | rate | paired McNemar vs 40 |
+|---|---|---|---|
+| **40** (committed) | 45/60 | **75.0%** | — |
+| **30** | 45/60 | **75.0%** | 3 discordant each way · **p = 1.00** |
+| **25** | 42/60 | **70.0%** | 4 vs 1 · p = 0.375 |
+
+**30 is free.** It costs nothing measurable and moves the card from *strictly above* `hamstring` on
+both halves to something far closer to the curve: 1 energy, 30 power, 3 Weakened on the target,
+against hamstring's 1 / 20 / 2. **25 costs about 5 points and does not reach significance at n=60.**
+
+Recommendation, for Henry's number and not printed without it: **30**. It buys the curve discipline
+the ticket wanted at zero cost to a fight that is already the healthiest of the three. 25 is
+defensible if the card should visibly *pay* for the transfer; the arm cannot tell those apart.
+
+## 7.5 What I need a ruling on
+
+1. **Is ticket 74 done?** Its own goal is met — the boss fight is fixed and over-delivered. But the
+   gauntlet it sits in still fails by 21.5pt (handbuilt) / 31.9pt (favourable). Closing 74 and
+   opening a ticket on Tidewrack's *rolled* fights is my read; it is not my call.
+2. **`thorn_tithe`'s number** — 30, 25, or leave it at 40. Nothing is printed until you say.
+3. Both compound verdicts are flagged **UNDER-SAMPLED** (95% CI ±6.5pt and ±6.9pt against a ±5
+   window). At 38.5% and 28.1% they miss by far more than the interval, so the FAIL is safe; the
+   exact figures are not.
+
+## 7.6 Reproducing
+
+```
+npx vite-node src/debug/balance/runRunGate.ts --bands gauntlet --gym gym_tidewrack \
+  --handbuilt tidewrack_playtest_v1 --toolbox --iterations 60
+npx vite-node src/debug/balance/runRunGate.ts --bands gauntlet --gym gym_tidewrack \
+  --matchup favourable --toolbox --iterations 60
+npx vite-node src/debug/balance/runRunGate.ts --bands gauntlet --cells gauntlet:fight2 \
+  --gym gym_tidewrack --handbuilt tidewrack_playtest_v1 --toolbox --iterations 60 \
+  --tweak thorn-power-<25|30>
+```
+
+Raw reports in `74-runs/`. **The `--tweak` knobs used in §§1–6 no longer exist** — ticket 74 retired
+`boss-cantrips*` and `ink-power-*`, and `validateTweaks` now throws a message naming the ruling
+rather than letting a stale command line measure the baseline and read as a null result.
