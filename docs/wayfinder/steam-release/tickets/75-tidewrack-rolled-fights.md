@@ -156,3 +156,29 @@ applied and measured or the gauntlet target is restated with the reasoning recor
 ## Resolution
 
 _(open)_
+
+
+## Rulings (Henry, 2026-08-31) — the three questions answered
+
+1. **The toolbox STAYS SHIPPED. No reprice, no pull — diagnose first.** The multiple-counters law
+   stands; what failed is either the harness's shopping policy or specific printings, and the
+   -11.5pt number cannot tell those apart. Build the diagnosis: (a) a **selective-shopping arm** —
+   buy at most 2 toolbox cards, matched to the gym being entered (cleanse tech at Rootfall,
+   riptide/short_circuit at Tidewrack, plating/discharge/hamstring at Emberfall) — against the
+   buy-everything arm; (b) **per-card arms** (one card added to the bare deck at a time, the three
+   worst offenders first) so any eventual reprice is ruled on a card's own number, not the
+   basket's. No mechanism gets asserted before those arms land — deck dilution, daemon tempo, and
+   AI misplay of daemons are all candidates and all unverified.
+2. **The BARE arm grades a gym. Toolbox-ON reports beside it as a diagnostic line,** exactly as the
+   control arm does. This keeps every historical number comparable — and under it, **Emberfall
+   PASSES at 62.4% against 60** and its calibration is confirmed to have survived four
+   engine/harness changes. The toolbox line's job is to measure what the tech is WORTH; when the
+   diagnosis lands it should read positive, and until then a negative toolbox line never fails a
+   gym.
+3. **Rootfall gets its own ticket ([76](76-rootfall-diagnosis.md)) — grilling with arms.** Measure
+   where the hole is first; Henry rules the lever after, Tidewrack-style. 27.7% bare against 60 is
+   the worst number on the board and it has never had a session.
+
+Process note, adopted as standing practice from this ticket's own lesson: **a gym number carried
+across engine or harness changes is stale until re-taken under current conditions** — same tree,
+same day, same arms, or it does not get compared.
