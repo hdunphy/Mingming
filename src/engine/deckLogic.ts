@@ -16,7 +16,7 @@ import { PRNG } from './core/PRNG';
  * thrown away. 12 is 9 plus the +3 the change adds at full party, so a three-body side gets the
  * cards it is now owed and a solo one is unaffected.
  */
-export const HAND_SIZE_LIMIT = 12;
+export const HAND_SIZE_LIMIT = 15;
 
 /**
  * Handles drawing cards from the deck.
