@@ -25,6 +25,7 @@ import {
     rewardCardPool,
     rollDraftRounds,
     rollDropTable,
+    blueprintRateFor,
 } from './RewardSystem';
 import { ProgramRegistry } from './data/programRegistry';
 import { getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
@@ -138,14 +139,20 @@ describe('RewardSystem', () => {
             expect(BLUEPRINT_DROP_RATE.alpha).toBe(1);
         });
 
-        it('drops at roughly the table rate for every fight kind', () => {
+        it('drops at roughly the rate the table states for every fight kind', () => {
             // Wide bands on purpose: these assert that the table is what the roll consults, not
             // that a proposal survived a ratification. 600 samples put the standard error near
             // 0.02, so ±0.08 is several sigma and none of this flakes.
+            //
+            // **Against `blueprintRateFor`, not the bare table** (Henry, 2026-09-01): `dropRate`
+            // fights ONE body, and a one-body fight is a solo fight, which the ruling pays 10 points
+            // above the table. Comparing to the raw number here would be asserting that the solo
+            // bonus does not exist — this file's own sampler is the shape the bonus is for.
             for (const kind of ['wild', 'ambush', 'elite', 'gym'] as const) {
+                const expected = blueprintRateFor(kind, 1);
                 const observed = dropRate(kind);
-                expect(Math.abs(observed - BLUEPRINT_DROP_RATE[kind]),
-                    `${kind}: observed ${observed}, table says ${BLUEPRINT_DROP_RATE[kind]}`)
+                expect(Math.abs(observed - expected),
+                    `${kind}: observed ${observed}, solo rate is ${expected} (table ${BLUEPRINT_DROP_RATE[kind]})`)
                     .toBeLessThan(0.08);
             }
         });
@@ -350,7 +357,9 @@ describe('RewardSystem', () => {
                 }
                 return drops / samples;
             };
-            expect(Math.abs(rateFor(7) - BLUEPRINT_DROP_RATE.wild)).toBeLessThan(0.08);
+            // One body, so the solo rate (2026-09-01) is the one to beat — the point of the case is
+            // that visit 7 pays what visit 1 pays, not what any particular number is.
+            expect(Math.abs(rateFor(7) - blueprintRateFor('wild', 1))).toBeLessThan(0.08);
         });
 
         it('still offers a full pick-1-of-3 per enemy on a re-entered node', () => {

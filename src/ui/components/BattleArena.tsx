@@ -41,6 +41,7 @@ import {
     endRun,
     finishGauntlet,
     recordBankedBlueprint,
+    recordFightBlueprintOutcome,
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
@@ -622,6 +623,18 @@ const BattleArena: React.FC = () => {
      */
     const nodeKind: NodeKind = run?.nodes.find(n => n.id === run.currentNodeId)?.kind ?? 'wild';
 
+    /**
+     * Won fights since the last blueprint — the pity floor's counter (2026-09-01), read beside
+     * `nodeKind` because they are the same kind of thing: a fact about the run that the reward roll
+     * needs and the engine cannot see.
+     *
+     * Hoisted out of the effect so it can be a dependency by name. It changes when the banking
+     * effect below advances it, which re-runs the roll effect — harmlessly, because the
+     * `!rewardBundle` latch there means a bundle is rolled exactly once per victory whatever wakes
+     * the effect up.
+     */
+    const dryFights: number = run?.blueprintDryFights ?? 0;
+
     // Audio: battle-end stinger, played once per battle (seed = battle identity;
     // gauntlets chain battles without ever passing through battleState === null).
     const endSoundPlayedRef = useRef(false);
@@ -686,6 +699,15 @@ const BattleArena: React.FC = () => {
                 nodeKind,
                 party: battleState.playerParty,
                 seed: battleState.seed,
+                /*
+                 * THE PITY FLOOR'S COUNTER, READ HERE AND WRITTEN BELOW (2026-09-01).
+                 *
+                 * `?? 0` covers both callers that have no run at all — a debug scenario owes no
+                 * mercy — and a run saved before the field existed. The engine only READS it; the
+                 * banking effect advances it, so the read and the write cannot disagree about what
+                 * a fight paid.
+                 */
+                dryFights,
             });
 
             // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
@@ -708,7 +730,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers, dryFights]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -746,6 +768,20 @@ const BattleArena: React.FC = () => {
         if (!rewardBundle || !battleState) return;
         if (bankedBlueprintSeedRef.current === battleState.seed) return;
         bankedBlueprintSeedRef.current = battleState.seed;
+
+        /*
+         * THE PITY COUNTER (2026-09-01), advanced in the same once-per-battle effect that banks.
+         *
+         * It rides here rather than in its own effect for the reason the ref above exists at all:
+         * this block is the one place in the component that runs EXACTLY once per victory, and a
+         * counter that double-counted a fight under StrictMode would hand out mercy a fight early.
+         *
+         * Dispatched before the banking loop and unconditionally, because the dry case — an empty
+         * `blueprints` — is the one the counter is FOR, and it is the case the loop below skips.
+         * A battle with no run behind it no-ops in the reducer, exactly as `recordBankedBlueprint`
+         * does.
+         */
+        dispatch(recordFightBlueprintOutcome({ dropped: rewardBundle.blueprints.length > 0 }));
 
         // One dispatch per entry, not per species: `blueprints` is a list in which duplicates are
         // meaningful and `addBlueprint` stacks the count (ticket 20).

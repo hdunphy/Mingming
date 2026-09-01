@@ -98,6 +98,63 @@ export const BLUEPRINT_DROP_RATE: Readonly<Record<NodeKind, number>> = {
 };
 
 /**
+ * **THE SOLO BONUS — RULED by Henry, 2026-09-01: "increase the rate for solo battles to 30%, keep
+ * the 20% for other sizes."**
+ *
+ * The table above is PER BODY and `enemyPartySize` mirrors the player's party, so party size, not
+ * the table, is what a player experiences as the drop rate: a three-body wild rolls three times at
+ * 20% (a blueprint 49% of the time) while a solo wild rolls once (20%). That is the economy
+ * upside down — the player who most needs a blueprint, to stop being solo, earned them slowest.
+ * Measured against a real playtest run: 13 fights, 0 blueprints, a 1-in-18 evening that was nobody's
+ * bug and everybody's problem.
+ *
+ * Ticket 12 deleted a roster-size MULTIPLIER for good reasons (see the long note below) and this is
+ * not its return: that one scaled the drop DOWN as the ranch filled, taxing engagement and
+ * falsifying the alpha's ruled 1.0. This scales a lone fight UP, is keyed on the fight in front of
+ * you rather than on a persistent stat, and cannot exceed a rate the table already calls certain.
+ *
+ * **+10 points, not ×1.5.** Henry named one number, for a wild; adding it as points gives exactly
+ * the 0.30 he ruled and leaves the table's own ordering intact (elite still sits 5 points above a
+ * wild). Multiplying would have pushed the elite to 0.375 and the gym to 0.75 on the strength of a
+ * ruling about wilds. **The elite's 0.35 and the gym's 0.60 are therefore DERIVED, not ruled** —
+ * they follow the rule, and they are the two numbers to bring back to Henry if a solo run starts
+ * feeling rich rather than survivable.
+ */
+export const SOLO_BLUEPRINT_BONUS = 0.10;
+
+/**
+ * **THE PITY FLOOR — RULED by Henry, 2026-09-01.** After this many won fights with no blueprint,
+ * the next win drops one.
+ *
+ * Five is chosen against the solo rate the same ruling set: at 0.30 a dry run of five is a 17%
+ * event, so the floor is rare enough that a normal run never notices it and close enough that a
+ * bad one cannot become the 13-fight grind that prompted the ruling. It bounds the worst case at
+ * five dry fights instead of the unbounded tail a memoryless roll has, and it does that without
+ * touching the rate anyone reads off the card.
+ *
+ * The counter lives on `IRunState.blueprintDryFights` — per RUN, so a fresh run never inherits a
+ * debt — and it counts FIGHTS, not bodies: a player who fights three times has had three chances at
+ * the game's mercy whether they field one mingming or three.
+ */
+export const BLUEPRINT_PITY_FIGHTS = 5;
+
+/**
+ * The blueprint chance for one body, given how many bodies this fight fields.
+ *
+ * Exported because the rate is a thing the UI and the balance harness both have to be able to
+ * state, and a second copy of "plus ten if solo" is exactly how a table and a screen come to
+ * disagree. Capped at 1: the alpha is already certain and cannot become more so.
+ */
+export function blueprintRateFor(nodeKind: NodeKind, bodies: number): number {
+    const base = BLUEPRINT_DROP_RATE[nodeKind] ?? 0;
+    // Rate 0 stays 0. A marketplace does not become a 10% blueprint because you walked in alone —
+    // the three non-fight kinds are 0 by `FIGHT_KINDS`, and a bonus that ignored that would hand
+    // a future event-fight a payout nobody authored.
+    if (base <= 0) return 0;
+    return Math.min(1, bodies <= 1 ? base + SOLO_BLUEPRINT_BONUS : base);
+}
+
+/**
  * **`getBlueprintRate(rosterSize)` IS DELETED, NOT KEPT AS A MULTIPLIER.** It scaled the drop by
  * how many mingmings the player owned — 0.75 at one, 0.50 at two, 0.15 from three on — and the
  * argument for removing it is the reason ticket 12 exists at all:
@@ -424,6 +481,10 @@ function rollForEntity(
     pool: string[],
     prng: PRNG,
     ids: SeedStream,
+    /** Bodies this fight fields — the solo bonus's only input (`blueprintRateFor`). */
+    bodies: number,
+    /** The pity floor has come due: this body drops whatever it rolled. */
+    guaranteed: boolean,
 ): { blueprint: string | null; cardChoice: ICardChoice; nextSeed: PrngSeed } {
     // 1. Blueprint, at the node-kind rate. Rolled even at rate 0 and at rate 1 so the seed chain
     //    advances identically whatever the node is — an alpha and a wild consume the same number of
@@ -433,7 +494,7 @@ function rollForEntity(
     //    fight** now (`scrapForWin`) and it is **flat**, so there is no scrap draw at all and this
     //    is the chain's first roll. One fewer draw per body — the sequence moved, which is a
     //    reward-roll change and not a battle one.
-    const bpRate = BLUEPRINT_DROP_RATE[nodeKind] ?? 0;
+    const bpRate = blueprintRateFor(nodeKind, bodies);
     const bpRoll = prng.next();
     let currentSeed = bpRoll.nextSeed;
 
@@ -445,7 +506,12 @@ function rollForEntity(
     // drop again** — `gameSlice.addBlueprint` stacks the count rather than deduping (ticket 20), so
     // a repeat drop is a second assembly or a second IV re-roll. Nothing here consults the ranch;
     // it structurally cannot suppress a duplicate.
-    const blueprint = bpRoll.value < bpRate ? entity.definitionId : null;
+    //
+    // The pity floor (2026-09-01) forces the drop rather than skipping the roll: the draw is taken
+    // either way so that the seed chain — and therefore every card choice behind it — is identical
+    // whether or not the floor fired. A guarantee that changed the cards you were offered would
+    // make the mercy visible in the wrong place.
+    const blueprint = (guaranteed || bpRoll.value < bpRate) ? entity.definitionId : null;
 
     // 3. The "pick 1 of SALVAGE_CHOICES_PER_FOE".
     //
@@ -509,6 +575,14 @@ export interface IRewardRollInput {
     readonly party: ReadonlyArray<IRewardPartyMember>;
     /** The battle's seed. Same seed + same inputs → byte-identical bundle, instance ids included. */
     readonly seed: string;
+    /**
+     * Won fights since the last blueprint — `IRunState.blueprintDryFights`, threaded in.
+     *
+     * Defaults to 0, which is what a debug scenario and every caller written before the pity floor
+     * mean: no drought, no mercy owed. The engine reads the counter and never writes it — the run
+     * owns it, and `BattleArena` advances it once per victory beside the banking dispatch.
+     */
+    readonly dryFights?: number;
 }
 
 /**
@@ -524,7 +598,24 @@ export interface IRewardRollInput {
  * re-entered node pay full rewards, by Henry's amendment of 2026-08-21.
  */
 export function rollDropTable(input: IRewardRollInput): IRewardBundle {
-    const { defeated, nodeKind, party, seed } = input;
+    const { defeated, nodeKind, party, seed, dryFights = 0 } = input;
+
+    /*
+     * THE FIGHT'S SIZE IS ITS CORPSES, not the player's party.
+     *
+     * They are the same number in every fight the run rolls (`enemyPartySize` mirrors the party,
+     * with the ambush and alpha exceptions), but this module is handed the corpses and cannot see
+     * the run — and the corpse count is the honest one anyway, because it IS how many rolls the
+     * fight gets. A solo player who somehow met two enemies has two chances and should not also
+     * hold the bonus for having one.
+     */
+    const bodies = defeated.filter((entity) => entity.currentHp <= 0).length;
+
+    /*
+     * The floor comes due ONCE, on the first corpse. Applying it per body would hand a three-body
+     * fight three guaranteed blueprints for one drought, which is a windfall rather than a floor.
+     */
+    let pityOwed = dryFights >= BLUEPRINT_PITY_FIGHTS;
 
     // The pool is the party's, once per fight. `primaryElement` of the first corpse is only the
     // fallback's fallback — used when the party contributes no cards at all (see `rewardCardPool`).
@@ -544,7 +635,8 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         // Only get rewards for fainted enemies
         if (entity.currentHp > 0) continue;
 
-        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids);
+        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids, bodies, pityOwed);
+        pityOwed = false;
 
         defeatedCount += 1;
         if (result.blueprint) {
