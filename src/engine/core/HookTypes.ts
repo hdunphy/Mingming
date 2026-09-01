@@ -142,6 +142,16 @@ export type HookAction = {
     // missing from this union, which is why that comparison needed a cast to compile (ticket 55).
     type: ActionType | 'HP' | 'LOG' | 'COUNTER' | 'DRAW' | 'MAX_ENERGY'; // Hooks can perform actions or log
     target?: 'SELF' | 'TARGET' | 'SOURCE' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
+    /**
+     * Ticket 69 (`drip_feed`): apply this action ONLY to resolved targets that already carry this
+     * status. Checked per target, so it is meaningful on the multi-target forms — `ALLIES` and
+     * `ENEMIES` — where the group is resolved but its members differ.
+     *
+     * *"each POISONED ally gains 1 Regen"* is not expressible without it: `target: 'ALLIES'` runs the
+     * executor once per ally with no way to skip the healthy ones, and a hook-level `when` clause
+     * tests the CONTEXT's target rather than each member of a resolved group.
+     */
+    targetHasStatus?: StatusType;
     status?: StatusType;
     stacks?: number;
     amount?: number;

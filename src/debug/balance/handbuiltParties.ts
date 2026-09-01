@@ -46,8 +46,14 @@ export interface HandbuiltParty {
     readonly label: string;
     /** OS ids in party order. Species must be distinct (the no-duplicate-species law). */
     readonly lineup: ReadonlyArray<string>;
-    /** The WHOLE deck, as card dataIds. Not validated against `minimumActiveDeck` — see above. */
-    readonly deck: ReadonlyArray<string>;
+    /**
+     * The WHOLE deck, as card dataIds. Not validated against `minimumActiveDeck` — see above.
+     *
+     * **Omit it to use the run-dealt start deck for this lineup.** That is the right choice when the
+     * party is the variable under test and the deck is not: a playtested team should be measured with
+     * the cards the run actually hands it, not with a list somebody transcribed from a save.
+     */
+    readonly deck?: ReadonlyArray<string>;
 }
 
 /**
@@ -118,8 +124,39 @@ const TIDEWRACK_COUNTER_V1: HandbuiltParty = {
     ],
 };
 
+/**
+ * THE PLAYTEST PARTY — Henry beat Tidewrack with this on 2026-08-31, and it is the first team that
+ * has.
+ *
+ * `ratatoskr_v2` + `huldra_v1` + `kraken_v2`. Henry, after the win: *"it was rough at times."* He
+ * finished on one body at turn 7.
+ *
+ * # WHY IT IS WORTH A MEASURED ARM
+ *
+ * It won the way the data said this fight has to be won — by REMOVING BODIES, not by surviving.
+ * From his log: `Surge Protection -> Skoll -> 32 damage DEFEATED` on turn 2, and Maelstrom kills
+ * their kraken on turn 4. Two of three boss bodies gone before turn 5, which cuts the boss's rate
+ * without touching the player's. The hand-built mitigation deck (13.3%) never removed one.
+ *
+ * It also **runs no `ink_stream`**, which matters for the arms: the card is in both the generated
+ * player deck and the boss pile, so every previous nerf to it hit both sides. Against this party a
+ * cut to `ink_stream` is finally a one-sided change.
+ *
+ * # NO DECK LIST, DELIBERATELY
+ *
+ * `deck` is omitted so the arm is dealt the ordinary run start deck for this lineup — which is what
+ * Henry played. The variable under test is the PARTY. Transcribing his deck would freeze one
+ * shuffle's worth of drafting into a constant and quietly make the arm about that instead.
+ */
+const TIDEWRACK_PLAYTEST_V1: HandbuiltParty = {
+    id: 'tidewrack_playtest_v1',
+    label: "Henry's playtest team — the first party to beat Tidewrack (2 Nature + 1 Water, run-dealt deck)",
+    lineup: ['ratatoskr_v2', 'huldra_v1', 'kraken_v2'],
+};
+
 export const HANDBUILT_PARTIES: Readonly<Record<string, HandbuiltParty>> = {
     [TIDEWRACK_COUNTER_V1.id]: TIDEWRACK_COUNTER_V1,
+    [TIDEWRACK_PLAYTEST_V1.id]: TIDEWRACK_PLAYTEST_V1,
 };
 
 export function handbuiltParty(id: string): HandbuiltParty | undefined {

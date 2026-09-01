@@ -20,6 +20,8 @@ import {
     sampleFight,
     wilson,
     type BossOverride,
+    type CellMeasurement,
+    type BandMeasurement,
     type SampledFight,
 } from './runGate';
 
@@ -413,6 +415,33 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
         }
     });
 
+    it('fields MIXED-firmware teams — the pairing bug, pinned', () => {
+        /*
+         * `drawFromElement` used to pick every slot as `firmwares[index % firmwares.length]` with the
+         * same `index`, so an arm was all-v1 on even samples and all-v2 on odd ones and a mixed team
+         * was UNREACHABLE. That is not a cosmetic sampling flaw: it is the mechanism behind the
+         * per-deck split in the three-gym table (15/15 vs 10/15, 14/15 vs 9/15, 11/15 vs 1/15).
+         * n = 30 was two decks fifteen times.
+         *
+         * Asserted as a COUNT of distinct lineups and a floor on mixed ones, because "the arm varies"
+         * is the property; naming particular lineups would pin the rotation instead and break every
+         * time the roster grows.
+         */
+        const cell = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
+        for (const mode of ['favourable', 'control'] as const) {
+            const lineups = new Set<string>();
+            let mixed = 0;
+            for (let i = 0; i < 16; i += 1) {
+                const key = sampleFight(cell, i, mode, undefined, 'gym_tidewrack').lineup.join('+');
+                if (!lineups.has(key) && /_v1/.test(key) && /_v2/.test(key)) mixed += 1;
+                lineups.add(key);
+            }
+            // The old code produced exactly 2. Eight is every v1/v2 combination of three slots.
+            expect(lineups.size, `${mode} must sample more than the two firmware-locked teams`).toBeGreaterThan(4);
+            expect(mixed, `${mode} must reach mixed-firmware teams at all`).toBeGreaterThan(0);
+        }
+    });
+
     it('keeps both arms a SAMPLE of decks rather than a fixture', () => {
         // The prepared arm rotates through every firmware of the counter element. Without that, a
         // 60-battle boss run would field the same two decks sixty times and report one matchup's
@@ -569,5 +598,65 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
         expect(describeBossOverride({})).toBe('boss as shipped');
         expect(describeBossOverride({ ivs: { hp: 10, attack: 10, defense: 10 } })).toContain('10/10/10');
         expect(describeBossOverride({ relics: 'off' })).toContain('signature passive OFF');
+    });
+});
+
+/**
+ * THE GAUNTLET IS GRADED ON ITS COMPOUND — Henry 2026-08-30, ratified in
+ * `research/69-toolbox-printings.md`.
+ *
+ * 60% is the chance of CLEARING the gym: three fights on one HP pool. The gate used to compare that
+ * whole-gauntlet target against the POOLED PER-FIGHT rate, which is a different quantity — a uniform
+ * gauntlet needs 0.60^(1/3) = 84.3% per fight to clear at 60%.
+ *
+ * It was not a harmless mislabel. Emberfall's three fights measured 83.3 / 90.0 / 80.0, product
+ * **60.0%, exactly on target**, and the gate printed FAIL by 23 points for several sessions — which
+ * is where the HELD "the boss is 15pt ABOVE target" ruling came from.
+ */
+describe('band verdicts grade the quantity the target describes', () => {
+    const cellsOf = (rates: number[]): CellMeasurement[] =>
+        rates.map((r, i) => ({
+            cell: { id: `gauntlet:fight${i}` }, wins: Math.round(r * 100), battles: 100,
+            winRate: r, decisiveRate: r, avgTurns: 4, ftk: 0, stalled: 0, elapsedMs: 0,
+            lineups: [], enemies: [],
+        } as unknown as CellMeasurement));
+
+    const band = (rates: number[]): BandMeasurement => {
+        const wins = cellsOf(rates).reduce((n, c) => n + c.wins, 0);
+        const battles = cellsOf(rates).reduce((n, c) => n + c.battles, 0);
+        const compound = cellsOf(rates).reduce((p, c) => p * c.winRate, 1);
+        return {
+            band: 'gauntlet', target: RUN_GATE_TARGETS.gauntlet, measured: wins / battles,
+            low: 0, high: 1, wins, battles, compound,
+            inBand: bandVerdict(compound, RUN_GATE_TARGETS.gauntlet),
+            elapsedMs: 0, cells: cellsOf(rates),
+        };
+    };
+
+    it('PASSES the Emberfall figures that the old reading called a 23-point FAIL', () => {
+        const emberfall = band([0.833, 0.900, 0.800]);
+        expect(emberfall.compound, 'the three fights compound to the target exactly').toBeCloseTo(0.60, 2);
+        expect(emberfall.inBand, 'calibrated, and it must read as calibrated').toBe(true);
+        // The pooled per-fight rate is what USED to be graded. Keeping it in the record is the point:
+        // it is 84.4%, which against a 60% target looks like a boss that is far too easy.
+        expect(emberfall.measured).toBeGreaterThan(0.80);
+        expect(bandVerdict(emberfall.measured, RUN_GATE_TARGETS.gauntlet), 'the old reading FAILED it').toBe(false);
+    });
+
+    it('still FAILS a gauntlet that genuinely cannot be cleared', () => {
+        // The guard against over-correcting: the compound must not rescue a real failure. Three
+        // fights at 23% clear 1.2% of the time.
+        const tidewrack = band([0.233, 0.233, 0.233]);
+        expect(tidewrack.compound).toBeLessThan(0.05);
+        expect(tidewrack.inBand).toBe(false);
+    });
+
+    it('leaves the single-fight bands alone — their pooled rate IS their target’s quantity', () => {
+        // A wild and an elite are one fight, so there is nothing to compound and `compound` must be
+        // absent rather than equal to `measured`; an absent field is what tells the report which
+        // number it is printing.
+        for (const id of ['wild', 'elite'] as const) {
+            expect(bandVerdict(RUN_GATE_TARGETS[id], RUN_GATE_TARGETS[id])).toBe(true);
+        }
     });
 });

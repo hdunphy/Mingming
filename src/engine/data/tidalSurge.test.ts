@@ -201,7 +201,34 @@ describe('Tidewrack, authored', () => {
     it('is the authored trio and not a rolled one', () => {
         const { fight } = fightFor('gym_tidewrack');
         const running = fight.enemyParty.map((e: IBattleEntity) => e.activeOS).sort();
-        expect(running).toEqual(['jormungandr_v1', 'kraken_v1', 'skoll_v2']);
+        // TICKET 74: kraken_v1 -> kraken_v2. Transcribed rather than read back off `AUTHORED_BOSSES`
+        // on purpose — a pin that derives its expectation from the table it guards passes whatever
+        // the table says, which is the one thing a pin must not do.
+        expect(running).toEqual(['jormungandr_v1', 'kraken_v2', 'skoll_v2']);
+    });
+
+    it('fields ONE draw engine after ticket 74, which is the substance of the swap', () => {
+        /*
+         * The comp swap is only worth what it takes out of the pile, and that is the thing a future
+         * edit could silently undo — restoring `kraken_v1`, or handing `kraken_v2` a draw payoff,
+         * would leave the trio assertion above green while putting the two-engine fight back.
+         *
+         * research/73: `CARDS_DRAWN_TRIGGERED` is scoped per-Mingming, so an `ink_stream` is worth
+         * whatever its OWN body drew this turn. Two bodies each holding the payoff AND its own
+         * cantrips is the 30.0% fight; one body holding it is the ticket's bet.
+         */
+        const { fight } = fightFor('gym_tidewrack');
+        const pile: ReadonlyArray<string> = fight.enemyDeckIds;
+
+        expect(pile.filter((id) => id === 'ink_stream').length,
+            'jormungandr_v1 keeps its two; kraken_v1\'s two are what the swap removed').toBe(2);
+        expect(pile.filter((id) => id === 'undertow').length,
+            'the third cantrip left with kraken_v1').toBe(2);
+        for (const gone of ['whirlpool_v2', 'pressure_point']) {
+            expect(pile, `${gone} is ABYSSAL_INK_SYS's draw half and should be out of the pile`).not.toContain(gone);
+        }
+        // And the replacement really is present, or the swap dropped a body rather than changing one.
+        expect(pile, 'TIDAL_CRUSH\'s 3e payoff').toContain('maelstrom');
     });
 
     it('telegraphs on the offer screen and carries to the region final elite', () => {

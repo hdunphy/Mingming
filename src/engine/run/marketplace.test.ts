@@ -43,6 +43,7 @@ import * as marketplace from './marketplace';
 import {
     CARD_PRICE_BY_ENERGY,
     MARKET_NEUTRAL_SLOTS,
+    GYM_COUNTER_ANSWERS,
     MARKET_NEUTRAL_UTILITY,
     MARKET_STOCK_SIZE,
     MARKET_TOTAL_SLOTS,
@@ -209,6 +210,29 @@ describe('what is in the stock', () => {
             // 67 R4.3 names this card. It is the hedge; the rest of the list is breadth.
             expect(MARKET_NEUTRAL_UTILITY).toContain('hamstring');
             expect(new Set(MARKET_NEUTRAL_UTILITY).size).toBe(MARKET_NEUTRAL_UTILITY.length);
+        });
+
+        it('carries EVERY toolbox printing — the standing law, asserted per gym', () => {
+            /*
+             * `research/69-toolbox-printings.md` closes ticket 69's law: *every gym boss ships with
+             * at least THREE counter flavors reachable by any party*. Henry's reason is on the
+             * ticket — *"otherwise you build the same deck every time and it feels bad if you can't
+             * find the one card"* — so the law is about REACHABILITY, and it is asserted per gym
+             * rather than as a flat list, because a flat list would still pass if all nine answers
+             * belonged to one boss.
+             *
+             * A card that is printed but not stocked here is unreachable, which is the same outcome
+             * as never printing it and has no other alarm.
+             */
+            // Read from the exported table rather than a second copy: a hand-written list here
+            // would keep passing after the real one drifted, which is the failure this guards.
+            expect(Object.keys(GYM_COUNTER_ANSWERS)).toHaveLength(3);
+            for (const [gym, answers] of Object.entries(GYM_COUNTER_ANSWERS)) {
+                expect(answers.length, `${gym} needs three flavors`).toBeGreaterThanOrEqual(3);
+                for (const id of answers) {
+                    expect(MARKET_NEUTRAL_UTILITY, `${gym} — ${id} is not reachable`).toContain(id);
+                }
+            }
         });
 
         it('every entry satisfies the three conditions the list is DERIVED from', () => {

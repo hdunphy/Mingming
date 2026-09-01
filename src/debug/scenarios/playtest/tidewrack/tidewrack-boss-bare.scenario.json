@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "Tidewrack boss — prepared 2-1",
+  "description": "The measured favourable arm, sample 0. 2 Nature + 1 Water, 18-card start deck, no purchases. Measured 26.7% (8/30).",
+  "tags": [
+    "playtest",
+    "tidewrack",
+    "gauntlet-boss",
+    "bare"
+  ],
+  "registryHash": "1:8a4264b7",
+  "createdAt": "2026-08-30T00:00:00.000Z",
+  "setup": {
+    "seed": "1458079296",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "ratatoskr",
+          "activeOS": "ratatoskr_v1",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15
+        },
+        {
+          "definitionId": "huldra",
+          "activeOS": "huldra_v1",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15
+        },
+        {
+          "definitionId": "kraken",
+          "activeOS": "kraken_v1",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15
+        }
+      ],
+      "deck": [
+        "seed_bomb_v2",
+        "forage",
+        "forage",
+        "echo_chamber_v2",
+        "healing_mist",
+        "water_slap",
+        "water_slap",
+        "water_slap",
+        "hexbloom",
+        "growth",
+        "growth",
+        "iron_bark",
+        "thorn_tithe",
+        "ink_stream",
+        "undertow",
+        "whirlpool_v2",
+        "pressure_point",
+        "pressure_point"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "jormungandr",
+        "activeOS": "jormungandr_v1",
+        "attackIV": 20,
+        "defenseIV": 20,
+        "hpIV": 20,
+        "deck": [
+          "undertow",
+          "undertow",
+          "blind_spot",
+          "corrosive_leak",
+          "surge_protection",
+          "serpents_coil",
+          "serpents_coil",
+          "ink_stream",
+          "ink_stream",
+          "whirlpool_v2",
+          "whirlpool_v2",
+          "pressure_point",
+          "pressure_point",
+          "ink_stream",
+          "ink_stream",
+          "surge_protection",
+          "undertow",
+          "strength_burst",
+          "fury_strike",
+          "fury_strike",
+          "all_in",
+          "desperate_strike",
+          "reckless_charge",
+          "overdrive",
+          "glass_cannon",
+          "water_slap"
+        ]
+      },
+      {
+        "definitionId": "kraken",
+        "activeOS": "kraken_v1",
+        "attackIV": 20,
+        "defenseIV": 20,
+        "hpIV": 20,
+        "deck": []
+      },
+      {
+        "definitionId": "skoll",
+        "activeOS": "skoll_v2",
+        "attackIV": 20,
+        "defenseIV": 20,
+        "hpIV": 20,
+        "deck": []
+      }
+    ],
+    "enemyDrivers": [
+      "driver_tidal_surge"
+    ],
+    "statJitter": 5
+  }
+}

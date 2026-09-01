@@ -1417,5 +1417,119 @@
                 ]
             }
         ]
+    },
+    "reactive_plating": {
+        "id": "reactive_plating",
+        "name": "REACTIVE_PLATING",
+        "description": "Daemon: When an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 Sharp granted per turn.",
+        "hooks": [
+            {
+                "id": "reactive_plating_proc",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "counter": {
+                        "key": "reactive_plating_grants",
+                        "operator": "LT",
+                        "value": 3,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_grants",
+                        "operator": "ADD",
+                        "amount": 1,
+                        "scope": "SIDE"
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Sharp",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  🛡️ {owner}'s REACTIVE_PLATING hardens {target}!"
+                    }
+                ]
+            },
+            {
+                "id": "reactive_plating_reset",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_grants",
+                        "operator": "RESET",
+                        "scope": "SIDE"
+                    }
+                ]
+            }
+        ]
+    },
+    "scrubber": {
+        "id": "scrubber",
+        "name": "SCRUBBER",
+        "description": "Daemon: At the end of your turn, remove 1 Poison from each ally.",
+        "hooks": [
+            {
+                "id": "scrubber_purge",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "ALLIES",
+                        "status": "Poison",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  🧹 {owner}'s SCRUBBER vents 1 Poison from the team."
+                    }
+                ]
+            }
+        ]
+    },
+    "drip_feed": {
+        "id": "drip_feed",
+        "name": "DRIP_FEED",
+        "description": "Daemon: At the end of your turn, each poisoned ally gains 1 Regen.",
+        "hooks": [
+            {
+                "id": "drip_feed_tick",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "ALLIES",
+                        "targetHasStatus": "Poison",
+                        "status": "Regen",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  💧 {owner}'s DRIP_FEED feeds the poisoned."
+                    }
+                ]
+            }
+        ]
     }
 }
