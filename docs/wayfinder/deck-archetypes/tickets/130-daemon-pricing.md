@@ -1,5 +1,8 @@
 # Ticket 130 — daemons are priced by a guess, and the guess is load-bearing
 
+**Status:** OPEN. Widened 2026-09-01 with a second `powerscale` mispricing — see the DRAW section
+at the end.
+
 - Type: wayfinder:task. **Status: open.** Raised by Henry, 2026-09-01: *"Do we have a ticket to
   address daemon power? if not we need one."*
 
@@ -64,3 +67,30 @@ Not a bigger constant. Three pieces, in order of value:
 Until (1) and (2) exist, every daemon price in the pool is a turn-1 best case with a guessed rate,
 and `feedback_loop_daemon` is the proof that the error is large enough to matter: the constant says
 2.7, the measured turn-3 value is 1.7.
+
+---
+
+## Added 2026-09-01: `DRAW` is mispriced too, and it is not a daemon problem
+
+`powerscale`'s utility table prices a card draw at **15 power**. Ticket 131's whirlpool arms measured
+what a second draw is actually worth on a deck that can use it:
+
+| `whirlpool_v2` arm | score | `kraken_v1` field (30 cells x 10) |
+|---|---|---|
+| shipped — 8 power, draw 1 | 2.2 | 52.50 |
+| 8 power, draw 1, +1 Dazed | 2.7 | 56.50 |
+| 15 power, draw 1 | 2.9 | 56.50 |
+| **draw 2, 1 Dazed, no power** | **2.8** | **85.67** |
+
+Three arms priced within 0.7 of each other, and one of them is worth **eight times** what the others
+are: +33 field points against +4. **Nothing scored inside the 1e band should be able to move a deck
+33 points.**
+
+The mechanism is the same shape as the daemon problem above — a static price for something whose
+value depends on context the model cannot see. A draw is worth roughly a card's average value, and
+that is a property of the DECK, not of the card doing the drawing: `kraken_v1` runs two copies, so a
+1e cantrip that draws 2 is net +1 card twice a cycle and the deck stops having a card economy.
+
+Worth fixing in the same pass as the proc rates, and worth the same treatment: a measured number
+rather than a constant. Until then, **treat any card that draws more than one as unpriced** and
+gate it on a field arm rather than a score.

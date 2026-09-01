@@ -1,5 +1,9 @@
 # Ticket 131 — the whirlpool ruling fails, HP is the right lever, and the numbers are too small to tune
 
+**Status:** SHIPPED 2026-09-01 in five commits — 131a `fd720af` (whirlpool), 131b `4b083ff` (+1
+draw, +50% HP), 131d `43994f8` (hand cap 15), 131e `c772cd1` (feedback_loop), 131c `1f69e37` (x10).
+Follow-ups: ticket 132 (re-baseline) and ticket 133 (dawns_respite).
+
 Henry, 2026-09-01. Three rulings tested and one design question answered.
 
 ---

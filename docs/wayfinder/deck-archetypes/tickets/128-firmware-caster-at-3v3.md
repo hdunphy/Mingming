@@ -1,6 +1,9 @@
 # Ticket 128 — CINDER_WALL_OS works. 16 of 33 firmwares still go quiet at 3v3
 
-**Status:** DIAGNOSED, no fix shipped — the mechanism is sound and the fix is a ruling.
+**Status:** PART-RULED, UI half OPEN. Henry ruled 2026-09-01 that the `source: SELF` gating STAYS —
+*"we already learned our lesson that per side OS's are too OP."* So options 2 and 3 below are
+closed. **Option 1 — making the caster unmistakable in the UI — is still open and still the one
+that fixes all sixteen firmwares at once.**
 Henry, mid-run: *"fenrir_v2 doesn't seem to work. I'm at the elite and he doesn't gain any sharp."*
 
 ---

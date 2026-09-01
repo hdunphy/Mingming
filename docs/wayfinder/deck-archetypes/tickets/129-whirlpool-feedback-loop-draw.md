@@ -1,5 +1,8 @@
 # Ticket 129 — whirlpool, feedback_loop, and what an extra card draw does
 
+**Status:** CLOSED 2026-09-01. Every measurement here was acted on in ticket 131 (a–e). The 0e
+finding stands as a decision NOT to spend a knob.
+
 Three of Henry's playtest calls, measured. Nothing shipped — every number below is a proposal.
 
 Instruments: `scratch/pricewhat.ts` (flag-based pricer), `scratch/whirlpoolarms.ts` (deck arms at
