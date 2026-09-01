@@ -1060,7 +1060,7 @@
     "whirlpool_v2": {
         "id": "whirlpool_v2",
         "name": "Whirlpool",
-        "description": "8 power. Draw a card.",
+        "description": "8 power. Draw a card. Apply 1 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1081,6 +1081,12 @@
                 "type": "DRAW",
                 "amount": 1,
                 "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
+                "target": "TARGET"
             }
         ]
     },
