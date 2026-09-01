@@ -104,7 +104,7 @@ import {
 import { RUN_ENEMY_MODE, rollEncounter } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS, isBossFight, rollGauntletFight } from '../../engine/run/gauntlet';
 import { offerGyms } from '../../engine/run/gyms';
-import { GYM_COUNTER_ANSWERS } from '../../engine/run/marketplace';
+import { GYM_COUNTER_ANSWERS, GYM_SELECTIVE_ANSWERS } from '../../engine/run/marketplace';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IBattleEntity, IMingmingState } from '../../engine/types';
@@ -353,6 +353,36 @@ const countersOf = (target: string): string[] =>
  * boss with firestarters"* means, and it necessarily leaves the other two boss members
  * un-countered. That is the real shape of the fight rather than a limitation of the harness.
  */
+/**
+ * How much of the gym's counter tech the party arrives holding — ticket 75's shopping-policy arms.
+ *
+ * `undefined`/`false` is the bare arm, which since ruling 2 is **the arm that GRADES a gym**; every
+ * toolbox mode is a diagnostic line beside it.
+ */
+export type ToolboxMode = boolean | 'all' | 'selective' | `card:${string}`;
+
+/** The cards a given shopping policy adds to the deck at a given gym. Empty for the bare arm. */
+export function toolboxAnswersFor(mode: ToolboxMode | undefined, gymId: string): ReadonlyArray<string> {
+    if (mode === undefined || mode === false) return [];
+    if (mode === true || mode === 'all') return GYM_COUNTER_ANSWERS[gymId] ?? [];
+    if (mode === 'selective') return GYM_SELECTIVE_ANSWERS[gymId] ?? [];
+    return [mode.slice('card:'.length)];
+}
+
+/**
+ * `--lean <Element>`: build the party around a NAMED element instead of the gym's counter.
+ *
+ * Ticket 76 arm 3 asks for a party-lean bracket at Rootfall, and the trap is hand-picking three
+ * parties: the bracket would then measure my team-building rather than the lean. So it reuses the
+ * harness's own `lineupAgainst` picker unchanged and only moves the element handed to it.
+ *
+ * `lineupAgainst(.., target, 'favourable')` fills from `countersOf(target)` — so to LEAN on element
+ * E you pass the element E counters. Over the launch 3-cycle (Fire > Nature > Water > Fire) that is
+ * a lookup, and it is the inverse of `COUNTERED_BY` in `gyms.ts` rather than a second opinion about
+ * the triangle.
+ */
+const LEAN_TARGET: Readonly<Record<string, string>> = { Fire: 'Nature', Nature: 'Water', Water: 'Fire' };
+
 function targetElementFor(
     cell: RunGateCell,
     gym: { readonly element: string },
@@ -898,8 +928,8 @@ export function sampleFight(
      * `targetElement` is still reported, because it is a property of the gym rather than of the arm.
      */
     handbuilt?: HandbuiltParty,
-    /** Append the pinned gym's three ruled counter answers to the deck — see below. */
-    toolbox?: boolean,
+    /** Which shopping policy the party arrives on — see `ToolboxMode` and the block below. */
+    toolbox?: ToolboxMode,
     /**
      * Named, uncommitted balance knobs — see `experimentalTweaks.ts`.
      *
@@ -908,6 +938,8 @@ export function sampleFight(
      * knobs thread through ONE parameter and a knob added later cannot be forgotten at this call.
      */
     tweaks?: ReadonlyArray<string>,
+    /** Build the party around this element instead of the gym's counter — see `LEAN_TARGET`. */
+    lean?: string,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -928,7 +960,15 @@ export function sampleFight(
         : offers[index % offers.length];
     const target = targetElementFor(cell, offer.gym, offer.biomes);
 
-    const lineup = handbuilt ? [...handbuilt.lineup] : lineupAgainst(index, cell.partySize, target, matchup);
+    /*
+     * `--lean` moves ONLY the element the picker is aimed at. The gym, the biomes, the enemy roll,
+     * the seed and `targetElement` in the report are all still the gym's own, so a leaned arm is
+     * directly paired against an unleaned one at the same cell.
+     */
+    const lineupTarget = lean !== undefined ? (LEAN_TARGET[lean] ?? target) : target;
+    const lineup = handbuilt
+        ? [...handbuilt.lineup]
+        : lineupAgainst(index, cell.partySize, lineupTarget, lean !== undefined ? 'favourable' : matchup);
     const party = partyFor(lineup);
 
     const created = createRun({ seed, offer, party, startedAt: 0 });
@@ -959,11 +999,22 @@ export function sampleFight(
      * probability — a different measurement, on the market rather than on the gym.
      *
      * Read off `GYM_COUNTER_ANSWERS` rather than a list here, so the arm and the shop cannot drift.
+     *
+     * # TICKET 75: THREE SHOPPING POLICIES, NOT ONE
+     *
+     * `all` is the original ceiling above. The other two exist because research/75 measured that
+     * ceiling costing the player 11.5 points at every gym, and Henry ruled the -11.5 be DIAGNOSED
+     * rather than acted on: it cannot distinguish a bad SHOPPING POLICY from bad PRINTINGS.
+     *
+     *  - **`selective`** — the two answers a player would actually prioritise (`GYM_SELECTIVE_ANSWERS`,
+     *    cheapest-first). If the basket is the problem, this arm recovers most of the loss.
+     *  - **`card:<id>`** — exactly ONE card into the bare deck. This is the arm that lets a reprice be
+     *    ruled on a card's own number instead of the basket's, which is ruling 1b's whole point. The
+     *    id is NOT checked against the gym's answer set on purpose: asking what `scrubber` costs at
+     *    Emberfall is a legitimate question and the harness should not have an opinion about it.
      */
-    if (toolbox) {
-        const answers = GYM_COUNTER_ANSWERS[offer.gym.id] ?? [];
-        deck = [...deck, ...answers];
-    }
+    const answers = toolboxAnswersFor(toolbox, offer.gym.id);
+    if (answers.length > 0) deck = [...deck, ...answers];
 
     // Not the opening fight — see `fightsResolvedAt`. Written as a spread rather than mutated
     // because `IRunState` is deeply readonly, which is right for every consumer but this one.
@@ -1129,8 +1180,10 @@ export interface MeasureOptions {
     readonly gymId?: string;
     /** A designed party and deck in place of the arm's generated one — see `HandbuiltParty`. */
     readonly handbuilt?: HandbuiltParty;
-    /** Give the party the gym's three ruled counter answers — the CEILING arm. See `sampleFight`. */
-    readonly toolbox?: boolean;
+    /** Which shopping policy the party arrives on — see `ToolboxMode`. Bare is the GRADING arm. */
+    readonly toolbox?: ToolboxMode;
+    /** Build the party around this element instead of the gym's counter — ticket 76's lean bracket. */
+    readonly lean?: string;
     /**
      * Named, uncommitted balance knobs for THIS measurement only — see `experimentalTweaks.ts`.
      *
@@ -1191,7 +1244,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
              */
             fight = sampleFight(
                 cell, at, options.matchup ?? 'blind', options.bossOverride, options.gymId,
-                options.handbuilt, options.toolbox, options.tweaks,
+                options.handbuilt, options.toolbox, options.tweaks, options.lean,
             );
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;

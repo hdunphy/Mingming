@@ -298,6 +298,43 @@ export const GYM_COUNTER_ANSWERS: Readonly<Record<string, ReadonlyArray<string>>
 };
 
 /**
+ * SELECTIVE SHOPPING — at most TWO answers per gym, ruled by Henry on ticket 75 (2026-08-31).
+ *
+ * # WHY A SECOND, SMALLER TABLE
+ *
+ * `GYM_COUNTER_ANSWERS` is the buy-EVERYTHING basket, and research/75 measured what buying it costs:
+ * **-11.5 points of win rate at every gym**, 540 paired battles, p = 0.0000017. Henry's ruling was
+ * *"the toolbox STAYS SHIPPED. No reprice, no pull — diagnose first"*, because that number cannot
+ * distinguish two very different failures: **the harness's shopping policy** (a player who buys all
+ * three answers has spent three market visits and three deck slots on situational tech) from
+ * **specific printings** being bad.
+ *
+ * This table is the first half of that diagnosis. It is the same gyms, the same ruled answers, cut
+ * to the two a player would actually prioritise.
+ *
+ * # HOW THE TWO WERE PICKED, SO IT IS NOT A JUDGEMENT CALL
+ *
+ * Ruling 1a names them per gym — *"cleanse tech at Rootfall, riptide/short_circuit at Tidewrack,
+ * plating/discharge/hamstring at Emberfall"* — and for Emberfall that names three, so a rule is
+ * needed for the cut. The rule applied is **cheapest first**, which is the same order a player short
+ * on energy would buy in and happens to agree with the ruling everywhere it is unambiguous:
+ *
+ *  - **Emberfall** keeps `hamstring` and `discharge` (1e each) and drops `reactive_plating` (2e).
+ *  - **Tidewrack** keeps `riptide` and `short_circuit`, exactly as ruled; `reactive_plating` drops.
+ *  - **Rootfall** keeps `vent` (0e) and `scrubber` (2e) — the two that actually REMOVE poison, which
+ *    is what "cleanse tech" names. `drip_feed` grants Regen rather than cleansing, so it drops.
+ *
+ * Five of the seven answers are 2-energy Daemons, which is a conspicuous fact about the basket in a
+ * 2-energy game. It is **not** asserted as the mechanism here — ruling 1 is explicit that nothing is
+ * asserted before the per-card arms land, and this table is one of the arms, not its conclusion.
+ */
+export const GYM_SELECTIVE_ANSWERS: Readonly<Record<string, ReadonlyArray<string>>> = {
+    gym_emberfall: ['hamstring', 'discharge'],
+    gym_tidewrack: ['riptide', 'short_circuit'],
+    gym_rootfall: ['vent', 'scrubber'],
+};
+
+/**
  * WHAT A CARD COSTS — **RULED by Henry in ticket 56, applied by ticket 57.**
  *
  * > *"Market buy: 0e 15 / 1e 25 / 2e 35 / 3e 45."*

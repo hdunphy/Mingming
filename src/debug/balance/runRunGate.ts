@@ -116,6 +116,7 @@ import { AI_TIER } from '../../engine/ai/TacticalAI';
 import { DEFAULT_MAX_TURNS } from './runBatch';
 import { HANDBUILT_PARTIES, handbuiltParty, type HandbuiltParty } from './handbuiltParties';
 import { applyRegistryTweaks, describeTweaks, validateTweaks } from './experimentalTweaks';
+
 import {
     CELLS,
     RUN_GATE_TARGETS,
@@ -129,7 +130,16 @@ import {
     type BandId,
     type BandMeasurement,
     type CellMeasurement,
+    type ToolboxMode,
 } from './runGate';
+
+/** One line for the banner naming exactly which cards this arm bought. */
+function describeToolbox(mode: ToolboxMode): string {
+    if (mode === true || mode === 'all') return 'buy-everything: all three ruled answers';
+    if (mode === 'selective') return 'SELECTIVE: the two a player would prioritise, cheapest first';
+    if (mode === false) return 'none';
+    return `ONE CARD: ${mode.slice('card:'.length)}`;
+}
 
 /**
  * `--out <file>` — mirror every reported line into a file, line by line, as it is produced.
@@ -210,7 +220,14 @@ interface Args {
      * A CEILING arm — see `sampleFight`. It answers "can a player holding the designed counters beat
      * this boss", not "does the average player find them".
      */
-    toolbox?: boolean;
+    toolbox?: ToolboxMode;
+    /**
+     * `--lean <Element>`: build the party around a named element instead of the gym's counter.
+     *
+     * Ticket 76 arm 3. Moves ONLY the element the lineup picker is aimed at — the gym, biomes, seed
+     * and enemy roll are untouched, so a leaned arm pairs directly against an unleaned one.
+     */
+    lean?: string;
     /**
      * `--tweak <name>[,<name>]`: named, uncommitted balance knobs for this measurement only.
      *
@@ -255,6 +272,25 @@ function resolveHandbuilt(id: string | undefined): HandbuiltParty | undefined {
     return found;
 }
 
+/**
+ * `--toolbox` bare = the buy-everything arm (unchanged). `--toolbox selective` = ticket 75's ≤2
+ * basket. `--toolbox card:<id>` = one card into the bare deck, ruling 1b's per-card arm.
+ *
+ * A value that is not one of those is REJECTED rather than falling back to `all` — the whole point
+ * of the per-card arms is that the report names the exact card, and a typo silently measuring the
+ * full basket would be the `--toolbox`-threaded-nowhere bug with a new hat.
+ */
+function parseToolbox(argv: string[], value: string | undefined): ToolboxMode | undefined {
+    if (!argv.includes('--toolbox')) return undefined;
+    // Bare flag: the next argv entry is another flag (or absent), so there is no mode to read.
+    if (value === undefined || value.startsWith('--')) return 'all';
+    if (value === 'all' || value === 'selective') return value;
+    if (value.startsWith('card:') && value.length > 'card:'.length) return value as ToolboxMode;
+    throw new Error(
+        `[run-gate] --toolbox expects nothing, "all", "selective", or "card:<id>" — got "${value}"`,
+    );
+}
+
 function parseArgs(argv: string[]): Args {
     const get = (flag: string): string | undefined => {
         const i = argv.indexOf(flag);
@@ -279,7 +315,8 @@ function parseArgs(argv: string[]): Args {
         gymId: get('--gym'),
         out: get('--out'),
         handbuilt: resolveHandbuilt(get('--handbuilt')),
-        toolbox: argv.includes('--toolbox'),
+        toolbox: parseToolbox(argv, get('--toolbox')),
+        lean: get('--lean'),
         tweaks: tweaks ?? [],
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
@@ -482,6 +519,7 @@ async function main(): Promise<void> {
             bossOverride: args.bossOverride,
             handbuilt: args.handbuilt,
             toolbox: args.toolbox,
+            lean: args.lean,
             tweaks: args.tweaks,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
@@ -501,8 +539,14 @@ async function main(): Promise<void> {
     // Ticket 68: a pinned arm is a different POPULATION from an unpinned one, so the header has to
     // say so — the whole value of these numbers is that they can be pasted somewhere and still mean
     // what they meant.
-    if (args.toolbox) {
-        say('  TOOLBOX ARM — the party holds this gym\'s three ruled counter answers (a CEILING, not a median run).');
+    if (args.toolbox !== undefined) {
+        say(`  TOOLBOX ARM (${describeToolbox(args.toolbox)}) — a DIAGNOSTIC line beside the bare arm, `
+            + 'which is what grades a gym (ticket 75 ruling 2).');
+    } else {
+        say('  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).');
+    }
+    if (args.lean !== undefined) {
+        say(`  PARTY LEAN: ${args.lean} — the lineup picker is aimed at ${args.lean} instead of the gym's counter (ticket 76).`);
     }
     if (args.tweaks.length > 0) {
         // Loud, and above the party line, because the one thing that must never happen to this

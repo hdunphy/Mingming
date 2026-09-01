@@ -1,9 +1,9 @@
 /**
  * EXPERIMENTAL TWEAKS — one named knob, applied for the length of a measurement, never committed.
  *
- * **THERE ARE CURRENTLY NO LIVE KNOBS.** Every knob this module has ever carried has been ruled on
- * and deleted. `--tweak <anything>` throws. That is the module working, not the module rotting —
- * read on before adding one, and read on before deleting the file.
+ * **ONE LIVE KNOB: `rootfall-rat-v2`** (ticket 76 arm 4). Every other knob this module has carried
+ * was ruled on and DELETED, and re-running one now throws with the ruling that retired it. That is
+ * the module working, not the module rotting — read on before adding one.
  *
  * # WHY THIS EXISTS RATHER THAN EDITING `programs.json`
  *
@@ -63,6 +63,26 @@
  * this module needs and the reason it exists without loosening the card type for everyone else.
  */
 
+import { AUTHORED_BOSSES, type IAuthoredBoss } from '../../engine/run/bosses';
+
+/**
+ * `rootfall-rat-v2` — ticket 76 arm 4, the one comp-swap candidate.
+ *
+ * Rootfall's authored trio is `huldra_v2 + ratatoskr_v1 + jormungandr_v2` under ROOT ROT. The
+ * ticket proposes swapping `ratatoskr_v1` for `ratatoskr_v2` — trading the sustain body for tempo —
+ * *"so the session starts with a comp datum the way Tidewrack's did"*.
+ *
+ * It is a KNOB rather than an edit because ticket 76 is explicit: **no lever moves before Henry's
+ * session**, and he may substitute a different candidate when it is held. Ticket 74's comp swap was
+ * an edit because it had already been ruled; this one has not been.
+ *
+ * Mutates `AUTHORED_BOSSES` rather than the program registry, so it needs its own cast: the table is
+ * `Readonly<Record<...>>` for every real consumer and this is the one place that is allowed to write
+ * to it. Same discipline as the registry knobs — process-global, applied once at script start,
+ * announced in the banner, never committed.
+ */
+const ROOTFALL_RAT_V2 = 'rootfall-rat-v2';
+
 /** Knobs that once existed, and the one-line reason each is gone. Drives the loud rejection. */
 const RETIRED: ReadonlyArray<{ readonly matches: (name: string) => boolean; readonly why: string }> = [
     {
@@ -93,16 +113,18 @@ export type TweakName = string;
 /**
  * Rejects an unknown or RETIRED knob loudly instead of silently measuring the baseline twice.
  *
- * With no live knobs this rejects everything, and that is correct: `--tweak` is currently a flag
- * with nothing to say yes to.
+ * Three outcomes: a live knob passes, a RETIRED one throws naming the ruling that retired it, and
+ * anything else throws as unknown. The retired case matters most — those names are still printed in
+ * committed research docs and shell history.
  */
 export function validateTweaks(names: ReadonlyArray<string>): void {
     for (const name of names) {
         const retired = RETIRED.find((entry) => entry.matches(name));
         if (retired) throw new Error(`[tweaks] "${name}" ${retired.why}`);
+        if (name === ROOTFALL_RAT_V2) continue;
         throw new Error(
-            `[tweaks] unknown tweak "${name}". There are currently NO live tweaks — every knob this `
-            + 'module carried has been ruled on and printed. See experimentalTweaks.ts to add one.',
+            `[tweaks] unknown tweak "${name}". The only live knob is "${ROOTFALL_RAT_V2}" `
+            + '(ticket 76 arm 4). Everything else this module carried has been ruled on and printed.',
         );
     }
 }
@@ -110,7 +132,10 @@ export function validateTweaks(names: ReadonlyArray<string>): void {
 /** One line per knob for the report banner — a tweaked number must never be pasted as a baseline. */
 export function describeTweaks(names: ReadonlyArray<string>): ReadonlyArray<string> {
     validateTweaks(names);
-    return [];
+    return names.map((name) => (name === ROOTFALL_RAT_V2
+        ? `${ROOTFALL_RAT_V2}: Rootfall's trio fields ratatoskr_v2 in place of ratatoskr_v1 `
+          + '(candidate only — ticket 76 moves no lever before Henry\'s session)'
+        : name));
 }
 
 /**
@@ -121,7 +146,29 @@ export function describeTweaks(names: ReadonlyArray<string>): ReadonlyArray<stri
  */
 export function applyRegistryTweaks(names: ReadonlyArray<string>): ReadonlyArray<string> {
     validateTweaks(names);
-    return [];
+    const applied: string[] = [];
+
+    for (const name of names) {
+        if (name !== ROOTFALL_RAT_V2) continue;
+
+        const gym = AUTHORED_BOSSES['gym_rootfall'];
+        if (gym === undefined) throw new Error('[tweaks] gym_rootfall has no authored boss');
+
+        const slot = gym.members.findIndex((m) => m.os === 'ratatoskr_v1');
+        if (slot < 0) {
+            // The trio changed under the knob — measuring it now would describe the wrong experiment.
+            throw new Error(
+                '[tweaks] Rootfall no longer fields ratatoskr_v1, so `rootfall-rat-v2` has nothing to '
+                + 'swap. The candidate is stale; re-read ticket 76 before running this arm.',
+            );
+        }
+
+        const members = gym.members.map((m, i) => (i === slot ? { ...m, os: 'ratatoskr_v2' } : m));
+        (AUTHORED_BOSSES as Record<string, IAuthoredBoss>)['gym_rootfall'] = { ...gym, members };
+        applied.push(name);
+    }
+
+    return applied;
 }
 
 /**

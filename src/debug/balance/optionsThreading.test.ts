@@ -30,8 +30,11 @@ import { describe, expect, it } from 'vitest';
 
 import { CELLS, sampleFight } from './runGate';
 import { handbuiltParty } from './handbuiltParties';
-import { GYM_COUNTER_ANSWERS } from '../../engine/run/marketplace';
+import { GYM_COUNTER_ANSWERS, GYM_SELECTIVE_ANSWERS } from '../../engine/run/marketplace';
 import { applyRegistryTweaks, describeTweaks, tweakEnemyDeck, validateTweaks } from './experimentalTweaks';
+import { AUTHORED_BOSSES } from '../../engine/run/bosses';
+
+const ROOT_KNOB = 'rootfall-rat-v2';
 
 const CELL = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
 const GYM = 'gym_tidewrack';
@@ -92,14 +95,14 @@ describe('every measureCell option reaches the fight', () => {
         expect(armed.biomeElements).toEqual(bare.biomeElements);
     });
 
-    it('`--tweak` still threads, with nothing live to thread', () => {
+    it('`--tweak` threads, and does not perturb what a paired arm holds fixed', () => {
         /*
-         * There are no live knobs (ticket 74 printed the last one), so this asserts the SEAM rather
-         * than an effect: `sampleFight` still accepts the parameter and passing an empty list is
-         * indistinguishable from passing none. The seam is kept deliberately — the threading
-         * guarantee was earned by a bug (`--toolbox` declared, parsed, banner-printed and passed
-         * nowhere, measuring the bare arm for thirty battles) and deleting it would make the next
-         * knob re-earn it from scratch.
+         * The live knob (`rootfall-rat-v2`) is applied process-wide before any fight is built, so
+         * what `sampleFight` must guarantee is the NEGATIVE: passing the list changes nothing about
+         * the seed, the roll or the deck. The seam is kept even when no knob reads it here, because
+         * the threading guarantee was earned by a bug — `--toolbox` declared, parsed, banner-printed
+         * and passed nowhere, measuring the bare arm for thirty battles — and deleting it would make
+         * the next knob re-earn it from scratch.
          */
         const none = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false);
         const empty = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, []);
@@ -109,6 +112,48 @@ describe('every measureCell option reaches the fight', () => {
         expect([...empty.setup.player.deck]).toEqual([...none.setup.player.deck]);
         expect(empty.setup.enemies.flatMap((e) => e.deck ?? []))
             .toEqual(none.setup.enemies.flatMap((e) => e.deck ?? []));
+    });
+
+    it('`--toolbox selective` buys the ruled TWO, not the basket', () => {
+        // Ticket 75 ruling 1a. The whole diagnosis rests on these arms being distinguishable, and a
+        // `selective` that quietly bought all three would read as "shopping policy is not the cause".
+        const all = [...sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, 'all').setup.player.deck];
+        const two = [...sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, 'selective').setup.player.deck];
+
+        expect(two.length).toBe(baseline.length + GYM_SELECTIVE_ANSWERS[GYM].length);
+        expect(two.length).toBeLessThan(all.length);
+        for (const id of GYM_SELECTIVE_ANSWERS[GYM]) expect(two).toContain(id);
+        // and the dropped one really is dropped
+        for (const id of GYM_COUNTER_ANSWERS[GYM]) {
+            if (!GYM_SELECTIVE_ANSWERS[GYM].includes(id)) expect(two, `${id} should not be bought`).not.toContain(id);
+        }
+    });
+
+    it('`--toolbox card:<id>` buys exactly that one card', () => {
+        // Ticket 75 ruling 1b: a reprice must be ruled on a card's own number, not the basket's.
+        const one = [...sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, 'card:riptide').setup.player.deck];
+        expect(one.length).toBe(baseline.length + 1);
+        expect(one).toContain('riptide');
+        expect(one).not.toContain('short_circuit');
+    });
+
+    it('`--lean` moves the PARTY and nothing else', () => {
+        /*
+         * Ticket 76 arm 3. The bracket is only worth having if the leaned arm pairs against the
+         * unleaned one — same seed, same enemies, same node — so the lean must reach the lineup
+         * picker and stop there.
+         */
+        const plain = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined);
+        const leaned = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], 'Water');
+
+        expect(leaned.lineup, 'the lean must actually change the party').not.toEqual(plain.lineup);
+        expect(leaned.setup.seed).toBe(plain.setup.seed);
+        expect(leaned.enemy).toEqual(plain.enemy);
+        expect(leaned.nodeId).toBe(plain.nodeId);
+        expect(leaned.enemyDrivers).toEqual(plain.enemyDrivers);
+        expect(leaned.biomeElements).toEqual(plain.biomeElements);
+        expect(leaned.targetElement, 'targetElement reports the GYM, which the lean does not move')
+            .toBe(plain.targetElement);
     });
 });
 
@@ -137,14 +182,49 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
         });
     }
 
-    it('an unknown knob says there are none live, rather than failing vaguely', () => {
-        expect(() => validateTweaks(['nonsense'])).toThrow(/no live tweaks/i);
+    it('an unknown knob names the live one rather than failing vaguely', () => {
+        expect(() => validateTweaks(['nonsense'])).toThrow(/only live knob is "rootfall-rat-v2"/);
     });
 
-    it('the empty list is the only accepted input', () => {
+    it('the empty list is accepted and does nothing', () => {
         expect(() => validateTweaks([])).not.toThrow();
         expect(applyRegistryTweaks([])).toEqual([]);
         expect(describeTweaks([])).toEqual([]);
+    });
+
+    it('`rootfall-rat-v2` swaps exactly one body of the authored trio', () => {
+        /*
+         * Ticket 76 arm 4. Snapshotted and restored because this mutates a process-global — without
+         * that, every test after this one in the same worker would fight a Rootfall boss nobody
+         * authored, which is the contamination this whole module exists to keep out of the tree.
+         */
+        const before = structuredClone(AUTHORED_BOSSES['gym_rootfall']);
+        try {
+            expect(applyRegistryTweaks([ROOT_KNOB])).toEqual([ROOT_KNOB]);
+
+            const after = AUTHORED_BOSSES['gym_rootfall'];
+            expect(after.members.map((m) => m.os))
+                .toEqual(before.members.map((m) => (m.os === 'ratatoskr_v1' ? 'ratatoskr_v2' : m.os)));
+            expect(after.members).toHaveLength(before.members.length);
+            expect(after.members.map((m) => m.species), 'the SPECIES must not move — only the firmware')
+                .toEqual(before.members.map((m) => m.species));
+            expect(after.driver, 'ROOT ROT is a separate arm and must not ride along').toBe(before.driver);
+        } finally {
+            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = before;
+        }
+    });
+
+    it('refuses if the trio no longer fields the body it means to swap', () => {
+        const before = structuredClone(AUTHORED_BOSSES['gym_rootfall']);
+        try {
+            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = {
+                ...before,
+                members: before.members.map((m) => (m.os === 'ratatoskr_v1' ? { ...m, os: 'ratatoskr_v2' } : m)),
+            };
+            expect(() => applyRegistryTweaks([ROOT_KNOB])).toThrow(/no longer fields ratatoskr_v1/);
+        } finally {
+            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = before;
+        }
     });
 
     it('`tweakEnemyDeck` returns the pile untouched', () => {
