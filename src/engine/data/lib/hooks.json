@@ -321,7 +321,7 @@
     "feedback_loop_daemon": {
         "id": "feedback_loop_daemon",
         "name": "FEEDBACK_LOOP",
-        "description": "Daemon: whenever an EFFECT draws you a card, deal 5 damage to a random enemy. The draw-phase refill does not count.",
+        "description": "Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count.",
         "hooks": [
             {
                 "id": "daemon_draw_damage_proc",
@@ -335,7 +335,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 5,
+                        "power": 7,
                         "element": "Water"
                     },
                     {
