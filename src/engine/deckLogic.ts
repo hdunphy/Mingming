@@ -4,9 +4,19 @@ import { GetProgramData } from './data/programRegistry';
 import { globalBattleEventBus } from './events';
 import { PRNG } from './core/PRNG';
 
-/** Ticket 32: single source of truth. battleReducer.ts and resolutionEngine.ts import this
- *  rather than re-declaring their own copies (all three previously said 9 independently). */
-export const HAND_SIZE_LIMIT = 9;
+/**
+ * Ticket 32: single source of truth. battleReducer.ts and resolutionEngine.ts import this
+ * rather than re-declaring their own copies (all three previously said 9 independently).
+ *
+ * TICKET 131b: 9 -> 12, and `effectHandlers.ts` — which ticket 32 MISSED, and which held a fourth
+ * private copy of the 9 — now imports this one. Raising it is not optional beside the `+1 cardDraw`
+ * in this commit: the refill is `min(sum(cardDraw) - alive + 1, LIMIT - hand.length)`, and at 3v3
+ * +1 a body is +3 to that sum. Measured (`scratch/handeconomy.ts`): the cap clipped **4-9.5%** of
+ * refills before the draw change and **~50%** after, eating 1.1 cards a turn — half the extra draw
+ * thrown away. 12 is 9 plus the +3 the change adds at full party, so a three-body side gets the
+ * cards it is now owed and a solo one is unaffected.
+ */
+export const HAND_SIZE_LIMIT = 12;
 
 /**
  * Handles drawing cards from the deck.

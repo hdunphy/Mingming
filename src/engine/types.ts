@@ -221,9 +221,35 @@ export function calculateStandardStat(base: number, modifier: number): number {
  */
 export const CALIBRATION_LEVEL_DAMAGE_BASE = Math.floor((2 * CALIBRATION_LEVEL) / 5) + 2;
 
+/**
+ * TICKET 131b — THE FRAME BUFF. Every mingming has 50% more health.
+ *
+ * RULED by Henry, 2026-09-01: *"Maybe we give everyone a flat HP buff to extend games because the
+ * cards played just shows that you were always leaving energy on the table which feels bad and its
+ * tough to get out combos with only 3 cards and no drawing."*
+ *
+ * **It is applied to the FORMULA'S OUTPUT, not to `baseStats.hp`, and that is not a shortcut.**
+ * `calculateHealth` is `calculateStandardStat(base, iv) + 15 + 30`, and `calculateStandardStat`
+ * itself ends in `+ 5` — so a **flat +50 dominates the result** at this calibration. Fenrir's base
+ * 66 produces 75 HP, of which only 25 comes from the base at all. Multiplying `baseStats.hp` by 1.5
+ * would have moved 75 to 85 — a **13%** buff wearing a 50% label — and it would have widened the
+ * gap between species unevenly, because the flat term does not scale with them. Multiplying the
+ * output scales every frame by exactly 1.5 and leaves the roster's relative spread intact.
+ *
+ * MEASURED (`scratch/handeconomy.ts`, 3v3, control panel and zoo panel):
+ *   turns per battle   5.2 / 4.5  ->  7.7 / 5.8
+ *   cards cast a turn  5.77       ->  5.63   (unchanged - this buys TURNS, not bigger turns)
+ *   energy unspent     22.9%      ->  15.5%  (a side effect, not the point; see the draw change)
+ *
+ * That last row is why this ships alongside `+1 cardDraw` rather than instead of it: HP buys turns
+ * and does NOT fix leftover energy, extra draw fixes leftover energy and SHORTENS the game. Only
+ * the two together lengthen the game *and* empty the energy pool.
+ */
+export const HP_MULTIPLIER = 1.5;
+
 /** Health, Unity Legacy Formula, frozen at `CALIBRATION_LEVEL`. Same reasoning as above. */
 export function calculateHealth(base: number, modifier: number): number {
-  return calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30;
+  return Math.floor((calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30) * HP_MULTIPLIER);
 }
 
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {

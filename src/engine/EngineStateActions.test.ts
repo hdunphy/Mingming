@@ -3,6 +3,7 @@ import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleEntity, IBattleState, IMove, StatusEffectInstance } from './types';
 import { globalBattleEventBus, type BattleEvent } from './events';
 import { registerHook, HookPriority, type HookContext } from './core/Hooks';
+import { HAND_SIZE_LIMIT } from './deckLogic';
 
 /**
  * Coverage for the five general-purpose state actions added by
@@ -353,7 +354,10 @@ describe('ADD_CARD_TO_HAND', () => {
     });
 
     it('inherits handleGenerateCard hand-size rejection instead of reimplementing it', () => {
-        const full = Array.from({ length: 9 }, (_, i) => ({
+        // TICKET 131b: reads HAND_SIZE_LIMIT rather than the literal 9 it used to hardcode. The
+        // test's subject is "a full hand refuses another card", not "the cap is nine", and pinning
+        // the number meant a tuning change to the cap broke a test about a different behaviour.
+        const full = Array.from({ length: HAND_SIZE_LIMIT }, (_, i) => ({
             id: 'c' + i, dataId: 'card_fireball', currentCost: 1, isPlayable: true
         }));
         const base = makeState([makeEntity('p1', 'Hero')], [makeEntity('e1', 'Villain')]);
@@ -364,7 +368,7 @@ describe('ADD_CARD_TO_HAND', () => {
             payload: { side: 'PLAYER', dataId: 'card_fireball' }
         });
 
-        expect(next.playerDeck.hand).toHaveLength(9);
+        expect(next.playerDeck.hand).toHaveLength(HAND_SIZE_LIMIT);
         expect(next.logs.some(l => l.includes('Hand full'))).toBe(true);
     });
 

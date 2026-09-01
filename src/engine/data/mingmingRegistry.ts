@@ -12,7 +12,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Fire",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["fenrir_v1", "fenrir_v2"],
         // Ticket 04: the designed deck belongs to the v2 slot (CINDER_WALL_OS); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
@@ -89,7 +89,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Water",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["kraken_v1", "kraken_v2"],
         // Ticket 14 (pilot, Henry-approved 2026-08-05): real per-OS decks.
         // v1 ABYSSAL_INK - draw engine (4 draw cards feed the ink) with ink_stream as the clock.
@@ -152,7 +152,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Earth",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["fafnir_v1", "fafnir_v2"],
         // Ticket 52 (Henry's design): EARTH COMPLETES, and the split finally resolves the HIGH
         // fafnir/gullinbursti overlap flag open since ticket 08 - both ran the same Sharp package.
@@ -205,7 +205,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Fire",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["skoll_v1", "skoll_v2"],
         // Ticket 64: ONE resource, TWO appetites. v1 EATS her Strength, v2 HOARDS it - the
         // species identity that replaces the ticket-13 legacy shared lists both slots ran until
@@ -268,7 +268,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Water",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
         // Ticket 55 + amendment 1 (deep pass #1). v1 OUROBOROS is a DRAW-ZOO, and the chain is
         // bounded in FIRMWARE, not here: OUROBOROS_LOOP procs at most ONCE PER TURN. That is
@@ -327,7 +327,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Earth",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["gullinbursti_v1", "gullinbursti_v2"],
         // Ticket 52: gullinbursti keeps the whole Sharp package (see fafnir's note - the two
         // species ran the same deck until now, the map's one HIGH overlap risk since ticket 08).
@@ -372,7 +372,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Air",
         secondaryElement: "None",
-        cardDraw: 4,
+        cardDraw: 5,
         availableOS: ["hraesvelgr_v1", "hraesvelgr_v2"],
         // Ticket 22 (Air, second half): v1 GALE_FORCE_OS = the discard WINDMILL - every
         // voluntary discard is 10 Air damage, so Tempest and the discardEffect cards are
@@ -411,7 +411,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Air",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["sleipnir_v1", "sleipnir_v2"],
         // Ticket 21 (Air first pass): v1 MOMENTUM_DRIVE = zoo momentum - five 0-cost cards
         // feed the Strengthened engine, Stampede/Trample cash it. v2 WAR_STEED_OS = discard-cost
@@ -449,7 +449,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Nature",
         secondaryElement: "None",
-        cardDraw: 4,
+        cardDraw: 5,
         availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
         // Ticket 04: the designed deck belongs to the v1 slot (GOSSIP_NODE); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
@@ -522,7 +522,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Nature",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["huldra_v1", "huldra_v2"],
         // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
         // Ticket 33 (Henry's design): real per-OS decks. Nature completes at 16/32.
@@ -583,7 +583,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // Ticket 50: 2 -> 3. At draw 2 the hand size WAS the constraint GLACIAL_PACE's
         // maxCardsPerTurn was supposed to be, so "play what you drew" was the only line.
         // At 3 it becomes "pick 2 of 3" - card pressure, not an energy trade (see §5).
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["ymir_v1", "ymir_v2"],
         // Ticket 50 (Henry's design): ICE COMPLETES. Ymir was never weak - it was unkillable
         // and could not kill, a 60-turn mirror at 72/400 decided.
@@ -628,7 +628,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Ice",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["draugr_v1", "draugr_v2"],
         // Ticket 48 (Henry's design): Draugr sleeps ON PURPOSE.
         // v1 PERMAFROST_WAKE - `actsWhileAsleep` turns Asleep from a lost turn into a STANCE he
@@ -675,7 +675,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Light",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["valkyrie_v1", "valkyrie_v2"],
         // Ticket 53 (Light pass). v1 is EINHERJAR RECURSION: VALHALLA_UPLINK replays a random
         // discarded card every turn end, so the deck wants cheap cards worth replaying and two
@@ -733,7 +733,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Light",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["audhumbla_v1", "audhumbla_v2"],
         // Ticket 53 (Light pass). v1 is GENESIS RAMP: GENESIS_FIRMWARE converts an OVERHEAL into
         // a permanent +1 max Energy (once per turn), so the deck deliberately overheals early -
@@ -830,7 +830,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "None",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["control_v1"],
         decks: {
             "control_v1": ["baseline_jab", "baseline_jab", "baseline_scuff", "baseline_scuff", "baseline_strike", "baseline_strike", "baseline_snare", "baseline_snare", "baseline_slam", "baseline_purge"]
@@ -869,7 +869,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // to ElementalMatrix to "balance" it - absent means neutral there; an explicit 1.0
         // gets multiplied by SECONDARY_MITIGATION and becomes a silent 25% penalty.
         secondaryElement: "Light",
-        cardDraw: 4,
+        cardDraw: 5,
         availableOS: ["hel_v1", "hel_v2"],
         // Ticket 36 (Henry's design): Hel is the roster's first dual-type Mingming (Dark/Light).
         // Ticket 78: v1's `purify` -> a second `eclipse`. Purify was PROVEN unnecessary, not
@@ -928,7 +928,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Dark",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["nidhoggr_v1", "nidhoggr_v2"],
         // Ticket 39 (Henry's design): Dark completes here.
         // v1 ROOT_CORRUPTION - poison stops decaying at 2+ stacks, so it is a permanent RATE
@@ -1001,6 +1001,9 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
             },
             primaryElement: 'None',
             secondaryElement: 'None',
+            // Deliberately NOT bumped with the roster in ticket 131b. This is the not-found
+            // sentinel, not a mingming - it exists so a bad id renders a hollow unit instead of
+            // throwing, and "buffing" it would only make a bug harder to spot.
             cardDraw: 1,
             availableOS: [],
             decks: {},
