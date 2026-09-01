@@ -68,7 +68,12 @@ describe('computeDamagePreview', () => {
     beforeEach(() => {
         weak = makeEntity('weak', { attack: 40 });
         strong = makeEntity('strong', { attack: 120 });
-        enemy = makeEntity('enemy');
+        // TICKET 131c: a frame the previewed hit cannot exceed. The parity test compares the
+        // preview against the damage the reducer ACTUALLY dealt, and under the x10 presentation
+        // scale a 120-attack unit's spike_launch overshot the default frame - so the reducer's
+        // figure clamped to the target's remaining HP while the preview reported the true number,
+        // and a test about preview/reducer agreement failed on a clamp instead.
+        enemy = makeEntity('enemy', { currentHp: 10000, maxHp: 10000 });
         state = {
             sessionId: 'test',
             turn: 1,

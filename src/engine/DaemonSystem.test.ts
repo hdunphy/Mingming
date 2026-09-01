@@ -189,8 +189,10 @@ describe('Daemon System', () => {
         const stateAfterAttack = battleReducer(state, attackAction);
         const e1 = stateAfterAttack.enemyParty.find(e => e.id === 'e1');
         // rev 3.1 pace (ticket 23, /45) with ticket 21's frozen levelBase of 8 (was 6 at the old
-        // level-10 default): 100 - 8 = 92.
-        expect(e1?.currentHp).toBe(92);
+        // level-10 default), and ticket 131c's x10 presentation scale: the hit is 88 rather than 8,
+        // so a synthetic 100 HP dummy is left on 12. The subject here is THERMAL_OVERLOAD's +25%
+        // and its recoil, not the size of the frame.
+        expect(e1?.currentHp).toBe(12);
 
         // 3. End Turn and check recoil
         const stateAfterTurn = battleReducer(stateAfterAttack, { type: 'END_TURN' });

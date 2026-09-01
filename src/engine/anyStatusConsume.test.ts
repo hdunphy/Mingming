@@ -30,6 +30,9 @@ function stateWithPile(): IBattleState {
         playerParty: [createSparseEntity({ id: 'p1', definitionId: 'draugr', name: 'Draugr', cardDraw: 3 })],
         enemyParty: [createSparseEntity({
             id: 'e1', definitionId: 'huldra', name: 'Target',
+            // TICKET 131c: see the sibling fixture below - a frame that survives two casts, so the
+            // "second cast is smaller" comparison has a second cast to measure.
+            currentHp: 10000, maxHp: 10000,
             statusEffects: [status('Weakened', 2), status('Dazed', 2), status('Sharp', 2)],
         })],
         playerDeck: {
@@ -75,6 +78,11 @@ describe('ticket 124 - ANY_STATUS pays for what it reads', () => {
             playerParty: [createSparseEntity({ id: 'p1', definitionId: 'draugr', name: 'Draugr', cardDraw: 3 })],
             enemyParty: [createSparseEntity({
                 id: 'e1', definitionId: 'huldra', name: 'Target',
+                // TICKET 131c: a frame big enough to survive TWO rimebreaker casts. The test fires
+                // the card twice to prove the second is smaller; under the x10 presentation scale
+                // the default 100 HP dummy died to the first, so the second never resolved and its
+                // stack was still standing at the end.
+                currentHp: 10000, maxHp: 10000,
                 statusEffects: [status('Weakened', 2)],
             })],
             playerDeck: {

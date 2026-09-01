@@ -103,48 +103,53 @@ describe('Damage Calculation with Status Modifiers', () => {
         // Ticket 21: levelBase is frozen at CALIBRATION_LEVEL_DAMAGE_BASE = 8 (it used to be
         // floor(2*level/5)+2, and this suite ran at level 5, giving 4).
         // scaled = floor(8 * 40 * 50 / 50) = 320
-        // reduced = 320 / 45 = 7.111... (spec rev 3.1 / ticket 23: no +2, /45 not /35)
+        // TICKET 131c: reduced = 320 * NUMBER_SCALE / 45 = 71.1 (the 45 is unchanged; the x10 is
+        // the presentation scale, and health scaled with it so the pace is identical)
         // modifier = 1.0 (program element is 'None', which never grants STAB)
-        // damage = floor(7.111 * 1.0) = 7
-        expect(damage).toBe(7);
+        // damage = floor(71.1 * 1.0) = 71
+        expect(damage).toBe(71);
     });
 
     it('should increase damage with Strengthened status', () => {
         (attacker as MutableEntity).statusEffects = [{ id: 's1', type: StatusType.Strengthened, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram, 40, mockState);
         // Ticket 102: one Strengthened is +1 POWER, so a 40-power card lands at 41:
-        // floor(8*41*50/50) = 328, 328/45 = 7.29 -> 7. Still inside the divisor's rounding at
-        // this size. The uncapped-stacking case below is what exercises the real behaviour.
-        expect(damage).toBe(7);
+        // floor(8*41*50/50) = 328, 328*10/45 = 72.9 -> 72.
+        //
+        // TICKET 131c MADE THIS STACK VISIBLE. Before the x10 scale this read 7 - exactly the same
+        // as the base case - because the divisor's rounding swallowed the whole stack. It is 72
+        // against a base of 71 now. This is the resolution argument for the scale, sitting in a
+        // test that had already noticed the problem and written it off as "inside the rounding".
+        expect(damage).toBe(72);
     });
 
     it('should decrease damage with Weakened status', () => {
         (attacker as MutableEntity).statusEffects = [{ id: 'w1', type: StatusType.Weakened, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram, 40, mockState);
         // Ticket 102: one Weakened is -1 POWER, so a 40-power card lands at 39:
-        // floor(8*39*50/50) = 312, 312/45 = 6.93 -> 6.
+        // floor(8*39*50/50) = 312, 312*10/45 = 69.3 -> 69 (ticket 131c's x10 scale).
         //
         // Worth noting what ticket 21 changed here: at the old level-5 default this rounded back
         // to the same 3 as the base case, so a single stack was invisible. At CALIBRATION_LEVEL
         // the same stack is worth a visible point of damage. Statuses read more truthfully at the
         // level the game is actually played at — which is the argument for freezing there.
-        expect(damage).toBe(6);
+        expect(damage).toBe(69);
     });
 
     it('should reduce damage to a Sharp target', () => {
         (defender as MutableEntity).statusEffects = [{ id: 'sh1', type: StatusType.Sharp, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram, 40, mockState);
-        // Ticket 102: one Sharp is -1 POWER off the incoming card. 39 power -> 6.93 -> 6.
+        // Ticket 102: one Sharp is -1 POWER off the incoming card. 39 power -> 69.3 -> 69.
         // (Was invisible at the old level-5 default; see the Weakened case.)
-        expect(damage).toBe(6);
+        expect(damage).toBe(69);
     });
 
     it('should deal more damage to a Dazed target', () => {
         (defender as MutableEntity).statusEffects = [{ id: 'd1', type: StatusType.Dazed, stacks: 1 }];
         const damage = calculateDamage(attacker, defender, mockProgram, 40, mockState);
-        // One Dazed is +1 POWER on the incoming card: 41 power -> 7.29 -> 7, i.e. still inside
-        // the rounding at this size, the mirror of the Strengthened case.
-        expect(damage).toBe(7);
+        // One Dazed is +1 POWER on the incoming card: 41 power -> 72.9 -> 72, the mirror of the
+        // Strengthened case - and like it, a stack that the pre-131c rounding used to swallow.
+        expect(damage).toBe(72);
     });
 
     it('ticket 102: Strengthened is UNCAPPED power - more stacks keep paying', () => {

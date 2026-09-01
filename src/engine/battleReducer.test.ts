@@ -192,9 +192,11 @@ describe('Battle Reducer State Machine', () => {
 
         // Power check: Card1 has 10 power. (10 + 10) * 2 = 40.
         // Ticket 21: levelBase is frozen at 8 (was 6 at this suite's old level-10 default), so
-        // under the rev-3.1 pace (ticket 23) the hit is floor(8 * 40 / 45) = 7 damage.
-        // P2 started with 100 HP, so 93.
-        expect(p2?.currentHp).toBe(93);
+        // under the rev-3.1 pace (ticket 23) the hit is floor(8 * 40 * NUMBER_SCALE / 45) = 71
+        // damage after ticket 131c's x10 presentation scale. This fixture pins a synthetic
+        // 100 HP frame rather than a real one, so the survivor reads 29 rather than 930 - the
+        // test is about the modifier being consumed, not about the size of the frame.
+        expect(p2?.currentHp).toBe(29);
 
         // Modifier should be consumed
         expect(p1?.nextProgramModifier).toBeUndefined();

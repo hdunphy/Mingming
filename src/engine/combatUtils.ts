@@ -1,6 +1,6 @@
 
 import type { Element, IBattleEntity, ProgramData, IBattleState } from './types';
-import { CALIBRATION_LEVEL_DAMAGE_BASE } from './types';
+import { CALIBRATION_LEVEL_DAMAGE_BASE, NUMBER_SCALE } from './types';
 
 /**
  * Elemental Advantage Matrix. Source Element -> Target Element -> Multiplier.
@@ -149,7 +149,12 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   // This is a GLOBAL divisor, so it moves absolute pace only: every card's damage is
   // scaled by the same factor and relative card economics - the whole rev-3 budget - are
   // untouched. Card prices deliberately did NOT change with it.
-  const reduced = scaled / 45;
+  //
+  // TICKET 131c: `x NUMBER_SCALE` is the presentation scale, NOT a pace change. The 45 still means
+  // exactly what its comment says; the scale multiplies damage and health by the same factor, so
+  // pace, relative card economics and every price in `powerscale` are untouched. Kept separate from
+  // the 45 so the two decisions stay readable - one is the pace dial, one is how big numbers read.
+  const reduced = (scaled * NUMBER_SCALE) / 45;
 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);

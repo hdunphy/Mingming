@@ -81,28 +81,30 @@ initDaemonHooks();
 // Ticket 12: OS rework implementations
 // ---------------------------------------------------------------------------
 
-describe('Ticket 12 - VALKYRIE v2 CRUSADER_KERNEL (distinct buff types, not stacks)', () => {
-    const dmgTo = (valkStatuses: StatusEffectInstance[]): number => {
-        const valk = makeUnit('v1', 'Valkyrie', { activeOS: 'valkyrie_v2', statusEffects: valkStatuses });
-        let state = makeState([valk], [makeUnit('e1', 'Enemy')], [card('c1', 'smite', 1)]);
-        state = play(state, 'v1', 'e1', 'c1');
-        return 100 - state.enemyParty[0].currentHp;
-    };
-
-    it('two distinct non-offensive buff types give exactly +20%', () => {
-        // Sharp and Regen do not modify OUTGOING damage, isolating the OS bonus.
-        const base = dmgTo([]);
-        const buffed = dmgTo([status('s1', 'Sharp', 1), status('s2', 'Regen', 1)]);
-        expect(base).toBeGreaterThan(0);
-        expect(buffed).toBe(Math.floor(base * 1.2));
-    });
-
-    it('five stacks of one type count as ONE type (+10%), not five', () => {
-        const base = dmgTo([]);
-        const stacked = dmgTo([status('s1', 'Sharp', 5)]);
-        expect(stacked).toBe(Math.floor(base * 1.1));
-    });
-});
+/**
+ * TICKET 131c — THESE TESTS WERE DELETED, AND WHY IS WORTH MORE THAN THEY WERE.
+ *
+ * This block held two tests for **valkyrie_v2's CRUSADER_KERNEL** (+10% Light damage per distinct
+ * positive status, so two buff types = +20%). They asserted `buffed === floor(base * 1.2)` and
+ * `stacked === floor(base * 1.1)`, and they were GREEN.
+ *
+ * **CRUSADER_KERNEL does not exist.** `CustomFirmware.ts` records that ticket 53 deleted it and gave
+ * the slot to REBIRTH_CYCLE_OS, a data hook on `onDeckShuffled`. There has been no per-buff-type
+ * damage bonus in the game since.
+ *
+ * They passed because the numbers were too small to tell. At the pre-131c scale `smite` on this
+ * dummy dealt **4**, and `floor(4 * 1.2)` is also **4** — so an assertion that the OS added 20%
+ * was satisfied by an OS that added nothing. The x10 presentation scale made the same hit read 48,
+ * `floor(48 * 1.2)` became 57, and the tests finally failed.
+ *
+ * That is the resolution argument for ticket 131c, found the hard way: **two tests sat green for
+ * months certifying a firmware that had been deleted**, because integer rounding at a median hit of
+ * 4 damage could not distinguish a 20% bonus from no bonus at all. Anything else hiding in that gap
+ * is still hiding.
+ *
+ * Nothing replaces them here: there is no behaviour left to test. REBIRTH_CYCLE_OS has its own
+ * coverage, and `deckReport.ts` was still describing this slot as CRUSADER_KERNEL until now.
+ */
 
 describe('Ticket 12/39 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', () => {
     // Ticket 39 changed what the hook PAYS, not when it fires: +2 Strengthened / +2 Sharp

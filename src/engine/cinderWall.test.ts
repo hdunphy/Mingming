@@ -34,8 +34,12 @@ const FOE = 'e_foe';
 
 /** A real fenrir carrying the real fenrir_v2 firmware, with one real card in hand. */
 function stateWith(dataId: string, sharpOnHost = 0): IBattleState {
+    // TICKET 131c: both frames are 10000. `pyre_sacrifice` is 60 power plus 3 Burn to the target
+    // AND 3 Burn to the caster, and under the x10 presentation scale that hit killed the default
+    // 100 HP dummy outright - so the Burn never landed on a corpse and the test read 0 stacks
+    // instead of 3. The subject is the OS paying twice, not how big a frame is.
     const host = createSparseEntity({
-        id: FENRIR, definitionId: 'fenrir', name: 'Fenrir',
+        id: FENRIR, definitionId: 'fenrir', name: 'Fenrir', currentHp: 10000, maxHp: 10000,
         activeOS: 'fenrir_v2', primaryElement: 'Fire', cardDraw: 3,
         statusEffects: sharpOnHost > 0
             ? [{ id: 'sh', type: 'Sharp', stacks: sharpOnHost } as never]
@@ -45,7 +49,7 @@ function stateWith(dataId: string, sharpOnHost = 0): IBattleState {
         activeSide: 'PLAYER',
         phase: 'ACTION',
         playerParty: [host],
-        enemyParty: [createSparseEntity({ id: FOE, definitionId: 'kraken', name: 'Foe' })],
+        enemyParty: [createSparseEntity({ id: FOE, definitionId: 'kraken', name: 'Foe', currentHp: 10000, maxHp: 10000 })],
         playerDeck: {
             ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
             hand: [{ id: 'c1', dataId, currentCost: 0, isPlayable: true } as ProgramEntity],

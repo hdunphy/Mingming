@@ -51,7 +51,7 @@ import { STATUS_MODEL } from '../../engine/core/Hooks';
 import type { ProgramData, ProgramAction } from '../../engine/types';
 import HOOK_LIBRARY from '../../engine/data/lib/hooks.json';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { numericBaseCost } from '../../engine/types';
+import { numericBaseCost, HP_MULTIPLIER, NUMBER_SCALE } from '../../engine/types';
 import { DEFAULT_GAME_CONFIG } from '../../engine/data/gameConfig';
 import { BURN_CONFIG } from '../../engine/StatusBehaviors';
 
@@ -158,7 +158,12 @@ export function budgetBandFor(cost: number): BudgetBand {
  * Only used for effects denominated in literal HP (`damageOverride`), which have no
  * power value of their own and are meaningless without a pool to be a fraction of.
  */
-const ASSUMED_MAX_HP = 75;
+/**
+ * TICKET 131c: was a bare 75, the pre-buff frame. It derives now because it is the one constant in
+ * this file denominated in absolute HP, and it silently mis-prices the three `damageOverride` cards
+ * whenever a frame changes size - ticket 131b's x1.5 had already left it 1.5x stale.
+ */
+const ASSUMED_MAX_HP = Math.round(75 * HP_MULTIPLIER * NUMBER_SCALE);
 /** docs/power_curve_spec.md: damage costs 3 power per 1% of a health pool. */
 const POWER_PER_PERCENT_MAXHP = 3;
 

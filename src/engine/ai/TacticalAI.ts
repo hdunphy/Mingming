@@ -7,6 +7,7 @@ import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
 import { BURN_CONFIG } from '../StatusBehaviors';
 import { STANCE_BONUS, STATUS_MODEL } from '../core/Hooks';
+import { NUMBER_SCALE } from '../types';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
 /**
@@ -29,7 +30,15 @@ const HP_POINTS = 2;
  * full 200 HP frame with every buff is worth a few hundred - so that winning dominates every
  * positional consideration and losing is worse than any board, rather than competing with them.
  */
-const TERMINAL_SCORE = 10000;
+/**
+ * TICKET 131c: derives from `NUMBER_SCALE`. The comment above is the reason - it promises this sits
+ * "deliberately far above any reachable board score", citing "a full 200 HP frame ... worth a few
+ * hundred". With frames ten times bigger a board is worth a few THOUSAND and a flat 10000 stops
+ * dominating: the AI would begin trading a win for a good position. That is the one part of this
+ * scale change that would have failed silently, looking like an AI regression rather than a
+ * constant left behind.
+ */
+const TERMINAL_SCORE = 10000 * NUMBER_SCALE;
 
 /**
  * A side's per-turn damage throughput, as a fraction of a frame's maxHp. Base-deck

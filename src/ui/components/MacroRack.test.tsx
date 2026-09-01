@@ -102,7 +102,7 @@ describe('MacroRack', () => {
 
     it('shows the TRUE damage a Surge will do, not the figure it is priced at', () => {
         const markup = render(['surge', null, null]);
-        expect(markup).toContain('8 damage');
+        expect(markup).toContain('80 damage');   // ticket 131c: the x10 presentation scale
         // The printed figure is 30 and it must not surface. Word-bounded so an unrelated "130"
         // could never make this pass or fail by accident.
         expect(markup).not.toMatch(/\b30\b/);

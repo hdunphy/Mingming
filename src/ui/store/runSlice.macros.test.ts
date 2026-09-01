@@ -279,7 +279,7 @@ describe('buying a macro and firing it', () => {
         expect(canFireMacro(before, payload)).toBeNull();
 
         const after = battleReducer(before, { type: 'FIRE_MACRO', payload });
-        expect(after.enemyParty[0].currentHp).toBe(92);
+        expect(after.enemyParty[0].currentHp).toBe(20);   // ticket 131c: surge is 80, not 8
 
         run = runReducer(run, consumeMacro(0));
         expect(runOf(run).macros).toEqual([null, null, null]);

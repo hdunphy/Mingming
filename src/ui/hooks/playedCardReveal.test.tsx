@@ -19,7 +19,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act } from 'react';
+import { act, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 
@@ -42,10 +42,25 @@ const STATE: IBattleState = createSparseBattleState({
 
 let host: HTMLDivElement;
 let root: Root;
-let latest: BattleVfx;
+/**
+ * A mutable holder rather than a bare `let`: `react-hooks/globals` rejects assigning to a
+ * module-scope binding from inside a component, and it is right to - the lint rule is about render
+ * purity. Writing into a stable object is the same escape hatch a ref would give, without pulling
+ * a second hook into the probe.
+ */
+const seen: { vfx: BattleVfx | null } = { vfx: null };
+const latest = (): BattleVfx => {
+    if (!seen.vfx) throw new Error('probe never rendered');
+    return seen.vfx;
+};
 
 function Probe(): null {
-    latest = useBattleVfx(STATE);
+    const vfx = useBattleVfx(STATE);
+    // Published from an EFFECT, not from render. `react-hooks/immutability` rejects writing to
+    // anything outside the component during render, and it is right to: that is the render-purity
+    // rule. An effect is the sanctioned place for a side effect, and `act()` flushes effects before
+    // each assertion, so the tests still read the value they just produced.
+    useEffect(() => { seen.vfx = vfx; });
     return null;
 }
 
@@ -72,10 +87,10 @@ async function emitPlay(sourceId = 'e1', targetId = 'p1', programId = 'ice_spear
 
 describe('ticket 127 - the played card is announced', () => {
     it('announces the dataId, the caster and the target', async () => {
-        expect(latest.playedCard).toBeNull();
+        expect(latest().playedCard).toBeNull();
         await emitPlay();
 
-        expect(latest.playedCard).toMatchObject({
+        expect(latest().playedCard).toMatchObject({
             dataId: 'ice_spear',
             sourceId: 'e1',
             targetId: 'p1',
@@ -87,22 +102,22 @@ describe('ticket 127 - the played card is announced', () => {
 
     it('marks a player cast as the player\'s, so the reveal can side itself', async () => {
         await emitPlay('p1', 'e1', 'ice_spear');
-        expect(latest.playedCard?.fromPlayer).toBe(true);
+        expect(latest().playedCard?.fromPlayer).toBe(true);
     });
 
     it('gives two casts of the SAME card two distinct reveals', async () => {
         await emitPlay();
-        const first = latest.playedCard!.key;
+        const first = latest().playedCard!.key;
         await emitPlay();
         // Without a monotonic key, AnimatePresence would treat the second cast as the same element
         // and play no animation at all - the second copy of a doubled card would appear not to fire.
-        expect(latest.playedCard!.key).not.toBe(first);
-        expect(latest.playedCard!.dataId).toBe('ice_spear');
+        expect(latest().playedCard!.key).not.toBe(first);
+        expect(latest().playedCard!.dataId).toBe('ice_spear');
     });
 
     it('survives the damage the card deals - the regression this ticket walked into', async () => {
         await emitPlay();
-        expect(latest.playedCard).not.toBeNull();
+        expect(latest().playedCard).not.toBeNull();
 
         await act(async () => {
             globalBattleEventBus.emit({
@@ -110,7 +125,7 @@ describe('ticket 127 - the played card is announced', () => {
             } as never);
         });
 
-        expect(latest.playedCard?.dataId, 'a damage event cleared the reveal').toBe('ice_spear');
+        expect(latest().playedCard?.dataId, 'a damage event cleared the reveal').toBe('ice_spear');
     });
 
     it('is cleared by the next TURN_START, so it never sits under the wrong turn banner', async () => {
@@ -120,6 +135,6 @@ describe('ticket 127 - the played card is announced', () => {
                 type: 'TURN_START', activeSide: 'PLAYER', turn: 2, timestamp: Date.now(),
             } as never);
         });
-        expect(latest.playedCard).toBeNull();
+        expect(latest().playedCard).toBeNull();
     });
 });

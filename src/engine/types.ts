@@ -247,9 +247,33 @@ export const CALIBRATION_LEVEL_DAMAGE_BASE = Math.floor((2 * CALIBRATION_LEVEL) 
  */
 export const HP_MULTIPLIER = 1.5;
 
+/**
+ * TICKET 131c — EVERY NUMBER ON SCREEN, x10. Presentation, not balance.
+ *
+ * RULED by Henry: *"should we scale all our numbers by 10 or even 5. Bigger numbers often feel
+ * better 10 damage is better than 1 and 400 might feel better than 40."*
+ *
+ * The measurement found a better reason than feel (`scratch/numberfeel.ts`, 136 attack cards):
+ * `min 0, p25 2, MEDIAN 4, p75 7, max 32` — and **62 of 136 attack cards read 3 damage or less**,
+ * with `pollen_cloud` reading 0. `calculateDamage` ends in `Math.floor`, so at a median hit of 4 a
+ * card at 2 damage and one at 3 differ by 50% with nothing expressible between them. Half the
+ * attack pool lived where the engine could not represent a small tuning step. **x10 buys every knob
+ * one more significant figure.**
+ *
+ * **IT CHANGES NO RELATIVE ECONOMICS.** One constant, two sites — health here and the damage
+ * divisor in `combatUtils` — because nearly everything else is denominated in POWER or in % of
+ * maxHp and scales itself: card `power` values, status stacks (`statusPower` is added before the
+ * divisor), heals (`maxHp x power / 400`), Burn/Poison tiers, and the whole rev-3 band table.
+ *
+ * Four things did NOT scale themselves and move with it: `damageOverride` on three cards,
+ * `powerscale.ASSUMED_MAX_HP`, and `TacticalAI.TERMINAL_SCORE` — see each site.
+ */
+export const NUMBER_SCALE = 10;
+
 /** Health, Unity Legacy Formula, frozen at `CALIBRATION_LEVEL`. Same reasoning as above. */
 export function calculateHealth(base: number, modifier: number): number {
-  return Math.floor((calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30) * HP_MULTIPLIER);
+  return Math.floor(
+    (calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30) * HP_MULTIPLIER * NUMBER_SCALE);
 }
 
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {

@@ -309,7 +309,7 @@
                 "type": "ATTACK",
                 "power": 10,
                 "target": "SELF",
-                "damageOverride": 10
+                "damageOverride": 150
             }
         ]
     },
@@ -440,7 +440,7 @@
                 "type": "ATTACK",
                 "power": 15,
                 "target": "SELF",
-                "damageOverride": 20
+                "damageOverride": 300
             }
         ]
     },
@@ -2781,7 +2781,7 @@
                 "type": "ATTACK",
                 "power": 10,
                 "target": "SELF",
-                "damageOverride": 10
+                "damageOverride": 150
             }
         ]
     },
