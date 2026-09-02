@@ -33,6 +33,7 @@ import { handbuiltParty } from './handbuiltParties';
 import { GYM_COUNTER_ANSWERS, GYM_SELECTIVE_ANSWERS } from '../../engine/run/marketplace';
 import { applyRegistryTweaks, describeTweaks, tweakEnemyDeck, validateTweaks } from './experimentalTweaks';
 import { AUTHORED_BOSSES } from '../../engine/run/bosses';
+import { getDeckForOS } from '../../engine/data/mingmingRegistry';
 
 const ROOT_KNOB = 'rootfall-rat-v2';
 
@@ -135,6 +136,51 @@ describe('every measureCell option reaches the fight', () => {
         expect(one.length).toBe(baseline.length + 1);
         expect(one).toContain('riptide');
         expect(one).not.toContain('short_circuit');
+    });
+
+    it('`--deck` changes the deck and nothing else — ticket 77 Track A', () => {
+        /*
+         * The whole of ticket 77 rests on this option arriving. Every gym number in the project's
+         * history was taken with the 18-card run-start deck; an arm that printed "DECK PROGRESSION:
+         * full" and dealt the bare deck anyway would read as "kit completion is worth nothing",
+         * which is the conclusion the ticket exists to test rather than assume.
+         */
+        const bare = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'bare');
+        const full = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'full');
+        const plus3 = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'engine-plus-3');
+        const blanks = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'bare-plus-generics');
+
+        const size = (f: typeof bare): number => f.setup.player.deck.length;
+        expect(size(bare), 'the baseline is the 18-card run-start deck').toBe(18);
+        expect(size(full), 'three full tuned lists, no generics').toBeGreaterThan(size(bare));
+        expect(size(plus3), '3 members x (5 kit + 3) + 3 generics').toBe(27);
+        expect(size(blanks), 'exactly the buy-everything toolbox arm size, with blanks').toBe(21);
+
+        // A3 must be the SAME cards plus generics, or it is not a control for the toolbox arm.
+        expect([...blanks.setup.player.deck].slice(0, 18)).toEqual([...bare.setup.player.deck]);
+        expect([...blanks.setup.player.deck].slice(18)).toEqual(['water_slap', 'water_slap', 'water_slap']);
+
+        // Nothing a paired arm holds fixed may move.
+        for (const armed of [full, plus3, blanks]) {
+            expect(armed.setup.seed).toBe(bare.setup.seed);
+            expect(armed.enemy).toEqual(bare.enemy);
+            expect(armed.lineup).toEqual(bare.lineup);
+            expect(armed.nodeId).toBe(bare.nodeId);
+        }
+    });
+
+    it('`--deck engine-plus-3` adds cards from the member\'s OWN tuned list', () => {
+        // "the next three of its own tuned list" is the ticket's wording, and the arm is meaningless
+        // if the extras come from anywhere else — it would be measuring a deck nobody could build.
+        const f = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'engine-plus-3');
+        const bare = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'bare');
+
+        const tuned = new Set(f.lineup.flatMap((os) => getDeckForOS(os.replace(/_v\d+$/, ''), os)));
+        const extras = [...f.setup.player.deck].filter((id) => id !== 'water_slap');
+        for (const id of extras) {
+            expect(tuned.has(id), `${id} is not in any member's tuned list`).toBe(true);
+        }
+        expect(f.setup.player.deck.length).toBeGreaterThan(bare.setup.player.deck.length);
     });
 
     it('`--lean` moves the PARTY and nothing else', () => {

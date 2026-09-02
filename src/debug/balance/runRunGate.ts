@@ -131,6 +131,7 @@ import {
     type BandMeasurement,
     type CellMeasurement,
     type ToolboxMode,
+    type DeckMode,
 } from './runGate';
 
 /** One line for the banner naming exactly which cards this arm bought. */
@@ -229,6 +230,13 @@ interface Args {
      */
     lean?: string;
     /**
+     * `--deck <mode>`: how much of its own kit the party has assembled — ticket 77 Track A.
+     *
+     * `bare` (default) is the 18-card run-start deck every gym number to date was measured with.
+     * `full`, `engine-plus-3` and `bare-plus-generics` are the three progression arms — see `DeckMode`.
+     */
+    deckMode?: DeckMode;
+    /**
      * `--tweak <name>[,<name>]`: named, uncommitted balance knobs for this measurement only.
      *
      * `boss-cantrips`, `ink-power-<N>`, `thorn-target` — see `experimentalTweaks.ts` for what each
@@ -291,6 +299,17 @@ function parseToolbox(argv: string[], value: string | undefined): ToolboxMode | 
     );
 }
 
+/** `--deck full|engine-plus-3|bare-plus-generics`. Rejects anything else rather than silently baring. */
+function parseDeckMode(value: string | undefined): DeckMode | undefined {
+    if (value === undefined) return undefined;
+    if (value === 'bare' || value === 'full' || value === 'engine-plus-3' || value === 'bare-plus-generics') {
+        return value;
+    }
+    throw new Error(
+        `[run-gate] --deck expects bare | full | engine-plus-3 | bare-plus-generics — got "${value}"`,
+    );
+}
+
 function parseArgs(argv: string[]): Args {
     const get = (flag: string): string | undefined => {
         const i = argv.indexOf(flag);
@@ -317,6 +336,7 @@ function parseArgs(argv: string[]): Args {
         handbuilt: resolveHandbuilt(get('--handbuilt')),
         toolbox: parseToolbox(argv, get('--toolbox')),
         lean: get('--lean'),
+        deckMode: parseDeckMode(get('--deck')),
         tweaks: tweaks ?? [],
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
@@ -368,7 +388,28 @@ function cellLine(cell: CellMeasurement): string {
         `decisive=${pct(cell.decisiveWinRate).padStart(6)}  ` +
         `avgTurns=${cell.averageTurns.toFixed(1).padStart(4)}  ` +
         `ftk=${cell.ftkCount}  stalled=${cell.truncatedCount}  ` +
-        `${secs(cell.elapsedMs)}`
+        `${secs(cell.elapsedMs)}` +
+        diagnosticsLine(cell)
+    );
+}
+
+/**
+ * Ticket 77's player-side numbers, on their own line under the cell.
+ *
+ * A win rate says a deck lost. These say whether it ever got to do the thing it was built to do:
+ * **payoff** is casts of a `scaling` card per fight (the engine assembling), **dead** is the share of
+ * cards that reached hand and were never played (the dilution signal ticket 77 A3 is about), and the
+ * two damage rates are the numbers every previous report had to be re-derived to get.
+ */
+function diagnosticsLine(cell: CellMeasurement): string {
+    const d = cell.diagnostics;
+    if (d === undefined) return '';
+    return (
+        `\n      player: ${d.playerDamagePerTurn.toFixed(1).padStart(5)} dmg/turn  ` +
+        `payoff=${d.payoffCastsPerFight.toFixed(2)}/fight  ` +
+        `dead=${(d.deadCardRatio * 100).toFixed(1)}%  ` +
+        `deck=${d.deckSize.toFixed(0)}  ` +
+        `| enemy: ${d.enemyDamagePerTurn.toFixed(1)} dmg/turn`
     );
 }
 
@@ -520,6 +561,7 @@ async function main(): Promise<void> {
             handbuilt: args.handbuilt,
             toolbox: args.toolbox,
             lean: args.lean,
+            deckMode: args.deckMode,
             tweaks: args.tweaks,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
@@ -544,6 +586,10 @@ async function main(): Promise<void> {
             + 'which is what grades a gym (ticket 75 ruling 2).');
     } else {
         say('  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).');
+    }
+    if (args.deckMode !== undefined && args.deckMode !== 'bare') {
+        say(`  DECK PROGRESSION: ${args.deckMode} — ticket 77 Track A. The player side is NOT the 18-card `
+            + 'run-start deck every previous gym number was taken with.');
     }
     if (args.lean !== undefined) {
         say(`  PARTY LEAN: ${args.lean} — the lineup picker is aimed at ${args.lean} instead of the gym's counter (ticket 76).`);

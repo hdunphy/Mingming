@@ -1,9 +1,9 @@
 # Rootfall: find the hole before ruling the lever (ticket 76)
 
 - Type: wayfinder:grilling (measurement first — the arms below run before Henry's session)
-- Status: open
+- Status: closed
 - Assignee: 
-- Blocked by: nothing — the five arms are REPORTED (below); Henry's session is the next step
+- Blocked by: nothing — CLOSED, outstanding work moved to [77](77-player-progression-arms.md)
 - Phase: Vertical Slice
 
 ## Why this exists
@@ -73,4 +73,40 @@ cards). Seven arms in, that is where the data stops.
 
 ## Resolution
 
-_(open — Henry's session pending)_
+**CLOSED 2026-09-01 (Henry: *"If that closes ticket 76 then close it and move all work to ticket
+77"*).** The five arms are delivered and reported —
+[research/76-rootfall-diagnosed.md](../research/76-rootfall-diagnosed.md), commit `7e418cf`. The
+session, the lever and the re-measure are NOT done here; they moved to
+[ticket 77](77-player-progression-arms.md), which reframes them.
+
+### Why 77 supersedes rather than continues this ticket
+
+77's opening finding is that **every lever measured across tickets 67-76 was boss-side, and that was
+not a choice**: the bare arm fields a run-start player (18-card deck, `run.drivers` empty, no macros
+because no AI policy exists to fire one) against a fully-built boss (tuned kit, OS, Driver, 20/20/20
+IVs, full lookahead). This ticket asked "why is Rootfall's boss too strong" when the available
+question was "why is a run-start player losing to a finished one". Its answers stand; its framing does
+not, and the same is true of 71-75.
+
+### What moved, and where
+
+| open item | now owned by |
+| --- | --- |
+| ROOT ROT (+26.6pt at the boss, p = 0.00014) | **77 Track C** — reshaped, three candidates, no caps |
+| Henry's session on the lever | **77's session** |
+| Re-measure to 60 +/- 5 | **77's Done when** |
+| The soft rolled lead-ins (76 arm 3) | **[ticket 73](73-launch-type-triangle.md)** — 77 explicitly holds it there with the launch triangle |
+| The toolbox mechanism, undetermined at two gyms | **77 Track A3**, the dilution control |
+
+### What this ticket established, which stands
+
+1. **ROOT ROT is worth +26.6pt on its own** (56.7% -> 83.3% at the boss, 17 flips to the player
+   against 1, p = 0.00014) — the largest single-lever effect across 71-76, against TIDAL SURGE
+   measuring INERT under the same isolation.
+2. **One lever does not close Rootfall.** A free boss still leaves the compound at ~40.7%.
+3. **The comp is a clean null** (`rat_v1 -> rat_v2`, p = 1.00). Tidewrack's answer does not transfer.
+4. **The toolbox per-card curves differ by gym** — free-alone-and-expensive-together at Rootfall,
+   9-12pt each at Emberfall — so no single reprice ruling could be right at both. Ruling 1b did its
+   job: there was nothing to reprice at one of the two gyms and the arms said so.
+5. **Water-lean beats type-correct fire-lean by 10pt of compound**, entirely in the rolled fights,
+   tying exactly at the authored boss. Held for ticket 73.
