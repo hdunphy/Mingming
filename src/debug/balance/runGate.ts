@@ -96,15 +96,20 @@ import { MingmingRegistry, LAUNCH_SPECIES } from '../../engine/data/mingmingRegi
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { SeedStream } from '../../engine/core/SeedStream';
 import {
+    START_KIT_SIZE,
+    STARTER_GENERICS,
     createRun,
     minimumActiveDeck,
     recruitDeckFor,
     startDeckFor,
+    startKitIdsFor,
 } from '../../engine/run/createRun';
 import { RUN_ENEMY_MODE, rollEncounter } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS, isBossFight, rollGauntletFight } from '../../engine/run/gauntlet';
 import { offerGyms } from '../../engine/run/gyms';
-import { GYM_COUNTER_ANSWERS } from '../../engine/run/marketplace';
+import { GYM_COUNTER_ANSWERS, GYM_SELECTIVE_ANSWERS } from '../../engine/run/marketplace';
+import { GENERIC_HIT, getDeckForOS } from '../../engine/data/mingmingRegistry';
+import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IBattleEntity, IMingmingState } from '../../engine/types';
@@ -353,6 +358,110 @@ const countersOf = (target: string): string[] =>
  * boss with firestarters"* means, and it necessarily leaves the other two boss members
  * un-countered. That is the real shape of the fight rather than a limitation of the harness.
  */
+/**
+ * `--deck <mode>` — TICKET 77 TRACK A: how much of its own kit the party has actually assembled.
+ *
+ * # WHY THIS FLAG IS THE POINT OF THE TICKET
+ *
+ * Every lever measured across tickets 67-76 was a BOSS-side lever, and that was not a choice. Read
+ * what the graded arm fields: the boss trio brings its full tuned kit, its OS, a Driver, 20/20/20
+ * IVs and full lookahead; the player brings three 5-card engines plus 3 generics — the **18-card
+ * RUN-START deck** — with `run.drivers` empty and no macros, because no AI policy exists to fire one.
+ * So the gate has been asking why a run-start player does not beat a finished one 84% of the time,
+ * and then diagnosing the boss. This flag is the other side of that comparison finally being visible.
+ *
+ *  - **`full`** (A1, the ceiling) — every member's whole tuned per-OS list, no generics. Bounds what
+ *    ANY amount of kit completion can buy. If completed engines still miss ~84%/fight, deck
+ *    progression is not the whole answer and the session knows that before designing a pick track.
+ *  - **`engine-plus-3`** (A2) — each member's 5-card `startKit` plus the next three of its own tuned
+ *    list in registry order, so 8 a member plus the starter's 3 generics. Models a mid-run pick track
+ *    built only from cards that already exist.
+ *  - **`bare-plus-generics`** (A3, the dilution control) — the bare deck plus three copies of
+ *    `GENERIC_HIT`. **Same size as the buy-everything toolbox arm, zero situational text.** If three
+ *    blanks cost what three counters cost (Rootfall -16.6, Emberfall -18.4) the mechanism is dilution
+ *    and the printings are innocent; if blanks are free, the printings are back on the table. This is
+ *    the arm that decides the question research/76 §2.3 could not.
+ *
+ * Registry order is used rather than any notion of "best three" on purpose: choosing which three
+ * cards complete an engine is a DESIGN decision, and an arm that measures my choice of cards is not
+ * measuring the pick track. Registry order is arbitrary but it is not mine.
+ */
+export type DeckMode = 'bare' | 'full' | 'engine-plus-3' | 'bare-plus-generics';
+
+const ENGINE_PLUS = 3;
+
+/**
+ * The deck a given progression mode deals, given the run-dealt bare deck as the baseline.
+ *
+ * Returns `undefined` for `bare`/unset so the caller keeps whatever it already built — a handbuilt
+ * party's declared deck must not be silently replaced by a mode nobody asked for.
+ */
+export function deckForMode(
+    mode: DeckMode | undefined,
+    party: ReadonlyArray<IMingmingState>,
+    bare: ReadonlyArray<string>,
+): ReadonlyArray<string> | undefined {
+    if (mode === undefined || mode === 'bare') return undefined;
+
+    if (mode === 'bare-plus-generics') {
+        return [...bare, ...Array.from({ length: 3 }, () => GENERIC_HIT)];
+    }
+
+    const perMember = party.map((member) => {
+        const tuned = getDeckForOS(member.definitionId, member.activeOS ?? undefined);
+        if (mode === 'full') return tuned;
+
+        // `engine-plus-3`: the kit, then the first ENGINE_PLUS tuned cards the kit does not already
+        // hold. Counted by INSTANCE rather than by id — a tuned list with `growth` x2 should be able
+        // to hand a kit holding one `growth` its second copy.
+        const kit = startKitIdsFor(member, START_KIT_SIZE);
+        const remaining = [...kit];
+        const extras: string[] = [];
+        for (const id of tuned) {
+            if (extras.length >= ENGINE_PLUS) break;
+            const at = remaining.indexOf(id);
+            if (at >= 0) { remaining.splice(at, 1); continue; }
+            extras.push(id);
+        }
+        return [...kit, ...extras];
+    });
+
+    // The starter's generics ride along for every mode that models a REAL run deck. `full` is a
+    // ceiling rather than a run state, so it deliberately carries none.
+    const generics = mode === 'full' ? [] : Array.from({ length: STARTER_GENERICS }, () => GENERIC_HIT);
+    return [...perMember.flat(), ...generics];
+}
+
+/**
+ * How much of the gym's counter tech the party arrives holding — ticket 75's shopping-policy arms.
+ *
+ * `undefined`/`false` is the bare arm, which since ruling 2 is **the arm that GRADES a gym**; every
+ * toolbox mode is a diagnostic line beside it.
+ */
+export type ToolboxMode = boolean | 'all' | 'selective' | `card:${string}`;
+
+/** The cards a given shopping policy adds to the deck at a given gym. Empty for the bare arm. */
+export function toolboxAnswersFor(mode: ToolboxMode | undefined, gymId: string): ReadonlyArray<string> {
+    if (mode === undefined || mode === false) return [];
+    if (mode === true || mode === 'all') return GYM_COUNTER_ANSWERS[gymId] ?? [];
+    if (mode === 'selective') return GYM_SELECTIVE_ANSWERS[gymId] ?? [];
+    return [mode.slice('card:'.length)];
+}
+
+/**
+ * `--lean <Element>`: build the party around a NAMED element instead of the gym's counter.
+ *
+ * Ticket 76 arm 3 asks for a party-lean bracket at Rootfall, and the trap is hand-picking three
+ * parties: the bracket would then measure my team-building rather than the lean. So it reuses the
+ * harness's own `lineupAgainst` picker unchanged and only moves the element handed to it.
+ *
+ * `lineupAgainst(.., target, 'favourable')` fills from `countersOf(target)` — so to LEAN on element
+ * E you pass the element E counters. Over the launch 3-cycle (Fire > Nature > Water > Fire) that is
+ * a lookup, and it is the inverse of `COUNTERED_BY` in `gyms.ts` rather than a second opinion about
+ * the triangle.
+ */
+const LEAN_TARGET: Readonly<Record<string, string>> = { Fire: 'Nature', Nature: 'Water', Water: 'Fire' };
+
 function targetElementFor(
     cell: RunGateCell,
     gym: { readonly element: string },
@@ -898,8 +1007,8 @@ export function sampleFight(
      * `targetElement` is still reported, because it is a property of the gym rather than of the arm.
      */
     handbuilt?: HandbuiltParty,
-    /** Append the pinned gym's three ruled counter answers to the deck — see below. */
-    toolbox?: boolean,
+    /** Which shopping policy the party arrives on — see `ToolboxMode` and the block below. */
+    toolbox?: ToolboxMode,
     /**
      * Named, uncommitted balance knobs — see `experimentalTweaks.ts`.
      *
@@ -908,6 +1017,10 @@ export function sampleFight(
      * knobs thread through ONE parameter and a knob added later cannot be forgotten at this call.
      */
     tweaks?: ReadonlyArray<string>,
+    /** Build the party around this element instead of the gym's counter — see `LEAN_TARGET`. */
+    lean?: string,
+    /** How much of its own kit the party has assembled — ticket 77 Track A. See `DeckMode`. */
+    deckMode?: DeckMode,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -928,7 +1041,15 @@ export function sampleFight(
         : offers[index % offers.length];
     const target = targetElementFor(cell, offer.gym, offer.biomes);
 
-    const lineup = handbuilt ? [...handbuilt.lineup] : lineupAgainst(index, cell.partySize, target, matchup);
+    /*
+     * `--lean` moves ONLY the element the picker is aimed at. The gym, the biomes, the enemy roll,
+     * the seed and `targetElement` in the report are all still the gym's own, so a leaned arm is
+     * directly paired against an unleaned one at the same cell.
+     */
+    const lineupTarget = lean !== undefined ? (LEAN_TARGET[lean] ?? target) : target;
+    const lineup = handbuilt
+        ? [...handbuilt.lineup]
+        : lineupAgainst(index, cell.partySize, lineupTarget, lean !== undefined ? 'favourable' : matchup);
     const party = partyFor(lineup);
 
     const created = createRun({ seed, offer, party, startedAt: 0 });
@@ -959,11 +1080,30 @@ export function sampleFight(
      * probability — a different measurement, on the market rather than on the gym.
      *
      * Read off `GYM_COUNTER_ANSWERS` rather than a list here, so the arm and the shop cannot drift.
+     *
+     * # TICKET 75: THREE SHOPPING POLICIES, NOT ONE
+     *
+     * `all` is the original ceiling above. The other two exist because research/75 measured that
+     * ceiling costing the player 11.5 points at every gym, and Henry ruled the -11.5 be DIAGNOSED
+     * rather than acted on: it cannot distinguish a bad SHOPPING POLICY from bad PRINTINGS.
+     *
+     *  - **`selective`** — the two answers a player would actually prioritise (`GYM_SELECTIVE_ANSWERS`,
+     *    cheapest-first). If the basket is the problem, this arm recovers most of the loss.
+     *  - **`card:<id>`** — exactly ONE card into the bare deck. This is the arm that lets a reprice be
+     *    ruled on a card's own number instead of the basket's, which is ruling 1b's whole point. The
+     *    id is NOT checked against the gym's answer set on purpose: asking what `scrubber` costs at
+     *    Emberfall is a legitimate question and the harness should not have an opinion about it.
      */
-    if (toolbox) {
-        const answers = GYM_COUNTER_ANSWERS[offer.gym.id] ?? [];
-        deck = [...deck, ...answers];
-    }
+    /*
+     * TICKET 77 TRACK A, applied BEFORE the toolbox so the two compose in the obvious order: the
+     * progression mode says what kit you assembled, the toolbox says what you then bought. A
+     * handbuilt party's declared deck is left alone — `deckForMode` returns undefined for `bare`.
+     */
+    const progressed = deckForMode(deckMode, party, deck);
+    if (progressed !== undefined) deck = [...progressed];
+
+    const answers = toolboxAnswersFor(toolbox, offer.gym.id);
+    if (answers.length > 0) deck = [...deck, ...answers];
 
     // Not the opening fight — see `fightsResolvedAt`. Written as a spread rather than mutated
     // because `IRunState` is deeply readonly, which is right for every consumer but this one.
@@ -1053,6 +1193,75 @@ class NoSuchNodeError extends Error {}
 // Measuring
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * PAYOFF CARDS — every card whose damage depends on setup, derived from the registry rather than
+ * listed here.
+ *
+ * Ticket 77 asks each arm to report **payoff casts per fight**: how often a member's engine actually
+ * assembled. "Engine" needs a definition that is not an opinion, and the registry already carries
+ * one — a card with a `scaling` field is precisely a card whose value comes from what the rest of
+ * the deck did first (`hexbloom` on Weakened, `ink_stream` on triggered draws, `serpents_coil` on
+ * cards played). A transcribed list here would drift from `programs.json` the moment a printing
+ * moved, which is the `GYM_COUNTER_ANSWERS` lesson.
+ *
+ * This is the number ticket 77 is really about. A win rate says a deck lost; payoff casts say
+ * whether it ever got to do the thing it was built to do.
+ */
+const PAYOFF_CARDS: ReadonlySet<string> = new Set(
+    Object.entries(ProgramRegistry)
+        .filter(([, card]) => card.actions?.some((a) => a.scaling !== undefined))
+        .map(([id]) => id),
+);
+
+/** Per-cell player-side diagnostics — ticket 77. Undefined when telemetry was not collected. */
+export interface CellDiagnostics {
+    /** Fraction of card instances that reached the player's hand and were never played. */
+    readonly deadCardRatio: number;
+    /** Player casts of a `scaling` card, per fight. See `PAYOFF_CARDS`. */
+    readonly payoffCastsPerFight: number;
+    /** Total damage the player dealt, per turn of battle. */
+    readonly playerDamagePerTurn: number;
+    /** Total damage the enemy dealt, per turn of battle. */
+    readonly enemyDamagePerTurn: number;
+    /** Cards the player's deck held, averaged over samples — the dilution denominator. */
+    readonly deckSize: number;
+}
+
+/** Pull ticket 77's four player-side numbers out of a cell's raw runs. */
+function diagnose(runs: ReadonlyArray<RunResult>, deckSizes: ReadonlyArray<number>): CellDiagnostics | undefined {
+    const withTelemetry = runs.filter((r) => r.telemetry !== undefined);
+    if (withTelemetry.length === 0) return undefined;
+
+    let payoff = 0;
+    let playerDamage = 0;
+    let enemyDamage = 0;
+    let turns = 0;
+    for (const run of withTelemetry) {
+        const played = run.telemetry!.PLAYER.played;
+        for (const [id, count] of Object.entries(played)) {
+            if (PAYOFF_CARDS.has(id)) payoff += count;
+        }
+        playerDamage += run.telemetry!.PLAYER.totalDamage;
+        enemyDamage += run.telemetry!.ENEMY.totalDamage;
+        turns += run.turns;
+    }
+
+    let dead = 0;
+    let seen = 0;
+    for (const run of runs) {
+        dead += run.deadCards.player * run.cardsSeen.player;
+        seen += run.cardsSeen.player;
+    }
+
+    return {
+        deadCardRatio: seen === 0 ? 0 : dead / seen,
+        payoffCastsPerFight: payoff / withTelemetry.length,
+        playerDamagePerTurn: turns === 0 ? 0 : playerDamage / turns,
+        enemyDamagePerTurn: turns === 0 ? 0 : enemyDamage / turns,
+        deckSize: deckSizes.length === 0 ? 0 : deckSizes.reduce((a, b) => a + b, 0) / deckSizes.length,
+    };
+}
+
 export interface CellMeasurement extends RunGateCell {
     readonly samples: number;
     readonly battles: number;
@@ -1067,6 +1276,8 @@ export interface CellMeasurement extends RunGateCell {
     readonly enemiesSeen: ReadonlyArray<string>;
     /** Player OS lineups, one entry per sample, in sample order. */
     readonly lineupsSeen: ReadonlyArray<string>;
+    /** Ticket 77's player-side numbers. Present whenever telemetry was collected. */
+    readonly diagnostics?: CellDiagnostics;
 }
 
 export interface BandMeasurement {
@@ -1129,8 +1340,12 @@ export interface MeasureOptions {
     readonly gymId?: string;
     /** A designed party and deck in place of the arm's generated one — see `HandbuiltParty`. */
     readonly handbuilt?: HandbuiltParty;
-    /** Give the party the gym's three ruled counter answers — the CEILING arm. See `sampleFight`. */
-    readonly toolbox?: boolean;
+    /** Which shopping policy the party arrives on — see `ToolboxMode`. Bare is the GRADING arm. */
+    readonly toolbox?: ToolboxMode;
+    /** Build the party around this element instead of the gym's counter — ticket 76's lean bracket. */
+    readonly lean?: string;
+    /** How much of its own kit the party has assembled — ticket 77 Track A. See `DeckMode`. */
+    readonly deckMode?: DeckMode;
     /**
      * Named, uncommitted balance knobs for THIS measurement only — see `experimentalTweaks.ts`.
      *
@@ -1161,6 +1376,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
     const runs: RunResult[] = [];
     const enemiesSeen: string[] = [];
     const lineupsSeen: string[] = [];
+    const deckSizes: number[] = [];
 
     const limit = options.iterations * 8 + 16;
     let index = 0;
@@ -1191,7 +1407,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
              */
             fight = sampleFight(
                 cell, at, options.matchup ?? 'blind', options.bossOverride, options.gymId,
-                options.handbuilt, options.toolbox, options.tweaks,
+                options.handbuilt, options.toolbox, options.tweaks, options.lean, options.deckMode,
             );
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;
@@ -1205,9 +1421,13 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
             // Ticket 60's ladder. Without this the gate would play every rung at the process
             // default — full lookahead everywhere — and report a game the run does not field.
             enemyAiTier: fight.enemyAiTier,
+            // Ticket 77: the arms are judged on whether the player's ENGINE assembled, not only on
+            // whether it won, and `played`/`totalDamage` are where that lives.
+            telemetry: true,
         }));
         runs.push(...batch.runs);
         enemiesSeen.push(fight.enemy.join(' + '));
+        deckSizes.push(fight.setup.player.deck.length);
         lineupsSeen.push(fight.lineup.join(' + '));
         options.onProgress?.(cell, runs.length, Date.now() - started, batch.playerWins > 0);
     }
@@ -1226,6 +1446,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
         elapsedMs: Date.now() - started,
         enemiesSeen,
         lineupsSeen,
+        diagnostics: diagnose(runs, deckSizes),
     };
 }
 

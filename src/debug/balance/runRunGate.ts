@@ -116,6 +116,7 @@ import { AI_TIER } from '../../engine/ai/TacticalAI';
 import { DEFAULT_MAX_TURNS } from './runBatch';
 import { HANDBUILT_PARTIES, handbuiltParty, type HandbuiltParty } from './handbuiltParties';
 import { applyRegistryTweaks, describeTweaks, validateTweaks } from './experimentalTweaks';
+
 import {
     CELLS,
     RUN_GATE_TARGETS,
@@ -129,7 +130,17 @@ import {
     type BandId,
     type BandMeasurement,
     type CellMeasurement,
+    type ToolboxMode,
+    type DeckMode,
 } from './runGate';
+
+/** One line for the banner naming exactly which cards this arm bought. */
+function describeToolbox(mode: ToolboxMode): string {
+    if (mode === true || mode === 'all') return 'buy-everything: all three ruled answers';
+    if (mode === 'selective') return 'SELECTIVE: the two a player would prioritise, cheapest first';
+    if (mode === false) return 'none';
+    return `ONE CARD: ${mode.slice('card:'.length)}`;
+}
 
 /**
  * `--out <file>` — mirror every reported line into a file, line by line, as it is produced.
@@ -210,7 +221,21 @@ interface Args {
      * A CEILING arm — see `sampleFight`. It answers "can a player holding the designed counters beat
      * this boss", not "does the average player find them".
      */
-    toolbox?: boolean;
+    toolbox?: ToolboxMode;
+    /**
+     * `--lean <Element>`: build the party around a named element instead of the gym's counter.
+     *
+     * Ticket 76 arm 3. Moves ONLY the element the lineup picker is aimed at — the gym, biomes, seed
+     * and enemy roll are untouched, so a leaned arm pairs directly against an unleaned one.
+     */
+    lean?: string;
+    /**
+     * `--deck <mode>`: how much of its own kit the party has assembled — ticket 77 Track A.
+     *
+     * `bare` (default) is the 18-card run-start deck every gym number to date was measured with.
+     * `full`, `engine-plus-3` and `bare-plus-generics` are the three progression arms — see `DeckMode`.
+     */
+    deckMode?: DeckMode;
     /**
      * `--tweak <name>[,<name>]`: named, uncommitted balance knobs for this measurement only.
      *
@@ -255,6 +280,36 @@ function resolveHandbuilt(id: string | undefined): HandbuiltParty | undefined {
     return found;
 }
 
+/**
+ * `--toolbox` bare = the buy-everything arm (unchanged). `--toolbox selective` = ticket 75's ≤2
+ * basket. `--toolbox card:<id>` = one card into the bare deck, ruling 1b's per-card arm.
+ *
+ * A value that is not one of those is REJECTED rather than falling back to `all` — the whole point
+ * of the per-card arms is that the report names the exact card, and a typo silently measuring the
+ * full basket would be the `--toolbox`-threaded-nowhere bug with a new hat.
+ */
+function parseToolbox(argv: string[], value: string | undefined): ToolboxMode | undefined {
+    if (!argv.includes('--toolbox')) return undefined;
+    // Bare flag: the next argv entry is another flag (or absent), so there is no mode to read.
+    if (value === undefined || value.startsWith('--')) return 'all';
+    if (value === 'all' || value === 'selective') return value;
+    if (value.startsWith('card:') && value.length > 'card:'.length) return value as ToolboxMode;
+    throw new Error(
+        `[run-gate] --toolbox expects nothing, "all", "selective", or "card:<id>" — got "${value}"`,
+    );
+}
+
+/** `--deck full|engine-plus-3|bare-plus-generics`. Rejects anything else rather than silently baring. */
+function parseDeckMode(value: string | undefined): DeckMode | undefined {
+    if (value === undefined) return undefined;
+    if (value === 'bare' || value === 'full' || value === 'engine-plus-3' || value === 'bare-plus-generics') {
+        return value;
+    }
+    throw new Error(
+        `[run-gate] --deck expects bare | full | engine-plus-3 | bare-plus-generics — got "${value}"`,
+    );
+}
+
 function parseArgs(argv: string[]): Args {
     const get = (flag: string): string | undefined => {
         const i = argv.indexOf(flag);
@@ -279,7 +334,9 @@ function parseArgs(argv: string[]): Args {
         gymId: get('--gym'),
         out: get('--out'),
         handbuilt: resolveHandbuilt(get('--handbuilt')),
-        toolbox: argv.includes('--toolbox'),
+        toolbox: parseToolbox(argv, get('--toolbox')),
+        lean: get('--lean'),
+        deckMode: parseDeckMode(get('--deck')),
         tweaks: tweaks ?? [],
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
@@ -331,7 +388,28 @@ function cellLine(cell: CellMeasurement): string {
         `decisive=${pct(cell.decisiveWinRate).padStart(6)}  ` +
         `avgTurns=${cell.averageTurns.toFixed(1).padStart(4)}  ` +
         `ftk=${cell.ftkCount}  stalled=${cell.truncatedCount}  ` +
-        `${secs(cell.elapsedMs)}`
+        `${secs(cell.elapsedMs)}` +
+        diagnosticsLine(cell)
+    );
+}
+
+/**
+ * Ticket 77's player-side numbers, on their own line under the cell.
+ *
+ * A win rate says a deck lost. These say whether it ever got to do the thing it was built to do:
+ * **payoff** is casts of a `scaling` card per fight (the engine assembling), **dead** is the share of
+ * cards that reached hand and were never played (the dilution signal ticket 77 A3 is about), and the
+ * two damage rates are the numbers every previous report had to be re-derived to get.
+ */
+function diagnosticsLine(cell: CellMeasurement): string {
+    const d = cell.diagnostics;
+    if (d === undefined) return '';
+    return (
+        `\n      player: ${d.playerDamagePerTurn.toFixed(1).padStart(5)} dmg/turn  ` +
+        `payoff=${d.payoffCastsPerFight.toFixed(2)}/fight  ` +
+        `dead=${(d.deadCardRatio * 100).toFixed(1)}%  ` +
+        `deck=${d.deckSize.toFixed(0)}  ` +
+        `| enemy: ${d.enemyDamagePerTurn.toFixed(1)} dmg/turn`
     );
 }
 
@@ -482,6 +560,8 @@ async function main(): Promise<void> {
             bossOverride: args.bossOverride,
             handbuilt: args.handbuilt,
             toolbox: args.toolbox,
+            lean: args.lean,
+            deckMode: args.deckMode,
             tweaks: args.tweaks,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
@@ -501,8 +581,18 @@ async function main(): Promise<void> {
     // Ticket 68: a pinned arm is a different POPULATION from an unpinned one, so the header has to
     // say so — the whole value of these numbers is that they can be pasted somewhere and still mean
     // what they meant.
-    if (args.toolbox) {
-        say('  TOOLBOX ARM — the party holds this gym\'s three ruled counter answers (a CEILING, not a median run).');
+    if (args.toolbox !== undefined) {
+        say(`  TOOLBOX ARM (${describeToolbox(args.toolbox)}) — a DIAGNOSTIC line beside the bare arm, `
+            + 'which is what grades a gym (ticket 75 ruling 2).');
+    } else {
+        say('  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).');
+    }
+    if (args.deckMode !== undefined && args.deckMode !== 'bare') {
+        say(`  DECK PROGRESSION: ${args.deckMode} — ticket 77 Track A. The player side is NOT the 18-card `
+            + 'run-start deck every previous gym number was taken with.');
+    }
+    if (args.lean !== undefined) {
+        say(`  PARTY LEAN: ${args.lean} — the lineup picker is aimed at ${args.lean} instead of the gym's counter (ticket 76).`);
     }
     if (args.tweaks.length > 0) {
         // Loud, and above the party line, because the one thing that must never happen to this

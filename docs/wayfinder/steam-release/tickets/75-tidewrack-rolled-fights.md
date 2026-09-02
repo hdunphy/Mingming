@@ -1,10 +1,16 @@
-# The gauntlet's first two fights are the same fight at every gym — and the counter-party is what differs (ticket 75)
+# Rootfall is the worst gym, and the counter-cards are a net negative at all three (ticket 75)
 
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: 
-- Blocked by: nothing — the structural finding is verified (below); the comparison arm is not yet run
+- Blocked by: nothing — step 1 is DONE (research/75), Q1-Q3 restated below and awaiting Henry
 - Phase: Vertical Slice
+
+> **READ ["STEP 1 IS DONE"](#step-1-is-done--and-it-demolished-the-question-this-ticket-opened-on-2026-08-31) FIRST.**
+> Everything between here and there is how the ticket was framed BEFORE its own step 1 ran. The
+> framing did not survive: Tidewrack is the middle gym, Rootfall is the worst, and the biggest
+> single effect in the data is ticket 69's counter-cards making the player worse at all three.
+> Kept rather than rewritten, because the wrong hypothesis and what killed it are the record.
 
 ## Why this exists
 
@@ -88,6 +94,50 @@ the two. Nothing above should be ruled on until that table exists — it is the 
 "Tidewrack is 20 points behind" and "every gym's lead-ins are soft and Emberfall's old number was
 taken differently".
 
+## STEP 1 IS DONE — and it demolished the question this ticket opened on (2026-08-31)
+
+Six arms, 1,080 battles, all three gyms with and without the toolbox at matched conditions.
+Full write-up: [research/75-the-three-gym-table-and-the-toolbox.md](../research/75-the-three-gym-table-and-the-toolbox.md).
+
+| gym | compound, no toolbox | compound, toolbox | verdict (bare) |
+| --- | --- | --- | --- |
+| Emberfall | **62.4%** | 44.0% | **PASS** (+2.4pt) |
+| Tidewrack | **40.0%** | 28.0% | FAIL -20.0pt |
+| Rootfall | **27.7%** | 11.1% | FAIL -32.3pt |
+
+**1. The toolbox costs 11.5 points of win rate at every gym** — 540 paired battles, p = 0.0000017.
+Significantly at Emberfall (p = 0.023) and Rootfall (p = 0.00019). These are ticket 69's counter
+cards, shipped to make these fights winnable.
+
+**2. Emberfall's calibration HOLDS** at 62.4% bare, same conditions ticket 68 measured it under.
+
+**3. Both hypotheses this ticket opened on are dead.** "Nature is weak" — no: the fire-leaning party
+at Rootfall does worse than the nature-leaning one, so the ordering is water >> nature > fire and it
+is not one soft element. "Tidewrack is the outlier" — no: measured against its peers it is the
+MIDDLE gym. **Rootfall is 32 points under and has no ticket.**
+
+**4. The process lesson.** Rootfall's last number (67 R5, "~7.6pt under") predates the toolbox, the
+firmware-pairing fix, the draw-scoping fix and the biome walk-order inversion, and was carried
+forward across all of them. So was the 37-point Tidewrack outlier that drove tickets 71, 73 and 74.
+A gym number is worth exactly what its measurement conditions are worth.
+
+## The questions, restated after step 1
+
+**Q1 — the toolbox.** Net negative at every gym. Pull the cards from the neutral pool, reprice them,
+keep them and accept the arm models an unlucky purchase, or stop putting them in the graded arm?
+Ticket 69 designed them and ticket 74 asked for them purchasable, so this contradicts both and is a
+ruling rather than something to quietly drop.
+
+**Q2 — which arm grades a gym?** Every historical gym number is toolbox-OFF; every number reported
+over the last two days is toolbox-ON. Pick one, or this recurs.
+
+**Q3 — Rootfall.** 27.7% bare, the worst fight in the game, never authored against. Does it get its
+own build ticket the way Tidewrack got 71/74?
+
+**Superseded:** the original Q1-Q3 ABOVE are kept for the record. Q1 (is ~84.3%/fight fair to ask of
+an unauthored fight) still stands and is now more pointed, since Rootfall's rolled fights read
+73.3/66.7 bare. Q3 (is this a Nature problem) is ANSWERED: no.
+
 ## Done when
 
 The three-gym per-fight table exists at matched conditions, Q1-Q3 are ruled, and either a lever is
@@ -106,3 +156,29 @@ applied and measured or the gauntlet target is restated with the reasoning recor
 ## Resolution
 
 _(open)_
+
+
+## Rulings (Henry, 2026-08-31) — the three questions answered
+
+1. **The toolbox STAYS SHIPPED. No reprice, no pull — diagnose first.** The multiple-counters law
+   stands; what failed is either the harness's shopping policy or specific printings, and the
+   -11.5pt number cannot tell those apart. Build the diagnosis: (a) a **selective-shopping arm** —
+   buy at most 2 toolbox cards, matched to the gym being entered (cleanse tech at Rootfall,
+   riptide/short_circuit at Tidewrack, plating/discharge/hamstring at Emberfall) — against the
+   buy-everything arm; (b) **per-card arms** (one card added to the bare deck at a time, the three
+   worst offenders first) so any eventual reprice is ruled on a card's own number, not the
+   basket's. No mechanism gets asserted before those arms land — deck dilution, daemon tempo, and
+   AI misplay of daemons are all candidates and all unverified.
+2. **The BARE arm grades a gym. Toolbox-ON reports beside it as a diagnostic line,** exactly as the
+   control arm does. This keeps every historical number comparable — and under it, **Emberfall
+   PASSES at 62.4% against 60** and its calibration is confirmed to have survived four
+   engine/harness changes. The toolbox line's job is to measure what the tech is WORTH; when the
+   diagnosis lands it should read positive, and until then a negative toolbox line never fails a
+   gym.
+3. **Rootfall gets its own ticket ([76](76-rootfall-diagnosis.md)) — grilling with arms.** Measure
+   where the hole is first; Henry rules the lever after, Tidewrack-style. 27.7% bare against 60 is
+   the worst number on the board and it has never had a session.
+
+Process note, adopted as standing practice from this ticket's own lesson: **a gym number carried
+across engine or harness changes is stale until re-taken under current conditions** — same tree,
+same day, same arms, or it does not get compared.
