@@ -219,10 +219,12 @@ alone deliberately (outside the ticket, and the measured targets were produced w
 changing it WILL move the grid — audhumbla is the deck to watch. [Ticket 138](tickets/138-card-text-truth.md)
 is CLOSED: `glass_cannon`'s recoil is power (80) instead of a flat 300 that bypassed the damage
 formula entirely, costing skoll_v2 5.9 field points and leaving her in band, and two stale registry
-comments are fixed. **Its unfinished half is worth re-opening: the description-vs-data sweep as a
-TEST**, with the 35 structural false positives the ticket already catalogues as the allowlist —
-every defect in that ticket was found by accident while changing something else, and the guard is
-the only part that stops the next one being found the same way. **Also left by name:**
+comments are fixed. Its unfinished half is now [ticket 139](tickets/139-description-data-guard.md):
+the description-vs-data sweep as a TEST, where **the 35 structural false positives are the
+deliverable** — each is a place text and data are related by CODE rather than by equality, and the
+ticket groups all 35 with the rule each implies. Every defect in 138 was found by accident while
+changing something else, and the guard is the only part that stops the next one being found the
+same way. **Also left by name:**
 `desperate_strike` and `dark_pact` carry the identical `damageOverride`-vs-description defect —
 both say "Deal 10 damage to self" and deal 150, because 131c scaled the data and not the text.
 Untickted: `crushing_depths`, `boiling_surge` and `scald` are new cards in the shared pool — they are
