@@ -971,7 +971,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    for ~33 HP a cast, which is why blight_bloom trades Poison AWAY for raw power.
         decks: {
             "nidhoggr_v1": ["rot_seed", "rot_seed", "shadow_claw", "water_slap", "venom_shade", "venom_shade", "curse_mark", "blight_bloom", "blight_bloom", "wither_feast"],
-            "nidhoggr_v2": ["shadow_claw", "shadow_claw", "bloodletting", "bloodletting", "leech_strike", "leech_strike", "umbral_feast", "water_slap", "rend_marrow", "rend_marrow"]
+            // TICKET 136m: BLOOD_SCENT feeds on ANY unit crossing below half HP, including
+            // nidhoggr himself, so the deck is supposed to spend its own health on purpose.
+            // `bloodletting` now pays 25 power for 1 self-Poison instead of 18 for 2 - more
+            // damage AND a smaller self-clock, which sounds like a free buff and is not: the
+            // self-Poison is what walks him down to the threshold his own firmware reads, so
+            // halving it is a real cost to the engine. `bloodwrath` replaces `water_slap` and
+            // is the card that makes the pile a resource rather than a debt - consume his own
+            // Poison, 10 power per stack eaten, on sun_devourer's template. Measured 27.4 -> 40.7.
+            "nidhoggr_v2": ["shadow_claw", "shadow_claw", "bloodletting", "bloodletting", "leech_strike", "leech_strike", "umbral_feast", "bloodwrath", "rend_marrow", "rend_marrow"]
         },
         moves: [
             {

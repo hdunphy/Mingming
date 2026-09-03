@@ -4580,7 +4580,7 @@
     "bloodletting": {
         "id": "bloodletting",
         "name": "Bloodletting",
-        "description": "18 power. Add 2 stacks of Poison to yourself.",
+        "description": "25 power. Add 1 stack of Poison to yourself.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -4594,14 +4594,43 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 25,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 2,
+                "stacks": 1,
                 "target": "SELF"
+            }
+        ]
+    },
+    "bloodwrath": {
+        "id": "bloodwrath",
+        "name": "Bloodwrath",
+        "description": "Consume your own Poison: deal 10 power per stack consumed.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "scaling": "STATUS_CONSUMED",
+                "target": "TARGET"
             }
         ]
     },
