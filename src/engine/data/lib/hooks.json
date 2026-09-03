@@ -599,7 +599,7 @@
     "jormungandr_v2": {
         "id": "jormungandr_v2",
         "name": "TOXIN_FANG_OS",
-        "description": "Jörmungandr's venom coats his fangs: his attacks deal +1 damage per Poison stack on the target.",
+        "description": "Jörmungandr's venom coats his fangs: his attacks deal +10 damage per Poison stack on the target.",
         "hooks": [
             {
                 "id": "jorm_v2_toxin_fang",
@@ -608,7 +608,7 @@
                 "when": {
                     "source": "SELF"
                 },
-                "bonus": 1,
+                "bonus": 10,
                 "scaling": "TARGET_POISON_STACKS"
             }
         ]
@@ -659,7 +659,7 @@
                     "programElement": "Earth",
                     "actionType": "ATTACK"
                 },
-                "bonus": 0.25,
+                "bonus": 2.5,
                 "scaling": "SHARP_STACKS"
             },
             {
