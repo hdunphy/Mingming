@@ -440,7 +440,7 @@ export const ARCHETYPE_SUMMARIES: Record<string, string> = {
     nidhoggr_v2: 'BLOOD_SCENT pays 1 Energy and a card per below-half crossing.',
     hel_v1: 'TWILIGHT_CADENCE sets her stance from the element she casts, at end of action.',
     hel_v2: 'UNDERWORLD_GATEWAY zeroes her Energy cost and taxes every card at 5% maxHP - the only Mingming who casts 3-energy cards freely, with her own hand as her clock.',
-    huldra_v1: 'ALLURE_PROXY mirrors buffs as a hex; hexbloom converts the Weakened pile into Poison at x2 without consuming it.',
+    huldra_v1: 'ALLURE_PROXY mirrors buffs as a hex; hexbloom converts the Weakened pile into Poison at x1 and consumes it.',
     huldra_v2: 'BARK_SHIELD_OS shield wall on a Poison clock - she wins inside the shield\'s life.',
 };
 

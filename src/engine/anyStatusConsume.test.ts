@@ -7,8 +7,10 @@
  * turn of setup"*. The pile only ever grew, so each cast was bigger than the last.
  *
  * One stack off each counted type rather than a full consume, for the reason `StatusExecutor`'s
- * hexbloom comment gives: consuming makes a card a hoard dump priced off how long you saved up,
- * while not consuming makes it a rate. Taking a stack keeps the rate and kills the snowball.
+ * comment gives: consuming makes a card a hoard dump priced off how long you saved up, while not
+ * consuming makes it a rate. Taking a stack keeps the rate and kills the snowball. (That comment
+ * used to cite hexbloom as the reads-without-consuming precedent; ticket 136c made hexbloom
+ * consume, so the precedent is gone and the reasoning is not.)
  */
 
 import { describe, it, expect } from 'vitest';

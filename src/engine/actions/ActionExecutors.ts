@@ -306,11 +306,13 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         // 25 damage after one turn of setup"*. The card read the pile without paying for it,
         // so the pile only grew and every cast was bigger than the last.
         //
-        // ONE STACK per counted type, not a full consume, on `StatusExecutor`'s hexbloom
-        // precedent below: consuming makes a card a hoard dump priced off how long you saved
-        // up (x3 measured 13.90 against a 6.5 band), while reading without consuming makes it
-        // a RATE. A stack keeps the rate and still kills the snowball, because the count
-        // feeding the next cast is now strictly smaller unless something re-applies.
+        // ONE STACK per counted type, not a full consume. Ticket 124 took this from what was
+        // then `StatusExecutor`'s hexbloom precedent - hexbloom consumes its Weakened as of
+        // ticket 136c, so the precedent is gone, but the reasoning stands on its own:
+        // consuming makes a card a hoard dump priced off how long you saved up (x3 measured
+        // 13.90 against a 6.5 band), while reading without consuming makes it a RATE. A stack
+        // keeps the rate and still kills the snowball, because the count feeding the next
+        // cast is now strictly smaller unless something re-applies.
         //
         // Counted BEFORE the damage lands, from the same predicate `getEffectiveAttackPower`
         // used, so the decrement and the damage cannot disagree about what a status is.
@@ -371,12 +373,12 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
         // "consume all Weakened on the target, apply that many Poison"). The `consume` branch
         // below returns early, so a consume action can never read its own multiplier - which
         // is what guarantees the two actions resolve in the authored order.
-        // Ticket 41: WEAKENED_STACKS reads the TARGET's Weakened WITHOUT consuming it, so the
-        // pile survives and the card can be cast again off the same standing resource. That is
-        // the whole difference from STATUS_CONSUMED, which spends its input - and it is what
-        // makes hexbloom price honestly. Consuming turns the card into a hoard dump whose value
-        // scales with however long you saved up (x3 measured 13.90 against a 6.5 band); not
-        // consuming turns it into a RATE, so x2 is enough and x2 scores 6.30.
+        // Ticket 41: WEAKENED_STACKS reads the TARGET's Weakened WITHOUT consuming it - the
+        // scaler itself never spends the pile. Ticket 136c pairs it on hexbloom with an
+        // explicit second consume action, so the card now reads the pile at x1 and then
+        // clears it. Before 136c it read at x2 and left the pile standing: a RATE rather than
+        // a hoard dump (x3-consumed measured 13.90 against a 6.5 band, x2-standing 6.30), but
+        // at full grid the standing pile put huldra_v1 at 91.8, so 136c spends it.
         const weakenedOnTarget = actionData.scaling === 'WEAKENED_STACKS'
             ? ((state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId))
                 ?.statusEffects.find(s => s.type === 'Weakened')?.stacks ?? 0)

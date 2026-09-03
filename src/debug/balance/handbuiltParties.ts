@@ -72,9 +72,9 @@ export interface HandbuiltParty {
  *
  * # THE PARTY, AND WHY EACH SLOT
  *
- *  - **huldra_v1** (Nature) — the converter. `hexbloom` reads *"2 Poison per stack of Weakened on
- *    the target, the Weakened remains"*, which makes every Weakened do two jobs at once: it blunts
- *    each of the boss's hits AND becomes poison. Nothing else in the launch pool does that.
+ *  - **huldra_v1** (Nature) — the converter. `hexbloom` reads *"1 Poison per stack of Weakened on
+ *    the target, then remove the Weakened"* (ticket 136c; it was x2 and left the pile standing),
+ *    which turns every Weakened into poison once. Nothing else in the launch pool does that.
  *  - **ratatoskr_v2** (Nature) — the applier that feeds it. `pollen_cloud` is 0-energy Weakened, and
  *    `crippling_vine` is the single best launch card into this boss: 2 Weakened (blunts), 2 Dazed
  *    (target-Dazed is +1 power per stack to MY hits) and 3 Poison, all on one card.
