@@ -555,3 +555,121 @@ and its LIST was not changed, only the note saying which side of 136 it is on), 
 3. **`draugr`'s v1 design comment** narrates the sleep rhythm as "a SLEEP turn on 2 energy and an
    AWAKE turn on 3". With 136d's base at 3 those turns are 3 and 4. The rhythm is unchanged; the
    prose was left alone as out of scope.
+
+## 10. Round two (same day) — the six reworks, measured
+
+See §136h–n of the implementation prompt for exact edits. Session rows are in project memory
+(`fenrir_hraes_session`, `round3_sessions`). Full grid after round two:
+
+| deck | round 2 | round 1 | | deck | round 2 | round 1 |
+|---|---|---|---|---|---|---|
+| jormungandr_v1  | 72.8 | 75.0 | | nidhoggr_v1  | 72.0 | 76.8 |
+| sleipnir_v2  | 64.9 | 30.6 | | fenrir_v2  | 61.7 | 65.9 |
+| draugr_v2  | 61.0 | 65.0 | | kraken_v2  | 60.8 | 64.9 |
+| audhumbla_v1  | 60.1 | 66.4 | | fenrir_v1  | 59.5 | 24.7 |
+| huldra_v1  | 59.1 | 68.7 | | huldra_v2  | 58.2 | 60.0 |
+| hraesvelgr_v1  | 57.2 | 61.0 | | ratatoskr_v1  | 55.1 | 60.2 |
+| hel_v2  | 54.9 | 24.5 | | sleipnir_v1  | 54.5 | 58.1 |
+| jormungandr_v2  | 53.5 | 62.1 | | fafnir_v1  | 50.6 | 54.1 |
+| kraken_v1  | 49.4 | 53.6 | | draugr_v1  | 48.9 | 52.5 |
+| gullinbursti_v1  | 48.2 | 54.6 | | fafnir_v2  | 46.4 | 34.4 |
+| hraesvelgr_v2  | 46.3 | 26.1 | | ratatoskr_v2  | 45.8 | 53.7 |
+| ymir_v1  | 44.2 | 47.0 | | valkyrie_v1  | 44.2 | 52.9 |
+| skoll_v2  | 44.1 | 49.6 | | nidhoggr_v2  | 40.7 | 28.6 |
+| ymir_v2 **OUT** | 34.9 | 38.1 | | gullinbursti_v2 **OUT** | 34.8 | 40.4 |
+| hel_v1 **OUT** | 32.3 | 38.5 | | skoll_v1 **OUT** | 29.5 | 36.5 |
+| audhumbla_v2 **OUT** | 28.9 | 36.6 | | valkyrie_v2 **OUT** | 24.7 | 36.1 |
+
+|  | mean | sd | in band |
+|---|---|---|---|
+| round 1 package | 49.9 | 14.9 | 26/32 |
+| **round 2 package** | 50.0 | 12.0 | 26/32 |
+
+unspent over 15%: audhumbla_v1 23%, fafnir_v2 21%, draugr_v2 19%, audhumbla_v2 16%
+
+---
+
+# ROUND TWO — SHIPPED 2026-09-03, seven commits on `legion/ai-perf`
+
+136h–136n landed exactly as the implementation prompt ruled them, one commit per letter, on top of
+`3baa1dc` (post-136 round one, post-138). **Every one of the 32 decks reproduced its predicted
+number to within 0.05 points** — the largest deviation across the whole grid.
+
+| commit | ticket | what shipped |
+|---|---|---|
+| `0b7504b` | 136h | `STRENGTH_STACK_CAP` → Infinity; `SELF_ANY_STATUS` and `BURN_STACKS` scalings |
+| `c090608` | 136i | fenrir_v1: OS pays 2 Strengthened, `war_pact` + `unbound_fang`, deck and kit |
+| `65c89aa` | 136j | hraesvelgr_v2: Plunge 3e/68 → 2e/45, Talon X-cost → 2e/25 per Burn |
+| `f6fb3f1` | 136k | hel_v2: blood price 6% → 5%, cap unchanged |
+| `b6ec28c` | 136l | sleipnir_v2: deck list only, four slots |
+| `e54e33f` | 136m | nidhoggr_v2: `bloodletting` 25/1, new `bloodwrath` |
+| `45e2451` | 136n | fafnir_v2: new `tarnish` + `corroded_edge`, two deck slots |
+| _this commit_ | grid + docs | promoted into `deck_grid.json`, and this record |
+
+Gates on every commit: `npx tsc -b` clean, `npx vitest run` **2132 passed / 158 files**,
+`npx eslint .` clean.
+
+## The grid, target vs measured (`results/rebaseline-r2/`)
+
+|  | mean | sd | in band |
+|---|---|---|---|
+| promoted post-138 | 49.8 | 15.0 | 26/32 |
+| **round two, measured** | **49.9** | **12.0** | **26/32** |
+
+The six reworked decks all landed in band: fenrir_v1 **58.19** (was 24.4), sleipnir_v2 **65.00**
+(30.7), hel_v2 **54.71** (24.2), hraesvelgr_v2 **46.39** (25.9), fafnir_v2 **46.39** (34.4),
+nidhoggr_v2 **39.86** (27.4). The six now out — ymir_v2 34.9, gullinbursti_v2 34.1, hel_v1 31.6,
+skoll_v1 29.5, audhumbla_v2 28.5, valkyrie_v2 23.7 — are the levy the prompt named in advance and
+are the next session's list, not a failure of this one. 311 of 960 cells moved 5+ points; the
+biggest single cell is fenrir_v1 vs huldra_v1 at **+91.7**, which is one rebuilt deck meeting a deck
+it used to lose to outright.
+
+Per-deck deltas against the target table were: max 0.05, and 25 of 32 within 0.03.
+
+## Test assertions changed, quoted
+
+**136i, OSSystem.test.ts** — deliberate, the OS pays double now:
+- `'v1 (UNBOUND_KERNEL): applies 1 Strengthened and 2% recoil on Attack'` → `'applies 2 Strengthened…'`
+- `expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 1)).toBe(true);` → `s.stacks === 2`
+
+**136i, RewardSystem.test.ts** — NOT a pinned value, and the finding is below: the fixture for
+`"includes a species' UNTAGGED kit cards while it is in the party"` moved from fenrir_v1 to
+kraken_v1. The assertion is unchanged.
+
+**136j, XCostAction.test.ts** — the card left the scaling:
+- `'BURN_TIMES_ENERGY deals nothing without Burn, and scales with it'` → `'BURN_STACKS deals nothing without Burn, and is linear in the pile (ticket 136j)'`, body unchanged.
+
+**136k, StanceSystem.test.ts** — eight assertions, all the 6% → 5% price, and two that changed
+SHAPE because a cheaper step fits more casts under an unchanged ceiling:
+- describe `'(ticket 81: 6% blood, 25% cap…)'` → `'(ticket 136k: 5% blood, 25% cap…)'`
+- `expect(OS_KNOBS.hel.pctPerEnergy).toBe(6)` → `.toBe(5)`; title `'the shipped price is 6%'` → `'…is 5%'`
+- `expect(tolls).toEqual([120, 120, 120])` → `[100, 100, 100]`
+- `expect(state.playerParty[0].currentHp).toBe(1005)` → `toBe(1025)`
+- `'allows FOUR Energy-points of Dark a turn at the shipped 6% price and 25% cap'` → `'allows FIVE … at the shipped 5% price'`; fixture gains a sixth card, `toBe(1520)` → `toBe(1500)`
+- the 20%-cap fallback test: three casts fit at 6%, **four** at 5%; `expect(counters).toBe(18)` → `.toBe(20)`
+- `expect(counters).toBe(6)` → `.toBe(5)` (budget reset)
+- `'charges 18% of her pool'` → `'15%'`, `toBe(1640)` → `toBe(1700)`
+
+136h, 136l, 136m and 136n moved no assertion at all.
+
+## Findings the implementation turned up, reported not fixed
+
+1. **fenrir_v1's rebuilt deck has five DISTINCT cards and all five are in its start kit** (nine
+   slots, four of them second copies). Ticket 61's model is "payoff + 4 enablers, and the run
+   builds back toward the tuned deck" — for fenrir_v1 the tuned deck now IS the kit, doubled, so
+   there is nothing to draft back toward. `RewardSystem.test.ts`'s own
+   `expect(untagged.length).toBeGreaterThan(0)` fixture guard is what caught it. Every other
+   species still has an untagged half. **Deck-design call, not a test problem.**
+2. **`BURN_TIMES_ENERGY` now has no card in the registry.** 136j was its only consumer. The engine
+   branch is still there and still correct; it is a deletion candidate for whoever next audits dead
+   scalings. Thermal Lance still uses `ENERGY_SPENT_SQUARED`, so the X-cost mechanic itself keeps a
+   live consumer.
+3. **hel_v2's heal still out-earns her blood toll, and 136k widened the gap.** The test file already
+   recorded 125 healed against a 120 toll on a 2000 frame; at 5% the toll is 100, so the loan grows
+   from +5 to +25 a cast. It was a finding before this ticket and still is — closing it means moving
+   the heal power or the price, which is a balance decision.
+4. `powerscale` cannot price `BURN_STACKS` or `SELF_ANY_STATUS` and now says so in `manualReview`
+   rather than reading them at their printed base. Both were hand-priced against their real
+   ceilings (Talon 25 × ≤4 Burn, because Burn caps at 4; Corroded Edge 20 × 3–4 statuses) and the
+   sim gate decides them. Deliberately given no `ASSUMED_` constant: every one of those came from
+   ticket 66's census of real battles, and neither pile has been measured.

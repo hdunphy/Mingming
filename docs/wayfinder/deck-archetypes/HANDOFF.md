@@ -184,7 +184,20 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
-**136-OPEN. THE STATE OF THE ROSTER AS OF 2026-09-03, AND THE SIX THREADS TICKET 136 LEFT OPEN.**
+**136-ROUND-TWO SHIPPED 2026-09-03.** 136h-136n landed (`0b7504b`..`45e2451`, grid promoted in the
+docs commit that follows them) and **all 32 decks reproduced their predicted number to within 0.05: sd 15.0 -> 12.0,
+mean 49.9, 26/32 in band.** All six round-one stragglers are in band - fenrir_v1 58.2, sleipnir_v2
+65.0, hel_v2 54.7, hraesvelgr_v2 46.4, fafnir_v2 46.4, nidhoggr_v2 39.9. **The next list is the
+levy, named in advance and expected out:** ymir_v2 34.9, gullinbursti_v2 34.1, hel_v1 31.6,
+skoll_v1 29.5, audhumbla_v2 28.5, valkyrie_v2 23.7. Engine changes under it: STRENGTH_STACK_CAP is
+Infinity, and `SELF_ANY_STATUS` / `BURN_STACKS` exist. **Three things it found and did NOT fix:**
+fenrir_v1's rebuilt deck has five distinct cards and all five are in its start kit (nothing to
+draft back toward - ticket 61's model does not apply to him any more); `BURN_TIMES_ENERGY` has no
+card left; hel_v2's heal out-earns her blood toll by MORE at the cheaper price. **Ticket 137 (the
+AI Regen constant) was deliberately sequenced AFTER this** - round two's targets were measured with
+the AI still valuing Regen at 3%, so 137 re-measures its own grid.
+
+**136-OPEN (round one). THE THREADS THAT REMAIN.**
 Ticket 136 shipped as seven commits on `legion/ai-perf` (`c8978ba`..`36c26a3`) and the full grid
 reproduced every one of its 32 predicted numbers to the tenth of a point: **mean 49.9 unchanged, sd
 19.4 -> 14.9, in band 22/32 -> 26/32** (`results/rebaseline-136/`; `deck_grid.json` deliberately NOT
