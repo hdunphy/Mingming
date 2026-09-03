@@ -286,7 +286,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // all-Water by necessity: the loop counts Water cards only, so a None-tier card here
         // would be a hole in the engine.
         // v2 is TOXIN_FANG_OS, a poison-BRUISER rather than the old VENOM_TRENCH attrition
-        // plan: attacks deal +2 per Poison stack on the target, so the pile is an amplifier
+        // plan: attacks deal +10 damage per Poison stack on the target, so the pile is an amplifier
         // that gets cashed the same turn. `capacitor` left (its economy argument died with the
         // 2-Energy world; the card stays in the registry as a ramp draft pick) and `contagion`
         // stayed, because doubling the pile now doubles the amplifier immediately.
@@ -642,9 +642,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    pays a card to enter, and the payoff cards read "+N power if you are Asleep". The
         //    enemy takes the stance away by hitting him (Asleep now loses a stack per incoming
         //    attack), and the wake pays 1 Energized and a card. That makes a two-turn rhythm:
-        //    a SLEEP turn on 2 energy (grave_rest -> nightmare, 100 power) and an AWAKE turn on
-        //    3 where StableOS blocks re-sleeping and barrow_king lands - the only 3-cost in Ice,
-        //    castable only because the wake banks the energy.
+        //    a SLEEP turn on 3 energy (grave_rest -> nightmare, 100 power) and an AWAKE turn on
+        //    4 where StableOS blocks re-sleeping and barrow_king lands - the only 3-cost in Ice.
+        //    The rhythm predates ticket 136d, which took the frame from 2 Energy to 3; the wake
+        //    still banks a point on top, it is just no longer what makes barrow_king castable.
         // v2 GRAVE_CHILL_OS - unrelated, and unchanged since ticket 12: enemies carrying 2+
         //    DISTINCT debuffs deal 20% less to Draugr. Fed with cheap variety and cashed by
         //    rimebreaker, which scales on the same distinct count - so the firmware and the win

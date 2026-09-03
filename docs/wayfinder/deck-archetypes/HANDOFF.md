@@ -216,11 +216,15 @@ promoted). What is left, in the order Henry ruled it:
 [Ticket 137](tickets/137-ai-regen-valuation.md): `TacticalAI.ts` line 176 still hardcodes Regen at
 `0.03` after 136b took the engine to 2%, so the AI values Regen ~50% above what it pays; it was left
 alone deliberately (outside the ticket, and the measured targets were produced with it at 3%), and
-changing it WILL move the grid — audhumbla is the deck to watch. [Ticket 138](tickets/138-card-text-truth.md):
-the card text does not always describe the card — `glass_cannon` prints 20 recoil and deals a flat
-300, three heals print a percentage over a flat power, and Regen's glossary line was wrong on the
-timing, the amount AND what a stack is. Both tickets ask for the check to be built as a TEST rather
-than fixed by hand, because each of these was found by accident while changing something else.
+changing it WILL move the grid — audhumbla is the deck to watch. [Ticket 138](tickets/138-card-text-truth.md)
+is CLOSED: `glass_cannon`'s recoil is power (80) instead of a flat 300 that bypassed the damage
+formula entirely, costing skoll_v2 5.9 field points and leaving her in band, and two stale registry
+comments are fixed. **Its unfinished half is worth re-opening: the description-vs-data sweep as a
+TEST**, with the 35 structural false positives the ticket already catalogues as the allowlist —
+every defect in that ticket was found by accident while changing something else, and the guard is
+the only part that stops the next one being found the same way. **Also left by name:**
+`desperate_strike` and `dark_pact` carry the identical `damageOverride`-vs-description defect —
+both say "Deal 10 damage to self" and deal 150, because 131c scaled the data and not the text.
 Untickted: `crushing_depths`, `boiling_surge` and `scald` are new cards in the shared pool — they are
 draftable by every species, not just kraken, which is the trap the collection has always carried.
 

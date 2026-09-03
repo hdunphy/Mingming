@@ -419,7 +419,7 @@
     "glass_cannon": {
         "id": "glass_cannon",
         "name": "Glass Cannon",
-        "description": "45 power. 20 recoil damage.",
+        "description": "45 power. 80 power recoil to yourself.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -438,9 +438,8 @@
             },
             {
                 "type": "ATTACK",
-                "power": 15,
-                "target": "SELF",
-                "damageOverride": 300
+                "power": 80,
+                "target": "SELF"
             }
         ]
     },
