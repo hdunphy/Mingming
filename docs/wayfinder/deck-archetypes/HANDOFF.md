@@ -184,6 +184,41 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
+**136-OPEN. THE STATE OF THE ROSTER AS OF 2026-09-03, AND THE SIX THREADS TICKET 136 LEFT OPEN.**
+Ticket 136 shipped as seven commits on `legion/ai-perf` (`c8978ba`..`36c26a3`) and the full grid
+reproduced every one of its 32 predicted numbers to the tenth of a point: **mean 49.9 unchanged, sd
+19.4 -> 14.9, in band 22/32 -> 26/32** (`results/rebaseline-136/`; `deck_grid.json` deliberately NOT
+promoted). What is left, in the order Henry ruled it:
+
+1. **fenrir_v1 deck rework (24.7).** Henry wants Ignite given the same treatment `scald` got in 136g:
+   a cheap card whose Burn is the point and whose cost is paid in something other than energy. Fire
+   pass. This is the loudest remaining deck and the one with a named direction.
+2. **hraesvelgr_v2 deck rework (26.1)** — the long-standing dead-card problem (`tailwind` 79% dead
+   at the last measurement), untouched by 136.
+3. **nidhoggr_v2 deck look (28.6)**, and behind it **sleipnir_v2 (30.6)**, **fafnir_v2 (34.4)** and
+   **hel_v2 (24.5)**. All four are deck/OS conversations. **No stat knobs and no "turn N" hooks** —
+   both are standing rulings from this pass (readability; a hook the player cannot read while
+   playing is not a mechanic).
+4. **The flat-number DoT / Regen / heal / Bark Shield ticket, now unblocked.** Every "% of max HP"
+   becomes a literal number, so nothing silently reprices when a frame's HP moves and every card
+   reads what it actually does. This is the replacement for HPFRAME, which was WITHDRAWN mid-136:
+   a hidden divisor on percentage effects is hidden math and Henry does not ship hidden math. Its
+   measurement grid is still a good map of which effects are mispriced — use it as the map, fix with
+   visible numbers.
+5. **Playtest the five decks carrying unspent energy over Henry's 15% bar**: audhumbla_v1 23%
+   (GENESIS takes her to 4 max Energy), draugr_v2 19%, fafnir_v2 18%, audhumbla_v2 15.5%,
+   nidhoggr_v2 15.5%. Everything else on the roster is under. Measured at REAL end-of-turns only —
+   the first probe counted the AI's lookahead and read 50-80% for everyone, which is not a number
+   about the game.
+6. **3v3 measurement of the 136 package — still pending.** Everything above is 1v1 beamless.
+
+**Two follow-ups 136 created rather than closed.** `TacticalAI.ts` line 176 still hardcodes Regen at
+`0.03` after 136b took the engine to 2%, so the AI values Regen ~50% above what it pays; it was left
+alone deliberately (outside the ticket, and the measured targets were produced with it at 3%), and
+changing it WILL move the grid. And `crushing_depths`, `boiling_surge` and `scald` are new cards in
+the shared pool — they are draftable by every species, not just kraken, which is the trap the
+collection has always carried.
+
 STRATEGIC (Henry, 2026-08-12): after balancing completes, decide 1v1-only vs 3v3 as the shipped mode — gates ticket 05, the team OSes (valkyrie L-family, einherjar_standard), and Steam scope. Henry's stated goal: ship on Steam. 1v1 balancing finishes first.
 
 0-VALK-ENGINE. **DO NOT RE-DERIVE: valkyrie_v2's ENGINE IS HER OS, NOT HER DECK (ticket 60).** Zeroing REBIRTH_CYCLE's payoff costs her **50 of her 88 field points (87.7% -> 37.7%)**; **every single-card knockout lands inside +-3.3 on a +-5 instrument**, and four of five make her stronger. **Deck size is NOT a lever either** - 6 / 7 / 8 cards all read 87-91. Two consequences. (a) **Restoring her 8th card is FREE (+2.6) and must be paired with an OS change**, or the rulebook fix ships her at ~90%. (b) The two hypotheses that looked obvious were both wrong: the exhaust package does not drive reshuffles (shuffles/turn go UP when cards LEAVE - deck size drives cycling), and `starfall` is not a mispriced bomb but the deck's weakest card at **7.1 damage/cast, 3.11 casts/game**, whose removal is the study's biggest gain. **Her once-per-turn guard is load-bearing** - she reshuffles more than once on 34.7% of turns and the cap eats every one.
