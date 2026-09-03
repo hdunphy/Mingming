@@ -4634,6 +4634,58 @@
             }
         ]
     },
+    "tarnish": {
+        "id": "tarnish",
+        "name": "Tarnish",
+        "description": "Apply 2 Weakened. You gain 1 Weakened.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 2,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "corroded_edge": {
+        "id": "corroded_edge",
+        "name": "Corroded Edge",
+        "description": "Deal 20 power for each different status on yourself.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "scaling": "SELF_ANY_STATUS",
+                "target": "TARGET"
+            }
+        ]
+    },
     "baseline_jab": {
         "id": "baseline_jab",
         "name": "Baseline Jab",

@@ -192,7 +192,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    instead of annihilating against it.
         decks: {
             "fafnir_v1": ["iron_will", "iron_will", "water_slap", "grit", "boulder_smash", "boulder_smash", "motherlode", "motherlode", "hoardbreaker", "deep_vein", "deep_vein"],
-            "fafnir_v2": ["iron_will", "iron_will", "water_slap", "rust_blood", "rust_blood", "boulder_smash", "boulder_smash", "squirrel_away", "veinburst", "veinburst"]
+            // TICKET 136n: CORRUPTED_GOLD pays fafnir 2 Strengthened per DEBUFF TYPE he is
+            // carrying and then sheds a stack of each, so the deck wants debuffs ON HIM and had
+            // no way to put them there - `water_slap` and `squirrel_away` were two slots of
+            // neutral filler in a deck whose firmware reads its own status bar. `tarnish` is the
+            // feed (0e: 2 Weakened on the target, 1 on HIMSELF - the self-debuff is the point,
+            // not the price) and `corroded_edge` is the payoff (20 power per DISTINCT status on
+            // himself, via SELF_ANY_STATUS from 136h). Distinct types rather than stacks, so it
+            // rewards variety and cannot be farmed by stacking one. Measured 34.4 -> 46.4.
+            "fafnir_v2": ["iron_will", "iron_will", "tarnish", "rust_blood", "rust_blood", "boulder_smash", "boulder_smash", "corroded_edge", "veinburst", "veinburst"]
         },
         moves: [
             {
