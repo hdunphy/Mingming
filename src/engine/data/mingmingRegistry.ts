@@ -99,15 +99,20 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // 17.1. `undertow` is the 0e unconditional Water draw jormungandr_v1 already runs; it costs
         // the same as the `water_slap` filler it replaces and is what makes the OS payoff real.
         // v2 TIDAL_CRUSH - ramp into 3e Water payoffs (maelstrom is new; capacitor fixed to 2e).
+        // Ticket 136g: the deck was 29 and the OS was doing nothing, because a 30% boost on
+        // Water cards costing 2+ needs cards worth boosting. capacitor now pays 3 Energized
+        // and no Sharp (nothing in the deck scaled off Sharp), and the two surge_protections
+        // and two water_slaps became boiling_surge x2 and scald x2 - a Burn setup the boosted
+        // hammers then cash. Burn caps at 4, so the two feeds fill it and stop.
         decks: {
             "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "crushing_depths", "undertow"],
-            "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection", "water_slap", "water_slap"]
+            "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge", "scald", "scald"]
         },
         startKits: {
             // v1: the draw payoff over the cards that fill the pile it counts.
             "kraken_v1": ["ink_stream", "undertow", "whirlpool_v2", "pressure_point", "pressure_point"],
             // v2: the 3e payoff, the ramp that reaches it, the mitigation that survives to cash it.
-            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection"]
+            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge"]
         },
         moves: [
             {

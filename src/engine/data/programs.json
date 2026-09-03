@@ -654,7 +654,7 @@
     "capacitor": {
         "id": "capacitor",
         "name": "Capacitor",
-        "description": "Gain 2 Energy next turn and 3 Sharp.",
+        "description": "Gain 3 Energy next turn.",
         "element": "None",
         "target": "Self",
         "category": "Skill",
@@ -669,12 +669,6 @@
             {
                 "type": "STATUS",
                 "status": "Energized",
-                "stacks": 2,
-                "target": "SELF"
-            },
-            {
-                "type": "STATUS",
-                "status": "Sharp",
                 "stacks": 3,
                 "target": "SELF"
             }
@@ -729,7 +723,7 @@
     "maelstrom": {
         "id": "maelstrom",
         "name": "Maelstrom",
-        "description": "Summon a crushing vortex: deal heavy Water damage and apply 1 Dazed.",
+        "description": "90 power. Apply 1 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1116,6 +1110,63 @@
                 "power": 15,
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
+            }
+        ]
+    },
+    "boiling_surge": {
+        "id": "boiling_surge",
+        "name": "Boiling Surge",
+        "description": "40 power. Apply 2 Burn.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "scald": {
+        "id": "scald",
+        "name": "Scald",
+        "description": "Apply 1 Burn. You gain 1 Dazed.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
+                "target": "SELF"
             }
         ]
     },

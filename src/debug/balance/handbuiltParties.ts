@@ -79,7 +79,9 @@ export interface HandbuiltParty {
  *    `crippling_vine` is the single best launch card into this boss: 2 Weakened (blunts), 2 Dazed
  *    (target-Dazed is +1 power per stack to MY hits) and 3 Poison, all on one card.
  *  - **kraken_v2** (Water) — the energy plan and the answer to `skoll_v2`. `capacitor` is +2 energy
- *    next turn AND 3 Sharp on one card; `hydro_blast` is 105 power at 1.5x into Fire, which is a
+ *    next turn AND 3 Sharp on one card (ticket 136g made it +3 energy and no Sharp; this party
+ *    is the frozen ticket-118 panel and still names the pre-136 list); `hydro_blast` is 105
+ *    power at 1.5x into Fire, which is a
  *    body that can actually kill the closer rather than merely not being eaten by it.
  *
  * Deliberately **not kraken_v1**: that is a draw engine that mirrors the boss's own plan and loses
