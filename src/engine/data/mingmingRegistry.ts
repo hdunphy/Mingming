@@ -434,9 +434,16 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // Ticket 21 (Air first pass): v1 MOMENTUM_DRIVE = zoo momentum - five 0-cost cards
         // feed the Strengthened engine, Stampede/Trample cash it. v2 WAR_STEED_OS = discard-cost
         // cavalry - the OS's free Hoof Strike tokens become the fodder Lance/Cavalry Charge spend.
+        // TICKET 136l: v2's list finally matches that sentence. The deck was built around a
+        // discard COST and then filled with cards that neither fed the discard nor paid for it -
+        // `zephyr_strike` x2, `dust_devil` and `water_slap` were four of eight slots doing
+        // nothing for the archetype. In go `feather_cache` x2 (0e, and the discard REFUNDS an
+        // Energy, so the cost the OS charges becomes the ramp), `carrion_swoop` (11 power per
+        // card discarded this turn - the payoff that reads the OS's own meter) and `stampede`.
+        // No card data changed; every one of them already existed. Measured 30.7 -> 64.9.
         decks: {
             "sleipnir_v1": ["water_slap", "water_slap", "slipstream", "slipstream", "disorienting_gust", "adrenaline", "tailwind", "zephyr_strike", "stampede", "stampede", "momentum_crash", "hoofbeat_daemon"],
-            "sleipnir_v2": ["lance", "lance", "cavalry_charge", "zephyr_strike", "zephyr_strike", "dust_devil", "war_molt", "water_slap"]
+            "sleipnir_v2": ["lance", "lance", "cavalry_charge", "feather_cache", "feather_cache", "carrion_swoop", "war_molt", "stampede"]
         },
         moves: [
             {
