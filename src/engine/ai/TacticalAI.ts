@@ -5,7 +5,13 @@ import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
-import { BURN_CONFIG } from '../StatusBehaviors';
+import {
+    BURN_CONFIG,
+    // TICKET 137: read, never re-declare. See the block above these in StatusBehaviors.
+    POISON_PERCENT_PER_STACK,
+    REGEN_PERCENT_PER_TURN,
+    BARKSHIELD_DECAY_RETAINED,
+} from '../StatusBehaviors';
 import { STANCE_BONUS, STATUS_MODEL } from '../core/Hooks';
 import { NUMBER_SCALE } from '../types';
 import { getOSBehavior } from '../data/firmwareRegistry';
@@ -141,8 +147,11 @@ function dualityValue(stacks: number, entity: IBattleEntity): number {
 
 /**
  * Eval contribution of one status instance on its holder (positive = good for the holder).
+ *
+ * Exported for `aiStatusPricing.test.ts` (ticket 137), which holds it to what the engine
+ * actually pays rather than to a transcribed number. Nothing in the game calls it directly.
  */
-function statusValue(type: string, stacks: number, entity: IBattleEntity): number {
+export function statusValue(type: string, stacks: number, entity: IBattleEntity): number {
     const s = stacks;
     switch (type) {
         case 'Poison':
@@ -165,15 +174,24 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
             // The cap is the honest floor for both shapes - hold or cash, you collect about
             // STATUS_HORIZON_TURNS more ticks either way, which is exactly the break-even the
             // detonate is designed around.
-            return -HP_POINTS * entity.maxHp * 0.01 * Math.min(s * (s + 1) / 2, s * STATUS_HORIZON_TURNS);
+            return -HP_POINTS * entity.maxHp * POISON_PERCENT_PER_STACK
+                * Math.min(s * (s + 1) / 2, s * STATUS_HORIZON_TURNS);
         case 'Burn':
             // Tiered % maxHp per tick (1.5/3.5/8%), decays 1/turn. Def shred ignored (small).
             return -HP_POINTS * entity.maxHp * burnTotalPercent(s);
         case 'Regen':
-            // 3% maxHp x stacks per tick, decrementing; healing past full is wasted,
-            // so the total is capped at the holder's missing HP.
-            // Ticket 34: flat 3%/turn for `s` turns - LINEAR in stacks, not triangular.
-            return HP_POINTS * Math.min(0.03 * s * entity.maxHp, entity.maxHp - entity.currentHp);
+            // Ticket 34: a FLAT share of max HP per turn for `s` turns - LINEAR in stacks, not
+            // triangular - capped at the holder's missing HP, because healing past full is
+            // wasted.
+            //
+            // TICKET 137: this read 0.03 for the whole arc after ticket 136b took the engine to
+            // 0.02, so the AI valued Regen 50% above what Regen paid - and the decks that care
+            // are exactly the ones built on it. The constant is imported now; a future move of
+            // the engine number cannot leave the eval behind.
+            return HP_POINTS * Math.min(
+                REGEN_PERCENT_PER_TURN * s * entity.maxHp,
+                entity.maxHp - entity.currentHp,
+            );
         case 'Energized':
             // +stacks energy next turn; 1 energy ~ ENERGY_TURN_FRACTION of a turn's damage.
             return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * ENERGY_TURN_FRACTION * s;
@@ -207,8 +225,12 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
             // Skip `stacks` turns (max 3), same per-turn value as Stunned.
             return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * s;
         case 'BarkShield':
-            // Absorb pool of stacks% maxHp, decaying 20%/turn: worth ~80% of face value.
-            return HP_POINTS * entity.maxHp * (s / 100) * 0.8;
+            // Absorb pool of stacks% maxHp, decaying one step a turn: worth about the retained
+            // fraction of face value. TICKET 137: that fraction was a second copy of
+            // `BARKSHIELD_DECAY_RETAINED` - the same value, but the same TRAP Regen fell into,
+            // and ticket 33 left the engine constant explicitly open for the Earth/Ice passes
+            // to sweep. Imported now, so a sweep moves both at once.
+            return HP_POINTS * entity.maxHp * (s / 100) * BARKSHIELD_DECAY_RETAINED;
         case 'LightStance':
             // Ticket 78: the stances used to fall through to the `default: return 0` below,
             // which meant the AI could not see any reason to END ITS TURN holding one. That is
