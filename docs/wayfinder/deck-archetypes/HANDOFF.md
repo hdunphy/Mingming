@@ -212,12 +212,17 @@ promoted). What is left, in the order Henry ruled it:
    about the game.
 6. **3v3 measurement of the 136 package — still pending.** Everything above is 1v1 beamless.
 
-**Two follow-ups 136 created rather than closed.** `TacticalAI.ts` line 176 still hardcodes Regen at
+**Three follow-ups 136 created rather than closed, two of them now ticketed.**
+[Ticket 137](tickets/137-ai-regen-valuation.md): `TacticalAI.ts` line 176 still hardcodes Regen at
 `0.03` after 136b took the engine to 2%, so the AI values Regen ~50% above what it pays; it was left
 alone deliberately (outside the ticket, and the measured targets were produced with it at 3%), and
-changing it WILL move the grid. And `crushing_depths`, `boiling_surge` and `scald` are new cards in
-the shared pool — they are draftable by every species, not just kraken, which is the trap the
-collection has always carried.
+changing it WILL move the grid — audhumbla is the deck to watch. [Ticket 138](tickets/138-card-text-truth.md):
+the card text does not always describe the card — `glass_cannon` prints 20 recoil and deals a flat
+300, three heals print a percentage over a flat power, and Regen's glossary line was wrong on the
+timing, the amount AND what a stack is. Both tickets ask for the check to be built as a TEST rather
+than fixed by hand, because each of these was found by accident while changing something else.
+Untickted: `crushing_depths`, `boiling_surge` and `scald` are new cards in the shared pool — they are
+draftable by every species, not just kraken, which is the trap the collection has always carried.
 
 STRATEGIC (Henry, 2026-08-12): after balancing completes, decide 1v1-only vs 3v3 as the shipped mode — gates ticket 05, the team OSes (valkyrie L-family, einherjar_standard), and Steam scope. Henry's stated goal: ship on Steam. 1v1 balancing finishes first.
 
