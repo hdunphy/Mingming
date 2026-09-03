@@ -148,7 +148,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             hp: 92,
             attack: 68,
             defense: 95,
-            energy: 2
+            energy: 3
         },
         primaryElement: "Earth",
         secondaryElement: "None",
@@ -445,7 +445,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             hp: 62,
             attack: 55,
             defense: 63,
-            energy: 3
+            energy: 2
         },
         primaryElement: "Nature",
         secondaryElement: "None",
@@ -454,9 +454,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // Ticket 04: the designed deck belongs to the v1 slot (GOSSIP_NODE); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
         // Ticket 32 (Henry's design): real per-OS decks. Ratatoskr is attack 55 - the lowest
-        // frame in the roster - offset by 3 Energy and cardDraw 4, so both decks win on card
-        // VOLUME, never on a multiplied single hit. That is also what separates him from
-        // sleipnir_v1, which runs the same 0-cost fuel into a raw-Strength multiplier.
+        // frame in the roster. Ticket 136d took his third Energy back - at 3 Energy he ran
+        // 75/78 against the field - so cardDraw 5 is the whole offset now, and both decks
+        // still win on card VOLUME, never on a multiplied single hit. That is also what
+        // separates him from sleipnir_v1, which runs the same 0-cost fuel into a raw-Strength
+        // multiplier.
         // v1 GOSSIP_NODE - card spam. Five 0-costs, each of which echo_chamber turns into a
         //    Feedback token that re-triggers the OS (the daemon excludes tokens, the OS does
         //    not), so every real 0-cost is worth two procs. seed_bomb x2 is the payoff.
@@ -624,11 +626,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             hp: 90,
             attack: 85,
             defense: 75,
-            energy: 2
+            energy: 3
         },
         primaryElement: "Ice",
         secondaryElement: "None",
-        cardDraw: 4,
+        cardDraw: 3,
         availableOS: ["draugr_v1", "draugr_v2"],
         // Ticket 48 (Henry's design): Draugr sleeps ON PURPOSE.
         // v1 PERMAFROST_WAKE - `actsWhileAsleep` turns Asleep from a lost turn into a STANCE he
