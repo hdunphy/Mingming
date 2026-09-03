@@ -720,7 +720,7 @@
     "sleipnir_v1": {
         "id": "sleipnir_v1",
         "name": "MOMENTUM_DRIVE",
-        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened - and 2 instead of 1 once he already holds 4 or more.",
+        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened.",
         "hooks": [
             {
                 "id": "sleipnir_v1_hook",
@@ -729,27 +729,6 @@
                 "when": {
                     "source": "SELF",
                     "baseCost": 0
-                },
-                "do": [
-                    {
-                        "type": "STATUS",
-                        "target": "SELF",
-                        "status": "Strengthened",
-                        "stacks": 1
-                    }
-                ]
-            },
-            {
-                "id": "sleipnir_v1_ramp",
-                "trigger": "onActionStart",
-                "priority": 39,
-                "when": {
-                    "source": "SELF",
-                    "baseCost": 0,
-                    "sourceStatus": {
-                        "status": "Strengthened",
-                        "minStacks": 4
-                    }
                 },
                 "do": [
                     {
