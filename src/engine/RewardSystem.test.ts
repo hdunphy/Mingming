@@ -429,12 +429,28 @@ describe('RewardSystem', () => {
             }
         });
 
+        /**
+         * TICKET 136i moved the fixture off fenrir_v1, and the reason is worth reading rather
+         * than the diff: **fenrir_v1's rebuilt deck has five DISTINCT cards and all five are in
+         * its start kit** (nine slots, four of them second copies). So it has no untagged half
+         * at all, and this test - whose whole subject is the untagged half - had nothing left to
+         * assert on it. The old `toBeGreaterThan(0)` guard is what caught that, which is the
+         * guard doing its job.
+         *
+         * kraken_v1 carries the shape this test needs (`crushing_depths` is in the deck and not
+         * the kit), so the assertion is unchanged and only its subject moved.
+         *
+         * FLAGGED FOR DESIGN, not fixed here: ticket 61's model is "payoff + 4 enablers, and the
+         * run builds back toward the tuned deck". For fenrir_v1 the tuned deck now IS the kit,
+         * doubled, so there is nothing for a run to draft back toward. That is a deck-design
+         * call for the species pass, not something a test should paper over.
+         */
         it("includes a species' UNTAGGED kit cards while it is in the party (ticket 08)", () => {
-            const pool = rewardCardPool(FENRIR_V1);
-            const kit = new Set(MingmingRegistry['fenrir'].startKits!['fenrir_v1']);
-            const untagged = getDeckForOS('fenrir', 'fenrir_v1').filter((id) => !kit.has(id));
+            const pool = rewardCardPool(FENRIR_AND_KRAKEN);
+            const kit = new Set(MingmingRegistry['kraken'].startKits!['kraken_v1']);
+            const untagged = getDeckForOS('kraken', 'kraken_v1').filter((id) => !kit.has(id));
 
-            expect(untagged.length, 'fixture assumes fenrir_v1 has cards outside its start kit')
+            expect(untagged.length, 'fixture assumes kraken_v1 has cards outside its start kit')
                 .toBeGreaterThan(0);
             for (const id of untagged) {
                 expect(pool, `${id} is the half of the deck the run is supposed to draft back`)

@@ -3844,10 +3844,88 @@
             }
         ]
     },
+    "war_pact": {
+        "id": "war_pact",
+        "name": "War Pact",
+        "description": "Above half HP: gain 2 Strengthened and 2 Dazed. Below half: heal with 15 power.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Uncommon",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 2,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "GT:50"
+                    }
+                ]
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "GT:50"
+                    }
+                ]
+            },
+            {
+                "type": "HEAL",
+                "power": 15,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "LT:51"
+                    }
+                ]
+            }
+        ]
+    },
+    "unbound_fang": {
+        "id": "unbound_fang",
+        "name": "Unbound Fang",
+        "description": "Deal 5 power for each stack of Strengthened you hold.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 5,
+                "scaling": "STRENGTH_STACKS",
+                "target": "TARGET"
+            }
+        ]
+    },
     "blood_rite": {
         "id": "blood_rite",
         "name": "Blood Rite",
-        "description": "15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.",
+        "description": "15 power. +15 power above half HP; otherwise heal with 40 power.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",

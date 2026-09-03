@@ -95,7 +95,7 @@ Object.values(FIRMWARE_REGISTRY).forEach(os => {
 });
 
 describe('OS System - Fenrir', () => {
-    it('v1 (UNBOUND_KERNEL): applies 1 Strengthened and 2% recoil on Attack', () => {
+    it('v1 (UNBOUND_KERNEL): applies 2 Strengthened and 2% recoil on Attack', () => {
         let state = createInitialState('fenrir_v1');
         const attackCard: ProgramEntity = { id: 'card1', dataId: 'card_strike', currentCost: 1, isPlayable: true };
         state = { ...state, playerDeck: { ...state.playerDeck, hand: [attackCard] } };
@@ -107,7 +107,7 @@ describe('OS System - Fenrir', () => {
         // Ticket 84: the recoil is BACK, at its original 2%, now that the OS's Fire bonus
         // pays for it (see CustomFirmware's UNBOUND_KERNEL block).
         expect(p1.currentHp).toBe(98);
-        expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 1)).toBe(true);
+        expect(p1.statusEffects.some(s => s.type === StatusType.Strengthened && s.stacks === 2)).toBe(true);
     });
 
     it('v2 (CINDER_WALL_OS): gains 1 Sharp whenever applying Burn', () => {

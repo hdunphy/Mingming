@@ -64,7 +64,7 @@
     "fenrir_v1": {
         "id": "fenrir_v1",
         "name": "UNBOUND_KERNEL",
-        "description": "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
+        "description": "Attack programs apply 2 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
         "hooks": [
             {
                 "id": "fenrir_v1_hook",
@@ -79,7 +79,7 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 1
+                        "stacks": 2
                     },
                     {
                         "type": "HP",

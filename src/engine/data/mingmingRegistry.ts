@@ -16,8 +16,19 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         availableOS: ["fenrir_v1", "fenrir_v2"],
         // Ticket 04: the designed deck belongs to the v2 slot (CINDER_WALL_OS); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
+        // TICKET 136i: v1 REBUILT around the firmware instead of around a health bar. UNBOUND_
+        // KERNEL pays 2 Strengthened per attack now and charges 2% max HP for it, so the deck
+        // is a Strength engine that runs on its own recoil, and `unbound_fang` (5 power per
+        // stack, uncapped since 136h) is what the pile buys. `war_pact` is the two-sided 0-cost
+        // that reads the same health bar the OS is spending: above half it pays 2 Strengthened
+        // and 2 Dazed, below half it heals instead - so the card is a build turn while the
+        // recoil is affordable and a brake once it is not, which is the CONDITION-shaped answer
+        // Henry asks for in place of a cap. `berserk_rush`, `crimson_draw` and `ember_mend`
+        // leave: on the smallest frame in the roster the missing HP has to come from the enemy
+        // (ticket 84), and three cards that read or repair his own bar were the deck doing the
+        // OS's job badly. Measured 24.4 -> 59.5 on the full grid.
         decks: {
-            "fenrir_v1": ["ember_mend", "blood_rite", "blood_rite", "berserk_rush", "berserk_rush", "battle_rhythm", "crimson_draw", "ragnarok_edge", "ragnarok_edge"],
+            "fenrir_v1": ["ragnarok_edge", "ragnarok_edge", "battle_rhythm", "war_pact", "war_pact", "unbound_fang", "unbound_fang", "blood_rite", "blood_rite"],
             "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
         },
         /*
@@ -40,8 +51,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
          * "mini-engine 6") and Henry cut it: four tagged cards was too thin to play a species with.
          */
         startKits: {
-            // v1: the finisher, and the consume cycle that pays for it.
-            "fenrir_v1": ["ragnarok_edge", "blood_rite", "berserk_rush", "battle_rhythm", "crimson_draw"],
+            // v1: the finisher, the 0-cost that builds the pile, and the card the pile buys.
+            // Ticket 136i replaced `berserk_rush` and `crimson_draw` here because they left the
+            // deck; a kit must be a sub-multiset of it (startKits.test.ts).
+            "fenrir_v1": ["ragnarok_edge", "war_pact", "unbound_fang", "battle_rhythm", "blood_rite"],
             // v2: the Burn payoff over its own ignition. `ignite` x2 because one is a coin flip.
             "fenrir_v2": ["pyre_sacrifice", "ignite", "ignite", "molten_core", "slag_strike"]
         },
