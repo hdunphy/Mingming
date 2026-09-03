@@ -382,7 +382,7 @@ export interface AttackActionData extends ProgramAction {
    * A percentage rescales itself, which is the property this family kept failing to have.
    */
   readonly percentMaxHp?: number;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED' | 'BURN_STACKS' | 'SELF_ANY_STATUS';
 }
 
 export interface StatusActionData extends ProgramAction {

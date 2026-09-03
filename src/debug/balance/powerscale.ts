@@ -710,6 +710,20 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // scorer has one knob and they are the same knob at this resolution.
             else if (action.scaling === 'CARDS_DRAWN') power *= ASSUMED_CARDS_DRAWN;
             else if (action.scaling === 'CARDS_DRAWN_TRIGGERED') power *= ASSUMED_TRIGGERED_CARDS_DRAWN;
+            // TICKET 136h: two scalings this scorer deliberately CANNOT price, flagged rather
+            // than silently read at their printed base - which would score `firestorm_talon` at
+            // 25 power when it is 25 x up to 4 Burn, and `corroded_edge` at 20 when it is 20 x
+            // 3-4 statuses. Both were HAND-PRICED in ticket 136 against their real ceilings
+            // (Talon 25 x <=4 Burn = <=100 at 2e, because Burn caps at 4; Corroded Edge 20 x 3-4
+            // at 1e) and both are decided by the sim gate, not by section 1.3.
+            //
+            // Not given an ASSUMED_ constant on purpose: every one of those in this file came
+            // from the ticket-66 census of REAL battles, and neither pile has been measured.
+            // A guessed constant here would read as a measurement, which is the failure mode
+            // ticket 66 spent a whole census correcting.
+            else if (action.scaling === 'BURN_STACKS' || action.scaling === 'SELF_ANY_STATUS') {
+                manualReview.push(`ATTACK:${action.scaling}`);
+            }
 
             // Ticket 53: RAMPAGE growth. Charge the AVERAGE over the assumed horizon, so the
             // printed power is what the card opens at and the score is what it is worth.

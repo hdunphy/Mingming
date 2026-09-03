@@ -54,10 +54,25 @@ export abstract class ActionExecutor<T extends ExecutableAction> {
  * multiply the computed DAMAGE afterwards — they intentionally stay inside
  * AttackExecutor.
  */
-/** Max Strengthened stacks a STRENGTH_STACKS scaler may multiply by - see ticket 23 follow-up.
- *  Shared with HookFactory.resolveScaling (ticket 26): the hook-side path was left uncapped
- *  by ticket 24, so core_overclock_daemon could reach x5.00 at 20 stacks. */
-export const STRENGTH_STACK_CAP = 8;
+/**
+ * TICKET 136h: THE CAP IS GONE. Henry: *"No caps allowed."* It was 8, shared by the card-side
+ * `STRENGTH_STACKS` scaler here and the hook-side one in `HookFactory.resolveScaling`.
+ *
+ * This is the same ruling ticket 103 applied to skoll_v2's SOLAR_OVERDRIVE, for the same
+ * reason: an arbitrary ceiling stops the one deck built to hoard a resource from being paid
+ * for hoarding it, exactly when the hoard is the deck's whole plan. Henry's standing rule is
+ * that when something needs to fire less, the answer is a CONDITION, not a cap - and the
+ * valve here is already the duality cancel and the sheds, as it is for every other duality
+ * status.
+ *
+ * Nothing shipped binds on it today: `core_overclock_daemon`, the card ticket 26 capped this
+ * for, is in no deck. fenrir_v1's `unbound_fang` (136i) is the first live consumer, and it is
+ * measured with the cap already gone.
+ *
+ * `Number.POSITIVE_INFINITY` rather than a large number, per ticket 103: a ceiling you cannot
+ * reach is still a ceiling somebody has to reason about.
+ */
+export const STRENGTH_STACK_CAP = Number.POSITIVE_INFINITY;
 
 /** Max % of maxHP-missing a MISSING_HP scaler may read (ticket 26). The cap is
  *  budget / scalingPower, so it re-derives whenever the curve moves. */
@@ -125,6 +140,21 @@ export function getEffectiveAttackPower(
         ).size;
         return power * distinct;
     }
+    if (action.scaling === 'SELF_ANY_STATUS') {
+        // TICKET 136n: counts DISTINCT statuses on the CASTER - buffs, debuffs, anything -
+        // which is what makes `corroded_edge` fafnir_v2's payoff: CORRUPTED_GOLD pays him in
+        // debuffs he is meant to carry, and `tarnish` puts one on him on purpose. Distinct
+        // TYPES rather than stacks, so the card rewards VARIETY and cannot be farmed by
+        // stacking one status - the same shape valkyrie_v2's CRUSADER_KERNEL uses.
+        //
+        // The mirror of `ANY_STATUS` (which reads the target and pays a stack per type
+        // counted, ticket 124). This one reads the SOURCE and pays nothing: the statuses are
+        // already a cost he is carrying, so charging him again would be charging twice.
+        const distinctOnSelf = new Set(
+            (source?.statusEffects ?? []).filter(s => s.stacks > 0).map(s => s.type),
+        ).size;
+        return power * distinctOnSelf;
+    }
     if (action.scaling === 'BARKSHIELD_STACKS') {
         // Ticket 50: reads the SOURCE's own standing BarkShield - avalanche casts the wall at
         // them. Uncapped, per Henry's law that per-stack scalers should underperform early and
@@ -151,10 +181,12 @@ export function getEffectiveAttackPower(
         return power + (action.scalingPower || 0) * Math.min(pctMissing, MISSING_HP_PCT_CAP);
     }
     if (action.scaling === 'STRENGTH_STACKS') {
-        // Capped at STRENGTH_STACK_CAP so the card cannot exceed its cost's power budget:
-        // uncapped, Momentum Crash measured 29.3 damage a play (38% of a health pool) off
-        // a nominal 10 power - an effective ~98 power for 1 Energy against a 40 budget.
-        // The cap is budget / power, so it re-derives whenever the curve moves.
+        // TICKET 136h: `STRENGTH_STACK_CAP` is Infinity now (Henry: "No caps allowed"), so the
+        // Math.min is a no-op kept as the single seam if a condition-based valve is ever
+        // needed. The number it used to hold, 8, came from ticket 23: uncapped, Momentum
+        // Crash measured 29.3 damage a play - 38% of a health pool - off a nominal 10 power,
+        // an effective ~98 power for 1 Energy against a 40 budget. That card still exists, so
+        // if a Strength deck runs away it is the row to look at first.
         const strengthStacks = source.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
         return power * Math.min(strengthStacks, STRENGTH_STACK_CAP);
     }
@@ -256,6 +288,12 @@ export function getDamageScalingMultiplier(
             const spent = state.lastEnergySpent ?? 0;
             return spent * spent;
         }
+        case 'BURN_STACKS':
+            // TICKET 136j: the TARGET's raw Burn pile, for hraesvelgr_v2's `firestorm_talon`.
+            // Burn caps at 4 (BURN_CONFIG), so this scaler is bounded by the mechanic itself
+            // rather than by a number written here - 25 power x 4 is 100 at 2 Energy, which is
+            // the hand-price the ticket carries. That bound is why it needs no cap of its own.
+            return target?.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
         case 'BURN_TIMES_ENERGY': {
             const burn = target?.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
             return burn * (state.lastEnergySpent ?? 0);
