@@ -1,7 +1,7 @@
 # Ticket 137 — TacticalAI still prices Regen at 3% after the engine moved to 2%
 
 **Type:** `wayfinder:task`
-**Status:** open
+**Status:** CLOSED 2026-09-03
 **Assignee:**
 **Blocked by:** —
 **Opened:** 2026-09-03, out of ticket 136 (Henry: *"open the AI Regen ticket"*)
@@ -87,3 +87,92 @@ directions, and it is worth knowing which before a deck pass is aimed at v2.
 The AI reads the engine's constant rather than holding its own; a test fails if the two ever
 disagree again; the sibling sweep is reported whether or not it finds anything; and the grid delta
 is measured and written down rather than assumed to be small.
+
+---
+
+# Resolution — CLOSED 2026-09-03
+
+## The sweep, which is the finding
+
+All ten statuses the eval prices, checked against the engine:
+
+| status | eval | engine | verdict |
+|---|---|---|---|
+| Regen | `0.03` hardcoded | `REGEN_PERCENT_PER_TURN = 0.02` | **copy, and wrong** |
+| BarkShield | `0.8` hardcoded | `BARKSHIELD_DECAY_RETAINED = 0.8` | **copy, currently agreeing** |
+| Poison | `0.01` hardcoded | bare `/ 100` in `PoisonBehavior` | **both magic, agreeing; no named constant either side** |
+| Burn | reads `BURN_CONFIG.tiers` | — | read (ticket 62) |
+| Strengthened / Weakened / Sharp / Dazed | read `STATUS_MODEL.powerPerStack` | — | read (ticket 102) |
+| LightStance / DarkStance | read `STANCE_BONUS` | — | read (ticket 78) |
+| Energized / Stunned / Asleep | eval-local heuristics | no counterpart | not copies |
+
+**Two copies and one shared magic number, and the pattern is the point: every status that got its
+own ticket ended up reading the engine, and the three nobody had cause to revisit stayed
+transcribed.** Regen is the one that went wrong, but it went wrong by the ordinary route — a
+correct number, copied, and then only one copy moved.
+
+## What shipped (`735c77a`)
+
+`StatusBehaviors` exports three constants and `TacticalAI` imports them: `REGEN_PERCENT_PER_TURN`
+(hoisted out of the method body it was declared in, which is why nothing could read it),
+`POISON_PERCENT_PER_STACK` (naming the `/ 100` on both sides) and `BARKSHIELD_DECAY_RETAINED`
+(already named, now exported).
+
+**Only Regen's value moves.** Poison and BarkShield are numeric no-ops — the same number, read
+instead of copied — which is what makes the grid below interpretable: every point of movement is
+Regen.
+
+`src/engine/ai/aiStatusPricing.test.ts` is the guard, seven tests, none of which transcribe an
+expected value. They run the behaviour on a 100,000 HP frame so nothing floors, measure what the
+engine delivers, and require the eval's price to equal it. Two of them are not about the constants
+and earn their place separately: one pins that a big Poison pile is still bounded by ticket 40's
+horizon rather than its full decay sum, and one pins that Regen is never priced above the HP its
+holder can actually receive.
+
+## The grid — the prediction held exactly
+
+`results/rebaseline-137/`, promoted. Against the round-two numbers:
+
+|  | mean | sd | in band |
+|---|---|---|---|
+| round two | 49.9 | 12.0 | 26/32 |
+| **ticket 137** | **49.9** | **11.5** | **27/32** |
+
+Two decks moved 2+ points. **Both are Regen decks, and nothing else was.**
+
+| deck | round two | 137 | delta |
+|---|---|---|---|
+| **audhumbla_v2** | 28.51 | **43.65** | **+15.14 — and out of band into band** |
+| huldra_v1 | 58.59 | 55.87 | −2.72 |
+
+The other 30 decks moved a mean of 0.5 points, max 1.6. The ticket predicted "movement on the Regen
+decks and near-zero elsewhere; if something unrelated moves, that is a finding" — nothing unrelated
+moved.
+
+### Why audhumbla_v2 gained by having Regen valued LOWER
+
+Stated as the reading, not as a measurement — the cast counts were not collected.
+
+Her GENESIS package is **Regen-as-ammo**: the OS grants Regen on every heal and `drink_deep`
+CONSUMES the pile at 15 power per stack. An eval that over-values holding a resource will hoard it
+rather than cash it, and that is not a hypothesis about this engine — it is exactly what ticket 40
+measured on Poison, where an over-valued pile made the AI score holding `wither_feast` ~200 points
+above cashing it and it went **unplayed in 100 games out of 100 while reaching hand in all 100**.
+A 50% over-valuation of Regen is the same thumb on the same scale, and audhumbla_v2 is the deck
+whose payoff is spending it.
+
+If that reading matters to a future decision, the cheap confirmation is `drink_deep`'s casts per
+game before and after — one probe, not a grid.
+
+## Sequencing note, honoured
+
+The ticket required 136h–136n to land first, because round two's targets were measured with the AI
+still at 3%. They did (`0b7504b`..`45e2451`), and this grid is measured on top of them.
+
+## Left open by this ticket
+
+`ENERGY_TURN_FRACTION`, `TURN_DAMAGE_FRACTION` and `STATUS_HORIZON_TURNS` are eval-local heuristics
+with no engine counterpart to read — they are the search's model of a turn, not a transcription of
+a mechanic, and nothing here touches them. Whether 0.20 of a health pool is still a turn's
+throughput after two arcs of deck work is a separate measurement, and a live one: every duality
+status, both stances, Stunned and Asleep are all priced through it.

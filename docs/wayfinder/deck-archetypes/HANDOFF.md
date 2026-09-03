@@ -226,10 +226,16 @@ promoted). What is left, in the order Henry ruled it:
 6. **3v3 measurement of the 136 package — still pending.** Everything above is 1v1 beamless.
 
 **Three follow-ups 136 created rather than closed, two of them now ticketed.**
-[Ticket 137](tickets/137-ai-regen-valuation.md): `TacticalAI.ts` line 176 still hardcodes Regen at
-`0.03` after 136b took the engine to 2%, so the AI values Regen ~50% above what it pays; it was left
-alone deliberately (outside the ticket, and the measured targets were produced with it at 3%), and
-changing it WILL move the grid — audhumbla is the deck to watch. [Ticket 138](tickets/138-card-text-truth.md)
+[Ticket 137](tickets/137-ai-regen-valuation.md) is CLOSED: the eval reads the
+engine's status constants now. The SWEEP is the finding - three of ten statuses carried transcribed
+numbers (Regen, BarkShield, Poison) and every status that ever got its own ticket already read the
+engine. Only Regen's value moved, and **the audhumbla call was right: audhumbla_v2 28.5 -> 43.7 and
+into band**, huldra_v1 58.6 -> 55.9, everything else under 1.6. sd 12.0 -> 11.5, 27/32 in band.
+`aiStatusPricing.test.ts` now fails if either side moves without the other. **Still open from it:**
+`TURN_DAMAGE_FRACTION` (0.20), `ENERGY_TURN_FRACTION` and `STATUS_HORIZON_TURNS` are the search's
+model of a turn with no engine counterpart - every duality status, both stances, Stunned and Asleep
+price through them, and whether 20% of a health pool is still a turn's throughput after two arcs of
+deck work has never been re-measured. [Ticket 138](tickets/138-card-text-truth.md)
 is CLOSED: `glass_cannon`'s recoil is power (80) instead of a flat 300 that bypassed the damage
 formula entirely, costing skoll_v2 5.9 field points and leaving her in band, and two stale registry
 comments are fixed. Its unfinished half is now [ticket 139](tickets/139-description-data-guard.md):
