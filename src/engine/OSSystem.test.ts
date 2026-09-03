@@ -153,7 +153,7 @@ describe('OS System - Ratatoskr', () => {
 });
 
 describe('OS System - Kraken', () => {
-    it('v1 (ABYSSAL_INK_SYS): applies 1 Dazed to random enemy when drawing outside draw phase', () => {
+    it('v1 (ABYSSAL_INK_SYS): applies 2 Dazed to every enemy when drawing outside draw phase', () => {
         let state = createInitialState('kraken_v1');
         state = {
             ...state,
@@ -167,7 +167,7 @@ describe('OS System - Kraken', () => {
         const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
-        expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 1)).toBe(true);
+        expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 2)).toBe(true);
     });
 
     it('v1 (ABYSSAL_INK_SYS): triggers when ANY ally draws a card', () => {
@@ -195,7 +195,7 @@ describe('OS System - Kraken', () => {
         const action = { type: 'PLAY_PROGRAM' as const, payload: { sourceId: 'real_mm_instance_123', targetId: 'real_bot_instance_456', programId: 'card1' } };
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
-        expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 1)).toBe(true);
+        expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 2)).toBe(true);
         expect(newState.logs).toContain('Abyssal Ink blinds the enemy side!');
     });
 

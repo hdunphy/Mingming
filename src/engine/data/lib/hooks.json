@@ -125,7 +125,7 @@
     "kraken_v1": {
         "id": "kraken_v1",
         "name": "ABYSSAL_INK_SYS",
-        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 1 Dazed to every enemy.",
+        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 2 Dazed to every enemy.",
         "hooks": [
             {
                 "id": "kraken_v1_hook",
@@ -140,7 +140,7 @@
                         "type": "STATUS",
                         "target": "ENEMIES",
                         "status": "Dazed",
-                        "stacks": 1
+                        "stacks": 2
                     },
                     {
                         "type": "LOG",

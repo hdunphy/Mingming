@@ -1060,7 +1060,7 @@
     "whirlpool_v2": {
         "id": "whirlpool_v2",
         "name": "Whirlpool",
-        "description": "8 power. Draw a card. Apply 1 Dazed.",
+        "description": "8 power. Draw a card. Apply 2 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1085,7 +1085,36 @@
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 1,
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "crushing_depths": {
+        "id": "crushing_depths",
+        "name": "Crushing Depths",
+        "description": "Consume all Dazed on the target: deal 15 power per stack consumed.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "consume": true,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
         ]
