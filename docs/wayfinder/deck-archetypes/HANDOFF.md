@@ -224,9 +224,15 @@ the description-vs-data sweep as a TEST, where **the 35 structural false positiv
 deliverable** — each is a place text and data are related by CODE rather than by equality, and the
 ticket groups all 35 with the rule each implies. Every defect in 138 was found by accident while
 changing something else, and the guard is the only part that stops the next one being found the
-same way. **Also left by name:**
-`desperate_strike` and `dark_pact` carry the identical `damageOverride`-vs-description defect —
-both say "Deal 10 damage to self" and deal 150, because 131c scaled the data and not the text.
+same way. **138 amendment 1 corrected its own
+headline finding: `damageOverride` HAS NEVER WORKED ON A CARD** — only `effectHandlers.handleAttack`
+reads it, and card actions go through `AttackExecutor`, which does not. glass_cannon printed 20,
+stored 300, DEALT 53 and was charged 80 power, which is the whole reason `weak.ts` calls it the
+registry's most under-budget card. Recoil is now a `percentMaxHp` field resolved before the power
+path (no stats, no STAB, no hooks, and it rescales itself): glass_cannon 5%, desperate_strike and
+dark_pact 3%. **skoll_v2 49.6 -> 59.8** — taking the Strength scaling off her recoil is a real buff
+to the deck built to hoard Strength; she is in band and the levers are 6% / 4% if she is too high.
+No card carries `damageOverride` any more and `percentRecoil.test.ts` fails if one appears.
 Untickted: `crushing_depths`, `boiling_surge` and `scald` are new cards in the shared pool — they are
 draftable by every species, not just kraken, which is the trap the collection has always carried.
 

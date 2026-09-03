@@ -211,3 +211,94 @@ the work of writing the allowlist.
 
 Also still open by omission: `desperate_strike` and `dark_pact` carry the identical
 `damageOverride`-vs-description defect and were left alone.
+
+---
+
+# Amendment 1 — 2026-09-03: recoil is a PERCENTAGE, and `damageOverride` never worked at all
+
+Henry, on the shipped 80-power recoil: *"80 power to itself is way too much, the 300 was way too
+much. Can we make it deal percent damage instead to ignore scaling from strength I don't want the
+recoil to hit harder. When making cards we have power scales for each energy level, we want to get
+more power out of the 1e card but offset by recoil damage."*
+
+## The finding that reframes the original one: the 300 was never dealt
+
+The Resolution above reported `glass_cannon` as printing 20 and dealing 300. That was read off the
+data. Measured, the card had **four** numbers, and the fourth is the real one:
+
+| where | number |
+|---|---|
+| what the player reads | 20 |
+| what the JSON says | `damageOverride: 300` |
+| **what the engine actually dealt** | **53** |
+| what `powerscale` charged | 80 power → the card scores **−2.70** against a 2.4–3.0 band |
+
+`damageOverride` is honoured only by `effectHandlers.handleAttack`, which serves relic and system
+HP mutations. A CARD action resolves through `AttackExecutor`, **which has never read the field**.
+The 300 was dead data; what landed was the action's `power: 15` running the full damage formula.
+That is why `scratch/weak.ts` calls this "the single most under-budget card in the registry at
+−5.1" — the ledger was charging 80 power for a drawback the engine was not applying.
+
+It also means the recoil **already scaled with Strength before this ticket touched it**: 53 HP at
+no stacks, 124 at five, 178 at eight, because a power-15 hit picks up the duality POWER term and
+`SOLAR_OVERDRIVE`'s uncapped +15%/stack. On the deck built to hoard Strength, the card that grants
+Strength cost more the better the deck was working. The Resolution's 80-power fix did not introduce
+that — it multiplied it.
+
+## What ships instead
+
+A new `percentMaxHp` field on the ATTACK action, resolved in `AttackExecutor` **before and instead
+of** the power path: no attacker stats, no STAB, no type effectiveness, no duality term, no
+`onDamageCalculated` hooks. A recoil is a price, and a price that grows when you buff yourself is a
+card that punishes its own deck for working. Floored, with a minimum of 1, so a recoil can never
+round away to nothing on a small frame — the failure ticket 84 hit when fenrir_v1's 2% floored to
+1 HP and had no second setting.
+
+A percentage also **rescales itself**, which is the property this whole family kept failing to
+have: `types.ts` already records `damageOverride` as one of the four things ticket 131c had to
+re-derive by hand when frames moved. That is precisely how this card broke.
+
+| card | cost | was | now |
+|---|---|---|---|
+| `glass_cannon` | 1e | `power 15` + dead `damageOverride: 300` → really 53 (4.5%) | **5% of max HP** (Henry's ruling) |
+| `desperate_strike` | 0e | `power 10` + dead `damageOverride: 150` → really 44 (3.7%) | **3%** |
+| `dark_pact` | 0e | same, → really 29 (2.4%) on skoll, 26 on hel | **3%** |
+
+`damageOverride` is now on **no card in the registry**, and `percentRecoil.test.ts` fails if one
+appears again.
+
+### Where the numbers come from
+
+The 1e band is 2.4–3.0. A 45-power hit *alone* scores 4.50; the on-curve 1e print, 30 power, scores
+exactly 3.00. So `glass_cannon`'s recoil has to buy back ~1.5 budget points, which is what Henry
+means by "more power out of the 1e card, offset by recoil":
+
+| recoil | card score | |
+|---|---|---|
+| 10 power | 3.60 | over band |
+| **5% max HP** | **3.20** | 0.2 over — Henry's pick; the card plays close to what it really did |
+| 6% | 2.90 | dead on curve |
+| 7% | 2.60 | in band |
+| 80 power | −2.70 | what the Resolution shipped |
+
+The two 0e cards took 3% rather than 5% because 3% is what they were really dealing, so the
+conversion is not a silent nerf on top of the fix. **Worth knowing separately: the scorer puts both
+of them under band with or without a recoil** — "gain 1 Strength for 0 energy" alone scores 0.50
+against a 0.8–1.0 band, so any drawback pushes them further under. The rev-3 model prices a
+downside card as upside-minus-cost and has nothing to say about a cheap card whose drawback is the
+point. That is a card-design question, not this ticket's.
+
+### Measured, full grid (`results/rebaseline-140/`), against the promoted post-136 numbers
+
+| | post-136 | 80-power (rejected) | **percent (shipped)** |
+|---|---|---|---|
+| skoll_v2 | 49.60 | 43.69 | **59.81** |
+| roster mean / sd | 49.9 / 14.9 | 49.8 / 15.0 | 49.8 / 15.0 |
+| in band | 26/32 | 26/32 | **26/32**, same six out |
+
+Every other deck is inside ±1.3. **skoll_v2 gains 10.2 points and that is the honest price of the
+ruling**: she is the only deck running either card, and taking the Strength scaling off her recoil
+is a direct buff to the deck built to hoard Strength — under the old behaviour `glass_cannon` cost
+her 178 HP and `desperate_strike` 106 exactly when she was winning. She lands at 59.8, inside the
+band, so nothing is broken; if that is higher than Henry wants her, the levers are the two
+percentages, and the on-curve settings are `glass_cannon` 6% and `desperate_strike` 4%.

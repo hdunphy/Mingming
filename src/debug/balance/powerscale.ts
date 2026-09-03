@@ -667,9 +667,18 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // code scored it as `power: 10` = 10 power, a 4x under-charge on the one term
             // that was supposed to make the card cost something. Same bug on glass_cannon
             // and dark_pact.
-            let power = typeof action.damageOverride === 'number'
-                ? (action.damageOverride / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP
-                : (action.power || 0);
+            // TICKET 138 amendment: `percentMaxHp` is already a percentage of a health pool, so it
+            // prices at the spec rate directly and needs no ASSUMED_MAX_HP at all. That is the
+            // reason it replaced `damageOverride` on all three cards that carried one: a literal-HP
+            // effect has to be re-derived against a frame every time frames move, and this one does
+            // not. The `damageOverride` branch is kept for the relic/system HP path, which still
+            // uses it; no CARD action carries it any more, and `noDamageOverrideOnCards.test.ts`
+            // fails if one appears again - it never worked there.
+            let power = typeof action.percentMaxHp === 'number'
+                ? action.percentMaxHp * POWER_PER_PERCENT_MAXHP
+                : typeof action.damageOverride === 'number'
+                    ? (action.damageOverride / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP
+                    : (action.power || 0);
             // Ticket 64: STATUS_CONSUMED on an ATTACK (`sun_devourer` eats its own Strength and
             // pays damage per stack). The path was priced for HEAL and STATUS and would otherwise
             // score the card at its raw printed power, which reads 0.1 against a 6.5 band.

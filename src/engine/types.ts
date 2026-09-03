@@ -367,6 +367,21 @@ export interface AttackActionData extends ProgramAction {
   readonly power: number;
   readonly element?: Element;
   readonly scalingPower?: number; // MISSING_HP: power added per 1% of maxHP missing (ticket 26)
+  /**
+   * TICKET 138 amendment: self-inflicted recoil, denominated in percent of the VICTIM's max HP.
+   *
+   * Resolved in `AttackExecutor` INSTEAD of `calculateDamage`, so it deliberately skips the
+   * attacker's stats, STAB, type effectiveness, the duality POWER term and every
+   * `onDamageCalculated` hook. That is the whole point: a recoil is a PRICE, and a price that
+   * grows when you buff yourself is a card that punishes its own deck for working. Henry:
+   * *"I don't want the recoil to hit harder."*
+   *
+   * It replaces `damageOverride`, which was never read on a card action at all (only
+   * `effectHandlers.handleAttack` honours that field, and card actions do not go through it) -
+   * and which, being literal HP, is one of the four things ticket 131c had to rescale by hand.
+   * A percentage rescales itself, which is the property this family kept failing to have.
+   */
+  readonly percentMaxHp?: number;
   readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED';
 }
 

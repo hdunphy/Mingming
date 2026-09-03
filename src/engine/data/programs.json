@@ -287,7 +287,7 @@
     "desperate_strike": {
         "id": "desperate_strike",
         "name": "Desperate Strike",
-        "description": "Gain 1 Strength. Deal 10 damage to self.",
+        "description": "Gain 1 Strength. Lose 3% of your max HP.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -307,9 +307,8 @@
             },
             {
                 "type": "ATTACK",
-                "power": 10,
-                "target": "SELF",
-                "damageOverride": 150
+                "percentMaxHp": 3,
+                "target": "SELF"
             }
         ]
     },
@@ -419,7 +418,7 @@
     "glass_cannon": {
         "id": "glass_cannon",
         "name": "Glass Cannon",
-        "description": "45 power. 80 power recoil to yourself.",
+        "description": "45 power. Lose 5% of your max HP.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -438,7 +437,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 80,
+                "percentMaxHp": 5,
                 "target": "SELF"
             }
         ]
@@ -2838,7 +2837,7 @@
     "dark_pact": {
         "id": "dark_pact",
         "name": "Dark Pact",
-        "description": "Gain 1 Strength. Deal 10 damage to self.",
+        "description": "Gain 1 Strength. Lose 3% of your max HP.",
         "element": "Dark",
         "target": "Self",
         "category": "Skill",
@@ -2858,9 +2857,8 @@
             },
             {
                 "type": "ATTACK",
-                "power": 10,
-                "target": "SELF",
-                "damageOverride": 150
+                "percentMaxHp": 3,
+                "target": "SELF"
             }
         ]
     },

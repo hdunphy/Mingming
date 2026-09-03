@@ -276,7 +276,19 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         if (!target) return state;
 
         let damage = 0;
-        if (source) {
+        // TICKET 138 amendment: `percentMaxHp` recoil, resolved BEFORE and INSTEAD of the power
+        // path. A price denominated in the victim's own health pool: no attacker stats, no STAB,
+        // no resistances, no duality POWER term, no damage hooks. `glass_cannon`'s recoil used to
+        // run the full formula as a power-15 hit, so skoll's Strength pile made the card that
+        // grants Strength cost more the better it was working - 53 HP at no stacks, 178 at eight.
+        // Henry ruled the recoil must not scale. It also needs no `source`: hurting yourself does
+        // not depend on who is doing it.
+        if (typeof actionData.percentMaxHp === 'number') {
+            // Floored, and at least 1 on any positive percentage, so a recoil can never round
+            // away to a free card on a small frame - the failure mode ticket 84 hit when
+            // fenrir_v1's 2% recoil floored to 1 HP and had no second setting.
+            damage = Math.max(1, Math.floor(target.maxHp * actionData.percentMaxHp / 100));
+        } else if (source) {
             const programToUse = program || ({ element: element } as ProgramData);
 
             // SHARP_STACKS scaling handled by the shared helper (also used by
