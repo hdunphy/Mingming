@@ -502,9 +502,9 @@ class RegenBehavior extends StatusBehavior {
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        // Ticket 34 (Henry): Regen is a FLAT 3% of maxHP per turn, and `stacks` is how many
-        // TURNS it lasts - not an intensity multiplier. 3 stacks = 3% a turn for three turns,
-        // then it falls off.
+        // Ticket 34 (Henry): Regen is a FLAT 2% of maxHP per turn (3% until ticket 136b), and
+        // `stacks` is how many TURNS it lasts - not an intensity multiplier. 3 stacks = 2% a
+        // turn for three turns, then it falls off.
         //
         // It used to multiply by stacks, which made one application worth 1.5*N*(N+1) percent
         // of a pool - quadratic - and unbounded, because the decay is a flat 1/turn while a
@@ -512,7 +512,7 @@ class RegenBehavior extends StatusBehavior {
         // That single property decided huldra_v1: 2 Regen per play won 79% of its matchup,
         // 1 Regen per play won 1%, because 1/play exactly cancels the decay and never
         // accumulates. Linear duration removes the cliff - see ticket 34.
-        const REGEN_PERCENT_PER_TURN = 0.03;
+        const REGEN_PERCENT_PER_TURN = 0.02;
         const healing = Math.floor(entity.maxHp * REGEN_PERCENT_PER_TURN);
         const newStacks = instance.stacks - 1;
         const logs: string[] = [`  💚 ${entity.name} — Regen heals ${healing} HP (${instance.stacks} → ${newStacks} stacks)`];
