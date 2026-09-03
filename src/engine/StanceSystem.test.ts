@@ -306,7 +306,7 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
     });
 });
 
-describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bonus)', () => {
+describe('hel_v2 UNDERWORLD_GATEWAY (ticket 136k: 5% blood, 25% cap, NO healing bonus)', () => {
     // Ticket 57 replaced the two data hooks with the firmware in CustomFirmware.ts. Three things
     // changed and all three are pinned below: the toll is scoped to DARK spells (it used to zero
     // and tax every card she played), the ticket-36 `escalatePerPlay: 1.25` escalation is GONE,
@@ -318,28 +318,36 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
     // price went 5% -> 6% instead, which charges for every cast rather than forbidding one.
     // The cap MACHINERY stays and is pinned below, because Henry's fallback if she is still
     // too strong is a 25% cap, then 20%.
+    //
+    // TICKET 136k PUT THE PRICE BACK TO 5%. Ticket 80 chose 6 against a roster where hel_v2
+    // read 81.4% field; after two arcs of deck work she was the WORST deck on the grid at
+    // 24.2, and the same knob is what brings her back - measured 4% = 83, 5% = 60, 6% = 25.
+    // Every toll below therefore moves from 6% to 5% of the frame, and the two cap tests
+    // change SHAPE rather than value, because the cap is spent in Energy-point steps and a
+    // cheaper step means more of them fit under the same ceiling.
 
     it('NO LONGER boosts her healing - it charges blood and leaves the heal alone', () => {
-        // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 6% of 2000 maxHp x 1 printed
-        // Energy = 120 HP at action start; the heal is 2000*25/400 = 125, and ticket 81 removed
+        // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 5% of 2000 maxHp x 1 printed
+        // Energy = 100 HP at action start; the heal is 2000*25/400 = 125, and ticket 81 removed
         // the +50% that used to make it larger. Henry: the healing bonus is what stopped
         // HP-as-a-cost working - a heal that OUT-EARNS the blood price turns the cost into a loan.
         //
         // TICKET 131c: THIS WAS NEVER "EXACTLY ZERO". The old comment claimed the toll and the heal
         // cancelled precisely, and on a 200 HP frame they appeared to: the toll was 12 and the heal
         // was 200*25/400 = 12.5, which `Math.floor` cut to 12. The heal has always out-earned the
-        // toll by half a point; the rounding hid it. On a 2000 frame it is 125 against 120 and the
-        // net is +5 - a 4% loan on every cast, exactly the shape ticket 81 was trying to remove.
+        // toll by half a point; the rounding hid it. On a 2000 frame it is 125 against 100 and the
+        // net is +25 - a loan on every cast, exactly the shape ticket 81 was trying to remove,
+        // and ticket 136k's cheaper price makes the loan BIGGER. Still a finding, not a fix.
         // Left as a finding rather than fixed here: changing the blood price or the heal power is a
         // balance decision, not a units one.
         let state = makeState({ activeOS: 'hel_v2', currentHp: 1000 }, [card('c1', 'dawns_respite')]);
         state = play(state, 'c1', PLAYER_ID);
 
-        expect(state.playerParty[0].currentHp).toBe(1005); // 1000 - 120 toll + 125 unboosted heal
+        expect(state.playerParty[0].currentHp).toBe(1025); // 1000 - 100 toll + 125 unboosted heal
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays'))).toBe(true);
     });
 
-    it('NO LONGER escalates - the toll is a flat 6% of max HP per printed Energy', () => {
+    it('NO LONGER escalates - the toll is a flat 5% of max HP per printed Energy', () => {
         // Ticket 36 made every further card that turn cost 125% more, because a flat toll could
         // not brake a deck with no Energy limit. Ticket 57 removes the escalation and brakes it
         // with a price instead: on a 200-maxHp frame every `nights_bite` (1e Dark) costs 12,
@@ -356,30 +364,32 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
             tolls.push(before - state.playerParty[0].currentHp);
         }
 
-        expect(tolls).toEqual([120, 120, 120]);
+        expect(tolls).toEqual([100, 100, 100]);
     });
 
-    it('allows FOUR Energy-points of Dark a turn at the shipped 6% price and 25% cap', () => {
+    it('allows FIVE Energy-points of Dark a turn at the shipped 5% price and 25% cap', () => {
         // Removing the cap outright was tried and made her STRONGER - 81.4% -> 87.0% field -
         // because uncapped she chains Dark casts and the +50% healing refunds the blood faster
-        // than the price takes it. 25% at a 6% price allows four Energy-points (24%); the fifth
-        // overshoots to 30% and is refused. Note the knob moves in Energy-POINT steps: a cap of
-        // 18 behaves identically to 20, because both allow exactly three.
+        // than the price takes it. TICKET 136k: at a 5% price the same 25% cap allows FIVE
+        // Energy-points (exactly 25%) where 6% allowed four (24%); a sixth would overshoot to
+        // 30% and is refused. Note the knob moves in Energy-POINT steps, so a cheaper price
+        // buys a whole extra cast under an unchanged ceiling - which is why the cap was NOT
+        // touched: it is the price that is doing the work, in both directions.
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 2000, cardDraw: 6 },
-            ['c1', 'c2', 'c3', 'c4', 'c5'].map(id => card(id, 'nights_bite'))
+            ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'].map(id => card(id, 'nights_bite'))
         );
-        for (const id of ['c1', 'c2', 'c3', 'c4']) state = play(state, id);
-        expect(state.playerParty[0].currentHp).toBe(1520);       // 4 x 120 HP paid, 24% of the pool
+        for (const id of ['c1', 'c2', 'c3', 'c4', 'c5']) state = play(state, id);
+        expect(state.playerParty[0].currentHp).toBe(1500);       // 5 x 100 HP paid, 25% of the pool
         const before = state.playerParty[0].currentHp;
-        const after = play(state, 'c5');
-        expect(after.playerParty[0].currentHp).toBe(before);              // the fifth is refused
-        expect(after.playerDeck.hand.some(c => c.id === 'c5')).toBe(true);
+        const after = play(state, 'c6');
+        expect(after.playerParty[0].currentHp).toBe(before);              // the sixth is refused
+        expect(after.playerDeck.hand.some(c => c.id === 'c6')).toBe(true);
     });
 
     it('the cap MACHINERY still works when a cap is set - Henry\'s 25%/20% fallback', () => {
         // Restoring a cap is a one-value change, not a rebuild, and this is what proves it. At a
-        // 20% cap on a 6% price, three 1e casts (18%) fit and the fourth would overshoot to 24%,
+        // 20% cap on a 5% price, four 1e casts (20%) fit exactly and the fifth would overshoot,
         // so it is refused - by PRICE, via the cost hook, which is what makes the reducer and the
         // AI agree without a third code path (HANDOFF 8d).
         const live = OS_KNOBS.hel.capPct;
@@ -387,28 +397,28 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
         try {
             let state = makeState(
                 { activeOS: 'hel_v2', currentHp: 2000, cardDraw: 6 },
-                ['c1', 'c2', 'c3', 'c4'].map(id => card(id, 'nights_bite'))
+                ['c1', 'c2', 'c3', 'c4', 'c5'].map(id => card(id, 'nights_bite'))
             );
-            for (const id of ['c1', 'c2', 'c3']) state = play(state, id);
-            expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(18);
+            for (const id of ['c1', 'c2', 'c3', 'c4']) state = play(state, id);
+            expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(20);
             const before = state.playerParty[0].currentHp;
-            const after = play(state, 'c4');
+            const after = play(state, 'c5');
             expect(after.playerParty[0].currentHp).toBe(before);             // no blood paid
-            expect(after.playerDeck.hand.some(c => c.id === 'c4')).toBe(true); // never left hand
+            expect(after.playerDeck.hand.some(c => c.id === 'c5')).toBe(true); // never left hand
         } finally {
             OS_KNOBS.hel.capPct = live;
         }
     });
 
-    it('the shipped price is 6% and the shipped cap is 25%', () => {
+    it('the shipped price is 5% and the shipped cap is 25%', () => {
         expect(OS_KNOBS.hel.capPct).toBe(25);
-        expect(OS_KNOBS.hel.pctPerEnergy).toBe(6);
+        expect(OS_KNOBS.hel.pctPerEnergy).toBe(5);
     });
 
     it('the budget resets at the end of her turn', () => {
         let state = makeState({ activeOS: 'hel_v2', currentHp: 2000 }, [card('c1', 'nights_bite')]);
         state = play(state, 'c1');
-        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(6);
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(5);
 
         state = battleReducer(state, { type: 'END_TURN' });
         expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(0);
@@ -435,7 +445,7 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
         expect(state.counters['hel_blood_spent:' + PLAYER_ID] ?? 0).toBe(0); // no blood
     });
 
-    it('lets her cast a 3e Dark card on a 2-Energy frame, and charges 18% of her pool for it', () => {
+    it('lets her cast a 3e Dark card on a 2-Energy frame, and charges 15% of her pool for it', () => {
         let state = makeState(
             { activeOS: 'hel_v2', currentHp: 2000, currentEnergy: 2, maxEnergy: 2 },
             [card('c1', 'soul_tithe', 3)]
@@ -444,7 +454,7 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
         state = play(state, 'c1');
 
         expect(state.enemyParty[0].currentHp).toBeLessThan(before); // it actually resolved
-        expect(state.playerParty[0].currentHp).toBe(1640);          // 3 x 6% of 2000 = 360 HP
+        expect(state.playerParty[0].currentHp).toBe(1700);          // 3 x 5% of 2000 = 300 HP
         expect(state.playerParty[0].currentEnergy).toBe(2);         // and cost her no Energy
     });
 });

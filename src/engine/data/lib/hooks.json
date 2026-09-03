@@ -1094,7 +1094,7 @@
     "hel_v2": {
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
-        "description": "Hel's Dark spells cost 6% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
+        "description": "Hel's Dark spells cost 5% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
         "hooks": [
             {
                 "id": "hel_v2_lifeblood",
