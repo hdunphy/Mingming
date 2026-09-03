@@ -1,5 +1,5 @@
 /**
- * TICKET 132 — promote `results/rebaseline/` into `docs/balance/deck_grid.json`.
+ * TICKET 132 — promote a `rebaseline.mjs` output directory into `docs/balance/deck_grid.json`.
  *
  * Henry: *"promote the deck_grid.json"*.
  *
@@ -35,15 +35,23 @@
  * real changes hidden inside it.
  *
  * Run from the repo root:
- *     node scratch/promotegrid.mjs            # writes the grid
- *     node scratch/promotegrid.mjs --dry-run  # prints the summary, writes nothing
+ *     node scratch/promotegrid.mjs                            # writes the grid
+ *     node scratch/promotegrid.mjs --dry-run                  # prints the summary, writes nothing
+ *     node scratch/promotegrid.mjs --indir results/rebaseline-136
+ *
+ * TICKET 136: `--indir` exists because `rebaseline.mjs` has had `--outdir` since ticket 114 and
+ * this script did not have its mirror image, so promoting a run that had been written anywhere
+ * else meant shuffling directories underneath a script whose entire purpose is to refuse a
+ * partial promotion.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 const DRY = process.argv.includes('--dry-run');
+const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i === -1 ? d : process.argv[i + 1]; };
 const GRID = 'docs/balance/deck_grid.json';
-const INDIR = 'results/rebaseline';
+const INDIR = arg('indir', 'results/rebaseline');
 
 const grid = JSON.parse(fs.readFileSync(GRID, 'utf8'));
 const before = grid.cells.length;
@@ -102,10 +110,19 @@ for (const cell of grid.cells) {
 }
 if (claimed.size !== before) throw new Error(`promotegrid: claimed ${claimed.size} of ${before} cells`);
 
+// TICKET 136: the provenance note is DERIVED, not typed. It used to name its date and its build in
+// prose ('Regenerated 2026-09-02 on the post-ticket-131 build ...'), which is a hand-transcribed
+// fact and therefore one that silently lies the first time somebody promotes without editing it -
+// the same trap 0-BURN-PRICE-LAG records. The date now comes from the newest measured row and the
+// build from the commit the promotion ran against, so neither can drift from what was measured.
+const measured = new Date(Math.max(...files.map(f => fs.statSync(path.join(INDIR, f)).mtimeMs)))
+    .toISOString().slice(0, 10);
+let head = 'unknown';
+try { head = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { /* not a checkout */ }
+
 grid.note = 'Every deck vs every other deck, both turn orders. Roles from research/archetype-web.md. '
-    + 'Regenerated 2026-09-02 on the post-ticket-131 build (legion/ai-perf: whirlpool rework, +1 cardDraw '
-    + 'and hand cap 15, +50% HP, x10 number scale), seed base \'grid\', 30 iterations per order, via '
-    + 'scratch/rebaseline.mjs and promoted by scratch/promotegrid.mjs. Supersedes the pre-131 numbers. '
+    + `Measured ${measured} at commit ${head} by scratch/rebaseline.mjs into ${INDIR}/, seed base 'grid', `
+    + '30 iterations per order, then promoted by scratch/promotegrid.mjs. '
     + 'Only winRate/turns/ftk/dead were replaced; species, bucket and role are derived and unchanged.';
 
 // --- field summary, so the promotion prints what it did ---------------------------------------
