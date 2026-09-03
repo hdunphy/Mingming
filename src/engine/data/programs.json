@@ -2045,12 +2045,12 @@
     "sun_eaters_plunge": {
         "id": "sun_eaters_plunge",
         "name": "Sun-Eater's Plunge",
-        "description": "Dive from the sun: 68 power. Apply 3 Burn.",
+        "description": "Dive from the sun: 45 power. Apply 3 Burn.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
-        "baseCost": 3,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -2059,7 +2059,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 68,
+                "power": 45,
                 "target": "TARGET"
             },
             {
@@ -2096,12 +2096,12 @@
     "firestorm_talon": {
         "id": "firestorm_talon",
         "name": "Firestorm Talon",
-        "description": "Spend all Energy: 10 power x target's Burn x X.",
+        "description": "Deal 25 power for each stack of Burn on the target.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
-        "baseCost": "X",
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -2110,8 +2110,8 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 10,
-                "scaling": "BURN_TIMES_ENERGY",
+                "power": 25,
+                "scaling": "BURN_STACKS",
                 "target": "TARGET"
             }
         ]

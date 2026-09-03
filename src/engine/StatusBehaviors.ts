@@ -246,8 +246,10 @@ export const BURN_CONFIG: BurnMechanicConfig = {
     // TICKET 93 (Henry): back to PERMANENT, the pre-rev-3 shape. Measured in ticket 92 - the only
     // deck permanence breaks is `hraesvelgr_v2`, and only through `firestorm_talon`, which
     // multiplies by the target's Burn pile and therefore compounds when the pile stops falling.
-    // That card drops 15 -> 10 power in the same ticket; she lands at 64.8% with her >90% cells
-    // back where they were. `fenrir_v2` gains 9.5 points and that is the POINT: his Burn is
+    // That card dropped 15 -> 10 power in the same ticket; she landed at 64.8% with her >90%
+    // cells back where they were. TICKET 136j re-cut the card - fixed 2 Energy, 25 power per
+    // stack of BURN_STACKS instead of X-cost `power x Burn x Energy` - so the compounding is
+    // now bounded by `maxStacks` alone (4) rather than by the pile AND the energy spent. `fenrir_v2` gains 9.5 points and that is the POINT: his Burn is
     // largely self-inflicted through `pyre_sacrifice`, so permanence finally pays him for a cost
     // he was already carrying.
     decayPerTurn: 0,

@@ -12,7 +12,19 @@ import { osVarianceScenario } from '../debug/balance/balanceScenarios';
  * resolved per play by getEffectiveCardCost - which is also what the AI and the UI
  * cost pip call, so none of the three can disagree about what an X card costs.
  * The energy actually paid is recorded as `lastEnergySpent` and read by
- * ENERGY_SPENT_SQUARED (Thermal Lance) and BURN_TIMES_ENERGY (Firestorm Talon).
+ * ENERGY_SPENT_SQUARED (Thermal Lance).
+ *
+ * TICKET 136j: Firestorm Talon is NO LONGER an X card. It was `10 power x target's Burn x
+ * Energy spent` - two multipliers on one card, which is why the Burn-permanence ticket (93)
+ * had to cut its power to hold it - and it is now a flat 2 Energy at 25 power per stack of
+ * BURN_STACKS. One multiplier, bounded by `BURN_CONFIG.maxStacks` (4) rather than by the pile
+ * AND the energy. Its test below moved with it and keeps the two assertions that still mean
+ * something: zero Burn deals zero, and the damage is linear in the pile.
+ *
+ * WORTH KNOWING: that leaves **BURN_TIMES_ENERGY with no card in the registry**. The engine
+ * branch is still there and still correct; it is simply unused, and it is a deletion candidate
+ * for whoever next audits dead scalings. Not deleted here - removing an engine path is not
+ * this ticket's ruling.
  */
 
 const unit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity => ({
@@ -103,7 +115,7 @@ describe('X-cost cards (ticket 22)', () => {
         expect(dmg3 / dmg2).toBeLessThan(1.6);
     });
 
-    it('BURN_TIMES_ENERGY deals nothing without Burn, and scales with it', () => {
+    it('BURN_STACKS deals nothing without Burn, and is linear in the pile (ticket 136j)', () => {
         const noBurn = stateWith([entity('c1', 'firestorm_talon', 0)], 2);
         expect(damageDealt(noBurn, play(noBurn, 'c1'))).toBe(0);
 
