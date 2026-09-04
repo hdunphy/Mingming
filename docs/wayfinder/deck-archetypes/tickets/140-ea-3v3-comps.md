@@ -50,13 +50,15 @@ paying the caster:
 
 | body | OS | what it does at width |
 |---|---|---|
-| ratatoskr_v1 GOSSIP_NODE | every 0-cost card heals **all allies** 2.5% | the whole party sustains off the zoo's free cards, cast by anyone |
+| ratatoskr_v1 GOSSIP_NODE | every 0-cost card *ratatoskr himself* casts heals **all allies** 2.5% | the trigger is caster-scoped (Henry's fix), the payoff is side-wide: keep the free cards in ratatoskr's hands and the whole party sustains |
 | huldra_v1 ALLURE_PROXY | every buff she applies to herself **or an ally** mirrors 1 Weakened onto a random enemy | Growth / Iron Bark / Shrug Off become enemy Weakened; hexbloom cashes it |
 | kraken_v1 ABYSSAL_INK | every effect-draw **by any ally** Dazes **every enemy** ×2 | Forage ×2, Undertow, Whirlpool ×2, Pressure Point ×2, Echo Chamber tokens — the zoo's draw engine becomes a side-wide Dazed engine, and Dazed is +1 power on every hit |
 
 Why it holds together: the pile is 0.67–0.73 average cost, so whichever body has Energy can cast
-almost anything; seed_bomb and Crushing Depths are the two payoffs and both read piles the other
-two bodies build (cards played this turn; Dazed on the target). The splash is Water, which the
+almost anything; the two payoffs read different piles: Crushing Depths reads Dazed on the target,
+which all three bodies build, while seed_bomb reads only the cards *its caster* played this turn
+(caster-scoped since ticket 123) — so seed_bomb wants ratatoskr to cast it after his own 0-costs,
+and the only OSes here that fire on an ally's action are ABYSSAL_INK and (in Tidal Forge) TREACHERY. The splash is Water, which the
 Nature pair *beats*, so an enemy Water majority cannot punish the two Nature bodies.
 
 **Weakness to know:** Fire majority beats both Nature bodies. Kraken is the answer body there and
@@ -154,9 +156,11 @@ Games run 4.5–7.25 turns; nothing truncated, no first-turn kills.
 
 ## 6. Design rules that fell out of this
 
-1. **A 3v3 comp needs at least one side-aware OS** (fires on ally actions or hits every enemy).
-   In the EA roster those are: GOSSIP_NODE, ABYSSAL_INK, ALLURE_PROXY, TREACHERY_KERNEL, and
-   TOXIN_FANG by virtue of reading a pile others build. Every other EA firmware is self-gated.
+1. **A 3v3 comp needs at least one side-aware OS** — one that fires on an ally's action (only
+   ABYSSAL_INK and TREACHERY_KERNEL in the EA roster), or whose *payoff* is side-wide even though
+   its trigger is the owner's own play (GOSSIP_NODE heals all allies, ABYSSAL_INK Dazes every enemy,
+   ALLURE_PROXY mirrors buffs the owner puts on an ally), or that reads a pile others build
+   (TOXIN_FANG). Every other EA firmware is self-gated on both ends.
 2. **The splash body's job is not damage.** It loses STAB on most of what it casts and it is the
    element the majority beats. Give the splash the OS that reads the party (kraken_v1's draw
    trigger, jormungandr_v2's Poison reader, kraken_v2's Energy bank).
