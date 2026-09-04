@@ -1154,6 +1154,32 @@ const runSlice = createSlice({
          * credit is the one that must not be lost, and this receipt describes a payment that has
          * already happened either way. A crash between the two costs a line on a summary screen.
          */
+        /**
+         * THE PITY COUNTER, ADVANCED — Henry's ruling of 2026-09-01.
+         *
+         * Called once per WON fight with whether that fight paid a blueprint: a drop clears the
+         * drought, a dry win lengthens it, and `RewardSystem.BLUEPRINT_PITY_FIGHTS` is the length
+         * at which the next win is guaranteed to pay.
+         *
+         * **Separate from `recordBankedBlueprint`, though both fire on the same victory**, because
+         * they answer different questions and one of them fires on fights that paid NOTHING. Folding
+         * the counter into the banking loop would mean a dry fight never touched it — which is the
+         * only kind of fight the counter exists to count.
+         *
+         * Counts fights, not bodies: a three-body fight that dropped nothing is one dry fight, and a
+         * fight that dropped two blueprints clears the drought exactly as one drop does.
+         */
+        recordFightBlueprintOutcome: (state, action: PayloadAction<{ dropped: boolean }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            return {
+                run: {
+                    ...run,
+                    blueprintDryFights: action.payload.dropped ? 0 : (run.blueprintDryFights ?? 0) + 1,
+                },
+            };
+        },
+
         recordBankedBlueprint: (state, action: PayloadAction<string>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
@@ -1198,6 +1224,7 @@ export const {
     finishGauntlet,
     addDriver,
     recordBankedBlueprint,
+    recordFightBlueprintOutcome,
 } = runSlice.actions;
 
 export default runSlice.reducer;

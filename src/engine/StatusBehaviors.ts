@@ -239,6 +239,26 @@ export interface BurnMechanicConfig {
  *
  * Grid arms mutate this object in memory; nothing but this line writes it on disk.
  */
+/**
+ * TICKET 137: the numbers `TacticalAI` needs in order to value a status at what the engine
+ * actually pays. They live here, exported, because the alternative is a second copy in the
+ * eval - and a second copy is exactly how ticket 136b left the AI valuing Regen 50% above its
+ * real payout for a whole arc. HANDOFF 0-BURN-PRICE-LAG states the rule: transcribing a
+ * corrected number fixes today and re-arms the trap; deriving it disarms the trap.
+ *
+ * `aiStatusPricing.test.ts` fails if the eval and these ever disagree again.
+ */
+/** Poison ticks this share of max HP per stack, then loses one stack (PoisonBehavior.endTurn). */
+export const POISON_PERCENT_PER_STACK = 0.01;
+
+/**
+ * Regen restores this share of max HP at the start of its holder's turn, then loses one stack.
+ * `stacks` are TURNS, not intensity (ticket 34), so this is FLAT per turn rather than per stack.
+ * Ticket 136b moved it 3% -> 2%; the AI kept its own 3% until ticket 137, which is why it is
+ * exported rather than declared inside the method it is used in.
+ */
+export const REGEN_PERCENT_PER_TURN = 0.02;
+
 export const BURN_CONFIG: BurnMechanicConfig = {
     shape: 'DETONATE',
     maxStacks: 4,
@@ -246,8 +266,10 @@ export const BURN_CONFIG: BurnMechanicConfig = {
     // TICKET 93 (Henry): back to PERMANENT, the pre-rev-3 shape. Measured in ticket 92 - the only
     // deck permanence breaks is `hraesvelgr_v2`, and only through `firestorm_talon`, which
     // multiplies by the target's Burn pile and therefore compounds when the pile stops falling.
-    // That card drops 15 -> 10 power in the same ticket; she lands at 64.8% with her >90% cells
-    // back where they were. `fenrir_v2` gains 9.5 points and that is the POINT: his Burn is
+    // That card dropped 15 -> 10 power in the same ticket; she landed at 64.8% with her >90%
+    // cells back where they were. TICKET 136j re-cut the card - fixed 2 Energy, 25 power per
+    // stack of BURN_STACKS instead of X-cost `power x Burn x Energy` - so the compounding is
+    // now bounded by `maxStacks` alone (4) rather than by the pile AND the energy spent. `fenrir_v2` gains 9.5 points and that is the POINT: his Burn is
     // largely self-inflicted through `pyre_sacrifice`, so permanence finally pays him for a cost
     // he was already carrying.
     decayPerTurn: 0,
@@ -367,8 +389,7 @@ class PoisonBehavior extends StatusBehavior {
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        // 1% Max HP damage per stack
-        const damage = Math.max(1, Math.floor(entity.maxHp * (instance.stacks / 100)));
+        const damage = Math.max(1, Math.floor(entity.maxHp * POISON_PERCENT_PER_STACK * instance.stacks));
         const newStacks = instance.stacks - 1;
         const logs: string[] = [];
 
@@ -502,9 +523,9 @@ class RegenBehavior extends StatusBehavior {
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {
-        // Ticket 34 (Henry): Regen is a FLAT 3% of maxHP per turn, and `stacks` is how many
-        // TURNS it lasts - not an intensity multiplier. 3 stacks = 3% a turn for three turns,
-        // then it falls off.
+        // Ticket 34 (Henry): Regen is a FLAT 2% of maxHP per turn (3% until ticket 136b), and
+        // `stacks` is how many TURNS it lasts - not an intensity multiplier. 3 stacks = 2% a
+        // turn for three turns, then it falls off.
         //
         // It used to multiply by stacks, which made one application worth 1.5*N*(N+1) percent
         // of a pool - quadratic - and unbounded, because the decay is a flat 1/turn while a
@@ -512,7 +533,6 @@ class RegenBehavior extends StatusBehavior {
         // That single property decided huldra_v1: 2 Regen per play won 79% of its matchup,
         // 1 Regen per play won 1%, because 1/play exactly cancels the decay and never
         // accumulates. Linear duration removes the cliff - see ticket 34.
-        const REGEN_PERCENT_PER_TURN = 0.03;
         const healing = Math.floor(entity.maxHp * REGEN_PERCENT_PER_TURN);
         const newStacks = instance.stacks - 1;
         const logs: string[] = [`  💚 ${entity.name} — Regen heals ${healing} HP (${instance.stacks} → ${newStacks} stacks)`];
@@ -597,7 +617,7 @@ class StableOSBehavior extends StatusBehavior {
  * silently buffs their future decks. Swept and reported in ticket 33; left at 0.8 pending the
  * Earth/Ice passes.
  */
-const BARKSHIELD_DECAY_RETAINED = 0.8;
+export const BARKSHIELD_DECAY_RETAINED = 0.8;
 
 /**
  * docs/power_curve_spec.md rev 3: `stacks` now represents % of the holder's maxHp

@@ -41,6 +41,7 @@ import {
     endRun,
     finishGauntlet,
     recordBankedBlueprint,
+    recordFightBlueprintOutcome,
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
@@ -49,7 +50,8 @@ import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import { RelicRegistry } from '../../engine/data/relicRegistry';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
-import { useBattleVfx } from '../hooks/useBattleVfx';
+import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
+import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import AudioControls from './AudioControls';
@@ -435,18 +437,55 @@ const BattleArena: React.FC = () => {
         let cancelled = false;
 
         const runAI = async () => {
-            // Wait for turn banner if this is the start of the enemy turn
-            if (aiPrevSideRef.current !== 'ENEMY') {
-                await new Promise(r => setTimeout(r, 1200));
-            } else {
-                // Delay between actions
-                await new Promise(r => setTimeout(r, 600));
-            }
+            // TICKET 127: THINK DURING THE PAUSE, NOT AFTER IT.
+            //
+            // This used to `await` the pause and only THEN call `getBestAction`, so the two costs
+            // were SERIAL and the player paid both. At 3v3 the search is ~1.3s a decision
+            // (measured, research/ai-decision-cost.md), so an 8-decision enemy turn was
+            // 5.4s of deliberate pacing PLUS 10.6s of thinking = ~16s. Nothing about the pause
+            // requires the board to be undecided while it elapses.
+            //
+            // Now the pause is a FLOOR on how fast a play may appear, not an addition to it: think
+            // first, then sleep whatever of the pause is left. A fast decision still waits its full
+            // beat (the pacing is deliberate - the player has to see what happened); a slow one has
+            // already spent the beat thinking and plays immediately.
+            //
+            // The short debounce in front is load-bearing. This effect re-runs on every
+            // `battleState` change, and the old 600ms pause was doubling as the thing that let a
+            // superseded run cancel before it spent a second in the search - React's dev-mode
+            // double-invoke included. Computing at the top of the effect would have run the search
+            // twice for one decision.
+            //
+            // It does NOT fix the freeze. `getBestAction` is synchronous on the main thread, so the
+            // UI is still locked for the duration - the freeze now lands *during* the banner/beat
+            // rather than after it. Un-freezing it needs the search off-thread (ticket 39 asks for
+            // a Web Worker); this change only stops us paying for the same wait twice.
+            // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL.
+            //
+            // Henry: *"show the cards that get played, animate them to show center screen ... That
+            // animation can eat up the time as well."* So the between-actions beat is no longer a
+            // blind 600ms - it is `PLAYED_CARD_REVEAL_MS` with the previous card on screen, and the
+            // search runs after it. Wall-clock is about what it was; the time now carries the
+            // information the player was having to dig out of the combat log.
+            //
+            // It has to be a REAL hold rather than something the search overlaps, and that is the
+            // one place this file cannot pretend: `getBestAction` is synchronous on the main thread,
+            // so a reveal animating "during" the search would simply freeze. Until the search moves
+            // off-thread (steam-release ticket 39) the honest choice is a short un-frozen window in
+            // which the reveal actually plays, and then the think.
+            const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : PLAYED_CARD_REVEAL_MS;
+            const DEBOUNCE_MS = 50;
 
+            await new Promise(r => setTimeout(r, DEBOUNCE_MS));
+            if (cancelled) return;
+
+            const thinkStart = performance.now();
+            const action = getBestAction(battleState);
+            const thoughtFor = performance.now() - thinkStart;
+
+            await new Promise(r => setTimeout(r, Math.max(0, pauseMs - DEBOUNCE_MS - thoughtFor)));
             if (cancelled) return;
             aiPrevSideRef.current = 'ENEMY';
-
-            const action = getBestAction(battleState);
 
             if (action.type === 'PLAY_PROGRAM') {
                 dispatch(playProgram(action.payload));
@@ -584,6 +623,18 @@ const BattleArena: React.FC = () => {
      */
     const nodeKind: NodeKind = run?.nodes.find(n => n.id === run.currentNodeId)?.kind ?? 'wild';
 
+    /**
+     * Won fights since the last blueprint — the pity floor's counter (2026-09-01), read beside
+     * `nodeKind` because they are the same kind of thing: a fact about the run that the reward roll
+     * needs and the engine cannot see.
+     *
+     * Hoisted out of the effect so it can be a dependency by name. It changes when the banking
+     * effect below advances it, which re-runs the roll effect — harmlessly, because the
+     * `!rewardBundle` latch there means a bundle is rolled exactly once per victory whatever wakes
+     * the effect up.
+     */
+    const dryFights: number = run?.blueprintDryFights ?? 0;
+
     // Audio: battle-end stinger, played once per battle (seed = battle identity;
     // gauntlets chain battles without ever passing through battleState === null).
     const endSoundPlayedRef = useRef(false);
@@ -648,6 +699,15 @@ const BattleArena: React.FC = () => {
                 nodeKind,
                 party: battleState.playerParty,
                 seed: battleState.seed,
+                /*
+                 * THE PITY FLOOR'S COUNTER, READ HERE AND WRITTEN BELOW (2026-09-01).
+                 *
+                 * `?? 0` covers both callers that have no run at all — a debug scenario owes no
+                 * mercy — and a run saved before the field existed. The engine only READS it; the
+                 * banking effect advances it, so the read and the write cannot disagree about what
+                 * a fight paid.
+                 */
+                dryFights,
             });
 
             // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
@@ -670,7 +730,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers, dryFights]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -708,6 +768,20 @@ const BattleArena: React.FC = () => {
         if (!rewardBundle || !battleState) return;
         if (bankedBlueprintSeedRef.current === battleState.seed) return;
         bankedBlueprintSeedRef.current = battleState.seed;
+
+        /*
+         * THE PITY COUNTER (2026-09-01), advanced in the same once-per-battle effect that banks.
+         *
+         * It rides here rather than in its own effect for the reason the ref above exists at all:
+         * this block is the one place in the component that runs EXACTLY once per victory, and a
+         * counter that double-counted a fight under StrictMode would hand out mercy a fight early.
+         *
+         * Dispatched before the banking loop and unconditionally, because the dry case — an empty
+         * `blueprints` — is the one the counter is FOR, and it is the case the loop below skips.
+         * A battle with no run behind it no-ops in the reducer, exactly as `recordBankedBlueprint`
+         * does.
+         */
+        dispatch(recordFightBlueprintOutcome({ dropped: rewardBundle.blueprints.length > 0 }));
 
         // One dispatch per entry, not per species: `blueprints` is a list in which duplicates are
         // meaningful and `addBlueprint` stacks the count (ticket 20).
@@ -1144,6 +1218,13 @@ const BattleArena: React.FC = () => {
                     onEntityPointerUp={handleEntityPointerUp}
                     onEnemyHoverChange={setHoveredEntityId}
                 />
+
+                {/*
+                  * TICKET 127: the card that just resolved, held at centre stage. Inside
+                  * `stage-area` (which is `position: relative`) so it centres on the board rather
+                  * than the viewport, and rendered after `BattleStage` so it sits over the sprites.
+                  */}
+                <PlayedCardReveal played={vfx.playedCard} />
 
                 {renderParty(battleState.playerParty, false)}
 

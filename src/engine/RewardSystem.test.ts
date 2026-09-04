@@ -25,6 +25,7 @@ import {
     rewardCardPool,
     rollDraftRounds,
     rollDropTable,
+    blueprintRateFor,
 } from './RewardSystem';
 import { ProgramRegistry } from './data/programRegistry';
 import { getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
@@ -138,14 +139,20 @@ describe('RewardSystem', () => {
             expect(BLUEPRINT_DROP_RATE.alpha).toBe(1);
         });
 
-        it('drops at roughly the table rate for every fight kind', () => {
+        it('drops at roughly the rate the table states for every fight kind', () => {
             // Wide bands on purpose: these assert that the table is what the roll consults, not
             // that a proposal survived a ratification. 600 samples put the standard error near
             // 0.02, so ±0.08 is several sigma and none of this flakes.
+            //
+            // **Against `blueprintRateFor`, not the bare table** (Henry, 2026-09-01): `dropRate`
+            // fights ONE body, and a one-body fight is a solo fight, which the ruling pays 10 points
+            // above the table. Comparing to the raw number here would be asserting that the solo
+            // bonus does not exist — this file's own sampler is the shape the bonus is for.
             for (const kind of ['wild', 'ambush', 'elite', 'gym'] as const) {
+                const expected = blueprintRateFor(kind, 1);
                 const observed = dropRate(kind);
-                expect(Math.abs(observed - BLUEPRINT_DROP_RATE[kind]),
-                    `${kind}: observed ${observed}, table says ${BLUEPRINT_DROP_RATE[kind]}`)
+                expect(Math.abs(observed - expected),
+                    `${kind}: observed ${observed}, solo rate is ${expected} (table ${BLUEPRINT_DROP_RATE[kind]})`)
                     .toBeLessThan(0.08);
             }
         });
@@ -350,7 +357,9 @@ describe('RewardSystem', () => {
                 }
                 return drops / samples;
             };
-            expect(Math.abs(rateFor(7) - BLUEPRINT_DROP_RATE.wild)).toBeLessThan(0.08);
+            // One body, so the solo rate (2026-09-01) is the one to beat — the point of the case is
+            // that visit 7 pays what visit 1 pays, not what any particular number is.
+            expect(Math.abs(rateFor(7) - blueprintRateFor('wild', 1))).toBeLessThan(0.08);
         });
 
         it('still offers a full pick-1-of-3 per enemy on a re-entered node', () => {
@@ -420,12 +429,28 @@ describe('RewardSystem', () => {
             }
         });
 
+        /**
+         * TICKET 136i moved the fixture off fenrir_v1, and the reason is worth reading rather
+         * than the diff: **fenrir_v1's rebuilt deck has five DISTINCT cards and all five are in
+         * its start kit** (nine slots, four of them second copies). So it has no untagged half
+         * at all, and this test - whose whole subject is the untagged half - had nothing left to
+         * assert on it. The old `toBeGreaterThan(0)` guard is what caught that, which is the
+         * guard doing its job.
+         *
+         * kraken_v1 carries the shape this test needs (`crushing_depths` is in the deck and not
+         * the kit), so the assertion is unchanged and only its subject moved.
+         *
+         * FLAGGED FOR DESIGN, not fixed here: ticket 61's model is "payoff + 4 enablers, and the
+         * run builds back toward the tuned deck". For fenrir_v1 the tuned deck now IS the kit,
+         * doubled, so there is nothing for a run to draft back toward. That is a deck-design
+         * call for the species pass, not something a test should paper over.
+         */
         it("includes a species' UNTAGGED kit cards while it is in the party (ticket 08)", () => {
-            const pool = rewardCardPool(FENRIR_V1);
-            const kit = new Set(MingmingRegistry['fenrir'].startKits!['fenrir_v1']);
-            const untagged = getDeckForOS('fenrir', 'fenrir_v1').filter((id) => !kit.has(id));
+            const pool = rewardCardPool(FENRIR_AND_KRAKEN);
+            const kit = new Set(MingmingRegistry['kraken'].startKits!['kraken_v1']);
+            const untagged = getDeckForOS('kraken', 'kraken_v1').filter((id) => !kit.has(id));
 
-            expect(untagged.length, 'fixture assumes fenrir_v1 has cards outside its start kit')
+            expect(untagged.length, 'fixture assumes kraken_v1 has cards outside its start kit')
                 .toBeGreaterThan(0);
             for (const id of untagged) {
                 expect(pool, `${id} is the half of the deck the run is supposed to draft back`)

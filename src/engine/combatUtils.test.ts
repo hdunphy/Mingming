@@ -156,10 +156,11 @@ describe('Combat Utils - Damage Formula', () => {
         const damage = calculateDamage(attacker, target, program, 40, state);
         // Ticket 21 froze the level term: levelBase is CALIBRATION_LEVEL_DAMAGE_BASE = 8, not
         // floor(2*level/5)+2, so this no longer varies with a level nobody has.
-        // scaled = floor(8*40*100/100) = 320; reduced = 320/45 = 7.11
-        // (spec rev 3.1 / ticket 23: no +2, /45 not /35);
-        // modifier 1.0 (program element 'None' never grants STAB) -> floor(7.11) = 7.
-        expect(damage).toBe(7);
+        // scaled = floor(8*40*100/100) = 320; reduced = 320 * NUMBER_SCALE / 45 = 71.1
+        // (spec rev 3.1 / ticket 23 set the 45 and it is unchanged; ticket 131c's x10 is the
+        // presentation scale, and health scaled with it so the pace is identical);
+        // modifier 1.0 (program element 'None' never grants STAB) -> floor(71.1) = 71.
+        expect(damage).toBe(71);
     });
 
     it('is level-independent — the same inputs give the same damage, always', () => {
@@ -172,7 +173,7 @@ describe('Combat Utils - Damage Formula', () => {
         // This case used to pin level 100 and expect 37. There is no level to raise any more, so
         // it now asserts the thing that replaced it: identical inputs, identical output — the
         // property that makes the balance corpus permanent rather than a snapshot of one level.
-        expect(damage).toBe(7);
+        expect(damage).toBe(71);
     });
 
     it('should match STAB calculation', () => {
@@ -182,9 +183,9 @@ describe('Combat Utils - Damage Formula', () => {
         const state = { activeSide: 'PLAYER' } as unknown as IBattleState;
 
         const damage = calculateDamage(attacker, target, program, 40, state);
-        // Same base as the case above (7.11 reduced) but modifier is 1.5 for STAB:
-        // floor(7.11 * 1.5) = floor(10.67) = 10.
-        expect(damage).toBe(10);
+        // Same base as the case above (71.1 reduced) but modifier is 1.5 for STAB:
+        // floor(71.1 * 1.5) = floor(106.67) = 106.
+        expect(damage).toBe(106);
     });
 });
 

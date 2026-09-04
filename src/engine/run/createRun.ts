@@ -325,6 +325,10 @@ export function createRun(input: CreateRunInput): IRunState {
         gauntlet: null,
         outcome: null,
         fightsResolved: 0,
+        // The pity floor's counter (2026-09-01). Explicitly 0 rather than left absent: a run that
+        // starts owing nothing is a fact worth writing down, and the field is optional only so that
+        // saves written before the floor existed still parse.
+        blueprintDryFights: 0,
 
         startedAt,
     };

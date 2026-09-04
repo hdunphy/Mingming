@@ -54,14 +54,38 @@ export abstract class ActionExecutor<T extends ExecutableAction> {
  * multiply the computed DAMAGE afterwards — they intentionally stay inside
  * AttackExecutor.
  */
-/** Max Strengthened stacks a STRENGTH_STACKS scaler may multiply by - see ticket 23 follow-up.
- *  Shared with HookFactory.resolveScaling (ticket 26): the hook-side path was left uncapped
- *  by ticket 24, so core_overclock_daemon could reach x5.00 at 20 stacks. */
-export const STRENGTH_STACK_CAP = 8;
+/**
+ * TICKET 136h: THE CAP IS GONE. Henry: *"No caps allowed."* It was 8, shared by the card-side
+ * `STRENGTH_STACKS` scaler here and the hook-side one in `HookFactory.resolveScaling`.
+ *
+ * This is the same ruling ticket 103 applied to skoll_v2's SOLAR_OVERDRIVE, for the same
+ * reason: an arbitrary ceiling stops the one deck built to hoard a resource from being paid
+ * for hoarding it, exactly when the hoard is the deck's whole plan. Henry's standing rule is
+ * that when something needs to fire less, the answer is a CONDITION, not a cap - and the
+ * valve here is already the duality cancel and the sheds, as it is for every other duality
+ * status.
+ *
+ * Nothing shipped binds on it today: `core_overclock_daemon`, the card ticket 26 capped this
+ * for, is in no deck. fenrir_v1's `unbound_fang` (136i) is the first live consumer, and it is
+ * measured with the cap already gone.
+ *
+ * `Number.POSITIVE_INFINITY` rather than a large number, per ticket 103: a ceiling you cannot
+ * reach is still a ceiling somebody has to reason about.
+ */
+export const STRENGTH_STACK_CAP = Number.POSITIVE_INFINITY;
 
 /** Max % of maxHP-missing a MISSING_HP scaler may read (ticket 26). The cap is
  *  budget / scalingPower, so it re-derives whenever the curve moves. */
 export const MISSING_HP_PCT_CAP = 50;
+
+/**
+ * Power a SHARP_STACKS scaler adds per stack of Sharp on the attacker.
+ *
+ * TICKET 139: named and exported so the CARD TEXT can be held to it. `spike_launch` and
+ * `cinder_lance` both print "+5 power per Sharp stack", and until this was a constant the only
+ * thing keeping those two descriptions honest was that nobody had changed the 5.
+ */
+export const SHARP_STACKS_POWER_PER_STACK = 5;
 
 /**
  * Ticket 74: the per-event-count scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DRAWN_TRIGGERED`,
@@ -125,6 +149,21 @@ export function getEffectiveAttackPower(
         ).size;
         return power * distinct;
     }
+    if (action.scaling === 'SELF_ANY_STATUS') {
+        // TICKET 136n: counts DISTINCT statuses on the CASTER - buffs, debuffs, anything -
+        // which is what makes `corroded_edge` fafnir_v2's payoff: CORRUPTED_GOLD pays him in
+        // debuffs he is meant to carry, and `tarnish` puts one on him on purpose. Distinct
+        // TYPES rather than stacks, so the card rewards VARIETY and cannot be farmed by
+        // stacking one status - the same shape valkyrie_v2's CRUSADER_KERNEL uses.
+        //
+        // The mirror of `ANY_STATUS` (which reads the target and pays a stack per type
+        // counted, ticket 124). This one reads the SOURCE and pays nothing: the statuses are
+        // already a cost he is carrying, so charging him again would be charging twice.
+        const distinctOnSelf = new Set(
+            (source?.statusEffects ?? []).filter(s => s.stacks > 0).map(s => s.type),
+        ).size;
+        return power * distinctOnSelf;
+    }
     if (action.scaling === 'BARKSHIELD_STACKS') {
         // Ticket 50: reads the SOURCE's own standing BarkShield - avalanche casts the wall at
         // them. Uncapped, per Henry's law that per-stack scalers should underperform early and
@@ -139,7 +178,7 @@ export function getEffectiveAttackPower(
     }
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-        return power + 5 * sharpStacks;
+        return power + SHARP_STACKS_POWER_PER_STACK * sharpStacks;
     }
     if (action.scaling === 'MISSING_HP') {
         // Power-side (ticket 26): rides the divisor, STAB and resistances like every other
@@ -151,10 +190,12 @@ export function getEffectiveAttackPower(
         return power + (action.scalingPower || 0) * Math.min(pctMissing, MISSING_HP_PCT_CAP);
     }
     if (action.scaling === 'STRENGTH_STACKS') {
-        // Capped at STRENGTH_STACK_CAP so the card cannot exceed its cost's power budget:
-        // uncapped, Momentum Crash measured 29.3 damage a play (38% of a health pool) off
-        // a nominal 10 power - an effective ~98 power for 1 Energy against a 40 budget.
-        // The cap is budget / power, so it re-derives whenever the curve moves.
+        // TICKET 136h: `STRENGTH_STACK_CAP` is Infinity now (Henry: "No caps allowed"), so the
+        // Math.min is a no-op kept as the single seam if a condition-based valve is ever
+        // needed. The number it used to hold, 8, came from ticket 23: uncapped, Momentum
+        // Crash measured 29.3 damage a play - 38% of a health pool - off a nominal 10 power,
+        // an effective ~98 power for 1 Energy against a 40 budget. That card still exists, so
+        // if a Strength deck runs away it is the row to look at first.
         const strengthStacks = source.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
         return power * Math.min(strengthStacks, STRENGTH_STACK_CAP);
     }
@@ -256,6 +297,12 @@ export function getDamageScalingMultiplier(
             const spent = state.lastEnergySpent ?? 0;
             return spent * spent;
         }
+        case 'BURN_STACKS':
+            // TICKET 136j: the TARGET's raw Burn pile, for hraesvelgr_v2's `firestorm_talon`.
+            // Burn caps at 4 (BURN_CONFIG), so this scaler is bounded by the mechanic itself
+            // rather than by a number written here - 25 power x 4 is 100 at 2 Energy, which is
+            // the hand-price the ticket carries. That bound is why it needs no cap of its own.
+            return target?.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
         case 'BURN_TIMES_ENERGY': {
             const burn = target?.statusEffects.find(s => s.type === 'Burn')?.stacks || 0;
             return burn * (state.lastEnergySpent ?? 0);
@@ -276,7 +323,19 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         if (!target) return state;
 
         let damage = 0;
-        if (source) {
+        // TICKET 138 amendment: `percentMaxHp` recoil, resolved BEFORE and INSTEAD of the power
+        // path. A price denominated in the victim's own health pool: no attacker stats, no STAB,
+        // no resistances, no duality POWER term, no damage hooks. `glass_cannon`'s recoil used to
+        // run the full formula as a power-15 hit, so skoll's Strength pile made the card that
+        // grants Strength cost more the better it was working - 53 HP at no stacks, 178 at eight.
+        // Henry ruled the recoil must not scale. It also needs no `source`: hurting yourself does
+        // not depend on who is doing it.
+        if (typeof actionData.percentMaxHp === 'number') {
+            // Floored, and at least 1 on any positive percentage, so a recoil can never round
+            // away to a free card on a small frame - the failure mode ticket 84 hit when
+            // fenrir_v1's 2% recoil floored to 1 HP and had no second setting.
+            damage = Math.max(1, Math.floor(target.maxHp * actionData.percentMaxHp / 100));
+        } else if (source) {
             const programToUse = program || ({ element: element } as ProgramData);
 
             // SHARP_STACKS scaling handled by the shared helper (also used by
@@ -306,11 +365,13 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
         // 25 damage after one turn of setup"*. The card read the pile without paying for it,
         // so the pile only grew and every cast was bigger than the last.
         //
-        // ONE STACK per counted type, not a full consume, on `StatusExecutor`'s hexbloom
-        // precedent below: consuming makes a card a hoard dump priced off how long you saved
-        // up (x3 measured 13.90 against a 6.5 band), while reading without consuming makes it
-        // a RATE. A stack keeps the rate and still kills the snowball, because the count
-        // feeding the next cast is now strictly smaller unless something re-applies.
+        // ONE STACK per counted type, not a full consume. Ticket 124 took this from what was
+        // then `StatusExecutor`'s hexbloom precedent - hexbloom consumes its Weakened as of
+        // ticket 136c, so the precedent is gone, but the reasoning stands on its own:
+        // consuming makes a card a hoard dump priced off how long you saved up (x3 measured
+        // 13.90 against a 6.5 band), while reading without consuming makes it a RATE. A stack
+        // keeps the rate and still kills the snowball, because the count feeding the next
+        // cast is now strictly smaller unless something re-applies.
         //
         // Counted BEFORE the damage lands, from the same predicate `getEffectiveAttackPower`
         // used, so the decrement and the damage cannot disagree about what a status is.
@@ -371,12 +432,12 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
         // "consume all Weakened on the target, apply that many Poison"). The `consume` branch
         // below returns early, so a consume action can never read its own multiplier - which
         // is what guarantees the two actions resolve in the authored order.
-        // Ticket 41: WEAKENED_STACKS reads the TARGET's Weakened WITHOUT consuming it, so the
-        // pile survives and the card can be cast again off the same standing resource. That is
-        // the whole difference from STATUS_CONSUMED, which spends its input - and it is what
-        // makes hexbloom price honestly. Consuming turns the card into a hoard dump whose value
-        // scales with however long you saved up (x3 measured 13.90 against a 6.5 band); not
-        // consuming turns it into a RATE, so x2 is enough and x2 scores 6.30.
+        // Ticket 41: WEAKENED_STACKS reads the TARGET's Weakened WITHOUT consuming it - the
+        // scaler itself never spends the pile. Ticket 136c pairs it on hexbloom with an
+        // explicit second consume action, so the card now reads the pile at x1 and then
+        // clears it. Before 136c it read at x2 and left the pile standing: a RATE rather than
+        // a hoard dump (x3-consumed measured 13.90 against a 6.5 band, x2-standing 6.30), but
+        // at full grid the standing pile put huldra_v1 at 91.8, so 136c spends it.
         const weakenedOnTarget = actionData.scaling === 'WEAKENED_STACKS'
             ? ((state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId))
                 ?.statusEffects.find(s => s.type === 'Weakened')?.stacks ?? 0)

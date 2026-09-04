@@ -72,14 +72,16 @@ export interface HandbuiltParty {
  *
  * # THE PARTY, AND WHY EACH SLOT
  *
- *  - **huldra_v1** (Nature) — the converter. `hexbloom` reads *"2 Poison per stack of Weakened on
- *    the target, the Weakened remains"*, which makes every Weakened do two jobs at once: it blunts
- *    each of the boss's hits AND becomes poison. Nothing else in the launch pool does that.
+ *  - **huldra_v1** (Nature) — the converter. `hexbloom` reads *"1 Poison per stack of Weakened on
+ *    the target, then remove the Weakened"* (ticket 136c; it was x2 and left the pile standing),
+ *    which turns every Weakened into poison once. Nothing else in the launch pool does that.
  *  - **ratatoskr_v2** (Nature) — the applier that feeds it. `pollen_cloud` is 0-energy Weakened, and
  *    `crippling_vine` is the single best launch card into this boss: 2 Weakened (blunts), 2 Dazed
  *    (target-Dazed is +1 power per stack to MY hits) and 3 Poison, all on one card.
  *  - **kraken_v2** (Water) — the energy plan and the answer to `skoll_v2`. `capacitor` is +2 energy
- *    next turn AND 3 Sharp on one card; `hydro_blast` is 105 power at 1.5x into Fire, which is a
+ *    next turn AND 3 Sharp on one card (ticket 136g made it +3 energy and no Sharp; this party
+ *    is the frozen ticket-118 panel and still names the pre-136 list); `hydro_blast` is 105
+ *    power at 1.5x into Fire, which is a
  *    body that can actually kill the closer rather than merely not being eaten by it.
  *
  * Deliberately **not kraken_v1**: that is a draw engine that mirrors the boss's own plan and loses

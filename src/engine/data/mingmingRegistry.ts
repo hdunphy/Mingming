@@ -12,12 +12,23 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Fire",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["fenrir_v1", "fenrir_v2"],
         // Ticket 04: the designed deck belongs to the v2 slot (CINDER_WALL_OS); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
+        // TICKET 136i: v1 REBUILT around the firmware instead of around a health bar. UNBOUND_
+        // KERNEL pays 2 Strengthened per attack now and charges 2% max HP for it, so the deck
+        // is a Strength engine that runs on its own recoil, and `unbound_fang` (5 power per
+        // stack, uncapped since 136h) is what the pile buys. `war_pact` is the two-sided 0-cost
+        // that reads the same health bar the OS is spending: above half it pays 2 Strengthened
+        // and 2 Dazed, below half it heals instead - so the card is a build turn while the
+        // recoil is affordable and a brake once it is not, which is the CONDITION-shaped answer
+        // Henry asks for in place of a cap. `berserk_rush`, `crimson_draw` and `ember_mend`
+        // leave: on the smallest frame in the roster the missing HP has to come from the enemy
+        // (ticket 84), and three cards that read or repair his own bar were the deck doing the
+        // OS's job badly. Measured 24.4 -> 59.5 on the full grid.
         decks: {
-            "fenrir_v1": ["ember_mend", "blood_rite", "blood_rite", "berserk_rush", "berserk_rush", "battle_rhythm", "crimson_draw", "ragnarok_edge", "ragnarok_edge"],
+            "fenrir_v1": ["ragnarok_edge", "ragnarok_edge", "battle_rhythm", "war_pact", "war_pact", "unbound_fang", "unbound_fang", "blood_rite", "blood_rite"],
             "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
         },
         /*
@@ -40,8 +51,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
          * "mini-engine 6") and Henry cut it: four tagged cards was too thin to play a species with.
          */
         startKits: {
-            // v1: the finisher, and the consume cycle that pays for it.
-            "fenrir_v1": ["ragnarok_edge", "blood_rite", "berserk_rush", "battle_rhythm", "crimson_draw"],
+            // v1: the finisher, the 0-cost that builds the pile, and the card the pile buys.
+            // Ticket 136i replaced `berserk_rush` and `crimson_draw` here because they left the
+            // deck; a kit must be a sub-multiset of it (startKits.test.ts).
+            "fenrir_v1": ["ragnarok_edge", "war_pact", "unbound_fang", "battle_rhythm", "blood_rite"],
             // v2: the Burn payoff over its own ignition. `ignite` x2 because one is a coin flip.
             "fenrir_v2": ["pyre_sacrifice", "ignite", "ignite", "molten_core", "slag_strike"]
         },
@@ -89,7 +102,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Water",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["kraken_v1", "kraken_v2"],
         // Ticket 14 (pilot, Henry-approved 2026-08-05): real per-OS decks.
         // v1 ABYSSAL_INK - draw engine (4 draw cards feed the ink) with ink_stream as the clock.
@@ -99,15 +112,20 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // 17.1. `undertow` is the 0e unconditional Water draw jormungandr_v1 already runs; it costs
         // the same as the `water_slap` filler it replaces and is what makes the OS payoff real.
         // v2 TIDAL_CRUSH - ramp into 3e Water payoffs (maelstrom is new; capacitor fixed to 2e).
+        // Ticket 136g: the deck was 29 and the OS was doing nothing, because a 30% boost on
+        // Water cards costing 2+ needs cards worth boosting. capacitor now pays 3 Energized
+        // and no Sharp (nothing in the deck scaled off Sharp), and the two surge_protections
+        // and two water_slaps became boiling_surge x2 and scald x2 - a Burn setup the boosted
+        // hammers then cash. Burn caps at 4, so the two feeds fill it and stop.
         decks: {
-            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "surge_protection", "undertow"],
-            "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection", "water_slap", "water_slap"]
+            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "crushing_depths", "undertow"],
+            "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge", "scald", "scald"]
         },
         startKits: {
             // v1: the draw payoff over the cards that fill the pile it counts.
             "kraken_v1": ["ink_stream", "undertow", "whirlpool_v2", "pressure_point", "pressure_point"],
             // v2: the 3e payoff, the ramp that reaches it, the mitigation that survives to cash it.
-            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "surge_protection", "surge_protection"]
+            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge"]
         },
         moves: [
             {
@@ -148,11 +166,11 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             hp: 92,
             attack: 68,
             defense: 95,
-            energy: 2
+            energy: 3
         },
         primaryElement: "Earth",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["fafnir_v1", "fafnir_v2"],
         // Ticket 52 (Henry's design): EARTH COMPLETES, and the split finally resolves the HIGH
         // fafnir/gullinbursti overlap flag open since ticket 08 - both ran the same Sharp package.
@@ -174,7 +192,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    instead of annihilating against it.
         decks: {
             "fafnir_v1": ["iron_will", "iron_will", "water_slap", "grit", "boulder_smash", "boulder_smash", "motherlode", "motherlode", "hoardbreaker", "deep_vein", "deep_vein"],
-            "fafnir_v2": ["iron_will", "iron_will", "water_slap", "rust_blood", "rust_blood", "boulder_smash", "boulder_smash", "squirrel_away", "veinburst", "veinburst"]
+            // TICKET 136n: CORRUPTED_GOLD pays fafnir 2 Strengthened per DEBUFF TYPE he is
+            // carrying and then sheds a stack of each, so the deck wants debuffs ON HIM and had
+            // no way to put them there - `water_slap` and `squirrel_away` were two slots of
+            // neutral filler in a deck whose firmware reads its own status bar. `tarnish` is the
+            // feed (0e: 2 Weakened on the target, 1 on HIMSELF - the self-debuff is the point,
+            // not the price) and `corroded_edge` is the payoff (20 power per DISTINCT status on
+            // himself, via SELF_ANY_STATUS from 136h). Distinct types rather than stacks, so it
+            // rewards variety and cannot be farmed by stacking one. Measured 34.4 -> 46.4.
+            "fafnir_v2": ["iron_will", "iron_will", "tarnish", "rust_blood", "rust_blood", "boulder_smash", "boulder_smash", "corroded_edge", "veinburst", "veinburst"]
         },
         moves: [
             {
@@ -205,7 +231,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Fire",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["skoll_v1", "skoll_v2"],
         // Ticket 64: ONE resource, TWO appetites. v1 EATS her Strength, v2 HOARDS it - the
         // species identity that replaces the ticket-13 legacy shared lists both slots ran until
@@ -268,7 +294,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Water",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["jormungandr_v1", "jormungandr_v2"],
         // Ticket 55 + amendment 1 (deep pass #1). v1 OUROBOROS is a DRAW-ZOO, and the chain is
         // bounded in FIRMWARE, not here: OUROBOROS_LOOP procs at most ONCE PER TURN. That is
@@ -281,7 +307,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // all-Water by necessity: the loop counts Water cards only, so a None-tier card here
         // would be a hole in the engine.
         // v2 is TOXIN_FANG_OS, a poison-BRUISER rather than the old VENOM_TRENCH attrition
-        // plan: attacks deal +2 per Poison stack on the target, so the pile is an amplifier
+        // plan: attacks deal +10 damage per Poison stack on the target, so the pile is an amplifier
         // that gets cashed the same turn. `capacitor` left (its economy argument died with the
         // 2-Energy world; the card stays in the registry as a ramp draft pick) and `contagion`
         // stayed, because doubling the pile now doubles the amplifier immediately.
@@ -327,7 +353,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Earth",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["gullinbursti_v1", "gullinbursti_v2"],
         // Ticket 52: gullinbursti keeps the whole Sharp package (see fafnir's note - the two
         // species ran the same deck until now, the map's one HIGH overlap risk since ticket 08).
@@ -341,7 +367,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    change the rate, not add a ceiling.
         decks: {
             "gullinbursti_v1": ["water_slap", "keen_edge", "keen_edge", "shield_shards", "shield_shards", "stone_bark", "stone_fist", "stone_fist", "motherlode", "spiked_carapace"],
-            "gullinbursti_v2": ["water_slap", "water_slap", "keen_edge", "keen_edge", "shield_shards", "shield_shards", "stone_flurry", "stone_flurry", "crag_barrage", "crag_barrage"]
+            // TICKET 136p: KINETIC_RAM pays per HIT, not per card, so the deck wants cheap
+            // multi-hit bodies and its own Sharp supply - and it was running neither.
+            // `water_slap` x2 becomes `pebble_flurry` x2 (0e, two hits, so the ram bonus lands
+            // twice for free) and `keen_edge` x2 becomes `keen_strike` x2, which carries the
+            // same Sharp on an ATTACK instead of a Skill - the old card spent his whole turn
+            // sharpening and never swung. `keen_edge` stays in the registry; gullinbursti_v1
+            // runs it. Measured 34.1 -> 50.9. The shield engine was tried first and measured
+            // 24 - rejected.
+            "gullinbursti_v2": ["pebble_flurry", "pebble_flurry", "keen_strike", "keen_strike", "shield_shards", "shield_shards", "stone_flurry", "stone_flurry", "crag_barrage", "crag_barrage"]
         },
         moves: [
             {
@@ -372,7 +406,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Air",
         secondaryElement: "None",
-        cardDraw: 4,
+        cardDraw: 5,
         availableOS: ["hraesvelgr_v1", "hraesvelgr_v2"],
         // Ticket 22 (Air, second half): v1 GALE_FORCE_OS = the discard WINDMILL - every
         // voluntary discard is 10 Air damage, so Tempest and the discardEffect cards are
@@ -411,14 +445,21 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Air",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["sleipnir_v1", "sleipnir_v2"],
         // Ticket 21 (Air first pass): v1 MOMENTUM_DRIVE = zoo momentum - five 0-cost cards
         // feed the Strengthened engine, Stampede/Trample cash it. v2 WAR_STEED_OS = discard-cost
         // cavalry - the OS's free Hoof Strike tokens become the fodder Lance/Cavalry Charge spend.
+        // TICKET 136l: v2's list finally matches that sentence. The deck was built around a
+        // discard COST and then filled with cards that neither fed the discard nor paid for it -
+        // `zephyr_strike` x2, `dust_devil` and `water_slap` were four of eight slots doing
+        // nothing for the archetype. In go `feather_cache` x2 (0e, and the discard REFUNDS an
+        // Energy, so the cost the OS charges becomes the ramp), `carrion_swoop` (11 power per
+        // card discarded this turn - the payoff that reads the OS's own meter) and `stampede`.
+        // No card data changed; every one of them already existed. Measured 30.7 -> 64.9.
         decks: {
             "sleipnir_v1": ["water_slap", "water_slap", "slipstream", "slipstream", "disorienting_gust", "adrenaline", "tailwind", "zephyr_strike", "stampede", "stampede", "momentum_crash", "hoofbeat_daemon"],
-            "sleipnir_v2": ["lance", "lance", "cavalry_charge", "zephyr_strike", "zephyr_strike", "dust_devil", "war_molt", "water_slap"]
+            "sleipnir_v2": ["lance", "lance", "cavalry_charge", "feather_cache", "feather_cache", "carrion_swoop", "war_molt", "stampede"]
         },
         moves: [
             {
@@ -445,18 +486,20 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             hp: 62,
             attack: 55,
             defense: 63,
-            energy: 3
+            energy: 2
         },
         primaryElement: "Nature",
         secondaryElement: "None",
-        cardDraw: 4,
+        cardDraw: 5,
         availableOS: ["ratatoskr_v1", "ratatoskr_v2"],
         // Ticket 04: the designed deck belongs to the v1 slot (GOSSIP_NODE); the other slot
         // holds a copy until its own deck lands (kraken first, ticket 14).
         // Ticket 32 (Henry's design): real per-OS decks. Ratatoskr is attack 55 - the lowest
-        // frame in the roster - offset by 3 Energy and cardDraw 4, so both decks win on card
-        // VOLUME, never on a multiplied single hit. That is also what separates him from
-        // sleipnir_v1, which runs the same 0-cost fuel into a raw-Strength multiplier.
+        // frame in the roster. Ticket 136d took his third Energy back - at 3 Energy he ran
+        // 75/78 against the field - so cardDraw 5 is the whole offset now, and both decks
+        // still win on card VOLUME, never on a multiplied single hit. That is also what
+        // separates him from sleipnir_v1, which runs the same 0-cost fuel into a raw-Strength
+        // multiplier.
         // v1 GOSSIP_NODE - card spam. Five 0-costs, each of which echo_chamber turns into a
         //    Feedback token that re-triggers the OS (the daemon excludes tokens, the OS does
         //    not), so every real 0-cost is worth two procs. seed_bomb x2 is the payoff.
@@ -522,7 +565,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Nature",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["huldra_v1", "huldra_v2"],
         // Ticket 13: both slots hold the legacy shared deck until this species' deck pass.
         // Ticket 33 (Henry's design): real per-OS decks. Nature completes at 16/32.
@@ -583,7 +626,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // Ticket 50: 2 -> 3. At draw 2 the hand size WAS the constraint GLACIAL_PACE's
         // maxCardsPerTurn was supposed to be, so "play what you drew" was the only line.
         // At 3 it becomes "pick 2 of 3" - card pressure, not an energy trade (see §5).
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["ymir_v1", "ymir_v2"],
         // Ticket 50 (Henry's design): ICE COMPLETES. Ymir was never weak - it was unkillable
         // and could not kill, a 60-turn mirror at 72/400 decided.
@@ -591,13 +634,19 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    a shield granted at end of turn is eaten before he acts, and `avalanche` would read
         //    zero), self-capping at 5x the grant through the 20%/turn decay. `avalanche` casts
         //    the standing pile off as damage without consuming it.
-        // v2 GLACIAL_PACE - two big cards a turn. NO 0-cost cards, and no neutral tier at all:
-        //    a None-element card gets neither STAB nor the Ice bonus, so it is worth ~40% less
-        //    here than the same card in Ice. Deliberate deviation from the ticket-04 three-tier
-        //    rulebook, same shape as draugr_v2.
+        // v2 GLACIAL_PACE - ONE card a turn, so every card is a full turn. NO 0-cost cards, and
+        //    no neutral tier at all: a None-element card gets neither STAB nor the Ice bonus, so
+        //    it is worth ~40% less here than the same card in Ice. Deliberate deviation from the
+        //    ticket-04 three-tier rulebook, same shape as draugr_v2.
+        //    TICKET 136o: the list is now EIGHT cards and every one of them costs 2 Energy. The
+        //    OS lets him play one card a turn, so a 1-cost card in this deck is not a cheap card,
+        //    it is a wasted turn at half price - `thaw`, `ice_spear` and `numbing_gale` were five
+        //    of ten slots doing exactly that. Their 2e replacements (`glacier_thaw`, `rime_spear`,
+        //    `numbing_storm`) are NEW ids on purpose, so the four other decks running the 1e
+        //    originals are untouched. Measured 34.9 -> 39.2.
         decks: {
             "ymir_v1": ["frost_ward", "frost_ward", "rimeguard", "rimeguard", "thaw", "ice_spear", "ice_spear", "avalanche", "avalanche", "flash_freeze"],
-            "ymir_v2": ["bracing_cold", "bracing_cold", "thaw", "ice_spear", "ice_spear", "numbing_gale", "numbing_gale", "glacial_maul", "glacial_maul", "glacial_slam"]
+            "ymir_v2": ["bracing_cold", "bracing_cold", "glacier_thaw", "rime_spear", "numbing_storm", "glacial_maul", "glacial_maul", "glacial_slam"]
         },
         moves: [
             {
@@ -624,7 +673,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             hp: 90,
             attack: 85,
             defense: 75,
-            energy: 2
+            energy: 3
         },
         primaryElement: "Ice",
         secondaryElement: "None",
@@ -635,9 +684,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    pays a card to enter, and the payoff cards read "+N power if you are Asleep". The
         //    enemy takes the stance away by hitting him (Asleep now loses a stack per incoming
         //    attack), and the wake pays 1 Energized and a card. That makes a two-turn rhythm:
-        //    a SLEEP turn on 2 energy (grave_rest -> nightmare, 100 power) and an AWAKE turn on
-        //    3 where StableOS blocks re-sleeping and barrow_king lands - the only 3-cost in Ice,
-        //    castable only because the wake banks the energy.
+        //    a SLEEP turn on 3 energy (grave_rest -> nightmare, 100 power) and an AWAKE turn on
+        //    4 where StableOS blocks re-sleeping and barrow_king lands - the only 3-cost in Ice.
+        //    The rhythm predates ticket 136d, which took the frame from 2 Energy to 3; the wake
+        //    still banks a point on top, it is just no longer what makes barrow_king castable.
         // v2 GRAVE_CHILL_OS - unrelated, and unchanged since ticket 12: enemies carrying 2+
         //    DISTINCT debuffs deal 20% less to Draugr. Fed with cheap variety and cashed by
         //    rimebreaker, which scales on the same distinct count - so the firmware and the win
@@ -675,7 +725,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Light",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["valkyrie_v1", "valkyrie_v2"],
         // Ticket 53 (Light pass). v1 is EINHERJAR RECURSION: VALHALLA_UPLINK replays a random
         // discarded card every turn end, so the deck wants cheap cards worth replaying and two
@@ -733,7 +783,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Light",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["audhumbla_v1", "audhumbla_v2"],
         // Ticket 53 (Light pass). v1 is GENESIS RAMP: GENESIS_FIRMWARE converts an OVERHEAL into
         // a permanent +1 max Energy (once per turn), so the deck deliberately overheals early -
@@ -830,7 +880,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "None",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["control_v1"],
         decks: {
             "control_v1": ["baseline_jab", "baseline_jab", "baseline_scuff", "baseline_scuff", "baseline_strike", "baseline_strike", "baseline_snare", "baseline_snare", "baseline_slam", "baseline_purge"]
@@ -869,7 +919,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // to ElementalMatrix to "balance" it - absent means neutral there; an explicit 1.0
         // gets multiplied by SECONDARY_MITIGATION and becomes a silent 25% penalty.
         secondaryElement: "Light",
-        cardDraw: 4,
+        cardDraw: 5,
         availableOS: ["hel_v1", "hel_v2"],
         // Ticket 36 (Henry's design): Hel is the roster's first dual-type Mingming (Dark/Light).
         // Ticket 78: v1's `purify` -> a second `eclipse`. Purify was PROVEN unnecessary, not
@@ -928,7 +978,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         },
         primaryElement: "Dark",
         secondaryElement: "None",
-        cardDraw: 3,
+        cardDraw: 4,
         availableOS: ["nidhoggr_v1", "nidhoggr_v2"],
         // Ticket 39 (Henry's design): Dark completes here.
         // v1 ROOT_CORRUPTION - poison stops decaying at 2+ stacks, so it is a permanent RATE
@@ -943,7 +993,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    for ~33 HP a cast, which is why blight_bloom trades Poison AWAY for raw power.
         decks: {
             "nidhoggr_v1": ["rot_seed", "rot_seed", "shadow_claw", "water_slap", "venom_shade", "venom_shade", "curse_mark", "blight_bloom", "blight_bloom", "wither_feast"],
-            "nidhoggr_v2": ["shadow_claw", "shadow_claw", "bloodletting", "bloodletting", "leech_strike", "leech_strike", "umbral_feast", "water_slap", "rend_marrow", "rend_marrow"]
+            // TICKET 136m: BLOOD_SCENT feeds on ANY unit crossing below half HP, including
+            // nidhoggr himself, so the deck is supposed to spend its own health on purpose.
+            // `bloodletting` now pays 25 power for 1 self-Poison instead of 18 for 2 - more
+            // damage AND a smaller self-clock, which sounds like a free buff and is not: the
+            // self-Poison is what walks him down to the threshold his own firmware reads, so
+            // halving it is a real cost to the engine. `bloodwrath` replaces `water_slap` and
+            // is the card that makes the pile a resource rather than a debt - consume his own
+            // Poison, 10 power per stack eaten, on sun_devourer's template. Measured 27.4 -> 40.7.
+            "nidhoggr_v2": ["shadow_claw", "shadow_claw", "bloodletting", "bloodletting", "leech_strike", "leech_strike", "umbral_feast", "bloodwrath", "rend_marrow", "rend_marrow"]
         },
         moves: [
             {
@@ -1001,6 +1059,9 @@ export const GetMingmingData = (id: string): IMingmingDefinition => {
             },
             primaryElement: 'None',
             secondaryElement: 'None',
+            // Deliberately NOT bumped with the roster in ticket 131b. This is the not-found
+            // sentinel, not a mingming - it exists so a bad id renders a hollow unit instead of
+            // throwing, and "buffing" it would only make a bug harder to spot.
             cardDraw: 1,
             availableOS: [],
             decks: {},

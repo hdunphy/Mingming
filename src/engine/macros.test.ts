@@ -181,9 +181,11 @@ describe('the macro registry', () => {
 // =================================================================================================
 
 describe('the standard macros', () => {
-    it('surge deals 8 damage — 30 through the frozen calibration at 45 attack vs 30 defense', () => {
+    it('surge deals 80 damage — 30 power through the frozen calibration at 45 attack vs 30 defense', () => {
+        // TICKET 131c: 8 -> 80 under the x10 presentation scale. Same 30 power, same pace; the
+        // number a player reads simply has a digit more resolution.
         const after = fire(board(), 'surge');
-        expect(find(after, 'e1').currentHp).toBe(MAX_HP - 8);
+        expect(find(after, 'e1').currentHp).toBe(MAX_HP - 80);
         // Element None takes no STAB and no matchup multiplier, so the number is the same whoever
         // fires it into whatever biome — see the registry's note on `surge`.
         expect(find(after, 'e2').currentHp).toBe(MAX_HP);

@@ -308,6 +308,21 @@ export interface IRunState {
     readonly outcome: RunOutcome | null;
 
     /**
+     * Won fights since the last blueprint dropped — the counter behind the PITY FLOOR
+     * (`RewardSystem.BLUEPRINT_PITY_FIGHTS`), ruled by Henry on 2026-09-01 after a solo run went
+     * 13 fights dry.
+     *
+     * It lives on the RUN rather than the ranch because the drought is a property of the session
+     * being played, not of the collection: a pity debt carried between runs would make a fresh run
+     * pay for the last one's luck, which is the anti-mudflation line (`economy-session.md`) running
+     * backwards. It resets to 0 on every drop, including a guaranteed alpha.
+     *
+     * Optional, `boundaryBiome`'s precedent: a save written before this field parses, and a run
+     * resumed without it is a run owed no pity — which is exactly what was true of it.
+     */
+    readonly blueprintDryFights?: number;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -470,6 +485,10 @@ export const RunStateSchema = z.object({
     phase: z.enum(['map', 'encounter', 'gauntlet', 'ended']),
     gauntlet: GauntletProgressSchema.nullable(),
     outcome: z.enum(['victory', 'defeat', 'abandoned']).nullable(),
+    // `.default(0)` rather than `.optional()`: unlike `boundaryBiome`, 0 is the honest value for a
+    // run that predates the field — no fights have gone dry as far as this counter knows — so the
+    // parse can supply it and every reader downstream is spared a `?? 0`.
+    blueprintDryFights: z.number().int().min(0).default(0),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),
 })

@@ -64,7 +64,7 @@
     "fenrir_v1": {
         "id": "fenrir_v1",
         "name": "UNBOUND_KERNEL",
-        "description": "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
+        "description": "Attack programs apply 2 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
         "hooks": [
             {
                 "id": "fenrir_v1_hook",
@@ -79,7 +79,7 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 1
+                        "stacks": 2
                     },
                     {
                         "type": "HP",
@@ -125,7 +125,7 @@
     "kraken_v1": {
         "id": "kraken_v1",
         "name": "ABYSSAL_INK_SYS",
-        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 1 Dazed to every enemy.",
+        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 2 Dazed to every enemy.",
         "hooks": [
             {
                 "id": "kraken_v1_hook",
@@ -140,7 +140,7 @@
                         "type": "STATUS",
                         "target": "ENEMIES",
                         "status": "Dazed",
-                        "stacks": 1
+                        "stacks": 2
                     },
                     {
                         "type": "LOG",
@@ -321,7 +321,7 @@
     "feedback_loop_daemon": {
         "id": "feedback_loop_daemon",
         "name": "FEEDBACK_LOOP",
-        "description": "Daemon: whenever an EFFECT draws you a card, deal 5 damage to a random enemy. The draw-phase refill does not count.",
+        "description": "Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count.",
         "hooks": [
             {
                 "id": "daemon_draw_damage_proc",
@@ -335,7 +335,7 @@
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 5,
+                        "power": 7,
                         "element": "Water"
                     },
                     {
@@ -349,7 +349,7 @@
     "hoofbeat_daemon": {
         "id": "hoofbeat_daemon",
         "name": "HOOFBEAT_DAEMON",
-        "description": "Daemon: whenever you play a 0-cost card, deal 10 damage to a random enemy.",
+        "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
         "hooks": [
             {
                 "id": "hoofbeat_daemon_hook",
@@ -599,7 +599,7 @@
     "jormungandr_v2": {
         "id": "jormungandr_v2",
         "name": "TOXIN_FANG_OS",
-        "description": "Jörmungandr's venom coats his fangs: his attacks deal +1 damage per Poison stack on the target.",
+        "description": "Jörmungandr's venom coats his fangs: his attacks deal +10 damage per Poison stack on the target.",
         "hooks": [
             {
                 "id": "jorm_v2_toxin_fang",
@@ -608,7 +608,7 @@
                 "when": {
                     "source": "SELF"
                 },
-                "bonus": 1,
+                "bonus": 10,
                 "scaling": "TARGET_POISON_STACKS"
             }
         ]
@@ -648,7 +648,7 @@
     "gullinbursti_v2": {
         "id": "gullinbursti_v2",
         "name": "KINETIC_RAM_OS",
-        "description": "Earth Attack cards deal additional damage for each stack of Sharp Gullinbursti holds, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
+        "description": "Earth Attack cards deal +2.5 power per stack of Sharp Gullinbursti holds, on every hit, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
         "hooks": [
             {
                 "id": "gullin_v2_ram",
@@ -659,7 +659,7 @@
                     "programElement": "Earth",
                     "actionType": "ATTACK"
                 },
-                "bonus": 0.25,
+                "bonus": 2.5,
                 "scaling": "SHARP_STACKS"
             },
             {
@@ -720,7 +720,7 @@
     "sleipnir_v1": {
         "id": "sleipnir_v1",
         "name": "MOMENTUM_DRIVE",
-        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened - and 2 instead of 1 once he already holds 4 or more.",
+        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened.",
         "hooks": [
             {
                 "id": "sleipnir_v1_hook",
@@ -729,27 +729,6 @@
                 "when": {
                     "source": "SELF",
                     "baseCost": 0
-                },
-                "do": [
-                    {
-                        "type": "STATUS",
-                        "target": "SELF",
-                        "status": "Strengthened",
-                        "stacks": 1
-                    }
-                ]
-            },
-            {
-                "id": "sleipnir_v1_ramp",
-                "trigger": "onActionStart",
-                "priority": 39,
-                "when": {
-                    "source": "SELF",
-                    "baseCost": 0,
-                    "sourceStatus": {
-                        "status": "Strengthened",
-                        "minStacks": 4
-                    }
                 },
                 "do": [
                     {
@@ -919,54 +898,26 @@
     "valkyrie_v2": {
         "id": "valkyrie_v2",
         "name": "REBIRTH_CYCLE_OS",
-        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 12 power of Light damage and heals herself with 12 power. Once per turn.",
+        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 15 power of Light damage and heals herself with 15 power.",
         "hooks": [
-            {
-                "id": "valk_v2_rebirth_reset",
-                "trigger": "onTurnEnd",
-                "priority": 50,
-                "when": {
-                    "source": "SELF"
-                },
-                "do": [
-                    {
-                        "type": "COUNTER",
-                        "target": "SELF",
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "RESET"
-                    }
-                ]
-            },
             {
                 "id": "valk_v2_rebirth",
                 "trigger": "onDeckShuffled",
                 "priority": 40,
                 "when": {
-                    "source": "SELF",
-                    "counter": {
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "LT",
-                        "value": 1
-                    }
+                    "source": "SELF"
                 },
                 "do": [
-                    {
-                        "type": "COUNTER",
-                        "target": "SELF",
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "SET",
-                        "amount": 1
-                    },
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "power": 12
+                        "power": 15
                     },
                     {
                         "type": "HEAL",
                         "target": "SELF",
-                        "power": 12
+                        "power": 15
                     },
                     {
                         "type": "LOG",
@@ -1074,7 +1025,7 @@
     "hel_v1": {
         "id": "hel_v1",
         "name": "TWILIGHT_CADENCE",
-        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +30% damage dealt. Light Stance: -30% damage taken.",
+        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +45% damage dealt. Light Stance: -45% damage taken.",
         "hooks": [
             {
                 "id": "hel_v1_cadence_dark",
@@ -1115,7 +1066,7 @@
     "hel_v2": {
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
-        "description": "Hel's Dark spells cost 6% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
+        "description": "Hel's Dark spells cost 5% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
         "hooks": [
             {
                 "id": "hel_v2_lifeblood",

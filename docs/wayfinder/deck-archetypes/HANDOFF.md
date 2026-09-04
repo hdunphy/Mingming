@@ -184,6 +184,106 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
+**136u SHIPPED 2026-09-04: valkyrie_v2's REBIRTH_CYCLE is UNCAPPED and pays 15/15.** She goes
+**24.95 -> 49.51** and the roster reads **sd 8.6, 31 of 32 in band** - tighter than the pre-131
+sd 9.2 and equal on count. **skoll_v1 (34.4) is the ONLY deck out of band, and she is ruled a 3v3
+deck that is not to be pushed.** The cap was a COUNTER (`valkyrie_rebirth_used`), not a number:
+the `when.counter` guard, the `COUNTER SET` action and the whole `onTurnEnd` reset hook are gone.
+It cannot loop - the hook does ATTACK/HEAL/LOG on `onDeckShuffled` and nothing that draws or
+shuffles - which was checked, not assumed, because ticket 111's glimmer loop is the precedent.
+**0-VALK-ENGINE below is now HISTORY on its cap line** (it predicted the size: she reshuffles more
+than once on 34.7% of turns and the guard ate every one) but its OTHER finding still stands - her
+engine is her OS, not her deck, and her deck is still marked PLACEHOLDER. No second Glimmer: 91,
+a full-cycle loop.
+
+**136-ROUND-THREE SHIPPED 2026-09-04** (`7b825da`..`9e331f1`, grid promoted with the docs).
+136o-136t, **136s skipped by Henry**. **sd 11.5 -> 9.7, 30/32 in band, max deviation from target
+2.44.** Pre-131 was sd 9.2 / 31 of 32, so the roster is essentially back. **The two still out are
+RULED, not failures:** skoll_v1 34.6 (3v3 deck, do not push her) and valkyrie_v2 24.9 - and
+valkyrie_v2 is the NEXT SESSION: Ascension stays and a second Glimmer is off the table, it measured
+91, a full-cycle loop of the ticket-111 family.
+
+**THE ROUND MEASURED ITS OWN CONFOUND, and it is the thing to remember.** The round-3 prompt was
+written against a base that predated ticket 137 and says 137 lands after. It had already landed.
+**audhumbla_v2 hit her 43.2 target WITHOUT 136s** - 137's Regen fix had already delivered the same
++15, because `drink_deep` CASHES a Regen pile and an eval that over-values holding one will not
+cash it. Shipping both would have stacked and overshot. huldra_v1 is the only deck more than 2
+points off target (-2.44) and that is exactly 137's measured -2.72 on her. **Lesson for the next
+design session: state the base commit AND check it is still HEAD before measuring targets.**
+
+**136-ROUND-TWO SHIPPED 2026-09-03.** 136h-136n landed (`0b7504b`..`45e2451`, grid promoted in the
+docs commit that follows them) and **all 32 decks reproduced their predicted number to within 0.05: sd 15.0 -> 12.0,
+mean 49.9, 26/32 in band.** All six round-one stragglers are in band - fenrir_v1 58.2, sleipnir_v2
+65.0, hel_v2 54.7, hraesvelgr_v2 46.4, fafnir_v2 46.4, nidhoggr_v2 39.9. **The next list is the
+levy, named in advance and expected out:** ymir_v2 34.9, gullinbursti_v2 34.1, hel_v1 31.6,
+skoll_v1 29.5, audhumbla_v2 28.5, valkyrie_v2 23.7. Engine changes under it: STRENGTH_STACK_CAP is
+Infinity, and `SELF_ANY_STATUS` / `BURN_STACKS` exist. **Three things it found and did NOT fix:**
+fenrir_v1's rebuilt deck has five distinct cards and all five are in its start kit (nothing to
+draft back toward - ticket 61's model does not apply to him any more); `BURN_TIMES_ENERGY` has no
+card left; hel_v2's heal out-earns her blood toll by MORE at the cheaper price — **RULED FINE,
+ticket 133 closed: one card that overheals is not the problem; ticket 81's failure was the +50%
+firmware multiplier that made EVERY heal out-earn the toll and held her at 100%**. **Ticket 137 (the
+AI Regen constant) was deliberately sequenced AFTER this** - round two's targets were measured with
+the AI still valuing Regen at 3%, so 137 re-measures its own grid.
+
+**136-OPEN (round one). THE THREADS THAT REMAIN.**
+Ticket 136 shipped as seven commits on `legion/ai-perf` (`c8978ba`..`36c26a3`) and the full grid
+reproduced every one of its 32 predicted numbers to the tenth of a point: **mean 49.9 unchanged, sd
+19.4 -> 14.9, in band 22/32 -> 26/32** (`results/rebaseline-136/`; `deck_grid.json` deliberately NOT
+promoted). What is left, in the order Henry ruled it:
+
+1. **fenrir_v1 deck rework (24.7).** Henry wants Ignite given the same treatment `scald` got in 136g:
+   a cheap card whose Burn is the point and whose cost is paid in something other than energy. Fire
+   pass. This is the loudest remaining deck and the one with a named direction.
+2. **hraesvelgr_v2 deck rework (26.1)** — the long-standing dead-card problem (`tailwind` 79% dead
+   at the last measurement), untouched by 136.
+3. **nidhoggr_v2 deck look (28.6)**, and behind it **sleipnir_v2 (30.6)**, **fafnir_v2 (34.4)** and
+   **hel_v2 (24.5)**. All four are deck/OS conversations. **No stat knobs and no "turn N" hooks** —
+   both are standing rulings from this pass (readability; a hook the player cannot read while
+   playing is not a mechanic).
+4. **The flat-number DoT / Regen / heal / Bark Shield ticket, now unblocked.** Every "% of max HP"
+   becomes a literal number, so nothing silently reprices when a frame's HP moves and every card
+   reads what it actually does. This is the replacement for HPFRAME, which was WITHDRAWN mid-136:
+   a hidden divisor on percentage effects is hidden math and Henry does not ship hidden math. Its
+   measurement grid is still a good map of which effects are mispriced — use it as the map, fix with
+   visible numbers.
+5. **Playtest the five decks carrying unspent energy over Henry's 15% bar**: audhumbla_v1 23%
+   (GENESIS takes her to 4 max Energy), draugr_v2 19%, fafnir_v2 18%, audhumbla_v2 15.5%,
+   nidhoggr_v2 15.5%. Everything else on the roster is under. Measured at REAL end-of-turns only —
+   the first probe counted the AI's lookahead and read 50-80% for everyone, which is not a number
+   about the game.
+6. **3v3 measurement of the 136 package — still pending.** Everything above is 1v1 beamless.
+
+**Three follow-ups 136 created rather than closed, two of them now ticketed.**
+[Ticket 137](tickets/137-ai-regen-valuation.md) is CLOSED: the eval reads the
+engine's status constants now. The SWEEP is the finding - three of ten statuses carried transcribed
+numbers (Regen, BarkShield, Poison) and every status that ever got its own ticket already read the
+engine. Only Regen's value moved, and **the audhumbla call was right: audhumbla_v2 28.5 -> 43.7 and
+into band**, huldra_v1 58.6 -> 55.9, everything else under 1.6. sd 12.0 -> 11.5, 27/32 in band.
+`aiStatusPricing.test.ts` now fails if either side moves without the other. **Still open from it:**
+`TURN_DAMAGE_FRACTION` (0.20), `ENERGY_TURN_FRACTION` and `STATUS_HORIZON_TURNS` are the search's
+model of a turn with no engine counterpart - every duality status, both stances, Stunned and Asleep
+price through them, and whether 20% of a health pool is still a turn's throughput after two arcs of
+deck work has never been re-measured. [Ticket 138](tickets/138-card-text-truth.md)
+is CLOSED: `glass_cannon`'s recoil is power (80) instead of a flat 300 that bypassed the damage
+formula entirely, costing skoll_v2 5.9 field points and leaving her in band, and two stale registry
+comments are fixed. Its unfinished half is now [ticket 139](tickets/139-description-data-guard.md):
+the description-vs-data sweep as a TEST, where **the 35 structural false positives are the
+deliverable** — each is a place text and data are related by CODE rather than by equality, and the
+ticket groups all 35 with the rule each implies. Every defect in 138 was found by accident while
+changing something else, and the guard is the only part that stops the next one being found the
+same way. **138 amendment 1 corrected its own
+headline finding: `damageOverride` HAS NEVER WORKED ON A CARD** — only `effectHandlers.handleAttack`
+reads it, and card actions go through `AttackExecutor`, which does not. glass_cannon printed 20,
+stored 300, DEALT 53 and was charged 80 power, which is the whole reason `weak.ts` calls it the
+registry's most under-budget card. Recoil is now a `percentMaxHp` field resolved before the power
+path (no stats, no STAB, no hooks, and it rescales itself): glass_cannon 5%, desperate_strike and
+dark_pact 3%. **skoll_v2 49.6 -> 59.8** — taking the Strength scaling off her recoil is a real buff
+to the deck built to hoard Strength; she is in band and the levers are 6% / 4% if she is too high.
+No card carries `damageOverride` any more and `percentRecoil.test.ts` fails if one appears.
+Untickted: `crushing_depths`, `boiling_surge` and `scald` are new cards in the shared pool — they are
+draftable by every species, not just kraken, which is the trap the collection has always carried.
+
 STRATEGIC (Henry, 2026-08-12): after balancing completes, decide 1v1-only vs 3v3 as the shipped mode — gates ticket 05, the team OSes (valkyrie L-family, einherjar_standard), and Steam scope. Henry's stated goal: ship on Steam. 1v1 balancing finishes first.
 
 0-VALK-ENGINE. **DO NOT RE-DERIVE: valkyrie_v2's ENGINE IS HER OS, NOT HER DECK (ticket 60).** Zeroing REBIRTH_CYCLE's payoff costs her **50 of her 88 field points (87.7% -> 37.7%)**; **every single-card knockout lands inside +-3.3 on a +-5 instrument**, and four of five make her stronger. **Deck size is NOT a lever either** - 6 / 7 / 8 cards all read 87-91. Two consequences. (a) **Restoring her 8th card is FREE (+2.6) and must be paired with an OS change**, or the rulebook fix ships her at ~90%. (b) The two hypotheses that looked obvious were both wrong: the exhaust package does not drive reshuffles (shuffles/turn go UP when cards LEAVE - deck size drives cycling), and `starfall` is not a mispriced bomb but the deck's weakest card at **7.1 damage/cast, 3.11 casts/game**, whose removal is the study's biggest gain. **Her once-per-turn guard is load-bearing** - she reshuffles more than once on 34.7% of turns and the cap eats every one.

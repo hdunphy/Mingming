@@ -24,6 +24,17 @@ vi.mock('./data/programRegistry', async () => {
     };
 });
 
+/**
+ * TICKET 131c: a dummy big enough to survive the hits these tests measure.
+ *
+ * Three tests here read damage as `100 - enemy.currentHp` against a 100 HP dummy. Under the x10
+ * presentation scale a mid-power card deals ~70-100, so the dummy died, currentHp floored at 0, and
+ * every arm of each comparison returned the same clamped number - "expected 100 to be greater than
+ * 100". The readings now subtract from the frame itself rather than a repeated literal, so the
+ * helper cannot go on returning a plausible figure if the frame moves again.
+ */
+const DUMMY_FRAME = { currentHp: 10000, maxHp: 10000 };
+
 const makeUnit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity => ({
     id,
     name,
@@ -163,13 +174,13 @@ describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (einherjar recursion)', () => {
         const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1', attack: 40 });
         // defense 1: the shared fixture is attack 10 vs defense 10, where a 10-power card floors
         // to 0 damage and the assertion below could not tell a free cast from no cast at all.
-        const enemy = makeUnit('e1', 'Enemy', { defense: 1 });
+        const enemy = makeUnit('e1', 'Enemy', { defense: 1, ...DUMMY_FRAME });
         let state = makeState([valk], [enemy], [card('c1', 'card_strike', 1)]);
 
         // Play the strike so it lands in the discard, then end her turn.
         state = play(state, 'valk1', 'e1', 'c1');
         const hpAfterPaidCast = state.enemyParty[0].currentHp;
-        expect(hpAfterPaidCast).toBeLessThan(100);
+        expect(hpAfterPaidCast).toBeLessThan(DUMMY_FRAME.maxHp);
 
         state = battleReducer(state, { type: 'END_TURN' });
 
@@ -481,11 +492,11 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
             const attacker = makeUnit('a1', 'Attacker', {
                 currentHp, maxHp: 100, ...(activeOS ? { activeOS } : {})
             });
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy', {})], [
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', DUMMY_FRAME)], [
                 card('c1', 'card_fireball', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');
-            return 100 - state.enemyParty[0].currentHp;
+            return DUMMY_FRAME.maxHp - state.enemyParty[0].currentHp;
         };
 
         const plain = runAttack(50);
@@ -497,12 +508,22 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
         // not an exact product: at full health the clause pays nothing, and it grows as she drops.
         //
         // Ticket 21 note: this used to read `half > full` strictly. At the old level-20 pin the
-        // numbers were plain 8 / full 8 / half 10 / sliver 10; at CALIBRATION_LEVEL they are
-        // 6 / 6 / 6 / 8. The clause is unchanged — per-hit flooring simply hides a different step
-        // at the smaller scale, so the honest assertion is monotonic non-decreasing with a strict
-        // increase by the time she is at a sliver.
+        // numbers were plain 8 / full 8 / half 10 / sliver 10; at CALIBRATION_LEVEL they were
+        // 6 / 6 / 6 / 8. The clause is unchanged — per-hit flooring simply hid a different step
+        // at the smaller scale.
+        //
+        // TICKET 131c CHANGED ONE OF THESE ASSERTIONS, and the reason is a finding rather than a
+        // rescale. `expect(full).toBe(plain)` was wrong and passed anyway. `plain` runs with NO
+        // firmware; `full` runs UNBOUND_KERNEL at full health. The berserk clause is worth nothing
+        // at full health, but the OS *also* applies 1 Strengthened on attack — which is +1 POWER,
+        // and at the old scale +1 power was worth less than a point of damage, so the two readings
+        // came out identical and the test certified an equality that was never true. Under the x10
+        // scale the same stack is worth 4 damage: plain 70, full 74.
+        //
+        // So the honest assertion is that the firmware is worth SOMETHING even at full health, and
+        // that the berserk clause grows on top of it as she drops.
         expect(plain).toBeGreaterThan(0);
-        expect(full).toBe(plain);
+        expect(full).toBeGreaterThan(plain);          // the OS's own Strengthened, finally visible
         expect(half).toBeGreaterThanOrEqual(full);
         expect(sliver).toBeGreaterThan(full);
     });
@@ -513,11 +534,11 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
             // floors to 0 damage under the rev-3.1 pace (ticket 23, /45). CALIBRATION_LEVEL clears that
             // floor, so there is nothing left to pin.
             const attacker = makeUnit('a1', 'Attacker', { ...(activeOS ? { activeOS } : {}) });
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy', {})], [
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', DUMMY_FRAME)], [
                 card('c1', 'card_ice_strike', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');
-            return 100 - state.enemyParty[0].currentHp;
+            return DUMMY_FRAME.maxHp - state.enemyParty[0].currentHp;
         };
 
         const withoutOS = runAttack();

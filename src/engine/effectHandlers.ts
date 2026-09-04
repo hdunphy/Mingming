@@ -10,7 +10,10 @@ function addLog(state: IBattleState, message: string): IBattleState {
     return { ...state, logs: [...state.logs, message] };
 }
 
-const HAND_SIZE_LIMIT = 9;
+// TICKET 131b: was a fourth private `= 9`, which ticket 32's consolidation missed. A private copy
+// meant the effect-driven draw path and the turn refill could disagree about the cap the moment
+// either number moved - which is exactly what this commit does.
+import { HAND_SIZE_LIMIT } from './deckLogic';
 
 import { executeResolutionStack, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 

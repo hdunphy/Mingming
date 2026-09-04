@@ -221,9 +221,59 @@ export function calculateStandardStat(base: number, modifier: number): number {
  */
 export const CALIBRATION_LEVEL_DAMAGE_BASE = Math.floor((2 * CALIBRATION_LEVEL) / 5) + 2;
 
+/**
+ * TICKET 131b — THE FRAME BUFF. Every mingming has 50% more health.
+ *
+ * RULED by Henry, 2026-09-01: *"Maybe we give everyone a flat HP buff to extend games because the
+ * cards played just shows that you were always leaving energy on the table which feels bad and its
+ * tough to get out combos with only 3 cards and no drawing."*
+ *
+ * **It is applied to the FORMULA'S OUTPUT, not to `baseStats.hp`, and that is not a shortcut.**
+ * `calculateHealth` is `calculateStandardStat(base, iv) + 15 + 30`, and `calculateStandardStat`
+ * itself ends in `+ 5` — so a **flat +50 dominates the result** at this calibration. Fenrir's base
+ * 66 produces 75 HP, of which only 25 comes from the base at all. Multiplying `baseStats.hp` by 1.5
+ * would have moved 75 to 85 — a **13%** buff wearing a 50% label — and it would have widened the
+ * gap between species unevenly, because the flat term does not scale with them. Multiplying the
+ * output scales every frame by exactly 1.5 and leaves the roster's relative spread intact.
+ *
+ * MEASURED (`scratch/handeconomy.ts`, 3v3, control panel and zoo panel):
+ *   turns per battle   5.2 / 4.5  ->  7.7 / 5.8
+ *   cards cast a turn  5.77       ->  5.63   (unchanged - this buys TURNS, not bigger turns)
+ *   energy unspent     22.9%      ->  15.5%  (a side effect, not the point; see the draw change)
+ *
+ * That last row is why this ships alongside `+1 cardDraw` rather than instead of it: HP buys turns
+ * and does NOT fix leftover energy, extra draw fixes leftover energy and SHORTENS the game. Only
+ * the two together lengthen the game *and* empty the energy pool.
+ */
+export const HP_MULTIPLIER = 1.5;
+
+/**
+ * TICKET 131c — EVERY NUMBER ON SCREEN, x10. Presentation, not balance.
+ *
+ * RULED by Henry: *"should we scale all our numbers by 10 or even 5. Bigger numbers often feel
+ * better 10 damage is better than 1 and 400 might feel better than 40."*
+ *
+ * The measurement found a better reason than feel (`scratch/numberfeel.ts`, 136 attack cards):
+ * `min 0, p25 2, MEDIAN 4, p75 7, max 32` — and **62 of 136 attack cards read 3 damage or less**,
+ * with `pollen_cloud` reading 0. `calculateDamage` ends in `Math.floor`, so at a median hit of 4 a
+ * card at 2 damage and one at 3 differ by 50% with nothing expressible between them. Half the
+ * attack pool lived where the engine could not represent a small tuning step. **x10 buys every knob
+ * one more significant figure.**
+ *
+ * **IT CHANGES NO RELATIVE ECONOMICS.** One constant, two sites — health here and the damage
+ * divisor in `combatUtils` — because nearly everything else is denominated in POWER or in % of
+ * maxHp and scales itself: card `power` values, status stacks (`statusPower` is added before the
+ * divisor), heals (`maxHp x power / 400`), Burn/Poison tiers, and the whole rev-3 band table.
+ *
+ * Four things did NOT scale themselves and move with it: `damageOverride` on three cards,
+ * `powerscale.ASSUMED_MAX_HP`, and `TacticalAI.TERMINAL_SCORE` — see each site.
+ */
+export const NUMBER_SCALE = 10;
+
 /** Health, Unity Legacy Formula, frozen at `CALIBRATION_LEVEL`. Same reasoning as above. */
 export function calculateHealth(base: number, modifier: number): number {
-  return calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30;
+  return Math.floor(
+    (calculateStandardStat(base, modifier) + CALIBRATION_LEVEL + 30) * HP_MULTIPLIER * NUMBER_SCALE);
 }
 
 export function initializeBattleEntity(instance: IMingmingState, definition: IMingmingDefinition): IBattleEntity {
@@ -317,7 +367,22 @@ export interface AttackActionData extends ProgramAction {
   readonly power: number;
   readonly element?: Element;
   readonly scalingPower?: number; // MISSING_HP: power added per 1% of maxHP missing (ticket 26)
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED';
+  /**
+   * TICKET 138 amendment: self-inflicted recoil, denominated in percent of the VICTIM's max HP.
+   *
+   * Resolved in `AttackExecutor` INSTEAD of `calculateDamage`, so it deliberately skips the
+   * attacker's stats, STAB, type effectiveness, the duality POWER term and every
+   * `onDamageCalculated` hook. That is the whole point: a recoil is a PRICE, and a price that
+   * grows when you buff yourself is a card that punishes its own deck for working. Henry:
+   * *"I don't want the recoil to hit harder."*
+   *
+   * It replaces `damageOverride`, which was never read on a card action at all (only
+   * `effectHandlers.handleAttack` honours that field, and card actions do not go through it) -
+   * and which, being literal HP, is one of the four things ticket 131c had to rescale by hand.
+   * A percentage rescales itself, which is the property this family kept failing to have.
+   */
+  readonly percentMaxHp?: number;
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED' | 'BURN_STACKS' | 'SELF_ANY_STATUS';
 }
 
 export interface StatusActionData extends ProgramAction {
