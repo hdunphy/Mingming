@@ -2727,6 +2727,96 @@
             }
         ]
     },
+    "glacier_thaw": {
+        "id": "glacier_thaw",
+        "name": "Glacier Thaw",
+        "description": "15 power. Gain 4 Strengthened and 3 Sharp.",
+        "element": "Ice",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 4,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "rime_spear": {
+        "id": "rime_spear",
+        "name": "Rime Spear",
+        "description": "40 power to side. Apply 2 Weakened to side.",
+        "element": "Ice",
+        "target": "Side",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "numbing_storm": {
+        "id": "numbing_storm",
+        "name": "Numbing Storm",
+        "description": "35 power to side. Apply 3 Dazed to side.",
+        "element": "Ice",
+        "target": "Side",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 35,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 3,
+                "target": "TARGET"
+            }
+        ]
+    },
     "glacial_slam": {
         "id": "glacial_slam",
         "name": "Glacial Slam",

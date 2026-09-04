@@ -626,13 +626,19 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    a shield granted at end of turn is eaten before he acts, and `avalanche` would read
         //    zero), self-capping at 5x the grant through the 20%/turn decay. `avalanche` casts
         //    the standing pile off as damage without consuming it.
-        // v2 GLACIAL_PACE - two big cards a turn. NO 0-cost cards, and no neutral tier at all:
-        //    a None-element card gets neither STAB nor the Ice bonus, so it is worth ~40% less
-        //    here than the same card in Ice. Deliberate deviation from the ticket-04 three-tier
-        //    rulebook, same shape as draugr_v2.
+        // v2 GLACIAL_PACE - ONE card a turn, so every card is a full turn. NO 0-cost cards, and
+        //    no neutral tier at all: a None-element card gets neither STAB nor the Ice bonus, so
+        //    it is worth ~40% less here than the same card in Ice. Deliberate deviation from the
+        //    ticket-04 three-tier rulebook, same shape as draugr_v2.
+        //    TICKET 136o: the list is now EIGHT cards and every one of them costs 2 Energy. The
+        //    OS lets him play one card a turn, so a 1-cost card in this deck is not a cheap card,
+        //    it is a wasted turn at half price - `thaw`, `ice_spear` and `numbing_gale` were five
+        //    of ten slots doing exactly that. Their 2e replacements (`glacier_thaw`, `rime_spear`,
+        //    `numbing_storm`) are NEW ids on purpose, so the four other decks running the 1e
+        //    originals are untouched. Measured 34.9 -> 39.2.
         decks: {
             "ymir_v1": ["frost_ward", "frost_ward", "rimeguard", "rimeguard", "thaw", "ice_spear", "ice_spear", "avalanche", "avalanche", "flash_freeze"],
-            "ymir_v2": ["bracing_cold", "bracing_cold", "thaw", "ice_spear", "ice_spear", "numbing_gale", "numbing_gale", "glacial_maul", "glacial_maul", "glacial_slam"]
+            "ymir_v2": ["bracing_cold", "bracing_cold", "glacier_thaw", "rime_spear", "numbing_storm", "glacial_maul", "glacial_maul", "glacial_slam"]
         },
         moves: [
             {
