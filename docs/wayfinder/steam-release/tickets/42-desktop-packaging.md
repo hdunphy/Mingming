@@ -146,6 +146,13 @@ building both targets. The script now says so when no target flag arrives.
 
 Verified again end to end (`--dir`) after the change; lint 0.
 
+### Windows VERIFIED, 2026-09-01 (Henry)
+
+Henry ran `npm run desktop:build -- --win` on his own Windows machine and ran the result: **it
+builds and it runs.** That closes the one outstanding verification on this ticket ("Windows was
+built but NOT run", above). Recorded late — the run happened before this note and nobody updated
+the ticket. Nothing else on 42 is open; the icon is still the placeholder by ruling 3.
+
 ### Left for other tickets
 
 - **Ticket 43 (steamworks.js).** Noted in `main.cjs` where it bites: `electron-builder` does not pick
