@@ -898,54 +898,26 @@
     "valkyrie_v2": {
         "id": "valkyrie_v2",
         "name": "REBIRTH_CYCLE_OS",
-        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 12 power of Light damage and heals herself with 12 power. Once per turn.",
+        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 15 power of Light damage and heals herself with 15 power.",
         "hooks": [
-            {
-                "id": "valk_v2_rebirth_reset",
-                "trigger": "onTurnEnd",
-                "priority": 50,
-                "when": {
-                    "source": "SELF"
-                },
-                "do": [
-                    {
-                        "type": "COUNTER",
-                        "target": "SELF",
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "RESET"
-                    }
-                ]
-            },
             {
                 "id": "valk_v2_rebirth",
                 "trigger": "onDeckShuffled",
                 "priority": 40,
                 "when": {
-                    "source": "SELF",
-                    "counter": {
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "LT",
-                        "value": 1
-                    }
+                    "source": "SELF"
                 },
                 "do": [
-                    {
-                        "type": "COUNTER",
-                        "target": "SELF",
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "SET",
-                        "amount": 1
-                    },
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "power": 12
+                        "power": 15
                     },
                     {
                         "type": "HEAL",
                         "target": "SELF",
-                        "power": 12
+                        "power": 15
                     },
                     {
                         "type": "LOG",

@@ -759,3 +759,74 @@ draw-phase refill, and the new wording says it as well as the old list did.
 3. The prompt's prose for 136o says "one Ice Spear, one Numbing Gale and the 1e Thaw leave", but its
    deck list — the authoritative half — drops **both** copies of each, taking ymir_v2 from ten cards
    to eight. Eight is `MIN_DECK_SIZE` exactly; `baseDecks.test.ts` holds that floor and is green.
+
+---
+
+# 136u — valkyrie_v2: REBIRTH_CYCLE uncapped at 15/15. SHIPPED 2026-09-04
+
+Henry: *"try Valkyrie_v2 at os uncapped and increase power to 15 and 15 on proc instead of 12.
+commit if everyone except skoll is in band."* **The condition was met, so it shipped.**
+
+## What "uncapped" meant in the data
+
+The cap was not a number, it was a counter. `valk_v2_rebirth` carried
+`when.counter { key: valkyrie_rebirth_used, operator: LT, value: 1 }` and set that counter to 1 as
+its first action, and a second hook — `valk_v2_rebirth_reset`, on `onTurnEnd` — cleared it. All
+three parts go: the guard, the SET, and the whole reset hook, which had nothing left to reset.
+`valkyrie_rebirth_used` no longer appears anywhere in the registry.
+
+Both payloads 12 → 15: the ATTACK on a random enemy and the self-HEAL.
+
+Description → *"Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a
+random enemy with 15 power of Light damage and heals herself with 15 power."* — "Once per turn" is
+gone from the text as well as the data.
+
+**It cannot loop.** The hook fires on `onDeckShuffled` and does ATTACK, HEAL, LOG — nothing that
+draws a card or shuffles a deck — so removing the guard changes how OFTEN it fires and not whether
+it can re-enter. That was worth checking rather than assuming: ticket 111's glimmer loop is the
+precedent, and this is a reshuffle-triggered hook, which is the same family of shape.
+
+## Measured (`results/rebaseline-valk/`, promoted)
+
+|  | mean | sd | in band |
+|---|---|---|---|
+| round three | 49.9 | 9.7 | 30/32 |
+| **136u** | **49.9** | **8.6** | **31/32** |
+
+**The only deck out of band is skoll_v1 at 34.39**, which is the one Henry exempted. Pre-131 the
+roster sat at sd 9.2 / 31 of 32 — this is now tighter than pre-131 on spread and equal on count.
+
+| deck | round three | 136u | |
+|---|---|---|---|
+| **valkyrie_v2** | 24.95 | **49.51** | **+24.56, and out of band into band** |
+| huldra_v2 | 54.90 | 52.90 | −2.00 |
+| audhumbla_v2 | 43.42 | 41.48 | −1.94 |
+| everything else | | | within ±1.7, mean 1.54 |
+
+The whole roster drifts down about a point and a half, which is what a deck gaining 24 points does
+to everyone else's field average — it is the same 960 cells being redistributed, not 31 decks
+getting worse.
+
+HANDOFF's `0-VALK-ENGINE` predicted the size of this: *"her once-per-turn guard is load-bearing —
+she reshuffles more than once on 34.7% of turns and the cap eats every one."* That entry is now
+history rather than a live warning, and the number it records is why removing the guard was worth
+more than doubling the payload would have been.
+
+## Gates and tests
+
+`npx tsc -b` clean, `npx vitest run` 2139 passed / 159 files, `npx eslint .` clean. **No assertion
+moved** — `OSGapClosures.test.ts` checks that `onDeckShuffled` is dispatched and that
+`valk_v2_rebirth` is wired to it, both still true, and nothing pinned the counter guard.
+
+`deckReport.ts`'s valkyrie_v2 line was updated to match (text only): 12 → 15 and "Once per turn" →
+"No per-turn cap".
+
+## What this does NOT resolve
+
+Her deck is still marked PLACEHOLDER and untuned in `deckReport.ts`, and `0-VALK-ENGINE`'s other
+finding stands: **her engine is her OS, not her deck** — zeroing REBIRTH's payoff once cost her 50
+of 88 field points, every single-card knockout landed inside ±3.3, and deck size is not a lever
+either. This commit made the OS bigger, which is pulling the same rope that was already doing all
+the work. If she is ever to be a deck rather than a firmware, that is still ahead.
+
+Also unchanged and still ruled: **no second Glimmer** — it measured 91, a full-cycle loop.

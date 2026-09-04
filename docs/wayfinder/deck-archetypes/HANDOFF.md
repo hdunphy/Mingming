@@ -184,6 +184,18 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
+**136u SHIPPED 2026-09-04: valkyrie_v2's REBIRTH_CYCLE is UNCAPPED and pays 15/15.** She goes
+**24.95 -> 49.51** and the roster reads **sd 8.6, 31 of 32 in band** - tighter than the pre-131
+sd 9.2 and equal on count. **skoll_v1 (34.4) is the ONLY deck out of band, and she is ruled a 3v3
+deck that is not to be pushed.** The cap was a COUNTER (`valkyrie_rebirth_used`), not a number:
+the `when.counter` guard, the `COUNTER SET` action and the whole `onTurnEnd` reset hook are gone.
+It cannot loop - the hook does ATTACK/HEAL/LOG on `onDeckShuffled` and nothing that draws or
+shuffles - which was checked, not assumed, because ticket 111's glimmer loop is the precedent.
+**0-VALK-ENGINE below is now HISTORY on its cap line** (it predicted the size: she reshuffles more
+than once on 34.7% of turns and the guard ate every one) but its OTHER finding still stands - her
+engine is her OS, not her deck, and her deck is still marked PLACEHOLDER. No second Glimmer: 91,
+a full-cycle loop.
+
 **136-ROUND-THREE SHIPPED 2026-09-04** (`7b825da`..`9e331f1`, grid promoted with the docs).
 136o-136t, **136s skipped by Henry**. **sd 11.5 -> 9.7, 30/32 in band, max deviation from target
 2.44.** Pre-131 was sd 9.2 / 31 of 32, so the roster is essentially back. **The two still out are

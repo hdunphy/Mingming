@@ -424,7 +424,7 @@ export const ARCHETYPE_SUMMARIES: Record<string, string> = {
     sleipnir_v1: 'MOMENTUM_DRIVE - the same 0-cost fuel ratatoskr_v1 runs, but into raw Strength rather than card volume.',
     sleipnir_v2: 'WAR_STEED_OS - Air attacks generate 0-cost Hoof Strike tokens, so the deck widens as it goes.',
     valkyrie_v1: 'VALHALLA_UPLINK - applying any positive status pays out. PLACEHOLDER deck, untuned; do not read its numbers as balance signal.',
-    valkyrie_v2: 'REBIRTH_CYCLE_OS - when her discard is shuffled back in, she hits a random enemy for 12 power of Light and heals 12 power. Once per turn. PLACEHOLDER deck, untuned.',
+    valkyrie_v2: 'REBIRTH_CYCLE_OS - when her discard is shuffled back in, she hits a random enemy for 15 power of Light and heals 15 power. No per-turn cap. PLACEHOLDER deck, untuned.',
     audhumbla_v1: 'GENESIS_FIRMWARE - every third Heal or Skill permanently raises her Energy ceiling. PLACEHOLDER deck, untuned.',
     audhumbla_v2: 'NOURISH_ROUTINE - overheal converts into Light damage, so healing past full is offence. PLACEHOLDER deck, untuned.',
     control_v1: 'The instrument, not a Mingming. No firmware, None element (inert in both directions), every card priced exactly at band. It is the FLOOR: beating it is a low bar and the reading is by how much.',
