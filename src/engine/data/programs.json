@@ -76,7 +76,7 @@
     "sun_devourer": {
         "id": "sun_devourer",
         "name": "Sun Devourer",
-        "description": "Devour the light: consume all your Strength and deal 15 power per stack consumed.",
+        "description": "Devour the light: consume all your Strength and deal 20 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -96,7 +96,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 20,
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
