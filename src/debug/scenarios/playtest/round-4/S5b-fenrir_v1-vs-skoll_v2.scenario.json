@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S5b - burn never forgives (receiving seat)",
+  "description": "Now on the RECEIVING end of permanent Burn. Does it feel oppressive-fun (a countdown you play against) or oppressive-bad (a tax you ignore)? If your own self-burn cards ever felt like a trap rather than a managed bomb, say where. NOTE: the pack offered skoll_v2 or hraesvelgr_v2 as the applier and hraesvelgr_v2/fenrir_v1 as the applier pilot for S5a - this uses fenrir_v1 here so you're not repeating hraesvelgr_v2 from S5a, against skoll_v2 as the other listed applier.   [you: fenrir_v1 | opponent: skoll_v2]",
+  "tags": ["playtest", "round-4", "burn-permanence", "fenrir_v1"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S5b-fenrir_v1-vs-skoll_v2",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "fenrir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "fenrir_v1" }
+      ],
+      "deck": ["ember_mend","blood_rite","blood_rite","berserk_rush","berserk_rush","battle_rhythm","crimson_draw","ragnarok_edge","ragnarok_edge"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "skoll", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "skoll_v2",
+        "deck": ["strength_burst","fury_strike","fury_strike","all_in","desperate_strike","reckless_charge","overdrive","glass_cannon","water_slap"]
+      }
+    ]
+  }
+}

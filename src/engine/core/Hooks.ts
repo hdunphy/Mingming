@@ -1,10 +1,5 @@
 import type { IBattleEntity } from '../types';
-import {
-    type HookDefinition,
-    type HookContext,
-    type HookResult,
-    HookPriority
-} from './HookTypes';
+import { type HookDefinition, type HookContext } from './HookTypes';
 import { getHook } from './HookRegistry';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
@@ -78,7 +73,19 @@ export const STATUS_MODEL: StatusDamageModel = {
     powerPerStack: 1,
 };
 
-export const STANCE_BONUS = { dark: 0.35, light: 0.35 };
+/**
+ * TICKET 136q: 0.35 -> 0.45 both ways. hel_v1 read 31.6 on the round-two grid - the lowest
+ * deck that was not already ruled a special case - and this is the knob ticket 77 built for
+ * exactly that question ("a knob, not a literal - Henry wanted the bonus swept before
+ * concluding anything about hel_v1's OS"). The deck is unchanged: a Weakened-heal card was
+ * measured alongside and diluted the stance number, so it was not shipped.
+ *
+ * The two sides stay EQUAL. They are not symmetric in value - Light pays on the opponent's
+ * next turn, which is certain, and Dark pays only on your own next turn and only if you
+ * attack (TacticalAI halves Dark for that contingency) - but the asymmetry is priced in the
+ * eval, not in the mechanic, and splitting the constant here would price it twice.
+ */
+export const STANCE_BONUS = { dark: 0.45, light: 0.45 };
 
 /**
  * Ticket 36: healing had no modifier path at all. `onHeal` fires AFTER the heal has

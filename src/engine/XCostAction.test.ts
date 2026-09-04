@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, StatusEffectInstance } from './types';
 import { battleReducer, getEffectiveCardCost } from './battleReducer';
 import { GetProgramData } from './data/programRegistry';
 import { runOne } from '../debug/balance/runBatch';
@@ -12,7 +12,19 @@ import { osVarianceScenario } from '../debug/balance/balanceScenarios';
  * resolved per play by getEffectiveCardCost - which is also what the AI and the UI
  * cost pip call, so none of the three can disagree about what an X card costs.
  * The energy actually paid is recorded as `lastEnergySpent` and read by
- * ENERGY_SPENT_SQUARED (Thermal Lance) and BURN_TIMES_ENERGY (Firestorm Talon).
+ * ENERGY_SPENT_SQUARED (Thermal Lance).
+ *
+ * TICKET 136j: Firestorm Talon is NO LONGER an X card. It was `10 power x target's Burn x
+ * Energy spent` - two multipliers on one card, which is why the Burn-permanence ticket (93)
+ * had to cut its power to hold it - and it is now a flat 2 Energy at 25 power per stack of
+ * BURN_STACKS. One multiplier, bounded by `BURN_CONFIG.maxStacks` (4) rather than by the pile
+ * AND the energy. Its test below moved with it and keeps the two assertions that still mean
+ * something: zero Burn deals zero, and the damage is linear in the pile.
+ *
+ * WORTH KNOWING: that leaves **BURN_TIMES_ENERGY with no card in the registry**. The engine
+ * branch is still there and still correct; it is simply unused, and it is a deletion candidate
+ * for whoever next audits dead scalings. Not deleted here - removing an engine path is not
+ * this ticket's ruling.
  */
 
 const unit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity => ({
@@ -22,7 +34,7 @@ const unit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}):
     maxEnergy: 5, currentEnergy: 2,
     // Level 20, not 1: under the rev-3.3 curve an 11-power card at level 1 floors to 0
     // damage, which would make the CARDS_DISCARDED assertion meaningless.
-    level: 20, experience: 0, cardDraw: 3,
+    cardDraw: 3,
     statusEffects: [], definitionId: 'hraesvelgr', hooks: [], speed: 10,
     primaryElement: 'Air', daemons: [], blueprintsCollected: 0,
     hpIV: 0, attackIV: 0, defenseIV: 0,
@@ -45,7 +57,6 @@ function stateWith(hand: ProgramEntity[], energy: number, enemyOverrides: Partia
         enemyDeck: { ownerId: 'ENEMY', hand: [], drawpile: [], discard: [], exhaust: [], deck: [] },
         logs: [], osLogs: [], procs: [],
         seed: '12345',
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         cardsDiscardedThisTurn: 0,
@@ -104,14 +115,15 @@ describe('X-cost cards (ticket 22)', () => {
         expect(dmg3 / dmg2).toBeLessThan(1.6);
     });
 
-    it('BURN_TIMES_ENERGY deals nothing without Burn, and scales with it', () => {
+    it('BURN_STACKS deals nothing without Burn, and is linear in the pile (ticket 136j)', () => {
         const noBurn = stateWith([entity('c1', 'firestorm_talon', 0)], 2);
         expect(damageDealt(noBurn, play(noBurn, 'c1'))).toBe(0);
 
+        // Stack-count-only stand-ins: the scaling reads `stacks`, never the instance `id`.
         const burn2 = stateWith([entity('c1', 'firestorm_talon', 0)], 2,
-            { statusEffects: [{ type: 'Burn', stacks: 2 }] as any });
+            { statusEffects: [{ type: 'Burn', stacks: 2 }] as unknown as StatusEffectInstance[] });
         const burn4 = stateWith([entity('c1', 'firestorm_talon', 0)], 2,
-            { statusEffects: [{ type: 'Burn', stacks: 4 }] as any });
+            { statusEffects: [{ type: 'Burn', stacks: 4 }] as unknown as StatusEffectInstance[] });
 
         const d2 = damageDealt(burn2, play(burn2, 'c1'));
         const d4 = damageDealt(burn4, play(burn4, 'c1'));

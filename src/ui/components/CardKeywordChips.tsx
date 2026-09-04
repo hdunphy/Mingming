@@ -1,63 +1,19 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import type { ProgramData, StatusType } from '../../engine/types';
+import { useAnchoredRect } from '../hooks/useAnchoredRect';
+import type { ProgramData } from '../../engine/types';
+// Ticket 55: the keyword table and its two derivations moved to `cardKeywords.ts`, so this file
+// exports only components.
+import { KEYWORD_INFO, getAppliedStatuses, getCardKeywords } from './cardKeywords';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
-
-/** Card keyword mechanics, explained in player-facing language. */
-export const KEYWORD_INFO = {
-    EXHAUST: {
-        label: 'EXHAUST',
-        color: '#ff9944',
-        description: 'Removed to the exhaust pile after playing — not shuffled back this battle.'
-    },
-    TOKEN: {
-        label: 'TOKEN',
-        color: '#8888ff',
-        description: 'Temporary card generated in battle; disappears afterward.'
-    },
-    DAEMON: {
-        label: 'DAEMON',
-        color: '#00d2ff',
-        description: 'Installs on the unit for the rest of the battle; its effect stays active.'
-    }
-} as const;
-
-export type CardKeyword = keyof typeof KEYWORD_INFO;
-
-export function getCardKeywords(data: ProgramData): CardKeyword[] {
-    const keywords: CardKeyword[] = [];
-    if (data.category === 'Daemon') keywords.push('DAEMON');
-    if (data.exhaust) keywords.push('EXHAUST');
-    if (data.isToken) keywords.push('TOKEN');
-    return keywords;
-}
-
-/** Unique statuses this card's STATUS / SHIFT_STANCE actions apply, in action order. */
-export function getAppliedStatuses(data: ProgramData): StatusType[] {
-    const statuses: StatusType[] = [];
-    for (const action of data.actions) {
-        let status: StatusType | undefined;
-        if (action.type === 'STATUS') {
-            status = (action as { status?: StatusType }).status;
-        } else if (action.type === 'SHIFT_STANCE') {
-            // Stance shifts grant a stance status on the card's owner — surface it
-            // as a chip so players see the shift at a glance.
-            const stance = (action as { stance?: 'Dark' | 'Light' }).stance;
-            if (stance) status = stance === 'Dark' ? 'DarkStance' : 'LightStance';
-        }
-        if (status && statusGlossary[status] && !statuses.includes(status)) {
-            statuses.push(status);
-        }
-    }
-    return statuses;
-}
 
 /** Small neon chip with a portal tooltip (never clipped by parent overflow). */
 const Chip: React.FC<{ label: string; color: string; title: string; description: string }> = ({
     label, color, title, description
 }) => {
     const [hovered, setHovered] = React.useState(false);
-    const chipRef = React.useRef<HTMLSpanElement>(null);
+    // Ticket 55: measured after layout rather than read during render — see `useAnchoredRect`.
+    const { ref: chipRef, rect } = useAnchoredRect<HTMLSpanElement>(hovered);
 
     return (
         <span
@@ -81,11 +37,10 @@ const Chip: React.FC<{ label: string; color: string; title: string; description:
             }}
         >
             {label}
-            {hovered && createPortal(
+            {hovered && rect !== null && createPortal(
                 <div
                     className="os-tooltip-portal"
-                    style={chipRef.current ? (() => {
-                        const rect = chipRef.current.getBoundingClientRect();
+                    style={(() => {
                         const isRightSide = rect.left > window.innerWidth / 2;
                         const isTopHalf = rect.top < window.innerHeight / 2;
                         return {
@@ -99,7 +54,7 @@ const Chip: React.FC<{ label: string; color: string; title: string; description:
                             width: '220px',
                             zIndex: 10001
                         };
-                    })() : {}}
+                    })()}
                 >
                     <div className="os-tooltip-header" style={{ color, borderBottomColor: `${color}55` }}>
                         {title}

@@ -51,7 +51,7 @@ import { STATUS_MODEL } from '../../engine/core/Hooks';
 import type { ProgramData, ProgramAction } from '../../engine/types';
 import HOOK_LIBRARY from '../../engine/data/lib/hooks.json';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { numericBaseCost } from '../../engine/types';
+import { numericBaseCost, HP_MULTIPLIER, NUMBER_SCALE } from '../../engine/types';
 import { DEFAULT_GAME_CONFIG } from '../../engine/data/gameConfig';
 import { BURN_CONFIG } from '../../engine/StatusBehaviors';
 
@@ -158,7 +158,12 @@ export function budgetBandFor(cost: number): BudgetBand {
  * Only used for effects denominated in literal HP (`damageOverride`), which have no
  * power value of their own and are meaningless without a pool to be a fraction of.
  */
-const ASSUMED_MAX_HP = 75;
+/**
+ * TICKET 131c: was a bare 75, the pre-buff frame. It derives now because it is the one constant in
+ * this file denominated in absolute HP, and it silently mis-prices the three `damageOverride` cards
+ * whenever a frame changes size - ticket 131b's x1.5 had already left it 1.5x stale.
+ */
+const ASSUMED_MAX_HP = Math.round(75 * HP_MULTIPLIER * NUMBER_SCALE);
 /** docs/power_curve_spec.md: damage costs 3 power per 1% of a health pool. */
 const POWER_PER_PERCENT_MAXHP = 3;
 
@@ -662,9 +667,18 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // code scored it as `power: 10` = 10 power, a 4x under-charge on the one term
             // that was supposed to make the card cost something. Same bug on glass_cannon
             // and dark_pact.
-            let power = typeof action.damageOverride === 'number'
-                ? (action.damageOverride / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP
-                : (action.power || 0);
+            // TICKET 138 amendment: `percentMaxHp` is already a percentage of a health pool, so it
+            // prices at the spec rate directly and needs no ASSUMED_MAX_HP at all. That is the
+            // reason it replaced `damageOverride` on all three cards that carried one: a literal-HP
+            // effect has to be re-derived against a frame every time frames move, and this one does
+            // not. The `damageOverride` branch is kept for the relic/system HP path, which still
+            // uses it; no CARD action carries it any more, and `noDamageOverrideOnCards.test.ts`
+            // fails if one appears again - it never worked there.
+            let power = typeof action.percentMaxHp === 'number'
+                ? action.percentMaxHp * POWER_PER_PERCENT_MAXHP
+                : typeof action.damageOverride === 'number'
+                    ? (action.damageOverride / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP
+                    : (action.power || 0);
             // Ticket 64: STATUS_CONSUMED on an ATTACK (`sun_devourer` eats its own Strength and
             // pays damage per stack). The path was priced for HEAL and STATUS and would otherwise
             // score the card at its raw printed power, which reads 0.1 against a 6.5 band.
@@ -696,6 +710,20 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // scorer has one knob and they are the same knob at this resolution.
             else if (action.scaling === 'CARDS_DRAWN') power *= ASSUMED_CARDS_DRAWN;
             else if (action.scaling === 'CARDS_DRAWN_TRIGGERED') power *= ASSUMED_TRIGGERED_CARDS_DRAWN;
+            // TICKET 136h: two scalings this scorer deliberately CANNOT price, flagged rather
+            // than silently read at their printed base - which would score `firestorm_talon` at
+            // 25 power when it is 25 x up to 4 Burn, and `corroded_edge` at 20 when it is 20 x
+            // 3-4 statuses. Both were HAND-PRICED in ticket 136 against their real ceilings
+            // (Talon 25 x <=4 Burn = <=100 at 2e, because Burn caps at 4; Corroded Edge 20 x 3-4
+            // at 1e) and both are decided by the sim gate, not by section 1.3.
+            //
+            // Not given an ASSUMED_ constant on purpose: every one of those in this file came
+            // from the ticket-66 census of REAL battles, and neither pile has been measured.
+            // A guessed constant here would read as a measurement, which is the failure mode
+            // ticket 66 spent a whole census correcting.
+            else if (action.scaling === 'BURN_STACKS' || action.scaling === 'SELF_ANY_STATUS') {
+                manualReview.push(`ATTACK:${action.scaling}`);
+            }
 
             // Ticket 53: RAMPAGE growth. Charge the AVERAGE over the assumed horizon, so the
             // printed power is what the card opens at and the score is what it is worth.

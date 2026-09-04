@@ -4,17 +4,38 @@ import { GetProgramData } from './data/programRegistry';
 import { globalBattleEventBus } from './events';
 import { PRNG } from './core/PRNG';
 
-/** Ticket 32: single source of truth. battleReducer.ts and resolutionEngine.ts import this
- *  rather than re-declaring their own copies (all three previously said 9 independently). */
-export const HAND_SIZE_LIMIT = 9;
+/**
+ * Ticket 32: single source of truth. battleReducer.ts and resolutionEngine.ts import this
+ * rather than re-declaring their own copies (all three previously said 9 independently).
+ *
+ * TICKET 131b: 9 -> 12, and `effectHandlers.ts` — which ticket 32 MISSED, and which held a fourth
+ * private copy of the 9 — now imports this one. Raising it is not optional beside the `+1 cardDraw`
+ * in this commit: the refill is `min(sum(cardDraw) - alive + 1, LIMIT - hand.length)`, and at 3v3
+ * +1 a body is +3 to that sum. Measured (`scratch/handeconomy.ts`): the cap clipped **4-9.5%** of
+ * refills before the draw change and **~50%** after, eating 1.1 cards a turn — half the extra draw
+ * thrown away. 12 is 9 plus the +3 the change adds at full party, so a three-body side gets the
+ * cards it is now owed and a solo one is unaffected.
+ */
+export const HAND_SIZE_LIMIT = 15;
 
 /**
  * Handles drawing cards from the deck.
  * Automatically shuffles discard into drawpile if drawpile is empty.
  * Emits CARD_DRAWN and DECK_SHUFFLED events.
  */
-export function drawCards(deckState: IDeckState, count: number, seed: string): { state: IDeckState; nextSeed: string; shuffled: boolean } {
-    let currentHand = [...deckState.hand];
+export function drawCards(
+    deckState: IDeckState,
+    count: number,
+    seed: string,
+    /**
+     * TICKET 111: instance id of the card currently RESOLVING, which is already sitting in the
+     * discard because `handlePlayProgram` put it there while paying its cost. It is held out of a
+     * reshuffle so a card cannot draw itself. Everything else in the discard shuffles as normal.
+     */
+    excludeInstanceId?: string | null,
+): { state: IDeckState; nextSeed: string; shuffled: boolean } {
+    // `const`: steam-release-prep tightened this and the body only pushes, never reassigns.
+    const currentHand = [...deckState.hand];
     let currentDrawpile = [...deckState.drawpile];
     let currentDiscard = [...deckState.discard];
     let currentSeed = seed;
@@ -27,12 +48,31 @@ export function drawCards(deckState: IDeckState, count: number, seed: string): {
         if (currentDrawpile.length === 0) {
             if (currentDiscard.length === 0) break; // No cards left
 
-            // Seeded Fisher-Yates Shuffle
+            // Seeded Fisher-Yates Shuffle.
+            //
+            // TICKET 111: the resolving card is EXCLUDED AFTER the shuffle, not before it. Filtering
+            // first would shuffle n-1 cards instead of n and consume a different amount of the PRNG,
+            // which re-rolls the drawpile order for every reshuffle in the game - measured, that is
+            // most reshuffles on all 32 decks, i.e. a full 1v1 re-baseline for a correctness fix.
+            // Shuffling the whole discard first keeps the stream byte-identical to the old behaviour
+            // and changes exactly one thing: the card that is mid-resolution is not available to be
+            // drawn by its own action. It goes back to the discard and is drawable again next time.
             const prng = new PRNG(currentSeed);
             const { shuffled, nextSeed } = prng.shuffle(currentDiscard);
 
-            currentDrawpile = shuffled;
-            currentDiscard = [];
+            currentDrawpile = excludeInstanceId
+                ? shuffled.filter(c => c.id !== excludeInstanceId)
+                : shuffled;
+            currentDiscard = excludeInstanceId
+                ? shuffled.filter(c => c.id === excludeInstanceId)
+                : [];
+
+            if (currentDrawpile.length === 0) {
+                // The discard held nothing but the resolving card: there is genuinely nothing to
+                // draw. This is the case that used to loop forever.
+                currentSeed = nextSeed;
+                break;
+            }
             currentSeed = nextSeed;
             didShuffle = true;
 
@@ -173,9 +213,9 @@ export function returnCard(deckState: IDeckState, cardId: string, fromPile: 'DIS
  * Searches the drawpile (and optionally discard) for cards matching a criteria and moves them to hand.
  */
 export function searchCard(deckState: IDeckState, amount: number, criteria?: { element?: string; category?: string; }, includeDiscard = false): IDeckState {
-    let newDraw = [...deckState.drawpile];
-    let newDiscard = [...deckState.discard];
-    let newHand = [...deckState.hand];
+    const newDraw = [...deckState.drawpile];
+    const newDiscard = [...deckState.discard];
+    const newHand = [...deckState.hand];
     let cardsFound = 0;
 
     const matchesCriteria = (card: ProgramEntity) => {

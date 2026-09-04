@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { IBattleState, IBattleEntity, ProgramData } from './types';
+import type { IBattleState, AttackActionData, MultiplyStatusActionData, PlayLastCardActionData, TriggerStatusActionData } from './types';
+import type { HookContext } from './core/HookTypes';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { createMockEntity } from './data/battleFactories';
 import { SeedStream } from './core/SeedStream';
-import { GetProgramData } from './data/programRegistry';
 
 describe('Advanced Archetypes Logic', () => {
     let initialState: IBattleState;
@@ -16,8 +16,8 @@ describe('Advanced Archetypes Logic', () => {
         // floor regardless of stats).
         // Distinct seeds - the same seed for both would also make `rng.nextId('mm')` mint
         // the same entity id for player and enemy, breaking every id-based lookup.
-        const player = createMockEntity('Player', 'fenrir', 10, 0, new SeedStream('new-archetypes-test-player'));
-        const enemy = createMockEntity('Enemy', 'fenrir', 10, 0, new SeedStream('new-archetypes-test-enemy'));
+        const player = createMockEntity('Player', 'fenrir', new SeedStream('new-archetypes-test-player'));
+        const enemy = createMockEntity('Enemy', 'fenrir', new SeedStream('new-archetypes-test-enemy'));
 
         initialState = {
             sessionId: 'test',
@@ -36,7 +36,6 @@ describe('Advanced Archetypes Logic', () => {
             cardsDrawnThisTurn: 0,
             lastProgramPlayed: null,
         counters: {},
-            levelUpQueue: [],
             activeRelics: []
         };
     });
@@ -44,7 +43,7 @@ describe('Advanced Archetypes Logic', () => {
     it('MULTIPLY_STATUS should double status stacks', () => {
         // 1. Give enemy some Poison
         const enemy = { ...initialState.enemyParty[0] };
-        let state: IBattleState = {
+        const state: IBattleState = {
             ...initialState,
             enemyParty: [{
                 ...enemy,
@@ -52,14 +51,14 @@ describe('Advanced Archetypes Logic', () => {
             }]
         };
 
-        const action: any = {
+        const action: MultiplyStatusActionData = {
             type: 'MULTIPLY_STATUS',
             status: 'Poison',
             factor: 2
         };
 
         const executor = ActionExecutorRegistry['MULTIPLY_STATUS'];
-        const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as any);
+        const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as unknown as HookContext);
 
         expect(nextState.enemyParty[0].statusEffects.find(s => s.type === 'Poison')?.stacks).toBe(4);
     });
@@ -67,7 +66,7 @@ describe('Advanced Archetypes Logic', () => {
     it('TRIGGER_STATUS should deal poison damage immediately', () => {
         // 1. Give enemy Poison
         const enemy = { ...initialState.enemyParty[0] };
-        let state: IBattleState = {
+        const state: IBattleState = {
             ...initialState,
             enemyParty: [{
                 ...enemy,
@@ -75,13 +74,13 @@ describe('Advanced Archetypes Logic', () => {
             }]
         };
 
-        const action: any = {
+        const action: TriggerStatusActionData = {
             type: 'TRIGGER_STATUS',
             status: 'Poison'
         };
 
         const executor = ActionExecutorRegistry['TRIGGER_STATUS'];
-        const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as any);
+        const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as unknown as HookContext);
 
         // Poison behavior: damage = stacks, then decrement stacks
         expect(nextState.enemyParty[0].currentHp).toBeLessThan(initialState.enemyParty[0].currentHp);
@@ -90,17 +89,17 @@ describe('Advanced Archetypes Logic', () => {
 
     it('PLAY_LAST_CARD should repeat the previous card actions', () => {
         // 1. Mock a "Test Strike" played previously
-        let state: IBattleState = {
+        const state: IBattleState = {
             ...initialState,
             lastProgramPlayed: 'test_strike'
         };
 
-        const action: any = {
+        const action: PlayLastCardActionData = {
             type: 'PLAY_LAST_CARD'
         };
 
         const executor = ActionExecutorRegistry['PLAY_LAST_CARD'];
-        const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as any);
+        const nextState = executor.execute(state, state.playerParty[0].id, state.enemyParty[0].id, action, undefined, {} as unknown as HookContext);
 
         // Test Strike deals damage. Check if enemy HP dropped.
         expect(nextState.enemyParty[0].currentHp).toBeLessThan(initialState.enemyParty[0].currentHp);
@@ -125,11 +124,11 @@ describe('Advanced Archetypes Logic', () => {
         // this test is back to asserting exactly that.
         const baselineState: IBattleState = { ...initialState, cardsDrawnThisTurn: 1 };
         const scaledState: IBattleState = { ...initialState, cardsDrawnThisTurn: 10 };
-        const action: any = { type: 'ATTACK', power: 30, scaling: 'CARDS_DRAWN' };
+        const action: AttackActionData = { type: 'ATTACK', power: 30, scaling: 'CARDS_DRAWN' };
         const executor = ActionExecutorRegistry['ATTACK'];
 
-        const baselineNext = executor.execute(baselineState, baselineState.playerParty[0].id, baselineState.enemyParty[0].id, action, undefined, {} as any);
-        const scaledNext = executor.execute(scaledState, scaledState.playerParty[0].id, scaledState.enemyParty[0].id, action, undefined, {} as any);
+        const baselineNext = executor.execute(baselineState, baselineState.playerParty[0].id, baselineState.enemyParty[0].id, action, undefined, {} as unknown as HookContext);
+        const scaledNext = executor.execute(scaledState, scaledState.playerParty[0].id, scaledState.enemyParty[0].id, action, undefined, {} as unknown as HookContext);
 
         const baselineDamage = initialState.enemyParty[0].currentHp - baselineNext.enemyParty[0].currentHp;
         const scaledDamage = initialState.enemyParty[0].currentHp - scaledNext.enemyParty[0].currentHp;

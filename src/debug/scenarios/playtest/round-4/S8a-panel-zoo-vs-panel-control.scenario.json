@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S8a - first 3v3 hands (zoo seat)",
+  "description": "Ticket 109's panel-zoo comp (jormungandr_v1 + sleipnir_v1 + hraesvelgr_v1 - the whole zoo/velocity role) measured 100% vs the panel-control comp (kraken_v1 + huldra_v1 + draugr_v2, the designated zoo-killer). The sim says width crushes; your hands are the check on whether that's real or an AI artifact. Does piloting it feel overwhelming-strong, or does the AI just defend width badly? Play S8b right after from the control seat. Team decks share one hand (shared deck across the party) - who casts a shared card, and how much that mattered, is worth a note.   [you: panel-zoo (jormungandr_v1+sleipnir_v1+hraesvelgr_v1) | opponent: panel-control (kraken_v1+huldra_v1+draugr_v2)]",
+  "tags": ["playtest", "round-4", "ticket-109", "3v3", "panel-zoo"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S8a-panel-zoo-vs-panel-control",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "jormungandr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "jormungandr_v1" },
+        { "definitionId": "sleipnir", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "sleipnir_v1" },
+        { "definitionId": "hraesvelgr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "hraesvelgr_v1" }
+      ],
+      "deck": ["undertow","undertow","blind_spot","corrosive_leak","surge_protection","serpents_coil","serpents_coil","ink_stream","ink_stream","water_slap","water_slap","slipstream","slipstream","disorienting_gust","adrenaline","tailwind","zephyr_strike","stampede","stampede","momentum_crash","hoofbeat_daemon","feather_cache","feather_cache","war_molt","war_molt","sky_burial","sky_burial","tempest","tempest","carrion_swoop","carrion_swoop","zephyr_strike","slipstream"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "kraken", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "kraken_v1",
+        "deck": ["whirlpool_v2","whirlpool_v2","pressure_point","pressure_point","ink_stream","ink_stream","surge_protection","undertow"]
+      },
+      {
+        "definitionId": "huldra", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "huldra_v1",
+        "deck": ["growth","growth","soothe","water_slap","iron_bark","iron_bark","thorn_tithe","thorn_tithe","hexbloom"]
+      },
+      {
+        "definitionId": "draugr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "draugr_v2",
+        "deck": ["rimefrost","rimefrost","water_slap","frost_bite","numbing_gale","killing_frost","ice_spear","glacial_slam","rimebreaker","rimebreaker"]
+      }
+    ]
+  }
+}

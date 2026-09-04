@@ -11,11 +11,11 @@ const SETUP: ComposedSetup = {
     seed: 'seed-0001',
     enemyMode: 'MOVES',
     player: {
-        party: [{ definitionId: 'fenrir', level: 10, attackIV: 31, defenseIV: 0, hpIV: 15 }],
+        party: [{ definitionId: 'fenrir', attackIV: 31, defenseIV: 0, hpIV: 15 }],
         deck: ['ignite', 'scorch'],
         relics: [],
     },
-    enemies: [{ definitionId: 'draugr', level: 10, attackIV: 0, defenseIV: 0, hpIV: 0 }],
+    enemies: [{ definitionId: 'draugr', attackIV: 0, defenseIV: 0, hpIV: 0 }],
     gauntlet: null,
 };
 
@@ -70,7 +70,7 @@ describe('saveScenario', () => {
                     ...SETUP.player,
                     // 32 is one past the mirrored MingmingInstanceSchema IV ceiling.
                     party: [
-                        { definitionId: 'fenrir', level: 10, attackIV: 32, defenseIV: 0, hpIV: 0 },
+                        { definitionId: 'fenrir', attackIV: 32, defenseIV: 0, hpIV: 0 },
                     ],
                 },
             },

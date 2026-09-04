@@ -4,6 +4,10 @@ import type { ProgramData } from '../../engine/types';
 import CardKeywordChips from './CardKeywordChips';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { getElementTextColor, getElementBadgeBg, badgeTextShadow, getElementAccent } from '../utils/contrastText';
+// Ticket 55: the icon/colour lookups moved to their own module so this file exports only a
+// component (`react-refresh/only-export-components`). Re-imported here because the card face is
+// still their biggest caller.
+import { getCategoryIcon, getElementColor, getElementIcon } from './cardIcons';
 
 /** A party member whose element matches this card (×1.5 STAB when they play it). */
 export interface StabMatch {
@@ -30,31 +34,6 @@ interface Props {
     /** Optional: party members whose element matches this card — shown as tiny ×1.5 STAB dots. */
     stabMatches?: StabMatch[];
 }
-
-export const getElementIcon = (el: string) => {
-    const map: Record<string, string> = {
-        Fire: '🔥', Water: '💧', Nature: '🌿', Earth: '⛰️',
-        Air: '💨', Ice: '❄️', Light: '✨', Dark: '🌑', None: '∅'
-    };
-    return map[el] ?? '◈';
-};
-
-export const getCategoryIcon = (cat: string) => {
-    const map: Record<string, string> = {
-        Attack: '⚔️', Skill: '⚙️', Daemon: '👾',
-        Heal: '💚', Status: '🧪', Special: '🌟'
-    };
-    return map[cat] ?? '◈';
-};
-
-export const getElementColor = (el: string) => {
-    const map: Record<string, string> = {
-        Fire: 'var(--fire)', Water: 'var(--water)', Nature: 'var(--nature)',
-        Earth: 'var(--earth)', Air: 'var(--air)', Ice: 'var(--ice)',
-        Light: 'var(--light)', Dark: 'var(--dark)'
-    };
-    return map[el] ?? '#888';
-};
 
 const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onContextMenu, showBadge, className = '', onAdd, onRemove, addDisabled, removeDisabled, stabMatches }) => {
     const [tooltipPos, setTooltipPos] = React.useState<{ top: number; left: number } | null>(null);

@@ -1,0 +1,89 @@
+[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.
+[balance:run-gate]   bands      gauntlet  (1 cells: gauntlet:fight2)
+[balance:run-gate]   iterations 60 per cell  ->  60 battles, PLAYER moves first (as a run does)
+[balance:run-gate]   sample     12 tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample
+[balance:run-gate]   AI tier    full   maxTurns 60   registry 1:6ff11339
+
+[balance:run-gate]   gauntlet:fight2 1/60 loss  38.5s into cell, 38s total
+[balance:run-gate]   gauntlet:fight2 2/60 WIN   71.3s into cell, 1m 11s total
+[balance:run-gate]   gauntlet:fight2 3/60 loss  102.8s into cell, 1m 43s total
+[balance:run-gate]   gauntlet:fight2 4/60 loss  132.9s into cell, 2m 13s total
+[balance:run-gate]   gauntlet:fight2 5/60 WIN   156.8s into cell, 2m 37s total
+[balance:run-gate]   gauntlet:fight2 6/60 WIN   169.4s into cell, 2m 49s total
+[balance:run-gate]   gauntlet:fight2 7/60 WIN   214.8s into cell, 3m 35s total
+[balance:run-gate]   gauntlet:fight2 8/60 WIN   249.4s into cell, 4m 09s total
+[balance:run-gate]   gauntlet:fight2 9/60 WIN   308.8s into cell, 5m 09s total
+[balance:run-gate]   gauntlet:fight2 10/60 WIN   337.2s into cell, 5m 37s total
+[balance:run-gate]   gauntlet:fight2 11/60 WIN   349.2s into cell, 5m 49s total
+[balance:run-gate]   gauntlet:fight2 12/60 loss  373.3s into cell, 6m 13s total
+[balance:run-gate]   gauntlet:fight2 13/60 WIN   418.0s into cell, 6m 58s total
+[balance:run-gate]   gauntlet:fight2 14/60 WIN   449.8s into cell, 7m 30s total
+[balance:run-gate]   gauntlet:fight2 15/60 loss  472.1s into cell, 7m 52s total
+[balance:run-gate]   gauntlet:fight2 16/60 loss  522.1s into cell, 8m 42s total
+[balance:run-gate]   gauntlet:fight2 17/60 loss  561.3s into cell, 9m 21s total
+[balance:run-gate]   gauntlet:fight2 18/60 loss  573.2s into cell, 9m 33s total
+[balance:run-gate]   gauntlet:fight2 19/60 WIN   604.2s into cell, 10m 04s total
+[balance:run-gate]   gauntlet:fight2 20/60 loss  616.4s into cell, 10m 16s total
+[balance:run-gate]   gauntlet:fight2 21/60 WIN   654.1s into cell, 10m 54s total
+[balance:run-gate]   gauntlet:fight2 22/60 WIN   693.2s into cell, 11m 33s total
+[balance:run-gate]   gauntlet:fight2 23/60 loss  729.8s into cell, 12m 10s total
+[balance:run-gate]   gauntlet:fight2 24/60 WIN   756.8s into cell, 12m 37s total
+[balance:run-gate]   gauntlet:fight2 25/60 WIN   791.3s into cell, 13m 11s total
+[balance:run-gate]   gauntlet:fight2 26/60 loss  813.3s into cell, 13m 33s total
+[balance:run-gate]   gauntlet:fight2 27/60 loss  828.4s into cell, 13m 48s total
+[balance:run-gate]   gauntlet:fight2 28/60 WIN   856.5s into cell, 14m 16s total
+[balance:run-gate]   gauntlet:fight2 29/60 WIN   887.9s into cell, 14m 48s total
+[balance:run-gate]   gauntlet:fight2 30/60 WIN   929.8s into cell, 15m 30s total
+[balance:run-gate]   gauntlet:fight2 31/60 WIN   946.0s into cell, 15m 46s total
+[balance:run-gate]   gauntlet:fight2 32/60 WIN   976.5s into cell, 16m 16s total
+[balance:run-gate]   gauntlet:fight2 33/60 loss  1021.6s into cell, 17m 02s total
+[balance:run-gate]   gauntlet:fight2 34/60 loss  1054.4s into cell, 17m 34s total
+[balance:run-gate]   gauntlet:fight2 35/60 loss  1087.5s into cell, 18m 08s total
+[balance:run-gate]   gauntlet:fight2 36/60 loss  1123.9s into cell, 18m 44s total
+[balance:run-gate]   gauntlet:fight2 37/60 WIN   1165.5s into cell, 19m 26s total
+[balance:run-gate]   gauntlet:fight2 38/60 loss  1202.3s into cell, 20m 02s total
+[balance:run-gate]   gauntlet:fight2 39/60 WIN   1218.7s into cell, 20m 19s total
+[balance:run-gate]   gauntlet:fight2 40/60 loss  1247.8s into cell, 20m 48s total
+[balance:run-gate]   gauntlet:fight2 41/60 WIN   1291.9s into cell, 21m 32s total
+[balance:run-gate]   gauntlet:fight2 42/60 loss  1321.9s into cell, 22m 02s total
+[balance:run-gate]   gauntlet:fight2 43/60 WIN   1355.6s into cell, 22m 36s total
+[balance:run-gate]   gauntlet:fight2 44/60 WIN   1366.2s into cell, 22m 46s total
+[balance:run-gate]   gauntlet:fight2 45/60 WIN   1405.5s into cell, 23m 25s total
+[balance:run-gate]   gauntlet:fight2 46/60 loss  1440.8s into cell, 24m 01s total
+[balance:run-gate]   gauntlet:fight2 47/60 WIN   1467.8s into cell, 24m 28s total
+[balance:run-gate]   gauntlet:fight2 48/60 loss  1476.8s into cell, 24m 37s total
+[balance:run-gate]   gauntlet:fight2 49/60 loss  1523.8s into cell, 25m 24s total
+[balance:run-gate]   gauntlet:fight2 50/60 loss  1559.6s into cell, 26m 00s total
+[balance:run-gate]   gauntlet:fight2 51/60 loss  1590.0s into cell, 26m 30s total
+[balance:run-gate]   gauntlet:fight2 52/60 loss  1602.4s into cell, 26m 42s total
+[balance:run-gate]   gauntlet:fight2 53/60 WIN   1647.4s into cell, 27m 27s total
+[balance:run-gate]   gauntlet:fight2 54/60 WIN   1661.8s into cell, 27m 42s total
+[balance:run-gate]   gauntlet:fight2 55/60 WIN   1683.0s into cell, 28m 03s total
+[balance:run-gate]   gauntlet:fight2 56/60 WIN   1715.4s into cell, 28m 35s total
+[balance:run-gate]   gauntlet:fight2 57/60 WIN   1766.7s into cell, 29m 27s total
+[balance:run-gate]   gauntlet:fight2 58/60 loss  1804.7s into cell, 30m 05s total
+[balance:run-gate]   gauntlet:fight2 59/60 loss  1849.3s into cell, 30m 49s total
+[balance:run-gate]   gauntlet:fight2 60/60 WIN   1887.3s into cell, 31m 27s total
+
+================================================================================================================
+  RUN GATE — ticket 61   ·   PREPARED player (brings the counter-element — THIS is the arm 95/75/60 grade)
+  boss as shipped
+  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).
+  ** EXPERIMENTAL TWEAKS — NOT A BASELINE, NOT COMMITTED (rootfall-rat-v2) **
+     rootfall-rat-v2: Rootfall's trio fields ratatoskr_v2 in place of ratatoskr_v1 (candidate only — ticket 76 moves no lever before Henry's session)
+  PINNED to gym_rootfall — not comparable to an unpinned number (ticket 68)
+================================================================================================================
+
+  GAUNTLET (the gym's three fights)
+    NOT GRADED ON THE COMPOUND — only part of the gauntlet was measured, so the clear rate cannot be computed. The pooled per-fight rate below is graded instead,
+    against a target that describes CLEARING all three fights. Read it as a fight rate, not as a verdict: ~84.3% per fight is what a 60% clear needs.
+    target 60.0% (window 55.0%-65.0%)   measured 55.0% (33/60, -5.0pt)   95% CI 42.5%-66.9%
+    PASS — inside the ±5 window   [1887.3s]  <- UNDER-SAMPLED: the 95% interval (±12.2pt) is wider than the ±5 window, so this verdict is not yet evidence
+    gauntlet fight 3/3 (boss)  3v3   33/60  =  55.0%  decisive= 55.0%  avgTurns= 5.4  ftk=0  stalled=0  1887.3s
+
+----------------------------------------------------------------------------------------------------------------
+  ALL BANDS IN WINDOW
+  1 BAND(S) UNDER-SAMPLED (gauntlet): their 95% interval is wider than the ±5 window, so the verdicts above are provisional. Raise --iterations.
+  wall clock 31m 27s (1887328 ms) for 60 battles
+  31.5s per battle averaged over every cell
+----------------------------------------------------------------------------------------------------------------

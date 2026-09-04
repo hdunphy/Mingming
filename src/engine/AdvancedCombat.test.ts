@@ -2,10 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import { getStatusBehavior } from './StatusBehaviors';
 import type { IBattleState, IBattleEntity, ProgramData, StatusEffectInstance } from './types';
-import { StatusType } from './types';
 import { calculateDamage } from './combatUtils';
 import { registerHook } from './core/Hooks';
-import { GetProgramData } from './data/programRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 import { DEFAULT_GAME_CONFIG } from './data/gameConfig';
 
@@ -20,7 +18,7 @@ vi.mock('./data/programRegistry', async (importOriginal) => {
 // --- Helper: Mock State ---
 function createMockState(): IBattleState {
     const p1: IBattleEntity = {
-        id: 'p1', name: 'Hero', level: 10, experience: 0,
+        id: 'p1', name: 'Hero', 
         nickname: 'Hero',
         definitionId: 'def1',
         blueprintsCollected: 0,
@@ -32,7 +30,7 @@ function createMockState(): IBattleState {
     };
 
     const e1: IBattleEntity = {
-        id: 'e1', name: 'Villain', level: 10, experience: 0,
+        id: 'e1', name: 'Villain', 
         nickname: 'Villain',
         definitionId: 'def2',
         blueprintsCollected: 0,
@@ -44,7 +42,7 @@ function createMockState(): IBattleState {
     };
 
     const e2: IBattleEntity = {
-        id: 'e2', name: 'Minion', level: 10, experience: 0,
+        id: 'e2', name: 'Minion', 
         nickname: 'Minion',
         definitionId: 'def2',
         blueprintsCollected: 0,
@@ -64,7 +62,6 @@ function createMockState(): IBattleState {
         logs: [],
         osLogs: [],
         procs: [],
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,

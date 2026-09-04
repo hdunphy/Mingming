@@ -1,16 +1,6 @@
-import {
-    type HookDefinition,
-    type DataHookDefinition,
-    type ModifierDataHookDefinition,
-    type HookCondition,
-    type HookAction,
-    type HookContext,
-    type HookResult,
-    type MutationRequest
-} from './HookTypes';
-import { resolveCounterKey } from './HookTypes';
+import { type HookDefinition, type DataHookDefinition, type ModifierDataHookDefinition, type HookCondition, type HookAction, type HookContext, type HookResult, type MutationRequest } from './HookTypes';
+import { resolveCounterKey, resolveSideCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ActionType } from '../types';
-import { StatusType } from '../types';
 import { PRNG } from './PRNG';
 import { ConditionValidator, NEGATIVE_STATUSES } from './ConditionValidator';
 import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExecutors';
@@ -220,7 +210,13 @@ export const HookFactory = {
                     type: 'COUNTER',
                     targetId: '',
                     payload: {
-                        key: action.key ? resolveCounterKey(action.key, action.scope, owner) : action.key,
+                        // Ticket 71: SIDE resolves against the state, not the entity — one count
+                        // per party, shared by its members and not with the opponent.
+                        key: action.key
+                            ? (action.scope === 'SIDE'
+                                ? resolveSideCounterKey(action.key, owner, currentState)
+                                : resolveCounterKey(action.key, action.scope, owner))
+                            : action.key,
                         operator: action.operator,
                         amount: (action.amount || 1) * scaleFactor
                     }
@@ -237,8 +233,10 @@ export const HookFactory = {
                 continue;
             }
 
-            // To ensure scaling/percent max HP is respected (legacy Hook logic):
-            if (action.type === 'HP' as any) {
+            // To ensure scaling/percent max HP is respected (legacy Hook logic).
+            // (Ticket 55 added 'HP' to `HookAction['type']`, which `hooks.json` had been using all
+            // along, so this no longer needs the `as string` widening it used to carry.)
+            if (action.type === 'HP') {
                 // Ticket 36: floor the PRODUCT, not just the percentage. The floor used to sit
                 // inside the percentage and every scaleFactor was an integer, so it never showed;
                 // `escalatePerPlay` introduced fractional factors and 22.5 HP of damage started
@@ -256,11 +254,11 @@ export const HookFactory = {
 
 
                 if (Array.isArray(targetId)) {
-                    const mutations: any[] = targetId.map(tId => ({
+                    const mutations: MutationRequest[] = targetId.map(tId => ({
                         type: 'HP',
                         targetId: tId,
                         sourceId: owner.id,
-                        payload: { amount: Math.abs(rawAmount), isHeal: finalIsHeal, element: (action as any).element }
+                        payload: { amount: Math.abs(rawAmount), isHeal: finalIsHeal, element: action.element }
                     }));
                     currentState = applyMutations(currentState, mutations);
                 } else if (targetId) {
@@ -268,7 +266,7 @@ export const HookFactory = {
                         type: 'HP',
                         targetId,
                         sourceId: owner.id,
-                        payload: { amount: Math.abs(rawAmount), isHeal: finalIsHeal, element: (action as any).element }
+                        payload: { amount: Math.abs(rawAmount), isHeal: finalIsHeal, element: action.element }
                     }]);
                 }
                 continue;
@@ -308,12 +306,30 @@ export const HookFactory = {
                 continue;
             }
 
+            /*
+             * Ticket 69's per-target filter. Applied HERE rather than as a `when` clause because a
+             * `when` clause tests the context's single target, and these forms resolve a GROUP whose
+             * members differ — `drip_feed` grants Regen to *"each poisoned ally"*, so the healthy
+             * ones have to be skipped one at a time.
+             *
+             * Read off `currentState`, not `context.state`: the loop threads state forward, so an
+             * earlier action in the same `do` list may have applied or stripped the status this
+             * filters on.
+             */
+            const passesTargetFilter = (tId: string): boolean => {
+                if (scaledAction.targetHasStatus === undefined) return true;
+                const entity = currentState.playerParty.find(e => e.id === tId)
+                    ?? currentState.enemyParty.find(e => e.id === tId);
+                return entity?.statusEffects.some(s => s.type === scaledAction.targetHasStatus) ?? false;
+            };
+
             if (Array.isArray(targetId)) {
                 for (const tId of targetId) {
-                    currentState = executor.execute(currentState, owner.id, tId, scaledAction as any, context.program, { ...context, state: currentState });
+                    if (!passesTargetFilter(tId)) continue;
+                    currentState = executor.execute(currentState, owner.id, tId, scaledAction, context.program, { ...context, state: currentState });
                 }
-            } else if (targetId) {
-                currentState = executor.execute(currentState, owner.id, targetId, scaledAction as any, context.program, { ...context, state: currentState });
+            } else if (targetId && passesTargetFilter(targetId)) {
+                currentState = executor.execute(currentState, owner.id, targetId, scaledAction, context.program, { ...context, state: currentState });
             }
         }
 

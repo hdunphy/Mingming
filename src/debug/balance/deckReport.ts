@@ -424,7 +424,7 @@ export const ARCHETYPE_SUMMARIES: Record<string, string> = {
     sleipnir_v1: 'MOMENTUM_DRIVE - the same 0-cost fuel ratatoskr_v1 runs, but into raw Strength rather than card volume.',
     sleipnir_v2: 'WAR_STEED_OS - Air attacks generate 0-cost Hoof Strike tokens, so the deck widens as it goes.',
     valkyrie_v1: 'VALHALLA_UPLINK - applying any positive status pays out. PLACEHOLDER deck, untuned; do not read its numbers as balance signal.',
-    valkyrie_v2: 'CRUSADER_KERNEL - Light attacks scale on the NUMBER of distinct positive statuses she holds, not their stacks. PLACEHOLDER deck, untuned.',
+    valkyrie_v2: 'REBIRTH_CYCLE_OS - when her discard is shuffled back in, she hits a random enemy for 15 power of Light and heals 15 power. No per-turn cap. PLACEHOLDER deck, untuned.',
     audhumbla_v1: 'GENESIS_FIRMWARE - every third Heal or Skill permanently raises her Energy ceiling. PLACEHOLDER deck, untuned.',
     audhumbla_v2: 'NOURISH_ROUTINE - overheal converts into Light damage, so healing past full is offence. PLACEHOLDER deck, untuned.',
     control_v1: 'The instrument, not a Mingming. No firmware, None element (inert in both directions), every card priced exactly at band. It is the FLOOR: beating it is a low bar and the reading is by how much.',
@@ -440,7 +440,7 @@ export const ARCHETYPE_SUMMARIES: Record<string, string> = {
     nidhoggr_v2: 'BLOOD_SCENT pays 1 Energy and a card per below-half crossing.',
     hel_v1: 'TWILIGHT_CADENCE sets her stance from the element she casts, at end of action.',
     hel_v2: 'UNDERWORLD_GATEWAY zeroes her Energy cost and taxes every card at 5% maxHP - the only Mingming who casts 3-energy cards freely, with her own hand as her clock.',
-    huldra_v1: 'ALLURE_PROXY mirrors buffs as a hex; hexbloom converts the Weakened pile into Poison at x2 without consuming it.',
+    huldra_v1: 'ALLURE_PROXY mirrors buffs as a hex; hexbloom converts the Weakened pile into Poison at x1 and consumes it.',
     huldra_v2: 'BARK_SHIELD_OS shield wall on a Poison clock - she wins inside the shield\'s life.',
 };
 

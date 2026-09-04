@@ -1,120 +1,114 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import gameReducer, { swapOS, addToRoster } from './gameSlice';
-import { createDefaultSave, deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
-import { getDeckForOS } from '../../engine/data/mingmingRegistry';
-import { PlayerSaveSchema, migrateSave } from '../../engine/SaveSystem';
-import type { IMingmingState } from '../../engine/types';
-import type { IPlayerSave } from '../../engine/gameTypes';
+/**
+ * Ticket 15's firmware reflash, as ticket 20 re-priced it and ticket 11 trimmed it.
+ *
+ * WHAT THIS FILE NO LONGER TESTS, AND WHY THAT IS THE POINT. Most of it was about the **one-time
+ * card grant**: the first swap to an OS handed the player up to `OS_SWAP_PICK_COUNT` cards from
+ * that OS's kit, keyed by `deckGrantKey(species, os)` in `baseDecksGranted`, with tests for the
+ * cap, for picks outside the kit, for copy counts, and for the grant firing once ever. Ticket 11
+ * deleted the grant, the constant and the key together: cards are run-scoped (`IRunState.deck`),
+ * and a ranch dealing them out was dealing a resource the player cannot bring home. **A reflash
+ * costs a blueprint and grants nothing**, so what is left to test is the price and the validation.
+ */
 
-// Deterministic instance ids for assertions
-let uuidCounter = 0;
-beforeEach(() => {
-    uuidCounter = 0;
-    vi.stubGlobal('crypto', { ...globalThis.crypto, randomUUID: () => `uuid-${uuidCounter++}` });
-});
+import { describe, it, expect } from 'vitest';
+import gameReducer, { swapOS, addToRoster, createEmptyRanch } from './gameSlice';
+import { RanchStateSchema } from '../../engine/runTypes';
+import type { IRanchMember, IRanchState } from '../../engine/runTypes';
 
-const member = (id: string, definitionId: string, activeOS: string): IMingmingState => ({
+const member = (id: string, definitionId: string, activeOS: string): IRanchMember => ({
     id,
     definitionId,
     nickname: 'Testling',
-    level: 5,
-    experience: 0,
-    currentHp: 50,
     attackIV: 10,
     defenseIV: 10,
     hpIV: 10,
     activeOS,
-    blueprintsCollected: 0
-} as unknown as IMingmingState);
+});
 
-const baseState = (): IPlayerSave => {
-    const s = createDefaultSave() as IPlayerSave;
-    return {
-        ...s,
-        scrapCount: 100,
-        roster: [member('m1', 'kraken', 'kraken_v1')],
-        blueprints: [{ architectureId: 'kraken', name: 'Kraken Blueprint', compileCost: 50 }],
-        baseDecksGranted: [deckGrantKey('kraken', 'kraken_v1')]
-    } as IPlayerSave;
-};
+const baseState = (): IRanchState => ({
+    ...createEmptyRanch(),
+    roster: [member('m1', 'kraken', 'kraken_v1')],
+    blueprints: { kraken: 1 },
+});
 
 describe('Ticket 15 - swapOS', () => {
-    it('spends the species blueprint + scrap, sets the OS, grants the picks, records the key', () => {
-        const picks = getDeckForOS('kraken', 'kraken_v2').slice(0, 2);
-        const after = gameReducer(baseState() as any, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: picks }));
+    it('spends one species blueprint, sets the OS, and grants nothing', () => {
+        const after = gameReducer(baseState(), swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
         expect(after.roster[0].activeOS).toBe('kraken_v2');
-        expect(after.scrapCount).toBe(100 - OS_SWAP_SCRAP_COST);
-        expect(after.blueprints).toHaveLength(0); // SPENT
-        expect(after.cardInventory.map(c => c.dataId)).toEqual(picks);
-        expect(after.baseDecksGranted).toContain(deckGrantKey('kraken', 'kraken_v2'));
+        // The last blueprint of a species leaves no zero behind — an empty key would show the
+        // ranch screen a species it cannot actually assemble or reflash.
+        expect(after.blueprints).toEqual({});
+        // The only things that changed are the OS, the count, and — since ticket 31 — the codex's
+        // firmware ledger, because equipping is exactly what that ledger records. Ticket 11: there
+        // is still no card inventory and no grant ledger for a stray write to land in.
+        expect(after).toEqual({
+            ...baseState(),
+            roster: [member('m1', 'kraken', 'kraken_v2')],
+            blueprints: {},
+            codex: { ...baseState().codex, os: ['kraken_v2'] },
+        });
         // The resulting state must survive the autosave schema.
-        expect(() => PlayerSaveSchema.parse(after)).not.toThrow();
+        expect(() => RanchStateSchema.parse(after)).not.toThrow();
     });
 
-    it('is a no-op without a blueprint, and without enough scrap', () => {
-        const noBp = { ...baseState(), blueprints: [] } as IPlayerSave;
-        const after1 = gameReducer(noBp as any, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
+    it('spends exactly one of a stack, leaving the rest', () => {
+        const stocked: IRanchState = { ...baseState(), blueprints: { kraken: 3, fenrir: 2 } };
+        const after = gameReducer(stocked, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
+        expect(after.blueprints).toEqual({ kraken: 2, fenrir: 2 });
+    });
+
+    it('is a no-op when no blueprint of the species is held', () => {
+        // This replaces the old "not enough scrap" case: the scrap price is gone, so a held
+        // blueprint is the only thing that can now make a reflash unaffordable.
+        const noBp: IRanchState = { ...baseState(), blueprints: {} };
+        const after1 = gameReducer(noBp, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
         expect(after1.roster[0].activeOS).toBe('kraken_v1');
-        expect(after1.scrapCount).toBe(100);
 
-        const poor = { ...baseState(), scrapCount: OS_SWAP_SCRAP_COST - 1 } as IPlayerSave;
-        const after2 = gameReducer(poor as any, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
+        // A blueprint of some OTHER species does not pay for this one's reflash.
+        const wrongSpecies: IRanchState = { ...baseState(), blueprints: { fenrir: 5 } };
+        const after2 = gameReducer(wrongSpecies, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
         expect(after2.roster[0].activeOS).toBe('kraken_v1');
-        expect(after2.blueprints).toHaveLength(1);
+        expect(after2.blueprints).toEqual({ fenrir: 5 });
     });
 
-    it('caps picks at OS_SWAP_PICK_COUNT, rejects cards outside the kit, respects copy counts', () => {
-        const kit = getDeckForOS('kraken', 'kraken_v2'); // capacitor appears twice
-        const greedy = [...kit.slice(0, OS_SWAP_PICK_COUNT), kit[3], 'fire_poke'];
-        const after = gameReducer(baseState() as any, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: greedy }));
-        expect(after.cardInventory).toHaveLength(OS_SWAP_PICK_COUNT);
-        expect(after.cardInventory.every(c => kit.includes(c.dataId))).toBe(true);
+    it('refuses an OS the species does not have, and refuses a no-op swap, without spending', () => {
+        const alien = gameReducer(baseState(), swapOS({ id: 'm1', targetOS: 'fenrir_v2' }));
+        expect(alien).toEqual(baseState());
 
-        // Two copies of the same card are only grantable if the kit lists it twice.
-        const singles = gameReducer(baseState() as any, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: ['maelstrom', 'maelstrom'] }));
-        expect(singles.cardInventory.filter(c => c.dataId === 'maelstrom')).toHaveLength(1);
-        const doubles = gameReducer(baseState() as any, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: ['capacitor', 'capacitor'] }));
-        expect(doubles.cardInventory.filter(c => c.dataId === 'capacitor')).toHaveLength(2);
+        const same = gameReducer(baseState(), swapOS({ id: 'm1', targetOS: 'kraken_v1' }));
+        expect(same).toEqual(baseState());
     });
 
-    it('the pick grant fires once ever per OS - a swap back and forth gives nothing new', () => {
-        let s: any = baseState();
-        s = { ...s, blueprints: [
-            { architectureId: 'kraken', name: 'BP', compileCost: 50 },
-            { architectureId: 'kraken', name: 'BP', compileCost: 50 },
-            { architectureId: 'kraken', name: 'BP', compileCost: 50 }
-        ] };
-        s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: ['maelstrom'] }));
-        expect(s.cardInventory).toHaveLength(1);
-        s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v1', pickedCardIds: ['ink_stream'] }));
-        // kraken_v1 kit was granted at compile time (key present) -> no new cards.
-        expect(s.cardInventory).toHaveLength(1);
-        s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v2', pickedCardIds: ['hydro_blast'] }));
-        // v2 key recorded on the first swap -> no new cards either.
-        expect(s.cardInventory).toHaveLength(1);
+    it('swapping back and forth costs a blueprint every time', () => {
+        // The old test asserted the *grant* fired once ever. What survives is the price: there is
+        // no "first swap" discount or bonus any more, so three reflashes cost three blueprints.
+        let s: IRanchState = { ...baseState(), blueprints: { kraken: 3 } };
+        s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
+        expect(s.blueprints).toEqual({ kraken: 2 });
+        s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v1' }));
+        expect(s.blueprints).toEqual({ kraken: 1 });
+        s = gameReducer(s, swapOS({ id: 'm1', targetOS: 'kraken_v2' }));
+        expect(s.blueprints).toEqual({});
+        expect(s.roster[0].activeOS).toBe('kraken_v2');
     });
 
-    it('compile-time grants are keyed per species+OS (addToRoster)', () => {
-        const empty = { ...(createDefaultSave() as IPlayerSave), scrapCount: 0 };
-        const after = gameReducer(empty as any, addToRoster(member('m9', 'kraken', 'kraken_v2')));
-        expect(after.baseDecksGranted).toContain(deckGrantKey('kraken', 'kraken_v2'));
-        expect(after.cardInventory.map(c => c.dataId).sort()).toEqual([...getDeckForOS('kraken', 'kraken_v2')].sort());
+    it('addToRoster adds a member and nothing else', () => {
+        const after = gameReducer(createEmptyRanch(), addToRoster(member('m9', 'kraken', 'kraken_v2')));
+        expect(after).toEqual({ ...createEmptyRanch(), roster: [member('m9', 'kraken', 'kraken_v2')] });
     });
 });
 
-describe('Ticket 15 - save migration v3 (grant keying)', () => {
-    it('rewrites legacy species entries to species:os using the roster member OS', () => {
+describe('Ticket 23 - the v3 migration is gone, not relocated', () => {
+    it('has no upgrade path left: a legacy save shape simply fails validation', () => {
+        // Ticket 15 used to migrate bare species entries in `baseDecksGranted` to `species:os`.
+        // Save v4 is the floor (Henry, 2026-08-21) — a pre-v4 blob reads as NO SAVE rather than
+        // being repaired, so the only thing left to assert is that nothing pretends to fix it.
+        // Ticket 11 swapped the schema doing the refusing: the autosave validates the ranch now.
         const legacy = {
             version: 2,
             roster: [{ definitionId: 'kraken', activeOS: 'kraken_v2' }],
-            baseDecksGranted: ['kraken', 'fenrir', 'huldra:huldra_v1']
+            baseDecksGranted: ['kraken', 'fenrir', 'huldra:huldra_v1'],
         };
-        const out = migrateSave(legacy) as Record<string, unknown>;
-        expect(out.version).toBe(3);
-        expect(out.baseDecksGranted).toEqual([
-            'kraken:kraken_v2',      // from the roster member's active OS
-            'fenrir:fenrir_v1',      // no member -> availableOS[0]
-            'huldra:huldra_v1'       // already keyed -> untouched
-        ]);
+        expect(RanchStateSchema.safeParse(legacy).success).toBe(false);
     });
 });

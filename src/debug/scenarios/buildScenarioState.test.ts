@@ -26,14 +26,12 @@ function makeSetup(overrides: Partial<ComposedSetup> = {}): ComposedSetup {
             party: [
                 {
                     definitionId: 'fenrir',
-                    level: 12,
                     attackIV: 7,
                     defenseIV: 11,
                     hpIV: 21,
                 },
                 {
                     definitionId: 'kraken',
-                    level: 9,
                     attackIV: 0,
                     defenseIV: 31,
                     hpIV: 4,
@@ -54,7 +52,6 @@ function makeSetup(overrides: Partial<ComposedSetup> = {}): ComposedSetup {
         enemies: [
             {
                 definitionId: 'draugr',
-                level: 30,
                 attackIV: 15,
                 defenseIV: 15,
                 hpIV: 15,
@@ -116,14 +113,6 @@ describe('buildScenarioState - determinism', () => {
 });
 
 describe('buildScenarioState - the createBattleState bypass', () => {
-    it('keeps per-enemy level instead of forcing it to the player max', () => {
-        const state = buildScenarioState(makeSetup());
-
-        // The fixed-encounter branch of createBattleState would have flattened this to 12.
-        expect(state.enemyParty[0].level).toBe(30);
-        expect(state.playerParty.map(e => e.level)).toEqual([12, 9]);
-    });
-
     it('honours per-entity IVs verbatim', () => {
         const state = buildScenarioState(makeSetup());
 
@@ -137,9 +126,9 @@ describe('buildScenarioState - the createBattleState bypass', () => {
     it('builds exactly the listed enemies, in order', () => {
         const setup = makeSetup();
         setup.enemies = [
-            { definitionId: 'draugr', level: 5, attackIV: 0, defenseIV: 0, hpIV: 0 },
-            { definitionId: 'ymir', level: 6, attackIV: 0, defenseIV: 0, hpIV: 0 },
-            { definitionId: 'skoll', level: 7, attackIV: 0, defenseIV: 0, hpIV: 0 },
+            { definitionId: 'draugr', attackIV: 0, defenseIV: 0, hpIV: 0 },
+            { definitionId: 'ymir', attackIV: 0, defenseIV: 0, hpIV: 0 },
+            { definitionId: 'skoll', attackIV: 0, defenseIV: 0, hpIV: 0 },
         ];
 
         const state = buildScenarioState(setup);
@@ -265,7 +254,6 @@ describe('buildScenarioState - decks, relics and enemyMode', () => {
         setup.enemies = [
             {
                 definitionId: 'draugr',
-                level: 10,
                 attackIV: 0,
                 defenseIV: 0,
                 hpIV: 0,
@@ -273,7 +261,6 @@ describe('buildScenarioState - decks, relics and enemyMode', () => {
             },
             {
                 definitionId: 'ymir',
-                level: 10,
                 attackIV: 0,
                 defenseIV: 0,
                 hpIV: 0,

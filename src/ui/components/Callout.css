@@ -1,0 +1,139 @@
+/*
+ * The onboarding strip — ticket 24. One tip, two buttons, no arrow.
+ *
+ * Two placements only:
+ *   .callout-battle — above the hand, inside `.console-area`. Width is capped so it cannot push
+ *     the console taller: ticket 22 measured the 1280x800 console at 265px and spent 505px of the
+ *     535px stage, i.e. 30px of slack for the WHOLE screen. So this strip is `position: absolute`
+ *     against the console and floats over the top of it rather than joining the flex column —
+ *     costing zero layout height, which is the only budget that was available.
+ *   .callout-panel — in the flow, at the top of a screen section (ranch, map). There is no pixel
+ *     budget there and a strip that shoves the content down a little is fine.
+ */
+
+.callout {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border: 1px solid rgba(0, 255, 204, 0.45);
+    border-left: 3px solid #00ffcc;
+    border-radius: 4px;
+    background: rgba(6, 22, 26, 0.94);
+    color: #d8fff7;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+.callout-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.callout-title {
+    margin: 0 0 3px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #00ffcc;
+}
+
+.callout-text {
+    margin: 0;
+}
+
+.callout-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.callout-button {
+    padding: 5px 12px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.callout-got-it {
+    border: 1px solid #00ffcc;
+    background: rgba(0, 255, 204, 0.16);
+    color: #00ffcc;
+}
+
+.callout-got-it:hover {
+    background: rgba(0, 255, 204, 0.28);
+}
+
+.callout-skip {
+    border: 1px solid rgba(216, 255, 247, 0.3);
+    background: transparent;
+    color: rgba(216, 255, 247, 0.7);
+}
+
+.callout-skip:hover {
+    color: #d8fff7;
+    border-color: rgba(216, 255, 247, 0.6);
+}
+
+/* --- Placements ------------------------------------------------------------------------- */
+
+.callout-battle {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(100% + 8px);
+    width: min(680px, 92vw);
+    z-index: 60;
+}
+
+.callout-panel {
+    width: 100%;
+    margin: 0 0 12px;
+}
+
+/* --- Entrance -------------------------------------------------------------------------- */
+
+/*
+ * The class is only applied when `prefersReducedMotion()` is false, so this rule is the whole
+ * animation and there is nothing to disable. The `@media` block below is belt-and-braces for a
+ * viewer whose preference changes after mount, since the JS gate is read once per render.
+ */
+.callout-enter {
+    animation: callout-in 180ms ease-out both;
+}
+
+@keyframes callout-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* The battle strip is already translated on X, so its keyframes must not clobber that. */
+.callout-battle.callout-enter {
+    animation-name: callout-in-centered;
+}
+
+@keyframes callout-in-centered {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Three states since ticket 36 — see the note in index.css beside `hud-death-fade`. */
+@media (prefers-reduced-motion: reduce) {
+    :root:not([data-reduced-motion]) .callout-enter,
+    :root:not([data-reduced-motion]) .callout-battle.callout-enter {
+        animation: none;
+    }
+}
+
+:root[data-reduced-motion="on"] .callout-enter,
+:root[data-reduced-motion="on"] .callout-battle.callout-enter {
+    animation: none;
+}

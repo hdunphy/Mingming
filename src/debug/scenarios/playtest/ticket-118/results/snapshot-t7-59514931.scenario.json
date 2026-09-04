@@ -1,0 +1,1089 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t7-59514931",
+  "description": "Auto-captured at turn 7, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_t118-06-triple-huldra-vs-zoo",
+    "seed": "595149312",
+    "turn": 7,
+    "phase": "ACTION",
+    "activeSide": "PLAYER",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_197ilts_1",
+        "definitionId": "huldra",
+        "level": 15,
+        "experience": 2916,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "name": "Huldra",
+        "maxHp": 80,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 35,
+        "speed": 10,
+        "primaryElement": "Nature",
+        "currentHp": 57,
+        "currentEnergy": 1,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "a4431313-6875-43cf-985c-ac2babd38ff3",
+            "type": "Weakened",
+            "stacks": 11
+          },
+          {
+            "id": "c7336691-a867-42ad-bf6b-0af2f74f44af",
+            "type": "Sharp",
+            "stacks": 9
+          },
+          {
+            "id": "97c139bf-0510-4f4d-bf7e-626e4ad45c49",
+            "type": "Regen",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Huldra.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 3,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_0kqz0n4_2",
+        "definitionId": "huldra",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "name": "Huldra",
+        "maxHp": 80,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 35,
+        "speed": 10,
+        "primaryElement": "Nature",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "bb7c52fb-8633-4281-873e-96b71d831c8a",
+            "type": "Sharp",
+            "stacks": 10
+          },
+          {
+            "id": "27e960a6-bd12-488c-8bf3-b1dc0cf510af",
+            "type": "Regen",
+            "stacks": 2
+          },
+          {
+            "id": "b4d266b8-8b12-4c95-90e2-d239eb80f7a8",
+            "type": "Weakened",
+            "stacks": 3
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Huldra.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 5,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_0lvaygw_3",
+        "definitionId": "huldra",
+        "level": 15,
+        "experience": 2916,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "name": "Huldra",
+        "maxHp": 80,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 35,
+        "speed": 10,
+        "primaryElement": "Nature",
+        "currentHp": 60,
+        "currentEnergy": 2,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "fcc3be85-9b74-4fdb-9402-f3372fc889ad",
+            "type": "Sharp",
+            "stacks": 9
+          },
+          {
+            "id": "e5088bd7-642c-43af-a2a0-c15081862c94",
+            "type": "Weakened",
+            "stacks": 8
+          },
+          {
+            "id": "806970ac-eba1-4db2-bd5e-84f39abfc40b",
+            "type": "Regen",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Huldra.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 0,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_1qon8qo_4",
+        "definitionId": "jormungandr",
+        "level": 15,
+        "experience": 2748,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "name": "Jormungandr",
+        "maxHp": 89,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "deca6c56-51ee-4d56-bbab-d9985521aadb",
+            "type": "Weakened",
+            "stacks": 9
+          },
+          {
+            "id": "e3e924d2-1726-4695-8276-686132709b9a",
+            "type": "Poison",
+            "stacks": 61
+          },
+          {
+            "id": "09581bea-f858-4bed-852a-800fd43d0c7a",
+            "type": "Sharp",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Jormungandr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 5,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_0sx5vk0_5",
+        "definitionId": "sleipnir",
+        "level": 15,
+        "experience": 2748,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "name": "Sleipnir",
+        "maxHp": 78,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 32,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "0daf8ac6-ce24-4cbf-867c-f4ff82f1f011",
+            "type": "Sharp",
+            "stacks": 1
+          },
+          {
+            "id": "3ddd3d4b-711b-45dc-baa6-529326c749e1",
+            "type": "Weakened",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Sleipnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 4,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_10pxl34_6",
+        "definitionId": "hraesvelgr",
+        "level": 15,
+        "experience": 2748,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "name": "Hraesvelgr",
+        "maxHp": 77,
+        "cardDraw": 4,
+        "maxEnergy": 2,
+        "attack": 36,
+        "defense": 30,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 0,
+        "currentEnergy": 1,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "c8e5af40-635c-44e7-9dae-b1e8e3dc63a3",
+            "type": "Weakened",
+            "stacks": 9
+          },
+          {
+            "id": "8d5c37da-d6e5-4aab-ba66-79c68dd6b9e2",
+            "type": "Poison",
+            "stacks": 8
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Hraesvelgr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1sjpf9c_p",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0se37r4_j",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1bocj5s_l",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ic660w_7",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_183yozk_8",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0h050ww_x",
+          "dataId": "hexbloom",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0rz8r28_q",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1oqwkjk_r",
+          "dataId": "soothe",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0sac2yo_a",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0exs0sg_c",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03nfl6o_e",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1p7jm9s_w",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_1w2pqtc_b",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1n0kum8_t",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_0m2dd6o_u",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0zbwb9c_s",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0vr2whs_n",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0kaw35s_o",
+          "dataId": "hexbloom",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1bdlmkg_d",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ddxszk_i",
+          "dataId": "soothe",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_091tzi8_g",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1cbanls_v",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1yymby8_k",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0az6eio_f",
+          "dataId": "hexbloom",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_05yeu80_9",
+          "dataId": "soothe",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1qttwxs_h",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ftflz4_m",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_02ma4u8_1p",
+          "dataId": "tempest",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1dg5uyo_1o",
+          "dataId": "sky_burial",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ogoruo_15",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_182u0ao_10",
+          "dataId": "blind_spot",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ro6mm8_1t",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0d5ebc0_19",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0fq11xc_1h",
+          "dataId": "momentum_crash",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1hd0phc_14",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ikcetc_1j",
+          "dataId": "feather_cache",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0t5lvk0_1e",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_19wwz5s_1a",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1k9ugw0_1n",
+          "dataId": "sky_burial",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0gf27ls_1s",
+          "dataId": "carrion_swoop",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_09onjeo_1u",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1eh1m9s_1d",
+          "dataId": "tailwind",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_015kw00_y",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_06xu3gg_1b",
+          "dataId": "disorienting_gust",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0xvx8g0_1c",
+          "dataId": "adrenaline",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0xkhfcw_12",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_09lwq9s_16",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0u58oao_1r",
+          "dataId": "carrion_swoop",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1xnhmo0_1f",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1use9z4_17",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0whsohs_13",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_04u6gao_18",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0fyn9xc_1k",
+          "dataId": "feather_cache",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1ahuqrk_1q",
+          "dataId": "tempest",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1m6v18g_1l",
+          "dataId": "war_molt",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1sjh4w0_1m",
+          "dataId": "war_molt",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0bxo1z4_1g",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0i0ka9s_z",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ide5ts_11",
+          "dataId": "corrosive_leak",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": [
+        {
+          "id": "aad2972b-24a5-4f12-a76d-f6bc0d8288f6",
+          "dataId": "sky_burial_risen",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ]
+    },
+    "logs": [
+      "Huldra plays Tackle → Jormungandr",
+      "  → Jormungandr takes 2 damage",
+      "Huldra plays Thorn Tithe → Sleipnir",
+      "  → Sleipnir takes 16 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "Huldra plays Hexbloom → Sleipnir",
+      "  → Sleipnir gains Poison (2 stacks)",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "  💚 Huldra — Regen heals 2 HP (4 → 3 stacks)",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Hraesvelgr plays War Molt → Huldra",
+      "  → Huldra takes 4 damage",
+      "Sleipnir plays Serpent's Coil → Huldra",
+      "  → Huldra takes 2 damage",
+      "Hraesvelgr plays Tackle → Huldra",
+      "  → Huldra takes 2 damage",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "Sleipnir plays Ink Stream → Huldra",
+      "  → Huldra takes 5 damage",
+      "Hraesvelgr plays Blind Spot → Huldra",
+      "  → Huldra takes 1 damage",
+      "  → Huldra gains Dazed (1 stacks)",
+      "Jormungandr plays Hoofbeat Daemon → Jormungandr",
+      "  → Huldra takes 1 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Slipstream → Jormungandr",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "Sleipnir plays Tackle → Huldra",
+      "  → Huldra takes 2 damage",
+      "Hraesvelgr plays Stampede → Huldra",
+      "  → Huldra takes 30 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Sleipnir takes 1 damage from Poison",
+      "  ☠️ Sleipnir — Poison deals 1 damage (2 stacks)",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "Huldra plays Growth → Huldra",
+      "  ✨ Huldra's Dazed canceled by Sharp",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Thorn Tithe → Sleipnir",
+      "  → Sleipnir takes 15 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Thorn Tithe → Sleipnir",
+      "  → Sleipnir takes 16 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (1 → 0 stacks)",
+      "  ✅ Huldra — Regen wore off",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "  💚 Huldra — Regen heals 2 HP (3 → 2 stacks)",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Sleipnir plays Zephyr Strike → Huldra",
+      "  → Huldra takes 2 damage",
+      "Sleipnir plays Zephyr Strike → Huldra",
+      "  → Huldra takes 2 damage",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "  ✨ Sleipnir's Weakened canceled by Strengthened",
+      "Sleipnir plays Undertow → Sleipnir",
+      "Jormungandr plays Surge Protection → Huldra",
+      "  → Huldra takes 7 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Disorienting Gust → Huldra",
+      "  ✨ Huldra's Sharp reduced by 1 by Dazed",
+      "  → Sleipnir gains Sharp (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Feather Cache → Huldra",
+      "  → Huldra takes 1 damage",
+      "Jormungandr plays Ink Stream → Huldra",
+      "  → Huldra takes 20 damage",
+      "Hraesvelgr plays Carrion Swoop → Huldra",
+      "  → Huldra takes 0 damage",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Corrosive Leak → Jormungandr",
+      "  → Jormungandr gains Poison (2 stacks)",
+      "  → Jormungandr gains Energized (1 stacks)",
+      "Hraesvelgr plays Carrion Swoop → Huldra",
+      "  → Huldra takes 0 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Feather Cache → Huldra",
+      "  → Huldra takes 1 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Jormungandr takes 1 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 1 damage (2 stacks)",
+      "  → Sleipnir takes 1 damage from Poison",
+      "  ☠️ Sleipnir — Poison deals 1 damage (1 stacks)",
+      "  ✅ Sleipnir — Poison wore off",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Tackle → Sleipnir",
+      "  → Sleipnir takes 2 damage",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  ✨ Sleipnir's Strengthened reduced by 1 by Weakened",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Thorn Tithe → Sleipnir",
+      "  → Sleipnir takes 16 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "Huldra plays Hexbloom → Hraesvelgr",
+      "  → Hraesvelgr gains Poison (12 stacks)",
+      "Huldra plays Hexbloom → Jormungandr",
+      "  → Jormungandr gains Poison (16 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (3 → 2 stacks)",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Sleipnir plays Adrenaline → Huldra",
+      "  → Huldra takes 3 damage",
+      "  → Sleipnir gains Strengthened (2 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Undertow → Sleipnir",
+      "Sleipnir plays Momentum Crash → Huldra",
+      "  🔥 Sleipnir's Strengthened consumed (6 stacks)",
+      "  → Huldra takes 11 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 3 allies",
+      "Hraesvelgr plays Tempest → Hraesvelgr",
+      "  → Huldra takes 0 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Huldra takes 0 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Huldra takes 0 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Huldra takes 0 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "  → Huldra takes 0 damage",
+      "Hraesvelgr's GALE_FORCE_OS creates a retaliatory updraft!",
+      "Hraesvelgr discards Sky Burial!",
+      "  ✨ Sky Burial discard effect triggered!",
+      "Hraesvelgr discards War Molt!",
+      "  ✨ War Molt discard effect triggered!",
+      "  ✨ Hraesvelgr's Weakened reduced by 2 by Strengthened",
+      "Hraesvelgr discards Serpent's Coil!",
+      "Hraesvelgr discards Tailwind!",
+      "Hraesvelgr discards Stampede!",
+      "Hraesvelgr plays Sky Burial → Huldra",
+      "  → Huldra takes 2 damage",
+      "Jormungandr plays Ink Stream → Huldra",
+      "  → Huldra takes 15 damage",
+      "Sleipnir plays Sky Burial, Risen → Huldra",
+      "  → Huldra takes 8 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Jormungandr takes 15 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 15 damage (17 stacks)",
+      "  → Hraesvelgr takes 9 damage from Poison",
+      "  ☠️ Hraesvelgr — Poison deals 9 damage (12 stacks)",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "Huldra plays Thorn Tithe → Sleipnir",
+      "  → Sleipnir takes 14 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 2 allies",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "Huldra plays Thorn Tithe → Hraesvelgr",
+      "  → Hraesvelgr takes 16 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "  💚 Huldra — Regen heals 2 HP (1 → 0 stacks)",
+      "  ✅ Huldra — Regen wore off",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Hraesvelgr plays Blind Spot → Huldra",
+      "  → Huldra takes 0 damage",
+      "  ✨ Huldra's Sharp reduced by 1 by Dazed",
+      "Hraesvelgr plays Zephyr Strike → Huldra",
+      "  → Huldra takes 1 damage",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Slipstream → Jormungandr",
+      "Jormungandr plays Momentum Crash → Huldra",
+      "  → Huldra takes 0 damage",
+      "Jormungandr plays Serpent's Coil → Huldra",
+      "  → Huldra takes 0 damage",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Feather Cache → Huldra",
+      "  → Huldra takes 0 damage",
+      "Hraesvelgr plays Zephyr Strike → Huldra",
+      "  → Huldra takes 1 damage",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Slipstream → Jormungandr",
+      "--- ENEMY ends their turn ---",
+      "  → Jormungandr takes 14 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 14 damage (16 stacks)",
+      "  → Hraesvelgr takes 8 damage from Poison",
+      "  ☠️ Hraesvelgr — Poison deals 8 damage (11 stacks)",
+      "⚔️ Turn 5 — PLAYER's turn begins",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "Huldra plays Tackle → Jormungandr",
+      "  → Jormungandr takes 1 damage",
+      "Huldra plays Thorn Tithe → Hraesvelgr",
+      "  → Hraesvelgr takes 14 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "Huldra plays Hexbloom → Jormungandr",
+      "  → Jormungandr gains Poison (22 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (3 → 2 stacks)",
+      "⚔️ Turn 5 — ENEMY's turn begins",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Slipstream → Jormungandr",
+      "Hraesvelgr plays Tailwind → Hraesvelgr",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Undertow → Jormungandr",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Disorienting Gust → Huldra",
+      "  ✨ Huldra's Sharp reduced by 1 by Dazed",
+      "  → Jormungandr gains Sharp (1 stacks)",
+      "Hraesvelgr plays Adrenaline → Huldra",
+      "  → Huldra takes 0 damage",
+      "  ✨ Hraesvelgr's Weakened reduced by 2 by Strengthened",
+      "Jormungandr plays Surge Protection → Huldra",
+      "  → Huldra takes 6 damage",
+      "Jormungandr plays Ink Stream → Huldra",
+      "  → Huldra takes 16 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Jormungandr takes 32 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 32 damage (37 stacks)",
+      "  → Hraesvelgr takes 7 damage from Poison",
+      "  ☠️ Hraesvelgr — Poison deals 7 damage (10 stacks)",
+      "⚔️ Turn 6 — PLAYER's turn begins",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Thorn Tithe → Hraesvelgr",
+      "  → Hraesvelgr takes 15 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "Huldra plays Iron Bark → Huldra",
+      "  → Huldra gains Sharp (3 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Huldra gains Regen (2 stacks)",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "Huldra plays Hexbloom → Jormungandr",
+      "  → Jormungandr gains Poison (26 stacks)",
+      "--- PLAYER ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "⚔️ Turn 6 — ENEMY's turn begins",
+      "Jormungandr plays Serpent's Coil → Huldra",
+      "  → Huldra takes 0 damage",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Tackle → Huldra",
+      "  → Huldra takes 0 damage",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Feather Cache → Huldra",
+      "  → Huldra takes 0 damage",
+      "Jormungandr plays Tempest → Jormungandr",
+      "Jormungandr discards War Molt!",
+      "  ✨ War Molt discard effect triggered!",
+      "  ✨ Jormungandr's Weakened reduced by 2 by Strengthened",
+      "Jormungandr discards War Molt!",
+      "  ✨ War Molt discard effect triggered!",
+      "  ✨ Jormungandr's Weakened reduced by 2 by Strengthened",
+      "Hraesvelgr plays Stampede → Huldra",
+      "  → Huldra takes 0 damage",
+      "  → Huldra takes 0 damage",
+      "Jormungandr's HOOFBEAT_DAEMON stampedes into Huldra!",
+      "Jormungandr plays Undertow → Jormungandr",
+      "--- ENEMY ends their turn ---",
+      "  → Jormungandr takes 55 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 55 damage (62 stacks)",
+      "  → Hraesvelgr takes 6 damage from Poison",
+      "  ☠️ Hraesvelgr — Poison deals 6 damage (9 stacks)",
+      "  ✨ 144 XP split among 2 allies",
+      "  ☠️ Jormungandr DEFEATED BY STATUS",
+      "⚔️ Turn 7 — PLAYER's turn begins",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Growth → Huldra",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Hraesvelgr gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Huldra plays Thorn Tithe → Hraesvelgr",
+      "  → Hraesvelgr takes 14 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 2 allies",
+      "  → Huldra gains Weakened (3 stacks)"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 3,
+    "cardsDrawnThisTurn": 5,
+    "nonNaturalCardsDrawnThisTurn": 0,
+    "lastProgramPlayed": "thorn_tithe",
+    "counters": {
+      "jorm_water:mm_1qon8qo_4": 2,
+      "jorm_ouroboros_used:mm_1qon8qo_4": 0,
+      "last_overheal": 0,
+      "last_heal_intended": 1,
+      "last_heal_power": 8,
+      "deck_shuffles": 2
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 0,
+      "Nature": 3,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 1,
+    "resolvingCardInstanceId": null,
+    "cardsDiscardedThisTurn": 0,
+    "discardedByEffect": [
+      "ENEMY:card_1k9ugw0_1n",
+      "ENEMY:card_1m6v18g_1l",
+      "ENEMY:card_0whsohs_13",
+      "ENEMY:card_1eh1m9s_1d",
+      "ENEMY:card_1xnhmo0_1f",
+      "ENEMY:card_1m6v18g_1l",
+      "ENEMY:card_1sjh4w0_1m"
+    ]
+  },
+  "version": 1,
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-28T02:27:35.524Z"
+}

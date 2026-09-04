@@ -2,10 +2,11 @@
 import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
+import { ENV } from './_env';
 
-const DECK = process.env.DECK ?? 'sleipnir_v1';
+const DECK = ENV.DECK ?? 'sleipnir_v1';
 const SPECIES = DECK.replace(/_v[12]$/, '');
-const ITER = Number(process.env.ITER ?? 10);
+const ITER = Number(ENV.ITER ?? 10);
 
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== SPECIES)

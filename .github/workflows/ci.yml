@@ -1,0 +1,74 @@
+name: CI
+
+# Ticket 03 (steam-release map). Before this workflow existed, `deploy.yml` was the only
+# automation in the repo and it did nothing but build and publish `main` to Pages — the test
+# suite never ran anywhere except on a developer's machine, and the committed `test_output.txt`
+# that everyone read as the suite's state was a stale partial run ending in "4 failed".
+#
+# Two things run here that are load-bearing beyond "the tests pass":
+#   * `npm run build` ends in `scripts/assert-no-debug.mjs`, which walks dist/ for the debug
+#     toolkit's marker. That is the release gate that keeps `src/debug/` out of shipped bundles.
+#   * `src/ui/utils/previewParity.test.ts` replays cards through the real reducer and asserts the
+#     damage preview equals the actual result. It is part of `vitest run`, so it becomes a
+#     standing gate for free (deck-archetypes ticket 104).
+#
+# `npm run balance` is deliberately NOT here: 11 minutes on 2 cores. It stays manual until
+# deck-archetypes ticket 108 optimizes the pipeline (map § fog, "Nightly long-balance run").
+#
+# LINT IS BLOCKING (since ticket 55 closed, 2026-08-23). It was advisory from 2026-08-21, when the
+# tree failed `npm run lint` with 510 pre-existing errors and blocking on them would have meant a
+# 510-edit diff across the engine inside a CI ticket. Ticket 55 burned them down to zero; the only
+# two survivors are `ProgramAction`'s index signature and `MutationRequest.payload`, each disabled
+# in place with the argument written beside it. Every gate here is hard-blocking.
+
+on:
+  push:
+    # `main` is covered by deploy.yml, which calls this workflow via workflow_call before it
+    # builds. Listing main here too would run every gate twice on every push to it.
+    branches-ignore: [ main ]
+  pull_request:
+  workflow_call:
+
+# One in-flight run per branch. A force-push mid-run cancels the run it superseded.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: typecheck / test / lint / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci`, not `npm install`: it installs exactly package-lock.json and fails if the
+      # lockfile and package.json have drifted, which is the point of running it in CI.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Tests
+        run: npx vitest run
+
+      # BLOCKING since ticket 55 closed (2026-08-23). The tree lints clean — 0 errors, 0 warnings —
+      # so a new one is a new one, and there is no debt for it to hide in.
+      - name: Lint
+        run: npm run lint
+
+      # Ends in scripts/assert-no-debug.mjs — proves the debug toolkit is absent from dist/.
+      - name: Build (includes the assert-no-debug release gate)
+        run: npm run build

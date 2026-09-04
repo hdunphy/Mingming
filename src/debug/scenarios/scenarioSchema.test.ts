@@ -19,13 +19,13 @@ function composedScenario() {
             enemyMode: 'MOVES',
             player: {
                 party: [
-                    { definitionId: 'fenrir', level: 10, attackIV: 31, defenseIV: 0, hpIV: 15 },
+                    { definitionId: 'fenrir', attackIV: 31, defenseIV: 0, hpIV: 15 },
                 ],
                 deck: ['ignite', 'scorch'],
                 relics: [] as string[],
             },
             enemies: [
-                { definitionId: 'draugr', level: 10, attackIV: 0, defenseIV: 0, hpIV: 0 },
+                { definitionId: 'draugr', attackIV: 0, defenseIV: 0, hpIV: 0 },
             ],
             gauntlet: null as unknown,
         },
@@ -46,7 +46,6 @@ function snapshotScenario() {
 function partyOf(count: number) {
     return Array.from({ length: count }, (_unused, index) => ({
         definitionId: 'fenrir',
-        level: 10,
         attackIV: 0,
         defenseIV: 0,
         hpIV: index,
@@ -73,7 +72,7 @@ describe('migrateScenario', () => {
         expect(migrateScenario(scenario)).toEqual(scenario);
     });
 
-    it('treats an unversioned file as v1, mirroring migrateSave', () => {
+    it('treats an unversioned file as v1', () => {
         const { version: _dropped, ...unversioned } = composedScenario();
 
         expect((migrateScenario(unversioned) as { version: number }).version).toBe(1);
@@ -107,7 +106,54 @@ describe('ScenarioSchema - composed', () => {
         expect(ScenarioSchema.safeParse(scenario).success).toBe(true);
     });
 
-    it('caps the party at 3, mirroring PlayerSaveSchema.activeParty', () => {
+    /**
+     * Ticket 18 reconciled `GauntletContext` with the ratified `IGauntletProgress`. Three claims are
+     * worth pinning, and the third is the reason the change needed no scenario-version bump.
+     */
+    describe('gauntlet context (ticket 18)', () => {
+        it('accepts IGauntletProgress’s shape', () => {
+            const scenario = composedScenario();
+            scenario.setup.gauntlet = {
+                fightIndex: 1,
+                totalFights: 3,
+                persistedHp: { mm1: 22, mm2: 0 },
+                downedMemberIds: ['mm2'],
+            };
+
+            expect(ScenarioSchema.safeParse(scenario).success).toBe(true);
+        });
+
+        it('rejects the v3 shape it replaced', () => {
+            // `type` / `element` / `currentBattleIndex` / `totalBattles` / `persistedStats`. Nothing
+            // on disk carries this (see the note above `GauntletContextSchema`), so rejecting it is
+            // a visible failure for a hand-written file rather than a migration anyone needs.
+            const scenario = composedScenario();
+            scenario.setup.gauntlet = {
+                type: 'Gym',
+                element: 'Fire',
+                currentBattleIndex: 1,
+                totalBattles: 3,
+                persistedStats: { mm1: { hp: 22 } },
+            };
+
+            expect(ScenarioSchema.safeParse(scenario).success).toBe(false);
+        });
+
+        it('defaults downedMemberIds, so the field can be omitted', () => {
+            const scenario = composedScenario();
+            scenario.setup.gauntlet = { fightIndex: 0, totalFights: 3, persistedHp: {} };
+
+            const result = ScenarioSchema.safeParse(scenario);
+            expect(result.success).toBe(true);
+            expect(
+                result.success && result.data.kind === 'composed'
+                    ? result.data.setup.gauntlet?.downedMemberIds
+                    : undefined,
+            ).toEqual([]);
+        });
+    });
+
+    it('caps the party at 3, mirroring PARTY_SIZE / RunStateSchema.partyIds', () => {
         const ok = composedScenario();
         ok.setup.player.party = partyOf(3);
         expect(ScenarioSchema.safeParse(ok).success).toBe(true);
@@ -130,13 +176,6 @@ describe('ScenarioSchema - composed', () => {
         expect(ScenarioSchema.safeParse(edge).success).toBe(true);
     });
 
-    it('requires level >= 1', () => {
-        const scenario = composedScenario();
-        scenario.setup.player.party[0].level = 0;
-
-        expect(ScenarioSchema.safeParse(scenario).success).toBe(false);
-    });
-
     it('requires enemyMode to be explicit on disk', () => {
         const scenario = composedScenario();
         Reflect.deleteProperty(scenario.setup, 'enemyMode');
@@ -153,7 +192,6 @@ describe('ScenarioSchema - composed', () => {
                 enemies: [
                     {
                         definitionId: 'draugr',
-                        level: 10,
                         attackIV: 0,
                         defenseIV: 0,
                         hpIV: 0,

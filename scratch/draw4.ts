@@ -17,15 +17,16 @@
  */
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
+import { ENV } from './_env';
 
 // DRAW sets the cardDraw of whatever species DECK names - the knob generalises, because the
 // interesting question turned out to be WHICH deck the recipe fits, not what sleipnir does with it.
-if (process.env.DRAW) {
-    const sp = (process.env.DECK ?? 'sleipnir_v1').replace(/_v[12]$/, '');
-    (MingmingRegistry[sp] as { cardDraw: number }).cardDraw = Number(process.env.DRAW);
+if (ENV.DRAW) {
+    const sp = (ENV.DECK ?? 'sleipnir_v1').replace(/_v[12]$/, '');
+    (MingmingRegistry[sp] as { cardDraw: number }).cardDraw = Number(ENV.DRAW);
 }
 // The payback: ticket 88 measured the exchange at ~2-3 cards of power per draw point.
-for (const spec of (process.env.CUT ?? '').split(',').filter(Boolean)) {
+for (const spec of (ENV.CUT ?? '').split(',').filter(Boolean)) {
     const [id, power] = spec.split(':');
     const card = (ProgramRegistry as Record<string, { actions: Array<Record<string, unknown>> }>)[id];
     const attack = card.actions.find(a => a.type === 'ATTACK');
@@ -41,9 +42,9 @@ const { battleReducer } = await import('../src/engine/battleReducer');
 const { getBestAction } = await import('../src/engine/ai/TacticalAI');
 type St = import('../src/engine/types').IBattleState;
 
-const DECK = process.env.DECK ?? 'sleipnir_v1';
+const DECK = ENV.DECK ?? 'sleipnir_v1';
 const SPECIES = DECK.replace(/_v[12]$/, '');
-const ITER = Number(process.env.ITER ?? 8);
+const ITER = Number(ENV.ITER ?? 8);
 
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== SPECIES)
@@ -102,13 +103,13 @@ const hist = (a: number[]) => {
 };
 
 console.error(`\n${DECK}   draw ${MingmingRegistry[SPECIES].cardDraw}` +
-    (process.env.CUT ? `   cut ${process.env.CUT}` : '   (uncut)'));
+    (ENV.CUT ? `   cut ${ENV.CUT}` : '   (uncut)'));
 console.error(`  field ${((sum / n) * 100).toFixed(1)}%   dead ${((dead / n) * 100).toFixed(1)}%   ` +
     `turns ${(turns / n).toFixed(2)}   absolutes ${cells.filter(c => c >= 100 || c <= 0).length}`);
 console.error(`  CARDS PER TURN   mean ${mean(perTurn).toFixed(2)}   ` +
     `4+ on ${((perTurn.filter(v => v >= 4).length / perTurn.length) * 100).toFixed(0)}% of turns`);
 console.error(`  distribution     ${hist(perTurn)}`);
 console.error(`  max in one turn  ${Math.max(...perTurn)}   (a double-digit max means the bucketing broke, not the deck)`);
-console.error(`CSV,${DECK},${MingmingRegistry[SPECIES].cardDraw},${process.env.CUT ?? ''},` +
+console.error(`CSV,${DECK},${MingmingRegistry[SPECIES].cardDraw},${ENV.CUT ?? ''},` +
     `${((sum / n) * 100).toFixed(2)},${mean(perTurn).toFixed(3)},` +
     `${((perTurn.filter(v => v >= 4).length / perTurn.length) * 100).toFixed(1)}`);

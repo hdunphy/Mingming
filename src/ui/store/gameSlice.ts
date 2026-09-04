@@ -1,270 +1,295 @@
+/**
+ * The ranch slice — ticket 11 (steam-release map), part 1.
+ *
+ * # `state.game` IS `IRanchState`, EXACTLY
+ *
+ * Ticket 06 ratified two shapes and ticket 23 built the two-key save for them: **`IRanchState` is
+ * what persists** (assembled individuals, blueprint counts, the codex, gyms and tiers cleared) and
+ * **`IRunState` is what does not** (the deck, scrap, drivers, gauntlet progress — `runSlice.ts`).
+ * Until this ticket the slice still held `IPlayerSave`, the pre-roguelike blob, and
+ * `engine/save/ranchProjection.ts` translated between the two at the save boundary. Both are gone:
+ * this reducer's state object *is* the thing that gets written, field for field, so `store.ts` can
+ * hand `state.game` straight to `saveRanch` and there is nothing left to keep in sync.
+ *
+ * # WHY THIS FILE IS STILL CALLED `gameSlice` AND THE KEY IS STILL `game`
+ *
+ * Deliberately, and only for the length of one commit. Renaming the module and the state key to
+ * `ranch` touches every `useSelector` and every test in the repo for zero behavioural change, which
+ * would bury this diff — the one that actually moves the shape — under pure churn. The rename is
+ * its own commit.
+ *
+ * # WHAT LEFT, AND WHERE IT WENT
+ *
+ * - `version` — vestigial. Save versions are `SAVE_VERSION_V4`, per envelope (`runTypes.ts`).
+ * - `activeParty` — **gone from the ranch entirely**, along with `setActiveParty`. The party is
+ *   chosen at run start and lives in `IRunState.partyIds`, so a persistent ranch party is not a
+ *   concept any more. `engine/party.ts` still owns the species clause, and the two places that can
+ *   still create a party both enforce it: `RunStart` (via `partyBlockFor`) at pick time, and
+ *   `reconcileLoadedState` at load — the latter spelling the laws out itself, because it also has
+ *   to decide what to discard when they fail.
+ * - `cardInventory` / `activeDeck` / `baseDecksGranted` — collapsed into `IRunState.deck`, which is
+ *   `IRunCard[]` carrying `dataId` directly, so the instance-id indirection disappears with them.
+ * - `scrapCount` → `IRunState.scrap`; `relics` → `IRunState.drivers`; `gauntlet` →
+ *   `IRunState.gauntlet`. See `runSlice.ts` for the reducers.
+ * - `unlockedSectors` → `gymsCleared`, the ranch field that already meant this.
+ *
+ * # WHAT TICKET 19 ADDED
+ *
+ * `recordCodexSeen` — the first thing in the codebase ever to write `IRanchState.codex`. It is the
+ * honest minimum and says so at the reducer: run teardown merges the run's card dataIds into
+ * `seen`, deduped, and the **seen/played distinction stays ticket 31's**, because `played` needs an
+ * in-battle hook that does not belong to a run-end screen.
+ *
+ * # THE NO-OP CONVENTION
+ *
+ * Every reducer that can fail a precondition **returns silently** rather than throwing: a reducer
+ * has no error channel, the store has nowhere to put one, and the screens check affordability
+ * before dispatching. `assembleMingming` and `swapOS` both spend a blueprint atomically for the
+ * same reason — the old two-dispatch flow (`spendScrap` then `addToRoster`) had a window in which
+ * a unit could be built for free.
+ */
+
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type {
-    IPlayerSave,
-    IOwnedProgram,
-    IActiveDeck,
-    IBlueprint,
-    IRewardBundle,
-    IGauntletState
-} from '../../engine/gameTypes';
-import { createDefaultSave, createStarterSave, DECK_SIZE, deckGrantKey, OS_SWAP_SCRAP_COST, OS_SWAP_PICK_COUNT } from '../../engine/gameTypes';
-import type { IMingmingState, IBattleEntity } from '../../engine/types';
-import { getExpForLevel } from '../../engine/types';
-import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 
-const initialState: IPlayerSave = createDefaultSave();
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import type { IRanchMember, IRanchState } from '../../engine/runTypes';
+
+/**
+ * A ranch with nothing in it — a new player, and what `resetSave` returns to.
+ *
+ * There is no starting sector list any more. v3 seeded `unlockedSectors` with Fire/Water/Nature
+ * because the sector picker needed somewhere to go; `gymsCleared` means something different and
+ * narrower — gyms you have actually beaten — so seeding it would be claiming three clears that
+ * never happened. What a new player may attempt is decided at run start by `offerGyms`, not by
+ * this list.
+ */
+export function createEmptyRanch(): IRanchState {
+    return {
+        roster: [],
+        blueprints: {},
+        codex: { seen: [], played: [], species: [], assembled: [], os: [] },
+        gymsCleared: [],
+        highestTierCleared: 0,
+        seenTips: [],
+        codexMilestones: [],
+    };
+}
+
+/**
+ * Add to an add-only, deduped ledger — the codex's one law, in one place (ticket 31).
+ *
+ * Takes the immer draft's readonly array and casts, which is the convention every reducer in this
+ * file already uses. Empty ids are dropped rather than stored: a blank entry would count toward a
+ * completion total that has no member to match it.
+ */
+function addTo(ledger: ReadonlyArray<string>, id: string): void {
+    if (id === '') return;
+    const list = ledger as string[];
+    if (list.includes(id)) return;
+    list.push(id);
+}
+
+const initialState: IRanchState = createEmptyRanch();
 
 const gameSlice = createSlice({
     name: 'game',
     initialState,
     reducers: {
         // --- Roster ---
-        addToRoster: (state, action: PayloadAction<IMingmingState>) => {
-            (state.roster as IMingmingState[]).push(action.payload);
-
-            // First-time synthesis of a (species, OS) grants that OS's starting kit
-            // (ticket 13: per-OS decks; ticket 15: grants are keyed species+OS).
-            const definition = MingmingRegistry[action.payload.definitionId];
-            if (definition) {
-                const compiledOS = action.payload.activeOS ?? definition.availableOS[0];
-                const key = deckGrantKey(definition.id, compiledOS);
-                if (!state.baseDecksGranted.includes(key)) {
-                    for (const dataId of getDeckForOS(definition.id, compiledOS)) {
-                        (state.cardInventory as IOwnedProgram[]).push({
-                            instanceId: crypto.randomUUID(),
-                            dataId
-                        });
-                    }
-                    (state.baseDecksGranted as string[]).push(key);
-                }
-            }
+        /**
+         * Bare add, no cost. **Not the player-facing path** — ticket 20 routes assembly through
+         * `assembleMingming`, which spends the blueprint. This one survives for the debug toolkit
+         * and for tests that need a roster member without an economy.
+         *
+         * Ticket 11 deleted its base-deck grant. It used to push the species' starting kit into
+         * `cardInventory` and record a `deckGrantKey`, which was pre-run-loop behaviour kept alive
+         * only so the debug launcher's "saved deck" mode had something to read. Cards are
+         * run-scoped now and ticket 08's `startKit` tags supply the start deck at run start, so a
+         * roster addition grants nothing at all.
+         */
+        addToRoster: (state, action: PayloadAction<IRanchMember>) => {
+            (state.roster as IRanchMember[]).push(action.payload);
         },
         removeFromRoster: (state, action: PayloadAction<string>) => {
-            const id = action.payload;
-            // Also remove from active party if present
-            state.activeParty = (state.activeParty as string[]).filter(pid => pid !== id);
-            state.roster = (state.roster as IMingmingState[]).filter(m => m.id !== id);
-        },
-
-        /**
-         * Grants experience to a roster instance and runs the same level-up
-         * progression the battle path uses (`handleLevelUp` in effectHandlers),
-         * so a grant that crosses several thresholds behaves identically to
-         * earning that XP in combat: `experience` is cumulative and is never
-         * spent on a level, and levels are taken one threshold at a time.
-         *
-         * Derived stats (maxHp/attack/defense) are the battle-side half of
-         * handleLevelUp and have no roster counterpart to update -- they are
-         * recomputed from level + IVs by initializeBattleEntity when the unit
-         * next enters battle.
-         *
-         * This is a general game capability (a future XP relic/card grants it);
-         * it is deliberately NOT wired into applyRewardBundle -- see the note
-         * there on the rewards-grant-no-XP rule.
-         */
-        grantExperience: (state, action: PayloadAction<{ mingmingId: string, amount: number }>) => {
-            const { mingmingId, amount } = action.payload;
-            // Keep the save PlayerSaveSchema-valid: `experience` must remain a
-            // non-negative integer, and this action only ever grants XP.
-            if (!Number.isFinite(amount)) return;
-            const gain = Math.floor(amount);
-            if (gain <= 0) return;
-
-            const mm = state.roster.find(m => m.id === mingmingId);
-            if (!mm) return;
-
-            mm.experience += gain;
-            while (mm.experience >= getExpForLevel(mm.level + 1)) {
-                mm.level += 1;
-            }
-        },
-
-        // --- Active Party (max 3) ---
-        setActiveParty: (state, action: PayloadAction<string[]>) => {
-            const ids = action.payload.slice(0, 3);
-            // Validate all IDs exist in roster
-            const rosterIds = new Set(state.roster.map(m => m.id));
-            state.activeParty = ids.filter(id => rosterIds.has(id));
-        },
-
-        // --- Card Inventory ---
-        addCardToInventory: (state, action: PayloadAction<IOwnedProgram>) => {
-            (state.cardInventory as IOwnedProgram[]).push(action.payload);
-        },
-        addCardsToInventory: (state, action: PayloadAction<IOwnedProgram[]>) => {
-            for (const card of action.payload) {
-                (state.cardInventory as IOwnedProgram[]).push(card);
-            }
-        },
-        removeCardFromInventory: (state, action: PayloadAction<string>) => {
-            const instanceId = action.payload;
-            state.cardInventory = (state.cardInventory as IOwnedProgram[]).filter(
-                c => c.instanceId !== instanceId
-            );
-            // Also remove from active deck if present
-            if (state.activeDeck) {
-                state.activeDeck = {
-                    ...state.activeDeck,
-                    cards: (state.activeDeck.cards as string[]).filter(id => id !== instanceId)
-                };
-            }
-        },
-
-        // --- Active Deck ---
-        setActiveDeck: (state, action: PayloadAction<IActiveDeck>) => {
-            state.activeDeck = action.payload as any;
-        },
-        addCardToDeck: (state, action: PayloadAction<string>) => {
-            if (!state.activeDeck) return;
-            if (state.activeDeck.cards.length >= DECK_SIZE) return;
-            // Verify card exists in inventory
-            const exists = state.cardInventory.some(c => c.instanceId === action.payload);
-            if (!exists) return;
-            // Verify not already in deck
-            if (state.activeDeck.cards.includes(action.payload)) return;
-            state.activeDeck = {
-                ...state.activeDeck,
-                cards: [...state.activeDeck.cards, action.payload]
-            };
-        },
-        addCardsToDeck: (state, action: PayloadAction<string[]>) => {
-            // Mirror DeckTerminal's auto-create behavior when no deck exists yet
-            if (!state.activeDeck) {
-                state.activeDeck = { id: crypto.randomUUID(), name: 'Main Deck', cards: [] } as any;
-            }
-            const inventoryIds = new Set(state.cardInventory.map(c => c.instanceId));
-            const cards = [...state.activeDeck!.cards];
-            for (const instanceId of action.payload) {
-                if (cards.length >= DECK_SIZE) break;
-                if (!inventoryIds.has(instanceId)) continue;
-                if (cards.includes(instanceId)) continue;
-                cards.push(instanceId);
-            }
-            state.activeDeck = { ...state.activeDeck!, cards };
-        },
-        clearDeck: (state) => {
-            if (!state.activeDeck) return;
-            state.activeDeck = { ...state.activeDeck, cards: [] };
-        },
-        removeCardFromDeck: (state, action: PayloadAction<string>) => {
-            if (!state.activeDeck) return;
-            state.activeDeck = {
-                ...state.activeDeck,
-                cards: (state.activeDeck.cards as string[]).filter(id => id !== action.payload)
-            };
-        },
-
-        // --- Scrap Economy ---
-        addScrap: (state, action: PayloadAction<number>) => {
-            state.scrapCount += action.payload;
-        },
-        spendScrap: (state, action: PayloadAction<number>) => {
-            if (state.scrapCount >= action.payload) {
-                state.scrapCount -= action.payload;
-            }
+            state.roster = (state.roster as IRanchMember[]).filter(m => m.id !== action.payload);
         },
 
         // --- Blueprints ---
-        addBlueprint: (state, action: PayloadAction<IBlueprint>) => {
-            // Don't add duplicates
-            const exists = state.blueprints.some(
-                b => b.architectureId === action.payload.architectureId
-            );
-            if (!exists) {
-                (state.blueprints as IBlueprint[]).push(action.payload);
-            }
-        },
-
-        // --- Heal Party ---
-        healParty: (state) => {
-            // This is a meta-action that sets a flag; actual HP restoration
-            // happens when transitioning into battle via battleFactories
-            // For now, it's a no-op placeholder since HP is on IBattleEntity, not IMingmingInstance
-            void state;
-        },
-
-        // --- Load Save ---
-        loadSave: (_state, action: PayloadAction<IPlayerSave>) => {
-            return action.payload;
-        },
-        applyRewardBundle: (state, action: PayloadAction<IRewardBundle>) => {
-            const bundle = action.payload;
-            state.scrapCount += bundle.scraps;
-
-            // Blueprints
-            for (const bp of bundle.blueprints) {
-                const exists = state.blueprints.some(b => b.architectureId === bp.architectureId);
-                if (!exists) {
-                    (state.blueprints as IBlueprint[]).push(bp);
-                }
-            }
-
-            // Cards (Guaranteed or Chosen)
-            for (const card of bundle.cards) {
-                (state.cardInventory as IOwnedProgram[]).push(card);
-            }
-
-            // NOTE: The reward bundle intentionally grants NO XP. Roster XP comes
-            // exclusively from the in-battle death-XP system, persisted via syncPartyStats.
-        },
-        updateGauntlet: (state, action: PayloadAction<{ persistedStats: Record<string, { hp: number }> }>) => {
-            if (state.gauntlet) {
-                state.gauntlet = {
-                    ...state.gauntlet,
-                    currentBattleIndex: state.gauntlet.currentBattleIndex + 1,
-                    persistedStats: action.payload.persistedStats
-                };
-            }
-        },
-        startGauntlet: (state, action: PayloadAction<{ type: 'Gym' | 'Sector', element: string, totalBattles: number }>) => {
-            state.gauntlet = {
-                type: action.payload.type,
-                element: action.payload.element,
-                currentBattleIndex: 0,
-                totalBattles: action.payload.totalBattles,
-                persistedStats: {}
-            };
-        },
-        completeGauntlet: (state) => {
-            if (state.gauntlet && state.gauntlet.type === 'Gym') {
-                const element = state.gauntlet.element;
-                if (!state.unlockedSectors.includes(element)) {
-                    (state.unlockedSectors as string[]).push(element);
-                }
-            }
-            state.gauntlet = null;
-        },
-
-        // --- Sectors ---
         /**
-         * Unlocks a sector by element. Same append completeGauntlet performs on
-         * a Gym clear, exposed as a standalone capability a relic or reward can
-         * grant directly. No-op if the sector is already unlocked.
+         * Ticket 20: **stacks, never dedupes.** v3 refused a second blueprint of a species you
+         * already had, which made sense when a blueprint was a permanent "you may build this"
+         * permission. It is currency now — a second one is a second assembly.
          */
-        unlockSector: (state, action: PayloadAction<string>) => {
-            if (state.unlockedSectors.includes(action.payload)) return;
-            (state.unlockedSectors as string[]).push(action.payload);
+        addBlueprint: (state, action: PayloadAction<string>) => {
+            const counts = state.blueprints as Record<string, number>;
+            counts[action.payload] = (counts[action.payload] ?? 0) + 1;
         },
 
-        syncPartyStats: (state, action: PayloadAction<ReadonlyArray<IBattleEntity>>) => {
-            const party = action.payload;
-            state.roster = state.roster.map(member => {
-                const match = party.find(p => p.id === member.id);
-                if (match) {
-                    return {
-                        ...member,
-                        level: match.level,
-                        experience: match.experience
-                        // Note: actual HP/Temp stats aren't persisted to the roster yet in this version,
-                        // but level and XP definitely should be.
-                    };
-                }
-                return member;
-            });
+        /**
+         * The player-facing assembly path (ticket 20). **Costs exactly one blueprint of the
+         * species and no scrap** — `economy-session.md` and `vision.md` agree once you split the
+         * places apart: a blueprint at the ranch, a blueprint PLUS scrap at a mid-run workshop
+         * (ticket 14 set that price at `WORKSHOP_ASSEMBLY_SCRAP`). Scrap is run-scoped, so a ranch
+         * that charged it would be charging a currency the player cannot bring home.
+         *
+         * Atomic on purpose; silent no-op with no blueprint. The caller builds the individual (it
+         * owns the RNG for the stat roll), which is also what makes re-assembly the re-roll: same
+         * species, new individual, one more blueprint.
+         *
+         * **Ticket 14 gave it a second caller, and the reducer did not have to change.** A mid-run
+         * recruit is this action plus `runSlice.recruitIntoParty`, dispatched in that order — the
+         * ranch half first, so that dying in between leaves the player holding an assembled
+         * individual rather than a run whose party names a member the roster does not have. See
+         * `recruitIntoParty` for the argument; the reason it works is that this reducer is already
+         * atomic in the currency it spends.
+         */
+        assembleMingming: (state, action: PayloadAction<IRanchMember>) => {
+            const counts = state.blueprints as Record<string, number>;
+            const held = counts[action.payload.definitionId] ?? 0;
+            if (held < 1) return;
+            counts[action.payload.definitionId] = held - 1;
+            if (counts[action.payload.definitionId] === 0) delete counts[action.payload.definitionId];
+            (state.roster as IRanchMember[]).push(action.payload);
+
+            // Ticket 31: the codex records the build HERE rather than at the call site, for the
+            // reason `recordCodexSeen` gives — a law enforced per caller is a law that lapses at the
+            // next one. This is the *player-facing* assembly path, so it is the one that means "you
+            // built one": `addToRoster` deliberately does not record, because it is the debug and
+            // test seam and a fixture is not an achievement.
+            addTo(state.codex.assembled, action.payload.definitionId);
+            addTo(state.codex.species, action.payload.definitionId);
+            addTo(state.codex.os, action.payload.activeOS);
         },
-        startNewGauntlet: (_state, action: PayloadAction<'kraken' | 'fenrir' | 'ratatoskr'>) => {
-            return createStarterSave(action.payload);
+
+        // --- Codex ---
+        /**
+         * Merge card dataIds into `codex.seen` — ticket 19's run teardown, and **the honest
+         * minimum**.
+         *
+         * `economy-session.md`: *"Card collection = a CODEX (seen/played cards logged; completion
+         * pays cosmetics or blueprints) — collection as achievement layer, ZERO power attached."*
+         * Nothing wrote `IRanchState.codex` before this ticket; teardown is the natural first
+         * writer, because a run's deck is the only complete list of cards the player actually had
+         * in their hands, and it is about to be thrown away.
+         *
+         * **The seen/played distinction is ticket 31's, not this ticket's.** `played` means "cast in
+         * a battle", which needs a hook inside the combat path firing per resolved program — that is
+         * a change to the battle reducer, and a run-end screen is the wrong place to make it. Ticket
+         * 31 owns the codex properly (seen/played, completion payouts); this records only what the
+         * run *held*, which is a strict subset of "seen" and therefore cannot be wrong in a way 31
+         * has to undo.
+         *
+         * **Only adds, never removes, and dedupes.** The codex is an achievement log: an entry that
+         * could disappear would make "completion" a moving target, and a duplicate would make a
+         * completion count wrong in the other direction. Both laws are enforced here rather than at
+         * the caller, because there will be more callers (ticket 31 adds at least one) and a law
+         * enforced per call site is a law that lapses at the next one.
+         */
+        recordCodexSeen: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            const seen = state.codex.seen as string[];
+            const held = new Set(seen);
+            for (const dataId of action.payload) {
+                if (dataId === '' || held.has(dataId)) continue;
+                held.add(dataId);
+                seen.push(dataId);
+            }
+        },
+
+        /**
+         * Ticket 31: the other four ledgers, merged in one action.
+         *
+         * One action rather than four because the recorder learns several things at the same
+         * instant — a battle starts and the whole field's species are known at once; a card
+         * resolves and it is simultaneously *seen* and (if you cast it) *played*. Four dispatches
+         * per event would be four store notifications and four autosaves for one fact.
+         *
+         * Every field optional, all add-only, all deduped by `addTo`. `seen` is here too so that
+         * the in-battle recorder does not have to reach for `recordCodexSeen` and get a different
+         * set of laws.
+         */
+        recordCodex: (
+            state,
+            action: PayloadAction<{
+                readonly seen?: ReadonlyArray<string>;
+                readonly played?: ReadonlyArray<string>;
+                readonly species?: ReadonlyArray<string>;
+                readonly assembled?: ReadonlyArray<string>;
+                readonly os?: ReadonlyArray<string>;
+            }>,
+        ) => {
+            for (const id of action.payload.seen ?? []) addTo(state.codex.seen, id);
+            for (const id of action.payload.played ?? []) addTo(state.codex.played, id);
+            for (const id of action.payload.species ?? []) addTo(state.codex.species, id);
+            for (const id of action.payload.assembled ?? []) addTo(state.codex.assembled, id);
+            for (const id of action.payload.os ?? []) addTo(state.codex.os, id);
+        },
+
+        /**
+         * Record that a completion milestone has FIRED (ticket 31).
+         *
+         * Separate from "currently satisfied", which `engine/codex.milestonesMet` computes from the
+         * ledgers. A milestone is an event: once the payouts exist (Henry's numbers), firing is what
+         * pays, and paying twice for the same threshold is the failure this list prevents. Add-only
+         * and deduped, so a second dispatch of the same id is a no-op rather than a second payment.
+         */
+        recordCodexMilestones: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            for (const id of action.payload) addTo(state.codexMilestones, id);
+        },
+
+        // --- Onboarding tips (ticket 24) ---
+        /**
+         * Record that a tip has been shown. Add-only and deduped, `recordCodexSeen`'s laws for
+         * `recordCodexSeen`'s reason — a tip that could come back is a tutorial that repeats itself.
+         *
+         * There is deliberately **no `unseeTip`**. Replaying the tips is a debug affordance, not a
+         * player one, and it already exists: the God Tools save editor writes `seenTips` like any
+         * other ranch field, and `resetSave` clears it with everything else.
+         */
+        markTipSeen: (state, action: PayloadAction<string>) => {
+            const id = action.payload;
+            if (id === '' || state.seenTips.includes(id)) return;
+            (state.seenTips as string[]).push(id);
+        },
+
+        /**
+         * "Skip tips" — the caller passes every id it knows about (`ALL_TIP_IDS`).
+         *
+         * The list comes from the caller rather than being imported here so that this slice does not
+         * depend on the tip registry: the save stores strings, and a slice that knew the union would
+         * have to be edited every time a tip is added.
+         */
+        skipTips: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            const held = new Set(state.seenTips);
+            for (const id of action.payload) {
+                if (id === '' || held.has(id)) continue;
+                held.add(id);
+                (state.seenTips as string[]).push(id);
+            }
+        },
+
+        // --- Gym and tier progress ---
+        /**
+         * Record a gym clear. `gymsCleared` is what run start reads to decide which leaders and
+         * tiers to offer (`IRanchState`), so this is the only durable consequence of winning a
+         * gauntlet — the run it happened in is thrown away with everything else in it.
+         *
+         * Idempotent: beating the same leader twice is not two clears.
+         */
+        markGymCleared: (state, action: PayloadAction<string>) => {
+            if (state.gymsCleared.includes(action.payload)) return;
+            (state.gymsCleared as string[]).push(action.payload);
+        },
+
+        /**
+         * Raise the high-water mark of tiers beaten. **Monotonic**: a tier-0 clear after a tier-2
+         * one must not demote the player, because `exploration-map.md` makes tier an unlock ("meaner
+         * curated teams, more elites, enemy relics"), not a current-difficulty setting.
+         */
+        recordTierCleared: (state, action: PayloadAction<number>) => {
+            if (!Number.isInteger(action.payload) || action.payload < 0) return;
+            if (action.payload <= state.highestTierCleared) return;
+            state.highestTierCleared = action.payload;
         },
 
         // --- OS Management ---
@@ -276,89 +301,69 @@ const gameSlice = createSlice({
             }
         },
         /**
-         * Ticket 15: player-facing firmware swap. Costs 1 blueprint of the species
-         * (SPENT) + OS_SWAP_SCRAP_COST scrap; the first swap to an OS lets the player
-         * pick up to OS_SWAP_PICK_COUNT cards from that OS's starting kit (once ever
-         * per species+OS - repeat swaps grant nothing). Silent no-op when any cost
-         * or validation fails, matching spendScrap's convention. Debug tools keep
-         * using the bare updateMingmingOS above.
+         * Player-facing firmware reflash (ticket 15, re-priced by ticket 20).
+         *
+         * **Costs exactly one blueprint of the species and grants nothing.** Ticket 15 gave the
+         * first swap to an OS a one-time pick of two cards from that OS's kit; ticket 11 deletes
+         * that pick along with `baseDecksGranted`, because a ranch handing out cards is a ranch
+         * handing out run-scoped resources. A reflash costs a blueprint and changes which firmware
+         * the individual runs — that is the whole transaction.
+         *
+         * Silent no-op when any cost or validation fails. Debug tools keep using the bare
+         * `updateMingmingOS` above, which charges nothing.
          */
-        swapOS: (state, action: PayloadAction<{ id: string; targetOS: string; pickedCardIds?: string[] }>) => {
-            const { id, targetOS, pickedCardIds } = action.payload;
+        swapOS: (state, action: PayloadAction<{ id: string; targetOS: string }>) => {
+            const { id, targetOS } = action.payload;
             const mm = state.roster.find(m => m.id === id);
             if (!mm) return;
             const definition = MingmingRegistry[mm.definitionId];
             if (!definition || !definition.availableOS.includes(targetOS)) return;
             if (mm.activeOS === targetOS) return;
 
-            const blueprintIdx = state.blueprints.findIndex(b => b.architectureId === mm.definitionId);
-            if (blueprintIdx === -1) return;
-            if (state.scrapCount < OS_SWAP_SCRAP_COST) return;
+            const counts = state.blueprints as Record<string, number>;
+            const held = counts[mm.definitionId] ?? 0;
+            if (held < 1) return;
 
-            // Spend: the species blueprint is consumed, plus scrap.
-            (state.blueprints as IBlueprint[]).splice(blueprintIdx, 1);
-            state.scrapCount -= OS_SWAP_SCRAP_COST;
+            counts[mm.definitionId] = held - 1;
+            if (counts[mm.definitionId] === 0) delete counts[mm.definitionId];
             mm.activeOS = targetOS;
 
-            // First swap to this OS: grant the picked cards (validated against the
-            // OS's starting deck, copies respected) and record the grant key.
-            const key = deckGrantKey(mm.definitionId, targetOS);
-            if (!state.baseDecksGranted.includes(key)) {
-                const pool = getDeckForOS(mm.definitionId, targetOS);
-                const picks = (pickedCardIds ?? []).slice(0, OS_SWAP_PICK_COUNT);
-                for (const dataId of picks) {
-                    const poolIdx = pool.indexOf(dataId);
-                    if (poolIdx === -1) continue; // not in the kit (or copies exhausted)
-                    pool.splice(poolIdx, 1);
-                    (state.cardInventory as IOwnedProgram[]).push({
-                        instanceId: crypto.randomUUID(),
-                        dataId
-                    });
-                }
-                (state.baseDecksGranted as string[]).push(key);
-            }
+            // Ticket 31: the other way a firmware gets equipped.
+            addTo(state.codex.os, targetOS);
+        },
+
+        // --- Load / reset ---
+        /**
+         * Install a ranch wholesale. `App`'s boot effect hands it exactly what came out of
+         * `loadGameState()` — no projection, no merge — because the stored shape and this slice's
+         * shape are now the same type.
+         */
+        loadSave: (_state, action: PayloadAction<IRanchState>) => {
+            return action.payload;
         },
         resetSave: (state) => {
             void state;
-            return createDefaultSave();
+            return createEmptyRanch();
         },
-        addRelic: (state, action: PayloadAction<string>) => {
-            if (!state.relics.includes(action.payload)) {
-                (state.relics as string[]).push(action.payload);
-            }
-        }
     }
 });
 
 export const {
     addToRoster,
     removeFromRoster,
-    grantExperience,
-    setActiveParty,
-    addCardToInventory,
-    addCardsToInventory,
-    removeCardFromInventory,
-    setActiveDeck,
-    addCardToDeck,
-    addCardsToDeck,
-    clearDeck,
-    removeCardFromDeck,
-    addScrap,
-    spendScrap,
     addBlueprint,
-    healParty,
-    loadSave,
-    applyRewardBundle,
-    updateGauntlet,
-    startGauntlet,
-    completeGauntlet,
-    unlockSector,
-    syncPartyStats,
-    startNewGauntlet,
+    assembleMingming,
+    recordCodexSeen,
+    recordCodex,
+    recordCodexMilestones,
+    markTipSeen,
+    skipTips,
+    markGymCleared,
+    recordTierCleared,
     updateMingmingOS,
     swapOS,
+    loadSave,
     resetSave,
-    addRelic
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

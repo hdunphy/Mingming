@@ -1,6 +1,5 @@
-import { type HookDefinition, type HookContext, type HookResult, type MutationRequest, resolveCounterKey } from './HookTypes';
+import { type HookDefinition, type HookContext, type HookResult, resolveCounterKey } from './HookTypes';
 import type { IBattleState, IBattleEntity, ProgramData } from '../types';
-import { StatusType } from '../types';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
 import { resolveProgramFree } from '../actions/ActionExecutors';
@@ -44,7 +43,13 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  *
  * `hel.pctPerEnergy` / `hel.capPct` - UNDERWORLD_GATEWAY's blood price and its per-turn cap.
  *
- * Ticket 80: price 5 -> 6, cap 20 -> **25**.
+ * Ticket 80: price 5 -> 6, cap 20 -> **25**. TICKET 136k puts the price BACK to 5, cap
+ * unchanged at 25 - measured on the round-two build, the price is the whole deck: 4% reads
+ * 83 field, 5% reads 60, 6% reads 25. Ticket 80 set 6 against a roster where she was at
+ * 81.4%; two arcs of deck work later she is the worst deck on the grid at that price, and
+ * the knob that put her there is the one that brings her back. Everything below is ticket
+ * 80's reasoning at its own moment and still explains WHY the price is the lever rather
+ * than the cap - only the number moved.
  * Henry: *"I really don't like adding arbitrary caps... move to 6% energy cost but remove the
  * 20% cap."* Measured, the cap was inert anyway - `soul_tithe` costs exactly 15% so a cap of
  * 20 or 15 blocked nothing it was meant to, and only ever stopped a rare second Dark cast.
@@ -64,7 +69,7 @@ const HULDRA_V2_SHIELD_PERCENT = 50;
  *                                 from 1 to 2: the OS was worth +64 points and paid out on
  *                                 turn ~2 on an 8-card deck carrying four draw cards.
  */
-export const OS_KNOBS = { hel: { pctPerEnergy: 6, capPct: 25 }, ymir: { iceBonus: 0.25 }, hraes: { shufflesNeeded: 2 }, fenrir: { berserkPct: 0.5 } };
+export const OS_KNOBS = { hel: { pctPerEnergy: 5, capPct: 25 }, ymir: { iceBonus: 0.25 }, hraes: { shufflesNeeded: 2 }, fenrir: { berserkPct: 0.5 } };
 
 /**
  * Any cost the frame cannot pay. Hel has 2 Energy; this is "unaffordable", not "expensive".
@@ -358,6 +363,13 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
         // protects the owner's own actions and an end-of-turn one does not, so it is a real buff.
         // huldra_v2 sits at a healthy ~71% field and does not need it. If it ever does, this is
         // the cheapest lever on the deck: move this hook to `onTurnStart`.
+        //
+        // RE-CONFIRMED 2026-08-24. Henry hit this in a playtest and read it as a bug: *"Huldra_V2
+        // didn't start with a temp shield, she got it on her turn, so I could get free damage
+        // without her blocking it."* He was reading the OS description, which said "starts every
+        // battle with a massive, temporary shield" and had been lying since ticket 07 moved the
+        // grant to a turn boundary. His ruling: **fix the copy** - the shield stays at turn end.
+        // `hooks.json`'s description now says when it actually lands.
         {
             id: "huldra_v2_bark_end",
             priority: 40,

@@ -5,6 +5,16 @@
 *Last updated: 2026-08-20. **STATUS ECONOMY IS POWER-BASED (+1/stack, uncapped, generation-bound - tickets 102/103); previews simulate (104); audhumbla drinks her own milk (101 SHIPPED - neutral absolutes 30 -> 15); ymir's build turn restored (106); hel death-order fixed (105); rimebreaker reads every status (107 - its Poison rider HELD for Henry); draw-4 DIED for sleipnir and points at huldra_v1 (100 - and found the glimmer infinite loop).** Legion is on ticket 100 (sleipnir draw-4). Open tickets: 96 (fenrir range), 98 (team sim), 108, plus a NEW one for the glimmer loop (pipeline: three-tier AI protocol + measurement menu apply NOW; push archetype-web to origin for the cloud second lane). Ticket 72 is stale-open - close as superseded, salvage riptide as optional kraken_v1 web tech. THE GAME'S SHAPE IS RULED: read research/vision.md (expedition roguelike, blueprints+scrap, no leveling, ranch, 3v3 gauntlet gyms) and research/exploration-map.md (map rulings). Design sessions remaining: blueprint/scrap economy, fafnir_v2 shield-piercing (engine-gated), deploy-choice question. A separate STEAM-RELEASE wayfinder is being spun up - it owns roadmap/build tickets; THIS wayfinder owns balance/decks/combat only.*
 *Last updated: 2026-08-20 (from implementation agent aka Legion), after ticket 103 (the mint bound with no caps; two caps removed) landed. Previously: ticket 102 (statuses re-denominated to POWER +1). Earlier note kept for the deck-pass lineage: after ticket 64 (skoll's deck pass) landed. **Both skoll decks are off the floor and ticket 64 is CLOSED GREEN — Amendment 1's curve swap took skoll_v2's dead cards 36.9/38.2 -> 32.5/32.8, under the gate on both seed bases.** Field now v1 47.7/48.1, v2 44.9/41.5. Queue next: repricing (66) -> kraken (65) -> hel_v1 -> hraesvelgr; ticket 63 census in any gap.*
 
+## FROM THE STEAM-RELEASE MAP (2026-08-25): the start-kit tag table is ratified content, and it touches your registry decks
+
+One line, as promised by [steam-release ticket 57](../steam-release/tickets/57-apply-56.md) item 6, sent late and rewritten because the answer changed while it waited.
+
+**`MingmingRegistry.startKits` is now ratified design content owned by a steam-release ruling, not a loose annotation on your deck lists.** [Ticket 60](../steam-release/tickets/60-difficulty-and-agency.md) (Henry, playtest round 5) replaced the table wholesale: a start kit is **a mini-engine — 1 payoff + 3 enablers + 2 generics**, six cards, and a mid-run recruit arrives with the same six. It supersedes ticket 08's 5 tags + 3 generics and the 5 + 0 the slice shipped on 2026-08-24. [Ticket 61](../steam-release/tickets/61-apply-60.md) applies it.
+
+What that means for this wayfinder, and it is the only ask: **a deck pass that renames, removes or re-roles a card can silently break a species' opening engine**, because the tags name specific ids and the six have to work together on turn one. When a pass touches a species with `startKits` entries, check the tagged six still form a payoff-plus-enablers hand — or say in the ticket that they no longer do, and steam-release will re-tag rather than discover it in a playtest.
+
+Nothing here asks you to change a deck. Same direction as always: balance, decks and combat are yours; the roadmap and the build are theirs.
+
 ## PLAYTEST ROUND 2 + 3v3 DESIGN (Henry, 2026-08-19 car session - RE-INSERTED after two agent HANDOFF refreshes clobbered it; keep replies AUDIO-FRIENDLY when Henry is mobile)
 - **2026-08-20 design sessions BOTH CLOSED: ticket 101 is implementation-ready** (audhumbla Regen-as-ammo: OS grants 2 Regen/heal, morning_dew battery +4, drink_deep consumes at 15/stack, damage-dealer count 2/3/4 as composition arms per Henry's felt damage-drought; decay 1/turn is the drink-window pressure) **and ticket 107 opened** (draugr: rimebreaker counts EVERY distinct status incl. enemy buffs at 20/type - huldra's Sharp feeds it; OS Poison rider 1/status-applied = the second lever, NON-RECURSIVE guard required). Open design sessions remaining: exploration map, blueprint/scrap economy, fafnir_v2 shield-piercing (engine-gated).
 - **BLUEPRINT ECONOMY RULED (Henry): blueprints are CONSUMABLE** - spent to assemble (stats roll at first assembly; farm blueprints to chase rolls - the opt-in grind replacing leveling) and spent to REFLASH an individual's OS. Scrap's role -> economy session. **EXPLORATION MAP design session PARKED** (node types, biome-element mapping, branch width/visibility, workshop+gym placement) - session queue: audhumbla numbers -> draugr second lever -> exploration map -> blueprint/scrap economy.
@@ -35,7 +45,8 @@
 - **STILL OPEN from ticket 108: item 4, early termination at screening tier** (HP-lead cutoff for decided games, screening only). NOT built, and approach it sceptically - it is the same family as the adaptive sampling that was measured and rejected, where stopping decided games early manufactured absolutes 13-for-3. Any version needs the absolutes count checked before and after. **Item 5, `git push -u origin archetype-web`, is still unrun** - the sandbox has no network, so the second lane stays closed until Henry pushes.
 - **THREE-TIER AI - MEASURED, ticket 108** ([research/three-tier-ai.md](research/three-tier-ai.md)). `AI_LITE=1` (top-2 candidates, 1 determinization) / default full / `AI_GREEDY=1`. **RULES: (1) SCREEN WITH LITE, CONFIRM THE WINNER WITH FULL, NEVER READ A BAND VERDICT OFF LITE** - lite reproduces full's arm ORDERING exactly (6-arm rimebreaker sweep, monotone in both) but reads only ~77% of the spread, biased UPWARD on weak arms (+8.2 pts at the bottom, +0.3 at the top), because a shallower search finds fewer losing lines; an in/out-of-band call near 35 or 80 is exactly where that flips a verdict. **(2) GREEDY IS NOT A SCREEN, IN EITHER DIRECTION** - the carve-out for "pure numeric-knob arms" is BACKWARDS: greedy priced `stampede` (+26.7 vs full's +26.7) and `rimebreaker` right but compressed `momentum_crash` 5.25->0.75 and flat-attack `zephyr_strike` 3.67->0.67, because a change the deck can SUBSTITUTE AROUND is nearly free without lookahead, and a power knob is usually that kind of change. Greedy stays a decision-density probe (ticket 99). **(3) THE TIER IS NOT THE DOMINANT ERROR TERM AT ARM-RANKING GRADE - THE SEED BASE IS**: full-vs-full across seed bases disagrees per cell by MAD 6.0-13.2, lite-vs-full by 5.7-6.7. Always run the control before blaming a tier. **(4) SPEEDUP IS ~1.9x HERE, ~5-7x on a many-core box - NOT the 10-12x budgeted.** Lite alone is 1.6x, not 4-6x (reply depth deliberately untouched). **The ticket-97 CACHE remains the biggest lever by an order of magnitude (36x warm).**
 - **TICKET 72 CLOSED AS SUPERSEDED (kraken web package).** Its premise was `kraken_v2` at **27.9% field, below the 0.35 gate**. The 74-84 arc and the status re-denomination fixed her by other routes: measured today at 30 iters x 2 orders, **`kraken_v2` 43.7%** (+15.8) and **`kraken_v1` 39.9%** - both in band. Part 1 (the card) and Part 2 (the five probe arms) are CANCELLED. **Not resolved and deliberately left open: her `ymir_v1`/`ymir_v2` 0.0 cells and `huldra` 1.7 are UNCLASSIFIED** against the bucket-band standard - do not read '72 closed' as 'kraken has no zero cells'. **SALVAGE, Henry's call at leisure: the `riptide_daemon` design survives unbuilt** (1e Water daemon; enemy playing 3+ cards in a turn takes 25 power for the 3rd and each after; data + one counter, no new status, no card generation) as `kraken_v1`'s zoo-killer web tool. Two things moved in its favour since it was written: ticket 103 raised roster card velocity (sleipnir_v1 now hits 4+ cards on 47% of turns) so a 3-per-turn trigger fires far more, and ticket 100 confirmed the zoo shape is live. If it returns, arm (e) - cumulative-5-cards - is still the control that separates a velocity punish from a game-length one.
-- **TICKET 109 INTERIM - 3v3 BREAKS ON WIDTH, NOT LENGTH** ([research/3v3-pricing-and-canary.md](research/3v3-pricing-and-canary.md)). Part 1 complete, Part 2 is 10 of 25 comps. **(1) CORRECTS TICKET 98'S LENGTH CLAIM: 3v3 is 1.33x longer, NOT 4-10x** - measured on the same decks, 1v1 **5.27** turns vs 3v3 **7.03**. The 98 figure came from 16 games with one 27.5-turn outlier against a REMEMBERED 1v1 number; the bullet above overstates it. **(2) STATUS PILES ARE 2-4x AT WIDTH and that is the real price indictment** - Burn 1.09->4.39 (4.04x), Strengthened 5.06->16.86 (3.33x), Energized 3.25x, Sharp 2.54x, Poison 2.07x, Regen 1.70x. **Every `ASSUMED_CONSUMED_STACKS` constant was measured at 1v1, and a consume payoff is a multiplier ON pile size.** Watch Strengthened first - SOLAR_OVERDRIVE turns it into an UNCAPPED +15%/stack. **(3) POISON'S SHARE FALLS, 6.64% -> 4.26%** - the predicted quadratic runaway does not happen; damage scales with bodies faster than a DoT does, so Poison is arguably OVER-priced at 3v3. **(4) 0 FTK, 0 stalls in 174 games**; the 3-healer STALL comp has NOT run yet. **(5) Two entity-count tags name things the pool does not contain**: `riptide_daemon` is unbuilt (ticket 72) and there is NO RANDOM_ENEMY card - that mechanic lives in valkyrie_v2's REBIRTH hook. Re-derive the tag list from the pool, not from design intent.
+- **TICKET 109 COMPLETE - 3v3 BREAKS ON WIDTH, NOT LENGTH, AND THE ROSTER IS SAFE ON EVERY HARD GATE.** 504 games at 3v3 + a 1,208-game 1v1 baseline. **0 FTK, 1 truncated game in 504, NO comp above 90%, and NO UNKILLABLE GAME - the three-healer stall comp reads a beatable 66.7%.** `tag-solar-jackpot` (uncapped +15%/stack + core_overclock_daemon, the mandated early revisit) is **45.8%, mid-table - nothing to fix**. `tag-treachery` 58.3%. **TWO RESULTS SAY THE ROSTER IS THIN WHERE IT SHOULD BE STRONG: `tag-antiheal-vs-stall` 25.0%** (BLOOD_SCENT is the DESIGNED anti-heal answer and is 4th from bottom - if stall ever becomes a problem the answer does not work) **and `triple-ramp` 33.3%** (ramp was meant to be the role long 3v3 games rewarded; the games are barely longer). **MY PRE-REGISTERED GUESSES FINISHED 3rd, 10th, 18th, 22nd and LAST** - the two built on the ticket's own hypotheses (long games collect Poison; uncapped multipliers run away) came 22nd and 25th, which is the strongest evidence in the document that the pre-measurement model of 3v3 was wrong. Original interim bullet follows.
+- **TICKET 109 (details) - 3v3 BREAKS ON WIDTH, NOT LENGTH** ([research/3v3-pricing-and-canary.md](research/3v3-pricing-and-canary.md)). **(1) CORRECTS TICKET 98'S LENGTH CLAIM: 3v3 is 1.33x longer, NOT 4-10x** - measured on the same decks, 1v1 **5.27** turns vs 3v3 **7.03**. The 98 figure came from 16 games with one 27.5-turn outlier against a REMEMBERED 1v1 number; the bullet above overstates it. **(2) STATUS PILES ARE 2-4x AT WIDTH and that is the real price indictment** - Burn 1.09->4.39 (4.04x), Strengthened 5.06->16.86 (3.33x), Energized 3.25x, Sharp 2.54x, Poison 2.07x, Regen 1.70x. **Every `ASSUMED_CONSUMED_STACKS` constant was measured at 1v1, and a consume payoff is a multiplier ON pile size.** Watch Strengthened first - SOLAR_OVERDRIVE turns it into an UNCAPPED +15%/stack. **(3) POISON'S SHARE FALLS, 6.64% -> 4.26%** - the predicted quadratic runaway does not happen; damage scales with bodies faster than a DoT does, so Poison is arguably OVER-priced at 3v3. **(4) 0 FTK, 0 stalls in 174 games**; the 3-healer STALL comp has NOT run yet. **(5) Two entity-count tags name things the pool does not contain**: `riptide_daemon` is unbuilt (ticket 72) and there is NO RANDOM_ENEMY card - that mechanic lives in valkyrie_v2's REBIRTH hook. Re-derive the tag list from the pool, not from design intent.
 - **THE ARCHETYPE WEB INVERTS AT WIDTH - CONFIRMED BEAMLESS (ticket 109).** `panel-zoo` (jormungandr_v1+sleipnir_v1+hraesvelgr_v1 - the entire zoo role) takes **92.5% against the reference panel**, and beamless confirms **100% vs CONTROL and 100% vs RAMP**. Per research/archetype-web.md **control is supposed to PREY on zoo** - it loses every game - and zoo's prey licence is 65-80%, not 100%. Candidate mechanism (UNCONFIRMED): zoo's plan scales with bodies while control's answer divides among them - the same debuff budget spread over three attackers. **If that is structural rather than tuning, ticket 72's unbuilt `riptide_daemon` - the roster's only DESIGNED zoo-killer - stops being an at-leisure salvage decision.** Max-STAB is NOT a broken axis by contrast: all 8 elements span 45.8-79.2% with nothing at an extreme.
 - **TICKET 98 IS 2-OF-4 DELIVERABLES, NOT DONE** (corrected 2026-08-20 after reading the ticket file itself rather than a relayed summary): **the owner rule for draw-triggered firmware is PROPOSED, awaiting Henry's ratification** (proposal: the pre-turn draw is ONE event per SIDE and every living member's draw-triggered firmware fires once against it, NOT once per card - per-card is the entity-count trap, first-member-only makes slot 3's firmware dead), and **the entity-count / deck-size audit tags are NOT written into the registry**. Canary runs 4 untyped comps, not the specified ~6 mono-element/spread/support-heavy. **Wasted energy now measured and it is a NON-finding: 11.5% unspent at 3v3 vs 12.5% at 1v1, 0% idle member-turns** - no energy patch warranted. What DID land - **and most of the 3v3 engine was already live** ([research/team-sim-skeleton.md](research/team-sim-skeleton.md)). Every ruled 3v3 rule is already in the engine for 1v1 reasons: state carries PARTIES not frames (schema caps at 3), `PLAY_PROGRAM` takes an explicit `sourceId` so any member casts, deck+hand are per-SIDE (the shared-pile model), energy is per-entity, and `battleReducer`'s pre-turn draw already computes `sum(cardDraw)-(N-1)`. **The 'caster-allocation AI' is not a component to write - `TacticalAI` already enumerates every LIVING member as a candidate caster**; in 1v1 that set has one member so nobody noticed. Shipped: `teamScenario()` in balanceScenarios + `scratch/teamcanary.ts`. NO engine change, deliberately - a team sim on a parallel code path would not be comparable to the 1v1 grid.
 - **CANARY GREEN, AND 3v3 GAMES ARE 4-10x LONGER (ticket 98).** 16 games, 3 species a side: **0 stalls, 0 FTK**, dead cards under the 35% line both sides. But **turns mean 11.88, worst pair 27.50** against 1v1's 2-3. **NO 1v1 STATUS PRICE TRANSFERS**: Poison/Regen/Burn compound over an order of magnitude more ticks, and `ASSUMED_CONSUMED_STACKS` (Poison 8, Regen 10) was measured on 3-turn games. This is guardrail 4 (1v1 window = health PROXY) with a number on it. First-mover edge ran 0.000-0.500 (1v1 runs +-0.12), so paired orientation matters MORE in 3v3. Canary is NOT yet a standing gate - at 34s a battle it would add half an hour to every commit.
@@ -172,6 +183,106 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 - **A curve change under ~20% is invisible to status cards**, because stacks are whole numbers. Status decks must be re-gated by hand after any curve move, and buffing the attack side is the finer instrument.
 
 ## Open items, in the order they should be taken
+
+**136u SHIPPED 2026-09-04: valkyrie_v2's REBIRTH_CYCLE is UNCAPPED and pays 15/15.** She goes
+**24.95 -> 49.51** and the roster reads **sd 8.6, 31 of 32 in band** - tighter than the pre-131
+sd 9.2 and equal on count. **skoll_v1 (34.4) is the ONLY deck out of band, and she is ruled a 3v3
+deck that is not to be pushed.** The cap was a COUNTER (`valkyrie_rebirth_used`), not a number:
+the `when.counter` guard, the `COUNTER SET` action and the whole `onTurnEnd` reset hook are gone.
+It cannot loop - the hook does ATTACK/HEAL/LOG on `onDeckShuffled` and nothing that draws or
+shuffles - which was checked, not assumed, because ticket 111's glimmer loop is the precedent.
+**0-VALK-ENGINE below is now HISTORY on its cap line** (it predicted the size: she reshuffles more
+than once on 34.7% of turns and the guard ate every one) but its OTHER finding still stands - her
+engine is her OS, not her deck, and her deck is still marked PLACEHOLDER. No second Glimmer: 91,
+a full-cycle loop.
+
+**136-ROUND-THREE SHIPPED 2026-09-04** (`7b825da`..`9e331f1`, grid promoted with the docs).
+136o-136t, **136s skipped by Henry**. **sd 11.5 -> 9.7, 30/32 in band, max deviation from target
+2.44.** Pre-131 was sd 9.2 / 31 of 32, so the roster is essentially back. **The two still out are
+RULED, not failures:** skoll_v1 34.6 (3v3 deck, do not push her) and valkyrie_v2 24.9 - and
+valkyrie_v2 is the NEXT SESSION: Ascension stays and a second Glimmer is off the table, it measured
+91, a full-cycle loop of the ticket-111 family.
+
+**THE ROUND MEASURED ITS OWN CONFOUND, and it is the thing to remember.** The round-3 prompt was
+written against a base that predated ticket 137 and says 137 lands after. It had already landed.
+**audhumbla_v2 hit her 43.2 target WITHOUT 136s** - 137's Regen fix had already delivered the same
++15, because `drink_deep` CASHES a Regen pile and an eval that over-values holding one will not
+cash it. Shipping both would have stacked and overshot. huldra_v1 is the only deck more than 2
+points off target (-2.44) and that is exactly 137's measured -2.72 on her. **Lesson for the next
+design session: state the base commit AND check it is still HEAD before measuring targets.**
+
+**136-ROUND-TWO SHIPPED 2026-09-03.** 136h-136n landed (`0b7504b`..`45e2451`, grid promoted in the
+docs commit that follows them) and **all 32 decks reproduced their predicted number to within 0.05: sd 15.0 -> 12.0,
+mean 49.9, 26/32 in band.** All six round-one stragglers are in band - fenrir_v1 58.2, sleipnir_v2
+65.0, hel_v2 54.7, hraesvelgr_v2 46.4, fafnir_v2 46.4, nidhoggr_v2 39.9. **The next list is the
+levy, named in advance and expected out:** ymir_v2 34.9, gullinbursti_v2 34.1, hel_v1 31.6,
+skoll_v1 29.5, audhumbla_v2 28.5, valkyrie_v2 23.7. Engine changes under it: STRENGTH_STACK_CAP is
+Infinity, and `SELF_ANY_STATUS` / `BURN_STACKS` exist. **Three things it found and did NOT fix:**
+fenrir_v1's rebuilt deck has five distinct cards and all five are in its start kit (nothing to
+draft back toward - ticket 61's model does not apply to him any more); `BURN_TIMES_ENERGY` has no
+card left; hel_v2's heal out-earns her blood toll by MORE at the cheaper price — **RULED FINE,
+ticket 133 closed: one card that overheals is not the problem; ticket 81's failure was the +50%
+firmware multiplier that made EVERY heal out-earn the toll and held her at 100%**. **Ticket 137 (the
+AI Regen constant) was deliberately sequenced AFTER this** - round two's targets were measured with
+the AI still valuing Regen at 3%, so 137 re-measures its own grid.
+
+**136-OPEN (round one). THE THREADS THAT REMAIN.**
+Ticket 136 shipped as seven commits on `legion/ai-perf` (`c8978ba`..`36c26a3`) and the full grid
+reproduced every one of its 32 predicted numbers to the tenth of a point: **mean 49.9 unchanged, sd
+19.4 -> 14.9, in band 22/32 -> 26/32** (`results/rebaseline-136/`; `deck_grid.json` deliberately NOT
+promoted). What is left, in the order Henry ruled it:
+
+1. **fenrir_v1 deck rework (24.7).** Henry wants Ignite given the same treatment `scald` got in 136g:
+   a cheap card whose Burn is the point and whose cost is paid in something other than energy. Fire
+   pass. This is the loudest remaining deck and the one with a named direction.
+2. **hraesvelgr_v2 deck rework (26.1)** — the long-standing dead-card problem (`tailwind` 79% dead
+   at the last measurement), untouched by 136.
+3. **nidhoggr_v2 deck look (28.6)**, and behind it **sleipnir_v2 (30.6)**, **fafnir_v2 (34.4)** and
+   **hel_v2 (24.5)**. All four are deck/OS conversations. **No stat knobs and no "turn N" hooks** —
+   both are standing rulings from this pass (readability; a hook the player cannot read while
+   playing is not a mechanic).
+4. **The flat-number DoT / Regen / heal / Bark Shield ticket, now unblocked.** Every "% of max HP"
+   becomes a literal number, so nothing silently reprices when a frame's HP moves and every card
+   reads what it actually does. This is the replacement for HPFRAME, which was WITHDRAWN mid-136:
+   a hidden divisor on percentage effects is hidden math and Henry does not ship hidden math. Its
+   measurement grid is still a good map of which effects are mispriced — use it as the map, fix with
+   visible numbers.
+5. **Playtest the five decks carrying unspent energy over Henry's 15% bar**: audhumbla_v1 23%
+   (GENESIS takes her to 4 max Energy), draugr_v2 19%, fafnir_v2 18%, audhumbla_v2 15.5%,
+   nidhoggr_v2 15.5%. Everything else on the roster is under. Measured at REAL end-of-turns only —
+   the first probe counted the AI's lookahead and read 50-80% for everyone, which is not a number
+   about the game.
+6. **3v3 measurement of the 136 package — still pending.** Everything above is 1v1 beamless.
+
+**Three follow-ups 136 created rather than closed, two of them now ticketed.**
+[Ticket 137](tickets/137-ai-regen-valuation.md) is CLOSED: the eval reads the
+engine's status constants now. The SWEEP is the finding - three of ten statuses carried transcribed
+numbers (Regen, BarkShield, Poison) and every status that ever got its own ticket already read the
+engine. Only Regen's value moved, and **the audhumbla call was right: audhumbla_v2 28.5 -> 43.7 and
+into band**, huldra_v1 58.6 -> 55.9, everything else under 1.6. sd 12.0 -> 11.5, 27/32 in band.
+`aiStatusPricing.test.ts` now fails if either side moves without the other. **Still open from it:**
+`TURN_DAMAGE_FRACTION` (0.20), `ENERGY_TURN_FRACTION` and `STATUS_HORIZON_TURNS` are the search's
+model of a turn with no engine counterpart - every duality status, both stances, Stunned and Asleep
+price through them, and whether 20% of a health pool is still a turn's throughput after two arcs of
+deck work has never been re-measured. [Ticket 138](tickets/138-card-text-truth.md)
+is CLOSED: `glass_cannon`'s recoil is power (80) instead of a flat 300 that bypassed the damage
+formula entirely, costing skoll_v2 5.9 field points and leaving her in band, and two stale registry
+comments are fixed. Its unfinished half is now [ticket 139](tickets/139-description-data-guard.md):
+the description-vs-data sweep as a TEST, where **the 35 structural false positives are the
+deliverable** — each is a place text and data are related by CODE rather than by equality, and the
+ticket groups all 35 with the rule each implies. Every defect in 138 was found by accident while
+changing something else, and the guard is the only part that stops the next one being found the
+same way. **138 amendment 1 corrected its own
+headline finding: `damageOverride` HAS NEVER WORKED ON A CARD** — only `effectHandlers.handleAttack`
+reads it, and card actions go through `AttackExecutor`, which does not. glass_cannon printed 20,
+stored 300, DEALT 53 and was charged 80 power, which is the whole reason `weak.ts` calls it the
+registry's most under-budget card. Recoil is now a `percentMaxHp` field resolved before the power
+path (no stats, no STAB, no hooks, and it rescales itself): glass_cannon 5%, desperate_strike and
+dark_pact 3%. **skoll_v2 49.6 -> 59.8** — taking the Strength scaling off her recoil is a real buff
+to the deck built to hoard Strength; she is in band and the levers are 6% / 4% if she is too high.
+No card carries `damageOverride` any more and `percentRecoil.test.ts` fails if one appears.
+Untickted: `crushing_depths`, `boiling_surge` and `scald` are new cards in the shared pool — they are
+draftable by every species, not just kraken, which is the trap the collection has always carried.
 
 STRATEGIC (Henry, 2026-08-12): after balancing completes, decide 1v1-only vs 3v3 as the shipped mode — gates ticket 05, the team OSes (valkyrie L-family, einherjar_standard), and Steam scope. Henry's stated goal: ship on Steam. 1v1 balancing finishes first.
 

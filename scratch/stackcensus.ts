@@ -14,11 +14,12 @@ import { battleReducer } from '../src/engine/battleReducer';
 import { getBestAction } from '../src/engine/ai/TacticalAI';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import type { IBattleState, IBattleEntity, BattleAction } from '../src/engine/types';
+import { ENV } from './_env';
 
-const DECK = process.env.DECK ?? 'sleipnir_v1';
+const DECK = ENV.DECK ?? 'sleipnir_v1';
 const SPECIES = DECK.replace(/_v[12]$/, '');
-const ITER = Number(process.env.ITER ?? 4);
-const OPPONENT_COUNT = Number(process.env.OPPONENTS ?? 10);
+const ITER = Number(ENV.ITER ?? 4);
+const OPPONENT_COUNT = Number(ENV.OPPONENTS ?? 10);
 const TRACKED = ['Strengthened', 'Weakened', 'Sharp', 'Dazed'] as const;
 
 const all: Array<{ sp: string; deck: string }> = [];

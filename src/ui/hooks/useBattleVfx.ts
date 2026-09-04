@@ -44,12 +44,45 @@ export interface UnitFx {
     lungeKey: number;
 }
 
+/**
+ * A card that just resolved, announced for the centre-screen reveal.
+ *
+ * Henry: *"We should also show the cards that get played, animate them to show center screen so the
+ * player knows what was played rather than having to check the log."* The combat log already carries
+ * every play, and that is exactly the complaint - the player should not have to read prose to find
+ * out what hit them.
+ *
+ * `dataId` rather than a rendered face: `PROGRAM_PLAYED.programId` IS the dataId (battleReducer
+ * emits `card.dataId`), so the reveal looks the card up and renders the real `ProgramCard`. There is
+ * no second card face to drift from the one in the hand.
+ */
+export interface PlayedCardAnnouncement {
+    /** Monotonic, so two casts of the same card in one turn are two distinct reveals. */
+    readonly key: number;
+    readonly dataId: string;
+    readonly sourceId: string;
+    readonly targetId: string;
+    /** Whose side cast it - the reveal tints and sides itself off this. */
+    readonly fromPlayer: boolean;
+    readonly sourceName: string;
+    readonly targetName: string;
+}
+
+/**
+ * How long a reveal stays up, and therefore how long the enemy loop holds before it starts thinking
+ * about its next card (`BattleArena`). Ticket 127: this is the number that turns dead waiting into
+ * information - the old loop slept 600ms with nothing on screen and then thought for 1.3s.
+ */
+export const PLAYED_CARD_REVEAL_MS = 700;
+
 export interface BattleVfx {
     unitFx: Record<string, UnitFx>;
     /** Increments on big hits (>= ARENA_SHAKE_FRACTION of max HP) — arena shake. */
     shakeKey: number;
     /** Manually nudge a unit's lunge (used for enemy EXECUTE_INTENT, which emits no PROGRAM_PLAYED). */
     triggerLunge: (entityId: string) => void;
+    /** The most recent play, for the centre-screen reveal. Null once it has aged out. */
+    playedCard: PlayedCardAnnouncement | null;
 }
 
 export const EMPTY_UNIT_FX: UnitFx = {
@@ -90,16 +123,25 @@ const NEUTRAL_DAMAGE_COLOR = '#ff5a5a';
 interface VfxState {
     unitFx: Record<string, UnitFx>;
     shakeKey: number;
+    playedCard: PlayedCardAnnouncement | null;
 }
 
 export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
-    const [vfx, setVfx] = React.useState<VfxState>({ unitFx: {}, shakeKey: 0 });
+    const [vfx, setVfx] = React.useState<VfxState>({ unitFx: {}, shakeKey: 0, playedCard: null });
 
     // Latest engine state for max-HP lookups inside the (synchronous) listener.
+    //
+    // ticket 55: reviewed, not a defect. The write has to happen during render, which is the whole
+    // point of the pattern: the event-bus listener runs SYNCHRONOUSLY inside the same commit as a
+    // dispatch, so a ref updated in an effect would still hold the previous battle state when the
+    // listener reads it. This is the standard latest-value ref, and it is a write (never a read)
+    // during render.
     const stateRef = React.useRef(battleState);
+    // eslint-disable-next-line react-hooks/refs
     stateRef.current = battleState;
 
     const floatIdRef = React.useRef(1);
+    const revealKeyRef = React.useRef(1);
     const slotRef = React.useRef<Record<string, number>>({});
     // Pending timeouts, cleared on unmount (pendingTimeoutsRef pattern from MingmingUnit).
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -152,10 +194,30 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             switch (event.type) {
                 case 'DAMAGE_TAKEN': {
                     const { targetId, amount, element } = event;
-                    if (amount <= 0) {
-                        // Fully shielded/absorbed hit — no flash, no shake, just the readout.
-                        pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
+                    /*
+                     * RULING 2 (Henry, 2026-08-24): *"I don't see damage indicators when going
+                     * against bark shield. I need to know how much bark I take off."*
+                     *
+                     * A shield absorbs inside `onPostDamage`, so `amount` is what got PAST it — a
+                     * fully absorbed hit used to render the word ABSORBED and no number, and a
+                     * partial one rendered only the HP half, with the bark chip invisible. The
+                     * shield portion now gets its own float, from `event.damage.absorbed`, which is
+                     * the same record the card face reads (`IDamageRecord`). Two numbers, because
+                     * they are two different resources coming off two different bars.
+                     */
+                    const absorbed = event.damage?.absorbed ?? 0;
+                    if (absorbed > 0) {
+                        pushFloat(targetId, 'absorbed', `-${absorbed} 🛡`, ABSORB_COLOR);
                         playSfx('absorbed');
+                    }
+                    if (amount <= 0) {
+                        // Nothing reached HP. The shield float above is the whole readout; the
+                        // wordy fallback is kept only for an absorption we could not quantify
+                        // (a hand-built event with no ledger, or a non-shield reduction to zero).
+                        if (absorbed <= 0) {
+                            pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
+                            playSfx('absorbed');
+                        }
                         return;
                     }
                     const target = findEntity(targetId);
@@ -177,6 +239,10 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     setVfx(prev => {
                         const unit = prev.unitFx[targetId] ?? EMPTY_UNIT_FX;
                         return {
+                            // Spread, unlike every sibling branch, which listed both fields by
+                            // hand. That was safe while `VfxState` had exactly two fields and
+                            // silently dropped the third the moment one was added.
+                            ...prev,
                             unitFx: {
                                 ...prev.unitFx,
                                 [targetId]: {
@@ -235,6 +301,25 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     // Subtle attacker anticipation ("Step Forward" from the roadmap).
                     playSfx('cardPlay');
                     triggerLunge(event.sourceId);
+                    // The reveal is NOT auto-expired on a timer. A timer would race the enemy
+                    // loop's own hold, and the next play (or the turn ending) is the honest thing
+                    // that should replace it - a card stays up until something else happens, which
+                    // is what makes it readable when the AI is thinking on the same thread.
+                    const source = findEntity(event.sourceId);
+                    const target = findEntity(event.targetId);
+                    const s = stateRef.current;
+                    setVfx(prev => ({
+                        ...prev,
+                        playedCard: {
+                            key: revealKeyRef.current++,
+                            dataId: event.programId,
+                            sourceId: event.sourceId,
+                            targetId: event.targetId,
+                            fromPlayer: s?.playerParty.some(e => e.id === event.sourceId) ?? false,
+                            sourceName: source?.name ?? '',
+                            targetName: target?.name ?? '',
+                        },
+                    }));
                     return;
                 }
                 case 'CARD_DRAWN': {
@@ -245,6 +330,10 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 }
                 case 'TURN_START': {
                     playSfx(event.activeSide === 'PLAYER' ? 'turnPlayer' : 'turnEnemy');
+                    // A reveal must not outlive the turn that produced it: the turn banner is the
+                    // next thing the player reads, and a stale card under it says the wrong side
+                    // just acted.
+                    setVfx(prev => (prev.playedCard === null ? prev : { ...prev, playedCard: null }));
                     return;
                 }
                 case 'LEVEL_UP': {
@@ -264,5 +353,5 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
         };
     }, [triggerLunge]);
 
-    return { unitFx: vfx.unitFx, shakeKey: vfx.shakeKey, triggerLunge };
+    return { unitFx: vfx.unitFx, shakeKey: vfx.shakeKey, triggerLunge, playedCard: vfx.playedCard };
 }

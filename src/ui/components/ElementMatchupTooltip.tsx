@@ -1,35 +1,11 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { ElementalMatrix, STAB_BONUS } from '../../engine/combatUtils';
-import type { Element } from '../../engine/types';
+import { useAnchoredRect } from '../hooks/useAnchoredRect';
+import { STAB_BONUS } from '../../engine/combatUtils';
 import { getElementAccent } from '../utils/contrastText';
-
-/** Trim a multiplier for display: 2 → "2", 0.5 → "0.5", 0.375 → "0.375". */
-export const formatMultiplier = (n: number): string => (Math.round(n * 1000) / 1000).toString();
-
-export interface MatchupGroup {
-    mult: number;
-    targets: string[];
-}
-
-/**
- * Runtime-derived matchup summary for one element, grouped by multiplier so
- * the tooltip never falls out of sync with the engine's ElementalMatrix.
- */
-export function getElementMatchups(element: string): { strong: MatchupGroup[]; weak: MatchupGroup[] } {
-    const row = ElementalMatrix[element as Element] ?? {};
-    const byMult = new Map<number, string[]>();
-    for (const [target, mult] of Object.entries(row)) {
-        if (typeof mult !== 'number' || mult === 1) continue;
-        if (!byMult.has(mult)) byMult.set(mult, []);
-        byMult.get(mult)!.push(target);
-    }
-    const groups = [...byMult.entries()].map(([mult, targets]) => ({ mult, targets }));
-    return {
-        strong: groups.filter(g => g.mult > 1).sort((a, b) => b.mult - a.mult),
-        weak: groups.filter(g => g.mult < 1).sort((a, b) => a.mult - b.mult)
-    };
-}
+// Ticket 55: the matchup derivations moved to `elementMatchups.ts` so this file exports only a
+// component. Four other files already imported them from here.
+import { formatMultiplier, getElementMatchups } from './elementMatchups';
 
 /**
  * Hover wrapper for an element badge/icon: shows a portal tooltip (same
@@ -43,7 +19,8 @@ export const ElementMatchupHover: React.FC<{
     style?: React.CSSProperties;
 }> = ({ element, children, style }) => {
     const [hovered, setHovered] = React.useState(false);
-    const wrapRef = React.useRef<HTMLSpanElement>(null);
+    // Ticket 55: measured after layout rather than read during render — see `useAnchoredRect`.
+    const { ref: wrapRef, rect } = useAnchoredRect<HTMLSpanElement>(hovered);
 
     const accent = getElementAccent(element);
     const { strong, weak } = getElementMatchups(element);
@@ -57,11 +34,10 @@ export const ElementMatchupHover: React.FC<{
             style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help', ...style }}
         >
             {children}
-            {hovered && createPortal(
+            {hovered && rect !== null && createPortal(
                 <div
                     className="os-tooltip-portal"
-                    style={wrapRef.current ? (() => {
-                        const rect = wrapRef.current.getBoundingClientRect();
+                    style={(() => {
                         const isRightSide = rect.left > window.innerWidth / 2;
                         const isTopHalf = rect.top < window.innerHeight / 2;
                         return {
@@ -75,7 +51,7 @@ export const ElementMatchupHover: React.FC<{
                             width: '230px',
                             zIndex: 10001
                         };
-                    })() : {}}
+                    })()}
                 >
                     <div className="os-tooltip-header" style={{ color: accent, borderBottomColor: `${accent}55` }}>
                         {element.toUpperCase()} · ELEMENT

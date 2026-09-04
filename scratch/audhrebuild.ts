@@ -22,14 +22,15 @@
  */
 import PROGRAMS from '../src/engine/data/programs.json';
 import HOOKS from '../src/engine/data/lib/hooks.json';
+import { ENV } from './_env';
 
 const P = PROGRAMS as unknown as Record<string, { actions: Array<Record<string, unknown>> }>;
 const H = HOOKS as unknown as Record<string, { hooks: Array<{ do: Array<Record<string, unknown>> }> }>;
 
 // The three ruled knobs, max two rounds, one change per sim.
-if (process.env.OS_REGEN) H.audhumbla_v2.hooks[0].do[0].stacks = Number(process.env.OS_REGEN);
-if (process.env.DEW) (P.morning_dew.actions[0] as { stacks: number }).stacks = Number(process.env.DEW);
-if (process.env.DRINK) (P.drink_deep.actions[1] as { power: number }).power = Number(process.env.DRINK);
+if (ENV.OS_REGEN) H.audhumbla_v2.hooks[0].do[0].stacks = Number(ENV.OS_REGEN);
+if (ENV.DEW) (P.morning_dew.actions[0] as { stacks: number }).stacks = Number(ENV.DEW);
+if (ENV.DRINK) (P.drink_deep.actions[1] as { power: number }).power = Number(ENV.DRINK);
 
 /**
  * The arms. Nine cards each so the draw economy is identical and only the composition moves.
@@ -46,7 +47,7 @@ const ARMS: Record<string, string[]> = {
     A3x2: [...HEALS, 'morning_dew', 'drink_deep', 'drink_deep', 'smite', 'dawnstrike'],
 };
 
-const ARM = process.env.ARM ?? 'A3';
+const ARM = ENV.ARM ?? 'A3';
 const deck = ARMS[ARM];
 if (!deck) throw new Error(`unknown ARM ${ARM}`);
 
@@ -56,7 +57,7 @@ const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry')
 const { runPairedBatch } = await import('../src/debug/balance/runBatch');
 const { matchupScenario, BALANCE_SPECIES } = await import('../src/debug/balance/balanceScenarios');
 
-const ITER = Number(process.env.ITER ?? 10);
+const ITER = Number(ENV.ITER ?? 10);
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== 'audhumbla')
     for (const d of MingmingRegistry[sp].availableOS) opponents.push({ sp, deck: d });

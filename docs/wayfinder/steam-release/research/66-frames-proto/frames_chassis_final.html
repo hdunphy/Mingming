@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><title>66 chassis final</title></head><body><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0d11;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-serif;width:1280px;height:800px;overflow:hidden;padding:16px 22px}
+h1{font-size:15px;letter-spacing:3px;color:#9fb4c8}
+.sub{font-size:11px;color:#5f6b7a;margin:3px 0 14px}
+.rowlab{font-size:10.5px;letter-spacing:2px;color:#7d8ea1;margin:16px 0 8px}
+.row{display:flex;gap:16px;justify-content:center}
+.card{position:relative;display:flex;flex-direction:column;border-radius:10px;padding:8px;
+ background:linear-gradient(160deg,color-mix(in srgb,var(--el) 38%,#12161c) 0%,#12161c 55%);
+ border:2px solid color-mix(in srgb,var(--el) 65%,#2a2f38);box-shadow:inset 0 1px 0 #ffffff22}
+.card.ed{width:188px;height:246px}
+.card.hd{width:142px;height:186px;padding:6px}
+.pips{position:absolute;top:7px;left:7px;display:flex;gap:3px}
+.pips i{width:10px;height:10px;border-radius:2px;background:var(--el);box-shadow:0 0 5px var(--el);display:block}
+.pips i.off{background:#2a323d;box-shadow:none}
+.ticon{position:absolute;top:3px;right:7px;font-size:15px;text-shadow:0 0 6px currentColor}
+.card.hd .ticon{font-size:13px}
+.art{border-radius:6px;margin:20px 0 6px;background:linear-gradient(135deg,var(--el),#0c0e12 150%);opacity:.8;border:1px solid #00000066;height:64px}
+.card.hd .art{height:44px;margin-top:17px}
+.nm{font-size:13px;font-weight:700;text-align:center;text-shadow:0 1px 0 #000;margin-bottom:3px}
+.card.hd .nm{font-size:11px}
+.desc{font-size:10px;color:#c6ccd4;text-align:center;line-height:1.35;flex:1;overflow:hidden}
+.card.hd .desc{font-size:9px}
+.legend{margin-top:18px;font-size:11px;color:#7d8ea1;text-align:center}
+</style>
+<h1>CARD FRAME — CHASSIS · FINAL REFERENCE (ticket 66)</h1>
+<div class="sub">Ruled: Chassis direction · energy PIPS top-left (cost as capacity) · TYPE ICON top-right (▲ attack · ✦ skill · ◆ daemon · ● macro) replaces the text banner · no STAB text · no payoff glow (payoff = tag in editor contexts only) · descriptions present at BOTH scales.</div>
+<div class="rowlab">EDITOR / SHOP SCALE</div>
+<div class="row"><div class="card ed" style="--el:#9aa3ad">
+     <div class="pips"><i class="off"></i></div><div class="ticon" style="color:#ff9d8f" title="ATTACK">▲</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div></div><div class="card ed" style="--el:#e05d43">
+     <div class="pips"><i class=""></i></div><div class="ticon" style="color:#ff9d8f" title="ATTACK">▲</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div></div><div class="card ed" style="--el:#e05d43">
+     <div class="pips"><i class=""></i><i class=""></i></div><div class="ticon" style="color:#ff9d8f" title="ATTACK">▲</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div></div><div class="card ed" style="--el:#43b45f">
+     <div class="pips"><i class=""></i><i class=""></i></div><div class="ticon" style="color:#c9a2f0" title="DAEMON">◆</div>
+     <div class="art"></div><div class="nm">Echo Chamber</div><div class="desc">Whenever you play a 0-cost card, generate a 0-cost Feedback.</div></div><div class="card ed" style="--el:#43b45f">
+     <div class="pips"><i class="off"></i></div><div class="ticon" style="color:#8fc7f5" title="SKILL">✦</div>
+     <div class="art"></div><div class="nm">Healing Mist</div><div class="desc">Heal with 15 power.</div></div><div class="card ed" style="--el:#c9a2f0">
+     <div class="pips"><i style="border-radius:50%"></i></div><div class="ticon" style="color:#e8d48f" title="MACRO">●</div>
+     <div class="art"></div><div class="nm">Scout</div><div class="desc">Reveal this biome's node types.</div></div></div>
+<div class="rowlab">HAND SCALE — description stays</div>
+<div class="row"><div class="card hd" style="--el:#9aa3ad">
+     <div class="pips"><i class="off"></i></div><div class="ticon" style="color:#ff9d8f" title="ATTACK">▲</div>
+     <div class="art"></div><div class="nm">Water Slap</div><div class="desc">A plain, reliable hit. No STAB.</div></div><div class="card hd" style="--el:#e05d43">
+     <div class="pips"><i class=""></i></div><div class="ticon" style="color:#ff9d8f" title="ATTACK">▲</div>
+     <div class="art"></div><div class="nm">Blood Rite</div><div class="desc">15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.</div></div><div class="card hd" style="--el:#e05d43">
+     <div class="pips"><i class=""></i><i class=""></i></div><div class="ticon" style="color:#ff9d8f" title="ATTACK">▲</div>
+     <div class="art"></div><div class="nm">Pyre Sacrifice</div><div class="desc">60 power. Apply 3 Burn to the target and 3 Burn to yourself.</div></div><div class="card hd" style="--el:#43b45f">
+     <div class="pips"><i class=""></i><i class=""></i></div><div class="ticon" style="color:#c9a2f0" title="DAEMON">◆</div>
+     <div class="art"></div><div class="nm">Echo Chamber</div><div class="desc">Whenever you play a 0-cost card, generate a 0-cost Feedback.</div></div><div class="card hd" style="--el:#43b45f">
+     <div class="pips"><i class="off"></i></div><div class="ticon" style="color:#8fc7f5" title="SKILL">✦</div>
+     <div class="art"></div><div class="nm">Healing Mist</div><div class="desc">Heal with 15 power.</div></div><div class="card hd" style="--el:#c9a2f0">
+     <div class="pips"><i style="border-radius:50%"></i></div><div class="ticon" style="color:#e8d48f" title="MACRO">●</div>
+     <div class="art"></div><div class="nm">Scout</div><div class="desc">Reveal this biome's node types.</div></div></div>
+<div class="legend">▲ ATTACK &nbsp;·&nbsp; ✦ SKILL &nbsp;·&nbsp; ◆ DAEMON &nbsp;·&nbsp; ● MACRO &nbsp;·&nbsp; pips = energy cost &nbsp;·&nbsp; element = plate color + border</div>
+</body></html>

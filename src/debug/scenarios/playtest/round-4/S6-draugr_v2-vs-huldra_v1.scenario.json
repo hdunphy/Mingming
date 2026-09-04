@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S6 - draugr's wish, granted?",
+  "description": "Round 3's S3 captured your verbatim wish for what draugr's hands reached for; ticket 107's change 1 shipped - rimebreaker reworked from 25 power per distinct DEBUFF to 20 power per distinct STATUS (buffs included). (Change 2, a Poison rider, was built and measured 50+ points too strong, so it was held - not in this build.) Find the turn where you lost agency last time - is it gone? Does the lever that got built match the wish, or did it graft on something adjacent? NOTE: the pack said 'huldra' with no OS suffix; this uses huldra_v1 to match round-1/round-3 precedent.   [you: draugr_v2 | opponent: huldra_v1]",
+  "tags": ["playtest", "round-4", "ticket-107", "draugr_v2"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S6-draugr_v2-vs-huldra_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "draugr", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "draugr_v2" }
+      ],
+      "deck": ["rimefrost","rimefrost","water_slap","frost_bite","numbing_gale","killing_frost","ice_spear","glacial_slam","rimebreaker","rimebreaker"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "huldra", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "huldra_v1",
+        "deck": ["growth","growth","soothe","water_slap","iron_bark","iron_bark","thorn_tithe","thorn_tithe","hexbloom"]
+      }
+    ]
+  }
+}

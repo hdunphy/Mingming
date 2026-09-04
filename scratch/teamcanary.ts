@@ -29,9 +29,10 @@
 import { runPairedBatch, DEFAULT_MAX_TURNS } from '../src/debug/balance/runBatch';
 import { teamScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 6);
-const TEAMS = Number(process.env.TEAMS ?? 6);
+const ITER = Number(ENV.ITER ?? 6);
+const TEAMS = Number(ENV.TEAMS ?? 6);
 
 // Deterministic team construction - stride the species list so a team is three DIFFERENT species
 // and consecutive teams do not overlap. No RNG: the canary has to be re-runnable to the number.

@@ -33,10 +33,13 @@
  */
 
 import { battleReducer, type BattleAction } from '../../engine/battleReducer';
+import { executeDraw } from '../../engine/resolutionEngine';
+import { HAND_SIZE_LIMIT } from '../../engine/deckLogic';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import { buildScenarioState } from '../scenarios/buildScenarioState';
+import type { AiTier } from '../../engine/ai/TacticalAI';
 import type { ComposedSetup } from '../scenarios/scenarioSchema';
 
 /** Default battle length cap. A battle still running at turn 60 is a stall, not a game. */
@@ -84,6 +87,108 @@ export interface BatchOptions {
      * regress no matter what the deck report grows into. `npm run balance:deck` turns it on.
      */
     telemetry?: boolean;
+    /**
+     * Which grade of `TacticalAI` plays the ENEMY side — steam-release ticket 60's enemy ladder.
+     *
+     * Applied to the materialized state and nothing else, exactly as `startingSide` is, and for the
+     * same reason: it is a property of the battle rather than of the scenario file, so `ComposedSetup`
+     * — a versioned format with committed scenarios behind it — does not have to grow a field to
+     * express a measurement. Omitted means the process-wide default (`TacticalAI.AI_TIER`), so every
+     * existing suite keeps the grade it had.
+     *
+     * **The PLAYER's side is never graded.** In a harness both sides are `getBestAction`, and a
+     * measurement of the enemy ladder that also handicapped the player would be reading two changes
+     * at once.
+     */
+    enemyAiTier?: AiTier;
+    /**
+     * TICKET 70's Q2b, as an EXPERIMENTAL ARM — Henry, 2026-08-29: *"if an ally dies that side gets
+     * a stack of energized, see if that allows more comebacks."*
+     *
+     * Off by default and applied by the harness rather than by `battleReducer`, so nothing that
+     * ships changes and every existing suite is bit-identical. See `bereavementEnergy`.
+     */
+    bereavementEnergy?: BereavementEnergy;
+    /**
+     * TICKET 70's Q3b, as an EXPERIMENTAL ARM — Henry, 2026-08-29, after seeing the energy arms:
+     * *"can we do another run that does the same with card draw. both permanent card draw and a one
+     * turn boost then see them combined with the energized."*
+     *
+     * The other half of the KO cliff. Off by default; composes with `bereavementEnergy`.
+     */
+    bereavementDraw?: BereavementDraw;
+}
+
+/**
+ * The shape of the experimental energy grant. See `BatchOptions.bereavementEnergy`.
+ *
+ * # WHY THERE ARE TWO MODES AND NOT ONE
+ *
+ * "A stack of Energized" is a one-shot: `battleReducer`'s PRE_TURN refill reads the stacks, adds
+ * them to that unit's refill, and then **strips the status entirely**. So the literal reading of
+ * Henry's ask pays out **once**, on the bereaved side's next turn, and never again.
+ *
+ * The cliff it is meant to answer is **permanent** — the dead unit stops refilling for the rest of
+ * the battle, and the fight averages 4.3 more turns after the first KO. So a one-shot grant repairs
+ * roughly a quarter of one cliff for one turn, and measuring only that would answer "does a small
+ * one-off cushion produce comebacks" while looking like it had answered "does removing the energy
+ * cliff produce comebacks". Those are different questions and only the second one tests the
+ * mechanism.
+ *
+ * Hence both, as separate arms:
+ *
+ * - **`once`** — Henry's literal ask. Each surviving member of the bereaved side gains `stacks`
+ *   Energized at the moment of the death, paid out on their next refill and then gone.
+ * - **`standing`** — the same grant, re-topped every dispatch, so the side runs with `stacks` extra
+ *   energy per surviving member for as long as it is down a member. This is what "the energy cliff
+ *   is repaired" actually looks like.
+ *
+ * # ONE MORE THING THIS DELIBERATELY DOES NOT DO
+ *
+ * It does not touch the **card** cliff. A KO costs ~33% of a side's energy AND ~29% of its draw
+ * (`sum(cardDraw over ALIVE) - aliveCount + 1`), compounding to about −52% of a turn. This arm
+ * addresses the energy half only, which is the half Henry named — and the report should say so,
+ * because an arm that moves the comeback rate a little is otherwise easy to read as "energy is not
+ * the problem" when the untouched half is the larger one.
+ */
+/**
+ * The card half of the cliff, as a grant. See `BatchOptions.bereavementDraw`.
+ *
+ * # WHY THE DEFAULT IS 2 CARDS
+ *
+ * `battleReducer`'s PRE_TURN draw is `sum(cardDraw over ALIVE) - aliveCount + 1`, so a three-member
+ * side on `cardDraw 3` goes **7 cards -> 5** when one member dies. Two cards is therefore the FULL
+ * repair, which is the honest parallel to the energy arm: one Energized per survivor restored the
+ * whole 2-energy loss too. `--draw-cards 1` is the half-repair if that turns out to overshoot.
+ *
+ * # TIMING MIRRORS THE REDUCER, NOT THE DEATH
+ *
+ * Cards arrive at the bereaved side's **turn start**, which is where the reducer's own refill
+ * happens, and are capped by `HAND_SIZE_LIMIT` exactly as the refill is. Handing them over at the
+ * instant of the death would put cards in a hand mid-turn, which no rule in this game does.
+ *
+ * - **`once`** — the first turn after the death, and no more.
+ * - **`standing`** — every turn the side is down a member.
+ *
+ * # IT DOES NOT SCALE WITH THE NUMBER OF DEATHS
+ *
+ * A side down two members gets the same grant as a side down one. That is deliberate and it is the
+ * simpler lever; whether the SECOND death should also be cushioned is a different question, and
+ * folding it in here would mean two changes measured as one.
+ */
+export interface BereavementDraw {
+    mode: 'once' | 'standing';
+    /** Extra cards at the bereaved side's turn start. 2 = the full card cliff. */
+    cards: number;
+    side?: Side | 'BOTH';
+}
+
+export interface BereavementEnergy {
+    mode: 'once' | 'standing';
+    /** Energized stacks per surviving member. 1 is Henry's ask; the dead unit had 2 energy. */
+    stacks: number;
+    /** Which side gets it. `'BOTH'` keeps the experiment symmetric, which is the honest default. */
+    side?: Side | 'BOTH';
 }
 
 /**
@@ -163,6 +268,70 @@ export interface RunResult {
     cardsSeen: { player: number; enemy: number };
     /** Ticket 26: present only when `BatchOptions.telemetry` was set. */
     telemetry?: RunTelemetry;
+    /** Ticket 70's four numbers. Always collected — see `SnowballRecord`. */
+    snowball?: SnowballRecord;
+}
+
+/**
+ * THE FIRST-KO SNOWBALL, PER BATTLE — steam-release ticket 70's measurement step.
+ *
+ * Henry, 2026-08-28: *"the first mingming defeated causes a massive advantage… I avoided playing
+ * two Stampedes on a mingming because it would have overkilled by 40 damage - but then I lost."*
+ * The ticket asks for four numbers before its grilling runs, and not one of them can be recovered
+ * from a win rate: **who** killed first, **when**, how much fight came after, and how much damage
+ * the HP floor ate.
+ *
+ * # WHY THIS IS COLLECTED UNCONDITIONALLY
+ *
+ * Unlike ticket 26's telemetry, which allocates six records and several maps per run, this is four
+ * scalars and a scan of two parties per dispatch. Behind a flag, the numbers would exist only in
+ * the runs somebody remembered to ask for them in — and the interesting battles are the ones
+ * nobody thought to instrument. The cost is far below the AI lookahead that dominates every run.
+ *
+ * # OVERKILL IS READ FROM THE DAMAGE LEDGER, NOT FROM HP — AND THAT IS THE WHOLE POINT
+ *
+ * `effectHandlers.handleAttack` floors HP at zero, so a 60-damage hit on a 5 HP target moves 5 HP.
+ * An HP-diff instrument would record **5** and report no overkill at all: it cannot see the
+ * quantity ticket 70 asks about, *by construction*. `IDamageRecord` exists (2026-08-24) precisely
+ * because Henry asked for the number before the floor — so:
+ *
+ *     overkill = max(0, raw - absorbed - applied)
+ *
+ * `raw - absorbed` is what reached the HP pool; `applied` is what the pool could take; the
+ * difference is the waste Henry declined to spend a second Stampede on.
+ *
+ * The ledger is **per-action** — `battleReducer` clears it at the top of each dispatch — so it has
+ * to be read after every one. Accumulating it is this instrument's job, not the engine's.
+ */
+export interface SnowballRecord {
+    /** The side that scored the first KO, or null if no member ever died (a draw, or a stall). */
+    firstKoBy: Side | null;
+    /** `IBattleState.turn` when the first KO landed. */
+    firstKoTurn: number | null;
+    /**
+     * Turns of battle AFTER the first KO — ticket 70 line 2, *"is the rest of the fight real play
+     * or a formality"*. Null when no KO happened.
+     */
+    turnsAfterFirstKo: number | null;
+    /** Ticket 70 line 3, summed over every hit of the battle: damage the HP floor ate. */
+    overkillWasted: number;
+    /** Ticket 70 line 4's predictor: total party HP at battle start, before a card is played. */
+    startingHp: { player: number; enemy: number };
+    /** Members lost by each side by the end — the snowball's depth, not just its start. */
+    losses: { player: number; enemy: number };
+    /**
+     * EXPERIMENTAL ARMS ONLY: Energized stacks this run actually granted.
+     *
+     * **This field exists to make a dead arm impossible to mistake for a null result.** The
+     * balance merge report's hardest-won lesson is that *"a dead arm reads exactly like a null
+     * result"* — four separate measurements in one arc "worked", stayed green, and measured
+     * nothing. An experiment that reports "no change in the comeback rate" is worthless unless it
+     * can also prove it did something, so the harness counts its own grants and the reporter
+     * refuses to interpret a run where this is zero.
+     */
+    energizedGranted: number;
+    /** EXPERIMENTAL ARMS ONLY: extra cards drawn. Same liveness argument as `energizedGranted`. */
+    cardsGranted: number;
 }
 
 export interface BatchResult {
@@ -273,9 +442,19 @@ export function runOne(
     maxTurns: number = DEFAULT_MAX_TURNS,
     startingSide: Side = 'PLAYER',
     collectTelemetry = false,
+    enemyAiTier?: AiTier,
+    /** EXPERIMENTAL, ticket 70 Q2b. Undefined in every shipped path. */
+    bereavement?: BereavementEnergy,
+    /** EXPERIMENTAL, ticket 70 Q3b. Undefined in every shipped path. */
+    bereavementDraw?: BereavementDraw,
 ): RunResult {
     const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
-    let state: IBattleState = startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' };
+    let state: IBattleState = {
+        ...(startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' as const }),
+        // Left off the state entirely when unset, so `TacticalAI.tierFor` reads it as "take the
+        // process default" rather than as a grade someone chose.
+        ...(enemyAiTier === undefined ? {} : { enemyAiTier }),
+    };
 
     // Dead-card bookkeeping. `seen` accumulates every card instance that has ever been in
     // hand; `played` the ones a PLAY_PROGRAM actually consumed. Ids are stable across
@@ -333,6 +512,94 @@ export function runOne(
 
     observeHands(state);
 
+    /*
+     * TICKET 70's snowball bookkeeping. See `SnowballRecord` for why it is unconditional and why
+     * overkill comes off the damage ledger rather than out of an HP diff.
+     *
+     * `aliveOn` is the whole KO detector: a member is alive at `currentHp > 0`, which is the same
+     * test `battleReducer` itself uses for targeting and for the draw scaler. Comparing the count
+     * either side of a dispatch attributes the KO to the side that was ACTING, which is what
+     * "scored the first KO" has to mean — a member dying to its own Burn tick on its own turn is
+     * still the opponent's kill, and `state.activeSide` alone would credit it backwards.
+     */
+    const aliveOn = (s: IBattleState, side: Side): number =>
+        (side === 'PLAYER' ? s.playerParty : s.enemyParty).filter(e => e.currentHp > 0).length;
+    const hpOn = (s: IBattleState, side: Side): number =>
+        (side === 'PLAYER' ? s.playerParty : s.enemyParty).reduce((a, e) => a + e.currentHp, 0);
+
+    const startAlive = { PLAYER: aliveOn(state, 'PLAYER'), ENEMY: aliveOn(state, 'ENEMY') };
+    const startingHp = { player: hpOn(state, 'PLAYER'), enemy: hpOn(state, 'ENEMY') };
+    let firstKoBy: Side | null = null;
+    let firstKoTurn: number | null = null;
+    let overkillWasted = 0;
+    let energizedGranted = 0;
+    /** `once` mode fires on each NEW death, not on every dispatch after one. */
+    const lostSoFar: Record<Side, number> = { PLAYER: 0, ENEMY: 0 };
+
+    /*
+     * THE EXPERIMENTAL ARM — ticket 70 Q2b. A no-op unless `bereavement` is set, which it never is
+     * outside a deliberate experiment.
+     *
+     * Applied HERE rather than in `battleReducer` on purpose. The reducer is shipped code with a
+     * committed scenario corpus behind it; adding a rule there to answer a grilling question would
+     * change every recorded battle in the repo and would have to be reverted whichever way Henry
+     * rules. The harness expresses the same rule over the same states and leaves the engine
+     * bit-identical.
+     *
+     * The grant TOPS UP to a target rather than accumulating. The refill reads `stacks` and then
+     * strips the status, so in `standing` mode re-topping each dispatch is what keeps one extra
+     * energy available per turn; and taking the max rather than adding means the arm cannot pile on
+     * top of an `Energized` that a CARD granted and silently inflate itself.
+     */
+    const grantEnergized = (s0: IBattleState, side: Side, target: number): IBattleState => {
+        const key = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+        let changed = false;
+        const party = s0[key].map((e: IBattleEntity) => {
+            if (e.currentHp <= 0) return e;
+            const existing = e.statusEffects.find(x => x.type === 'Energized');
+            const now = existing?.stacks ?? 0;
+            if (now >= target) return e;
+            changed = true;
+            energizedGranted += target - now;
+            return {
+                ...e,
+                statusEffects: [
+                    ...e.statusEffects.filter(x => x.type !== 'Energized'),
+                    { type: 'Energized', stacks: target, duration: -1 },
+                ] as IBattleEntity['statusEffects'],
+            };
+        });
+        return changed ? ({ ...s0, [key]: party } as IBattleState) : s0;
+    };
+
+    let cardsGranted = 0;
+    /** Turns a side has already been topped up on, so `standing` grants once per turn not per dispatch. */
+    const drawnOnTurn: Record<Side, string> = { PLAYER: '', ENEMY: '' };
+    /** `once` mode: the side has had its single draw grant. */
+    const drawUsed: Record<Side, boolean> = { PLAYER: false, ENEMY: false };
+
+    /*
+     * The card half of the cliff. Timed to the side's TURN START, which is where the reducer's own
+     * refill happens and is capped the same way — handing cards over at the instant of the death
+     * would put them in a hand mid-turn, which no rule in this game does.
+     */
+    const grantCards = (s0: IBattleState, side: Side, count: number): IBattleState => {
+        const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+        const room = HAND_SIZE_LIMIT - s0[deckKey].hand.length;
+        const toDraw = Math.max(0, Math.min(count, room));
+        if (toDraw === 0) return s0;
+        const before = s0[deckKey].hand.length;
+        // `isNatural: true` — this stands in for the turn-start refill, not for a card effect, so it
+        // must not inflate `nonNaturalCardsDrawnThisTurn` and mislead any hook that reads it.
+        const next = executeDraw(s0, side, toDraw, true);
+        cardsGranted += next[deckKey].hand.length - before;
+        return next;
+    };
+
+    const armCovers = (side: Side): boolean =>
+        bereavement !== undefined
+        && (bereavement.side === undefined || bereavement.side === 'BOTH' || bereavement.side === side);
+
     let winner: BattleOutcome | null = decideOutcome(state);
     let truncated = false;
     let actionsThisTurn = 0;
@@ -389,6 +656,73 @@ export function runOne(
             state = nextState;
         }
 
+        /*
+         * TICKET 70, read after EVERY dispatch — including the forced `END_TURN` above, because a
+         * Burn or Poison tick resolving at end of turn is a KO like any other and skipping it
+         * would systematically under-count deaths by damage-over-time.
+         *
+         * The ledger is per-action, so this is the only moment its entries exist.
+         */
+        for (const hit of state.damageLedger ?? []) {
+            overkillWasted += Math.max(0, hit.raw - hit.absorbed - hit.applied);
+        }
+
+        /*
+         * The experimental grant, applied after the dispatch that produced the death so the arm
+         * sees the same state the snowball bookkeeping does.
+         *
+         * `once` fires only on the dispatch a member is lost on. `standing` re-tops every dispatch
+         * while the side is down, which is what makes the extra energy survive the refill that
+         * strips the status.
+         */
+        if (bereavement !== undefined) {
+            for (const side of ['PLAYER', 'ENEMY'] as const) {
+                if (!armCovers(side)) continue;
+                const lost = startAlive[side] - aliveOn(state, side);
+                if (lost <= 0) continue;
+                if (bereavement.mode === 'once' && lost === lostSoFar[side]) continue;
+                lostSoFar[side] = lost;
+                state = grantEnergized(state, side, bereavement.stacks);
+            }
+        }
+
+        /*
+         * The draw arm. Fires on the bereaved side's TURN START — detected as "this side is active
+         * and we have not already topped it up on this turn fingerprint" — so a side that takes
+         * several actions in one turn is topped up once, not once per card played.
+         */
+        if (bereavementDraw !== undefined) {
+            const side = state.activeSide as Side;
+            const covered = bereavementDraw.side === undefined
+                || bereavementDraw.side === 'BOTH' || bereavementDraw.side === side;
+            const turnKey = `${state.turn}:${side}`;
+            const down = startAlive[side] - aliveOn(state, side) > 0;
+            const fresh = drawnOnTurn[side] !== turnKey;
+            const allowed = bereavementDraw.mode === 'standing' || !drawUsed[side];
+            if (covered && down && fresh && allowed && aliveOn(state, side) > 0) {
+                drawnOnTurn[side] = turnKey;
+                drawUsed[side] = true;
+                state = grantCards(state, side, bereavementDraw.cards);
+            }
+        }
+        if (firstKoTurn === null) {
+            // Attributed to whoever the DEAD member does not belong to. Deliberately not
+            // `state.activeSide`: a unit dying to its own end-of-turn Burn dies on its own side's
+            // turn, and crediting the actor would hand that kill to the wrong team.
+            //
+            // Guarded on `firstKoTurn` rather than on `firstKoBy`, because a simultaneous KO
+            // records `firstKoBy: null` — guarding on the side would let the NEXT dispatch
+            // overwrite the tie and report a first KO one dispatch too late.
+            const playerLost = aliveOn(state, 'PLAYER') < startAlive.PLAYER;
+            const enemyLost = aliveOn(state, 'ENEMY') < startAlive.ENEMY;
+            if (playerLost || enemyLost) {
+                // Both in one dispatch (a side-scope card, a mutual tick) is a genuine tie, and
+                // recording it as neither is more honest than picking one.
+                firstKoBy = playerLost && enemyLost ? null : playerLost ? 'ENEMY' : 'PLAYER';
+                firstKoTurn = state.turn;
+            }
+        }
+
         observeHands(state);
 
         const fingerprint = `${state.turn}:${state.activeSide}`;
@@ -431,6 +765,22 @@ export function runOne(
         deadCards: { player: deadRatio('PLAYER'), enemy: deadRatio('ENEMY') },
         cardsSeen: { player: seen.PLAYER.size, enemy: seen.ENEMY.size },
         ...(telemetry ? { telemetry } : {}),
+        snowball: {
+            firstKoBy,
+            firstKoTurn,
+            // `state.turn` is where the battle stopped. A truncated run still reports this
+            // honestly: it says how long the fight went on after the KO, and that it never
+            // resolved is `truncated`'s job to say, not this field's.
+            turnsAfterFirstKo: firstKoTurn === null ? null : Math.max(0, state.turn - firstKoTurn),
+            overkillWasted,
+            startingHp,
+            losses: {
+                player: startAlive.PLAYER - aliveOn(state, 'PLAYER'),
+                enemy: startAlive.ENEMY - aliveOn(state, 'ENEMY'),
+            },
+            energizedGranted,
+            cardsGranted,
+        },
     };
 }
 
@@ -516,7 +866,8 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
 
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
-            runOne(setup, seed, maxTurns, startingSide, options.telemetry === true)),
+            runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier,
+                options.bereavementEnergy, options.bereavementDraw)),
     );
 }
 

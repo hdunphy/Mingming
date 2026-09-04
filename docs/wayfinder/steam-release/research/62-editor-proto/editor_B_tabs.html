@@ -1,0 +1,62 @@
+<!doctype html><html><head><meta charset='utf-8'><title>62 B_tabs</title></head><body><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0c0e12;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-serif;width:1280px;height:800px;overflow:hidden}
+.frame{width:1280px;height:800px;display:flex;flex-direction:column;background:
+ radial-gradient(1200px 500px at 70% -10%,#16202c 0%,#0c0e12 60%)}
+.topbar{height:52px;display:flex;align-items:center;gap:18px;padding:0 20px;border-bottom:1px solid #232a35;background:#10141b}
+.topbar .title{font-size:15px;letter-spacing:2px;color:#9fb4c8;font-weight:600}
+.topbar .ctx{font-size:12px;color:#5f6b7a;letter-spacing:1px}
+.topbar .spacer{flex:1}
+.pill{border:1px solid #2c3745;border-radius:3px;padding:4px 12px;font-size:12px;color:#c8d2dd;background:#151b24}
+.pill b{color:#fff}
+.floor-ok{border-color:#2c6e49;color:#7fd6a4}
+.btn{border:1px solid #3a4a5e;background:#1a2330;border-radius:3px;padding:6px 16px;font-size:12px;letter-spacing:1px;color:#dfe4ea}
+.btn.primary{background:#245a8c;border-color:#3d7ab5}
+.cardc{border:1px solid var(--el);border-left:4px solid var(--el);background:#131820;border-radius:3px;
+ padding:5px 8px;font-size:11.5px;display:flex;align-items:center;gap:7px;height:34px}
+.cardc .cost{width:18px;height:18px;border-radius:50%;background:var(--el);color:#0c0e12;font-weight:700;
+ display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
+.cardc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.cardc .tag{font-size:9px;color:#8fa0b3;border:1px solid #2c3745;border-radius:2px;padding:1px 4px;flex:none}
+.cardc.payoff{box-shadow:inset 0 0 0 1px var(--el)}
+.cardc.generic{opacity:.65}
+.sechead{font-size:10.5px;letter-spacing:2px;color:#5f6b7a;margin:10px 0 6px;display:flex;align-items:center;gap:8px}
+.sechead::after{content:"";flex:1;height:1px;background:#232a35}
+.member{border:1px solid #2c3745;border-radius:4px;background:#11161e;padding:8px}
+.member .head{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.member .dot{width:30px;height:30px;border-radius:4px;background:var(--el);opacity:.85;flex:none;
+ display:flex;align-items:center;justify-content:center;font-weight:800;color:#0c0e12;font-size:14px}
+.member .nm{font-size:13px;font-weight:600}
+.member .os{font-size:10px;color:#8fa0b3;letter-spacing:1px}
+.member .en{margin-left:auto;font-size:11px;color:#ffd479}
+.member.benched{opacity:.55;border-style:dashed}
+.hint{font-size:10.5px;color:#4d5866;font-style:italic}
+.count{font-size:11px;color:#8fa0b3}
+
+.tabs{display:flex;gap:2px;padding:0 16px;background:#10141b;border-bottom:1px solid #232a35}
+.tab{padding:9px 26px;font-size:12px;letter-spacing:2px;color:#5f6b7a;border-bottom:2px solid transparent}
+.tab.on{color:#fff;border-color:#3d9be0}
+.bodyB{flex:1;display:grid;grid-template-columns:1fr 340px;gap:12px;padding:12px 16px}
+.deckgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;align-content:start}
+.panel{border:1px solid #232a35;border-radius:6px;background:#0f131a;padding:10px 12px;overflow:hidden}
+.panel h2{font-size:11px;letter-spacing:2px;color:#9fb4c8;margin-bottom:8px}
+.filters{display:flex;gap:6px;margin-bottom:8px}
+.f{border:1px solid #2c3745;border-radius:12px;padding:3px 10px;font-size:10.5px;color:#8fa0b3}
+.f.on{border-color:#3d9be0;color:#fff}
+.mini{display:flex;gap:6px;margin-bottom:8px}
+.minim{flex:1;border:1px solid #2c3745;border-radius:4px;padding:4px 6px;font-size:10.5px;display:flex;gap:6px;align-items:center}
+.minim .dot{width:16px;height:16px;border-radius:3px;background:var(--el)}
+</style><div class="frame"><div class="topbar"><span class="title">LOADOUT — LAYOUT B · TABS</span>
+    <span class="ctx">WORKSHOP · NATURE BIOME · NODE 7 · 143 SCRAP</span><span class="spacer"></span>
+    <span class="pill floor-ok">DECK <b>20</b> / floor 18</span>
+    <button class="btn primary">CONFIRM</button></div>
+<div class="tabs"><span class="tab">PARTY &amp; BENCH</span><span class="tab on">DECK</span></div>
+<div class="bodyB">
+ <div class="panel"><div class="mini"><div class="minim" style="--el:#e05d43"><span class="dot"></span>Fenrir ⚡2e</div><div class="minim" style="--el:#3d9be0"><span class="dot"></span>Kraken ⚡2e</div><div class="minim" style="--el:#43b45f"><span class="dot"></span>Huldra ⚡2e</div></div>
+  <div class="filters"><span class="f on">ALL 20</span><span class="f">FIRE 7</span><span class="f">WATER 5</span><span class="f">NATURE 5</span><span class="f">GENERIC 3</span><span class="f">SORT: COST ▾</span></div>
+  <h2>ACTIVE DECK · 20 / floor 18</h2>
+  <div class="deckgrid"><div class="cardc generic" style="--el:#8a8f98"><span class="cost">0</span><span class="nm">Water Slap</span><span class="tag">generic</span></div><div class="cardc generic" style="--el:#8a8f98"><span class="cost">0</span><span class="nm">Water Slap</span><span class="tag">generic</span></div><div class="cardc generic" style="--el:#8a8f98"><span class="cost">0</span><span class="nm">Water Slap</span><span class="tag">generic</span></div><div class="cardc" style="--el:#43b45f"><span class="cost">0</span><span class="nm">Sap Vigor</span></div><div class="cardc" style="--el:#e05d43"><span class="cost">1</span><span class="nm">Blood Rite</span></div><div class="cardc" style="--el:#e05d43"><span class="cost">1</span><span class="nm">Berserk Rush</span></div><div class="cardc" style="--el:#e05d43"><span class="cost">1</span><span class="nm">Battle Rhythm</span></div><div class="cardc" style="--el:#e05d43"><span class="cost">1</span><span class="nm">Crimson Draw</span></div><div class="cardc" style="--el:#43b45f"><span class="cost">1</span><span class="nm">Thornguard</span></div><div class="cardc" style="--el:#43b45f"><span class="cost">1</span><span class="nm">Thornguard</span></div><div class="cardc" style="--el:#43b45f"><span class="cost">1</span><span class="nm">Heartwood</span></div><div class="cardc" style="--el:#43b45f"><span class="cost">1</span><span class="nm">Nettle Sting</span><span class="tag">pick</span></div><div class="cardc payoff" style="--el:#e05d43"><span class="cost">2</span><span class="nm">Ragnarok Edge</span><span class="tag">payoff</span></div><div class="cardc" style="--el:#8a8f98"><span class="cost">2</span><span class="nm">Capacitor</span></div><div class="cardc" style="--el:#8a8f98"><span class="cost">2</span><span class="nm">Capacitor</span></div><div class="cardc" style="--el:#3d9be0"><span class="cost">2</span><span class="nm">Surge Protection</span></div><div class="cardc" style="--el:#3d9be0"><span class="cost">2</span><span class="nm">Surge Protection</span></div><div class="cardc payoff" style="--el:#43b45f"><span class="cost">2</span><span class="nm">Blightbloom</span><span class="tag">payoff</span></div><div class="cardc" style="--el:#e05d43"><span class="cost">2</span><span class="nm">Pyre Sacrifice</span><span class="tag">pick</span></div><div class="cardc payoff" style="--el:#3d9be0"><span class="cost">3</span><span class="nm">Hydro Blast</span><span class="tag">payoff</span></div></div></div>
+ <div class="panel"><h2>RUN COLLECTION · 8</h2>
+  <div class="deckgrid" style="grid-template-columns:1fr"><div class="cardc payoff" style="--el:#43b45f"><span class="cost">2</span><span class="nm">Seed Bomb</span><span class="tag">payoff·benched</span></div><div class="cardc" style="--el:#8a8f98"><span class="cost">0</span><span class="nm">Forage</span><span class="tag">benched</span></div><div class="cardc" style="--el:#8a8f98"><span class="cost">0</span><span class="nm">Forage</span><span class="tag">benched</span></div><div class="cardc" style="--el:#43b45f"><span class="cost">2</span><span class="nm">Echo Chamber</span><span class="tag">benched</span></div><div class="cardc" style="--el:#43b45f"><span class="cost">0</span><span class="nm">Healing Mist</span><span class="tag">benched</span></div><div class="cardc" style="--el:#3d9be0"><span class="cost">1</span><span class="nm">Ink Stream</span><span class="tag">pick</span></div><div class="cardc" style="--el:#e05d43"><span class="cost">1</span><span class="nm">Molten Core</span><span class="tag">pick</span></div><div class="cardc" style="--el:#3d9be0"><span class="cost">1</span><span class="nm">Venom Fang</span><span class="tag">pick</span></div></div>
+  <div class="hint" style="margin-top:10px">Tap a card to move it between deck and collection. Benched Ratatoskr's engine is locked to the collection until it joins the party (PARTY tab).</div></div>
+</div></div></body></html>

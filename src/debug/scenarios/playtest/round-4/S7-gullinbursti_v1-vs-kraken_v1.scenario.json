@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "S7 - sharp vs dazed, the cancel war",
+  "description": "Uncapped duality cancel is the whole reason for the two-levers law - feel whether the law is enough. Does the stack war feel like a FIGHT (reads, timing, bluffed sheds) or a coin flip decided by deck construction before turn 1? Did casting a shed ever feel like the best card in your hand - the removal economy is the only cap left, it has to earn that. NOTE: the pack offered 'a Sharp deck vs a Dazed applier, or the reverse - kraken_v1's ink still Dazes on his draws'; this pairs gullinbursti_v1 (stone_fist's self-feeding Sharp pile) against kraken_v1 as the Dazed applier - swap seats if you'd rather feel the reverse.   [you: gullinbursti_v1 | opponent: kraken_v1]",
+  "tags": ["playtest", "round-4", "gullinbursti_v1"],
+  "registryHash": "1:19d87614",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "setup": {
+    "seed": "S7-gullinbursti_v1-vs-kraken_v1",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        { "definitionId": "gullinbursti", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "gullinbursti_v1" }
+      ],
+      "deck": ["water_slap","keen_edge","keen_edge","shield_shards","shield_shards","stone_bark","stone_fist","stone_fist","motherlode","spiked_carapace"],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "kraken", "level": 15, "attackIV": 15, "defenseIV": 15, "hpIV": 15, "activeOS": "kraken_v1",
+        "deck": ["whirlpool_v2","whirlpool_v2","pressure_point","pressure_point","ink_stream","ink_stream","surge_protection","undertow"]
+      }
+    ]
+  }
+}

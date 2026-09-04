@@ -18,7 +18,7 @@
  */
 import { globalBattleEventBus } from './events';
 
-const ENABLED = process.env.STATUS_CENSUS === '1';
+const ENABLED = typeof process !== 'undefined' && process.env?.STATUS_CENSUS === '1';
 
 export interface StatusCensus {
     /** HP removed by each status's end-of-turn tick, keyed by status type. */

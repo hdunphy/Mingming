@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleEntity, IBattleState, IMove, StatusEffectInstance } from './types';
-import { getExpForLevel } from './types';
 import { globalBattleEventBus, type BattleEvent } from './events';
-import { registerHook, HookPriority } from './core/Hooks';
+import { registerHook, HookPriority, type HookContext } from './core/Hooks';
+import { HAND_SIZE_LIMIT } from './deckLogic';
 
 /**
  * Coverage for the five general-purpose state actions added by
@@ -18,7 +18,7 @@ import { registerHook, HookPriority } from './core/Hooks';
 
 function makeEntity(id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity {
     return {
-        id, name, level: 5, experience: 0,
+        id, name, 
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Fire', statusEffects: [],
@@ -38,7 +38,6 @@ function makeState(player: IBattleEntity[], enemy: IBattleEntity[]): IBattleStat
         logs: [],
         osLogs: [],
         procs: [],
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
@@ -57,7 +56,7 @@ function registerCountingHook(id: string): PhaseCounts {
         onPostDamage: 0, onHeal: 0, onStatusApplied: 0, onStatusRemoved: 0,
         onUnitFainted: 0, onTurnStart: 0, onTurnEnd: 0, onCardDraw: 0, onActionStart: 0
     };
-    const count = (phase: string) => (context: any) => {
+    const count = (phase: string) => (context: HookContext) => {
         counts[phase] += 1;
         return { state: context.state };
     };
@@ -89,7 +88,9 @@ afterEach(() => {
     unsubscribe?.();
 });
 
-const eventsOfType = (type: string) => events.filter(e => e.type === type);
+/** Narrows to the concrete event member, so callers can read its payload without casting. */
+const eventsOfType = <T extends BattleEvent['type']>(type: T) =>
+    events.filter((e): e is Extract<BattleEvent, { type: T }> => e.type === type);
 
 describe('SET_VITALS', () => {
 
@@ -142,8 +143,8 @@ describe('SET_VITALS', () => {
 
         const damage = eventsOfType('DAMAGE_TAKEN');
         expect(damage).toHaveLength(1);
-        expect((damage[0] as any).amount).toBe(40);
-        expect((damage[0] as any).targetId).toBe('p1');
+        expect(damage[0].amount).toBe(40);
+        expect(damage[0].targetId).toBe('p1');
         expect(eventsOfType('HEAL')).toHaveLength(0);
     });
 
@@ -152,7 +153,7 @@ describe('SET_VITALS', () => {
         registerHook({
             id: 'test_vitals_source_attribution',
             priority: HookPriority.DEFENDER,
-            onPostDamage: (context: any) => {
+            onPostDamage: (context: HookContext) => {
                 seen.push({ source: context.source?.id, target: context.target?.id });
                 return { state: context.state };
             }
@@ -188,7 +189,7 @@ describe('SET_VITALS', () => {
 
         const heals = eventsOfType('HEAL');
         expect(heals).toHaveLength(1);
-        expect((heals[0] as any).amount).toBe(35);
+        expect(heals[0].amount).toBe(35);
         expect(eventsOfType('DAMAGE_TAKEN')).toHaveLength(0);
     });
 
@@ -224,7 +225,6 @@ describe('SET_VITALS', () => {
 
         expect(next.enemyParty[0].currentHp).toBe(0);
         expect(counts.onUnitFainted).toBe(1);
-        expect(next.playerParty[0].experience).toBeGreaterThan(0);
     });
 
     it('no-ops when the entity or the sourceId is not a real unit in the battle', () => {
@@ -267,8 +267,8 @@ describe('REMOVE_STATUS', () => {
 
         const removedEvents = eventsOfType('STATUS_REMOVED');
         expect(removedEvents).toHaveLength(1);
-        expect((removedEvents[0] as any).status).toBe('Burn');
-        expect((removedEvents[0] as any).targetId).toBe('p1');
+        expect(removedEvents[0].status).toBe('Burn');
+        expect(removedEvents[0].targetId).toBe('p1');
     });
 
     it('clears every status when no type is given, one event and one hook per instance', () => {
@@ -288,7 +288,7 @@ describe('REMOVE_STATUS', () => {
 
         expect(next.playerParty[0].statusEffects).toHaveLength(0);
         expect(counts.onStatusRemoved).toBe(2);
-        expect(eventsOfType('STATUS_REMOVED').map(e => (e as any).status).sort())
+        expect(eventsOfType('STATUS_REMOVED').map(e => e.status).sort())
             .toEqual(['Burn', 'Poison']);
         expect(counts.onStatusApplied).toBe(0);
     });
@@ -354,7 +354,10 @@ describe('ADD_CARD_TO_HAND', () => {
     });
 
     it('inherits handleGenerateCard hand-size rejection instead of reimplementing it', () => {
-        const full = Array.from({ length: 9 }, (_, i) => ({
+        // TICKET 131b: reads HAND_SIZE_LIMIT rather than the literal 9 it used to hardcode. The
+        // test's subject is "a full hand refuses another card", not "the cap is nine", and pinning
+        // the number meant a tuning change to the cap broke a test about a different behaviour.
+        const full = Array.from({ length: HAND_SIZE_LIMIT }, (_, i) => ({
             id: 'c' + i, dataId: 'card_fireball', currentCost: 1, isPlayable: true
         }));
         const base = makeState([makeEntity('p1', 'Hero')], [makeEntity('e1', 'Villain')]);
@@ -365,7 +368,7 @@ describe('ADD_CARD_TO_HAND', () => {
             payload: { side: 'PLAYER', dataId: 'card_fireball' }
         });
 
-        expect(next.playerDeck.hand).toHaveLength(9);
+        expect(next.playerDeck.hand).toHaveLength(HAND_SIZE_LIMIT);
         expect(next.logs.some(l => l.includes('Hand full'))).toBe(true);
     });
 
@@ -390,7 +393,7 @@ describe('SET_INTENT', () => {
 
     const move: IMove = {
         id: 'move_slam', name: 'Slam', intentType: 'Attack', priority: 1,
-        actions: [{ type: 'ATTACK', target: 'TARGET', power: 10 } as any]
+        actions: [{ type: 'ATTACK', target: 'TARGET', power: 10 }]
     };
 
     it('sets the telegraphed move and fires nothing', () => {
@@ -436,9 +439,9 @@ describe('KILL_ENTITY', () => {
         // knockout XP must both land and cascade into the level-up queue.
         const state = makeState(
             [makeEntity('p1', 'Hero', {
-                level: 1, experience: getExpForLevel(2) - 1, hooks: ['test_kill']
+                hooks: ['test_kill']
             })],
-            [makeEntity('e1', 'Villain', { level: 5 })]
+            [makeEntity('e1', 'Villain', {})]
         );
 
         const next = battleReducer(state, {
@@ -448,11 +451,6 @@ describe('KILL_ENTITY', () => {
 
         expect(next.enemyParty[0].currentHp).toBe(0);
         expect(counts.onUnitFainted).toBe(1);
-        expect(next.playerParty[0].experience).toBeGreaterThanOrEqual(getExpForLevel(2));
-        expect(next.playerParty[0].level).toBeGreaterThan(1);
-        expect(next.levelUpQueue.length).toBeGreaterThan(0);
-        expect(next.levelUpQueue[0].entityId).toBe('p1');
-        expect(eventsOfType('LEVEL_UP').length).toBeGreaterThan(0);
     });
 
     it('credits the kill to the supplied source in the log', () => {
@@ -505,7 +503,7 @@ describe('Recursion safety: resolutionStackDepth terminates a hook cycle', () =>
         registerHook({
             id: 'test_heal_cycle',
             priority: HookPriority.DEFENDER,
-            onHeal: (context: any) => {
+            onHeal: (context: HookContext) => {
                 runs += 1;
                 // Safety valve: if the guard ever regressed this fails the assertion
                 // below rather than blowing the JS stack and killing the suite.

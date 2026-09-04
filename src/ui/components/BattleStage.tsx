@@ -5,6 +5,8 @@ import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
 import { getElementAccent } from '../utils/contrastText';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+import { GetProgramData } from '../../engine/data/programRegistry';
+import { targetVerdict } from '../utils/targeting';
 
 /**
  * BattleStage — the Pokémon-style center stage of the battle screen.
@@ -71,12 +73,20 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
 
     // The art fallback state is per-entity (a swapped-in unit gets a fresh try).
     useEffect(() => {
+        // ticket 55: reviewed, not a defect. This is "reset state when a prop changes"; React's
+        // preferred alternative is a `key` on this component, which the parent cannot supply
+        // without re-keying the whole stage and remounting the animation state that outlives an art
+        // swap.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setArtBroken(false);
     }, [entity.artReference]);
 
     // Death FX: CRT glitch on the frame HP hits 0 (same beat as the HUD card).
     useEffect(() => {
         if (entity.currentHp <= 0 && prevHpRef.current > 0) {
+            // ticket 55: reviewed, not a defect. A 500ms one-shot FX owned by a timer, fired on an
+            // HP-crossing that only a ref can see. Same shape as the turn banner in `BattleArena`.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDeathGlitch(true);
             const timeout = setTimeout(() => setDeathGlitch(false), 500);
             prevHpRef.current = entity.currentHp;
@@ -159,6 +169,13 @@ interface BattleStageProps {
     battleState: IBattleState;
     selectedSourceId: string | null;
     selectedTargetId: string | null;
+    /**
+     * Ticket 22: the spotlights are drop surfaces too, so they owe the player the same
+     * before-you-commit verdict the sidebar HUD cards give. Passed in rather than read from the
+     * store because this component is deliberately store-free (see BattleStage.test-less design —
+     * every input is a prop, which is what lets `BattleArena` own all the targeting policy).
+     */
+    selectedCardId?: string | null;
     /** Hovered entity while drag-targeting (mirrors the sidebar hover state). */
     hoveredEntityId: string | null;
     isTargeting: boolean;
@@ -172,6 +189,7 @@ const BattleStage: React.FC<BattleStageProps> = ({
     battleState,
     selectedSourceId,
     selectedTargetId,
+    selectedCardId,
     hoveredEntityId,
     isTargeting,
     unitFx,
@@ -202,17 +220,35 @@ const BattleStage: React.FC<BattleStageProps> = ({
     const enemyAccent = getElementAccent(enemy.primaryElement);
     const enemyIsTargeted = selectedTargetId === enemy.id;
 
+    // Ticket 22: the same verdict, from the same predicate, that the sidebar cards draw. Both
+    // spotlights get one, because either can be dropped on and either can refuse.
+    const selectedCard = selectedCardId
+        ? battleState.playerDeck.hand.find(c => c.id === selectedCardId)
+        : undefined;
+    const selectedCardData = selectedCard ? GetProgramData(selectedCard.dataId) : null;
+    const caster = selectedSourceId
+        ? battleState.playerParty.find(p => p.id === selectedSourceId) ?? null
+        : null;
+    const playerVerdict = selectedCardData ? targetVerdict(selectedCardData, player, false, caster) : null;
+    const enemyVerdict = selectedCardData ? targetVerdict(selectedCardData, enemy, true, caster) : null;
+
     const swapTransition = { duration: reduced ? 0 : SWAP_DURATION, ease: 'easeOut' as const };
 
     return (
         <div className="battle-stage" data-testid="battle-stage">
             {/* ── LEFT SPOTLIGHT: selected player unit (back-sprite position) ── */}
             <div
-                className="stage-spot stage-spot-player"
+                className={`stage-spot stage-spot-player ${playerVerdict ? (playerVerdict.ok ? 'stage-spot-legal' : 'stage-spot-illegal') : ''}`}
                 data-testid="stage-spot-player"
+                title={playerVerdict?.reason ?? undefined}
                 onClick={() => onEntityClick(player, false)}
                 onPointerUp={() => onEntityPointerUp(player, false)}
             >
+                {playerVerdict && (
+                    <div className={`stage-target-flag ${playerVerdict.ok ? 'legal' : 'illegal'}`}>
+                        {playerVerdict.ok ? '✓ TARGET' : playerVerdict.reason}
+                    </div>
+                )}
                 <div
                     className="stage-platform"
                     style={{
@@ -239,7 +275,6 @@ const BattleStage: React.FC<BattleStageProps> = ({
                     <div className="stage-plaque-name">
                         <span className="stage-plaque-dot" style={{ background: playerAccent, boxShadow: `0 0 6px ${playerAccent}` }} />
                         {player.name.toUpperCase()}
-                        <span className="stage-plaque-level">LV.{player.level}</span>
                     </div>
                     <div className="stage-plaque-row">
                         <span className="stage-plaque-label">HP</span>
@@ -256,13 +291,19 @@ const BattleStage: React.FC<BattleStageProps> = ({
 
             {/* ── RIGHT SPOTLIGHT: focus enemy (front-sprite position) ── */}
             <div
-                className={`stage-spot stage-spot-enemy ${enemyIsTargeted ? 'stage-spot-targeted' : ''}`}
+                className={`stage-spot stage-spot-enemy ${enemyIsTargeted ? 'stage-spot-targeted' : ''} ${enemyVerdict ? (enemyVerdict.ok ? 'stage-spot-legal' : 'stage-spot-illegal') : ''}`}
                 data-testid="stage-spot-enemy"
+                title={enemyVerdict?.reason ?? undefined}
                 onClick={() => onEntityClick(enemy, true)}
                 onPointerUp={() => onEntityPointerUp(enemy, true)}
                 onMouseEnter={() => { if (isTargeting) onEnemyHoverChange(enemy.id); }}
                 onMouseLeave={() => { if (hoveredEntityId === enemy.id) onEnemyHoverChange(null); }}
             >
+                {enemyVerdict && (
+                    <div className={`stage-target-flag ${enemyVerdict.ok ? 'legal' : 'illegal'}`}>
+                        {enemyVerdict.ok ? '✓ TARGET' : enemyVerdict.reason}
+                    </div>
+                )}
                 {enemy.currentIntent && enemy.currentHp > 0 && (
                     <motion.div
                         key={`${enemy.id}-${enemy.currentIntent.name}`}
@@ -279,7 +320,6 @@ const BattleStage: React.FC<BattleStageProps> = ({
                     <div className="stage-plaque-name">
                         <span className="stage-plaque-dot" style={{ background: enemyAccent, boxShadow: `0 0 6px ${enemyAccent}` }} />
                         {enemy.name.toUpperCase()}
-                        <span className="stage-plaque-level">LV.{enemy.level}</span>
                     </div>
                     <div className="stage-plaque-row">
                         <span className="stage-plaque-label">HP</span>

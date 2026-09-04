@@ -1,0 +1,976 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t5-15161091",
+  "description": "Auto-captured at turn 5, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_t118-05-triple-sleipnir-vs-control-panel",
+    "seed": "1516109156",
+    "turn": 5,
+    "phase": "ACTION",
+    "activeSide": "PLAYER",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_0lec83k_1",
+        "definitionId": "sleipnir",
+        "level": 15,
+        "experience": 2772,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "name": "Sleipnir",
+        "maxHp": 78,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 32,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "09419746-3b46-4450-a939-914c431b5a58",
+            "type": "Strengthened",
+            "stacks": 8
+          },
+          {
+            "id": "23f00a9a-f616-4f05-810e-8af1c35d1524",
+            "type": "Dazed",
+            "stacks": 7
+          },
+          {
+            "id": "a45e5ce0-6b79-46b9-b367-c05658c27490",
+            "type": "Burn",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Sleipnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 5,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_0odwubk_2",
+        "definitionId": "sleipnir",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "name": "Sleipnir",
+        "maxHp": 78,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 32,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "c5209a03-ddf3-4bc7-a348-7efebbbde4df",
+            "type": "Weakened",
+            "stacks": 3
+          },
+          {
+            "id": "9136c603-4f23-4672-8ad7-36ec37feb986",
+            "type": "Dazed",
+            "stacks": 5
+          },
+          {
+            "id": "e622b3c6-826e-4e6b-96f2-9f177e7f1347",
+            "type": "Burn",
+            "stacks": 2
+          },
+          {
+            "id": "99413bbc-3b05-4bff-a1d5-9056ab5fdae2",
+            "type": "Poison",
+            "stacks": 11
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Sleipnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 4,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_0fvx43k_3",
+        "definitionId": "sleipnir",
+        "level": 15,
+        "experience": 2772,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "name": "Sleipnir",
+        "maxHp": 78,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 38,
+        "defense": 32,
+        "speed": 10,
+        "primaryElement": "Air",
+        "currentHp": 9,
+        "currentEnergy": 2,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "3678f386-c9a2-48cf-af6a-b2d3e0b694ca",
+            "type": "Weakened",
+            "stacks": 8
+          },
+          {
+            "id": "d518fbd0-6373-40bf-9031-ebd6a0c5b5a8",
+            "type": "Dazed",
+            "stacks": 10
+          },
+          {
+            "id": "f0cc4ab3-f8ef-41f6-83a2-dd7af60a7d82",
+            "type": "Burn",
+            "stacks": 2
+          },
+          {
+            "id": "71d3488f-167f-47f6-a677-e2219c203f1c",
+            "type": "Stunned",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [
+          {
+            "id": "card_1u1kutc_16",
+            "dataId": "hoofbeat_daemon",
+            "currentCost": 2,
+            "isPlayable": true
+          }
+        ],
+        "artReference": "Sleipnir.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 0,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_1av5rsw_4",
+        "definitionId": "kraken",
+        "level": 15,
+        "experience": 2820,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "kraken_v1",
+        "name": "Kraken",
+        "maxHp": 73,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 41,
+        "defense": 37,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 4,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "3ee1acf8-6d4d-4e44-9b04-a7a6a5b83796",
+            "type": "Weakened",
+            "stacks": 1
+          },
+          {
+            "id": "8c8c1ed0-8e22-4220-9638-ef11dc096ae2",
+            "type": "Dazed",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Kraken.png",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_0578agw_5",
+        "definitionId": "huldra",
+        "level": 15,
+        "experience": 2820,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "huldra_v1",
+        "name": "Huldra",
+        "maxHp": 80,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 35,
+        "speed": 10,
+        "primaryElement": "Nature",
+        "currentHp": 10,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "ccba3817-830d-4d15-87ef-81dd604f31bf",
+            "type": "Sharp",
+            "stacks": 3
+          },
+          {
+            "id": "1eb69c6b-1e06-420e-a9ab-f8dc1163abbd",
+            "type": "Weakened",
+            "stacks": 6
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Huldra.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      },
+      {
+        "id": "mm_0p4t6gw_6",
+        "definitionId": "draugr",
+        "level": 15,
+        "experience": 2748,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "draugr_v2",
+        "name": "Draugr",
+        "maxHp": 83,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 36,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Ice",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "c7c2c2a6-d75d-47f7-a296-56bb5d48bd05",
+            "type": "Weakened",
+            "stacks": 1
+          },
+          {
+            "id": "bedc2489-1d52-417f-b852-1545d9a0c00b",
+            "type": "Dazed",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Draugr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 1,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_114w2io_10",
+          "dataId": "adrenaline",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0eo5udc_s",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1umts74_g",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0rtyhhc_i",
+          "dataId": "hoofbeat_daemon",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ovol4w_k",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1q2bfnk_e",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_11l5zr4_l",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ab5bsw_o",
+          "dataId": "adrenaline",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1qi0npc_w",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0cj9yww_13",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0j1hv9c_8",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_09xl7uo_m",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0rpkbgg_11",
+          "dataId": "tailwind",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0o76fb4_7",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1c2s51c_t",
+          "dataId": "momentum_crash",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0its4qo_a",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0pz82rk_x",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_12hz7r4_c",
+          "dataId": "adrenaline",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_08j12rk_f",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1j4o5c0_14",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_00dcmww_15",
+          "dataId": "momentum_crash",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0mcpvy8_b",
+          "dataId": "disorienting_gust",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1cpkr9c_q",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1y0db7k_12",
+          "dataId": "zephyr_strike",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_00uophc_p",
+          "dataId": "tailwind",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1mpuxkw_j",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_17sudxc_9",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_1i3japs_z",
+          "dataId": "disorienting_gust",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_11tmhwg_d",
+          "dataId": "tailwind",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1c3q22o_n",
+          "dataId": "disorienting_gust",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_0wcxif4_y",
+          "dataId": "slipstream",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0nn2osg_v",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0t6abuo_r",
+          "dataId": "stampede",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1hp0a2o_h",
+          "dataId": "momentum_crash",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1ww0m0w_1j",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0hxrvcw_1g",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_12hcilc_1d",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0kk98g0_19",
+          "dataId": "pressure_point",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1hz8og0_1k",
+          "dataId": "iron_bark",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0awnh8g_1f",
+          "dataId": "growth",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1rqxmbk_1e",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0zye77k_17",
+          "dataId": "whirlpool_v2",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1v541kw_1c",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0fhb0g0_1i",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0syfb40_1w",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_02p7xmo_1n",
+          "dataId": "hexbloom",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_15xcwow_1p",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_06kai2o_1t",
+          "dataId": "killing_frost",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0xr52ow_18",
+          "dataId": "whirlpool_v2",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_03oiq68_1x",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0vmmznk_1r",
+          "dataId": "frost_bite",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_16g9q0w_1h",
+          "dataId": "soothe",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0rh5glc_1s",
+          "dataId": "numbing_gale",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0xzoxz4_1b",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1q6owsg_1q",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0eviw3k_1u",
+          "dataId": "ice_spear",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_1iv1csg_1l",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_01ttgjk_1v",
+          "dataId": "glacial_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_11925fk_1o",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1fld0cg_1m",
+          "dataId": "thorn_tithe",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0ptg5mo_1a",
+          "dataId": "pressure_point",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Tackle → Huldra",
+      "  → Huldra takes 2 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Tackle → Huldra",
+      "  → Huldra takes 2 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Tackle → Huldra",
+      "  → Huldra takes 3 damage",
+      "Sleipnir plays Zephyr Strike → Huldra",
+      "  → Huldra takes 6 damage",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Tackle → Huldra",
+      "  → Huldra takes 3 damage",
+      "Sleipnir plays Stampede → Huldra",
+      "  → Huldra takes 40 damage",
+      "Sleipnir plays Zephyr Strike → Huldra",
+      "  → Huldra takes 4 damage",
+      "Sleipnir plays Hoofbeat Daemon → Sleipnir",
+      "Sleipnir plays Stampede → Draugr",
+      "  → Draugr takes 55 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Draugr plays Killing Frost → Sleipnir",
+      "  → Sleipnir takes 3 damage",
+      "  → Sleipnir takes 3 damage",
+      "  → Sleipnir takes 3 damage",
+      "  ✨ Sleipnir's Strengthened reduced by 2 by Weakened",
+      "  → Sleipnir gains Weakened (2 stacks)",
+      "  → Sleipnir gains Weakened (2 stacks)",
+      "  → Sleipnir gains Dazed (2 stacks)",
+      "  → Sleipnir gains Dazed (2 stacks)",
+      "  → Sleipnir gains Dazed (2 stacks)",
+      "Draugr plays Frost Bite → Sleipnir",
+      "  → Sleipnir takes 5 damage",
+      "  → Sleipnir takes 5 damage",
+      "  → Sleipnir takes 5 damage",
+      "  → Sleipnir gains Burn (2 stacks)",
+      "  → Sleipnir gains Burn (2 stacks)",
+      "  → Sleipnir gains Burn (2 stacks)",
+      "Huldra plays Rimefrost → Draugr",
+      "  → Kraken gains Weakened (1 stacks)",
+      "  ✨ Sleipnir's Strengthened reduced by 1 by Weakened",
+      "  → Huldra gains Weakened (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Draugr gains Weakened (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Kraken gains Dazed (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Huldra gains Dazed (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Draugr gains Dazed (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "Kraken plays Rimefrost → Sleipnir",
+      "  ✨ Sleipnir's Strengthened reduced by 1 by Weakened",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Kraken plays Tackle → Sleipnir",
+      "  → Sleipnir takes 3 damage",
+      "Huldra plays Soothe → Huldra",
+      "  ✨ 1 stack(s) of Weakened removed from target",
+      "  ✨ 1 stack(s) of Dazed removed from target",
+      "Huldra plays Hexbloom → Sleipnir",
+      "  → Sleipnir gains Poison (12 stacks)",
+      "Kraken plays Rimebreaker → Sleipnir",
+      "  → Sleipnir takes 18 damage",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "Sleipnir plays Hoofbeat Daemon → Sleipnir",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Disorienting Gust → Kraken",
+      "  → Kraken gains Dazed (1 stacks)",
+      "  ✨ Sleipnir's Dazed reduced by 1 by Sharp",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "  → Draugr takes 0 damage",
+      "Sleipnir's HOOFBEAT_DAEMON stampedes into Draugr!",
+      "Sleipnir plays Tackle → Huldra",
+      "  → Huldra takes 1 damage",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "  → Kraken takes 1 damage",
+      "Sleipnir's HOOFBEAT_DAEMON stampedes into Kraken!",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "  → Kraken takes 1 damage",
+      "Sleipnir's HOOFBEAT_DAEMON stampedes into Kraken!",
+      "Sleipnir plays Disorienting Gust → Huldra",
+      "  → Huldra gains Dazed (1 stacks)",
+      "  ✨ Sleipnir's Dazed reduced by 1 by Sharp",
+      "Sleipnir plays Zephyr Strike → Huldra",
+      "  → Huldra takes 3 damage",
+      "Sleipnir plays Tailwind → Sleipnir",
+      "Sleipnir plays Tailwind → Sleipnir",
+      "Sleipnir plays Stampede → Kraken",
+      "  → Kraken takes 45 damage",
+      "--- PLAYER ends their turn ---",
+      "  → Sleipnir takes 2 damage from Burn",
+      "  🔥 Sleipnir — Burn deals 2 damage (2 stacks)",
+      "  → Sleipnir takes 2 damage from Burn",
+      "  🔥 Sleipnir — Burn deals 2 damage (2 stacks)",
+      "  → Sleipnir takes 9 damage from Poison",
+      "  ☠️ Sleipnir — Poison deals 9 damage (12 stacks)",
+      "  → Sleipnir takes 2 damage from Burn",
+      "  🔥 Sleipnir — Burn deals 2 damage (2 stacks)",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Huldra plays Numbing Gale → Sleipnir",
+      "  → Sleipnir takes 4 damage",
+      "  → Sleipnir takes 4 damage",
+      "  → Sleipnir takes 4 damage",
+      "  → Sleipnir gains Dazed (2 stacks)",
+      "  → Sleipnir gains Dazed (2 stacks)",
+      "  → Sleipnir gains Dazed (2 stacks)",
+      "Kraken plays Pressure Point → Sleipnir",
+      "  → Sleipnir takes 8 damage",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Abyssal Ink blinds the enemy side!",
+      "Huldra plays Iron Bark → Huldra",
+      "  ✨ Huldra's Dazed canceled by Sharp",
+      "  → Huldra gains Sharp (2 stacks)",
+      "  ✨ Sleipnir's Strengthened reduced by 1 by Weakened",
+      "  → Huldra gains Regen (2 stacks)",
+      "  ✨ Sleipnir's Strengthened reduced by 1 by Weakened",
+      "Draugr plays Rimebreaker → Sleipnir",
+      "  → Sleipnir takes 25 damage",
+      "Kraken plays Ink Stream → Sleipnir",
+      "  → Sleipnir takes 12 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 3 allies",
+      "Huldra plays Growth → Kraken",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  ✨ Sleipnir's Strengthened reduced by 1 by Weakened",
+      "  → Huldra heals 1 HP",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (2 → 1 stacks)",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Disorienting Gust → Huldra",
+      "  ✨ Huldra's Sharp reduced by 1 by Dazed",
+      "  ✨ Sleipnir's Dazed reduced by 1 by Sharp",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "Sleipnir plays Stampede → Huldra",
+      "  → Huldra takes 12 damage",
+      "Sleipnir plays Tailwind → Sleipnir",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "  → Sleipnir gains Strengthened (1 stacks)",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "Sleipnir plays Stampede → Draugr",
+      "  → Draugr takes 42 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 2 allies",
+      "Sleipnir plays Stampede → Kraken",
+      "  → Kraken takes 14 damage",
+      "--- PLAYER ends their turn ---",
+      "  → Sleipnir takes 2 damage from Burn",
+      "  🔥 Sleipnir — Burn deals 2 damage (2 stacks)",
+      "  → Sleipnir takes 2 damage from Burn",
+      "  🔥 Sleipnir — Burn deals 2 damage (2 stacks)",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "Huldra plays Whirlpool → Sleipnir",
+      "  → Sleipnir takes 2 damage",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Abyssal Ink blinds the enemy side!",
+      "Kraken plays Whirlpool → Sleipnir",
+      "  → Sleipnir takes 4 damage",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Abyssal Ink blinds the enemy side!",
+      "Kraken plays Undertow → Kraken",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Abyssal Ink blinds the enemy side!",
+      "Kraken plays Tackle → Sleipnir",
+      "  → Sleipnir takes 4 damage",
+      "Huldra plays Growth → Kraken",
+      "  → Huldra gains Sharp (1 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Huldra heals 1 HP",
+      "Kraken plays Ink Stream → Sleipnir",
+      "  → Sleipnir takes 39 damage",
+      "Huldra plays Ice Spear → Sleipnir",
+      "  → Sleipnir takes 5 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 2 allies",
+      "  → Sleipnir takes 5 damage",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "  💚 Huldra — Regen heals 2 HP (1 → 0 stacks)",
+      "  ✅ Huldra — Regen wore off",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "  → Kraken takes 1 damage",
+      "Sleipnir's HOOFBEAT_DAEMON stampedes into Kraken!",
+      "Sleipnir plays Slipstream → Sleipnir",
+      "  ✨ Sleipnir's Weakened reduced by 1 by Strengthened",
+      "  → Kraken takes 0 damage",
+      "Sleipnir's HOOFBEAT_DAEMON stampedes into Kraken!",
+      "Sleipnir plays Tackle → Kraken",
+      "  → Kraken takes 1 damage",
+      "Sleipnir plays Stampede → Kraken",
+      "  → Kraken takes 6 damage",
+      "Sleipnir plays Momentum Crash → Huldra",
+      "  → Huldra takes 0 damage",
+      "--- PLAYER ends their turn ---",
+      "  → Sleipnir takes 2 damage from Burn",
+      "  🔥 Sleipnir — Burn deals 2 damage (2 stacks)",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Huldra plays Thorn Tithe → Sleipnir",
+      "  → Sleipnir takes 20 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "Kraken plays Glacial Slam → Sleipnir",
+      "  → Sleipnir takes 5 damage",
+      "  → Sleipnir gains Stunned (1 stacks)",
+      "Kraken plays Rimefrost → Sleipnir",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "  → Sleipnir gains Dazed (1 stacks)",
+      "Huldra plays Thorn Tithe → Sleipnir",
+      "  → Sleipnir takes 19 damage",
+      "  → Huldra gains Weakened (3 stacks)",
+      "  → Sleipnir gains Weakened (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "⚔️ Turn 5 — PLAYER's turn begins"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 0,
+    "cardsDrawnThisTurn": 3,
+    "nonNaturalCardsDrawnThisTurn": 0,
+    "lastProgramPlayed": "thorn_tithe",
+    "counters": {
+      "last_overheal": 0,
+      "last_heal_intended": 1,
+      "last_heal_power": 8,
+      "deck_shuffles": 2
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 0,
+      "Nature": 0,
+      "Ice": 0,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 1,
+    "resolvingCardInstanceId": null,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-28T02:17:49.073Z"
+}

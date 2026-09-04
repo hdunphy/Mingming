@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramData, ProgramEntity } from './types';
 import { globalBattleEventBus } from './events';
-import { GetProgramData } from './data/programRegistry';
 import { initDaemonHooks } from './data/daemonHooks';
 
 initDaemonHooks();
-const TestProgramRegistry: Record<string, any> = {
+// Partial stand-ins for the real cards: only the fields the daemon paths under test read.
+const TestProgramRegistry: Record<string, ProgramData> = {
     'scratch': { id: 'scratch', name: 'Scratch', power: 40, element: 'None', category: 'Attack', target: 'Single', baseCost: 1, actions: [{ type: 'ATTACK', power: 40, target: 'TARGET' }] },
     'whirlpool': { id: 'whirlpool', name: 'Whirlpool', power: 30, element: 'Water', category: 'Attack', target: 'Single', baseCost: 2, actions: [{ type: 'ATTACK', power: 30, target: 'TARGET' }, { type: 'DRAW', amount: 1 }] },
     'recursion_daemon': { id: 'recursion_daemon', name: 'RECURSION_DAEMON', category: 'Daemon', hooks: ['recursion_daemon_hook'] },
     'thermal_overload': { id: 'thermal_overload', name: 'THERMAL_OVERLOAD', category: 'Daemon', hooks: ['thermal_overload_hook', 'thermal_overload_logic', 'thermal_overload_burn_boost'] }
-};
+} as unknown as Record<string, ProgramData>;
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
     const original = await importOriginal<typeof import('./data/programRegistry')>();
@@ -47,8 +47,6 @@ function createMockState(): IBattleState {
                 attackIV: 0,
                 defenseIV: 0,
                 blueprintsCollected: 0,
-                level: 10,
-                experience: 0,
                 definitionId: 'fenrir',
                 primaryElement: 'Fire',
                 currentHp: 100,
@@ -72,8 +70,6 @@ function createMockState(): IBattleState {
                 attackIV: 0,
                 defenseIV: 0,
                 blueprintsCollected: 0,
-                level: 10,
-                experience: 0,
                 definitionId: 'fenrir',
                 primaryElement: 'Fire',
                 currentHp: 100,
@@ -93,7 +89,7 @@ function createMockState(): IBattleState {
                 { id: 'h1', dataId: 'recursion_daemon', currentCost: 1, isPlayable: true },
                 { id: 'h2', dataId: 'thermal_overload', currentCost: 2, isPlayable: true },
                 { id: 'h3', dataId: 'scratch', currentCost: 1, isPlayable: true }
-            ] as ProgramEntity[],
+            ] as ReadonlyArray<ProgramEntity>,
             drawpile: [
                 { id: 'h4', dataId: 'scratch', currentCost: 1, isPlayable: true }
             ],
@@ -106,7 +102,6 @@ function createMockState(): IBattleState {
             hand: [],
             discard: [], exhaust: []
         },
-        levelUpQueue: []
     };
 }
 
@@ -176,7 +171,7 @@ describe('Daemon System', () => {
 
     it('THERMAL_OVERLOAD should increase damage and deal recoil', () => {
         // 1. Install Daemon
-        let state = battleReducer(initialState, {
+        const state = battleReducer(initialState, {
             type: 'PLAY_PROGRAM',
             payload: { sourceId: 'p1', targetId: 'p1', programId: 'h2' }
         });
@@ -193,8 +188,11 @@ describe('Daemon System', () => {
 
         const stateAfterAttack = battleReducer(state, attackAction);
         const e1 = stateAfterAttack.enemyParty.find(e => e.id === 'e1');
-        // rev 3.1 pace (ticket 23, /45): 100 - 6 = 94
-        expect(e1?.currentHp).toBe(94);
+        // rev 3.1 pace (ticket 23, /45) with ticket 21's frozen levelBase of 8 (was 6 at the old
+        // level-10 default), and ticket 131c's x10 presentation scale: the hit is 88 rather than 8,
+        // so a synthetic 100 HP dummy is left on 12. The subject here is THERMAL_OVERLOAD's +25%
+        // and its recoil, not the size of the frame.
+        expect(e1?.currentHp).toBe(12);
 
         // 3. End Turn and check recoil
         const stateAfterTurn = battleReducer(stateAfterAttack, { type: 'END_TURN' });
@@ -223,12 +221,9 @@ describe('Daemon System', () => {
         // We need an enemy action. Let's switch to enemy turn or just force a status application that deals damage if needed.
         // Actually, handleAttack calls checkDefeat.
 
-        // Mocking an enemy attack on p1
-        const killAction = {
-            type: 'APPLY_STATUS' as const,
-            payload: { targetId: 'p1', status: 'Poison', stacks: 1 } // Status application can deal damage if behavior says so? 
-            // Better use a direct HP mutation via action if possible, but APPLY_STATUS doesn't deal dmg by default unless it's a specific behavior.
-        };
+        // Ticket 55: a `killAction` literal sat here, unreferenced, with its own comment saying
+        // APPLY_STATUS would not actually deal the damage this test needs. It was a rejected
+        // approach left in the file, not a step of the test.
 
         // Let's use handleAttack directly if possible or just use battleReducer with a custom action if supported.
         // Since we only have specific actions, let's use a scratch from enemy.
@@ -261,7 +256,7 @@ describe('Daemon System', () => {
                 hand: [
                     { id: 'h_daemon', dataId: 'echo_chamber_v2', currentCost: 2, isPlayable: true },
                     { id: 'h_0cost', dataId: 'water_slap', currentCost: 0, isPlayable: true }
-                ] as any
+                ] as ReadonlyArray<ProgramEntity>
             }
         };
 
@@ -279,7 +274,6 @@ describe('Daemon System', () => {
         const nextState = battleReducer(state, playAction);
 
         // 3. Verify that a feedback token was added to hand
-        const p1 = nextState.playerParty.find(p => p.id === 'p1');
         // Check logs only if the hook triggers successfully and uses the actual string provided by the hook
         expect(nextState.logs.some(l => l.includes('ECHO_CHAMBER'))).toBe(true);
         const generatedToken = nextState.playerDeck.hand.find(c => c.dataId === 'feedback_token');

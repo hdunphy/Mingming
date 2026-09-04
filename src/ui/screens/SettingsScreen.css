@@ -1,0 +1,243 @@
+/*
+ * The settings overlay — ticket 36.
+ *
+ * A fixed backdrop with a scrolling panel, following `RanchScreen`'s `.ranch-modal-backdrop`
+ * precedent rather than a portal (portals in this repo are for hover tooltips only). z-index sits
+ * above the battle's own overlays: `.end-game-overlay` is 2000 and the gauntlet banner is 1500, and
+ * settings has to be reachable over both — Escape is bound in the fight, and a pause you cannot see
+ * is not a pause.
+ */
+
+.settings-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2500;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(2, 4, 10, 0.82);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+}
+
+.settings-panel {
+    width: min(760px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 20px 24px 28px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: var(--bg-card, #12121a);
+    box-shadow: var(--premium-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
+}
+
+.settings-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.settings-head h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    letter-spacing: 0.05em;
+}
+
+.settings-close {
+    padding: 6px 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.settings-close:hover {
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+
+.settings-group {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.settings-group:last-child {
+    border-bottom: none;
+}
+
+.settings-group h3 {
+    margin: 0 0 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-primary);
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.settings-label {
+    font-size: 0.9rem;
+}
+
+.settings-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/*
+ * `AudioControls` positions itself absolutely unless it is `floating`, which is right for the nav
+ * bar it was written for and wrong here. A relative host is the whole fix — the component keeps one
+ * implementation and one set of behaviour, which is why this screen reuses it rather than building
+ * a second volume slider that could disagree with the first.
+ */
+.settings-audio {
+    position: relative;
+    min-width: 220px;
+    min-height: 34px;
+}
+
+.settings-note {
+    margin: 10px 0 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: rgba(240, 240, 245, 0.62);
+}
+
+.settings-choices {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.settings-choice {
+    padding: 6px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(240, 240, 245, 0.75);
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.settings-choice:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.settings-choice.active {
+    border-color: var(--accent-primary);
+    background: rgba(124, 58, 237, 0.22);
+    color: #fff;
+}
+
+/* --- Keys ------------------------------------------------------------------------------------ */
+
+.settings-keys {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+}
+
+.settings-key {
+    display: grid;
+    grid-template-columns: 92px 130px 1fr;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 0.8rem;
+}
+
+.settings-kbd {
+    padding: 2px 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.settings-key-action {
+    font-weight: 600;
+}
+
+.settings-key-detail {
+    color: rgba(240, 240, 245, 0.55);
+}
+
+@media (max-width: 620px) {
+    .settings-key {
+        grid-template-columns: 80px 1fr;
+    }
+
+    .settings-key-detail {
+        grid-column: 1 / -1;
+    }
+}
+
+/* --- Destructive --------------------------------------------------------------------------- */
+
+.settings-danger h3 {
+    color: var(--hp-red, #ff4444);
+}
+
+.settings-wipe {
+    padding: 6px 14px;
+    border: 1px solid rgba(255, 68, 68, 0.5);
+    border-radius: 4px;
+    background: transparent;
+    color: #ff8888;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.settings-wipe:hover {
+    background: rgba(255, 68, 68, 0.14);
+    color: #ffbbbb;
+}
+
+.settings-wipe-confirm {
+    padding: 6px 14px;
+    border: 1px solid #ff4444;
+    border-radius: 4px;
+    background: rgba(255, 68, 68, 0.22);
+    color: #ffdddd;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.settings-wiped {
+    color: #ff8888;
+}
+
+.settings-pending {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: rgba(240, 240, 245, 0.62);
+}
+
+.settings-pending strong {
+    color: rgba(240, 240, 245, 0.85);
+}

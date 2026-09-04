@@ -44,8 +44,8 @@ export interface ScenarioSaveResult {
 }
 
 function formatZodError(err: z.ZodError): string {
-    return (err as any).issues
-        .map((issue: any) => `[${issue.path.join('.')}] ${issue.message}`)
+    return err.issues
+        .map(issue => `[${issue.path.join('.')}] ${issue.message}`)
         .join('\n');
 }
 

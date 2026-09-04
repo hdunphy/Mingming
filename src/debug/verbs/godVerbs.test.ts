@@ -29,7 +29,7 @@ import {
 
 function makeEntity(id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity {
     return {
-        id, name, level: 5, experience: 0,
+        id, name, 
         maxHp: 100, attack: 10, defense: 10, maxEnergy: 10, cardDraw: 1,
         currentHp: 100, currentEnergy: 10,
         primaryElement: 'Fire', statusEffects: [],
@@ -49,7 +49,6 @@ function makeState(player: IBattleEntity[], enemy: IBattleEntity[]): IBattleStat
         logs: ['existing engine log'],
         osLogs: [],
         procs: [],
-        levelUpQueue: [],
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
@@ -267,12 +266,6 @@ describe('killEntity (KILL_ENTITY)', () => {
 
         expect(next.enemyParty[0].currentHp).toBe(0);
         expect(lastLog(next)).toBe(`${DEBUG_LOG_PREFIX} KILL_ENTITY: Villain (e1) killed by Hero (p1)`);
-    });
-
-    it('awards XP to the source party, which is why the source is mandatory', () => {
-        const next = killEntity(baseState(), { entityId: 'e1', sourceId: 'p1' });
-
-        expect(next.playerParty[0].experience).toBeGreaterThan(0);
     });
 
     it('is a no-op against an already-dead unit', () => {

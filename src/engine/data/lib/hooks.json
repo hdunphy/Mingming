@@ -16,7 +16,10 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "sourceDebuffCount": { "operator": "GTE", "value": 1 }
+                    "sourceDebuffCount": {
+                        "operator": "GTE",
+                        "value": 1
+                    }
                 },
                 "do": [
                     {
@@ -61,7 +64,7 @@
     "fenrir_v1": {
         "id": "fenrir_v1",
         "name": "UNBOUND_KERNEL",
-        "description": "Attack programs apply 1 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
+        "description": "Attack programs apply 2 Strengthened and deal 2% Max HP recoil damage. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
         "hooks": [
             {
                 "id": "fenrir_v1_hook",
@@ -76,7 +79,7 @@
                         "type": "STATUS",
                         "target": "SELF",
                         "status": "Strengthened",
-                        "stacks": 1
+                        "stacks": 2
                     },
                     {
                         "type": "HP",
@@ -122,7 +125,7 @@
     "kraken_v1": {
         "id": "kraken_v1",
         "name": "ABYSSAL_INK_SYS",
-        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 1 Dazed to a random enemy.",
+        "description": "Whenever Kraken's side draws a card outside the draw phase, apply 2 Dazed to every enemy.",
         "hooks": [
             {
                 "id": "kraken_v1_hook",
@@ -135,13 +138,13 @@
                 "do": [
                     {
                         "type": "STATUS",
-                        "target": "RANDOM_ENEMY",
+                        "target": "ENEMIES",
                         "status": "Dazed",
-                        "stacks": 1
+                        "stacks": 2
                     },
                     {
                         "type": "LOG",
-                        "text": "{target} is blinded by Abyssal Ink!"
+                        "text": "Abyssal Ink blinds the enemy side!"
                     }
                 ]
             }
@@ -318,20 +321,21 @@
     "feedback_loop_daemon": {
         "id": "feedback_loop_daemon",
         "name": "FEEDBACK_LOOP",
-        "description": "Daemon: Deal 7 damage to random enemy for each card draw.",
+        "description": "Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count.",
         "hooks": [
             {
                 "id": "daemon_draw_damage_proc",
                 "trigger": "onCardDraw",
                 "priority": 40,
                 "when": {
-                    "source": "SELF"
+                    "source": "SELF",
+                    "isNaturalDraw": false
                 },
                 "do": [
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
-                        "power": 5,
+                        "power": 7,
                         "element": "Water"
                     },
                     {
@@ -345,7 +349,7 @@
     "hoofbeat_daemon": {
         "id": "hoofbeat_daemon",
         "name": "HOOFBEAT_DAEMON",
-        "description": "Daemon: whenever you play a 0-cost card, deal 10 damage to a random enemy.",
+        "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
         "hooks": [
             {
                 "id": "hoofbeat_daemon_hook",
@@ -595,7 +599,7 @@
     "jormungandr_v2": {
         "id": "jormungandr_v2",
         "name": "TOXIN_FANG_OS",
-        "description": "Jörmungandr's venom coats his fangs: his attacks deal +1 damage per Poison stack on the target.",
+        "description": "Jörmungandr's venom coats his fangs: his attacks deal +10 damage per Poison stack on the target.",
         "hooks": [
             {
                 "id": "jorm_v2_toxin_fang",
@@ -604,7 +608,7 @@
                 "when": {
                     "source": "SELF"
                 },
-                "bonus": 1,
+                "bonus": 10,
                 "scaling": "TARGET_POISON_STACKS"
             }
         ]
@@ -620,7 +624,9 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "programCategoryNot": ["Attack"],
+                    "programCategoryNot": [
+                        "Attack"
+                    ],
                     "programAppliesStatus": true
                 },
                 "do": [
@@ -642,7 +648,7 @@
     "gullinbursti_v2": {
         "id": "gullinbursti_v2",
         "name": "KINETIC_RAM_OS",
-        "description": "Earth Attack cards deal additional damage for each stack of Sharp Gullinbursti holds, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
+        "description": "Earth Attack cards deal +2.5 power per stack of Sharp Gullinbursti holds, on every hit, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
         "hooks": [
             {
                 "id": "gullin_v2_ram",
@@ -653,7 +659,7 @@
                     "programElement": "Earth",
                     "actionType": "ATTACK"
                 },
-                "bonus": 0.25,
+                "bonus": 2.5,
                 "scaling": "SHARP_STACKS"
             },
             {
@@ -714,7 +720,7 @@
     "sleipnir_v1": {
         "id": "sleipnir_v1",
         "name": "MOMENTUM_DRIVE",
-        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened - and 2 instead of 1 once he already holds 4 or more.",
+        "description": "Whenever you play a card that costs 0 Energy, Sleipnir gains 1 stack of Strengthened.",
         "hooks": [
             {
                 "id": "sleipnir_v1_hook",
@@ -723,27 +729,6 @@
                 "when": {
                     "source": "SELF",
                     "baseCost": 0
-                },
-                "do": [
-                    {
-                        "type": "STATUS",
-                        "target": "SELF",
-                        "status": "Strengthened",
-                        "stacks": 1
-                    }
-                ]
-            },
-            {
-                "id": "sleipnir_v1_ramp",
-                "trigger": "onActionStart",
-                "priority": 39,
-                "when": {
-                    "source": "SELF",
-                    "baseCost": 0,
-                    "sourceStatus": {
-                        "status": "Strengthened",
-                        "minStacks": 4
-                    }
                 },
                 "do": [
                     {
@@ -812,7 +797,7 @@
     "huldra_v2": {
         "id": "huldra_v2",
         "name": "BARK_SHIELD_OS",
-        "description": "Huldra starts every battle with a massive, temporary shield.",
+        "description": "At the end of Huldra's first turn, she raises a massive Bark Shield.",
         "hooks": []
     },
     "ymir_v1": {
@@ -913,54 +898,26 @@
     "valkyrie_v2": {
         "id": "valkyrie_v2",
         "name": "REBIRTH_CYCLE_OS",
-        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 12 power of Light damage and heals herself with 12 power. Once per turn.",
+        "description": "Whenever Valkyrie's discard pile is shuffled back into her deck, she attacks a random enemy with 15 power of Light damage and heals herself with 15 power.",
         "hooks": [
-            {
-                "id": "valk_v2_rebirth_reset",
-                "trigger": "onTurnEnd",
-                "priority": 50,
-                "when": {
-                    "source": "SELF"
-                },
-                "do": [
-                    {
-                        "type": "COUNTER",
-                        "target": "SELF",
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "RESET"
-                    }
-                ]
-            },
             {
                 "id": "valk_v2_rebirth",
                 "trigger": "onDeckShuffled",
                 "priority": 40,
                 "when": {
-                    "source": "SELF",
-                    "counter": {
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "LT",
-                        "value": 1
-                    }
+                    "source": "SELF"
                 },
                 "do": [
-                    {
-                        "type": "COUNTER",
-                        "target": "SELF",
-                        "key": "valkyrie_rebirth_used",
-                        "operator": "SET",
-                        "amount": 1
-                    },
                     {
                         "type": "ATTACK",
                         "target": "RANDOM_ENEMY",
                         "element": "Light",
-                        "power": 12
+                        "power": 15
                     },
                     {
                         "type": "HEAL",
                         "target": "SELF",
-                        "power": 12
+                        "power": 15
                     },
                     {
                         "type": "LOG",
@@ -1042,7 +999,7 @@
                 "trigger": "onHeal",
                 "priority": 40,
                 "when": {
-                    "target": "SELF",
+                    "source": "SELF",
                     "counter": {
                         "key": "last_heal_power",
                         "operator": "GT",
@@ -1068,7 +1025,7 @@
     "hel_v1": {
         "id": "hel_v1",
         "name": "TWILIGHT_CADENCE",
-        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +30% damage dealt. Light Stance: -30% damage taken.",
+        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +45% damage dealt. Light Stance: -45% damage taken.",
         "hooks": [
             {
                 "id": "hel_v1_cadence_dark",
@@ -1109,7 +1066,7 @@
     "hel_v2": {
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
-        "description": "Hel's Dark spells cost 6% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
+        "description": "Hel's Dark spells cost 5% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
         "hooks": [
             {
                 "id": "hel_v2_lifeblood",
@@ -1206,77 +1163,323 @@
             }
         ]
     },
-    "boss_relic_fire": {
-        "id": "boss_relic_fire",
-        "name": "FIRE_RELIC_OS",
-        "description": "Boss Relic: At the end of the boss's turn, it ignites the field, dealing Fire damage to all enemies scaled by its Sharp stacks.",
+    "driver_war_footing": {
+        "id": "driver_war_footing",
+        "name": "WAR FOOTING",
+        "description": "At the end of this side's turn, every member gains 1 Strengthened. From turn 4 on, 2.",
         "hooks": [
             {
-                "id": "boss_relic_fire_end",
+                "id": "driver_war_footing_rally",
                 "trigger": "onTurnEnd",
-                "priority": 100,
+                "priority": 90,
                 "when": {
                     "source": "SELF"
                 },
                 "do": [
                     {
-                        "type": "ATTACK",
-                        "target": "ENEMIES",
-                        "power": 3,
-                        "element": "Fire",
-                        "scaling": "SHARP_STACKS"
-                    },
-                    {
-                        "type": "LOG",
-                        "text": "{owner}'s FIRE RELIC ignites the field!"
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
                     }
                 ]
-            }
-        ]
-    },
-    "boss_relic_water": {
-        "id": "boss_relic_water",
-        "name": "WATER_RELIC_OS",
-        "description": "Boss Relic: Whenever the boss's side takes damage, the whole team is soothed, healing 5% Max HP.",
-        "hooks": [
+            },
             {
-                "id": "boss_relic_water_reactive",
-                "trigger": "onPostDamage",
-                "priority": 100,
+                "id": "driver_war_footing_escalate",
+                "trigger": "onTurnEnd",
+                "priority": 89,
                 "when": {
-                    "target": "ALLY"
+                    "source": "SELF",
+                    "turnAtLeast": 4
                 },
                 "do": [
                     {
-                        "type": "HP",
-                        "target": "ALLIES",
-                        "percentMaxHP": 5
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Strengthened",
+                        "stacks": 1
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s WATER RELIC soothes the team!"
+                        "text": "{owner} is on a WAR FOOTING!"
                     }
                 ]
             }
         ]
     },
-    "boss_relic_ice": {
-        "id": "boss_relic_ice",
-        "name": "ICE_RELIC_OS",
-        "description": "Boss Relic: Opposing programs aimed at a poisoned target cost 1 additional Energy.",
+    "driver_tidal_surge": {
+        "id": "driver_tidal_surge",
+        "name": "TIDAL SURGE",
+        "description": "Every 10 cards this side plays, it deals 10 power to the enemy side.",
         "hooks": [
             {
-                "id": "boss_relic_ice_tax",
-                "trigger": "onCostCalculated",
-                "priority": 100,
+                "id": "driver_tidal_surge_count",
+                "trigger": "onActionEnd",
+                "priority": 91,
                 "when": {
-                    "source": "OPPONENT",
-                    "targetStatus": {
-                        "status": "Poison",
-                        "minStacks": 1
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "tidal_surge",
+                        "scope": "SIDE",
+                        "operator": "ADD",
+                        "amount": 1
+                    }
+                ]
+            },
+            {
+                "id": "driver_tidal_surge_fire",
+                "trigger": "onActionEnd",
+                "priority": 90,
+                "when": {
+                    "source": "SELF",
+                    "counter": {
+                        "key": "tidal_surge",
+                        "operator": "GTE",
+                        "value": 10,
+                        "scope": "SIDE"
                     }
                 },
-                "bonus": 1
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "ENEMIES",
+                        "power": 10,
+                        "element": "Water"
+                    },
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "tidal_surge",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "TIDAL SURGE breaks over the enemy side!"
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_root_rot": {
+        "id": "driver_root_rot",
+        "name": "ROOT ROT",
+        "description": "Whenever this side's card applies Poison, it applies 1 more.",
+        "hooks": [
+            {
+                "id": "driver_root_rot_spread",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "statusApplied": "Poison",
+                    "counter": {
+                        "key": "root_rot_reentry",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "root_rot_reentry",
+                        "scope": "SIDE",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Poison",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "root_rot_reentry",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "ROOT ROT deepens the poison."
+                    }
+                ]
+            }
+        ]
+    },
+    "riptide": {
+        "id": "riptide",
+        "name": "RIPTIDE",
+        "description": "Daemon: whenever an enemy plays a card, deal 8 power to it.",
+        "hooks": [
+            {
+                "id": "riptide_undertow",
+                "trigger": "onActionEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 8,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s RIPTIDE drags {target} back!"
+                    }
+                ]
+            }
+        ]
+    },
+    "short_circuit": {
+        "id": "short_circuit",
+        "name": "SHORT_CIRCUIT",
+        "description": "Daemon: whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
+        "hooks": [
+            {
+                "id": "short_circuit_discharge",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "isNaturalDraw": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 15,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SHORT_CIRCUIT arcs into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "reactive_plating": {
+        "id": "reactive_plating",
+        "name": "REACTIVE_PLATING",
+        "description": "Daemon: When an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 Sharp granted per turn.",
+        "hooks": [
+            {
+                "id": "reactive_plating_proc",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "counter": {
+                        "key": "reactive_plating_grants",
+                        "operator": "LT",
+                        "value": 3,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_grants",
+                        "operator": "ADD",
+                        "amount": 1,
+                        "scope": "SIDE"
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Sharp",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  🛡️ {owner}'s REACTIVE_PLATING hardens {target}!"
+                    }
+                ]
+            },
+            {
+                "id": "reactive_plating_reset",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_grants",
+                        "operator": "RESET",
+                        "scope": "SIDE"
+                    }
+                ]
+            }
+        ]
+    },
+    "scrubber": {
+        "id": "scrubber",
+        "name": "SCRUBBER",
+        "description": "Daemon: At the end of your turn, remove 1 Poison from each ally.",
+        "hooks": [
+            {
+                "id": "scrubber_purge",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "ALLIES",
+                        "status": "Poison",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  🧹 {owner}'s SCRUBBER vents 1 Poison from the team."
+                    }
+                ]
+            }
+        ]
+    },
+    "drip_feed": {
+        "id": "drip_feed",
+        "name": "DRIP_FEED",
+        "description": "Daemon: At the end of your turn, each poisoned ally gains 1 Regen.",
+        "hooks": [
+            {
+                "id": "drip_feed_tick",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "ALLIES",
+                        "targetHasStatus": "Poison",
+                        "status": "Regen",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  💧 {owner}'s DRIP_FEED feeds the poisoned."
+                    }
+                ]
             }
         ]
     }

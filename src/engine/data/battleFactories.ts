@@ -1,18 +1,20 @@
 import type { IBattleEntity, ProgramEntity, IBattleState, IMingmingState, IDeckState } from '../types';
-import type { IPlayerSave } from '../gameTypes';
 import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
-import { GetRelic } from './relicRegistry';
+import { applyDrivers } from './driverRegistry';
 import { drawCards } from '../deckLogic';
 import { generateIntents } from '../core/IntentUtils';
 import { SeedStream, rollSeed } from '../core/SeedStream';
 
+/**
+ * Ticket 21: the `level` and `experience` parameters are gone. Every entity is built at
+ * `CALIBRATION_LEVEL`, so there was nothing left for a caller to vary and leaving the parameters
+ * in place would have been an invitation to re-introduce stat scaling.
+ */
 export function createMockEntity(
     name: string,
     mingmingId: string = 'fenrir',
-    level: number = 10,
-    experience: number = 0,
     rng: SeedStream = new SeedStream(rollSeed())
 ): IBattleEntity {
     const definition = GetMingmingData(mingmingId);
@@ -21,8 +23,6 @@ export function createMockEntity(
         id: rng.nextId('mm'),
         definitionId: mingmingId,
         nickname: name,
-        level: level,
-        experience: experience,
         blueprintsCollected: 0,
         hpIV: rng.nextInt(0, 31),
         attackIV: rng.nextInt(0, 31),
@@ -46,8 +46,9 @@ export function instantiateDeck(deckIds: string[], rng: SeedStream = new SeedStr
     });
 }
 
-import { generateEncounter, getSectorSpecies } from './EncounterGenerator';
+import { generateEncounter } from './EncounterGenerator';
 import type { Element, EnemyCombatMode } from '../types';
+import type { AiTier } from '../ai/TacticalAI';
 
 export interface BattleOptions {
     /**
@@ -64,10 +65,88 @@ export interface BattleOptions {
      * 'CARDS' explicitly is the ONLY way to create card-playing enemies.
      */
     readonly enemyMode?: EnemyCombatMode;
+
+    /**
+     * Which grade of `TacticalAI` plays the enemy — steam-release ticket 60's enemy ladder.
+     * Omitted means the process-wide default, which is what every battle outside a run gets.
+     * See `IBattleState.enemyAiTier`.
+     */
+    readonly enemyAiTier?: AiTier;
+}
+
+/**
+ * Everything a battle needs from outside itself — ticket 11.
+ *
+ * This replaces the `save: IPlayerSave` parameter `createBattleState` used to take, and the change
+ * is not cosmetic. The old signature meant the battle factory read the *whole* save shape and
+ * picked its branch out of it (`activeParty`, `roster`, `relics`, `gauntlet`, `activeDeck.cards`,
+ * `cardInventory`) — six fields of a twelve-field blob, chosen by rules only this function knew.
+ * With the ranch/run split there is no single object that holds all six any more, and inventing one
+ * would have re-created `IPlayerSave` under a new name. So the caller resolves the questions
+ * instead, and what arrives here is answers: a party, a deck, some drivers, some carried HP.
+ *
+ * `engine/run/battleSetup.ts` builds one of these from `(IRanchState, IRunState)`. The debug
+ * scenario path bypasses this function entirely (`debug/scenarios/buildScenarioState.ts`).
+ */
+export interface IBattleSetup {
+    /** The party, already resolved and ordered. */
+    readonly party: ReadonlyArray<IMingmingState>;
+    /** The deck as dataIds. The instance-id indirection is gone — a run deck holds dataIds. */
+    readonly deck: ReadonlyArray<string>;
+    /** Was `relics`. Applied to the player side and copied to `IBattleState.activeRelics`. */
+    readonly drivers: ReadonlyArray<string>;
+    /**
+     * The ENEMY side's Drivers — ticket 68 build step 1. Applied to every enemy member by the same
+     * `applyDrivers` the player's list goes through, so a Driver that works on one side works on
+     * the other by construction.
+     *
+     * **Optional where `drivers` is required, and that asymmetry is honest rather than an
+     * oversight.** Every fight has a player side and the run always has a (possibly empty) Driver
+     * list to hand it; almost no fight has an enemy Driver — one gym's third fight and one grade of
+     * elite carry one, and everything else in the game would be writing `enemyDrivers: []` to say
+     * nothing. Absent and empty mean the same thing here and the code treats them identically.
+     *
+     * Not copied to `IBattleState.activeRelics`: that field is the PLAYER's list, read by
+     * `resolutionEngine` for `buffer_cache`, and mixing both sides into it would make a
+     * side-agnostic lookup out of something every reader treats as side-specific.
+     */
+    readonly enemyDrivers?: ReadonlyArray<string>;
+    /**
+     * HP carried between gauntlet fights, by member id. Empty outside a gauntlet.
+     *
+     * **A 0 in here is not the same as an absent key**, and ticket 18 depends on the difference: an
+     * absent key means "this member was not carrying anything, build it at full HP", while a 0 means
+     * "this member is DOWN and stays down into this fight" (`IGauntletProgress.downedMemberIds`
+     * names the same members). The carry below therefore tests `!== undefined` rather than
+     * truthiness — `if (carriedHp)` would silently full-heal every fainted member at the start of
+     * every gauntlet fight, which is the exact bug the three-fight chain exists to avoid.
+     */
+    readonly persistedHp: Readonly<Record<string, number>>;
+    /**
+     * A pre-rolled enemy side — ticket 11, part 2. Set for every fight started from a region node;
+     * absent everywhere else.
+     *
+     * **Why the enemies arrive built rather than being generated here.** A run encounter is decided
+     * by the node's kind, the biome's element, the biome's *depth* and the node's visit count
+     * (`engine/run/encounter.ts`), and only the second of those four is anything this function could
+     * be handed as a parameter. Threading the other three in would have meant teaching the battle
+     * factory what a region graph is, which is the same mistake `IBattleSetup` exists to undo. So
+     * the run rolls its own encounter and passes the answer, exactly as it passes its party and its
+     * deck.
+     *
+     * Structurally typed rather than importing `IRunEncounter`, so the engine's lowest layer keeps
+     * no import edge to the run loop.
+     */
+    readonly encounter?: {
+        readonly enemyParty: ReadonlyArray<IBattleEntity>;
+        readonly enemyDeckIds: ReadonlyArray<string>;
+        /** Ticket 68: the fight's own enemy Drivers, copied up to `enemyDrivers` by `buildBattleSetup`. */
+        readonly enemyDrivers?: ReadonlyArray<string>;
+    } | null;
 }
 
 export function createBattleState(
-    save: IPlayerSave,
+    setup: IBattleSetup,
     enemyIds: string[],
     sectorElement?: Element,
     options?: BattleOptions
@@ -79,52 +158,34 @@ export function createBattleState(
     // the creation path.
     const battleSeed: string = options?.seed ?? rollSeed();
     const rng = new SeedStream(battleSeed);
-    const playerPartyMembers = save.activeParty
-        .map(id => save.roster.find(m => m.id === id))
-        .filter(Boolean) as IMingmingState[];
+    const playerPartyMembers = setup.party;
 
-    if (playerPartyMembers.length === 0) throw new Error("No active Mingming found in save!");
+    if (playerPartyMembers.length === 0) throw new Error("No party members in the battle setup!");
 
     const playerParty = playerPartyMembers.map(mm => {
         let entity = initializeBattleEntity(mm, GetMingmingData(mm.definitionId));
 
-        // Milestone 8.3: Gauntlet Persistence
-        if (save.gauntlet) {
-            const persistentState = save.gauntlet.persistedStats[mm.id];
-            if (persistentState) {
-                entity = {
-                    ...entity,
-                    currentHp: persistentState.hp
-                };
-            }
+        // Gauntlet persistence (ticket 18, and Milestone 8.3 before it). `persistedHp` is empty
+        // outside a gauntlet (`IGauntletProgress.persistedHp` is the only HP store in `IRunState`),
+        // so this needs no gauntlet check of its own — which is also why a full heal between
+        // ordinary nodes is true by construction rather than by a rule someone has to remember.
+        //
+        // `!== undefined`, never a truthiness test: 0 is a downed member and must build at 0. See
+        // `IBattleSetup.persistedHp`.
+        const carriedHp = setup.persistedHp[mm.id];
+        if (carriedHp !== undefined) {
+            entity = {
+                ...entity,
+                currentHp: carriedHp
+            };
         }
 
-        // Milestone 8.4: Relic Application
-        save.relics.forEach(relicId => {
-            const relic = GetRelic(relicId);
-            if (relic.effect === 'ENERGY_CAP_BONUS') {
-                entity = {
-                    ...entity,
-                    maxEnergy: entity.maxEnergy + 1,
-                    currentEnergy: entity.currentEnergy + 1
-                };
-            }
-            if (relic.effect === 'DRAW_BONUS') {
-                entity = {
-                    ...entity,
-                    cardDraw: entity.cardDraw + 1
-                };
-            }
-            if (relic.effect === 'ATTACK_MULTIPLIER') {
-                entity = {
-                    ...entity,
-                    relicBonuses: {
-                        ...entity.relicBonuses!,
-                        attackMod: entity.relicBonuses!.attackMod * 1.1
-                    }
-                };
-            }
-        });
+        // Milestone 8.4: Driver (was: relic) application.
+        //
+        // Ticket 68 moved the three stat effects that used to be spelled out here into
+        // `data/driverRegistry.applyDrivers`, so that the enemy side below can go through the
+        // identical path rather than a copy of it. Nothing about the player's Drivers changed.
+        entity = applyDrivers(entity, setup.drivers);
 
         return entity;
     });
@@ -132,72 +193,33 @@ export function createBattleState(
     let enemyParty: IBattleEntity[] = [];
     let enemyDeckIds: string[] = [];
 
-    if (save.gauntlet && save.gauntlet.type === 'Gym') {
-        const battleIndex = save.gauntlet.currentBattleIndex;
-        const gymElement = save.gauntlet.element as Element;
-
-        // Multi-Element Synergy
-        const synergyMap: Record<string, Element[]> = {
-            Fire: ['Fire', 'Earth'],
-            Water: ['Water', 'Nature'],
-            Ice: ['Ice', 'Dark'],
-            Nature: ['Nature', 'Water']
-        };
-        const elementsToUse = synergyMap[gymElement] || [gymElement];
-        const primaryElement = elementsToUse[0];
-        const secondaryElement = elementsToUse[1] || primaryElement;
-
-        const playerLevel = Math.max(...playerParty.map(p => p.level), 1);
-
-        if (battleIndex === 0) {
-            // Tier 1 (Grunt): Procedural 1-2 enemies
-            const count = rng.nextInt(1, 2);
-            const encounter = generateEncounter({
-                sectorElement: primaryElement,
-                playerParty,
-                seed: rng.fork('encounter_grunt')
-            });
-            enemyParty = encounter.enemyParty.slice(0, count);
-            enemyDeckIds = encounter.enemyDeckIds;
-        } else if (battleIndex === 1) {
-            // Tier 2 (Elite): Procedural 3 enemies + synergistic deck
-            const encounter = generateEncounter({
-                sectorElement: secondaryElement,
-                playerParty,
-                seed: rng.fork('encounter_elite')
-            });
-            enemyParty = encounter.enemyParty;
-            enemyDeckIds = encounter.enemyDeckIds;
-        } else {
-            // Tier 3 (Gym Leader): Hand-crafted boss party.
-            // Wardens come from the breach's own species pool so a Light breach
-            // spawns Light wardens, not Fenrir. Fallback only guards against an
-            // empty pool (never crash).
-            const wardenPool = getSectorSpecies(primaryElement);
-            const bossId = wardenPool[0]?.id ?? 'fenrir';
-            const guardId = (wardenPool[1] ?? wardenPool[0])?.id ?? 'fenrir';
-
-            const boss = createMockEntity(`${gymElement} Sector Warden`, bossId, playerLevel + 2, 0, rng);
-            const superBoss: IBattleEntity = {
-                ...boss,
-                maxHp: boss.maxHp * 1.5,
-                currentHp: boss.maxHp * 1.5,
-                // Assign Boss Relic
-                activeOS: primaryElement === 'Water' || primaryElement === 'Nature' ? 'boss_relic_water' :
-                    primaryElement === 'Ice' || primaryElement === 'Dark' ? 'boss_relic_ice' : 'boss_relic_fire',
-                moves: [
-                    { id: 'boss_slam', name: 'Titan Slam', intentType: 'Attack', priority: 10, actions: [{ type: 'ATTACK', power: 25, element: primaryElement, target: 'Single' }] },
-                    { id: 'boss_surge', name: 'System Surge', intentType: 'Buff', priority: 5, actions: [{ type: 'STATUS', status: 'Strengthened', stacks: 2, target: 'Self' }] },
-                    { id: 'boss_blast', name: 'Core Blast', intentType: 'Attack', priority: 8, actions: [{ type: 'ATTACK', power: 15, element: 'None', target: 'Side' }] }
-                ]
-            };
-            const guard1 = createMockEntity('Firewall Sentinel', guardId, playerLevel, 0, rng);
-            const guard2 = createMockEntity('Firewall Sentinel', guardId, playerLevel, 0, rng);
-
-            enemyParty = [guard1, superBoss, guard2]; // Boss in middle
-
-            enemyDeckIds = []; // No longer using decks for bosses, logic now relies on 'moves'
-        }
+    // Ticket 11: a region node brings its own enemies. This branch is first because it is the only
+    // one with the full picture — the node's kind, depth and visit count all went into the roll —
+    // so anything below it would be second-guessing an answer that has already been given.
+    if (setup.encounter) {
+        enemyParty = [...setup.encounter.enemyParty];
+        enemyDeckIds = [...setup.encounter.enemyDeckIds];
+    /*
+     * TICKET 18 DELETED THE GYM-TIER BRANCH THAT USED TO SIT HERE.
+     *
+     * It was pre-run-loop, and every one of its parts contradicted a ruling that has landed since:
+     *
+     *   - a hardcoded `synergyMap` paired each gym element with a second one (Fire+Earth,
+     *     Water+Nature), which ticket 05's mono-element biomes and pure counter cycle replaced;
+     *   - tier 1 rolled ONE OR TWO enemies, where ticket 18 rules the gauntlet "always full 3v3
+     *     curated";
+     *   - tier 3 built a "Sector Warden" at `maxHp * 1.5` with three hardcoded moves, i.e. difficulty
+     *     as a bigger number and as bespoke content in the battle factory — ticket 21 froze stat
+     *     scaling and `vision.md` rules difficulty as team design ("never bigger numbers");
+     *   - and it drew its species from `getSectorSpecies(gymElement)`, so the boss had nothing to do
+     *     with the three biomes the player had just walked, which is precisely the connection ticket
+     *     18 exists to make.
+     *
+     * Its replacement is `engine/run/gauntlet.rollGauntletFight`, which arrives through
+     * `setup.encounter` above like any other pre-rolled fight. The battle factory therefore has no
+     * gauntlet branch at all any more, and `IBattleSetup` no longer carries a `gauntlet` field: what
+     * a gauntlet still needs from this function is `persistedHp`, and that is one lookup, not a mode.
+     */
     } else if (sectorElement) {
         // Epic 8: Logic transition to Encounter Generator
         const encounter = generateEncounter({
@@ -209,8 +231,7 @@ export function createBattleState(
         enemyDeckIds = encounter.enemyDeckIds;
     } else {
         // Fallback or fixed encounters (e.g. initial dev test)
-        const enemyLevel = Math.max(...playerParty.map(p => p.level));
-        enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, enemyLevel, 0, rng));
+        enemyParty = enemyIds.map(enemyId => createMockEntity('Wild ' + GetMingmingData(enemyId).name, enemyId, rng));
 
         // Use the old archetype logic for fixed encounters if needed, or simple direct IDs
         enemyDeckIds = enemyIds.map(enemyId => {
@@ -230,16 +251,50 @@ export function createBattleState(
     }
 
     // Epic 2/22/2026: Disable OS on enemies as they use intents now.
-    // Exception: gym tier-3 bosses keep their boss_relic_* OS (design decision).
-    enemyParty = enemyParty.map(e => ({
-        ...e,
-        activeOS: e.activeOS?.startsWith('boss_relic_') ? e.activeOS : undefined
-    }));
+    //
+    // Ticket 11: a pre-rolled run encounter is exempt, because for it the OS is not an oversight to
+    // be cleaned up but half of ticket 08's ruled kit fraction — a biome-0 enemy runs no firmware
+    // and a biome-1 enemy runs its own, and `engine/run/encounter.ts` has already said which. A
+    // blanket strip here would silently delete that rule and make every depth field the same enemy.
+    //
+    // TICKET 72: the `boss_relic_*` exemption that used to sit here is gone with the relics — every
+    // gym is authored now, and an authored boss arrives through `setup.encounter` carrying its
+    // members' own tuned OSes. What remains is the plain strip: an enemy built HERE (the debug and
+    // legacy paths) runs no firmware unless the encounter said so.
+    if (!setup.encounter) {
+        enemyParty = enemyParty.map(e => ({ ...e, activeOS: undefined }));
+    }
+
+    /*
+     * TICKET 68 — the enemy side's Drivers, the mirror of the player's above.
+     *
+     * Applied AFTER the OS strip on purpose. A Driver is additive: it attaches hook ids and never
+     * touches `activeOS`, so running it before the strip would be harmless but would read as though
+     * the two interacted. Applied last, the order says what is true — the enemy's firmware is
+     * settled first, and the Driver goes on top of whatever it turned out to be.
+     *
+     * Empty for every fight but Emberfall's third and the elites guarding its approach, so this is
+     * a no-op on the overwhelming majority of battles and allocates nothing when the list is empty.
+     */
+    const enemyDrivers = setup.enemyDrivers ?? [];
+    if (enemyDrivers.length > 0) {
+        enemyParty = enemyParty.map(e => applyDrivers(e, enemyDrivers));
+    }
 
     // --- SHARED DECK INITIALIZATION ---
 
-    // Updated Player Deck Logic: Archetype pick from starter
-    const getArchetypeDeck = (archetype: 'FENRIR' | 'KRAKEN' | 'RATATOSKR'): string[] => {
+    // The archetype fallback below is a pre-run-loop leftover: it invents a deck for a party that
+    // arrived without one. **Ticket 12 should delete it.** A run always has a deck now — `createRun`
+    // mints 8 cards per starting member from ticket 08's `startKit` tags and the run builds from
+    // there — so the only callers that can still hit this branch are tests and debug paths that
+    // hand over an empty `setup.deck`. Removing it today would turn those into throws in the same
+    // commit that moves the shape, which is one change too many.
+    const FALLBACK_ARCHETYPES = ['FENRIR', 'KRAKEN', 'RATATOSKR'] as const;
+    type FallbackArchetype = typeof FALLBACK_ARCHETYPES[number];
+    const isFallbackArchetype = (id: string): id is FallbackArchetype =>
+        (FALLBACK_ARCHETYPES as readonly string[]).includes(id);
+
+    const getArchetypeDeck = (archetype: FallbackArchetype): string[] => {
         const lists = {
             FENRIR: {
                 daemon: 'core_overclock_daemon',
@@ -260,16 +315,15 @@ export function createBattleState(
         return [list.daemon, ...shuffled.slice(0, 9)];
     };
 
-    const playerArchetype = playerParty[0].definitionId.toUpperCase() as any;
+    const playerArchetype = playerParty[0].definitionId.toUpperCase();
 
     let playerDeckIds: string[] = [];
-    if (save.activeDeck && save.activeDeck.cards.length > 0) {
-        playerDeckIds = save.activeDeck.cards.map(instanceId => {
-            const card = save.cardInventory.find(c => c.instanceId === instanceId);
-            return card ? card.dataId : null;
-        }).filter(Boolean) as string[];
+    if (setup.deck.length > 0) {
+        // Already dataIds — the run deck holds them directly, so the instance-id lookup that used
+        // to resolve `activeDeck.cards` against `cardInventory` has nothing left to do.
+        playerDeckIds = [...setup.deck];
     } else {
-        playerDeckIds = getArchetypeDeck(['FENRIR', 'KRAKEN', 'RATATOSKR'].includes(playerArchetype) ? playerArchetype : 'FENRIR');
+        playerDeckIds = getArchetypeDeck(isFallbackArchetype(playerArchetype) ? playerArchetype : 'FENRIR');
     }
 
     const pDeckCardsRaw = instantiateDeck(playerDeckIds, rng);
@@ -295,7 +349,7 @@ export function createBattleState(
     // A battle with no enemies is unwinnable-by-definition and renders a ghost
     // arena (empty enemy column, instant hollow victory). Fail loudly instead.
     if (enemyParty.length === 0) {
-        throw new Error(`[createBattleState] No enemies generated (gauntlet: ${JSON.stringify(save.gauntlet)}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
+        throw new Error(`[createBattleState] No enemies generated (encounter: ${setup.encounter ? setup.encounter.enemyParty.length : 'none'}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
     }
 
     // Move users get no drawpile/hand at all; card users get a dealt hand.
@@ -341,8 +395,11 @@ export function createBattleState(
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         },
         counters: {},
-        levelUpQueue: [],
-        activeRelics: save.relics || [],
-        enemyMode
+        activeRelics: [...setup.drivers],
+        enemyMode,
+        // Undefined rather than a default, deliberately: `TacticalAI.tierFor` reads "unset" as
+        // "take the process default", and writing a concrete 'full' here would override the
+        // AI_GREEDY / AI_LITE environment the balance corpus runs under.
+        enemyAiTier: options?.enemyAiTier
     };
 }

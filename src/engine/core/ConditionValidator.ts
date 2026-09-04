@@ -1,6 +1,6 @@
-import type { IBattleState, IBattleEntity, ProgramData, StatusType, ProgramConstraint } from '../types';
+import type { IBattleState, IBattleEntity, ProgramConstraint } from '../types';
 import type { HookCondition, HookContext } from './HookTypes';
-import { resolveCounterKey } from './HookTypes';
+import { resolveCounterKey, resolveSideCounterKey } from './HookTypes';
 import { numericBaseCost } from '../types';
 
 /**
@@ -145,7 +145,12 @@ export const ConditionValidator = {
         for (const check of counterChecks) {
             const { key, operator, value, scope } = check;
             const currentCounters = context.state.counters || {};
-            const currentVal = currentCounters[resolveCounterKey(key, scope, owner)] || 0;
+            // Ticket 71: SIDE needs the state to know which party the owner is in, so it cannot
+            // go through `resolveCounterKey` — see `resolveSideCounterKey`.
+            const resolved = scope === 'SIDE'
+                ? resolveSideCounterKey(key, owner, context.state)
+                : resolveCounterKey(key, scope, owner);
+            const currentVal = currentCounters[resolved] || 0;
             if (operator === 'LT' && !(currentVal < value)) return false;
             if (operator === 'GT' && !(currentVal > value)) return false;
             if (operator === 'LTE' && !(currentVal <= value)) return false;
@@ -163,6 +168,11 @@ export const ConditionValidator = {
             if (operator === 'GTE' && !(currentVal >= value)) return false;
             if (operator === 'EQ' && !(currentVal === value)) return false;
         }
+
+        // 11. Clock Check (ticket 68). `state.turn` is a full round, not a side-turn — see
+        // `HookCondition.turnAtLeast` for why an escalating aura written against side-turns would
+        // tick twice as fast for the side that moves first.
+        if (condition.turnAtLeast !== undefined && context.state.turn < condition.turnAtLeast) return false;
 
         return true;
     },
@@ -184,8 +194,13 @@ export const ConditionValidator = {
                 break;
             }
 
-            case 'HEALTH_THRESHOLD':
+            case 'HEALTH_THRESHOLD': {
                 // value format: "LT:30" (Less Than 30%) or "GT:50" (Greater Than 50%)
+                //
+                // Ticket 55: braced. `const` in an unbraced case is scoped to the WHOLE switch, so
+                // `op`, `valStr` and `threshold` were visible (in the temporal dead zone) to every
+                // case below this one — which is what `no-case-declarations` is warning about. The
+                // neighbouring `AURA`/`STATUS` cases were already braced; this one was not.
                 if (typeof constraint.value !== 'string') break;
                 const [op, valStr] = constraint.value.split(':');
                 const threshold = parseInt(valStr);
@@ -194,6 +209,7 @@ export const ConditionValidator = {
                 if (op === 'LT' && hpPercent >= threshold) return false;
                 if (op === 'GT' && hpPercent <= threshold) return false;
                 break;
+            }
 
             case 'BASE':
                 // Base Energy Check
@@ -213,7 +229,21 @@ export const ConditionValidator = {
                 // (it fails only when a full hand clamps the draw to zero), so a card priced
                 // for a conditional refund was getting an unconditional one.
                 if (!state) return true; // Fail safe, same as CARDS_DRAWN
-                if ((state.nonNaturalCardsDrawnThisTurn ?? 0) < (constraint.value as number)) return false;
+                /*
+                 * PER-CASTER since Henry's 2026-08-30 scope ruling, for the same reason the
+                 * `CARDS_DRAWN_TRIGGERED` scaler is — see `ActionExecutors.getScalingValue`.
+                 *
+                 * The one card on this path is `surge_protection`'s energy refund, whose constraint
+                 * is declared `"target": "SELF"` in `constraints.json` and whose text reads *"if a
+                 * card, OS or daemon drew YOU a card this turn"*. Both already said caster; only the
+                 * counter disagreed.
+                 *
+                 * **This is a real behaviour change and it makes the refund harder to get** — at 3v3
+                 * an ally's draw used to satisfy it. Called out rather than buried, because leaving
+                 * this half global while the scaler went per-unit would rebuild the exact
+                 * inconsistency the ruling removed.
+                 */
+                if ((source.nonNaturalDrawsThisTurn ?? 0) < (constraint.value as number)) return false;
                 break;
 
             case 'NOT_STATUS':

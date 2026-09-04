@@ -1,0 +1,365 @@
+{
+  "kind": "snapshot",
+  "name": "snapshot-t5-10317690",
+  "description": "Auto-captured at turn 5, phase ACTION.",
+  "tags": [
+    "snapshot"
+  ],
+  "state": {
+    "sessionId": "battle_t118-03-draugr-v2-vs-jormungandr-1v1",
+    "seed": "1031769088",
+    "turn": 5,
+    "phase": "ACTION",
+    "activeSide": "PLAYER",
+    "activeRelics": [],
+    "playerParty": [
+      {
+        "id": "mm_1mg6vpc_1",
+        "definitionId": "draugr",
+        "level": 15,
+        "experience": 2844,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "draugr_v2",
+        "name": "Draugr",
+        "maxHp": 83,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 36,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Ice",
+        "currentHp": 25,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "162dfed5-9c3b-46ca-8671-c230ccddbd03",
+            "type": "Dazed",
+            "stacks": 2
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Draugr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 2,
+        "secondaryElement": "None"
+      }
+    ],
+    "enemyParty": [
+      {
+        "id": "mm_10pqcjk_2",
+        "definitionId": "jormungandr",
+        "level": 15,
+        "experience": 2700,
+        "blueprintsCollected": 0,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "name": "Jormungandr",
+        "maxHp": 89,
+        "cardDraw": 3,
+        "maxEnergy": 2,
+        "attack": 33,
+        "defense": 33,
+        "speed": 10,
+        "primaryElement": "Water",
+        "currentHp": 0,
+        "currentEnergy": 0,
+        "tempHp": 0,
+        "statusEffects": [
+          {
+            "id": "2ee14840-bc2e-4ff0-9443-4bd926bafc09",
+            "type": "Weakened",
+            "stacks": 5
+          },
+          {
+            "id": "ebe883a6-e5fc-4ddb-a7a1-09a62cb1bff7",
+            "type": "Dazed",
+            "stacks": 5
+          },
+          {
+            "id": "0d986388-62a5-4ae9-a458-d6804067f571",
+            "type": "Poison",
+            "stacks": 1
+          },
+          {
+            "id": "4142293e-a625-43bc-b24b-985700d9c264",
+            "type": "Energized",
+            "stacks": 1
+          }
+        ],
+        "hooks": [],
+        "daemons": [],
+        "artReference": "Jormungandr.svg",
+        "relicBonuses": {
+          "draw": 0,
+          "energy": 0,
+          "attackMod": 1
+        },
+        "currentIntent": null,
+        "playsThisTurn": 5,
+        "secondaryElement": "None"
+      }
+    ],
+    "playerDeck": {
+      "ownerId": "PLAYER",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_0fgse0w_6",
+          "dataId": "frost_bite",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_13i3i0w_5",
+          "dataId": "water_slap",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0lk3chs_7",
+          "dataId": "numbing_gale",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_10x8o3k_4",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        }
+      ],
+      "hand": [
+        {
+          "id": "card_1mzam80_8",
+          "dataId": "killing_frost",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "discard": [
+        {
+          "id": "card_0mpb4e8_c",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0uvqlts_b",
+          "dataId": "rimebreaker",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0cjnv28_9",
+          "dataId": "ice_spear",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_080yo00_3",
+          "dataId": "rimefrost",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0l27h40_a",
+          "dataId": "glacial_slam",
+          "currentCost": 2,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "enemyDeck": {
+      "ownerId": "ENEMY",
+      "deck": [],
+      "drawpile": [
+        {
+          "id": "card_1dt4veo_i",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_012dj40_f",
+          "dataId": "blind_spot",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_07exog0_k",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "hand": [],
+      "discard": [
+        {
+          "id": "card_0lnw4zk_d",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_1i2k5c0_h",
+          "dataId": "surge_protection",
+          "currentCost": 2,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0h48vls_g",
+          "dataId": "corrosive_leak",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_07ke2o0_e",
+          "dataId": "undertow",
+          "currentCost": 0,
+          "isPlayable": true
+        },
+        {
+          "id": "card_04kyvi8_l",
+          "dataId": "ink_stream",
+          "currentCost": 1,
+          "isPlayable": true
+        },
+        {
+          "id": "card_0bsd62o_j",
+          "dataId": "serpents_coil",
+          "currentCost": 1,
+          "isPlayable": true
+        }
+      ],
+      "exhaust": []
+    },
+    "logs": [
+      "Draugr plays Rimefrost → Jormungandr",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Jormungandr gains Dazed (1 stacks)",
+      "Draugr plays Rimefrost → Jormungandr",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Jormungandr gains Dazed (1 stacks)",
+      "Draugr plays Killing Frost → Jormungandr",
+      "  → Jormungandr takes 6 damage",
+      "  → Jormungandr gains Weakened (2 stacks)",
+      "  → Jormungandr gains Dazed (2 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 1 — ENEMY's turn begins",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Corrosive Leak → Jormungandr",
+      "  → Jormungandr gains Poison (2 stacks)",
+      "  → Jormungandr gains Energized (1 stacks)",
+      "Jormungandr plays Ink Stream → Draugr",
+      "  → Draugr takes 10 damage",
+      "Jormungandr's OUROBOROS_LOOP triggers!",
+      "Jormungandr plays Ink Stream → Draugr",
+      "  → Draugr takes 15 damage",
+      "Jormungandr plays Blind Spot → Draugr",
+      "  → Draugr takes 0 damage",
+      "  → Draugr gains Dazed (1 stacks)",
+      "--- ENEMY ends their turn ---",
+      "  → Jormungandr takes 1 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 1 damage (2 stacks)",
+      "⚔️ Turn 2 — PLAYER's turn begins",
+      "Draugr plays Rimebreaker → Jormungandr",
+      "  → Jormungandr takes 36 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 2 — ENEMY's turn begins",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Blind Spot → Draugr",
+      "  → Draugr takes 0 damage",
+      "  → Draugr gains Dazed (1 stacks)",
+      "Jormungandr plays Serpent's Coil → Draugr",
+      "  → Draugr takes 3 damage",
+      "Jormungandr plays Serpent's Coil → Draugr",
+      "  → Draugr takes 4 damage",
+      "--- ENEMY ends their turn ---",
+      "  → Jormungandr takes 1 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 1 damage (1 stacks)",
+      "  ✅ Jormungandr — Poison wore off",
+      "⚔️ Turn 3 — PLAYER's turn begins",
+      "Draugr plays Tackle → Jormungandr",
+      "  → Jormungandr takes 3 damage",
+      "Draugr plays Glacial Slam → Jormungandr",
+      "  → Jormungandr takes 8 damage",
+      "  → Jormungandr gains Stunned (1 stacks)",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 3 — ENEMY's turn begins",
+      "--- ENEMY ends their turn ---",
+      "  🛡️ Jormungandr gained CC Immunity (StableOS)",
+      "  ✅ Jormungandr — Stunned wore off",
+      "⚔️ Turn 4 — PLAYER's turn begins",
+      "Draugr plays Rimebreaker → Jormungandr",
+      "  → Jormungandr takes 27 damage",
+      "--- PLAYER ends their turn ---",
+      "⚔️ Turn 4 — ENEMY's turn begins",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr plays Surge Protection → Draugr",
+      "  → Draugr takes 8 damage",
+      "Jormungandr plays Corrosive Leak → Jormungandr",
+      "  → Jormungandr gains Poison (2 stacks)",
+      "  → Jormungandr gains Energized (1 stacks)",
+      "Jormungandr plays Undertow → Jormungandr",
+      "Jormungandr's OUROBOROS_LOOP triggers!",
+      "Jormungandr plays Ink Stream → Draugr",
+      "  → Draugr takes 18 damage",
+      "--- ENEMY ends their turn ---",
+      "  📉 Jormungandr's StableOS (CC Immunity) wore off",
+      "  → Jormungandr takes 1 damage from Poison",
+      "  ☠️ Jormungandr — Poison deals 1 damage (2 stacks)",
+      "⚔️ Turn 5 — PLAYER's turn begins",
+      "Draugr plays Rimefrost → Jormungandr",
+      "  → Jormungandr gains Weakened (1 stacks)",
+      "  → Jormungandr gains Dazed (1 stacks)",
+      "Draugr plays Glacial Slam → Jormungandr",
+      "  → Jormungandr takes 8 damage ☠️ DEFEATED",
+      "  ✨ 144 XP split among 1 allies"
+    ],
+    "osLogs": [],
+    "procs": [],
+    "cardsPlayedThisTurn": 2,
+    "cardsDrawnThisTurn": 3,
+    "nonNaturalCardsDrawnThisTurn": 0,
+    "lastProgramPlayed": "glacial_slam",
+    "counters": {
+      "jorm_water:mm_10pqcjk_2": 0,
+      "jorm_ouroboros_used:mm_10pqcjk_2": 0,
+      "deck_shuffles": 3
+    },
+    "levelUpQueue": [],
+    "enemyMode": "CARDS",
+    "lastStatusConsumed": 0,
+    "elementPlays": {
+      "Fire": 0,
+      "Water": 0,
+      "Earth": 0,
+      "Air": 0,
+      "Nature": 0,
+      "Ice": 2,
+      "Light": 0,
+      "Dark": 0,
+      "None": 0
+    },
+    "lastEnergySpent": 2,
+    "resolvingCardInstanceId": null,
+    "cardsDiscardedThisTurn": 0
+  },
+  "version": 1,
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-28T01:55:24.258Z"
+}

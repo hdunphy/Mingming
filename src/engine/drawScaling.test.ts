@@ -86,14 +86,22 @@ describe('the two carrier cards are wired to the triggered scaler at the compens
         const a = (GetProgramData('starfall') as ProgramData).actions[0] as never as { scaling: string; power: number };
         expect(a.scaling).toBe('CARDS_DRAWN_TRIGGERED');
         expect(a.power).toBe(18);
-        expect(GetProgramData('starfall')!.description).toContain('card, OS or daemon');
+        // TICKET 136t reworded this card. What the assertion is really for is that the TEXT
+        // tells the player the count excludes the draw-phase refill, and "an effect drew you"
+        // says that as well as the old "card, OS or daemon" list did - Henry cut the list
+        // because "18 power for each card a card... drew you" does not read.
+        //
+        // NOTE, not fixed here: `ink_stream` above still carries the old phrasing, and it has
+        // the same stumble - "for each card a card, OS or daemon drew you this turn". The two
+        // carrier cards now word one mechanic two ways. Only starfall was ruled on.
+        expect(GetProgramData('starfall')!.description).toContain('an effect drew you');
     });
 
     it('NO card is left on the natural-inclusive CARDS_DRAWN scaler', () => {
         // The branch stays in ActionExecutors so nothing that wants "any draw" loses it, but a
         // card arriving on it is almost certainly the ticket-71 mistake being made again.
         const offenders: string[] = [];
-        for (const [id, raw] of Object.entries(ProgramRegistry as Record<string, any>))
+        for (const [id, raw] of Object.entries(ProgramRegistry))
             for (const a of raw.actions ?? [])
                 if (a.scaling === 'CARDS_DRAWN') offenders.push(id);
         expect(offenders).toEqual([]);

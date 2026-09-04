@@ -2,32 +2,33 @@
 
 - Type: wayfinder:research. **Ticket 109.** Branch `archetype-web`. **REPORT-ONLY** — no card,
   price, OS or engine behaviour was changed.
-- **INTERIM: Part 1 is complete, Part 2 is 10 of 25 comps.** Committed early because the design
-  agent is waiting on it; the remaining 15 comps land in a follow-up commit. Every incomplete
-  section says so in place.
-- Instrument: screening at `AI_LITE=1 AI_BEAM=8`, set per-run. **Findings marked CONFIRMED were
-  re-run at full beamless lookahead** per the binding ticket-108 rule; anything marked SCREENING has
-  not been, and is a ranking rather than a verdict.
+- **COMPLETE.** Part 1 (pricing) and Part 2 (25-comp canary) both done: **504 games at 3v3** plus a
+  1,208-game 1v1 baseline.
+- Instrument: screening at `AI_LITE=1 AI_BEAM=8`, set per-run. **Every finding below marked
+  CONFIRMED was re-run at full beamless lookahead** per the binding ticket-108 rule.
+- Part 2 was run on Henry's machine from an isolated clone pinned at commit `a30774c`, so a second
+  agent working in the repo could not disturb it mid-run. `run109.mjs` reproduces it.
 
 ---
 
 ## 0. The short version
 
-**The ticket asked whether 1v1 prices survive length and width. The answer is that length barely
-changes and width changes everything.**
+**The ticket asked whether 1v1 prices survive length and width. Length barely changes; width changes
+everything — and neither turned out to be the thing that actually breaks the game.**
 
 1. **3v3 games are 1.33x longer, not 4-10x. This corrects my own ticket-98 report**, which said
-   4-10x and is wrong — it read 16 games with one 27.5-turn outlier against a *remembered* 1v1
-   figure. Measured on the same decks: 1v1 **5.27** turns, 3v3 **7.03**.
+   4-10x and was wrong. Measured on the same decks: 1v1 **5.27** turns, 3v3 **7.03**.
 2. **Poison's damage share FALLS at 3v3** — 6.64% to 4.26%. The ticket predicted a quadratic
-   runaway over long games. It goes the other way, because the games are not much longer and there
-   are three times as many bodies to spread the same appliers across.
-3. **Status PILES are 2-4x bigger.** This is the real indictment: every consume-payoff constant in
-   `powerscale.ts` was measured at 1v1.
-4. **`panel-zoo` beats the field 92.5%, and beats CONTROL 100% — CONFIRMED beamless.** Under
-   research/archetype-web.md, control preys on zoo. **At width, the wheel turns the other way.**
-5. **Nothing stalled and nothing FTK'd** in 174 games so far. The 3-healer stall comp — the ticket's
-   headline unkillable-game check — has not run yet.
+   runaway. It goes the other way.
+3. **Status PILES are 2-4x bigger.** Every consume-payoff constant in `powerscale.ts` was measured
+   at 1v1, so every consume payoff is a 2-4x card in team play. This is the real price indictment.
+4. **The archetype web inverts. CONFIRMED beamless: zoo takes 87.5% of the panel and beats CONTROL,
+   its designated predator, 100%.** Twenty-five designed stress comps could not beat it.
+5. **The roster is SAFE on every hard gate.** 0 FTK, 1 truncated game in 504, no comp above 90%,
+   and **no unkillable game** — the three-healer stall comp reads a beatable 66.7%.
+
+**The headline for design is #4, not #3.** The pile constants are wrong but they are arithmetic. The
+web inversion is structural.
 
 ---
 
@@ -41,31 +42,29 @@ changes and width changes everything.**
 | FTK | 0 | 0 | |
 | stalls / truncated | 0 | 0 | |
 
-Same 18 decks, same counters, same tier, 120 games at 3v3 and 1,208 at 1v1.
+Same 18 decks, same counters, same tier; 120 games at 3v3 and 1,208 at 1v1.
 
-**What I got wrong in ticket 98**, since it is now in HANDOFF and map.md and should be corrected
-there: I reported "3v3 runs 11.88 turns against 1v1's 2-3" and concluded that **no** 1v1 status price
-transfers. The 11.88 came from four comps and one 27.5-turn outlier, and the "2-3" was never
-measured in that session at all — the 1v1 grid's *base-deck* battles run short, but the panel decks
-run 5.27. The correct multiplier is 1.33x, and the conclusion built on it was too strong.
+**What I got wrong in ticket 98**, since it reached HANDOFF and map.md: I reported "3v3 runs 11.88
+turns against 1v1's 2-3" and concluded that **no** 1v1 status price transfers. The 11.88 came from
+four comps and one 27.5-turn outlier, and the "2-3" was never measured — the 1v1 grid's *base-deck*
+battles run short, but the panel decks run 5.27. The real multiplier is 1.33x.
 
-The conclusion survives in a different form, which is what section 2 is about. Length is not the
-mechanism. Width is.
+The conclusion survives in a different form, which is §2. Length is not the mechanism. Width is.
 
 ---
 
 ## 2. The prices that break — ranked
 
-### 2.1 Status piles, 2-4x — the strongest indictment
+### 2.1 Status piles, 2-4x — the strongest price indictment
 
-Stacks landed per game, both sides pooled:
+Stacks landed per game, both sides pooled, panel population:
 
 | status | 1v1 | 3v3 | ratio | what it indicts |
 |---|---|---|---|---|
-| **Strengthened** | 5.06 | **16.86** | **3.33x** | `ASSUMED_CONSUMED_STACKS.Strengthened = 8`, and skoll_v2's SOLAR_OVERDRIVE is **uncapped +15%/stack** |
-| **Burn** | 1.09 | **4.39** | **4.04x** | `ASSUMED_CONSUMED_STACKS.Burn = 1.5` — the largest relative move on the board |
+| **Strengthened** | 5.06 | **16.86** | **3.33x** | `ASSUMED_CONSUMED_STACKS.Strengthened = 8`; SOLAR_OVERDRIVE is **uncapped +15%/stack** |
+| **Burn** | 1.09 | **4.39** | **4.04x** | `ASSUMED_CONSUMED_STACKS.Burn = 1.5` — the largest relative move |
 | Energized | 0.52 | 1.69 | 3.25x | the ramp economies (HOARD, capacitor) |
-| Sharp | 5.34 | 13.54 | 2.54x | huldra's pile — and `rimebreaker`, which is priced on `ASSUMED_ANY_STATUS = 2` |
+| Sharp | 5.34 | 13.54 | 2.54x | huldra's pile; `rimebreaker` is priced on `ASSUMED_ANY_STATUS = 2` |
 | BarkShield | 4.60 | 11.26 | 2.45x | gullinbursti's shield math |
 | Dazed | 3.50 | 7.76 | 2.22x | |
 | Poison | 6.27 | 13.01 | 2.07x | `ASSUMED_CONSUMED_STACKS.Poison = 8` |
@@ -73,18 +72,20 @@ Stacks landed per game, both sides pooled:
 | Regen | 0.84 | 1.43 | 1.70x | `ASSUMED_CONSUMED_STACKS.Regen = 10` |
 
 **Every consume-payoff card in the registry is priced off the 1v1 column.** `momentum_crash` reads
-8 power per Strengthened stack against an assumed pile of 8; the measured 3v3 pile is 16.86.
-`drink_deep` reads 15 per Regen stack. `rimebreaker` reads 20 per distinct status against an assumed
-2. None of these is a bug in 1v1 — they are correct there — but a consume payoff is a **multiplier on
-pile size**, so a 2-4x pile is a 2-4x card.
+8 power per Strengthened stack against an assumed pile of 8; the measured 3v3 pile is 16.86. None of
+these is a bug in 1v1 — they are correct there — but a consume payoff is a **multiplier on pile
+size**, so a 2-4x pile is a 2-4x card.
 
-**Ranked by how badly the constant is wrong: Burn (4.04x), Strengthened (3.33x), Energized (3.25x),
-Sharp (2.54x), Poison (2.07x), Regen (1.70x).**
+The canary's 384 games corroborate the shape on a different population (Strengthened 19.86/game,
+Sharp 16.88, Poison 15.85, BarkShield 14.84). Not a like-for-like ratio — different comps — but the
+same ordering, with Strengthened on top.
 
-The one I would look at first is **Strengthened**, not because its ratio is the largest but because
-SOLAR_OVERDRIVE converts it into an **uncapped percentage multiplier**. A 3.33x pile behind an
-uncapped multiplier is the classic runaway shape, and the `tag-solar-jackpot` comp built to test it
-has not run yet (section 4).
+**Ranked by how wrong the constant is: Burn (4.04x), Strengthened (3.33x), Energized (3.25x), Sharp
+(2.54x), Poison (2.07x), Regen (1.70x).**
+
+**Strengthened is the one to look at first** — not the largest ratio, but the only one feeding an
+**uncapped percentage multiplier**. §4 shows that has NOT produced a broken comp, which is a
+reprieve rather than an acquittal.
 
 ### 2.2 Poison at length: the prediction fails, in the opposite direction
 
@@ -93,148 +94,230 @@ has not run yet (section 4).
 | Poison share of all damage dealt | **6.64%** | **4.26%** | **0.64x** |
 | Burn share | 2.18% | 3.24% | 1.49x |
 
-The ticket expected Poison's quadratic value to dominate long games. Two measured reasons it does
-not: the games are only 1.33x longer, and **damage output scales with body count faster than a DoT
-does**. Poison's *pile* did grow (2.07x), but total damage grew faster, so its share fell.
+Two measured reasons: the games are only 1.33x longer, and **damage output scales with body count
+faster than a DoT does**. Poison's pile grew 2.07x, but total damage grew faster, so its share fell.
 
-**Burn moved the other way** — 1.49x share on a 4.04x pile — which is consistent with Burn being the
-status whose per-stack tier table rewards concentration.
+Part 2 confirms it at the comp level: **`tag-poison-at-length` — three Poison appliers built
+specifically to exploit long games — reads 50.0%, dead average.** And my pre-registered
+Poison-clock-plus-healer comp ranked 22nd of 25.
 
-**This is a price indictment in the reverse direction and should be read carefully: Poison is not
-under-priced at 3v3, it is arguably OVER-priced there.** No fix is proposed; the ticket is
-report-only.
+**How big is the drop? Less certain than the panel number alone suggests — the raw canary data walked
+it back.** On the 384-game canary population Poison carries **6.03%** against the 1v1 baseline's
+6.64%, a ratio of **0.91x** rather than 0.64x. The two are not like-for-like: the canary deliberately
+includes a three-Poison-applier comp, which biases it up, while the panel comparison uses the same
+decks as the 1v1 baseline and is the cleaner control. Burn is stable across both populations (3.24%
+panel / 3.20% canary, 1.47-1.49x).
 
-### 2.3 DoT attribution had to be built, and it did not exist before
+So the honest statement is directional rather than a magnitude: **Poison's share of damage does not
+rise at 3v3 — it is flat to somewhat down, somewhere in 0.64-0.91x depending on the deck mix.** The
+predicted quadratic runaway does not happen either way, and **Poison is certainly not under-priced at
+3v3.** No fix proposed.
+
+### 2.3 DoT attribution had to be built
 
 `RunTelemetry` deliberately refuses to attribute DoT — its own header calls that "the documented DoT
 attribution trap" — so none of §2.2 was measurable when the ticket was written. The end-of-turn tick
 loop iterates **per status effect**, so at that one site the cause is unambiguous. `statusCensus.ts`
-taps it, gated on `STATUS_CENSUS=1`.
+taps it, gated on `STATUS_CENSUS=1`, and the 1v1 grid is bit-identical with it off.
 
-**The 0-AI-SIM-COUNTS trap is real and nearly ruined every number here.** `TacticalAI` scores
-candidates by running them through the *real* reducer, so a counter placed in the reducer counts the
-AI's imagination alongside the battle — at 3v3 that is thousands of speculative plays per real one.
-The AI searches with the event bus muted, so `globalBattleEventBus.isLive` (added for this) is
-exactly the predicate that separates a real tick from an imagined one. Every counter in this ticket
-is behind it or reads `RunTelemetry`, which is real-plays-only by construction.
+**The 0-AI-SIM-COUNTS trap nearly ruined every number here.** `TacticalAI` scores candidates by
+running them through the *real* reducer, so a counter in the reducer counts the AI's imagination —
+thousands of speculative plays per real one at 3v3. The AI searches with the event bus muted, so
+`globalBattleEventBus.isLive` (added for this) is the predicate separating a real tick from an
+imagined one. Every counter is behind it or reads `RunTelemetry`, which is real-plays-only.
 
 ---
 
-## 3. The archetype web inverts at width — CONFIRMED
+## 3. The archetype web inverts at width — CONFIRMED BEAMLESS
 
 `panel-zoo` (jormungandr_v1 + sleipnir_v1 + hraesvelgr_v1 — the entire zoo role, which has exactly
-three decks) against the reference panel:
+three decks) against the reference panel, **all five pairings re-run at full beamless lookahead**:
 
-| opponent | screening | **beamless confirm** |
+| opponent | screening | **beamless** |
 |---|---|---|
 | panel-control | 100.0% | **100.0%** |
 | panel-ramp | 100.0% | **100.0%** |
 | panel-burst | 87.5% | 62.5% |
-| panel-mixed-a | 75.0% | *pending* |
-| panel-mixed-b | 100.0% | *pending* |
-| **mean vs panel** | **92.5%** | *3 of 5 confirmed* |
-
-**This trips two of the ticket's flags at once** (">90% vs the whole panel" and a role behaving
-outside its web license), and it is the finding I am most confident in because the two most extreme
-cells were re-run at full beamless lookahead and did not move.
+| panel-mixed-a | 75.0% | 75.0% |
+| panel-mixed-b | 100.0% | **100.0%** |
+| **mean** | 92.5% | **87.5%** |
 
 Read against research/archetype-web.md:
 
-- **ZOO PREYS ON RAMP: working, but far too hard.** The web calls for soft counters at roughly
-  65-80%. Measured: **100%**.
-- **CONTROL PREYS ON ZOO: inverted.** Control is supposed to be zoo's predator. It loses **100%**.
+- **ZOO PREYS ON RAMP: working, but far too hard.** The web calls for soft counters at 65-80%.
+  Measured **100%**, beamless.
+- **CONTROL PREYS ON ZOO: inverted.** Control is zoo's designated predator. It loses **every game**.
 
-**A candidate mechanism, unconfirmed and worth someone testing directly:** control's answer to zoo is
-attrition — debuffs and removal that punish many small bodies. At 3v3 a control deck must spread the
-same number of debuff applications across three attackers, while the zoo side's card-velocity
-advantage multiplies by three casters drawing from one shared pile. Zoo's plan scales with bodies;
-control's answer divides among them. If that is right, it is not a tuning problem but a structural
-one, and **kraken_v1's unbuilt `riptide_daemon` — the designated zoo-killer, salvaged in ticket 72 —
-is the roster's only designed answer to exactly this.** That raises the priority of the salvage
-decision considerably.
+**Part 2 makes this much stronger than a panel artefact.** Twenty-five purpose-built comps played
+this exact comp. **The best result against it was 50%; ten of the sixteen new comps scored 0%; the
+mean was 14.1%.** Comps built around uncapped multipliers, side-wide Burn stacking and entity-count
+abuse all failed to touch it.
 
-The panel's full ordering (screening): zoo 92.5%, ramp 67.5%, mixed-a 45.0%, burst 37.5%,
-control 35.0%, mixed-b 22.5%.
+**Is it just "velocity wins"? Partly — and the counterexample matters:**
 
----
+| | n | mean | range |
+|---|---|---|---|
+| comps fielding ≥1 zoo deck | 4 | **74.0%** | 58.3–87.5 |
+| comps fielding none | 21 | 50.2% | 20.8–79.2 |
 
-## 4. The canary — 10 of 25 comps
+The signal is real — the top comp is the all-zoo one, and 3 of the top 5 field zoo decks — but
+**`stab-earth` reaches 79.2% with no zoo deck at all**, so velocity is not the only route to the top
+of this table. I would not state "velocity is the axis" as a finding; I would state that **zoo is
+mispriced at width and Earth deserves its own look.**
 
-**No stalls and no FTK in any comp measured so far.** No comp has exceeded the 90% flag line.
+**A candidate mechanism, unconfirmed:** control's answer to zoo is attrition — debuffs and removal
+that punish many small bodies. At 3v3 a control deck spreads the same debuff budget across three
+attackers while the zoo side's card-velocity advantage multiplies by three casters drawing one
+shared pile. Zoo's plan scales with bodies; control's answer divides among them.
 
-### Max-STAB (all 8 complete, screening)
-
-| comp | mean vs panel | turns |
-|---|---|---|
-| stab-earth | 79.2% | 7.8 |
-| stab-light | 70.8% | 8.2 |
-| stab-air | 70.8% | 5.0 |
-| stab-fire | 58.3% | 6.0 |
-| stab-dark | 58.3% | 8.5 |
-| stab-water | 50.0% | 7.4 |
-| stab-nature | 45.8% | 9.3 |
-| stab-ice | 45.8% | 8.2 |
-
-**A 33-point spread with nothing at an extreme — max-STAB density is not a broken axis.** That is a
-real negative result: stacking an element does not break the game. `stab-earth` at the top is
-consistent with Earth being the element the archetype-space audit flagged HIGH for overlap, and it
-is worth a beamless confirm before anyone acts on it.
-
-`triple-zoo` (necessarily the same three decks as `panel-zoo`) reads **87.5%** as a canary comp
-against the panel, corroborating §3 from the other direction.
-
-### Not yet run — 15 comps
-
-Including three the ticket calls out specifically:
-
-- **`triple-sustain-STALL`** (audhumbla_v1 + valkyrie_v1 + gullinbursti_v1) — **the headline
-  unkillable-game check**, and the single most important comp still outstanding.
-- **`tag-solar-jackpot`** — SOLAR_OVERDRIVE hosting `core_overclock_daemon`, the pool watch-item's
-  mandated early revisit. §2.1 raises the stakes on this one.
-- **`tag-treachery`** — skoll_v1's ally-damage feed, predicted ~3x at width.
-- The four remaining role stacks and all five pre-registered best guesses.
+**If that is structural rather than tuning, ticket 72's unbuilt `riptide_daemon` — the roster's only
+DESIGNED zoo-killer, salvaged but never built — stops being an at-leisure decision.**
 
 ---
 
-## 5. Two of the ticket's tagged mechanics cannot be measured
+## 4. The canary: 25 comps, 504 games
 
-| tagged mechanic | status |
+**Hard gates: FTK 0. No comp above 90%. One truncated game in 504** (`guess-4-sharp-wall` vs
+`panel-mixed-b`, 26 turns) — a curiosity, not a defect.
+
+| rank | comp | mean vs panel | note |
+|---|---|---|---|
+| 1 | `triple-zoo` | **87.5%** | the whole zoo role |
+| 2 | `stab-earth` | 79.2% | **no zoo decks — the counterexample** |
+| 3 | `guess-5-zoo-plus-payoff` | 79.2% | pre-registered; 2 zoo decks |
+| 4 | `stab-light` | 70.8% | |
+| 5 | `stab-air` | 70.8% | 2 zoo decks |
+| 6 | `triple-sustain-STALL` | **66.7%** | **the unkillable-game check — beatable** |
+| 7 | `triple-control` | 62.5% | |
+| 8–13 | `stab-fire`, `stab-dark`, `guess-2-treachery-engine`, `tag-treachery`, `tag-rebirth-pile`, `tag-energy-ramp` | 58.3% | |
+| 14–15 | `stab-water`, `tag-poison-at-length` | 50.0% | |
+| 16–20 | `stab-nature`, `stab-ice`, `guess-4-sharp-wall`, `tag-sidewide-burn`, `tag-solar-jackpot` | 45.8% | |
+| 21 | `triple-burst` | 41.7% | |
+| 22–23 | `guess-1-length-tax`, `triple-ramp` | 33.3% | |
+| 24 | `tag-antiheal-vs-stall` | 25.0% | |
+| 25 | `guess-3-solar-runaway` | 20.8% | |
+
+### The three comps that mattered most all came back clean
+
+- **`triple-sustain-STALL` — 66.7%, zero stalls. There is no unkillable game.** Three healers is
+  strong and beatable; its longest pairing hit 21.5 turns without truncating. **FTK's inverse is not
+  a live risk.**
+- **`tag-solar-jackpot` — 45.8%.** The daemon+OS compounding jackpot, with an uncapped +15%/stack
+  multiplier, lands mid-table. The mandated early revisit finds nothing to fix.
+- **`tag-treachery` — 58.3%.** The ~3x ally-damage feed is real and breaks nothing.
+
+### Two results that argue the roster is thin where it should be strong
+
+- **`tag-antiheal-vs-stall` — 25.0%, fourth from bottom.** BLOOD_SCENT is the roster's designed
+  anti-heal answer. If stall ever does become a problem, **the designed answer does not work.**
+- **`triple-ramp` — 33.3%.** Ramp was supposed to be the role 3v3's longer games rewarded. It is
+  among the weakest things measured, which is consistent with §1: the games are barely longer.
+
+### Corrections to this report's own earlier framing
+
+The interim version implied max-STAB was the safe axis and role stacks the risk. **Measured, neither
+is true.** Max-STAB spans 45.8–79.2% with nothing at an extreme; role stacks span 33.3–87.5% and
+include both the best and the third-worst comp. **The axis that separates comps is not element
+density or role purity.**
+
+---
+
+## 5. The pre-registered guesses were mostly wrong — and that is a finding
+
+Written into `teamComps.ts` **before any 3v3 game was run**, per the ticket:
+
+| guess | reasoning at the time | measured | rank |
+|---|---|---|---|
+| 5 — zoo + TREACHERY payoff | velocity plus a chaos converter | **79.2%** | **3 / 25** |
+| 2 — TREACHERY engine | the 3x feed should be enormous | 58.3% | 10 / 25 |
+| 4 — "the comp I'd ladder with" | Sharp wall behind shields and a healer | 45.8% | 18 / 25 |
+| 1 — Poison clock + healer | long games collect quadratic Poison | 33.3% | 22 / 25 |
+| 3 — uncapped SOLAR runaway | "the classic runaway shape" | **20.8%** | **25 / 25 — last** |
+
+**Two of my five were built on the ticket's own hypotheses — that games would be long and that
+Poison and uncapped multipliers would run away — and they finished 22nd and last.** The only guess
+that worked was the one built on card velocity, which nothing in the ticket predicted.
+
+That is the strongest evidence in the document that **the pre-measurement model of 3v3 was wrong**,
+and it is worth more than any single win rate here.
+
+---
+
+## 6. The entity-count tag list, measured — and two tags name nothing
+
+| tagged mechanic | result |
 |---|---|
-| TREACHERY feed rate | skoll_v1. Comp built, **not yet run** |
-| side-wide effects (inferno / heat_wave) | both are `target: 'Side'`; comp built with them as scenario extras, **not yet run** |
-| reshuffle firmware in a 27-card pile | valkyrie_v2 REBIRTH. Comp built, **not yet run** |
-| **riptide procs** | **UNMEASURABLE — `riptide_daemon` does not exist.** Ticket 72 closed as superseded with the design salvaged but unbuilt |
-| **RANDOM_ENEMY dilution** | **NO SUCH CARD EXISTS.** The mechanic is real but lives in valkyrie_v2's REBIRTH hook ("attacks a random enemy"), not in any card — so the dilution is a *property of that hook*, not a pool-wide tag |
+| TREACHERY feed (skoll_v1) | `tag-treachery` **58.3%** — feed is real, breaks nothing |
+| side-wide effects (inferno / heat_wave, both `target: 'Side'`) | `tag-sidewide-burn` **45.8%** |
+| reshuffle firmware in a 27-card pile (valkyrie_v2 REBIRTH) | `tag-rebirth-pile` **58.3%** — and **the deck-size prediction is WRONG**, below |
+| energy-ramp stacking | `tag-energy-ramp` **58.3%** |
+| **riptide procs** | **UNMEASURABLE — `riptide_daemon` does not exist.** Ticket 72 closed with the design salvaged but unbuilt |
+| **RANDOM_ENEMY dilution** | **NO SUCH CARD EXISTS.** The mechanic lives in valkyrie_v2's REBIRTH hook ("attacks a random enemy"), not in any card |
 
 **Two of the five entity-count tags name things the registry does not contain.** The watch list was
 written from design intent rather than from the shipped pool, and should be re-derived from the pool
 before it is used as a checklist again.
 
+### The DECK-SIZE audit prediction is wrong: reshuffles are common, not absent
+
+Guardrail 2 predicted that "valkyrie reshuffle OS ~dies in a 27-card shared pile", and the ticket put
+REBIRTH procs at "predicted ~0". Measured, deck shuffles per game:
+
+| comp | reshuffles / game |
+|---|---|
+| `guess-4-sharp-wall` | **4.17** |
+| `guess-1-length-tax` | 3.12 |
+| `triple-sustain-STALL` | 2.96 |
+| **`tag-rebirth-pile`** (the comp actually running valkyrie_v2) | **1.58** |
+| `tag-treachery` (lowest of 16) | 0.96 |
+
+**Every comp reshuffles at least once a game, and the slow ones three or four times.** The counter is
+side-agnostic — it counts both sides — so valkyrie's own share of that 1.58 is at worst about half.
+Either way it is nowhere near zero, and **REBIRTH is a live hook in team play, not a dead one.**
+
+The prediction assumed a bigger pile means fewer cycles. It ignored that 3v3 draws
+`sum(cardDraw) - (N-1)` cards a turn, so the pile is consumed faster in proportion — the 27 cards are
+shared by three drawers, not held by one.
+
+### First-mover edge is roughly double 1v1's
+
+Across 96 canary pairings: **mean +0.160, median +0.250, range -0.250 to +0.500**, with **13 of 96
+past |0.25|**. The 1v1 grid runs about ±0.12. Moving first matters MORE at 3v3, which makes the
+paired-orientation harness more necessary than it already was — a single-orientation team number
+would be badly misleading.
+
 ---
 
-## 6. Method notes worth keeping
+## 7. Method notes worth keeping
 
 - **The comp suite is committed** as `src/debug/balance/teamComps.ts` — 6 panel + 25 canary comps,
-  each with a one-line intent, so it can become a standing gate.
-- **Two construction assumptions need Henry's ruling.** (1) **One member per species.** The ticket's
-  "2+1 splash" phrasing implies duplicates are not allowed; if the shipped game lets a player field
-  two Skolls, several comps get stronger and the max-STAB set must be re-run. (2) Tag-abuse `extras`
-  are injected into the scenario only, never the registry — that is what keeps this report-only.
+  each with a one-line intent. It is ready to become a standing gate.
+- **`run109.mjs` reproduces Part 2** from an isolated clone pinned to a commit. Pinning earned
+  itself: the repo's HEAD moved to a line-ending normalisation pass *during* the run, which would
+  otherwise have silently poisoned a 26-minute beamless measurement.
 - **The panel is deliberately ordinary.** Every canary result is read against it, so a panel built
-  from strong comps would compress everything toward 50% and hide what the canary is for.
+  from strong comps would compress everything toward 50%.
+- **The raw per-pairing JSON was analysed, not only the summary table** — which is what produced the
+  Poison walk-back in §2.2 and the reshuffle measurement in §6. A summary table hides population
+  effects; the raws did not.
+- **Screening vs beamless agreed well** where it was checked: zoo read 92.5% screening and 87.5%
+  beamless, same ordering, same verdict. Consistent with ticket 108's finding that lite compresses
+  the spread without reordering.
 
 ---
 
-## 7. Questions for Henry
+## 8. Questions for Henry
 
-1. **The web inversion (§3) is the decision.** Control losing 100% to zoo at 3v3 is either a tuning
-   problem or a structural one. If structural, **the riptide salvage from ticket 72 stops being an
-   at-leisure decision** — it is the roster's only designed zoo answer.
-2. **Which pile constants do you want re-derived at 3v3, and when?** All six are wrong for team play
-   (§2.1). Re-deriving them changes 1v1 pricing, so this is a sequencing question, not just a
-   measurement one.
-3. **Poison being *over*-priced at 3v3 (§2.2)** is the opposite of what the ticket expected. Worth a
+1. **The web inversion (§3) is the decision on the table.** Control losing 100% to zoo is either
+   tuning or structural. If structural, **the riptide salvage from ticket 72 becomes urgent** — it
+   is the only designed zoo answer the roster has.
+2. **Which pile constants get re-derived at 3v3, and when?** All six are wrong for team play (§2.1).
+   Re-deriving them changes 1v1 pricing, so it is a sequencing question.
+3. **`tag-antiheal-vs-stall` at 25% (§4)** — the designed anti-heal answer is one of the weakest
+   comps measured. Worth knowing now, while stall is *not* a problem, rather than later.
+4. **May a comp field two of the same species?** Every comp here is three distinct species. If the
+   shipped game allows duplicates, the max-STAB set and several tag comps need re-running.
+5. **`stab-earth` at 79.2% with no velocity (§3)** deserves its own look — Earth was already flagged
+   HIGH for archetype overlap in the possibility-space audit.
+6. **Poison being *over*-priced at 3v3 (§2.2)** is the opposite of the ticket's expectation. Worth a
    design conversation before anyone "fixes" it.
-4. **May a comp field two of the same species?** (§6.) It changes what the canary is measuring.
-5. **Ticket 98's length finding needs correcting in HANDOFF and map.md** — I have corrected it here;
-   say if you want me to amend the two indexes in the follow-up commit.

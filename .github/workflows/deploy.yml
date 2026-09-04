@@ -10,7 +10,17 @@ permissions:
   id-token: write
 
 jobs:
+  # Ticket 03: the full gate (typecheck, tests, lint, build + assert-no-debug) runs BEFORE
+  # anything is published, and `build_site` needs it. A red test therefore blocks the deploy
+  # instead of shipping past it. Defined once in ci.yml and called from here rather than
+  # duplicated, so the two can never drift apart.
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   build_site:
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,8 +32,10 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      # `npm ci` installs exactly the lockfile, so the artifact that ships is built from the
+      # same dependency tree the gate above just tested.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build

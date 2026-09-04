@@ -31,14 +31,12 @@ const makeEntity = (id: string, name: string, overrides: Partial<IBattleEntity> 
     name,
     definitionId: 'hel',
     nickname: name,
-    level: 10,
-    experience: 0,
     blueprintsCollected: 0,
     attackIV: 0,
     defenseIV: 0,
     hpIV: 0,
-    maxHp: 200,
-    currentHp: 200,
+    maxHp: 2000,
+    currentHp: 2000,
     tempHp: 0,
     attack: 100,
     defense: 10,
@@ -71,7 +69,6 @@ const makeState = (playerOverrides: Partial<IBattleEntity> = {}, hand: ProgramEn
     cardsDrawnThisTurn: 0,
     lastProgramPlayed: null,
     counters: {},
-    levelUpQueue: []
 });
 
 const card = (id: string, dataId: string, cost = 1): ProgramEntity => ({ id, dataId, currentCost: cost, isPlayable: true });
@@ -80,6 +77,16 @@ const play = (state: IBattleState, programId: string, targetId: string = ENEMY_I
     battleReducer(state, { type: 'PLAY_PROGRAM', payload: { sourceId: PLAYER_ID, targetId, programId } });
 
 const getStatus = (entity: IBattleEntity, type: StatusType) => entity.statusEffects.find(s => s.type === type);
+
+/**
+ * TICKET 131c: the frame these tests read damage against, named rather than repeated.
+ *
+ * Every damage reading in this file was `200 - enemy.currentHp`, where the 200 was the fixture's
+ * maxHp written out by hand. When the x10 presentation scale moved the frame to 2000 those readings
+ * went NEGATIVE and the comparisons turned into "-1712 is not greater than 0". A named constant
+ * that sits next to the fixture cannot drift from it the way a repeated literal did.
+ */
+const ENEMY_FRAME = 2000;
 
 describe('Stance exclusivity and stacking', () => {
     it('playing Nightfall Edge shifts the SOURCE into Dark Stance (even though the card targets an enemy)', () => {
@@ -127,9 +134,9 @@ describe('Stance exclusivity and stacking', () => {
 });
 
 describe('the shipped stance percentages', () => {
-    it("are 35% both ways", () => {
-        expect(STANCE_BONUS.dark).toBe(0.35);
-        expect(STANCE_BONUS.light).toBe(0.35);
+    it("are 45% both ways", () => {
+        expect(STANCE_BONUS.dark).toBe(0.45);
+        expect(STANCE_BONUS.light).toBe(0.45);
     });
 });
 
@@ -139,7 +146,7 @@ describe('Dark Stance: outgoing damage bonus', () => {
         // Weakened lands on the TARGET after the hit, so it cannot skew this measurement.
         const baseState = makeState({}, [card('c1', 'shadow_claw', 0)]);
         const afterBase = play(baseState, 'c1');
-        const baseDamage = 200 - afterBase.enemyParty[0].currentHp;
+        const baseDamage = ENEMY_FRAME - afterBase.enemyParty[0].currentHp;
         expect(baseDamage).toBeGreaterThan(0);
 
         const stancedState = makeState(
@@ -147,7 +154,7 @@ describe('Dark Stance: outgoing damage bonus', () => {
             [card('c1', 'shadow_claw', 0)]
         );
         const afterStanced = play(stancedState, 'c1');
-        const stancedDamage = 200 - afterStanced.enemyParty[0].currentHp;
+        const stancedDamage = ENEMY_FRAME - afterStanced.enemyParty[0].currentHp;
 
         expect(stancedDamage).toBe(Math.floor(baseDamage * (1 + STANCE_BONUS.dark)));
         expect(stancedDamage).toBeGreaterThan(baseDamage);
@@ -155,13 +162,13 @@ describe('Dark Stance: outgoing damage bonus', () => {
 
     it('does not boost damage while in Light Stance', () => {
         const baseState = makeState({}, [card('c1', 'shadow_claw', 0)]);
-        const baseDamage = 200 - play(baseState, 'c1').enemyParty[0].currentHp;
+        const baseDamage = ENEMY_FRAME - play(baseState, 'c1').enemyParty[0].currentHp;
 
         const lightState = makeState(
             { statusEffects: [{ id: 's1', type: StatusType.LightStance, stacks: 1 }] },
             [card('c1', 'shadow_claw', 0)]
         );
-        const lightDamage = 200 - play(lightState, 'c1').enemyParty[0].currentHp;
+        const lightDamage = ENEMY_FRAME - play(lightState, 'c1').enemyParty[0].currentHp;
 
         expect(lightDamage).toBe(baseDamage);
     });
@@ -170,7 +177,7 @@ describe('Dark Stance: outgoing damage bonus', () => {
 describe('Light Stance: damage-taken reduction', () => {
     it('an identical attack lands for exactly the reduction (floored) into Light Stance, through the real reducer', () => {
         const baseState = makeState({}, [card('c1', 'nights_bite')]);
-        const baseDamage = 200 - play(baseState, 'c1').enemyParty[0].currentHp;
+        const baseDamage = ENEMY_FRAME - play(baseState, 'c1').enemyParty[0].currentHp;
         expect(baseDamage).toBeGreaterThan(0);
 
         const guardedState: IBattleState = {
@@ -180,7 +187,7 @@ describe('Light Stance: damage-taken reduction', () => {
                 statusEffects: [{ id: 's1', type: StatusType.LightStance, stacks: 1 }]
             }]
         };
-        const guardedDamage = 200 - play(guardedState, 'c1').enemyParty[0].currentHp;
+        const guardedDamage = ENEMY_FRAME - play(guardedState, 'c1').enemyParty[0].currentHp;
 
         expect(guardedDamage).toBe(Math.floor(baseDamage * (1 - STANCE_BONUS.light)));
         expect(guardedDamage).toBeLessThan(baseDamage);
@@ -191,7 +198,7 @@ describe('Light Stance: damage-taken reduction', () => {
         const stancedHealer = makeEntity(PLAYER_ID, 'Healer', {
             statusEffects: [{ id: 's1', type: StatusType.LightStance, stacks: 1 }]
         });
-        const wounded = makeEntity(ENEMY_ID, 'Wounded', { currentHp: 1 }); // plenty of missing HP
+        const wounded = makeEntity(ENEMY_ID, 'Wounded', { currentHp: 10 }); // plenty of missing HP
 
         const base = calculateHeal(healer, wounded, 10);
         const stanced = calculateHeal(stancedHealer, wounded, 10);
@@ -205,24 +212,24 @@ describe('Light Stance: damage-taken reduction', () => {
     it('leaves heals alone in either stance', () => {
         // Dawn's Respite heals and then shifts. Ticket 43 made it power-based: 200 maxHp * 25
         // power / 400 = 12 a cast, the same in or out of stance.
-        let state = makeState({ currentHp: 100 }, [card('c1', 'dawns_respite'), card('c2', 'dawns_respite')]);
+        let state = makeState({ currentHp: 1000 }, [card('c1', 'dawns_respite'), card('c2', 'dawns_respite')]);
 
         state = play(state, 'c1', PLAYER_ID);
-        expect(state.playerParty[0].currentHp).toBe(112);
+        expect(state.playerParty[0].currentHp).toBe(1125);
 
         state = play(state, 'c2', PLAYER_ID); // already in Light Stance
-        expect(state.playerParty[0].currentHp).toBe(124);
+        expect(state.playerParty[0].currentHp).toBe(1250);
     });
 
     it('does not boost heals while in Dark Stance', () => {
         let state = makeState(
-            { currentHp: 100, statusEffects: [{ id: 's1', type: StatusType.DarkStance, stacks: 1 }] },
+            { currentHp: 1000, statusEffects: [{ id: 's1', type: StatusType.DarkStance, stacks: 1 }] },
             [card('c1', 'leech_strike')]
         );
         // leech_strike: attack + a power-30 heal on SELF (ticket 39 moved it off healOverride);
         // Dark Stance must not touch the heal. calculateHeal = maxHp * power / 400 = 200*30/400.
         state = play(state, 'c1');
-        expect(state.playerParty[0].currentHp).toBe(115);
+        expect(state.playerParty[0].currentHp).toBe(1150);
     });
 });
 
@@ -270,7 +277,7 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
         // This is the whole reason the trigger is onActionEnd rather than onActionStart.
         const fresh = makeState({ activeOS: 'hel_v1' }, [card('c1', 'nights_bite')]);
         const afterFresh = play(fresh, 'c1');
-        const openingDamage = 200 - afterFresh.enemyParty[0].currentHp;
+        const openingDamage = ENEMY_FRAME - afterFresh.enemyParty[0].currentHp;
 
         // ...and she is holding Dark Stance once it resolves.
         expect(getStatus(afterFresh.playerParty[0], StatusType.DarkStance)?.stacks).toBe(1);
@@ -279,7 +286,7 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
             { activeOS: 'hel_v1', statusEffects: [{ id: 's1', type: StatusType.DarkStance, stacks: 1 }] },
             [card('c1', 'nights_bite')]
         );
-        const followUpDamage = 200 - play(braced, 'c1').enemyParty[0].currentHp;
+        const followUpDamage = ENEMY_FRAME - play(braced, 'c1').enemyParty[0].currentHp;
 
         expect(openingDamage).toBeGreaterThan(0);
         expect(followUpDamage).toBe(Math.floor(openingDamage * (1 + STANCE_BONUS.dark)));
@@ -299,7 +306,7 @@ describe('hel_v1 TWILIGHT_CADENCE OS', () => {
     });
 });
 
-describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bonus)', () => {
+describe('hel_v2 UNDERWORLD_GATEWAY (ticket 136k: 5% blood, 25% cap, NO healing bonus)', () => {
     // Ticket 57 replaced the two data hooks with the firmware in CustomFirmware.ts. Three things
     // changed and all three are pinned below: the toll is scoped to DARK spells (it used to zero
     // and tax every card she played), the ticket-36 `escalatePerPlay: 1.25` escalation is GONE,
@@ -311,27 +318,42 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
     // price went 5% -> 6% instead, which charges for every cast rather than forbidding one.
     // The cap MACHINERY stays and is pinned below, because Henry's fallback if she is still
     // too strong is a 25% cap, then 20%.
+    //
+    // TICKET 136k PUT THE PRICE BACK TO 5%. Ticket 80 chose 6 against a roster where hel_v2
+    // read 81.4% field; after two arcs of deck work she was the WORST deck on the grid at
+    // 24.2, and the same knob is what brings her back - measured 4% = 83, 5% = 60, 6% = 25.
+    // Every toll below therefore moves from 6% to 5% of the frame, and the two cap tests
+    // change SHAPE rather than value, because the cap is spent in Energy-point steps and a
+    // cheaper step means more of them fit under the same ceiling.
 
     it('NO LONGER boosts her healing - it charges blood and leaves the heal alone', () => {
-        // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 6% of 200 maxHp x 1 printed
-        // Energy = 12 HP at action start; the heal is 200*25/400 = 12, and ticket 81 removed the
-        // +50% that used to make it 18. Henry: the healing bonus is what stopped HP-as-a-cost
-        // working - a heal that OUT-EARNS the blood price turns the cost into a loan. Heals are
-        // meant to alleviate the self-damage, not erase it. Net here is exactly zero.
-        let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'dawns_respite')]);
+        // dawns_respite: 1e DARK, a power-25 heal (ticket 43). 5% of 2000 maxHp x 1 printed
+        // Energy = 100 HP at action start; the heal is 2000*25/400 = 125, and ticket 81 removed
+        // the +50% that used to make it larger. Henry: the healing bonus is what stopped
+        // HP-as-a-cost working - a heal that OUT-EARNS the blood price turns the cost into a loan.
+        //
+        // TICKET 131c: THIS WAS NEVER "EXACTLY ZERO". The old comment claimed the toll and the heal
+        // cancelled precisely, and on a 200 HP frame they appeared to: the toll was 12 and the heal
+        // was 200*25/400 = 12.5, which `Math.floor` cut to 12. The heal has always out-earned the
+        // toll by half a point; the rounding hid it. On a 2000 frame it is 125 against 100 and the
+        // net is +25 - a loan on every cast, exactly the shape ticket 81 was trying to remove,
+        // and ticket 136k's cheaper price makes the loan BIGGER. Still a finding, not a fix.
+        // Left as a finding rather than fixed here: changing the blood price or the heal power is a
+        // balance decision, not a units one.
+        let state = makeState({ activeOS: 'hel_v2', currentHp: 1000 }, [card('c1', 'dawns_respite')]);
         state = play(state, 'c1', PLAYER_ID);
 
-        expect(state.playerParty[0].currentHp).toBe(100); // 100 - 12 toll + 12 unboosted heal
+        expect(state.playerParty[0].currentHp).toBe(1025); // 1000 - 100 toll + 125 unboosted heal
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY pays'))).toBe(true);
     });
 
-    it('NO LONGER escalates - the toll is a flat 6% of max HP per printed Energy', () => {
+    it('NO LONGER escalates - the toll is a flat 5% of max HP per printed Energy', () => {
         // Ticket 36 made every further card that turn cost 125% more, because a flat toll could
         // not brake a deck with no Energy limit. Ticket 57 removes the escalation and brakes it
         // with a price instead: on a 200-maxHp frame every `nights_bite` (1e Dark) costs 12,
         // where the escalating version charged 10, then 22, then 35.
         let state = makeState(
-            { activeOS: 'hel_v2', currentHp: 200, cardDraw: 4 },
+            { activeOS: 'hel_v2', currentHp: 2000, cardDraw: 4 },
             [card('c1', 'nights_bite'), card('c2', 'nights_bite'), card('c3', 'nights_bite')]
         );
 
@@ -342,69 +364,71 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
             tolls.push(before - state.playerParty[0].currentHp);
         }
 
-        expect(tolls).toEqual([12, 12, 12]);
+        expect(tolls).toEqual([100, 100, 100]);
     });
 
-    it('allows FOUR Energy-points of Dark a turn at the shipped 6% price and 25% cap', () => {
+    it('allows FIVE Energy-points of Dark a turn at the shipped 5% price and 25% cap', () => {
         // Removing the cap outright was tried and made her STRONGER - 81.4% -> 87.0% field -
         // because uncapped she chains Dark casts and the +50% healing refunds the blood faster
-        // than the price takes it. 25% at a 6% price allows four Energy-points (24%); the fifth
-        // overshoots to 30% and is refused. Note the knob moves in Energy-POINT steps: a cap of
-        // 18 behaves identically to 20, because both allow exactly three.
+        // than the price takes it. TICKET 136k: at a 5% price the same 25% cap allows FIVE
+        // Energy-points (exactly 25%) where 6% allowed four (24%); a sixth would overshoot to
+        // 30% and is refused. Note the knob moves in Energy-POINT steps, so a cheaper price
+        // buys a whole extra cast under an unchanged ceiling - which is why the cap was NOT
+        // touched: it is the price that is doing the work, in both directions.
         let state = makeState(
-            { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
-            ['c1', 'c2', 'c3', 'c4', 'c5'].map(id => card(id, 'nights_bite'))
+            { activeOS: 'hel_v2', currentHp: 2000, cardDraw: 6 },
+            ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'].map(id => card(id, 'nights_bite'))
         );
-        for (const id of ['c1', 'c2', 'c3', 'c4']) state = play(state, id);
-        expect(state.playerParty[0].currentHp).toBe(152);        // 4 x 12 HP paid, 24% of the pool
+        for (const id of ['c1', 'c2', 'c3', 'c4', 'c5']) state = play(state, id);
+        expect(state.playerParty[0].currentHp).toBe(1500);       // 5 x 100 HP paid, 25% of the pool
         const before = state.playerParty[0].currentHp;
-        const after = play(state, 'c5');
-        expect(after.playerParty[0].currentHp).toBe(before);              // the fifth is refused
-        expect(after.playerDeck.hand.some(c => c.id === 'c5')).toBe(true);
+        const after = play(state, 'c6');
+        expect(after.playerParty[0].currentHp).toBe(before);              // the sixth is refused
+        expect(after.playerDeck.hand.some(c => c.id === 'c6')).toBe(true);
     });
 
     it('the cap MACHINERY still works when a cap is set - Henry\'s 25%/20% fallback', () => {
         // Restoring a cap is a one-value change, not a rebuild, and this is what proves it. At a
-        // 20% cap on a 6% price, three 1e casts (18%) fit and the fourth would overshoot to 24%,
+        // 20% cap on a 5% price, four 1e casts (20%) fit exactly and the fifth would overshoot,
         // so it is refused - by PRICE, via the cost hook, which is what makes the reducer and the
         // AI agree without a third code path (HANDOFF 8d).
         const live = OS_KNOBS.hel.capPct;
         OS_KNOBS.hel.capPct = 20;
         try {
             let state = makeState(
-                { activeOS: 'hel_v2', currentHp: 200, cardDraw: 6 },
-                ['c1', 'c2', 'c3', 'c4'].map(id => card(id, 'nights_bite'))
+                { activeOS: 'hel_v2', currentHp: 2000, cardDraw: 6 },
+                ['c1', 'c2', 'c3', 'c4', 'c5'].map(id => card(id, 'nights_bite'))
             );
-            for (const id of ['c1', 'c2', 'c3']) state = play(state, id);
-            expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(18);
+            for (const id of ['c1', 'c2', 'c3', 'c4']) state = play(state, id);
+            expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(20);
             const before = state.playerParty[0].currentHp;
-            const after = play(state, 'c4');
+            const after = play(state, 'c5');
             expect(after.playerParty[0].currentHp).toBe(before);             // no blood paid
-            expect(after.playerDeck.hand.some(c => c.id === 'c4')).toBe(true); // never left hand
+            expect(after.playerDeck.hand.some(c => c.id === 'c5')).toBe(true); // never left hand
         } finally {
             OS_KNOBS.hel.capPct = live;
         }
     });
 
-    it('the shipped price is 6% and the shipped cap is 25%', () => {
+    it('the shipped price is 5% and the shipped cap is 25%', () => {
         expect(OS_KNOBS.hel.capPct).toBe(25);
-        expect(OS_KNOBS.hel.pctPerEnergy).toBe(6);
+        expect(OS_KNOBS.hel.pctPerEnergy).toBe(5);
     });
 
     it('the budget resets at the end of her turn', () => {
-        let state = makeState({ activeOS: 'hel_v2', currentHp: 200 }, [card('c1', 'nights_bite')]);
+        let state = makeState({ activeOS: 'hel_v2', currentHp: 2000 }, [card('c1', 'nights_bite')]);
         state = play(state, 'c1');
-        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(6);
+        expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(5);
 
         state = battleReducer(state, { type: 'END_TURN' });
         expect(state.counters['hel_blood_spent:' + PLAYER_ID]).toBe(0);
     });
 
     it('charges no toll for a 0-cost card', () => {
-        let state = makeState({ activeOS: 'hel_v2', currentHp: 100 }, [card('c1', 'water_slap', 0)]);
+        let state = makeState({ activeOS: 'hel_v2', currentHp: 1000 }, [card('c1', 'water_slap', 0)]);
         state = play(state, 'c1');
 
-        expect(state.playerParty[0].currentHp).toBe(100);
+        expect(state.playerParty[0].currentHp).toBe(1000);   // untouched: a 0-cost card owes no blood
         expect(state.logs.some(l => l.includes('UNDERWORLD_GATEWAY'))).toBe(false);
     });
 
@@ -412,7 +436,7 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
         // The approved OS text is "Hel's DARK spells". The old implementation zeroed the cost of
         // every card she played, which is what made Energy a dead stat on this frame.
         let state = makeState(
-            { activeOS: 'hel_v2', currentHp: 200, currentEnergy: 2, maxEnergy: 2 },
+            { activeOS: 'hel_v2', currentHp: 2000, currentEnergy: 2, maxEnergy: 2 },
             [card('c1', 'dawnstrike')]
         );
         state = play(state, 'c1');
@@ -421,16 +445,16 @@ describe('hel_v2 UNDERWORLD_GATEWAY (ticket 81: 6% blood, 25% cap, NO healing bo
         expect(state.counters['hel_blood_spent:' + PLAYER_ID] ?? 0).toBe(0); // no blood
     });
 
-    it('lets her cast a 3e Dark card on a 2-Energy frame, and charges 18% of her pool for it', () => {
+    it('lets her cast a 3e Dark card on a 2-Energy frame, and charges 15% of her pool for it', () => {
         let state = makeState(
-            { activeOS: 'hel_v2', currentHp: 200, currentEnergy: 2, maxEnergy: 2 },
+            { activeOS: 'hel_v2', currentHp: 2000, currentEnergy: 2, maxEnergy: 2 },
             [card('c1', 'soul_tithe', 3)]
         );
         const before = state.enemyParty[0].currentHp;
         state = play(state, 'c1');
 
         expect(state.enemyParty[0].currentHp).toBeLessThan(before); // it actually resolved
-        expect(state.playerParty[0].currentHp).toBe(164);           // 3 x 6% of 200 = 36 HP
+        expect(state.playerParty[0].currentHp).toBe(1700);          // 3 x 5% of 2000 = 300 HP
         expect(state.playerParty[0].currentEnergy).toBe(2);         // and cost her no Energy
     });
 });

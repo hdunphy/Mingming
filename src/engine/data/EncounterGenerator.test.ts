@@ -7,8 +7,8 @@ import type { Element } from '../types';
 
 describe('EncounterGenerator', () => {
     const playerParty = [
-        createMockEntity('Player 1', 'fenrir', 10),
-        createMockEntity('Player 2', 'kraken', 10)
+        createMockEntity('Player 1', 'fenrir'),
+        createMockEntity('Player 2', 'kraken')
     ];
 
     it('should generate an encounter with the correct sector element', () => {
@@ -36,12 +36,10 @@ describe('EncounterGenerator', () => {
             seed: 'steady-seed'
         });
 
-        const avgLevel = 10;
-        encounter.enemyParty.forEach(enemy => {
-            // Variance is -2 to +2
-            expect(enemy.level).toBeGreaterThanOrEqual(avgLevel - 2);
-            expect(enemy.level).toBeLessThanOrEqual(avgLevel + 2);
-        });
+        // Ticket 21: this used to assert enemy level sat within avgPlayerLevel ± 2. Level scaling
+        // is gone — every unit is built at CALIBRATION_LEVEL — so what is left worth asserting is
+        // that the generator still produces a party at all from a fixed seed.
+        expect(encounter.enemyParty.length).toBeGreaterThan(0);
     });
 
     it('should include a daemon in the enemy deck if available for that element', () => {

@@ -1,4 +1,4 @@
-import type { ProgramData } from '../types';
+import type { ProgramAction, ProgramConstraint, ProgramData } from '../types';
 import programsData from './programs.json';
 import { initDaemonHooks } from './daemonHooks';
 
@@ -14,8 +14,9 @@ export const STANDARD_CONSTRAINTS = [ALERT_CONSTRAINT, AWAKE_CONSTRAINT, BASE_CO
 import actionsLib from './lib/actions.json';
 import constraintsLib from './lib/constraints.json';
 
-const ACTIONS_LIB = actionsLib as Record<string, any>;
-const CONSTRAINTS_LIB = constraintsLib as Record<string, any>;
+/** lib/actions.json and lib/constraints.json, keyed by library id. */
+const ACTIONS_LIB = actionsLib as unknown as Record<string, ProgramAction>;
+const CONSTRAINTS_LIB = constraintsLib as unknown as Record<string, ProgramConstraint>;
 
 // Milestone 8.5: Keep a small registry for basic engine tests if needed, 
 // though most tests now use TestProgramRegistry.ts
@@ -40,7 +41,7 @@ export const ProgramRegistry: Record<string, ProgramData> = programsData as unkn
 /**
  * Inflates a single action by merging it with its library definition if an ID is present.
  */
-const inflateAction = (action: any, parentId: string): any => {
+const inflateAction = (action: ProgramAction, parentId: string): ProgramAction => {
     if (action.id) {
         if (ACTIONS_LIB[action.id]) {
             return { ...ACTIONS_LIB[action.id], ...action };
@@ -55,18 +56,22 @@ const inflateAction = (action: any, parentId: string): any => {
 /**
  * Inflates a single constraint by merging it with its library definition if an ID is present.
  */
-const inflateConstraint = (constraint: any, parentId: string): any => {
-    const constraintObj = typeof constraint === 'string' ? { id: constraint } : constraint;
+const inflateConstraint = (constraint: string | ProgramConstraint, parentId: string): ProgramConstraint => {
+    // A bare string in programs.json is a library id; anything else is already a (possibly
+    // partial) constraint that only overrides fields of its library entry.
+    const constraintObj: Partial<ProgramConstraint> = typeof constraint === 'string' ? { id: constraint } : constraint;
 
     if (constraintObj.id) {
         if (CONSTRAINTS_LIB[constraintObj.id]) {
             return { ...CONSTRAINTS_LIB[constraintObj.id], ...constraintObj };
         } else {
             console.error(`[ProgramRegistry] Missing constraint definition for ID: "${constraintObj.id}" in card: "${parentId}"`);
-            return { ...constraintObj, error: `Missing constraint: ${constraintObj.id}` };
+            // Deliberately NOT a valid constraint: the miss path returns an `error` marker for
+            // the validator to reject, exactly as before.
+            return { ...constraintObj, error: `Missing constraint: ${constraintObj.id}` } as ProgramConstraint;
         }
     }
-    return constraintObj;
+    return constraintObj as ProgramConstraint;
 };
 
 export const GetProgramData = (id: string): ProgramData => {
@@ -99,7 +104,7 @@ export const GetProgramData = (id: string): ProgramData => {
             if (inflatedAction.conditionals) {
                 return {
                     ...inflatedAction,
-                    conditionals: inflatedAction.conditionals.map((c: any) => inflateConstraint(c, id))
+                    conditionals: inflatedAction.conditionals.map(c => inflateConstraint(c, id))
                 };
             }
             return inflatedAction;
@@ -109,7 +114,7 @@ export const GetProgramData = (id: string): ProgramData => {
             if (inflatedAction.conditionals) {
                 return {
                     ...inflatedAction,
-                    conditionals: inflatedAction.conditionals.map((c: any) => inflateConstraint(c, id))
+                    conditionals: inflatedAction.conditionals.map(c => inflateConstraint(c, id))
                 };
             }
             return inflatedAction;

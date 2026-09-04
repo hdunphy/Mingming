@@ -2,19 +2,22 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import './App.css'
 import { useDispatch, useSelector } from 'react-redux'
 import BattleArena from './ui/components/BattleArena'
-import DeckTerminal from './ui/screens/DeckTerminal'
-import RosterTerminal from './ui/screens/RosterTerminal'
-import SynthesisLab from './ui/screens/SynthesisLab'
-import HubScreen from './ui/screens/HubScreen'
+import RanchScreen from './ui/screens/RanchScreen'
 import MainMenuView from './ui/components/MainMenuView'
-import SectorTerminal from './ui/screens/SectorTerminal'
-import RelicTerminal from './ui/screens/RelicTerminal'
 
-import { loadGame } from './engine/SaveSystem'
+import RunScreen from './ui/screens/RunScreen'
+import { loadGameState } from './engine/SaveSystem'
 import { loadSave } from './ui/store/gameSlice'
+import { setRun } from './ui/store/runSlice'
 import type { RootState } from './ui/store/store'
 import { initAudio, playSfx } from './ui/audio/AudioEngine'
 import AudioControls from './ui/components/AudioControls'
+import SettingsScreen from './ui/screens/SettingsScreen'
+import { openSettings } from './ui/store/uiSlice'
+import { applySettings, loadSettings } from './ui/settings/settings'
+import { useCodexRecorder } from './ui/hooks/useCodexRecorder'
+import { Icon } from './ui/theme/Icon';
+import type { IconName } from './ui/theme/icons';
 
 // The single import edge between the game and the debug toolkit. `import.meta.env.DEV` is
 // statically replaced by `false` in a production build, the ternary folds to `null`, and the
@@ -30,31 +33,60 @@ const debugLayer = DebugRoot ? (
   </Suspense>
 ) : null;
 
-type Tab = 'hub' | 'terminal' | 'battle' | 'deck' | 'roster' | 'lab' | 'relic' | 'debug';
+/**
+ * TICKET 11: **there are exactly two places to be — the ranch, or a run.**
+ *
+ * Ticket 20 folded Roster, Lab and Relics into `RanchScreen` and demoted Hub, Sectors and Deck to
+ * DEV-only "legacy" tabs, because they were still the only way to start a fight. They are gone now:
+ * run start replaced QUICK DEPLOY (ticket 09), `RegionMap` replaced the sector list (ticket 10), and
+ * this ticket replaced the sector battle with the node trigger. The deck builder went with them —
+ * cards are run-scoped and the team is the deck, so there is nothing at the ranch to build.
+ */
+type Tab = 'ranch' | 'debug';
 
-const debugTab: { id: Tab; label: string; icon: string } = { id: 'debug', label: 'Debug', icon: '🐞' };
+// Ticket 34: `icon` is a name in `ui/theme/Icon`'s closed set, so a typo here is a type error.
+const debugTab: { id: Tab; label: string; icon: IconName } = { id: 'debug', label: 'Debug', icon: 'debug' };
 
-const TAB_CONFIG: { id: Tab; label: string; icon: string }[] = [
-  { id: 'hub', label: 'Hub', icon: '🏠' },
-  { id: 'terminal', label: 'Terminal', icon: '📟' },
-  { id: 'deck', label: 'Deck', icon: '🃏' },
-  { id: 'roster', label: 'Roster', icon: '🤖' },
-  { id: 'lab', label: 'Lab', icon: '🔬' },
-  { id: 'relic', label: 'Relics', icon: '💎' },
+const TAB_CONFIG: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'ranch', label: 'Ranch', icon: 'ranch' },
   ...(import.meta.env.DEV ? [debugTab] : []),
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('hub');
+  const [activeTab, setActiveTab] = useState<Tab>('ranch');
   const dispatch = useDispatch();
   const rosterSize = useSelector((state: RootState) => state.game.roster.length);
+  // The starter picker's exit condition. See the branch below for why it is not `rosterSize === 0`.
+  const blueprintsHeld = useSelector((state: RootState) =>
+    Object.values(state.game.blueprints).reduce((total, count) => total + count, 0),
+  );
   const isInBattle = useSelector((state: RootState) => state.battle.battle !== null);
-  const gauntlet = useSelector((state: RootState) => state.game.gauntlet);
+  // Ticket 11: the gauntlet is run state (`IRunState.gauntlet`), not ranch state. Ticket 18 owns
+  // advancing it; all this needs to know is whether the battle on screen belongs to one.
+  const gauntlet = useSelector((state: RootState) => state.run.run?.gauntlet ?? null);
+  const hasRun = useSelector((state: RootState) => state.run.run !== null);
+  // Ticket 36. Session-only shell state — see `uiSlice` for why one boolean earned a slice.
+  const settingsOpen = useSelector((state: RootState) => state.ui.settingsOpen);
 
+  // Ticket 23 reads save v4's two keys and reconciles them; ticket 09 gives the run half a home.
+  // A discarded run is reported and dropped — `loadGameState` guarantees it never costs the ranch,
+  // which is the entire reason the two keys are separate.
+  //
+  // Ordering matters: the ranch is dispatched first, because the run's `partyIds` point into the
+  // roster and a run installed against an empty roster would render a party of nothing for one
+  // frame.
   useEffect(() => {
-    const result = loadGame();
-    if (result.data) {
-      dispatch(loadSave(result.data));
+    const result = loadGameState();
+    if (result.discarded) {
+      console.warn(`[Load] In-progress run discarded: ${result.discarded}. Your ranch is intact.`);
+    }
+    // Ticket 11: `loadSave` takes the ranch verbatim. There is no projection step any more — the
+    // slice's shape and the stored shape are the same type.
+    if (result.ranch) {
+      dispatch(loadSave(result.ranch));
+    }
+    if (result.run) {
+      dispatch(setRun(result.run));
     }
   }, [dispatch]);
 
@@ -63,6 +95,27 @@ function App() {
   useEffect(() => {
     initAudio();
   }, []);
+
+  /*
+   * TICKET 36: the stored settings reach the document exactly once, at boot.
+   *
+   * Root font size and the reduced-motion attribute are both properties of `<html>`, which no
+   * component owns, so there is nowhere else this could live. It runs before anything the player
+   * can see because a text scale applied one frame late is a visible jump.
+   */
+  useEffect(() => {
+    applySettings(loadSettings());
+  }, []);
+
+  /*
+   * TICKET 31: the codex's in-battle recorder, mounted once for the life of the app.
+   *
+   * Here rather than in `BattleArena` on purpose. The bus is a module singleton and a battle can
+   * begin and end without this component re-rendering, so subscribing per fight would leave a
+   * window between mounts in which a resolved play is not recorded. See `useCodexRecorder` for why
+   * it listens to the event bus rather than the action tap.
+   */
+  useCodexRecorder();
 
   const prevInBattle = useRef(isInBattle);
   // Remember that the current battle belongs to a gauntlet: completeGauntlet()
@@ -75,7 +128,12 @@ function App() {
     }
     if (prevInBattle.current && !isInBattle) {
       if (gauntlet || wasGauntletBattle.current) {
-        setActiveTab('hub');
+        // ticket 55: reviewed, not a defect. This reacts to a TRANSITION (in-battle ->
+        // not-in-battle) that no render can observe on its own; the previous value lives in a ref
+        // precisely because it is not derivable from props or state. Deriving the tab during render
+        // would need the same ref read and would trade one lint rule for another.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setActiveTab('ranch');
       }
       wasGauntletBattle.current = false;
     }
@@ -89,16 +147,43 @@ function App() {
   // normal case there rather than an edge one.
   //
   // Safe in ordinary play: createBattleState throws on an empty party, so no battle can exist
-  // alongside an empty roster except by debug injection. The defeat path only deletes the *stored*
-  // save while the overlay is up — state.game.roster stays populated — and both wipe paths
-  // (BattleArena's handleDefeatReset, HubScreen's handleRestart) call window.location.reload()
-  // immediately after resetSave(), so there is no frame where this order shows the wrong screen.
+  // alongside an empty roster except by debug injection. Ticket 11 removed the last thing that
+  // could have made that untrue mid-battle — the defeat path used to call `deleteSave()` while the
+  // overlay was still up. It does not any more: a defeat ends the run (`endRun('defeat')`) and
+  // touches nothing on the ranch, so the roster this branch reads is never emptied under it.
+  /*
+   * The settings overlay rides above every branch, `debugLayer`'s pattern and for the same reason:
+   * it is layered over whatever is on screen rather than replacing it. In a fight that IS the pause
+   * — the battle stays mounted and untouched, and nothing here dispatches at the battle reducer.
+   */
+  const settingsLayer = settingsOpen ? <SettingsScreen /> : null;
+
   if (isInBattle) {
-    return <>{debugLayer}<BattleArena /></>;
+    return <>{debugLayer}<BattleArena />{settingsLayer}</>;
   }
 
-  if (rosterSize === 0) {
-    return <>{debugLayer}<MainMenuView /></>;
+  /*
+   * THE STARTER PICKER IS SHOWN TO A PLAYER WHO HAS NOTHING — not to a player with no roster.
+   *
+   * This branch read `rosterSize === 0` until 2026-08-24, and that was a soft-lock. `MainMenuView`
+   * grants a *blueprint* (`addBlueprint`), and a blueprint is not a roster member: only
+   * `assembleMingming`, in the ranch's Assembly bay, pushes to `roster`. So picking a starter left
+   * the condition true, the same screen re-rendered, and the click read as a dead button — while
+   * quietly stacking a blueprint every time it was pressed. The screen's own copy ("Assemble it at
+   * the ranch") described a route this branch made unreachable.
+   *
+   * Holding a blueprint is therefore the exit: it is exactly the state the picker exists to create.
+   * A wiped save (no roster, no blueprints) comes back here, which is right.
+   */
+  if (rosterSize === 0 && blueprintsHeld === 0) {
+    return <>{debugLayer}<MainMenuView />{settingsLayer}</>;
+  }
+
+  // TICKET 09: a run in progress outranks the ranch. There is no tab for it — you are either at
+  // the ranch or in a run, and the only ways out are finishing it or abandoning it. Ticket 10
+  // replaces `RunScreen`'s body with the real region map.
+  if (hasRun) {
+    return <>{debugLayer}<RunScreen />{settingsLayer}</>;
   }
 
   return (
@@ -113,21 +198,37 @@ function App() {
             className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => { playSfx('uiClick'); setActiveTab(tab.id); }}
           >
-            <span className="nav-icon">{tab.icon}</span>
+            <span className="nav-icon"><Icon name={tab.icon} size={18} /></span>
             <span className="nav-label">{tab.label}</span>
           </button>
         ))}
         <AudioControls />
+        {/*
+          * TICKET 36. The ticket says the settings screen is "reachable from the main menu", and
+          * there is no main menu — `MainMenuView` is the first-run starter picker. The nav bar is
+          * the shell every non-fight screen actually has, so this is where it goes; inside a fight
+          * the entry point is Escape.
+          */}
+        <button
+          type="button"
+          className="nav-tab nav-settings"
+          onClick={() => { playSfx('uiClick'); dispatch(openSettings()); }}
+        >
+          <span className="nav-icon"><Icon name="settings" size={18} /></span>
+          <span className="nav-label">Settings</span>
+        </button>
       </nav>
 
       {/* Screen Content */}
       <div className="screen-content">
-        {activeTab === 'hub' && <HubScreen />}
-        {activeTab === 'terminal' && <SectorTerminal />}
-        {activeTab === 'deck' && <DeckTerminal />}
-        {activeTab === 'roster' && <RosterTerminal />}
-        {activeTab === 'lab' && <SynthesisLab />}
-        {activeTab === 'relic' && <RelicTerminal />}
+        {/*
+          * An empty roster opens on the Assembly bay rather than Expedition: the one thing the
+          * player can do with a blueprint and no mingming is spend it, and Expedition's only
+          * content in that state is a note telling them to go and do that.
+          */}
+        {activeTab === 'ranch' && (
+          <RanchScreen initialSection={rosterSize === 0 ? 'assembly' : undefined} />
+        )}
         {activeTab === 'debug' && DebugRoot && (
           <Suspense fallback={null}>
             <DebugRoot mode="docked" />
@@ -135,6 +236,7 @@ function App() {
         )}
       </div>
     </main>
+    {settingsLayer}
     </>
   );
 }

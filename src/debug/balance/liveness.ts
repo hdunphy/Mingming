@@ -34,34 +34,51 @@
  *             observable effects.
  */
 import fs from 'fs';
+import type { DamageModifierHook, EventHook, HookContext } from '../../engine/core/HookTypes';
+import type { IBattleEntity } from '../../engine/types';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { DRIVER_IDS } from '../../engine/data/driverRegistry';
 import { HookLibrarySchema } from '../../engine/data/HookSchema';
 import { matchupScenario, mirrorScenario, BALANCE_SPECIES, CONTROL_SPECIES } from './balanceScenarios';
-import { runBatch, deriveSeeds } from './runBatch';
+import { runBatch } from './runBatch';
 import { quietly } from './balanceReporting';
 
 const RAW = JSON.parse(fs.readFileSync('src/engine/data/lib/hooks.json', 'utf8'));
-const PARSED: any = HookLibrarySchema.parse(RAW);
+const PARSED = HookLibrarySchema.parse(RAW);
 const osIds = BALANCE_SPECIES.flatMap(s => MingmingRegistry[s].availableOS);
+
+/**
+ * TICKET 68: the STATIC pass sweeps Drivers as well as OSes.
+ *
+ * A Driver is a hooks.json entry like any other and has exactly the same way of being born dead — a
+ * non-LOG action with no `target`, a key zod strips, an empty `do`. It cannot join the DYNAMIC pass
+ * below, which probes by assigning an OS to a species and a Driver is never an `activeOS`; its
+ * dynamic proof is `data/driverRegistry.test.ts`, which plays real turns and reads the stacks.
+ */
+const staticIds = [...osIds, ...DRIVER_IDS];
 
 // ---------- STATIC ----------
 type Finding = { os: string; hook: string; kind: string; detail: string };
 const findings: Finding[] = [];
 const MODIFIER_TRIGGERS = new Set(['onDamageCalculated','onStatusDamageCalculated','onCostCalculated','onHealCalculated']);
 
-for (const os of osIds) {
+for (const os of staticIds) {
   const raw = RAW[os]; const parsed = PARSED[os];
   if (!raw) { findings.push({ os, hook: '-', kind: 'NO_ENTRY', detail: 'no hooks.json entry' }); continue; }
   const rawHooks = raw.hooks ?? [];
   for (let i = 0; i < rawHooks.length; i++) {
     const h = rawHooks[i]; const ph = parsed?.hooks?.[i];
     // zod-stripped keys (8c2)
-    const strip = (o: any, p: any, path: string) => {
+    const strip = (o: unknown, p: unknown, path: string) => {
       if (!o || !p || typeof o !== 'object') return;
-      for (const k of Object.keys(o)) {
-        if (!(k in p)) findings.push({ os, hook: h.id, kind: 'ZOD_STRIPPED', detail: `${path}${k}` });
-        else if (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k])) strip(o[k], p[k], `${path}${k}.`);
+      // Both sides are JSON objects walked key-by-key; the views below are the only way to
+      // index them, and neither adds a runtime check the original did not make.
+      const oo = o as Record<string, unknown>;
+      const pp = p as Record<string, unknown>;
+      for (const k of Object.keys(oo)) {
+        if (!(k in pp)) findings.push({ os, hook: h.id, kind: 'ZOD_STRIPPED', detail: `${path}${k}` });
+        else if (oo[k] && typeof oo[k] === 'object' && !Array.isArray(oo[k])) strip(oo[k], pp[k], `${path}${k}.`);
       }
     };
     strip(h, ph, '');
@@ -85,19 +102,24 @@ const stats: Record<string, { os: string; trigger: string; calls: number; effect
 for (const os of osIds) {
   const beh = getOSBehavior(os);
   if (!beh) continue;
-  for (const hook of beh.hooks as any[]) {
-    for (const trig of Object.keys(hook)) {
-      if (['id','priority','data'].includes(trig) || typeof hook[trig] !== 'function') continue;
+  for (const hook of beh.hooks) {
+    // `HookDefinition` has no index signature, and the sweep is generic over every trigger
+    // key on it - so the hook is walked through a record view. Writes through it land on the
+    // same object the registry holds, which is what makes the wrapping take effect.
+    const slots = hook as unknown as Record<string, unknown>;
+    for (const trig of Object.keys(slots)) {
+      if (['id','priority','data'].includes(trig) || typeof slots[trig] !== 'function') continue;
       const key = `${os}::${hook.id}::${trig}`;
       stats[key] = { os, trigger: trig, calls: 0, effects: 0 };
-      const orig = hook[trig].bind(hook);
       if (MODIFIER_TRIGGERS.has(trig)) {
-        hook[trig] = (dmg: number, ctx: any, owner: any) => {
+        const orig = (slots[trig] as DamageModifierHook).bind(hook);
+        slots[trig] = (dmg: number, ctx: HookContext, owner: IBattleEntity) => {
           stats[key].calls++; const out = orig(dmg, ctx, owner);
           if (out !== dmg) stats[key].effects++; return out;
         };
       } else {
-        hook[trig] = (ctx: any, owner: any) => {
+        const orig = (slots[trig] as EventHook).bind(hook);
+        slots[trig] = (ctx: HookContext, owner: IBattleEntity) => {
           stats[key].calls++; const out = orig(ctx, owner);
           if (out && out.state !== ctx.state) stats[key].effects++; return out;
         };

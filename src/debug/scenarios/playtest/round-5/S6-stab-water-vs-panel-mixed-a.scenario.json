@@ -1,0 +1,129 @@
+{
+  "kind": "composed",
+  "name": "S6 - Water-Poison Tide (Stab-Water vs Panel-Mixed-A)",
+  "description": "Water STAB with an Ice splash - the Poison clock plus ramp. Does Poison's damage share feel weak/underpowered at 3v3 width, or does it serve as a steady inevitability clock?   [you: stab-water (kraken_v2 + jormungandr_v2 + ymir_v2) | opponent: panel-mixed-a (valkyrie_v1 + ratatoskr_v2 + skoll_v1)]",
+  "tags": [
+    "playtest",
+    "round-5",
+    "3v3"
+  ],
+  "setup": {
+    "seed": "S6-stab-water-vs-panel-mixed-a",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "kraken",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "kraken_v2"
+        },
+        {
+          "definitionId": "jormungandr",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "jormungandr_v2"
+        },
+        {
+          "definitionId": "ymir",
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "ymir_v2"
+        }
+      ],
+      "deck": [
+        "maelstrom",
+        "hydro_blast",
+        "capacitor",
+        "capacitor",
+        "surge_protection",
+        "surge_protection",
+        "water_slap",
+        "water_slap",
+        "corrosive_bolt",
+        "corrosive_bolt",
+        "venom_fang",
+        "venom_fang",
+        "water_slap",
+        "water_slap",
+        "toxic_surge",
+        "contagion",
+        "bracing_cold",
+        "bracing_cold",
+        "thaw",
+        "ice_spear",
+        "ice_spear",
+        "numbing_gale",
+        "numbing_gale",
+        "glacial_maul",
+        "glacial_maul",
+        "glacial_slam"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "valkyrie",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "valkyrie_v1",
+        "deck": [
+          "pale_mercy",
+          "benediction",
+          "benediction",
+          "zealots_edge",
+          "zealots_edge",
+          "echo_of_valhalla",
+          "ascension",
+          "radiant_spark",
+          "smite",
+          "healing_light"
+        ]
+      },
+      {
+        "definitionId": "ratatoskr",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "ratatoskr_v2",
+        "deck": [
+          "pollen_cloud",
+          "pollen_cloud",
+          "water_slap",
+          "water_slap",
+          "nagging_bite",
+          "nagging_bite",
+          "crippling_vine",
+          "slander",
+          "echo_chamber_v2"
+        ]
+      },
+      {
+        "definitionId": "skoll",
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "skoll_v1",
+        "deck": [
+          "sun_devourer",
+          "sun_devourer",
+          "fury_strike",
+          "fury_strike",
+          "brute_force",
+          "battle_rhythm",
+          "crimson_draw",
+          "crimson_draw",
+          "water_slap"
+        ]
+      }
+    ],
+    "statJitter": 5
+  },
+  "version": 1,
+  "registryHash": "1:d5a18ed7",
+  "createdAt": "2026-08-25T01:18:34.069Z"
+}

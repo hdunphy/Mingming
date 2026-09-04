@@ -31,8 +31,9 @@
  */
 import HOOKS_DATA from '../src/engine/data/lib/hooks.json';
 import PROGRAMS from '../src/engine/data/programs.json';
+import { ENV } from './_env';
 
-const ARM = process.env.ARM ?? 'live';
+const ARM = ENV.ARM ?? 'live';
 const hooks = HOOKS_DATA as unknown as Record<string, { hooks: Array<Record<string, unknown>> }>;
 const mint = hooks.sleipnir_v1.hooks[0];
 
@@ -152,8 +153,8 @@ const { runPairedBatch } = await import('../src/debug/balance/runBatch');
 const { matchupScenario, BALANCE_SPECIES } = await import('../src/debug/balance/balanceScenarios');
 const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry');
 
-const ITER = Number(process.env.ITER ?? 8);
-const STEP = Number(process.env.STEP ?? 3);
+const ITER = Number(ENV.ITER ?? 8);
+const STEP = Number(ENV.STEP ?? 3);
 const DECK = 'sleipnir_v1';
 
 const opponents: Array<{ sp: string; deck: string }> = [];

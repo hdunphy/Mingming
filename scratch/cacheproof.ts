@@ -17,9 +17,10 @@ import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { CellCache, cellKey } from '../src/debug/balance/cellCache';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 6);
-const SLICE = Number(process.env.SLICE ?? 4);
+const ITER = Number(ENV.ITER ?? 6);
+const SLICE = Number(ENV.SLICE ?? 4);
 const TMP = 'docs/balance/.cell-cache.proof.json';
 
 const decks: Array<{ species: string; deck: string }> = [];

@@ -18,6 +18,7 @@
  * printed status counts, which is the ticket's sanctioned lever)
  */
 import PROGRAMS from '../src/engine/data/programs.json';
+import { ENV } from './_env';
 
 const P = PROGRAMS as unknown as Record<string, { actions: Array<Record<string, unknown>> }>;
 
@@ -25,30 +26,30 @@ const P = PROGRAMS as unknown as Record<string, { actions: Array<Record<string, 
 function bump(card: string, status: string, to: number) {
     for (const a of P[card].actions) if (a.type === 'STATUS' && a.status === status) a.stacks = to;
 }
-if (process.env.STACKS_BRACING) bump('bracing_cold', 'Strengthened', Number(process.env.STACKS_BRACING));
-if (process.env.STACKS_GALE) bump('numbing_gale', 'Dazed', Number(process.env.STACKS_GALE));
-if (process.env.STACKS_SPEAR) bump('ice_spear', 'Weakened', Number(process.env.STACKS_SPEAR));
+if (ENV.STACKS_BRACING) bump('bracing_cold', 'Strengthened', Number(ENV.STACKS_BRACING));
+if (ENV.STACKS_GALE) bump('numbing_gale', 'Dazed', Number(ENV.STACKS_GALE));
+if (ENV.STACKS_SPEAR) bump('ice_spear', 'Weakened', Number(ENV.STACKS_SPEAR));
 /**
  * The second lever, and the one the measurement points at. Raising the STACK counts makes the
  * payoff bigger but leaves the CROSSOVER turn where it was, because the crossover is set by the
  * hole the build turn digs (5 damage instead of 21), not by the size of the eventual payoff.
  * Raising the build card's own power fills the hole. Neither GLACIAL_PACE nor a 2e nuke is touched.
  */
-if (process.env.POWER_BRACING) {
+if (ENV.POWER_BRACING) {
     (P.bracing_cold.actions.find(a => a.type === 'ATTACK') as { power: number }).power =
-        Number(process.env.POWER_BRACING);
+        Number(ENV.POWER_BRACING);
 }
-if (process.env.POWER_GALE) {
+if (ENV.POWER_GALE) {
     (P.numbing_gale.actions.find(a => a.type === 'ATTACK') as { power: number }).power =
-        Number(process.env.POWER_GALE);
+        Number(ENV.POWER_GALE);
 }
-if (process.env.POWER_THAW) {
+if (ENV.POWER_THAW) {
     (P.thaw.actions.find(a => a.type === 'ATTACK') as { power: number }).power =
-        Number(process.env.POWER_THAW);
+        Number(ENV.POWER_THAW);
 }
-if (process.env.STACKS_THAW) {
-    bump('thaw', 'Strengthened', Number(process.env.STACKS_THAW));
-    bump('thaw', 'Sharp', Number(process.env.STACKS_THAW));
+if (ENV.STACKS_THAW) {
+    bump('thaw', 'Strengthened', Number(ENV.STACKS_THAW));
+    bump('thaw', 'Sharp', Number(ENV.STACKS_THAW));
 }
 
 const { battleReducer } = await import('../src/engine/battleReducer');
@@ -56,7 +57,7 @@ const { matchupScenario } = await import('../src/debug/balance/balanceScenarios'
 const { buildScenarioState } = await import('../src/debug/scenarios/buildScenarioState');
 type St = import('../src/engine/types').IBattleState;
 
-const TURNS = Number(process.env.TURNS ?? 6);
+const TURNS = Number(ENV.TURNS ?? 6);
 
 /**
  * The lines. Each entry is the ONE card played on that turn; the list is padded with its last

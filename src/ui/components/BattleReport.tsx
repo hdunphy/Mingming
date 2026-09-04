@@ -2,17 +2,41 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import type { IBattleEntity } from '../../engine/types';
-import { getExpForLevel } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 
+/**
+ * The post-fight reward screen — refitted by ticket 12.
+ *
+ * What it shows is now exactly what a fight pays: **scrap**, **any blueprint**, and **one
+ * pick-1-of-3 per defeated enemy**. There is no XP panel (ticket 21 deleted levelling; ticket 12
+ * removed the last field), and the gym-clear draft is parked for ticket 18 — see `draftRounds`
+ * below.
+ *
+ * The component decides nothing about the rewards themselves. `RewardSystem` rolls the bundle and
+ * `BattleArena` routes each half to its slice — blueprints to the ranch the moment they drop, scrap
+ * and the picked cards to the run when `onContinue` fires. So the only state here is *which option
+ * the player clicked*.
+ */
 interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
-    onContinue: (chosenCards: IOwnedProgram[], chosenRelic?: string) => void;
+    /** Picked cards, in choice order. `BattleArena` mints them into `IRunState.deck`. */
+    /**
+     * `storedInstanceIds` is ticket 61 §2: the instance ids among `chosenCards` the player chose to
+     * STORE in the run collection rather than add to the active deck. Everything not named goes to
+     * the deck, which keeps the default where it has always been and makes the new argument
+     * ignorable by a caller that has no collection (the debug scenarios).
+     */
+    onContinue: (
+        chosenCards: IOwnedProgram[],
+        chosenRelic?: string,
+        storedInstanceIds?: ReadonlyArray<string>,
+    ) => void;
 }
 
 // --- Payoff timing (ms) ---
@@ -56,11 +80,48 @@ const CountUp: React.FC<{ value: number; delayMs?: number; durationMs?: number }
     return <>{reduced ? value : display}</>;
 };
 
+// `winners` is still part of the props contract but nothing reads it, and **ticket 12 looked and
+// still does not need it**: the refit's inputs are the node kind and the *party* (for the pick
+// pool), both of which `BattleArena` resolves before it rolls, so the report is handed a finished
+// bundle and never has to ask who survived. Left in the interface for ticket 19's run-end screen,
+// which is the next thing likely to want the surviving party. Destructured out and voided.
 const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
+    void winners;
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
+    /**
+     * Which picks the player has DECLINED — ruling 4 (Henry, playtest 2026-08-24): *"you should be
+     * able to skip rewards"*, and, asked per-card or per-screen, *"skip per card"*.
+     *
+     * A separate map rather than a third value in `selections` because the three states are not
+     * one axis: a pick is unresolved, taken, or declined, and only the first blocks CONTINUE. The
+     * old screen had no third state at all, so a 3v3 win forced three cards into the deck — with
+     * one mandatory pick per defeated body and roughly eleven fights in a run, that is ~16 forced
+     * cards against `economy-session.md`'s 20-25 gate, on top of the 18 the party already brings.
+     * Card removal costs 20 and a run sees three markets. The deck was being diluted faster than
+     * anyone could clean it, which is most of *"it was too hard to build a good deck."*
+     */
+    const [skipped, setSkipped] = useState<Record<number, boolean>>({});
+    /**
+     * Which taken picks are bound for the run COLLECTION rather than the active deck — ticket 61
+     * §2: *"each taken pick offers per-card: ADD TO ACTIVE DECK, or STORE in the run collection."*
+     *
+     * A third map rather than a value on `selections`, for `skipped`'s reason: taking a card and
+     * deciding where it goes are two questions, and only the first one blocks CONTINUE. **The
+     * default is the deck**, because the card you just chose out of three is usually the one you
+     * want to play — STORE is for the pick you take because it is free, which is precisely the
+     * behaviour Henry asked the collection to make safe: *"it doesn't feel bad to grab all the
+     * cards even if you don't plan to use them."*
+     */
+    const [stored, setStored] = useState<Record<number, boolean>>({});
     const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
+    //
+    // **Unreachable since ticket 12, on purpose.** Nothing sets `bundle.draftRounds` any more: the
+    // gauntlet and its draft belong to ticket 18, which is where the `rollDraftRounds` invocation
+    // went. The panel below, `RewardSystem.rollDraftRounds` and `IRewardBundle.draftRounds` are the
+    // three halves of one parked feature, kept together so 18 re-wires rather than rewrites. The
+    // `?? []` is what makes it dormant instead of broken.
     const draftRounds = bundle.draftRounds ?? [];
     const [draftIndex, setDraftIndex] = useState(0);
     const [draftPicks, setDraftPicks] = useState<IOwnedProgram[]>([]);
@@ -79,15 +140,31 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     }, [draftActive]);
 
     const totalChoices = bundle.cardChoices.length;
-    const selectedCount = Object.values(selections).filter(s => !!s).length;
-    const allCardsSelected = selectedCount === totalChoices;
+    /** A pick is RESOLVED when it has been taken or declined. Only unresolved picks block. */
+    const isResolved = (index: number): boolean => !!selections[index] || skipped[index] === true;
+    const allCardsResolved = bundle.cardChoices.every((_, index) => isResolved(index));
 
     const needsRelic = !!bundle.relicChoices && bundle.relicChoices.length > 0;
+    // The relic is still mandatory, and deliberately: there is at most one per run (the last
+    // gauntlet fight), it is a party-wide passive rather than a card in the deck, and it cannot
+    // dilute anything. Nothing in the playtest complained about it.
     const relicSelected = !needsRelic || selectedRelic !== null;
-    const canContinue = allCardsSelected && relicSelected;
+    const canContinue = allCardsResolved && relicSelected;
 
     const handleSelect = (choiceIndex: number, card: IOwnedProgram) => {
+        // Taking a card un-declines the pick, so a mis-click on SKIP is one click to undo.
         setSelections(prev => ({ ...prev, [choiceIndex]: card }));
+        setSkipped(prev => (prev[choiceIndex] ? { ...prev, [choiceIndex]: false } : prev));
+    };
+
+    /** Decline one pick. Toggles, so SKIP twice returns it to unresolved rather than trapping it. */
+    const handleSkip = (choiceIndex: number) => {
+        playSfx('uiClick');
+        setSkipped(prev => ({ ...prev, [choiceIndex]: !prev[choiceIndex] }));
+        setSelections(prev => (prev[choiceIndex] ? { ...prev, [choiceIndex]: null } : prev));
+        // A declined pick has nowhere to go, so its destination goes back to the default rather
+        // than lying in wait for the next card taken in this slot.
+        setStored(prev => (prev[choiceIndex] ? { ...prev, [choiceIndex]: false } : prev));
     };
 
     const handleFinalize = () => {
@@ -97,7 +174,13 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
             ...Object.values(selections).filter((s): s is IOwnedProgram => !!s),
             ...draftPicks
         ];
-        onContinue(chosen, selectedRelic || undefined);
+        // The draft's picks carry no destination — that panel is dormant (ticket 18 owns it), and
+        // giving it a control nothing renders would be a setting no one can reach.
+        const storedIds = Object.entries(stored)
+            .filter(([, on]) => on)
+            .map(([index]) => selections[Number(index)]?.instanceId)
+            .filter((id): id is string => id !== undefined);
+        onContinue(chosen, selectedRelic || undefined, storedIds);
     };
 
     /** Advance the draft; card=null means the round was skipped. */
@@ -253,7 +336,8 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                 </div>
 
                 <div className="report-body report-columns" style={{ flex: '1 1 auto', padding: '6px 28px 12px' }}>
-                    {/* Left: Summary & XP */}
+                    {/* Left: what the fight paid — scrap, and any blueprint. No XP: ticket 21
+                        deleted levelling and ticket 12 removed the field from the bundle. */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         <div className="report-summary-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                             <h3 style={{ margin: '0 0 12px', fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Yield</h3>
@@ -277,13 +361,19 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                         borderRadius: '6px'
                                     }}
                                 >
+                                    {/* Ticket 12: "NEW BLUEPRINT DETECTED" was a lie the moment
+                                        blueprints became consumable counts (ticket 20) — a species
+                                        you already own drops again, and that repeat drop IS the
+                                        re-roll grind rather than a mistake. The line reads as a
+                                        quantity for the same reason the ranch stores one, and the
+                                        "+1" says it stacked onto whatever was there. */}
                                     <div style={{ fontSize: '0.7rem', color: '#ff00ff', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
-                                        New Blueprint Detected
+                                        Blueprint Recovered
                                     </div>
-                                    {bundle.blueprints.map((bp, i) => (
+                                    {bundle.blueprints.map((speciesId, i) => (
                                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{bp.name}</span>
-                                            <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>ACQUIRED</span>
+                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{GetMingmingData(speciesId).name} Blueprint</span>
+                                            <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>+1</span>
                                         </div>
                                     ))}
                                 </motion.div>
@@ -291,29 +381,6 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
 
                         </div>
 
-                        <div className="xp-distribution-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <h3 style={{ margin: '0 0 12px', fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Efficiency Logs</h3>
-                            {winners.map((mm, wIdx) => {
-                                // XP is earned in-battle (death-XP system); show current progress toward next level.
-                                const currentLevelExp = getExpForLevel(mm.level);
-                                const nextLevelExp = getExpForLevel(mm.level + 1);
-                                const span = nextLevelExp - currentLevelExp;
-                                const xpProgress = span > 0
-                                    ? Math.min(100, Math.max(0, ((mm.experience - currentLevelExp) / span) * 100))
-                                    : 0;
-                                return (
-                                    <div key={mm.id} style={{ marginBottom: wIdx === winners.length - 1 ? 0 : '10px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: '800' }}>{mm.name.toUpperCase()}</span>
-                                            <span style={{ color: '#00d2ff', fontSize: '0.8rem', fontWeight: 'bold' }}>LV {mm.level}</span>
-                                        </div>
-                                        <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: '#00d2ff', width: `${xpProgress}%` }} />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
                     </div>
 
                     {/* Right: Card Selections (the centerpiece — no nested scroller, the panel body scrolls) */}
@@ -394,10 +461,62 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                             {bundle.cardChoices.map((choice, choiceIdx) => (
                                 <div
                                     key={choiceIdx}
-                                    className={selections[choiceIdx] ? undefined : 'choice-group-pending'}
-                                    style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(0, 210, 255, 0.15)' }}
+                                    className={isResolved(choiceIdx) ? undefined : 'choice-group-pending'}
+                                    style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(0, 210, 255, 0.15)', opacity: skipped[choiceIdx] ? 0.55 : 1 }}
                                 >
-                                    <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Source: {choice.sourceEntityName}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Source: {choice.sourceEntityName}</div>
+                                        {/*
+                                          * Ruling 4. Visually quiet — a skip is a legitimate play
+                                          * (a lean deck is the whole point of a removal costing 20)
+                                          * but it is not the default, so it does not compete with
+                                          * the cards for attention.
+                                          */}
+                                        <button
+                                            type="button"
+                                            className={`reward-skip-btn${skipped[choiceIdx] ? ' skipped' : ''}`}
+                                            onClick={() => handleSkip(choiceIdx)}
+                                            aria-pressed={skipped[choiceIdx] === true}
+                                        >
+                                            {skipped[choiceIdx] ? 'SKIPPED — TAKE ONE?' : 'SKIP'}
+                                        </button>
+                                    </div>
+
+                                    {/*
+                                      * TICKET 61 §2 — where the card you just took is going.
+                                      *
+                                      * Shown only once a card IS taken, because until then there is
+                                      * nothing to route and a pair of dead buttons above three live
+                                      * cards would read as part of the choice. The deck is
+                                      * pre-selected: this is a refinement of a decision already
+                                      * made, not a second decision blocking CONTINUE.
+                                      */}
+                                    {selections[choiceIdx] && (
+                                        <div className="reward-dest">
+                                            <button
+                                                type="button"
+                                                className={`reward-dest-btn${stored[choiceIdx] ? '' : ' on'}`}
+                                                aria-pressed={!stored[choiceIdx]}
+                                                onClick={() => {
+                                                    playSfx('uiClick');
+                                                    setStored(prev => ({ ...prev, [choiceIdx]: false }));
+                                                }}
+                                            >
+                                                ADD TO ACTIVE DECK
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`reward-dest-btn${stored[choiceIdx] ? ' on' : ''}`}
+                                                aria-pressed={stored[choiceIdx] === true}
+                                                onClick={() => {
+                                                    playSfx('uiClick');
+                                                    setStored(prev => ({ ...prev, [choiceIdx]: true }));
+                                                }}
+                                            >
+                                                STORE IN COLLECTION
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="reward-card-row">
                                         {choice.options.map((opt, optIdx) => {
                                             const data = GetProgramData(opt.dataId);

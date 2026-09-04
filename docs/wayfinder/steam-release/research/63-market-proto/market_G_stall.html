@@ -1,0 +1,103 @@
+<!doctype html><html><head><meta charset='utf-8'><title>63 G_stall</title></head><body><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0c0e12;color:#dfe4ea;font-family:'Segoe UI',system-ui,sans-serif;width:1280px;height:800px;overflow:hidden}
+.frame{width:1280px;height:800px;display:flex;flex-direction:column;background:radial-gradient(1200px 500px at 60% -10%,#16202c 0%,#0c0e12 60%)}
+.topbar{height:50px;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid #232a35;background:#10141b;flex:none}
+.title{font-size:14px;letter-spacing:2px;color:#9fb4c8;font-weight:600}
+.ctx{font-size:11.5px;color:#5f6b7a;letter-spacing:1px}
+.spacer{flex:1}
+.pill{border:1px solid #2c6e49;border-radius:3px;padding:4px 12px;font-size:12px;color:#7fd6a4;background:#151b24}
+.pill b{color:#fff}
+.btn{border:1px solid #3a4a5e;background:#1a2330;border-radius:3px;padding:6px 16px;font-size:12px;letter-spacing:1px;color:#dfe4ea}
+.btn.primary{background:#245a8c;border-color:#3d7ab5}
+.filters{display:flex;gap:6px;align-items:center}
+.f{border:1px solid #2c3745;border-radius:12px;padding:3px 11px;font-size:10.5px;color:#8fa0b3;background:#12171f}
+.f.on{border-color:#3d9be0;color:#fff}
+/* big card tile */
+.bigc{width:var(--cw,152px);height:var(--ch,200px);border:1px solid #303a48;border-radius:8px;background:linear-gradient(180deg,#171d27 0%,#10151d 100%);position:relative;padding:8px;display:flex;flex-direction:column;box-shadow:0 3px 10px #0007}
+.bigc .gem{position:absolute;top:-9px;left:-9px;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7ec3ff,#245a8c 70%);border:2px solid #0c0e12;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center}
+.bigc .typ{position:absolute;top:6px;right:6px;font-size:8.5px;letter-spacing:1px;padding:2px 6px;border-radius:2px;font-weight:700}
+.typ.ATTACK{background:#5b2320;color:#ff9d8f}.typ.SKILL{background:#1e3a52;color:#8fc7f5}.typ.DAEMON{background:#3a2352;color:#c9a2f0}
+.bigc .art{height:var(--ah,52px);border-radius:5px;margin:14px 0 6px;background:
+ repeating-linear-gradient(45deg,transparent 0 6px,#ffffff08 6px 12px),linear-gradient(135deg,var(--el) 0%,#0c0e12 130%);opacity:.85}
+.bigc .nm{font-size:12.5px;font-weight:700;text-align:center;margin-bottom:4px;line-height:1.1}
+.bigc .desc{font-size:10px;color:#aeb9c6;text-align:center;line-height:1.35;flex:1;overflow:hidden}
+.bigc .tags{font-size:8.5px;color:#7d8ea1;text-align:center;letter-spacing:.5px;min-height:11px}
+.bigc.payoff{border-color:var(--el);box-shadow:0 0 0 1px var(--el),0 3px 12px #0008}
+.bigc .nbadge{position:absolute;bottom:-10px;right:-8px;background:#ffd479;color:#0c0e12;font-weight:800;font-size:12px;border-radius:11px;padding:2px 8px;border:2px solid #0c0e12}
+.bigc .elbar{position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 8px 8px;background:var(--el)}
+/* deck rows */
+.drow{display:flex;align-items:center;gap:7px;border:1px solid #2b3441;border-left:4px solid var(--el);border-radius:3px;background:#131820;padding:3px 7px;height:27px;font-size:11.5px}
+.drow .g{width:17px;height:17px;border-radius:50%;background:var(--el);color:#0c0e12;font-weight:700;font-size:10.5px;display:flex;align-items:center;justify-content:center;flex:none}
+.drow .nm{flex:1;white-space:nowrap;overflow:hidden}
+.drow .x{color:#ffd479;font-weight:700;font-size:11px}
+.drow .t{font-size:8.5px;color:#7d8ea1}
+/* roster chips */
+.rmem{display:flex;align-items:center;gap:8px;border:1px solid #2c3745;border-radius:5px;background:#11161e;padding:6px 10px}
+.rmem .dot{width:34px;height:34px;border-radius:5px;background:linear-gradient(135deg,var(--el),#0c0e12 160%);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
+.rmem .nm{font-size:12.5px;font-weight:700}
+.rmem .os{font-size:9px;color:#8fa0b3;letter-spacing:1px}
+.rmem .meta{font-size:10px;color:#ffd479}
+.rmem.benched{opacity:.55;border-style:dashed}
+.panel{border:1px solid #232a35;border-radius:6px;background:#0f131a;padding:10px 12px;display:flex;flex-direction:column;min-height:0}
+.panel h2{font-size:10.5px;letter-spacing:2px;color:#9fb4c8;margin-bottom:8px;flex:none}
+.hint{font-size:10px;color:#4d5866;font-style:italic}
+
+.price{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:#ffd479;color:#0c0e12;
+ font-weight:800;font-size:12.5px;border-radius:3px;padding:2px 10px;border:2px solid #0c0e12}
+.price.sold{background:#3a4351;color:#8fa0b3}
+.sellp{color:#7fd6a4;font-weight:700;font-size:11px;flex:none}
+.scrap{font-size:15px;color:#ffd479;font-weight:700;letter-spacing:1px}
+.merchant{display:flex;align-items:center;gap:10px}
+.merchant .face{width:38px;height:38px;border-radius:6px;background:linear-gradient(135deg,#8a6c2f,#0c0e12 160%);
+ display:flex;align-items:center;justify-content:center;font-size:19px}
+.merchant .say{font-size:11px;color:#c9b27a;font-style:italic}
+.modebar{display:flex;gap:2px;border:1px solid #2c3745;border-radius:4px;overflow:hidden;width:max-content}
+.mode{padding:6px 22px;font-size:11.5px;letter-spacing:2px;color:#8fa0b3;background:#12171f}
+.mode.on{background:#245a8c;color:#fff}
+
+.bodyG{flex:1;display:flex;gap:12px;padding:12px 18px;min-height:0}
+.center{flex:1;display:flex;flex-direction:column;gap:8px;min-height:0}
+.grid{--cw:170px;--ch:216px;--ah:56px;display:grid;grid-template-columns:repeat(4,170px);gap:22px 14px;justify-content:center;align-content:start;padding-top:14px;overflow:auto}
+.right{width:310px;flex:none}
+</style><div class="frame"><div class="topbar"><span class="title">MARKETPLACE — OPTION G · STALL (buy + sell side by side)</span>
+    <span class="ctx">WATER BIOME · VISIT 1 · stock re-rolls each visit</span><span class="spacer"></span>
+    <span class="scrap">143 ⛁</span><button class="btn">EDIT LOADOUT</button><button class="btn primary">LEAVE</button></div>
+<div class="bodyG">
+ <div class="center panel"><div class="merchant"><div class="face">🤖</div>
+   <div><div style="font-size:12.5px;font-weight:700">SALVAGE BROKER v2.3</div>
+   <div class="say">"Fresh firmware, honest prices. Mostly."</div></div></div>
+  <h2 style="margin-top:8px">STOCK — CARDS (party pools + one off-pool)</h2>
+  <div class="grid"><div class="bigc" style="--el:#e05d43">
+      <div class="gem">1</div><div class="typ SKILL">SKILL</div>
+      <div class="art"></div><div class="nm">Molten Core</div><div class="desc">Apply 4 Burn if you have Sharp. Otherwise 2 Burn.</div>
+      <div class="tags" style="margin-bottom:22px"></div><div class="price">25⛁</div><div class="elbar"></div></div><div class="bigc" style="--el:#3d9be0">
+      <div class="gem">1</div><div class="typ ATTACK">ATTACK</div>
+      <div class="art"></div><div class="nm">Serpent's Coil</div><div class="desc">The world-serpent tightens: 10 power per card played this turn.</div>
+      <div class="tags" style="margin-bottom:22px"></div><div class="price">25⛁</div><div class="elbar"></div></div><div class="bigc" style="--el:#43b45f">
+      <div class="gem">2</div><div class="typ SKILL">SKILL</div>
+      <div class="art"></div><div class="nm">Hexbloom</div><div class="desc">Apply 2 Poison per stack of Weakened on the target.</div>
+      <div class="tags" style="margin-bottom:22px"></div><div class="price">35⛁</div><div class="elbar"></div></div><div class="bigc" style="--el:#43b45f">
+      <div class="gem">1</div><div class="typ ATTACK">ATTACK</div>
+      <div class="art"></div><div class="nm">Thorn Tithe</div><div class="desc">40 power. Gain 3 Weakened.</div>
+      <div class="tags" style="margin-bottom:22px"></div><div class="price sold">SOLD</div><div class="elbar"></div></div></div>
+  <h2 style="margin-top:6px">MACROS · 1/3 slots free</h2>
+  <div class="grid" style="--ch:200px"><div class="bigc" style="--el:#c9a2f0">
+      <div class="gem">◈</div><div class="typ MACRO">MACRO</div>
+      <div class="art"></div><div class="nm">Scout</div><div class="desc">Reveal this biome's node types.</div>
+      <div class="tags" style="margin-bottom:22px"></div><div class="price">25⛁</div><div class="elbar"></div></div><div class="bigc" style="--el:#c9a2f0">
+      <div class="gem">◈</div><div class="typ MACRO">MACRO</div>
+      <div class="art"></div><div class="nm">Revive</div><div class="desc">Return a fainted ally at 50% HP. <b>Rare.</b></div>
+      <div class="tags" style="margin-bottom:22px"></div><div class="price">48⛁</div><div class="elbar"></div></div></div></div>
+ <div class="right panel"><h2>SELL — YOUR CARDS <span style="color:#5f6b7a">(deck + collection)</span></h2>
+  <div style="display:flex;flex-direction:column;gap:3px;overflow:auto;flex:1"><div class="drow" style="--el:#9aa3ad"><span class="g">0</span><span class="nm">Water Slap</span>
+      <span class="t">deck</span><span class="x">×3</span><span class="sellp">+5⛁</span></div><div class="drow" style="--el:#9aa3ad"><span class="g">0</span><span class="nm">Forage</span>
+      <span class="t">collection</span><span class="x">×2</span><span class="sellp">+5⛁</span></div><div class="drow" style="--el:#43b45f"><span class="g">1</span><span class="nm">Nettle Sting</span>
+      <span class="t">deck</span><span class="sellp">+10⛁</span></div><div class="drow" style="--el:#3d9be0"><span class="g">1</span><span class="nm">Venom Fang</span>
+      <span class="t">collection</span><span class="sellp">+10⛁</span></div><div class="drow" style="--el:#e05d43"><span class="g">2</span><span class="nm">Pyre Sacrifice</span>
+      <span class="t">deck</span><span class="sellp">+15⛁</span></div><div class="drow" style="--el:#43b45f"><span class="g">2</span><span class="nm">Echo Chamber</span>
+      <span class="t">collection</span><span class="sellp">+15⛁</span></div><div class="drow" style="--el:#3d9be0"><span class="g">3</span><span class="nm">Hydro Blast</span>
+      <span class="t">deck</span><span class="sellp">+20⛁</span></div></div>
+  <div class="hint" style="margin-top:8px">Selling from the deck respects the floor (18) — rows grey out at the limit. Sell 5/10/15/20 by cost; always less than buy.</div>
+  <div class="pill" style="margin-top:6px;text-align:center">DECK <b>20</b> / floor 18</div></div>
+</div></div></body></html>

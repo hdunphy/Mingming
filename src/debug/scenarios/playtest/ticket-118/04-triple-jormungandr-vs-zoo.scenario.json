@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "kind": "composed",
+  "name": "Q1 — triple jormungandr vs zoo (sim: 86.7%)",
+  "description": "Three of one species, legal since the copy cap came off. Twenty-five hand-built stress comps failed to beat this zoo panel; this one beats it 86.7%. Suspected mechanism: three copies of ink_stream, an uncapped per-card scaler, in one 24-card shared pile. The question playtesting answers is whether it is FUN and whether a run could realistically assemble it.",
+  "tags": [
+    "playtest",
+    "ticket-118",
+    "stacked-species",
+    "3v3"
+  ],
+  "registryHash": "1:b72cdb3a",
+  "createdAt": "2026-08-26T00:00:00.000Z",
+  "setup": {
+    "seed": "t118-04-triple-jormungandr-vs-zoo",
+    "enemyMode": "CARDS",
+    "player": {
+      "party": [
+        {
+          "definitionId": "jormungandr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "jormungandr_v1"
+        },
+        {
+          "definitionId": "jormungandr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "jormungandr_v1"
+        },
+        {
+          "definitionId": "jormungandr",
+          "level": 15,
+          "attackIV": 15,
+          "defenseIV": 15,
+          "hpIV": 15,
+          "activeOS": "jormungandr_v1"
+        }
+      ],
+      "deck": [
+        "undertow",
+        "undertow",
+        "blind_spot",
+        "corrosive_leak",
+        "surge_protection",
+        "serpents_coil",
+        "serpents_coil",
+        "ink_stream",
+        "ink_stream",
+        "undertow",
+        "undertow",
+        "blind_spot",
+        "corrosive_leak",
+        "surge_protection",
+        "serpents_coil",
+        "serpents_coil",
+        "ink_stream",
+        "ink_stream",
+        "undertow",
+        "undertow",
+        "blind_spot",
+        "corrosive_leak",
+        "surge_protection",
+        "serpents_coil",
+        "serpents_coil",
+        "ink_stream",
+        "ink_stream"
+      ],
+      "relics": []
+    },
+    "enemies": [
+      {
+        "definitionId": "jormungandr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "jormungandr_v1",
+        "deck": [
+          "undertow",
+          "undertow",
+          "blind_spot",
+          "corrosive_leak",
+          "surge_protection",
+          "serpents_coil",
+          "serpents_coil",
+          "ink_stream",
+          "ink_stream"
+        ]
+      },
+      {
+        "definitionId": "sleipnir",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "sleipnir_v1",
+        "deck": [
+          "water_slap",
+          "water_slap",
+          "slipstream",
+          "slipstream",
+          "disorienting_gust",
+          "adrenaline",
+          "tailwind",
+          "zephyr_strike",
+          "stampede",
+          "stampede",
+          "momentum_crash",
+          "hoofbeat_daemon"
+        ]
+      },
+      {
+        "definitionId": "hraesvelgr",
+        "level": 15,
+        "attackIV": 15,
+        "defenseIV": 15,
+        "hpIV": 15,
+        "activeOS": "hraesvelgr_v1",
+        "deck": [
+          "feather_cache",
+          "feather_cache",
+          "war_molt",
+          "war_molt",
+          "sky_burial",
+          "sky_burial",
+          "tempest",
+          "tempest",
+          "carrion_swoop",
+          "carrion_swoop",
+          "zephyr_strike",
+          "slipstream"
+        ]
+      }
+    ],
+    "gauntlet": null
+  }
+}

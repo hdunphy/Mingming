@@ -1,0 +1,57 @@
+{
+  "name": "mingming-desktop",
+  "productName": "Mingming",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mingming — desktop wrapper (ticket 42).",
+  "author": "Henry Dunphy <hdunphy15@gmail.com>",
+  "license": "UNLICENSED",
+  "main": "main.cjs",
+  "scripts": {
+    "pack": "electron-builder --win --linux",
+    "pack:linux": "electron-builder --linux",
+    "pack:win": "electron-builder --win",
+    "pack:dir": "electron-builder --linux dir",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.hdunphy.mingming",
+    "productName": "Mingming",
+    "copyright": "Copyright © 2026 Henry Dunphy",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "app/**/*"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "zip", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "Mingming"
+    },
+    "linux": {
+      "target": [
+        { "target": "tar.gz", "arch": ["x64"] },
+        { "target": "AppImage", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "executableName": "mingming"
+    }
+  }
+}

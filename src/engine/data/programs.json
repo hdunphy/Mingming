@@ -76,7 +76,7 @@
     "sun_devourer": {
         "id": "sun_devourer",
         "name": "Sun Devourer",
-        "description": "Devour the light: consume all your Strength and deal 15 power per stack consumed.",
+        "description": "Devour the light: consume all your Strength and deal 20 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -96,7 +96,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 20,
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
@@ -287,7 +287,7 @@
     "desperate_strike": {
         "id": "desperate_strike",
         "name": "Desperate Strike",
-        "description": "Gain 1 Strength. Deal 10 damage to self.",
+        "description": "Gain 1 Strength. Lose 3% of your max HP.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -307,9 +307,8 @@
             },
             {
                 "type": "ATTACK",
-                "power": 10,
-                "target": "SELF",
-                "damageOverride": 10
+                "percentMaxHp": 3,
+                "target": "SELF"
             }
         ]
     },
@@ -419,7 +418,7 @@
     "glass_cannon": {
         "id": "glass_cannon",
         "name": "Glass Cannon",
-        "description": "45 power. 20 recoil damage.",
+        "description": "45 power. Lose 5% of your max HP.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -438,9 +437,8 @@
             },
             {
                 "type": "ATTACK",
-                "power": 15,
-                "target": "SELF",
-                "damageOverride": 20
+                "percentMaxHp": 5,
+                "target": "SELF"
             }
         ]
     },
@@ -654,7 +652,7 @@
     "capacitor": {
         "id": "capacitor",
         "name": "Capacitor",
-        "description": "Gain 2 Energy next turn and 3 Sharp.",
+        "description": "Gain 3 Energy next turn.",
         "element": "None",
         "target": "Self",
         "category": "Skill",
@@ -669,12 +667,6 @@
             {
                 "type": "STATUS",
                 "status": "Energized",
-                "stacks": 2,
-                "target": "SELF"
-            },
-            {
-                "type": "STATUS",
-                "status": "Sharp",
                 "stacks": 3,
                 "target": "SELF"
             }
@@ -729,7 +721,7 @@
     "maelstrom": {
         "id": "maelstrom",
         "name": "Maelstrom",
-        "description": "Summon a crushing vortex: deal heavy Water damage and apply 1 Dazed.",
+        "description": "90 power. Apply 1 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1012,13 +1004,13 @@
     "feedback_loop_daemon": {
         "id": "feedback_loop_daemon",
         "name": "FEEDBACK_LOOP",
-        "description": "Daemon: Deal 7 damage to random enemy for each card draw.",
+        "description": "Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count.",
         "element": "Water",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
-        "baseCost": 2,
+        "baseCost": 1,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -1027,6 +1019,61 @@
         "actions": [],
         "hooks": [
             "daemon_draw_damage_proc"
+        ]
+    },
+    "keen_strike": {
+        "id": "keen_strike",
+        "name": "Keen Strike",
+        "description": "20 power. Gain 3 Sharp.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "pebble_flurry": {
+        "id": "pebble_flurry",
+        "name": "Pebble Flurry",
+        "description": "4 power, twice.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 4,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 4,
+                "target": "TARGET"
+            }
         ]
     },
     "keen_edge": {
@@ -1060,7 +1107,7 @@
     "whirlpool_v2": {
         "id": "whirlpool_v2",
         "name": "Whirlpool",
-        "description": "8 power. Draw a card.",
+        "description": "8 power. Draw a card. Apply 2 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1080,6 +1127,98 @@
             {
                 "type": "DRAW",
                 "amount": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "crushing_depths": {
+        "id": "crushing_depths",
+        "name": "Crushing Depths",
+        "description": "Consume all Dazed on the target: deal 15 power per stack consumed.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "consume": true,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "scaling": "STATUS_CONSUMED",
+                "target": "TARGET"
+            }
+        ]
+    },
+    "boiling_surge": {
+        "id": "boiling_surge",
+        "name": "Boiling Surge",
+        "description": "40 power. Apply 2 Burn.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "scald": {
+        "id": "scald",
+        "name": "Scald",
+        "description": "Apply 1 Burn. You gain 1 Dazed.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
                 "target": "SELF"
             }
         ]
@@ -1961,12 +2100,12 @@
     "sun_eaters_plunge": {
         "id": "sun_eaters_plunge",
         "name": "Sun-Eater's Plunge",
-        "description": "Dive from the sun: 68 power. Apply 3 Burn.",
+        "description": "Dive from the sun: 45 power. Apply 3 Burn.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
-        "baseCost": 3,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -1975,7 +2114,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 68,
+                "power": 45,
                 "target": "TARGET"
             },
             {
@@ -2012,12 +2151,12 @@
     "firestorm_talon": {
         "id": "firestorm_talon",
         "name": "Firestorm Talon",
-        "description": "Spend all Energy: 10 power x target's Burn x X.",
+        "description": "Deal 25 power for each stack of Burn on the target.",
         "element": "Air",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
-        "baseCost": "X",
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -2026,8 +2165,8 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 10,
-                "scaling": "BURN_TIMES_ENERGY",
+                "power": 25,
+                "scaling": "BURN_STACKS",
                 "target": "TARGET"
             }
         ]
@@ -2257,7 +2396,7 @@
     "hoofbeat_daemon": {
         "id": "hoofbeat_daemon",
         "name": "Hoofbeat Daemon",
-        "description": "Daemon: whenever you play a 0-cost card, deal 10 damage to a random enemy.",
+        "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
         "element": "Air",
         "target": "Self",
         "category": "Daemon",
@@ -2495,9 +2634,9 @@
     "ice_spear": {
         "id": "ice_spear",
         "name": "Ice Spear",
-        "description": "22 power. Apply 1 Weakened.",
+        "description": "22 power to side. Apply 1 Weakened to side.",
         "element": "Ice",
-        "target": "Single",
+        "target": "Side",
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
@@ -2643,6 +2782,96 @@
             }
         ]
     },
+    "glacier_thaw": {
+        "id": "glacier_thaw",
+        "name": "Glacier Thaw",
+        "description": "15 power. Gain 4 Strengthened and 3 Sharp.",
+        "element": "Ice",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 4,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "rime_spear": {
+        "id": "rime_spear",
+        "name": "Rime Spear",
+        "description": "40 power to side. Apply 2 Weakened to side.",
+        "element": "Ice",
+        "target": "Side",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "numbing_storm": {
+        "id": "numbing_storm",
+        "name": "Numbing Storm",
+        "description": "35 power to side. Apply 3 Dazed to side.",
+        "element": "Ice",
+        "target": "Side",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 35,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 3,
+                "target": "TARGET"
+            }
+        ]
+    },
     "glacial_slam": {
         "id": "glacial_slam",
         "name": "Glacial Slam",
@@ -2753,7 +2982,7 @@
     "dark_pact": {
         "id": "dark_pact",
         "name": "Dark Pact",
-        "description": "Gain 1 Strength. Deal 10 damage to self.",
+        "description": "Gain 1 Strength. Lose 3% of your max HP.",
         "element": "Dark",
         "target": "Self",
         "category": "Skill",
@@ -2773,16 +3002,15 @@
             },
             {
                 "type": "ATTACK",
-                "power": 10,
-                "target": "SELF",
-                "damageOverride": 10
+                "percentMaxHp": 3,
+                "target": "SELF"
             }
         ]
     },
     "nightfall_edge": {
         "id": "nightfall_edge",
         "name": "Nightfall Edge",
-        "description": "9 power. Shift into Dark Stance: +30% damage while it holds.",
+        "description": "9 power. Shift into Dark Stance: +45% damage while it holds.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -2809,7 +3037,7 @@
     "dawns_respite": {
         "id": "dawns_respite",
         "name": "Dawn's Respite",
-        "description": "Heal with 25 power. Shift into Light Stance: -30% damage taken while it holds.",
+        "description": "Heal with 25 power. Shift into Light Stance: -45% damage taken while it holds.",
         "element": "Dark",
         "target": "Self",
         "category": "Skill",
@@ -3761,10 +3989,88 @@
             }
         ]
     },
+    "war_pact": {
+        "id": "war_pact",
+        "name": "War Pact",
+        "description": "Above half HP: gain 2 Strengthened and 2 Dazed. Below half: heal with 15 power.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Uncommon",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 2,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "GT:50"
+                    }
+                ]
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "GT:50"
+                    }
+                ]
+            },
+            {
+                "type": "HEAL",
+                "power": 15,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "HEALTH_THRESHOLD",
+                        "target": "SELF",
+                        "value": "LT:51"
+                    }
+                ]
+            }
+        ]
+    },
+    "unbound_fang": {
+        "id": "unbound_fang",
+        "name": "Unbound Fang",
+        "description": "Deal 5 power for each stack of Strengthened you hold.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 5,
+                "scaling": "STRENGTH_STACKS",
+                "target": "TARGET"
+            }
+        ]
+    },
     "blood_rite": {
         "id": "blood_rite",
         "name": "Blood Rite",
-        "description": "15 power. +15 power above 50% HP; otherwise heal 10% of your max HP.",
+        "description": "15 power. +15 power above half HP; otherwise heal with 40 power.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -3964,7 +4270,7 @@
     "thorn_tithe": {
         "id": "thorn_tithe",
         "name": "Thorn Tithe",
-        "description": "40 power. Gain 3 Weakened.",
+        "description": "30 power. Apply 3 Weakened.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -3978,21 +4284,21 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 30,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Weakened",
                 "stacks": 3,
-                "target": "SELF"
+                "target": "TARGET"
             }
         ]
     },
     "hexbloom": {
         "id": "hexbloom",
         "name": "Hexbloom",
-        "description": "Apply 2 Poison per stack of Weakened on the target. The Weakened remains.",
+        "description": "Apply 1 Poison per stack of Weakened on the target, then remove the Weakened.",
         "element": "Nature",
         "target": "Single",
         "category": "Status",
@@ -4007,8 +4313,14 @@
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 2,
+                "stacks": 1,
                 "scaling": "WEAKENED_STACKS",
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "consume": true,
                 "target": "TARGET"
             }
         ]
@@ -4413,7 +4725,7 @@
     "bloodletting": {
         "id": "bloodletting",
         "name": "Bloodletting",
-        "description": "18 power. Add 2 stacks of Poison to yourself.",
+        "description": "25 power. Add 1 stack of Poison to yourself.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -4427,14 +4739,95 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 25,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Poison",
-                "stacks": 2,
+                "stacks": 1,
                 "target": "SELF"
+            }
+        ]
+    },
+    "bloodwrath": {
+        "id": "bloodwrath",
+        "name": "Bloodwrath",
+        "description": "Consume your own Poison: deal 10 power per stack consumed.",
+        "element": "Dark",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "scaling": "STATUS_CONSUMED",
+                "target": "TARGET"
+            }
+        ]
+    },
+    "tarnish": {
+        "id": "tarnish",
+        "name": "Tarnish",
+        "description": "Apply 2 Weakened. You gain 1 Weakened.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 2,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "corroded_edge": {
+        "id": "corroded_edge",
+        "name": "Corroded Edge",
+        "description": "Deal 20 power for each different status on yourself.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "scaling": "SELF_ANY_STATUS",
+                "target": "TARGET"
             }
         ]
     },
@@ -4837,9 +5230,9 @@
     "rimefrost": {
         "id": "rimefrost",
         "name": "Rimefrost",
-        "description": "Apply 1 Weakened and 1 Dazed.",
+        "description": "Apply 1 Weakened and 1 Dazed to side.",
         "element": "Ice",
-        "target": "Single",
+        "target": "Side",
         "category": "Status",
         "rarity": "Common",
         "baseCost": 0,
@@ -4866,9 +5259,9 @@
     "frost_bite": {
         "id": "frost_bite",
         "name": "Frost Bite",
-        "description": "15 power. Apply 2 Burn.",
+        "description": "15 power to side. Apply 2 Burn to side.",
         "element": "Ice",
-        "target": "Single",
+        "target": "Side",
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
@@ -4894,9 +5287,9 @@
     "numbing_gale": {
         "id": "numbing_gale",
         "name": "Numbing Gale",
-        "description": "20 power. Apply 2 Dazed.",
+        "description": "20 power to side. Apply 2 Dazed to side.",
         "element": "Ice",
-        "target": "Single",
+        "target": "Side",
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
@@ -4922,9 +5315,9 @@
     "killing_frost": {
         "id": "killing_frost",
         "name": "Killing Frost",
-        "description": "13 power. Apply 2 Weakened and 2 Dazed.",
+        "description": "13 power to side. Apply 2 Weakened and 2 Dazed to side.",
         "element": "Ice",
-        "target": "Single",
+        "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 1,
@@ -5483,12 +5876,11 @@
     "ascension": {
         "id": "ascension",
         "name": "Ascension",
-        "description": "50 power. Gain 2 Strengthened and 2 Sharp. Exhaust.",
+        "description": "50 power. Gain 2 Strengthened and 2 Sharp.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
-        "exhaust": true,
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -5540,7 +5932,7 @@
     "falling_star": {
         "id": "falling_star",
         "name": "Falling Star",
-        "description": "40 power. Exhaust.",
+        "description": "50 power. Exhaust.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
@@ -5555,7 +5947,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 50,
                 "target": "TARGET"
             }
         ]
@@ -5585,7 +5977,7 @@
     "starfall": {
         "id": "starfall",
         "name": "Starfall",
-        "description": "18 power for each card a card, OS or daemon drew you this turn.",
+        "description": "18 power for each card an effect drew you this turn.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
@@ -5827,6 +6219,160 @@
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
+        ]
+    },
+    "riptide": {
+        "id": "riptide",
+        "name": "Riptide",
+        "description": "Daemon: whenever an enemy plays a card, deal 8 power to it.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "riptide_undertow"
+        ]
+    },
+    "short_circuit": {
+        "id": "short_circuit",
+        "name": "Short Circuit",
+        "description": "Daemon: whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "short_circuit_discharge"
+        ]
+    },
+    "reactive_plating": {
+        "id": "reactive_plating",
+        "name": "Reactive Plating",
+        "description": "Daemon: When an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 Sharp granted per turn.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "reactive_plating_proc",
+            "reactive_plating_reset"
+        ]
+    },
+    "discharge": {
+        "id": "discharge",
+        "name": "Discharge",
+        "description": "Remove up to 4 Strengthened from the target. Apply 1 Burn per 2 removed.",
+        "element": "None",
+        "target": "Single",
+        "category": "Skill",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": -4,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 0.5,
+                "scaling": "STATUS_CONSUMED",
+                "target": "TARGET"
+            }
+        ]
+    },
+    "scrubber": {
+        "id": "scrubber",
+        "name": "Scrubber",
+        "description": "Daemon: At the end of your turn, remove 1 Poison from each ally.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "scrubber_purge"
+        ]
+    },
+    "vent": {
+        "id": "vent",
+        "name": "Vent",
+        "description": "Remove 3 Poison from an ally.",
+        "element": "None",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": -3,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "drip_feed": {
+        "id": "drip_feed",
+        "name": "Drip Feed",
+        "description": "Daemon: At the end of your turn, each poisoned ally gains 1 Regen.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "drip_feed_tick"
         ]
     }
 }

@@ -3,9 +3,10 @@ import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { ElementalMatrix } from '../src/engine/combatUtils';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 30);
-const BASE = process.env.BASE ?? 'lane';
+const ITER = Number(ENV.ITER ?? 30);
+const BASE = ENV.BASE ?? 'lane';
 const KR = (MingmingRegistry as any).kraken;
 const ORIG = { ...KR.baseStats };
 
@@ -62,6 +63,6 @@ const ARMS: Array<[string, any]> = [
     ['atk88', { attack: 88 }], ['atk96', { attack: 96 }], ['atk100', { attack: 100 }], ['atk104', { attack: 104 }], ['atk105', { attack: 105 }],
     ['def95', { defense: 95 }], ['def103', { defense: 103 }], ['def111', { defense: 111 }],
 ];
-const only = (process.env.ARMS ?? '').split(',').filter(Boolean);
+const only = (ENV.ARMS ?? '').split(',').filter(Boolean);
 const results = ARMS.filter(([n]) => !only.length || only.includes(n)).map(([n, p]) => arm(n, p));
 console.log(JSON.stringify({ base: BASE, iterations: ITER, results }));

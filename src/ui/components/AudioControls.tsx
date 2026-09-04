@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { getVolume, isMuted, playSfx, setMuted, setVolume } from '../audio/AudioEngine';
+import { Icon } from '../theme/Icon';
 
 /**
  * AudioControls — unobtrusive speaker toggle + volume slider, neon-terminal
  * styled. Lives in the App nav corner; `floating` renders a fixed top-right
  * variant for the battle screen (which replaces the nav entirely).
  *
- * The engine owns persistence (localStorage 'mingming_audio'); this component
+ * The engine owns persistence (the 'mingming_audio' key, through the save-storage
+ * adapter); this component
  * just mirrors it into local state. Clicking the toggle is itself the user
  * gesture that unlocks the AudioContext.
  */
@@ -71,7 +73,7 @@ const AudioControls: React.FC<{ floating?: boolean }> = ({ floating }) => {
                     textShadow: muted ? 'none' : '0 0 8px rgba(0, 210, 255, 0.6)',
                 }}
             >
-                {muted ? '🔇' : '🔊'}
+                <Icon name={muted ? 'sound-off' : 'sound-on'} size={15} title={muted ? 'Unmute' : 'Mute'} />
             </button>
             <input
                 type="range"

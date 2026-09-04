@@ -5,8 +5,15 @@ import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
 import { executeCostCalculated } from '../resolutionEngine';
-import { BURN_CONFIG } from '../StatusBehaviors';
+import {
+    BURN_CONFIG,
+    // TICKET 137: read, never re-declare. See the block above these in StatusBehaviors.
+    POISON_PERCENT_PER_STACK,
+    REGEN_PERCENT_PER_TURN,
+    BARKSHIELD_DECAY_RETAINED,
+} from '../StatusBehaviors';
 import { STANCE_BONUS, STATUS_MODEL } from '../core/Hooks';
+import { NUMBER_SCALE } from '../types';
 import { getOSBehavior } from '../data/firmwareRegistry';
 
 /**
@@ -29,7 +36,15 @@ const HP_POINTS = 2;
  * full 200 HP frame with every buff is worth a few hundred - so that winning dominates every
  * positional consideration and losing is worse than any board, rather than competing with them.
  */
-const TERMINAL_SCORE = 10000;
+/**
+ * TICKET 131c: derives from `NUMBER_SCALE`. The comment above is the reason - it promises this sits
+ * "deliberately far above any reachable board score", citing "a full 200 HP frame ... worth a few
+ * hundred". With frames ten times bigger a board is worth a few THOUSAND and a flat 10000 stops
+ * dominating: the AI would begin trading a win for a good position. That is the one part of this
+ * scale change that would have failed silently, looking like an AI regression rather than a
+ * constant left behind.
+ */
+const TERMINAL_SCORE = 10000 * NUMBER_SCALE;
 
 /**
  * A side's per-turn damage throughput, as a fraction of a frame's maxHp. Base-deck
@@ -132,8 +147,11 @@ function dualityValue(stacks: number, entity: IBattleEntity): number {
 
 /**
  * Eval contribution of one status instance on its holder (positive = good for the holder).
+ *
+ * Exported for `aiStatusPricing.test.ts` (ticket 137), which holds it to what the engine
+ * actually pays rather than to a transcribed number. Nothing in the game calls it directly.
  */
-function statusValue(type: string, stacks: number, entity: IBattleEntity): number {
+export function statusValue(type: string, stacks: number, entity: IBattleEntity): number {
     const s = stacks;
     switch (type) {
         case 'Poison':
@@ -156,15 +174,24 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
             // The cap is the honest floor for both shapes - hold or cash, you collect about
             // STATUS_HORIZON_TURNS more ticks either way, which is exactly the break-even the
             // detonate is designed around.
-            return -HP_POINTS * entity.maxHp * 0.01 * Math.min(s * (s + 1) / 2, s * STATUS_HORIZON_TURNS);
+            return -HP_POINTS * entity.maxHp * POISON_PERCENT_PER_STACK
+                * Math.min(s * (s + 1) / 2, s * STATUS_HORIZON_TURNS);
         case 'Burn':
             // Tiered % maxHp per tick (1.5/3.5/8%), decays 1/turn. Def shred ignored (small).
             return -HP_POINTS * entity.maxHp * burnTotalPercent(s);
         case 'Regen':
-            // 3% maxHp x stacks per tick, decrementing; healing past full is wasted,
-            // so the total is capped at the holder's missing HP.
-            // Ticket 34: flat 3%/turn for `s` turns - LINEAR in stacks, not triangular.
-            return HP_POINTS * Math.min(0.03 * s * entity.maxHp, entity.maxHp - entity.currentHp);
+            // Ticket 34: a FLAT share of max HP per turn for `s` turns - LINEAR in stacks, not
+            // triangular - capped at the holder's missing HP, because healing past full is
+            // wasted.
+            //
+            // TICKET 137: this read 0.03 for the whole arc after ticket 136b took the engine to
+            // 0.02, so the AI valued Regen 50% above what Regen paid - and the decks that care
+            // are exactly the ones built on it. The constant is imported now; a future move of
+            // the engine number cannot leave the eval behind.
+            return HP_POINTS * Math.min(
+                REGEN_PERCENT_PER_TURN * s * entity.maxHp,
+                entity.maxHp - entity.currentHp,
+            );
         case 'Energized':
             // +stacks energy next turn; 1 energy ~ ENERGY_TURN_FRACTION of a turn's damage.
             return HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * ENERGY_TURN_FRACTION * s;
@@ -198,8 +225,12 @@ function statusValue(type: string, stacks: number, entity: IBattleEntity): numbe
             // Skip `stacks` turns (max 3), same per-turn value as Stunned.
             return -HP_POINTS * entity.maxHp * TURN_DAMAGE_FRACTION * s;
         case 'BarkShield':
-            // Absorb pool of stacks% maxHp, decaying 20%/turn: worth ~80% of face value.
-            return HP_POINTS * entity.maxHp * (s / 100) * 0.8;
+            // Absorb pool of stacks% maxHp, decaying one step a turn: worth about the retained
+            // fraction of face value. TICKET 137: that fraction was a second copy of
+            // `BARKSHIELD_DECAY_RETAINED` - the same value, but the same TRAP Regen fell into,
+            // and ticket 33 left the engine constant explicitly open for the Earth/Ice passes
+            // to sweep. Imported now, so a sweep moves both at once.
+            return HP_POINTS * entity.maxHp * (s / 100) * BARKSHIELD_DECAY_RETAINED;
         case 'LightStance':
             // Ticket 78: the stances used to fall through to the `default: return 0` below,
             // which meant the AI could not see any reason to END ITS TURN holding one. That is
@@ -563,10 +594,54 @@ const MAX_DEPTH = 3; // Same-turn sequence depth (unchanged)
  *    free, because without lookahead it simply plays something else. A power knob is usually
  *    exactly that kind of change. **Greedy is a decision-density probe (ticket 99), not a screen.**
  */
-const LITE = process.env.AI_LITE === '1';
-const LOOKAHEAD_TOP_N = LITE ? 2 : 3;
-const LOOKAHEAD_DETERMINIZATIONS = LITE ? 1 : 2;
+/**
+ * The process environment, read in a form Vite's `define` cannot statically rewrite.
+ *
+ * `vite.config.ts` sets `define: { 'process.env': {} }` so a stray env read cannot throw in the
+ * browser bundle. That substitution is textual and it fires on anything Vite transforms - which
+ * includes this file when it is loaded through vite-node. A plain `process.env` read here
+ * therefore becomes `{}` in every harness, and AI_LITE / AI_GREEDY / AI_BEAM silently stop
+ * working: every measurement runs at full tier with the beam off, whatever it was asked for.
+ *
+ * Reaching the object off `globalThis` by a computed key leaves no `process.env` token for the
+ * define to match, and still yields `{}` in the browser where `globalThis.process` is undefined -
+ * so it keeps the browser guard from 0939d95 rather than replacing it.
+ */
+const ENV_PROP = 'env';
+const env = ((globalThis as unknown as Record<string, Record<string, Record<string, string | undefined>>>)
+    .process?.[ENV_PROP] ?? {}) as Record<string, string | undefined>;
+const LITE = env.AI_LITE === '1';
 const LOOKAHEAD_REPLY_DEPTH = 2;
+
+/**
+ * THE THREE GRADES, AND WHY THEY ARE A PER-BATTLE FACT NOW — steam-release ticket 67.
+ *
+ * They already existed, as `AI_GREEDY=1` and `AI_LITE=1`: process-wide switches read once at module
+ * load, which is exactly right for what they were built for (ticket 99 measures what thinking one
+ * turn ahead is WORTH by running the same corpus twice, and a corpus has one grade by definition).
+ *
+ * Ticket 60 ruled a different use for the same three grades — **the enemy ladder**: a wild plays
+ * greedy, an elite plays lite, the gauntlet plays the full lookahead, and the tier field raises a
+ * wild's grade rather than its numbers. That is three grades **inside one run**, so a module-level
+ * constant cannot express it: every fight in a session shares the process.
+ *
+ * So the grade becomes a property of the BATTLE (`IBattleState.enemyAiTier`, set once at creation
+ * exactly as `enemyMode` is), and the env vars stay as the process-wide default for the balance
+ * corpus. Two consequences worth stating rather than discovering:
+ *
+ * 1. **The field describes the ENEMY only.** In the shipped game the AI never plays the player's
+ *    half, so there is no second grade to carry. In a harness both sides are `getBestAction`, and
+ *    the player's side deliberately stays on the process default — a measurement of the enemy ladder
+ *    that also handicapped the player would be measuring two changes at once.
+ * 2. **An unset field means the process default**, so every existing caller — the balance suites,
+ *    the debug scenarios, the pre-roguelike battle path — keeps the behaviour it had.
+ */
+export type AiTier = 'greedy' | 'lite' | 'full';
+
+/** Candidates the lookahead re-ranks. Lite narrows the lookahead rather than removing it. */
+const lookaheadTopN = (tier: AiTier): number => (tier === 'lite' ? 2 : 3);
+/** Determinized draws averaged per candidate. Same argument: narrower, not absent. */
+const lookaheadDeterminizations = (tier: AiTier): number => (tier === 'lite' ? 1 : 2);
 
 /**
  * `AI_CENSUS=1`: count what the same-turn enumeration actually walks. Off by default and behind a
@@ -575,7 +650,7 @@ const LOOKAHEAD_REPLY_DEPTH = 2;
  * 83 reducer simulations per decision at 1v1 against 16,677 at 3v3, and 18.1% of the 3v3 ones
  * byte-identical repeats (research/3v3-optimisation.md).
  */
-const CENSUS = process.env.AI_CENSUS === '1';
+const CENSUS = env.AI_CENSUS === '1';
 export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0 };
 export function censusReset(): void {
     census.enumerated = 0; census.duplicate = 0; census.simulated = 0;
@@ -610,11 +685,78 @@ export function censusNewDecision(): void { census.decisions++; }
  * is never beamed - that is the layer producing the candidate list `getBestAction` ranks, and
  * truncating it would hide legal plays from the decision entirely.
  */
-const BEAM = Number(process.env.AI_BEAM ?? 0);
+/**
+ * TICKET 127 - THE BEAM IS ON IN THE GAME AND OFF IN A HARNESS, AND THAT IS THE WHOLE RULE.
+ *
+ * It shipped as `Number(env.AI_BEAM ?? 0)`: off by default, opt-in per run. Correct for the work it
+ * was built for and **unreachable by the only build a player runs.** `vite.config.ts` substitutes
+ * `define: { 'process.env': {} }` into the app bundle and `globalThis.process` does not exist in a
+ * browser at all, so `env` is `{}` there, so `BEAM` was 0 in the game with no way to change it. A
+ * measured 2.3x sat in the codebase that the product could not touch.
+ *
+ * Flipping the default to 8 outright is the wrong fix and it is the failure family this project
+ * keeps paying for: every balance instrument in `scratch/` and every suite in `src/debug/` would
+ * silently start measuring a beamed search, and ticket 108's standing rule is *"confirm anything you
+ * intend to act on at full, BEAMLESS"*. A default that quietly beams a ship gate is worse than no
+ * beam at all.
+ *
+ * So the default is keyed on the thing that actually distinguishes the two callers: **a harness runs
+ * under Node and the game does not.** `globalThis.process` is present in vite-node, vitest and every
+ * `scratch/` lane, and absent in the browser and in the Electron renderer (which is a browser - the
+ * desktop build differs only in `base`). So:
+ *
+ *   - **browser: beam 8.** The player gets the 2.3x.
+ *   - **Node: beam 0.** Every measurement keeps the beamless search it was calibrated against,
+ *     unless it asks for the beam by name.
+ *   - **`AI_BEAM=<n>` overrides either way**, which is how the harness opts in and how a browser
+ *     build could opt out if it ever needed to.
+ *
+ * GATED, TWICE, ON THE CURRENT CARD POOL - ticket 127, `research/ai-decision-cost.md`. The original
+ * 90-cell 1v1 identity gate was stale (tickets 115/123/124/126 all changed the pool) so it was
+ * re-run: **0 of 90 cells moved**, with `scratch/beamgate.ts` asserting the beam actually loaded
+ * rather than trusting that it did. `scratch/beamgate3v3.ts` covers the case the original work
+ * explicitly left open - the beam is an APPROXIMATION at 3v3, and 3v3 is what the game ships.
+ */
+/** The width the beam runs at in the game. Sized in `3v3-optimisation.md`: 6 is the boundary, 8 keeps headroom. */
+export const GAME_BEAM_WIDTH = 8;
 
-/** What tier is live, for a harness that wants to record it beside its numbers. */
-export const AI_TIER: 'greedy' | 'lite' | 'full' =
-    process.env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
+/**
+ * The rule above, as a pure function, so both branches are testable.
+ *
+ * A test cannot reach the browser branch by running in a browser - vitest is Node, and jsdom does
+ * not remove `process` - so the decision is separated from the detection. `resolveBeam` is the rule;
+ * the two arguments below it are the only facts it needs.
+ */
+export function resolveBeam(hasNodeProcess: boolean, override: string | undefined): number {
+    if (override !== undefined) return Number(override);
+    return hasNodeProcess ? 0 : GAME_BEAM_WIDTH;
+}
+
+// A bare `globalThis.process` is safe to name: the define matches the token pair `process.env`, not
+// `process` alone - which is exactly why the `env` reader above reaches the bag by a computed key.
+const BEAM = resolveBeam((globalThis as unknown as Record<string, unknown>).process !== undefined, env.AI_BEAM);
+
+/**
+ * The PROCESS-WIDE default tier, for a harness that wants to record it beside its numbers.
+ *
+ * Still read from the environment, and still the answer for every battle that does not name a grade
+ * of its own. A battle that does — every run battle, since ticket 67 — overrides it for the enemy
+ * side only; see `AiTier` above.
+ */
+export const AI_TIER: AiTier =
+    env.AI_GREEDY === '1' ? 'greedy' : LITE ? 'lite' : 'full';
+
+/**
+ * Which grade plays this decision.
+ *
+ * The enemy's grade comes off the battle when the battle names one; everything else — the player's
+ * half in a harness, and any battle created before the field existed — takes the process default.
+ * That is the whole of the ladder's plumbing, and it is one function so the rule is checkable.
+ */
+function tierFor(state: IBattleState, side: 'PLAYER' | 'ENEMY'): AiTier {
+    if (side === 'ENEMY' && state.enemyAiTier !== undefined) return state.enemyAiTier;
+    return AI_TIER;
+}
 /**
  * Dominance pruning: when the best same-turn candidate leads the runner-up by more
  * than this many eval points (12 = 6 HP), the decision is not close and the
@@ -665,7 +807,6 @@ export function setDecisionTap(tap: ((record: DecisionRecord) => void) | null): 
  * one turn ahead is WORTH on a given deck. A deck that scores the same either way is a deck whose
  * decisions do not matter - which is exactly the complaint the ticket exists to quantify.
  */
-const GREEDY_ONLY = process.env.AI_GREEDY === '1';
 
 function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
     return party.every(e => e.currentHp <= 0);
@@ -679,12 +820,15 @@ function allDead(party: ReadonlyArray<IBattleEntity>): boolean {
 function lookaheadValue(
     leaf: IBattleState,
     side: 'PLAYER' | 'ENEMY',
-    candidateIndex: number
+    candidateIndex: number,
+    // Passed rather than read from a constant, because the grade is a property of the battle now
+    // and not of the process — see `AiTier`.
+    determinizations: number
 ): number {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
     let total = 0;
 
-    for (let d = 0; d < LOOKAHEAD_DETERMINIZATIONS; d++) {
+    for (let d = 0; d < determinizations; d++) {
         // Determinize the unknown draw order: reshuffle our own drawpile copy.
         const rng = new PRNG(`lookahead|${leaf.seed}|${leaf.turn}|${candidateIndex}|${d}`);
         const { shuffled } = rng.shuffle([...leaf[deckKey].drawpile]);
@@ -711,7 +855,7 @@ function lookaheadValue(
         total += findBestSequence(afterTheirPass, side, 0, LOOKAHEAD_REPLY_DEPTH).score;
     }
 
-    return total / LOOKAHEAD_DETERMINIZATIONS;
+    return total / determinizations;
 }
 
 export function getBestAction(state: IBattleState): BattleAction {
@@ -773,7 +917,8 @@ export function getBestAction(state: IBattleState): BattleAction {
             return improving[0].action;
         }
 
-        const topN = improving.slice(0, LOOKAHEAD_TOP_N);
+        const tier = tierFor(state, side);
+        const topN = improving.slice(0, lookaheadTopN(tier));
         if (topN.length === 1) {
             decisionTap?.({
                 side, turn: state.turn, candidates: improving.length,
@@ -789,7 +934,7 @@ export function getBestAction(state: IBattleState): BattleAction {
             });
             return topN[0].action;
         }
-        if (GREEDY_ONLY) {
+        if (tier === 'greedy') {
             decisionTap?.({
                 side, turn: state.turn, candidates: improving.length,
                 gap, close: true, lookaheadRan: false, flipped: false,
@@ -812,7 +957,7 @@ export function getBestAction(state: IBattleState): BattleAction {
         let best = topN[0];
         let bestValue = -Infinity;
         for (let i = 0; i < topN.length; i++) {
-            const value = lookaheadValue(topN[i].leafState, side, i);
+            const value = lookaheadValue(topN[i].leafState, side, i, lookaheadDeterminizations(tier));
             if (value > bestValue) {
                 bestValue = value;
                 best = topN[i];

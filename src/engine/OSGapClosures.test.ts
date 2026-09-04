@@ -1,24 +1,39 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
 import { applyMutations } from './resolutionEngine';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, ProgramData } from './types';
 import { StatusType } from './types';
 import { registerHook } from './core/Hooks';
 import { FIRMWARE_REGISTRY, getOSBehavior } from './data/firmwareRegistry';
 import { getHook } from './core/HookRegistry';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 import HOOKS_DATA from './data/lib/hooks.json';
+import type { DataHookDefinition, HookContext } from './core/HookTypes';
+
+/** hooks.json, keyed by firmware id — only these three fields are read below. */
+const HOOKS = HOOKS_DATA as unknown as Record<string, { name: string; description: string; hooks: DataHookDefinition[] }>;
 
 // Mock GetProgramData to use our test registry
 vi.mock('./data/programRegistry', async () => {
-    const actual = await vi.importActual('./data/programRegistry');
+    const actual = await vi.importActual<typeof import('./data/programRegistry')>('./data/programRegistry');
     return {
-        ...actual as any,
+        ...actual,
         GetProgramData: (id: string) => {
-            return TestProgramRegistry[id] || (actual as any).GetProgramData(id);
+            return TestProgramRegistry[id] || actual.GetProgramData(id);
         }
     };
 });
+
+/**
+ * TICKET 131c: a dummy big enough to survive the hits these tests measure.
+ *
+ * Three tests here read damage as `100 - enemy.currentHp` against a 100 HP dummy. Under the x10
+ * presentation scale a mid-power card deals ~70-100, so the dummy died, currentHp floored at 0, and
+ * every arm of each comparison returned the same clamped number - "expected 100 to be greater than
+ * 100". The readings now subtract from the frame itself rather than a repeated literal, so the
+ * helper cannot go on returning a plausible figure if the frame moves again.
+ */
+const DUMMY_FRAME = { currentHp: 10000, maxHp: 10000 };
 
 const makeUnit = (id: string, name: string, overrides: Partial<IBattleEntity> = {}): IBattleEntity => ({
     id,
@@ -30,8 +45,6 @@ const makeUnit = (id: string, name: string, overrides: Partial<IBattleEntity> = 
     defense: 10,
     maxEnergy: 5,
     currentEnergy: 5,
-    level: 1,
-    experience: 0,
     cardDraw: 3,
     statusEffects: [],
     definitionId: 'fenrir',
@@ -60,7 +73,6 @@ const makeState = (playerParty: IBattleEntity[], enemyParty: IBattleEntity[], ha
     osLogs: [],
     procs: [],
     seed: '12345',
-    levelUpQueue: [],
     cardsPlayedThisTurn: 0,
     cardsDrawnThisTurn: 0,
     lastProgramPlayed: null,
@@ -162,13 +174,13 @@ describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (einherjar recursion)', () => {
         const valk = makeUnit('valk1', 'Valkyrie', { activeOS: 'valkyrie_v1', attack: 40 });
         // defense 1: the shared fixture is attack 10 vs defense 10, where a 10-power card floors
         // to 0 damage and the assertion below could not tell a free cast from no cast at all.
-        const enemy = makeUnit('e1', 'Enemy', { defense: 1 });
+        const enemy = makeUnit('e1', 'Enemy', { defense: 1, ...DUMMY_FRAME });
         let state = makeState([valk], [enemy], [card('c1', 'card_strike', 1)]);
 
         // Play the strike so it lands in the discard, then end her turn.
         state = play(state, 'valk1', 'e1', 'c1');
         const hpAfterPaidCast = state.enemyParty[0].currentHp;
-        expect(hpAfterPaidCast).toBeLessThan(100);
+        expect(hpAfterPaidCast).toBeLessThan(DUMMY_FRAME.maxHp);
 
         state = battleReducer(state, { type: 'END_TURN' });
 
@@ -269,16 +281,16 @@ describe('Item 6 - HRAESVELGR v2 dead data removed', () => {
     // dispatch in `executeDraw` and valkyrie_v2's REBIRTH_CYCLE_OS is its first live consumer.
     // What replaces it is the claim that actually mattered: a hook on this trigger FIRES.
     it('onDeckShuffled is dispatched, and REBIRTH_CYCLE_OS is its consumer', () => {
-        const entry = (HOOKS_DATA as any).valkyrie_v2;
+        const entry = HOOKS.valkyrie_v2;
         expect(entry.name).toBe('REBIRTH_CYCLE_OS');
         // hooks[0] is the once-per-turn reset (see ticket 53 §7a); the payout is the one that
         // has to sit on the newly-live trigger.
-        expect(entry.hooks.some((h: any) => h.trigger === 'onDeckShuffled')).toBe(true);
+        expect(entry.hooks.some((h: DataHookDefinition) => h.trigger === 'onDeckShuffled')).toBe(true);
         expect(getHook('valk_v2_rebirth')?.onDeckShuffled).toBeTypeOf('function');
     });
 
     it('hraesvelgr_v2 keeps its description (UI copy) but has no data hooks', () => {
-        const entry = (HOOKS_DATA as any).hraesvelgr_v2;
+        const entry = HOOKS.hraesvelgr_v2;
         expect(entry.description).toBeTruthy();
         expect(entry.hooks).toEqual([]);
         // The working CustomFirmware implementation still registers.
@@ -473,17 +485,18 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
     it('a fenrir_v1 unit hits HARDER the more max HP it is missing (ticket 84)', () => {
         // UNBOUND_KERNEL's Fire bonus scales on the OWNER's missing HP - the clause that pays for
         // the recoil. At full health it is worth nothing; at half health, half of OS_KNOBS.fenrir
-        // .berserkPct. Level 20 for the same reason as the Ice test below: at level 1 the pace
-        // divisor floors a small card to 0 and the assertion would be vacuous.
+        // .berserkPct. (Ticket 21: these units used to be built at level 20 because the default was
+        // level 1, where the pace divisor floored a small card to 0. Everything is CALIBRATION_LEVEL
+        // now, which is comfortably above that floor, so the override is simply gone.)
         const runAttack = (currentHp: number, activeOS?: string): number => {
             const attacker = makeUnit('a1', 'Attacker', {
-                level: 20, currentHp, maxHp: 100, ...(activeOS ? { activeOS } : {})
+                currentHp, maxHp: 100, ...(activeOS ? { activeOS } : {})
             });
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', DUMMY_FRAME)], [
                 card('c1', 'card_fireball', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');
-            return 100 - state.enemyParty[0].currentHp;
+            return DUMMY_FRAME.maxHp - state.enemyParty[0].currentHp;
         };
 
         const plain = runAttack(50);
@@ -493,45 +506,78 @@ describe('Item 9 - YMIR v2 GLACIAL_PACE_OS (1-card limit + Ice bonus)', () => {
 
         // card_fireball is two hits and the bonus floors per hit, so the assertion is the ORDER,
         // not an exact product: at full health the clause pays nothing, and it grows as she drops.
+        //
+        // Ticket 21 note: this used to read `half > full` strictly. At the old level-20 pin the
+        // numbers were plain 8 / full 8 / half 10 / sliver 10; at CALIBRATION_LEVEL they were
+        // 6 / 6 / 6 / 8. The clause is unchanged — per-hit flooring simply hid a different step
+        // at the smaller scale.
+        //
+        // TICKET 131c CHANGED ONE OF THESE ASSERTIONS, and the reason is a finding rather than a
+        // rescale. `expect(full).toBe(plain)` was wrong and passed anyway. `plain` runs with NO
+        // firmware; `full` runs UNBOUND_KERNEL at full health. The berserk clause is worth nothing
+        // at full health, but the OS *also* applies 1 Strengthened on attack — which is +1 POWER,
+        // and at the old scale +1 power was worth less than a point of damage, so the two readings
+        // came out identical and the test certified an equality that was never true. Under the x10
+        // scale the same stack is worth 4 damage: plain 70, full 74.
+        //
+        // So the honest assertion is that the firmware is worth SOMETHING even at full health, and
+        // that the berserk clause grows on top of it as she drops.
         expect(plain).toBeGreaterThan(0);
-        expect(full).toBe(plain);
-        expect(half).toBeGreaterThan(full);
-        expect(sliver).toBeGreaterThanOrEqual(half); // per-hit flooring hides the last step at these sizes
+        expect(full).toBeGreaterThan(plain);          // the OS's own Strengthened, finally visible
+        expect(half).toBeGreaterThanOrEqual(full);
+        expect(sliver).toBeGreaterThan(full);
     });
 
     it('Ice cards from a ymir_v2 unit deal exactly +50% through the real reducer', () => {
         const runAttack = (activeOS?: string): number => {
-            // Level 20, not the default 1: under the rev-3.1 pace (ticket 23, /45) a 20-power
-            // card at level 1 floors to 0 damage, which makes a +35% assertion meaningless.
-            const attacker = makeUnit('a1', 'Attacker', { level: 20, ...(activeOS ? { activeOS } : {}) });
-            let state = makeState([attacker], [makeUnit('e1', 'Enemy', { level: 20 })], [
+            // Ticket 21: was pinned to level 20 because the default was level 1, where a 20-power card
+            // floors to 0 damage under the rev-3.1 pace (ticket 23, /45). CALIBRATION_LEVEL clears that
+            // floor, so there is nothing left to pin.
+            const attacker = makeUnit('a1', 'Attacker', { ...(activeOS ? { activeOS } : {}) });
+            let state = makeState([attacker], [makeUnit('e1', 'Enemy', DUMMY_FRAME)], [
                 card('c1', 'card_ice_strike', 1)
             ]);
             state = play(state, 'a1', 'e1', 'c1');
-            return 100 - state.enemyParty[0].currentHp;
+            return DUMMY_FRAME.maxHp - state.enemyParty[0].currentHp;
         };
 
         const withoutOS = runAttack();
         const withOS = runAttack('ymir_v2');
         expect(withoutOS).toBeGreaterThan(0);
-        expect(withOS).toBe(withoutOS + Math.floor(withoutOS * 0.35)); // ticket 09: softened to ~1.35x
+
+        // Ticket 21 note, and it is worth reading before changing this number. The old assertion
+        // was `withOS === withoutOS + floor(withoutOS * 0.35)`, which looked like it pinned the
+        // ticket-09 "+35% to Ice" knob exactly. It did not: the knob is applied to POWER, before
+        // the pace divisor, so what survives to the HP bar is not 1.35x. Measured at the old
+        // level-20 pin the observed ratio was 5/4 = 1.25; measured at CALIBRATION_LEVEL it is
+        // 26/21 = 1.238. **The OS is unchanged** — the old formula only matched because
+        // floor(4 * 0.35) happened to equal the real +1 at that one scale.
+        //
+        // So this asserts what the OS actually promises: a substantial, Ice-specific bonus, in a
+        // band wide enough to survive flooring but narrow enough to catch the knob being changed
+        // or dropped. The exact-multiplier check belongs on the knob itself, not on damage output.
+        expect(withOS).toBeGreaterThan(withoutOS);
+        expect(withOS / withoutOS).toBeGreaterThan(1.15);
+        expect(withOS / withoutOS).toBeLessThan(1.40);
     });
 });
 
 describe('getEffectiveCardCost (shared reducer/UI helper)', () => {
     it('reflects a primed Attack-only discount and ignores it for other categories', async () => {
         const { getEffectiveCardCost, doesModifierApply } = await import('./battleReducer');
-        const source: any = {
+        // Partial fixtures: both helpers read only `nextProgramModifier` off the source and
+        // `category` / `baseCost` off the card.
+        const source = {
             nextProgramModifier: { costReduction: 1, appliesTo: 'Attack' }
-        };
-        const attackCard: any = { category: 'Attack' };
-        const skillCard: any = { category: 'Skill' };
+        } as unknown as IBattleEntity;
+        const attackCard = { category: 'Attack' } as unknown as ProgramData;
+        const skillCard = { category: 'Skill' } as unknown as ProgramData;
         expect(doesModifierApply(source, attackCard)).toBe(true);
         expect(getEffectiveCardCost(source, attackCard, 2)).toBe(1);
         expect(getEffectiveCardCost(source, attackCard, 0)).toBe(0);
         expect(doesModifierApply(source, skillCard)).toBe(false);
         expect(getEffectiveCardCost(source, skillCard, 2)).toBe(2);
-        expect(getEffectiveCardCost({ nextProgramModifier: undefined } as any, attackCard, 2)).toBe(2);
+        expect(getEffectiveCardCost({ nextProgramModifier: undefined } as unknown as IBattleEntity, attackCard, 2)).toBe(2);
     });
 });
 
@@ -604,7 +650,7 @@ describe("Ticket 07 - explicit 'ANY' source/target condition", () => {
         const owner = makeUnit('n1', 'Nidhoggr');
         const other = makeUnit('e1', 'Enemy');
         const state = makeState([owner], [other]);
-        const context: any = { state, target: other, source: other, triggerDepth: 0 };
+        const context: HookContext = { state, target: other, source: other, triggerDepth: 0 };
         expect(ConditionValidator.evaluateHookCondition({ target: 'ANY' }, context, owner)).toBe(true);
         expect(ConditionValidator.evaluateHookCondition({ source: 'ANY' }, context, owner)).toBe(true);
         expect(ConditionValidator.evaluateHookCondition({ target: 'SELF' }, context, owner)).toBe(false);

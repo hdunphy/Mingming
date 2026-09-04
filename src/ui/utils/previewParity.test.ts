@@ -103,6 +103,24 @@ const SAMPLES: ReadonlyArray<{ name: string; apply: (s: IBattleState) => IBattle
             playerParty: s.playerParty.map((e, i) => i === 0 ? withStatus(e, 'BarkShield', 8) : e),
         }),
     },
+    {
+        /*
+         * THE TARGET is shielded — added 2026-08-24, and the sample this suite was missing.
+         *
+         * `shielded` above puts BarkShield on the CASTER, because the scaling that reads it is
+         * caster-side. Nothing sampled a shielded *target*, which is precisely where the old
+         * HP-delta preview was blind: BarkShield absorbs before HP moves, so a fully absorbed hit
+         * measured as zero and the card face showed no number at all. Henry hit it in a playtest;
+         * this is the state that would have caught it.
+         *
+         * 40% rather than 8% so it actually eats a whole ordinary hit on most species.
+         */
+        name: 'target-shielded',
+        apply: s => ({
+            ...s,
+            enemyParty: s.enemyParty.map((e, i) => i === 0 ? withStatus(e, 'BarkShield', 40) : e),
+        }),
+    },
 ];
 
 /** HP plus shield - absorbed damage is still damage the player watches happen. */
@@ -111,13 +129,27 @@ const pool = (s: IBattleState, id: string): number => {
     return (e?.currentHp ?? 0) + (e?.tempHp ?? 0);
 };
 
-interface Mismatch { card: string; species: string; sample: string; preview: number; actual: number }
+interface Mismatch {
+    card: string; species: string; sample: string;
+    field: 'damage' | 'hpDamage' | 'absorbed' | 'ledger-adds-up';
+    preview: number; actual: number;
+}
 
-function sweep(): { mismatches: Mismatch[]; checked: number; cards: Set<string>; leaks: string[] } {
+interface SweepResult {
+    mismatches: Mismatch[];
+    checked: number;
+    cards: Set<string>;
+    leaks: string[];
+    /** How many checks ran against a target that actually had a shield up. */
+    absorbedChecks: number;
+}
+
+function sweep(): SweepResult {
     const mismatches: Mismatch[] = [];
     const cards = new Set<string>();
     const leaks: string[] = [];
     let checked = 0;
+    let absorbedChecks = 0;
 
     for (const species of BALANCE_SPECIES) {
         const entry = MingmingRegistry[species];
@@ -175,24 +207,56 @@ function sweep(): { mismatches: Mismatch[]; checked: number; cards: Set<string>;
 
                 checked++;
                 cards.add(cardId);
-                const actual = before - pool(after, them.id);
-                if (actual !== preview.damage) {
-                    mismatches.push({ card: cardId, species, sample: sample.name, preview: preview.damage, actual });
-                }
+
+                /*
+                 * WHAT PARITY MEANS SINCE 2026-08-24.
+                 *
+                 * It used to mean one thing: preview number === HP the target lost. That was
+                 * checkable and it was also the bug — the preview could only report what HP did,
+                 * so a lethal blow and a shielded hit both under-read, correctly, forever.
+                 *
+                 * The preview now reports the engine's own `raw`, so parity is checked against the
+                 * REAL play's ledger, field by field. This is strictly stronger: the old assertion
+                 * survives as `hpDamage`, and two more join it.
+                 */
+                const realHits = (after.damageLedger ?? []).filter(h => h.targetId === them.id);
+                const sum = (pick: (h: (typeof realHits)[number]) => number) =>
+                    realHits.reduce((total, h) => total + pick(h), 0);
+                const parity = (field: Mismatch['field'], previewed: number, actual: number): void => {
+                    if (previewed !== actual) {
+                        mismatches.push({ card: cardId, species, sample: sample.name, field, preview: previewed, actual });
+                    }
+                };
+
+                parity('damage', preview.damage, sum(h => h.raw));
+                parity('absorbed', preview.absorbed, sum(h => h.absorbed));
+                parity('hpDamage', preview.hpDamage, sum(h => h.applied));
+                // The old assertion, unchanged in meaning: what the HP pool did. Held against the
+                // ledger's own `applied` so a ledger that lies about HP cannot pass by agreeing
+                // with a preview that reads it.
+                parity('ledger-adds-up', sum(h => h.applied), before - pool(after, them.id));
+                if (preview.absorbed > 0) absorbedChecks++;
             }
         }
     }
-    return { mismatches, checked, cards, leaks };
+    return { mismatches, checked, cards, leaks, absorbedChecks };
 }
 
 describe('preview parity (ticket 104)', () => {
     const result = sweep();
 
-    it('the hover preview equals the HP the target actually loses, for every attack card', () => {
+    it('the hover preview equals what the engine records, field by field, for every attack card', () => {
         const report = result.mismatches
-            .map(m => `  ${m.card} (${m.species}, ${m.sample}): preview ${m.preview}, actual ${m.actual}`)
+            .map(m => `  ${m.card} (${m.species}, ${m.sample}) ${m.field}: preview ${m.preview}, actual ${m.actual}`)
             .join('\n');
         expect(result.mismatches, `\n${result.mismatches.length} preview mismatches:\n${report}\n`).toEqual([]);
+    });
+
+    it('checked hits that a shield actually ate — the absorbed field cannot pass by never firing', () => {
+        // Without this floor the `target-shielded` sample could quietly stop shielding anything
+        // (a renamed status, a changed stack unit) and every `absorbed` comparison would pass at
+        // 0 === 0, which is exactly how the old suite missed the shielded-target case for months.
+        expect(result.absorbedChecks).toBeGreaterThan(20);
     });
 
     it('computing a preview does not touch the caller\'s state', () => {

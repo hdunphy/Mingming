@@ -1,7 +1,7 @@
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { numericBaseCost } from './types';
 import { globalBattleEventBus } from './events';
-import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, getHook } from './core/Hooks';
+import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, type EventHook, getHook } from './core/Hooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
 import { drawCards, discardCard, exhaustCard, returnCard, searchCard, HAND_SIZE_LIMIT } from './deckLogic';
@@ -113,7 +113,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
             case 'DISCARD': {
                 const isPlayerTarget = newState.playerParty.some(e => e.id === mutation.targetId);
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
-                let deck = newState[deckKey];
+                const deck = newState[deckKey];
                 const amount = mutation.payload.amount;
                 const isRandom = mutation.payload.isRandom;
 
@@ -203,7 +203,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
                 let deck = newState[deckKey];
 
-                let toExhaust = deck.hand.slice(0, mutation.payload.amount);
+                const toExhaust = deck.hand.slice(0, mutation.payload.amount);
                 toExhaust.forEach(c => {
                     deck = exhaustCard(deck, c.id, 'HAND');
                 });
@@ -215,8 +215,8 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 const deckKey = isPlayerTarget ? 'playerDeck' : 'enemyDeck';
                 let deck = newState[deckKey];
 
-                let sourcePileStr = mutation.payload.sourcePile || 'DISCARD';
-                let sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
+                const sourcePileStr: 'DISCARD' | 'EXHAUST' = mutation.payload.sourcePile || 'DISCARD';
+                const sourcePile = sourcePileStr === 'EXHAUST' ? deck.exhaust : deck.discard;
                 // Ticket 32: optional cost predicate, then clamp to the space actually left in
                 // hand - RETURN previously ignored HAND_SIZE_LIMIT and silently dropped the
                 // overflow, which makes a "return everything" card unpredictable.
@@ -226,10 +226,10 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     : sourcePile.filter(c => numericBaseCost(GetProgramData(c.dataId).baseCost) <= maxCost);
                 const headroom = Math.max(0, HAND_SIZE_LIMIT - deck.hand.length);
                 const requested = mutation.payload.amount ?? eligible.length;
-                let toReturn = eligible.slice(0, Math.min(requested, headroom));
+                const toReturn = eligible.slice(0, Math.min(requested, headroom));
 
                 toReturn.forEach(c => {
-                    deck = returnCard(deck, c.id, sourcePileStr as any, mutation.payload.destinationPile || 'HAND');
+                    deck = returnCard(deck, c.id, sourcePileStr, mutation.payload.destinationPile || 'HAND');
                 });
                 newState = { ...newState, [deckKey]: deck };
                 break;
@@ -309,8 +309,8 @@ export function executeResolutionStack(
     phase: keyof HookDefinition,
     initialContext: HookContext
 ): { state: IBattleState; isCancelled: boolean } {
-    let currentState = initialContext.state;
-    let isCancelled = false;
+    const currentState = initialContext.state;
+    const isCancelled = false;
 
     if (initialContext.triggerDepth > 5 || resolutionStackDepth >= MAX_RESOLUTION_DEPTH) {
         console.warn(`CRITICAL_EVENT_OVERFLOW: Max trigger depth reached (phase: ${phase}).`);
@@ -394,7 +394,9 @@ function executeResolutionStackInner(
 
     // 3. Execute Hooks
     for (const pair of hookPairs) {
-        const handler = pair.hook[phase] as any;
+        // `phase` is a plain keyof, so the indexed type is the union of every HookDefinition
+        // member; this branch only ever runs for the EventHook-shaped triggers.
+        const handler = pair.hook[phase] as EventHook | undefined;
         if (!handler) continue;
 
         const result: HookResult = handler({ ...initialContext, state: currentState }, pair.owner);
@@ -418,7 +420,7 @@ export function executeStatusDamageCalculated(
     initialDamage: number,
     _statusType: string
 ): { state: IBattleState; damage: number } {
-    let currentState = state;
+    const currentState = state;
     let damage = initialDamage;
 
     // Use full party search for global/side-wide hooks
@@ -474,7 +476,7 @@ export function executeCostCalculated(
     program: ProgramData,
     initialCost: number
 ): { state: IBattleState; cost: number } {
-    let currentState = state;
+    const currentState = state;
     let cost = initialCost;
 
     // Use full party search for global/side-wide hooks
@@ -527,8 +529,12 @@ export function executeCostCalculated(
  */
 export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count: number, isNatural: boolean, sourceId?: string): IBattleState {
     const deckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const { state: newDeck, nextSeed, shuffled } = drawCards(state[deckKey], count, state.seed);
+    const { state: newDeck, nextSeed, shuffled } = drawCards(
+        state[deckKey], count, state.seed, state.resolvingCardInstanceId);
     const cardsDrawnCount = newDeck.hand.length - state[deckKey].hand.length;
+    const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const triggeredCount = isNatural ? 0 : cardsDrawnCount;
+
     let newState: IBattleState = {
         ...state,
         [deckKey]: newDeck,
@@ -537,8 +543,22 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
         // Ticket 68: the TRIGGERED counter - draws an effect caused, not the draw-phase refill.
         // `isNatural` was already threaded through here for hook dispatch and was simply never
         // consulted for a counter; this is that flag finally doing the second job it implies.
-        nonNaturalCardsDrawnThisTurn: (state.nonNaturalCardsDrawnThisTurn ?? 0)
-            + (isNatural ? 0 : cardsDrawnCount)
+        nonNaturalCardsDrawnThisTurn: (state.nonNaturalCardsDrawnThisTurn ?? 0) + triggeredCount,
+        /*
+         * THE PER-UNIT TWIN — Henry, 2026-08-30. `CARDS_DRAWN_TRIGGERED` reads THIS, not the
+         * side-wide number above. See `ActionExecutors.getScalingValue` for the ruling.
+         *
+         * The drawer is identified exactly as the `onCardDraw` dispatch further down identifies it
+         * — `sourceId` when one was threaded, otherwise slot 0 — so the counter and the hook can
+         * never disagree about who "you" is. The side-wide number stays because `CARDS_DRAWN` still
+         * reads it and because a caster-less call site has nothing else to fall back to.
+         */
+        [partyKey]: triggeredCount === 0 ? state[partyKey] : state[partyKey].map((entity, slot) => {
+            const isDrawer = sourceId === undefined ? slot === 0 : entity.id === sourceId;
+            return isDrawer
+                ? { ...entity, nonNaturalDrawsThisTurn: (entity.nonNaturalDrawsThisTurn ?? 0) + triggeredCount }
+                : entity;
+        }),
     };
 
     if (shuffled) {

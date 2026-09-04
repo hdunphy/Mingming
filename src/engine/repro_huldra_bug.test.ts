@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import type { IBattleState, IBattleEntity } from './types';
 
@@ -26,7 +26,7 @@ describe('Huldra OS V1 Bug Reproduction', () => {
                     maxEnergy: 2,
                     activeOS: 'huldra_v1',
                     statusEffects: [],
-                    hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 1, experience: 0,
+                    hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, 
                     definitionId: 'huldra',
                     primaryElement: 'Nature',
                     attack: 10,
@@ -46,7 +46,7 @@ describe('Huldra OS V1 Bug Reproduction', () => {
                     currentEnergy: 2,
                     maxEnergy: 2,
                     statusEffects: [],
-                    hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, level: 1, experience: 0,
+                    hpIV: 0, attackIV: 0, defenseIV: 0, blueprintsCollected: 0, 
                     definitionId: 'fenrir',
                     primaryElement: 'Fire',
                     attack: 10,
@@ -60,7 +60,6 @@ describe('Huldra OS V1 Bug Reproduction', () => {
             playerDeck: { ownerId: 'PLAYER', deck: [], hand: [], drawpile: [], discard: [], exhaust: [] },
             enemyDeck: { ownerId: 'ENEMY', deck: [], hand: [], drawpile: [], discard: [], exhaust: [] },
             cardsPlayedThisTurn: 0,
-            levelUpQueue: [],
             activeRelics: []
         };
 

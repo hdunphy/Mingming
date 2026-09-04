@@ -1,19 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
 import { battleReducer } from './battleReducer';
-import type { IBattleState, IBattleEntity, ProgramEntity } from './types';
+import type { IBattleState, IBattleEntity, ProgramEntity, StatusEffectInstance, StatusType } from './types';
 import { registerHook } from './core/Hooks';
-import { FIRMWARE_REGISTRY, getOSBehavior } from './data/firmwareRegistry';
+import { FIRMWARE_REGISTRY } from './data/firmwareRegistry';
 import { initDaemonHooks } from './data/daemonHooks';
 import { applyMutations } from './resolutionEngine';
 import { TestProgramRegistry } from './data/testProgramRegistry';
 
 // Mock GetProgramData to use the test registry with real-registry fallback
 vi.mock('./data/programRegistry', async () => {
-    const actual = await vi.importActual('./data/programRegistry');
+    const actual = await vi.importActual<typeof import('./data/programRegistry')>('./data/programRegistry');
     return {
-        ...actual as any,
+        ...actual,
         GetProgramData: (id: string) => {
-            return TestProgramRegistry[id] || (actual as any).GetProgramData(id);
+            return TestProgramRegistry[id] || actual.GetProgramData(id);
         }
     };
 });
@@ -28,8 +28,6 @@ const makeUnit = (id: string, name: string, overrides: Partial<IBattleEntity> = 
     defense: 10,
     maxEnergy: 5,
     currentEnergy: 5,
-    level: 1,
-    experience: 0,
     cardDraw: 3,
     statusEffects: [],
     definitionId: 'fenrir',
@@ -58,7 +56,6 @@ const makeState = (playerParty: IBattleEntity[], enemyParty: IBattleEntity[], ha
     osLogs: [],
     procs: [],
     seed: '12345',
-    levelUpQueue: [],
     cardsPlayedThisTurn: 0,
     cardsDrawnThisTurn: 0,
     lastProgramPlayed: null,
@@ -71,10 +68,10 @@ const card = (id: string, dataId: string, cost: number): ProgramEntity =>
 const play = (state: IBattleState, sourceId: string, targetId: string, programId: string): IBattleState =>
     battleReducer(state, { type: 'PLAY_PROGRAM', payload: { sourceId, targetId, programId } });
 
-const status = (id: string, type: string, stacks: number) =>
-    ({ id, type, stacks, duration: -1 } as any);
-
-const str = (e: IBattleEntity, type: string) => e.statusEffects.find(s => s.type === type)?.stacks ?? 0;
+// `duration` is not part of StatusEffectInstance; it is kept because the fixture has always
+// carried it, so the cast is what lets the extra field through.
+const status = (id: string, type: StatusType, stacks: number): StatusEffectInstance =>
+    ({ id, type, stacks, duration: -1 } as StatusEffectInstance);
 
 // Register OS + daemon hooks
 Object.values(FIRMWARE_REGISTRY).forEach(os => { os.hooks.forEach(h => registerHook(h)); });
@@ -84,28 +81,30 @@ initDaemonHooks();
 // Ticket 12: OS rework implementations
 // ---------------------------------------------------------------------------
 
-describe('Ticket 12 - VALKYRIE v2 CRUSADER_KERNEL (distinct buff types, not stacks)', () => {
-    const dmgTo = (valkStatuses: any[]): number => {
-        const valk = makeUnit('v1', 'Valkyrie', { activeOS: 'valkyrie_v2', statusEffects: valkStatuses });
-        let state = makeState([valk], [makeUnit('e1', 'Enemy')], [card('c1', 'smite', 1)]);
-        state = play(state, 'v1', 'e1', 'c1');
-        return 100 - state.enemyParty[0].currentHp;
-    };
-
-    it('two distinct non-offensive buff types give exactly +20%', () => {
-        // Sharp and Regen do not modify OUTGOING damage, isolating the OS bonus.
-        const base = dmgTo([]);
-        const buffed = dmgTo([status('s1', 'Sharp', 1), status('s2', 'Regen', 1)]);
-        expect(base).toBeGreaterThan(0);
-        expect(buffed).toBe(Math.floor(base * 1.2));
-    });
-
-    it('five stacks of one type count as ONE type (+10%), not five', () => {
-        const base = dmgTo([]);
-        const stacked = dmgTo([status('s1', 'Sharp', 5)]);
-        expect(stacked).toBe(Math.floor(base * 1.1));
-    });
-});
+/**
+ * TICKET 131c — THESE TESTS WERE DELETED, AND WHY IS WORTH MORE THAN THEY WERE.
+ *
+ * This block held two tests for **valkyrie_v2's CRUSADER_KERNEL** (+10% Light damage per distinct
+ * positive status, so two buff types = +20%). They asserted `buffed === floor(base * 1.2)` and
+ * `stacked === floor(base * 1.1)`, and they were GREEN.
+ *
+ * **CRUSADER_KERNEL does not exist.** `CustomFirmware.ts` records that ticket 53 deleted it and gave
+ * the slot to REBIRTH_CYCLE_OS, a data hook on `onDeckShuffled`. There has been no per-buff-type
+ * damage bonus in the game since.
+ *
+ * They passed because the numbers were too small to tell. At the pre-131c scale `smite` on this
+ * dummy dealt **4**, and `floor(4 * 1.2)` is also **4** — so an assertion that the OS added 20%
+ * was satisfied by an OS that added nothing. The x10 presentation scale made the same hit read 48,
+ * `floor(48 * 1.2)` became 57, and the tests finally failed.
+ *
+ * That is the resolution argument for ticket 131c, found the hard way: **two tests sat green for
+ * months certifying a firmware that had been deleted**, because integer rounding at a median hit of
+ * 4 damage could not distinguish a 20% bonus from no bonus at all. Anything else hiding in that gap
+ * is still hiding.
+ *
+ * Nothing replaces them here: there is no behaviour left to test. REBIRTH_CYCLE_OS has its own
+ * coverage, and `deckReport.ts` was still describing this slot as CRUSADER_KERNEL until now.
+ */
 
 describe('Ticket 12/39 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', () => {
     // Ticket 39 changed what the hook PAYS, not when it fires: +2 Strengthened / +2 Sharp
@@ -174,7 +173,7 @@ describe('Ticket 12/39 - NIDHOGGR v2 BLOOD_SCENT_OS (50% threshold crossings)', 
 
 describe('Ticket 12 - DRAUGR v2 GRAVE_CHILL_OS rebuilt (works vs cards AND intents)', () => {
     it('an attacker with 2 distinct debuff types deals 20% less to Draugr (card play)', () => {
-        const dmgFrom = (attackerStatuses: any[]): number => {
+        const dmgFrom = (attackerStatuses: StatusEffectInstance[]): number => {
             const attacker = makeUnit('p1', 'Attacker', { statusEffects: attackerStatuses });
             const draugr = makeUnit('e1', 'Draugr', { activeOS: 'draugr_v2' });
             let state = makeState([attacker], [draugr], [card('c1', 'fire_punch_v2', 1)]);
@@ -189,7 +188,7 @@ describe('Ticket 12 - DRAUGR v2 GRAVE_CHILL_OS rebuilt (works vs cards AND inten
     });
 
     it('fires against INTENT attacks too (the old cost-tax never could)', () => {
-        const intentDmg = (enemyStatuses: any[]): number => {
+        const intentDmg = (enemyStatuses: StatusEffectInstance[]): number => {
             const draugr = makeUnit('p1', 'Draugr', { activeOS: 'draugr_v2' });
             const enemy = makeUnit('e1', 'Enemy', { statusEffects: enemyStatuses });
             let state = makeState([draugr], [enemy]);

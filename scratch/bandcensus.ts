@@ -3,8 +3,9 @@ import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
 import { ElementalMatrix } from '../src/engine/combatUtils';
+import { ENV } from './_env';
 
-const ITER = Number(process.env.ITER ?? 30);
+const ITER = Number(ENV.ITER ?? 30);
 const decks: Array<{ sp: string; os: string }> = [];
 for (const sp of BALANCE_SPECIES)
     for (const os of (MingmingRegistry as any)[sp].availableOS) decks.push({ sp, os });

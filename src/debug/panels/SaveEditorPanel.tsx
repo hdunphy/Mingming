@@ -1,17 +1,23 @@
 /**
- * Save / run editor — the docked Debug tab's save surface.
+ * Ranch editor — the docked Debug tab's save surface.
  *
- * Every button here routes through `commitEdit` (`../saveEdit`), which projects the
- * prospective save with the real `gameSlice` reducer, validates it against
- * `PlayerSaveSchema`, and only then dispatches. Nothing in this file may dispatch directly:
- * a schema-invalid save wedges the autosave in `src/ui/store/store.ts:20-31` with nothing but
- * a `console.error`, and validating after the fact would be racing that subscription.
+ * Every button here routes through `commitEdit` (`../saveEdit`), which projects the prospective
+ * ranch with the real `gameSlice` reducer, validates it against `RanchStateSchema`, and only then
+ * dispatches. Nothing in this file may dispatch directly: a schema-invalid ranch wedges the
+ * autosave in `src/ui/store/store.ts` with nothing but a `console.error`, and validating after the
+ * fact would be racing that subscription.
  *
- * Naming here is deliberately literal about what the save can represent — "grant blueprint",
+ * TICKET 11 TOOK FOUR BUTTONS OUT, AND THAT IS THE HONEST OUTCOME RATHER THAN A REGRESSION. `grant
+ * scraps`, `grant cards`, `grant relic` and `unlock sector` wrote fields that are `IRunState`'s
+ * now, and `heal party` was an explicit no-op. A ranch is four things — individuals, blueprint
+ * counts, the codex, and what gyms/tiers are cleared — so the editor offers exactly the verbs that
+ * write those. Granting a run-scoped resource wants a *run* editor, which is a different panel.
+ *
+ * Naming here is deliberately literal about what the ranch can represent — "grant blueprint",
  * not "unlock species"; "set activeOS", not "unlock OS". Neither is a flag: species
  * availability derives from `blueprints` and OS availability from the definition's static
  * `availableOS`, with only the per-instance `activeOS` persisted. The panel must not promise
- * a concept the save cannot hold.
+ * a concept the ranch cannot hold.
  *
  * Save editing is docked-only in spirit — nothing save-related belongs in the mid-battle
  * floating overlay — so the floating presentation degrades to the validity readout alone.
@@ -22,22 +28,13 @@ import type { CSSProperties, ChangeEvent, ReactNode } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
-import { ProgramRegistry } from '../../engine/data/programRegistry';
-import { RelicRegistry } from '../../engine/data/relicRegistry';
-import { loadGame } from '../../engine/SaveSystem';
-import { ELEMENTS } from '../../engine/types';
+import { loadGameState } from '../../engine/SaveSystem';
 import type { RootState } from '../../ui/store/store';
 import {
     buildAddToRoster,
     buildGrantBlueprint,
-    buildGrantCards,
-    buildGrantExperience,
-    buildGrantRelic,
-    buildGrantScraps,
-    buildHealParty,
     buildReplaceSave,
     buildSetActiveOS,
-    buildUnlockSector,
     buildWipeSave,
     commitEdit,
     parseSaveFileText,
@@ -89,8 +86,6 @@ const controlStyle: CSSProperties = {
     font: '11px/1.4 monospace',
 };
 
-const numberStyle: CSSProperties = { ...controlStyle, width: '90px' };
-
 function buttonStyle(danger = false): CSSProperties {
     return {
         padding: '4px 10px',
@@ -126,11 +121,6 @@ interface EditResult {
     readonly detail: ReadonlyArray<string>;
 }
 
-/** Parse a text input as a number, keeping "" distinct from 0 so a blank field is refused. */
-function readNumber(raw: string): number {
-    return raw.trim() === '' ? Number.NaN : Number(raw);
-}
-
 export default function SaveEditorPanel({ presentation }: DebugPanelProps): ReactNode {
     const dispatch = useDispatch();
     // The rendered save (re-renders on every game-state change) drives the readouts; the
@@ -143,33 +133,31 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
     const [wipeArmed, setWipeArmed] = useState(false);
 
     const speciesIds = useMemo(() => Object.keys(MingmingRegistry), []);
-    const relicIds = useMemo(() => Object.keys(RelicRegistry), []);
-    const cardIds = useMemo(() => Object.keys(ProgramRegistry).sort(), []);
-    const sectorIds = useMemo(() => ELEMENTS.filter((element) => element !== 'None'), []);
 
-    const [scrapAmount, setScrapAmount] = useState('100');
     const [blueprintId, setBlueprintId] = useState(speciesIds[0] ?? '');
-    const [relicId, setRelicId] = useState(relicIds[0] ?? '');
-    const [cardId, setCardId] = useState(cardIds[0] ?? '');
-    const [cardCount, setCardCount] = useState('1');
     const [newSpeciesId, setNewSpeciesId] = useState(speciesIds[0] ?? '');
-    const [newLevel, setNewLevel] = useState('5');
     const [targetId, setTargetId] = useState('');
     const [osId, setOsId] = useState('');
-    const [xpAmount, setXpAmount] = useState('500');
-    const [sectorId, setSectorId] = useState<string>(sectorIds[0] ?? '');
 
     // --- Validity readout: is the live state savable, and did the last autosave land? ---
 
     const liveValidity = useMemo(() => validateSave(save), [save]);
+    // Ticket 11: the live slice IS the ranch that gets written, so "in sync" is a direct
+    // comparison. Ticket 23 had to project the slice through `toRanchState` first, and the two
+    // shapes drifting apart was exactly the failure mode that projection could hide.
     const persisted = useMemo(() => {
         try {
-            return loadGame();
+            return loadGameState();
         } catch (err) {
-            return { data: null, error: String(err) };
+            return { ranch: null, run: null, error: String(err) };
         }
+        // ticket 55: reviewed, deliberate. `save` is not READ here; it is the trigger. This memo
+        // re-reads what is on disk, and the question it answers ("is the store in sync with
+        // storage?") changes exactly when the store's save changes. Removing the dep would freeze
+        // the panel's answer at mount.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [save]);
-    const persistedInSync = persisted.data !== null && savesAreIdentical(persisted.data, save);
+    const persistedInSync = persisted.ranch !== null && savesAreIdentical(persisted.ranch, save);
 
     // --- The one path from a button to the store ---
 
@@ -215,18 +203,18 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
         if (!liveValidity.valid) {
             return (
                 <div style={bannerStyle(BAD)}>
-                    <strong>AUTOSAVE WEDGED</strong> — the live game state fails PlayerSaveSchema, so
+                    <strong>AUTOSAVE WEDGED</strong> — the live game state fails RanchStateSchema, so
                     every autosave since it broke has been refused and progress is NOT persisting.
                     {'\n'}
                     {liveValidity.issues.join('\n')}
                 </div>
             );
         }
-        if (persisted.data === null) {
+        if (persisted.ranch === null) {
             return (
                 <div style={bannerStyle(WARN)}>
                     <strong>SAVE VALID</strong> — but nothing is stored yet
-                    {persisted.error ? `: ${persisted.error}` : ' (no save in localStorage).'}
+                    {persisted.error ? `: ${persisted.error}` : ' (no ranch in storage).'}
                 </div>
             );
         }
@@ -234,13 +222,13 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
             return (
                 <div style={bannerStyle(WARN)}>
                     <strong>SAVE VALID, STORED COPY IS BEHIND</strong> — the live state is savable but
-                    localStorage does not match it. The last autosave did not land.
+                    the stored copy does not match it. The last autosave did not land.
                 </div>
             );
         }
         return (
             <div style={bannerStyle(OK)}>
-                <strong>SAVE VALID AND IN SYNC</strong> — live state passes PlayerSaveSchema and matches
+                <strong>SAVE VALID AND IN SYNC</strong> — live state passes RanchStateSchema and matches
                 the stored copy.
             </div>
         );
@@ -255,12 +243,15 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
         </div>
     );
 
+    // Ticket 11: the four things a ranch is. `blueprints` is a count per species, so this sums
+    // them — the previous line read `save.blueprints.length` on a Record and printed `undefined`,
+    // which is what a display that outlives its shape looks like.
+    const blueprintTotal = Object.values(save.blueprints).reduce((sum, n) => sum + n, 0);
     const summary = (
         <div style={{ ...noteStyle, marginBottom: '10px' }}>
-            scrap {save.scrapCount} · roster {save.roster.length} · cards {save.cardInventory.length} ·
-            blueprints {save.blueprints.length} · relics {save.relics.length} · sectors{' '}
-            {save.unlockedSectors.join(', ') || 'none'} · gauntlet{' '}
-            {save.gauntlet ? `${save.gauntlet.element} ${save.gauntlet.currentBattleIndex + 1}/${save.gauntlet.totalBattles}` : 'none'}
+            roster {save.roster.length} · blueprints {blueprintTotal} · codex {save.codex.seen.length} seen
+            / {save.codex.played.length} played · gyms {save.gymsCleared.join(', ') || 'none'} · highest
+            tier {save.highestTierCleared}
         </div>
     );
 
@@ -286,25 +277,6 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
 
             <section style={sectionStyle}>
                 <div style={rowStyle}>
-                    <span style={labelStyle}>grant scraps</span>
-                    <input
-                        style={numberStyle}
-                        type="number"
-                        value={scrapAmount}
-                        onChange={(e) => setScrapAmount(e.target.value)}
-                    />
-                    <button type="button" style={buttonStyle()} onClick={() => run('grant scraps', buildGrantScraps(readNumber(scrapAmount)))}>
-                        grant
-                    </button>
-                </div>
-                <div style={noteStyle}>
-                    Negative drains. A drain past zero, or a fractional amount, is refused by the dry run
-                    rather than written.
-                </div>
-            </section>
-
-            <section style={sectionStyle}>
-                <div style={rowStyle}>
                     <span style={labelStyle}>grant blueprint</span>
                     <select style={controlStyle} value={blueprintId} onChange={(e) => setBlueprintId(e.target.value)}>
                         {speciesIds.map((id) => (
@@ -323,50 +295,19 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
 
             <section style={sectionStyle}>
                 <div style={rowStyle}>
-                    <span style={labelStyle}>grant relic</span>
-                    <select style={controlStyle} value={relicId} onChange={(e) => setRelicId(e.target.value)}>
-                        {relicIds.map((id) => (
-                            <option key={id} value={id}>{RelicRegistry[id].name}</option>
-                        ))}
-                    </select>
-                    <button type="button" style={buttonStyle()} onClick={() => run('grant relic', buildGrantRelic(relicId))}>
-                        grant
-                    </button>
-                </div>
-            </section>
-
-            <section style={sectionStyle}>
-                <div style={rowStyle}>
-                    <span style={labelStyle}>grant cards</span>
-                    <select style={controlStyle} value={cardId} onChange={(e) => setCardId(e.target.value)}>
-                        {cardIds.map((id) => (
-                            <option key={id} value={id}>{ProgramRegistry[id]?.name ?? id}</option>
-                        ))}
-                    </select>
-                    <input style={numberStyle} type="number" min="1" value={cardCount} onChange={(e) => setCardCount(e.target.value)} />
-                    <button type="button" style={buttonStyle()} onClick={() => run('grant cards', buildGrantCards(cardId, readNumber(cardCount)))}>
-                        grant
-                    </button>
-                </div>
-                <div style={noteStyle}>Lands in the inventory, not the deck.</div>
-            </section>
-
-            <section style={sectionStyle}>
-                <div style={rowStyle}>
                     <span style={labelStyle}>add to roster</span>
                     <select style={controlStyle} value={newSpeciesId} onChange={(e) => setNewSpeciesId(e.target.value)}>
                         {speciesIds.map((id) => (
                             <option key={id} value={id}>{MingmingRegistry[id].name}</option>
                         ))}
                     </select>
-                    <input style={numberStyle} type="number" min="1" value={newLevel} onChange={(e) => setNewLevel(e.target.value)} />
-                    <button type="button" style={buttonStyle()} onClick={() => run('add to roster', buildAddToRoster(newSpeciesId, readNumber(newLevel)))}>
+                    <button type="button" style={buttonStyle()} onClick={() => run('add to roster', buildAddToRoster(newSpeciesId))}>
                         add
                     </button>
                 </div>
                 <div style={noteStyle}>
-                    Goes through the game's own addToRoster, so a first-time species also grants its base
-                    deck kit.
+                    Free — no blueprint spent. Ticket 11 removed this reducer's base-deck grant: cards are
+                    run-scoped, so adding a roster member adds a roster member and nothing else.
                 </div>
             </section>
 
@@ -381,7 +322,7 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                     >
                         {save.roster.map((member) => (
                             <option key={member.id} value={member.id}>
-                                {member.nickname ?? MingmingRegistry[member.definitionId]?.name ?? member.definitionId} · L{member.level}
+                                {member.nickname ?? MingmingRegistry[member.definitionId]?.name ?? member.definitionId}
                             </option>
                         ))}
                     </select>
@@ -414,55 +355,9 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                     select — not the dry run — is what keeps the value meaningful.
                 </div>
 
-                <div style={{ ...rowStyle, marginTop: '8px' }}>
-                    <span style={labelStyle}>grant XP</span>
-                    <input style={numberStyle} type="number" value={xpAmount} onChange={(e) => setXpAmount(e.target.value)} />
-                    <button
-                        type="button"
-                        style={buttonStyle()}
-                        disabled={!target}
-                        onClick={() => target && run('grant XP', buildGrantExperience(target.id, readNumber(xpAmount)))}
-                    >
-                        grant
-                    </button>
-                </div>
-                <div style={noteStyle}>
-                    Runs the same level-up loop the in-battle death-XP system uses. Rewards still grant no
-                    XP — this is its own capability, not a reward-pipeline change.
-                </div>
-
                 {save.roster.length === 0 && (
                     <div style={{ ...noteStyle, color: WARN }}>Roster is empty — add a unit first.</div>
                 )}
-            </section>
-
-            <section style={sectionStyle}>
-                <div style={rowStyle}>
-                    <span style={labelStyle}>unlock sector</span>
-                    <select style={controlStyle} value={sectorId} onChange={(e) => setSectorId(e.target.value)}>
-                        {sectorIds.map((id) => (
-                            <option key={id} value={id}>{id}</option>
-                        ))}
-                    </select>
-                    <button type="button" style={buttonStyle()} onClick={() => run('unlock sector', buildUnlockSector(sectorId))}>
-                        unlock
-                    </button>
-                </div>
-            </section>
-
-            <section style={sectionStyle}>
-                <div style={rowStyle}>
-                    <span style={labelStyle}>heal party</span>
-                    <button type="button" style={buttonStyle()} onClick={() => run('heal party', buildHealParty())}>
-                        heal
-                    </button>
-                </div>
-                <div style={noteStyle}>
-                    Honest label: this changes nothing in the save. Roster HP is not persisted — it is
-                    rebuilt on entering battle. The one HP the save does hold is gauntlet.persistedStats,
-                    and no existing action resets it without also advancing the battle index, so a
-                    mid-gauntlet heal is out of reach without new production code.
-                </div>
             </section>
 
             <section style={{ ...sectionStyle, borderColor: BAD }}>
@@ -490,21 +385,24 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                         </button>
                     )}
                 </div>
-                <div style={noteStyle}>Resets to createDefaultSave(): empty roster, no cards, no progress.</div>
+                <div style={noteStyle}>Resets to createEmptyRanch(): empty roster, no blueprints, no progress.</div>
 
                 <div style={{ ...rowStyle, marginTop: '8px' }}>
-                    <span style={labelStyle}>replace save from file</span>
+                    <span style={labelStyle}>replace ranch from file</span>
                     <input style={controlStyle} type="file" accept="application/json,.json" onChange={onReplaceFile} />
                 </div>
                 <div style={noteStyle}>
-                    Read path mirrors loadGame: parse, migrate an older shape, validate. A file that fails
-                    is reported and never dispatched.
+                    The file is a bare IRanchState, not an envelope. Read path is parse then validate —
+                    ticket 23 removed the upgrade step, so a file that does not already describe a legal
+                    ranch is reported and never dispatched.
                 </div>
             </section>
 
             <div style={noteStyle}>
                 No "max everything" preset by design — a composite of many writes is the likeliest way to
-                construct an invalid save, which is the failure this panel exists to prevent.
+                construct an invalid ranch, which is the failure this panel exists to prevent.
+                {' '}Scrap, cards and drivers are not editable here at all: ticket 11 moved them to the
+                run, and a run editor is a different panel.
             </div>
         </div>
     );

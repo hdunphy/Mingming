@@ -15,7 +15,7 @@ import type { IBattleEntity, StatusEffectInstance } from './types';
  */
 
 const entity = (statusEffects: StatusEffectInstance[] = []): IBattleEntity => ({
-    id: 'p1', name: 'Sleeper', level: 5, experience: 0,
+    id: 'p1', name: 'Sleeper', 
     maxHp: 100, currentHp: 100, tempHp: 0, attack: 10, defense: 10,
     maxEnergy: 3, currentEnergy: 3, cardDraw: 3, speed: 10,
     primaryElement: 'None', secondaryElement: 'None',

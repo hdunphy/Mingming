@@ -25,11 +25,12 @@ import { AI_TIER } from '../src/engine/ai/TacticalAI';
 import { runPairedBatch } from '../src/debug/balance/runBatch';
 import { matchupScenario, BALANCE_SPECIES } from '../src/debug/balance/balanceScenarios';
 import { MingmingRegistry } from '../src/engine/data/mingmingRegistry';
+import { ENV } from './_env';
 
-const DECK = process.env.DECK ?? 'draugr_v2';
+const DECK = ENV.DECK ?? 'draugr_v2';
 const SPECIES = DECK.replace(/_v[12]$/, '');
-const ITER = Number(process.env.ITER ?? 10);
-const SEEDBASE = process.env.SEEDBASE ?? 'grid';
+const ITER = Number(ENV.ITER ?? 10);
+const SEEDBASE = ENV.SEEDBASE ?? 'grid';
 
 const opponents: Array<{ sp: string; deck: string }> = [];
 for (const sp of BALANCE_SPECIES) if (sp !== SPECIES)

@@ -84,7 +84,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Regen',
         icon: '💚',
         description:
-            'At end of turn, restores 5 HP per stack, then loses 1 stack.',
+            'At the start of your turn, restores 2% of max HP, then loses 1 stack (stacks are turns).',
     },
     Energized: {
         name: 'Energized',

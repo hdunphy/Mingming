@@ -25,13 +25,14 @@
  * env: SHAPE=PERCENT|POWER, PCT (per stack, e.g. 0.04), CAP (e.g. 0.40), PWR (e.g. 1), LABEL
  */
 import { STATUS_MODEL } from '../src/engine/core/Hooks';
+import { ENV } from './_env';
 
-const SHAPE = (process.env.SHAPE ?? 'PERCENT') as 'PERCENT' | 'POWER';
+const SHAPE = (ENV.SHAPE ?? 'PERCENT') as 'PERCENT' | 'POWER';
 STATUS_MODEL.shape = SHAPE;
-if (process.env.PCT) STATUS_MODEL.pctPerStack = Number(process.env.PCT);
-if (process.env.CAP) STATUS_MODEL.pctCap = Number(process.env.CAP);
-if (process.env.PWR) STATUS_MODEL.powerPerStack = Number(process.env.PWR);
-const LABEL = process.env.LABEL ?? (SHAPE === 'POWER'
+if (ENV.PCT) STATUS_MODEL.pctPerStack = Number(ENV.PCT);
+if (ENV.CAP) STATUS_MODEL.pctCap = Number(ENV.CAP);
+if (ENV.PWR) STATUS_MODEL.powerPerStack = Number(ENV.PWR);
+const LABEL = ENV.LABEL ?? (SHAPE === 'POWER'
     ? `POWER+${STATUS_MODEL.powerPerStack}`
     : `PCT${(STATUS_MODEL.pctPerStack * 100).toFixed(0)}/cap${(STATUS_MODEL.pctCap * 100).toFixed(0)}`);
 
@@ -39,8 +40,8 @@ const { runPairedBatch } = await import('../src/debug/balance/runBatch');
 const { matchupScenario, BALANCE_SPECIES } = await import('../src/debug/balance/balanceScenarios');
 const { MingmingRegistry } = await import('../src/engine/data/mingmingRegistry');
 
-const ITER_FIELD = Number(process.env.ITER ?? 8);
-const ITER_CELL = Number(process.env.ITER_CELL ?? 20);
+const ITER_FIELD = Number(ENV.ITER ?? 8);
+const ITER_CELL = Number(ENV.ITER_CELL ?? 20);
 
 /** The decks whose PLAN is statuses - where a re-denomination should show up first. */
 const STATUS_DECKS = [
