@@ -1,6 +1,6 @@
 # Ticket 133 — `dawns_respite` heals more than the blood toll it pays, and always has
 
-**Status:** OPEN, needs a balance ruling. Found by ticket 131c's ×10 scale, 2026-09-01.
+**Status:** CLOSED 2026-09-04 — RULED by Henry: option 3, leave it. See the Resolution.
 
 ## The finding
 
@@ -43,3 +43,44 @@ All three are one number, and all three are Henry's call:
    over-strong. Recorded so it is a decision rather than an oversight.
 
 **Recommendation: (1).** It is the only one that changes just the thing that is wrong.
+
+---
+
+# Resolution — CLOSED 2026-09-04. Option 3: leave it.
+
+Henry: *"leave hel as is. One card that overheals is fine. Before it was all the cards overhealing
+and hel was staying at 100% HP."*
+
+**No code changed.** `dawns_respite` keeps its power-25 heal and `OS_KNOBS.hel.pctPerEnergy` keeps
+whatever the balance work has set it to.
+
+## Why option 3 rather than the recommendation
+
+The ticket recommended option 1 (heal power 25 → 24) on the grounds that the card contradicts
+ticket 81's principle. **That reading conflated two different problems, and the ruling separates
+them.**
+
+What ticket 81 killed was UNDERWORLD_GATEWAY's **+50% healing bonus**, which applied to *every heal
+she cast*. That is what let her sit at full health indefinitely: not one card netting a little, but
+the entire heal side of her deck out-earning the toll at once, so the blood price never actually
+cost her anything. **The failure was systemic, and the fix was systemic.**
+
+A single 1-energy card returning 0.25% of a health bar more than it pays is not that. It cannot
+hold her at 100% on its own, it competes with every other card for the same energy and the same
+turn, and a heal that slightly beats its own price is a reasonable thing for a heal to be. The
+principle ticket 81 wrote down — *"heals are meant to alleviate the self-damage, not erase it"* —
+is satisfied by one card at +0.25%; it was violated by a firmware-wide multiplier.
+
+## What this also settles
+
+`crimson_draw` and `ember_mend` — the two remaining cards flagged in ticket 138 for printing a
+percentage of max HP over a power-based heal — **stay as they are** by the same ruling. Their
+entries in `descriptionData.test.ts`'s allowlist are updated to say they are ruled rather than
+deferred.
+
+Note the arithmetic in this ticket predates ticket 136k, which took the blood price from 6% to 5%.
+At 5% the toll on a 1-energy Dark card is 5% of max HP against the same 6.25% heal, so the margin
+is **+1.25% per cast rather than +0.25%** — five times what the ticket measured. That is recorded
+here rather than treated as a reason to reopen: the ruling is about the SHAPE (one card, not the
+whole heal side), and the shape did not change. If hel_v2 ever reads over-strong, the blood price
+is the knob and 136k's measured curve is the map — 4% = 83, 5% = 60, 6% = 25 field.

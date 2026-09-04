@@ -220,7 +220,9 @@ skoll_v1 29.5, audhumbla_v2 28.5, valkyrie_v2 23.7. Engine changes under it: STR
 Infinity, and `SELF_ANY_STATUS` / `BURN_STACKS` exist. **Three things it found and did NOT fix:**
 fenrir_v1's rebuilt deck has five distinct cards and all five are in its start kit (nothing to
 draft back toward - ticket 61's model does not apply to him any more); `BURN_TIMES_ENERGY` has no
-card left; hel_v2's heal out-earns her blood toll by MORE at the cheaper price. **Ticket 137 (the
+card left; hel_v2's heal out-earns her blood toll by MORE at the cheaper price — **RULED FINE,
+ticket 133 closed: one card that overheals is not the problem; ticket 81's failure was the +50%
+firmware multiplier that made EVERY heal out-earn the toll and held her at 100%**. **Ticket 137 (the
 AI Regen constant) was deliberately sequenced AFTER this** - round two's targets were measured with
 the AI still valuing Regen at 3%, so 137 re-measures its own grid.
 

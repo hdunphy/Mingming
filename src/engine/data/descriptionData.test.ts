@@ -108,9 +108,9 @@ const ALLOWED: Record<string, string> = {
     discharge: '"1 Burn per 2 removed" is the action ratio 0.5 stated the other way up',
     berserk_rush: 'the "below 50%" threshold is the standard complementary LT:51 (see blood_rite GT:50)',
 
-    // --- ruled elsewhere, deliberately not fixed here ---
-    crimson_draw: 'percentage-vs-flat heal; Henry moved it to the flat-number DoT/heal ticket (138)',
-    ember_mend: 'percentage-vs-flat heal; Henry moved it to the flat-number DoT/heal ticket (138)',
+    // --- RULED to stay as they are (ticket 133, Henry 2026-09-04) ---
+    crimson_draw: 'percentage-vs-flat heal; RULED to stay (133) - one card overhealing is not the problem',
+    ember_mend: 'percentage-vs-flat heal; RULED to stay (133) - one card overhealing is not the problem',
 };
 
 const ALLOWED_FIRMWARE: Record<string, string> = {
