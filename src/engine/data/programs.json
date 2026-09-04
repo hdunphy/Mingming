@@ -5932,7 +5932,7 @@
     "falling_star": {
         "id": "falling_star",
         "name": "Falling Star",
-        "description": "40 power. Exhaust.",
+        "description": "50 power. Exhaust.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
@@ -5947,7 +5947,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 50,
                 "target": "TARGET"
             }
         ]
@@ -5977,7 +5977,7 @@
     "starfall": {
         "id": "starfall",
         "name": "Starfall",
-        "description": "18 power for each card a card, OS or daemon drew you this turn.",
+        "description": "18 power for each card an effect drew you this turn.",
         "element": "Light",
         "target": "Single",
         "category": "Attack",
