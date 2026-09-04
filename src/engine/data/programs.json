@@ -2396,7 +2396,7 @@
     "hoofbeat_daemon": {
         "id": "hoofbeat_daemon",
         "name": "Hoofbeat Daemon",
-        "description": "Daemon: whenever you play a 0-cost card, deal 10 damage to a random enemy.",
+        "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
         "element": "Air",
         "target": "Self",
         "category": "Daemon",
@@ -3010,7 +3010,7 @@
     "nightfall_edge": {
         "id": "nightfall_edge",
         "name": "Nightfall Edge",
-        "description": "9 power. Shift into Dark Stance: +30% damage while it holds.",
+        "description": "9 power. Shift into Dark Stance: +45% damage while it holds.",
         "element": "Dark",
         "target": "Single",
         "category": "Attack",
@@ -3037,7 +3037,7 @@
     "dawns_respite": {
         "id": "dawns_respite",
         "name": "Dawn's Respite",
-        "description": "Heal with 25 power. Shift into Light Stance: -30% damage taken while it holds.",
+        "description": "Heal with 25 power. Shift into Light Stance: -45% damage taken while it holds.",
         "element": "Dark",
         "target": "Self",
         "category": "Skill",

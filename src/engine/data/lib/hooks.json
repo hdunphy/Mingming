@@ -349,7 +349,7 @@
     "hoofbeat_daemon": {
         "id": "hoofbeat_daemon",
         "name": "HOOFBEAT_DAEMON",
-        "description": "Daemon: whenever you play a 0-cost card, deal 10 damage to a random enemy.",
+        "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
         "hooks": [
             {
                 "id": "hoofbeat_daemon_hook",

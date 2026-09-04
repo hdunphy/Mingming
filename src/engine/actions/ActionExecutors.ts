@@ -79,6 +79,15 @@ export const STRENGTH_STACK_CAP = Number.POSITIVE_INFINITY;
 export const MISSING_HP_PCT_CAP = 50;
 
 /**
+ * Power a SHARP_STACKS scaler adds per stack of Sharp on the attacker.
+ *
+ * TICKET 139: named and exported so the CARD TEXT can be held to it. `spike_launch` and
+ * `cinder_lance` both print "+5 power per Sharp stack", and until this was a constant the only
+ * thing keeping those two descriptions honest was that nobody had changed the 5.
+ */
+export const SHARP_STACKS_POWER_PER_STACK = 5;
+
+/**
  * Ticket 74: the per-event-count scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DRAWN_TRIGGERED`,
  * `CARDS_DISCARDED`) are deliberately UNCAPPED, and that is a design decision, not an oversight.
  *
@@ -169,7 +178,7 @@ export function getEffectiveAttackPower(
     }
     if (action.scaling === 'SHARP_STACKS') {
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-        return power + 5 * sharpStacks;
+        return power + SHARP_STACKS_POWER_PER_STACK * sharpStacks;
     }
     if (action.scaling === 'MISSING_HP') {
         // Power-side (ticket 26): rides the divisor, STAB and resistances like every other
