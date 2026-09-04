@@ -1053,7 +1053,7 @@
     "hel_v1": {
         "id": "hel_v1",
         "name": "TWILIGHT_CADENCE",
-        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +30% damage dealt. Light Stance: -30% damage taken.",
+        "description": "The element Hel casts sets her stance at the end of the action. Dark Stance: +45% damage dealt. Light Stance: -45% damage taken.",
         "hooks": [
             {
                 "id": "hel_v1_cadence_dark",

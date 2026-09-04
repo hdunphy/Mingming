@@ -134,9 +134,9 @@ describe('Stance exclusivity and stacking', () => {
 });
 
 describe('the shipped stance percentages', () => {
-    it("are 35% both ways", () => {
-        expect(STANCE_BONUS.dark).toBe(0.35);
-        expect(STANCE_BONUS.light).toBe(0.35);
+    it("are 45% both ways", () => {
+        expect(STANCE_BONUS.dark).toBe(0.45);
+        expect(STANCE_BONUS.light).toBe(0.45);
     });
 });
 
