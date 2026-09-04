@@ -367,7 +367,15 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    change the rate, not add a ceiling.
         decks: {
             "gullinbursti_v1": ["water_slap", "keen_edge", "keen_edge", "shield_shards", "shield_shards", "stone_bark", "stone_fist", "stone_fist", "motherlode", "spiked_carapace"],
-            "gullinbursti_v2": ["water_slap", "water_slap", "keen_edge", "keen_edge", "shield_shards", "shield_shards", "stone_flurry", "stone_flurry", "crag_barrage", "crag_barrage"]
+            // TICKET 136p: KINETIC_RAM pays per HIT, not per card, so the deck wants cheap
+            // multi-hit bodies and its own Sharp supply - and it was running neither.
+            // `water_slap` x2 becomes `pebble_flurry` x2 (0e, two hits, so the ram bonus lands
+            // twice for free) and `keen_edge` x2 becomes `keen_strike` x2, which carries the
+            // same Sharp on an ATTACK instead of a Skill - the old card spent his whole turn
+            // sharpening and never swung. `keen_edge` stays in the registry; gullinbursti_v1
+            // runs it. Measured 34.1 -> 50.9. The shield engine was tried first and measured
+            // 24 - rejected.
+            "gullinbursti_v2": ["pebble_flurry", "pebble_flurry", "keen_strike", "keen_strike", "shield_shards", "shield_shards", "stone_flurry", "stone_flurry", "crag_barrage", "crag_barrage"]
         },
         moves: [
             {

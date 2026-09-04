@@ -648,7 +648,7 @@
     "gullinbursti_v2": {
         "id": "gullinbursti_v2",
         "name": "KINETIC_RAM_OS",
-        "description": "Earth Attack cards deal additional damage for each stack of Sharp Gullinbursti holds, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
+        "description": "Earth Attack cards deal +2.5 power per stack of Sharp Gullinbursti holds, on every hit, but the ram blunts its own edge: he takes 1 Dazed at the start of each of his turns.",
         "hooks": [
             {
                 "id": "gullin_v2_ram",

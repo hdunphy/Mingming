@@ -1021,6 +1021,61 @@
             "daemon_draw_damage_proc"
         ]
     },
+    "keen_strike": {
+        "id": "keen_strike",
+        "name": "Keen Strike",
+        "description": "20 power. Gain 3 Sharp.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "pebble_flurry": {
+        "id": "pebble_flurry",
+        "name": "Pebble Flurry",
+        "description": "4 power, twice.",
+        "element": "Earth",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 4,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 4,
+                "target": "TARGET"
+            }
+        ]
+    },
     "keen_edge": {
         "id": "keen_edge",
         "name": "Keen Edge",
