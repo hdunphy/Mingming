@@ -1,6 +1,6 @@
 # Ticket 132 — every balance number on record is now stale
 
-**Status:** OPEN. The biggest outstanding item from the ticket-131 arc.
+**Status:** CLOSED 2026-09-04 — the re-baseline it asked for has been run and promoted seven times since.
 
 `docs/balance/deck_grid.json` was last regenerated on **2026-08-28** (commit `48bc586`). Five
 balance-affecting changes have landed since:
@@ -119,3 +119,18 @@ should probably wait until after the re-tune rather than enshrining a broken ros
 4. **Consider whether heals and DoT should be re-priced** now that they are worth 1.5× relative to
    attacks — or whether that is the game you want, since it favours the attrition archetypes that
    `powerscale`'s pace notes say never got room to exist.
+
+---
+
+# Resolution — CLOSED 2026-09-04
+
+This ticket asked for one thing: the grid was stale after ticket 131, so regenerate and promote it.
+That has happened repeatedly since, and `scratch/promotegrid.mjs` now derives its own provenance
+note (date from the newest measured row, build from the commit the promotion ran against), so the
+failure mode this ticket named — *"a correct instrument reporting a build that no longer exists"* —
+cannot recur silently.
+
+Promotions since, each in its own commit with its own measurement directory: post-136 round one,
+post-138 (glass_cannon), post-percent-recoil, ticket 137, round two, round three, and 136u. The
+live grid is `results/rebaseline-valk/`: **mean 49.9, sd 8.6, 31 of 32 in band**, against the
+sd 19.4 / 22-in-band the roster carried when this ticket was written.

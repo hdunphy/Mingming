@@ -1,6 +1,6 @@
 # Ticket 136 — the review of 134/135, two bugs, and a per-deck rebalance package
 
-**Status:** RULED 2026-09-02 — see §7 for what ships; §4–5 are the pre-ruling measurements
+**Status:** CLOSED 2026-09-04 — all four rounds shipped (136a–136u). See the SHIPPED sections below; §4–5 are the pre-ruling measurements
 **Branch:** `legion/ai-perf` (nothing committed; every change here lives only in the measurement copy)
 **Asked by Henry:** *"review Ticket 135, Handoff-back-in-band.md and the last handful of commits...
 look at each of the decks and see how we can rebalance some of these decks either through increase

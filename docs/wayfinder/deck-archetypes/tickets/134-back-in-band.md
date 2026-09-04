@@ -1,6 +1,6 @@
 # Ticket 134 — Getting the roster back in band: five knobs measured, four dead
 
-**Status:** measured, awaiting Henry's ruling
+**Status:** CLOSED 2026-09-04 — ruled, and the ruling shipped as ticket 136.
 **Branch:** `legion/ai-perf`
 **Asked by Henry:** *"I feel like we need to nerf the zoo decks maybe change our powerscale, especially considering they dominate the 3v3s. Give me some knobs/options to try to get the decks back in band or do we need a full redesign given the new rules?"*
 
@@ -245,3 +245,22 @@ npx vite-node scratch/bandarms.ts -- --arm BIGDISCOUNT --iter 30   # dead arm, 1
 Each arm prints how many things it changed and throws if that number is zero. All arms mutate the
 raw JSON *before* the registry loads, because `GetProgramData` inflates a fresh object per call and
 mutating after load is a silent no-op.
+
+---
+
+# Resolution — CLOSED 2026-09-04
+
+Henry ruled on this by commissioning ticket 136, whose own header calls itself *"the review of
+134/135"*. This ticket's finding was the load-bearing one and it held: **there is no global
+multiplier that puts the roster back in band, because the roster did not go out of band for a
+global reason.** Every one of the five economy-wide knobs was rejected, and what actually worked
+was per-deck work — four rounds of it.
+
+Two specific things from here were carried forward rather than dropped:
+- the PCTNERF arm had skipped Poison, Regen and Bark Shield; the correctness half of that became
+  ticket 136b (Regen 3% → 2%) and the rest became the flat-number DoT/heal/shield ticket.
+- HPFRAME was WITHDRAWN by ruling — a hidden ÷1.5 on percentage effects is hidden math, and Henry
+  does not ship hidden math. Its measurement grid survives as a map of which effects are
+  mispriced; the fix is visible numbers.
+
+Result of the work this ticket opened: sd 19.4 → **8.6**, in band 22/32 → **31/32**.

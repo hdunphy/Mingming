@@ -1,6 +1,6 @@
 # Ticket 135 — targeted +1 energy, and the first 3v3 numbers
 
-**Status:** measured, awaiting Henry's ruling
+**Status:** CLOSED 2026-09-04 — ruled; the targeted-energy half shipped in 136d, the 3v3 half moved to ticket 140.
 **Branch:** `legion/ai-perf`
 **Asked by Henry:** *"can you see what happens if you give 1e extra to all of the decks that are
 under performing... give me the 3v3 numbers... report on both when you're done"*
@@ -209,3 +209,21 @@ npx vite-node scratch/trioprobe.ts -- --beam 8 --iter 2     # the cost measureme
 Results land in `results/energyarm/` and `results/trio3v3/`. Both runners are resumable and both
 assert their arm took effect — `energygrid` re-derives the buff set independently of the shard and
 throws on disagreement; `trio3v3` throws if the beam pruned nothing.
+
+---
+
+# Resolution — CLOSED 2026-09-04
+
+Ruled through ticket 136, which its header names as a review of 134/135.
+
+**Part one — targeted +1 energy — shipped, but narrowed.** Henry did not take the blanket +1 to
+all nine underperformers. What shipped in **136d** was three species stats moved by a single point
+each, in BOTH directions: ratatoskr Energy 3 → 2, fafnir 2 → 3, draugr 2 → 3 with cardDraw 4 → 3.
+That is this ticket's instrument used as a scalpel rather than a blanket, and it rescued five deck
+slots (fafnir 19/18 → 54/34, draugr 29/54 → 52/65) while taking ratatoskr DOWN from 75/78.
+
+**Part two — the 3v3 numbers — superseded by ticket 140**, which has the wider comp measurements
+and the beamless-3v3 cost reduction that makes them affordable to repeat.
+
+Everything in the 1v1 roster this ticket measured against has since been re-measured seven times;
+its tables are historical.
