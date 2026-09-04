@@ -673,3 +673,89 @@ SHAPE because a cheaper step fits more casts under an unchanged ceiling:
    ceilings (Talon 25 × ≤4 Burn, because Burn caps at 4; Corroded Edge 20 × 3–4 statuses) and the
    sim gate decides them. Deliberately given no `ASSUMED_` constant: every one of those came from
    ticket 66's census of real battles, and neither pile has been measured.
+
+---
+
+# ROUND THREE — SHIPPED 2026-09-04, five commits on `legion/ai-perf`
+
+Implemented from `tickets/136-ROUND3-PROMPT.md`. **136s (audhumbla_v2) was skipped on Henry's
+instruction** — see below, because the measurement turned that into the most interesting row on the
+grid.
+
+| commit | ticket | what shipped |
+|---|---|---|
+| `7b825da` | 136o | ymir_v2: three new 2e Ice cards, deck is 8 cards and every one costs 2 |
+| `2e27ff5` | 136p | gullinbursti_v2: `keen_strike` + `pebble_flurry`, deck swaps, OS text carries the number |
+| `da9d685` | 136q | hel_v1: `STANCE_BONUS` 0.35 → 0.45, and the OS text that still said 30% |
+| `8ca6cf1` | 136r | skoll_v1: `sun_devourer` 15 → 20 per stack |
+| `9e331f1` | 136t | valkyrie_v2: `falling_star` 40 → 50, `starfall` text |
+| — | 136s | **SKIPPED** (audhumbla_v2), Henry |
+
+Gates on every commit: `npx tsc -b` clean, `npx vitest run` **2139 passed / 159 files**,
+`npx eslint .` clean.
+
+## The grid (`results/rebaseline-r3/`, promoted)
+
+|  | mean | sd | in band |
+|---|---|---|---|
+| round two | 49.9 | 12.0 | 26/32 |
+| ticket 137 | 49.9 | 11.5 | 27/32 |
+| **round three** | **49.9** | **9.7** | **30/32** |
+
+Accept was ±5 per deck and ≥29/32. **Max deviation 2.44, nothing outside ±5, 30 in band.** For
+scale, the pre-131 roster sat at sd 9.2 / 31 of 32.
+
+The two still out are the two the prompt named and ruled: **skoll_v1 34.61** (a 3v3 deck, not to be
+pushed) and **valkyrie_v2 24.95** (Ascension stays, no second Glimmer — a second Glimmer measured 91,
+a full-cycle loop, and that is next session).
+
+## The base was not what the prompt assumed, and it did not matter — except once
+
+The prompt states its base as `c9fdb74` (post round two) and says *"Ticket 137 (AI Regen constant)
+still lands AFTER this round."* **137 had already shipped** (`735c77a` / `e2c1513`) before this round
+started, so every row below was measured on a build the design session did not have. Two rows carry
+that, and both are explainable rather than noise:
+
+- **huldra_v1 53.76 against a 56.2 target, −2.44 — the round's only deck over 2 points off.** Ticket
+  137 measured huldra_v1 at −2.72 on its own. This is that, and nothing else.
+- **audhumbla_v2 landed at 43.42 against a 43.2 target — WITHOUT 136s.** 136s was the change designed
+  to take her from 28.5 to 43.2 (`drink_deep` 15 → 18). Ticket 137 had already taken her from 28.5 to
+  **43.65** by correcting the AI's Regen valuation, because `drink_deep` is the card that CASHES a
+  Regen pile and an eval that over-values holding one will not cash it. **Had 136s shipped as well,
+  the two would have stacked.** Henry's "ignore audhumbla" was the right call and the grid puts a
+  number on it.
+
+Every other deck is within 0.55 of target, so 137's effect on the rest of the roster is inside the
+noise the ±5 band was written for.
+
+## Test assertions changed, quoted
+
+**136q, `StanceSystem.test.ts`** — deliberate, this ticket's change:
+- `it("are 35% both ways")` → `it("are 45% both ways")`
+- `expect(STANCE_BONUS.dark).toBe(0.35)` → `.toBe(0.45)`; same for `.light`
+
+Every other stance assertion in that file already derives from `STANCE_BONUS` rather than pinning a
+literal, so none of them moved. **`TacticalAI` needed no edit either — it has read `STANCE_BONUS`
+since ticket 78**, which is the pattern ticket 137 had just finished writing up.
+
+**136t, `drawScaling.test.ts`**:
+- `expect(GetProgramData('starfall')!.description).toContain('card, OS or daemon');` →
+  `.toContain('an effect drew you');`
+
+What that assertion is for is that the card's text tells the player the count excludes the
+draw-phase refill, and the new wording says it as well as the old list did.
+
+136o, 136p and 136r moved no assertion.
+
+## Findings, reported not fixed
+
+1. **`ink_stream` still carries the phrasing Henry cut from `starfall`** — "for each card a card, OS
+   or daemon drew you this turn", the same stumble, on the other carrier card for the same mechanic.
+   The two now word one mechanic two ways. Only starfall was ruled on. Recorded in
+   `drawScaling.test.ts` next to the assertion.
+2. **hel_v1's OS text was wrong before this round and by more than one number.** It said 30% while
+   the code had said 35% for some time; 136q makes both 45%. That is ticket 138's defect class and
+   exactly what ticket 139 proposes to make a test catch.
+3. The prompt's prose for 136o says "one Ice Spear, one Numbing Gale and the 1e Thaw leave", but its
+   deck list — the authoritative half — drops **both** copies of each, taking ymir_v2 from ten cards
+   to eight. Eight is `MIN_DECK_SIZE` exactly; `baseDecks.test.ts` holds that floor and is green.

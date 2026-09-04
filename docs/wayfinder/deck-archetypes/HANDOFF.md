@@ -184,6 +184,21 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
+**136-ROUND-THREE SHIPPED 2026-09-04** (`7b825da`..`9e331f1`, grid promoted with the docs).
+136o-136t, **136s skipped by Henry**. **sd 11.5 -> 9.7, 30/32 in band, max deviation from target
+2.44.** Pre-131 was sd 9.2 / 31 of 32, so the roster is essentially back. **The two still out are
+RULED, not failures:** skoll_v1 34.6 (3v3 deck, do not push her) and valkyrie_v2 24.9 - and
+valkyrie_v2 is the NEXT SESSION: Ascension stays and a second Glimmer is off the table, it measured
+91, a full-cycle loop of the ticket-111 family.
+
+**THE ROUND MEASURED ITS OWN CONFOUND, and it is the thing to remember.** The round-3 prompt was
+written against a base that predated ticket 137 and says 137 lands after. It had already landed.
+**audhumbla_v2 hit her 43.2 target WITHOUT 136s** - 137's Regen fix had already delivered the same
++15, because `drink_deep` CASHES a Regen pile and an eval that over-values holding one will not
+cash it. Shipping both would have stacked and overshot. huldra_v1 is the only deck more than 2
+points off target (-2.44) and that is exactly 137's measured -2.72 on her. **Lesson for the next
+design session: state the base commit AND check it is still HEAD before measuring targets.**
+
 **136-ROUND-TWO SHIPPED 2026-09-03.** 136h-136n landed (`0b7504b`..`45e2451`, grid promoted in the
 docs commit that follows them) and **all 32 decks reproduced their predicted number to within 0.05: sd 15.0 -> 12.0,
 mean 49.9, 26/32 in band.** All six round-one stragglers are in band - fenrir_v1 58.2, sleipnir_v2
