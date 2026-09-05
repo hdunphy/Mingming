@@ -178,12 +178,46 @@ const spanText = (html: string, classPattern: string): string => {
     return found === null ? '' : found[1];
 };
 
-const tilesIn = (markup: string, grid: 'mk-grid' | 'mk-macros' = 'mk-grid'): Tile[] => {
-    // The two grids are the same tile markup, so a case about macros has to scope itself to the
-    // macro grid or it will happily assert about a card. `mk-macros` is the second grid's extra
-    // class; slicing at it splits the stock shelf from the macro shelf.
+/**
+ * The CARD tiles, and only those.
+ *
+ * The macro shelf used to be this same markup at a shorter height, so this helper took a `grid`
+ * argument to say which half of the screen it meant. Since 2026-09-04 a macro is not a card tile at
+ * all (`.mk-macro`, see `macroTilesIn`), so the argument is gone and the cut has one job: stop
+ * before the macro shelf so a card case can never read a macro.
+ */
+/** One macro offer, as the shelf now draws it: a rack slot, not a card. */
+interface MacroTile {
+    readonly html: string;
+    readonly name: string;
+    readonly description: string;
+    /** `32 scrap`, `32 scrap · 12 SHORT`, or `RACK FULL`. */
+    readonly plate: string;
+    /** The chips under the name — `SINGLE USE · FIRES FREE`, `RARE`, `IN RACK ×2`. */
+    readonly chips: ReadonlyArray<string>;
+    readonly disabled: boolean;
+}
+
+const macroTilesIn = (markup: string): MacroTile[] => {
+    const scoped = markup.slice(markup.indexOf('mk-macros'));
+    return [...scoped.matchAll(/<button[^>]*class="mk-macro[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
+        html,
+        name: spanText(html, 'mk-macro-nm'),
+        description: spanText(html, 'mk-macro-desc'),
+        plate: spanText(html, 'mk-macro-price'),
+        chips: [...html.matchAll(/<span class="mk-macro-(?:use|rare|held)">([\s\S]*?)<\/span>/g)]
+            .map((m) => m[1].trim()),
+        disabled: /<button[^>]*disabled=""/.test(html),
+    }));
+};
+
+/** The three rack slots the shelf draws above the stock — `['Surge', 'empty', 'empty']`. */
+const rackIn = (markup: string): string[] =>
+    [...markup.matchAll(/<span class="mk-rack-nm">([\s\S]*?)<\/span>/g)].map((m) => m[1]);
+
+const tilesIn = (markup: string): Tile[] => {
     const cut = markup.indexOf('mk-macros');
-    const scoped = grid === 'mk-macros' ? markup.slice(cut) : markup.slice(0, cut);
+    const scoped = markup.slice(0, cut);
     return [...scoped.matchAll(/<button[^>]*class="rs-card[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
         html,
         // Ticket 66: the cost gem is an energy PIP rack now. The rack's `aria-label` is the
@@ -466,7 +500,7 @@ describe('MarketplaceNode', () => {
         const run = makeRun(400);
         const macros = macrosFor(run);
         const markup = render(run);
-        const tiles = tilesIn(markup, 'mk-macros');
+        const tiles = macroTilesIn(markup);
 
         expect(macros.length).toBeGreaterThan(0);
         expect(tiles).toHaveLength(macros.length);
@@ -475,16 +509,96 @@ describe('MarketplaceNode', () => {
             expect(tiles[i].description).toBe(escapeHtml(MacroRegistry[offer.macroId].description));
             expect(tiles[i].plate).toBe(`${offer.price} scrap`);
             expect(tiles[i].disabled).toBe(false);
-            // The type mark is what distinguishes a macro tile from a card tile at a glance —
-            // ticket 66 gives it its own (`●`). A macro has no energy cost at all, because it is
-            // fired free on your turn, so its rack is the same single unfilled slot a 0-cost card
-            // shows.
-            expect(tiles[i].banner).toBe('MACRO');
-            expect(tiles[i].gem).toBe('0 energy');
+            // The two facts that make it a macro rather than a card, printed on the face.
+            expect(tiles[i].chips).toContain('SINGLE USE · FIRES FREE');
             expect(offer.price).toBe(macroPrice(offer.macroId));
         });
         // The rack is the brake on buying them, so the rack's state is on the shelf's own heading.
         expect(markup).toContain(`MACROS · ${MACRO_SLOTS}/${MACRO_SLOTS} slots free`);
+    });
+
+    /**
+     * A MACRO TILE IS NOT A CARD TILE — Henry, 2026-09-04 playtest: *"first it looks like a card,
+     * it needs a different style."*
+     *
+     * It wore `rs-card`, ticket 66's card chassis, and the chassis is a promise: energy pips, art,
+     * a place in the deck. A macro has none of those — it is a consumable in a three-slot rack,
+     * fired free and gone. The `●` type mark could not out-argue a silhouette the player has
+     * already learned means "card".
+     *
+     * Asserted as an ABSENCE, because that is what regressed: the fix is only real for as long as
+     * the card chassis stays off this shelf, and the cheapest way to undo it is to reach for
+     * `EnergyPips` again because the tile looked bare.
+     */
+    it('draws macros as rack slots, with none of the card chassis on them', () => {
+        const markup = render(makeRun(400));
+        // The shelf ONLY — from the macro grid to the sell column. Slicing to the end of the
+        // document would put the sell panel inside the assertion and make this case fail for
+        // something happening on the other side of the screen.
+        const shelf = markup.slice(markup.indexOf('mk-macros'), markup.indexOf('mk-sell'));
+
+        expect(macroTilesIn(markup).length).toBeGreaterThan(0);
+        expect(shelf).toContain('mk-macro');
+        for (const chassis of ['rs-card', 'rs-pips', 'rs-art', 'rs-typ', 'rs-elbar', 'energy']) {
+            expect(shelf, `the macro shelf must not wear \`${chassis}\``).not.toContain(chassis);
+        }
+    });
+
+    /**
+     * THE RACK IS ON THE SHELF YOU BUY FROM — the other half of the same report: *"I also don't
+     * see it on the screen in my inventory."*
+     *
+     * The purchase was working; the shop just never showed it. A bought card lands in a list on the
+     * same screen and its tile goes SOLD, while a bought macro changed one number in a heading and
+     * put the thing itself on a screen the player would not see again until they left the shop —
+     * which is indistinguishable from a purchase that silently failed.
+     */
+    it('draws the three rack slots, filled and empty, so a purchase visibly lands', () => {
+        const empty = rackIn(render(makeRun(400)));
+        expect(empty).toEqual(['empty', 'empty', 'empty']);
+
+        const holding = rackIn(render(makeRun(400, { macros: ['surge', null, null] })));
+        expect(holding[0]).toBe(MacroRegistry.surge.name);
+        expect(holding.slice(1)).toEqual(['empty', 'empty']);
+
+        // And the offer for something already racked says so, rather than looking unbought. The
+        // held macro is taken FROM the rolled stock rather than named: `surge` is not on every
+        // shelf, and a case that silently skipped itself when the roll came up otherwise would be
+        // the same missing feedback this test exists to pin.
+        const offered = macrosFor(makeRun(400))[0].macroId;
+        const withOne = makeRun(400, { macros: [offered, null, null] });
+        expect(macrosFor(withOne).map((o) => o.macroId), 'holding one must not re-roll the shelf')
+            .toContain(offered);
+
+        const tile = macroTilesIn(render(withOne)).find((t) => t.name === MacroRegistry[offered].name);
+        expect(tile?.chips).toContain('IN RACK');
+    });
+
+    /**
+     * ONE OF EACH, AND ONCE YOU BUY IT IT IS GONE — RULED by Henry, 2026-09-04.
+     *
+     * The stock roll already draws distinct ids (`drawDistinct`), so the shelf never listed the same
+     * macro twice; what it did was keep selling the one it had. A card offer answers this with its
+     * minted `instanceId` and goes SOLD; a macro has no instance, so holding one IS having bought it
+     * (`macroOfferBlockFor`) — derived, and out of the save file for the same reason the card rule is.
+     */
+    it('sells one of each: a macro you are carrying reads SOLD and cannot be bought again', () => {
+        const offered = macrosFor(makeRun(400))[0].macroId;
+        const markup = render(makeRun(400, { macros: [offered, null, null] }));
+        const tile = macroTilesIn(markup).find((t) => t.name === MacroRegistry[offered].name);
+
+        expect(tile, 'the sold macro stays on the shelf, greyed — a vanished row reads as a bug')
+            .toBeDefined();
+        expect(tile!.plate).toBe('SOLD');
+        expect(tile!.disabled).toBe(true);
+        expect(tile!.html).toContain('mk-macro');
+        expect(tile!.html).toContain('sold');
+
+        // The OTHER offers on the same shelf are untouched — one slot sold out, not the shop.
+        const others = macroTilesIn(markup).filter((t) => t.name !== MacroRegistry[offered].name);
+        expect(others.length).toBeGreaterThan(0);
+        expect(others.every((t) => t.plate.endsWith('scrap'))).toBe(true);
+        expect(others.every((t) => !t.disabled)).toBe(true);
     });
 
     it('refuses a macro purchase with a REASON when the rack is full', () => {
@@ -493,12 +607,16 @@ describe('MarketplaceNode', () => {
         // so the sentence has to be here, on the dead tile itself, where the player is pressing.
         const run = makeRun(400, { macros: ['surge', 'mend', 'kindle'] });
         const markup = render(run);
-        const tiles = tilesIn(markup, 'mk-macros');
+        const tiles = macroTilesIn(markup);
 
         expect(tiles.length).toBeGreaterThan(0);
         expect(tiles.every((t) => t.plate === 'RACK FULL')).toBe(true);
         expect(tiles.every((t) => t.disabled)).toBe(true);
         expect(markup).toContain(`MACROS · 0/${MACRO_SLOTS} slots free`);
+        // A full rack is also the one state where the drawn rack answers "why" without a sentence.
+        expect(rackIn(markup)).toEqual([
+            MacroRegistry.surge.name, MacroRegistry.mend.name, MacroRegistry.kindle.name,
+        ]);
     });
 
     it('lists the deck AND the collection under one sell header, one row per unique card per pile', () => {
