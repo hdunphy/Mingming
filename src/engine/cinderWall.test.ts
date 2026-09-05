@@ -149,10 +149,19 @@ describe('ticket 128 - why a working CINDER_WALL shows no Sharp', () => {
         expect(after.logs.some(l => l.includes('feeds on the flames'))).toBe(true);
     });
 
-    it('A DIFFERENT BODY CAST IT. At 3v3 the deck is shared, and the OS pays only its owner', () => {
-        // The hook is gated `when: { source: SELF }`, so it fires for the unit that APPLIED the
-        // Burn. At 3v3 one shared pile is drawn across the whole party and the player picks the
-        // caster, so an `ignite` cast off an ally spends the card and pays Fenrir nothing.
+    it('A DIFFERENT BODY CASTING IT NOW PAYS HIM (ticket 141c reversed this)', () => {
+        // THIS TEST USED TO ASSERT THE OPPOSITE, and the assertion was correct at the time: the
+        // hook was gated `source: SELF`, so an `ignite` cast off an ally spent the card and paid
+        // Fenrir nothing. Ticket 128 filed that as one of the two silent ways a working
+        // CINDER_WALL shows no Sharp.
+        //
+        // Ticket 140's width grid then measured what that gating costs across the whole roster:
+        // with one shared pile drawn three ways, a self-gated per-card firmware fires at a
+        // quarter to a half its 1v1 rate, which is the mechanical reason adding a second body
+        // feels bad. 141c opens the trigger to `source: ALLY` — same side, owner included — so
+        // 1v1 is unchanged to the decimal and two Burn bodies stop competing for the 4-stack cap
+        // and start feeding him instead. The old behaviour is preserved here as history, not as a
+        // rule.
         const ALLY = 'p_ally';
         const base = stateWith('ignite');
         const threeUp: IBattleState = {
@@ -167,11 +176,30 @@ describe('ticket 128 - why a working CINDER_WALL shows no Sharp', () => {
         } as never);
 
         expect(stacksOf(after.enemyParty[0], StatusType.Burn), 'the ally still burned the foe').toBe(1);
-        expect(stacksOf(after.playerParty[0], StatusType.Sharp), 'Fenrir was paid for someone else\'s cast').toBe(0);
-        expect(stacksOf(after.playerParty[1], StatusType.Sharp), 'and so was the ally').toBe(0);
-        // AND THE OS SAYS NOTHING AT ALL. Together with the duality case above this is a clean
-        // discriminator in the combat log: "feeds on the flames" with no Sharp means Dazed ate it;
-        // no line at all means the wrong body cast the card.
+        expect(stacksOf(after.playerParty[0], StatusType.Sharp), 'Fenrir is paid for the ally\'s cast').toBe(1);
+        // The OS pays its OWNER, not the caster — that is the whole rule of ticket 141, and it is
+        // what keeps an ally trigger from turning every firmware into a side-wide aura.
+        expect(stacksOf(after.playerParty[1], StatusType.Sharp), 'the ally is paid nothing').toBe(0);
+        expect(after.logs.some(l => l.includes('feeds on the flames'))).toBe(true);
+    });
+
+    it('AN ENEMY BURNING SOMETHING PAYS HIM NOTHING — the trigger is his SIDE, not the board', () => {
+        const base = stateWith('ignite');
+        const enemyCasts: IBattleState = {
+            ...base,
+            activeSide: 'ENEMY',
+            enemyDeck: {
+                ownerId: 'ENEMY', deck: [], drawpile: [], discard: [], exhaust: [],
+                hand: [{ id: 'e1c', dataId: 'ignite', currentCost: 0, isPlayable: true } as ProgramEntity],
+            },
+        };
+        const after = battleReducer(enemyCasts, {
+            type: 'PLAY_PROGRAM', payload: { sourceId: FOE, targetId: FENRIR, programId: 'e1c' },
+        } as never);
+
+        expect(stacksOf(after.playerParty[0], StatusType.Burn), 'the enemy did burn him').toBe(1);
+        expect(stacksOf(after.playerParty[0], StatusType.Sharp), 'and he gained nothing for it').toBe(0);
         expect(after.logs.some(l => l.includes('feeds on the flames'))).toBe(false);
     });
+
 });

@@ -108,3 +108,268 @@ describe('141a — ABYSSAL_INK pays one enemy, not the side', () => {
         expect(state.enemyParty.every(e => stacks(e, 'Dazed') === 0)).toBe(true);
     });
 });
+
+describe('141b — allies\' attacks feed fenrir_v1, and only his own cost him HP', () => {
+    it('his own attack still nets 2 Strengthened and 2% recoil — 1v1 is unchanged to the decimal', () => {
+        // Both hooks match his own cast (ALLY includes the owner), so 1+1 = the 2 he always had.
+        const state = play({
+            playerOS: ['fenrir_v1', undefined, undefined],
+            dataId: 'fire_poke', casterId: 'p1', targetId: 'e1',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(2);
+        expect(state.playerParty[0].currentHp).toBe(FRAME - Math.floor(FRAME * 0.02));
+    });
+
+    it('an ally\'s attack pays 1 Strengthened and costs Fenrir nothing', () => {
+        const state = play({
+            playerOS: ['fenrir_v1', undefined, undefined],
+            dataId: 'fire_poke', casterId: 'p2', targetId: 'e1',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(1);
+        expect(state.playerParty[0].currentHp, 'the recoil is a price for his OWN cast').toBe(FRAME);
+    });
+
+    it('an enemy attacking pays him nothing', () => {
+        const state = play({
+            playerOS: ['fenrir_v1', undefined, undefined],
+            dataId: 'fire_poke', casterId: 'e1', targetId: 'p2',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(0);
+    });
+});
+
+describe('141d — allies\' Fire attacks charge skoll_v2', () => {
+    it('an ally\'s Fire attack gives her 1 Strengthened', () => {
+        const state = play({
+            playerOS: ['skoll_v2', undefined, undefined],
+            dataId: 'fire_poke', casterId: 'p2', targetId: 'e1',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(1);
+    });
+
+    it('a NON-Fire attack does not — the element gate is the whole point of the row', () => {
+        const state = play({
+            playerOS: ['skoll_v2', undefined, undefined],
+            dataId: 'baseline_jab', casterId: 'p2', targetId: 'e1',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(0);
+    });
+
+    it('an enemy\'s Fire attack does not', () => {
+        const state = play({
+            playerOS: ['skoll_v2', undefined, undefined],
+            dataId: 'fire_poke', casterId: 'e1', targetId: 'p2',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(0);
+    });
+});
+
+describe('141e — skoll_v1 keeps her 1-stack trigger; the PAYOFF card is the knob', () => {
+    /*
+     * WHY THIS ROW LOOKS LIKE A CARD CHANGE AND NOT A HOOK CHANGE. TREACHERY was already
+     * ally-triggered — she is the one firmware in the roster that ticket 141 had nothing to open —
+     * so the row was a pure 1v1 rescue for a deck sitting at 34.4. The ticket offered two arms:
+     * e1 doubled the trigger to 2 Strengthened, e2 left the trigger alone and paid more per stack
+     * on `sun_devourer`. Measured, e1 overshot to 61.9 — above the 45-60 gate — exactly as the
+     * ticket predicted it might, because an enemy attacking two or three times a turn is +4-6
+     * uncapped Strength a turn. e2 ships.
+     *
+     * The ticket guessed 25 power a stack for e2 and that undershot at 41.9. 30 measures 49.1,
+     * which is inside the gate and as close to 50 as this knob gets in fives.
+     */
+    it('an enemy attack on an ally gives her 1 Strengthened — the trigger is unchanged', () => {
+        const state = play({
+            playerOS: ['skoll_v1', undefined, undefined],
+            dataId: 'baseline_jab', casterId: 'e1', targetId: 'p2',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(1);
+    });
+
+    it('her own side hitting the enemy gives her nothing', () => {
+        const state = play({
+            playerOS: ['skoll_v1', undefined, undefined],
+            dataId: 'baseline_jab', casterId: 'p2', targetId: 'e1',
+        });
+        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(0);
+    });
+
+    it('sun_devourer pays 30 a stack — the measured number, not the ticket\'s guess of 25', () => {
+        const card = ProgramRegistry.sun_devourer;
+        const hit = card.actions.find(a => a.type === 'ATTACK');
+        expect(hit?.power).toBe(30);
+        expect(hit?.scaling).toBe('STATUS_CONSUMED');
+        expect(card.description).toContain('30 power per stack consumed');
+    });
+
+    it('and it still scales with the pile it eats', () => {
+        const damageAt = (strength: number): number => {
+            const skoll = createSparseEntity({
+                id: 'p1', name: 'Skoll', activeOS: 'skoll_v1',
+                currentHp: FRAME, maxHp: FRAME, currentEnergy: 5, maxEnergy: 5,
+                statusEffects: [{ id: 's', type: 'Strengthened', stacks: strength }] as never,
+            });
+            const before: IBattleState = createSparseBattleState({
+                activeSide: 'PLAYER', phase: 'ACTION',
+                playerParty: [skoll],
+                enemyParty: [unit('e1', 'Foe')],
+                playerDeck: {
+                    ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
+                    hand: [{ id: 'h1', dataId: 'sun_devourer', currentCost: 2, isPlayable: true }],
+                },
+            });
+            const after = battleReducer(before, {
+                type: 'PLAY_PROGRAM', payload: { sourceId: 'p1', targetId: 'e1', programId: 'h1' },
+            } as never);
+            return FRAME - after.enemyParty[0].currentHp;
+        };
+        expect(damageAt(8)).toBeGreaterThan(damageAt(4));
+        expect(damageAt(4)).toBeGreaterThan(0);
+    });
+});
+
+describe('141f — huldra_v1 mirrors an ALLY\'s buff, and still refuses a debuff', () => {
+    it('an ally buffing themselves twice puts 2 Weakened on the enemy side', () => {
+        // iron_bark is two applications (3 Sharp, 2 Regen), so the mirror fires twice — the
+        // payoff stays single-target, which is why this is 2 stacks and not 6.
+        const state = play({
+            playerOS: ['huldra_v1', undefined, undefined],
+            dataId: 'iron_bark', casterId: 'p2', targetId: 'p2',
+        });
+        expect(state.enemyParty.reduce((n, e) => n + stacks(e, 'Weakened'), 0)).toBe(2);
+    });
+
+    it('an ally applying a DEBUFF to themselves does not — the ticket-107 guard', () => {
+        // scald is the case the guard exists for: it Dazes its own caster. Without
+        // statusAppliedNotIn, opening the trigger to the side would have turned every self-cost
+        // in the game into free Weakened.
+        const state = play({
+            playerOS: ['huldra_v1', undefined, undefined],
+            dataId: 'scald', casterId: 'p2', targetId: 'e1',
+        });
+        expect(state.enemyParty.reduce((n, e) => n + stacks(e, 'Weakened'), 0)).toBe(0);
+    });
+
+    it('an ENEMY buffing themselves does not', () => {
+        const state = play({
+            playerOS: ['huldra_v1', undefined, undefined],
+            dataId: 'iron_bark', casterId: 'e1', targetId: 'e1',
+        });
+        expect(state.enemyParty.reduce((n, e) => n + stacks(e, 'Weakened'), 0)).toBe(0);
+    });
+});
+
+describe('141h — GOSSIP_NODE heals the ally who played the free card', () => {
+    it('the CASTER is healed, not the whole side', () => {
+        const hurt = (e: IBattleEntity): IBattleEntity => ({ ...e, currentHp: FRAME / 2 });
+        let state: IBattleState = createSparseBattleState({
+            activeSide: 'PLAYER', phase: 'ACTION',
+            playerParty: [
+                hurt(unit('p1', 'Ratatoskr', 'ratatoskr_v1')),
+                hurt(unit('p2', 'Ally')),
+                hurt(unit('p3', 'Other')),
+            ],
+            enemyParty: [unit('e1', 'Foe')],
+            playerDeck: {
+                ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
+                hand: [{ id: 'h1', dataId: 'water_slap', currentCost: 0, isPlayable: true }],
+            },
+        });
+        state = battleReducer(state, {
+            type: 'PLAY_PROGRAM', payload: { sourceId: 'p2', targetId: 'e1', programId: 'h1' },
+        } as never);
+
+        // 2.5% of a 1000 frame = 25.
+        expect(state.playerParty[1].currentHp).toBe(FRAME / 2 + 25);
+        expect(state.playerParty[0].currentHp, 'Ratatoskr is not paid for it').toBe(FRAME / 2);
+        expect(state.playerParty[2].currentHp, 'and neither is the third body').toBe(FRAME / 2);
+    });
+});
+
+describe('141i — INSTIGATOR reads any ally\'s free card', () => {
+    it('an ally\'s 0-cost at an enemy Dazes that enemy', () => {
+        const state = play({
+            playerOS: ['ratatoskr_v2', undefined, undefined],
+            dataId: 'baseline_jab', casterId: 'p2', targetId: 'e2',
+        });
+        expect(stacks(state.enemyParty[1], 'Dazed')).toBe(1);
+        expect(stacks(state.enemyParty[0], 'Dazed'), 'the payoff stays on the target').toBe(0);
+    });
+
+    it('an ally\'s 1-cost card does not', () => {
+        const state = play({
+            playerOS: ['ratatoskr_v2', undefined, undefined],
+            dataId: 'fire_poke', casterId: 'p2', targetId: 'e2',
+        });
+        expect(stacks(state.enemyParty[1], 'Dazed')).toBe(0);
+    });
+});
+
+describe('141j — OUROBOROS counts the SIDE\'s Water cards', () => {
+    it('five Water cards spread across three bodies draws for Jormungandr', () => {
+        const hand = Array.from({ length: 5 }, (_, i) => (
+            { id: `w${i}`, dataId: 'scald', currentCost: 0, isPlayable: true }
+        ));
+        let state: IBattleState = createSparseBattleState({
+            activeSide: 'PLAYER', phase: 'ACTION',
+            playerParty: [unit('p1', 'Jormungandr', 'jormungandr_v1'), unit('p2', 'Ally'), unit('p3', 'Other')],
+            enemyParty: [unit('e1', 'Foe')],
+            playerDeck: {
+                ownerId: 'PLAYER', deck: [], drawpile: [{ id: 'd1', dataId: 'baseline_jab', currentCost: 0, isPlayable: true }],
+                discard: [], exhaust: [], hand,
+            },
+        });
+        // p2, p3, p2, p3 — four Water cards from bodies that are NOT the owner, then his own fifth.
+        for (const [i, caster] of ['p2', 'p3', 'p2', 'p3', 'p1'].entries()) {
+            state = battleReducer(state, {
+                type: 'PLAY_PROGRAM', payload: { sourceId: caster, targetId: 'e1', programId: `w${i}` },
+            } as never);
+        }
+        expect(state.logs.some(l => l.includes('OUROBOROS_LOOP triggers'))).toBe(true);
+        expect(state.playerDeck.drawpile, 'the draw is his, and it happened').toHaveLength(0);
+    });
+
+    it('four is not five', () => {
+        const hand = Array.from({ length: 4 }, (_, i) => (
+            { id: `w${i}`, dataId: 'scald', currentCost: 0, isPlayable: true }
+        ));
+        let state: IBattleState = createSparseBattleState({
+            activeSide: 'PLAYER', phase: 'ACTION',
+            playerParty: [unit('p1', 'Jormungandr', 'jormungandr_v1'), unit('p2', 'Ally'), unit('p3', 'Other')],
+            enemyParty: [unit('e1', 'Foe')],
+            playerDeck: {
+                ownerId: 'PLAYER', deck: [], drawpile: [{ id: 'd1', dataId: 'baseline_jab', currentCost: 0, isPlayable: true }],
+                discard: [], exhaust: [], hand,
+            },
+        });
+        for (const [i, caster] of ['p2', 'p3', 'p2', 'p3'].entries()) {
+            state = battleReducer(state, {
+                type: 'PLAY_PROGRAM', payload: { sourceId: caster, targetId: 'e1', programId: `w${i}` },
+            } as never);
+        }
+        expect(state.logs.some(l => l.includes('OUROBOROS_LOOP triggers'))).toBe(false);
+    });
+});
+
+describe('141g — the BARK_SHIELD wall covers the side', () => {
+    it('Huldra takes 50 and each living ally takes 25, once', () => {
+        let state: IBattleState = createSparseBattleState({
+            activeSide: 'PLAYER', phase: 'ACTION',
+            playerParty: [unit('p1', 'Huldra', 'huldra_v2'), unit('p2', 'Ally'), unit('p3', 'Other')],
+            enemyParty: [unit('e1', 'Foe'), unit('e2', 'Foe B')],
+            playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [], hand: [] },
+        });
+        expect(state.playerParty[0].statusEffects.find(s => s.type === 'BarkShield')).toBeUndefined();
+
+        state = battleReducer(state, { type: 'END_TURN' } as never);
+        expect(stacks(state.playerParty[0], 'BarkShield')).toBe(50);
+        expect(stacks(state.playerParty[1], 'BarkShield')).toBe(25);
+        expect(stacks(state.playerParty[2], 'BarkShield')).toBe(25);
+        expect(state.enemyParty.every(e => stacks(e, 'BarkShield') === 0), 'never the other side').toBe(true);
+
+        // Once per battle: the guard counter is shared with the ally grant, so a full round must
+        // not re-shield anybody.
+        state = battleReducer(state, { type: 'END_TURN' } as never);
+        state = battleReducer(state, { type: 'END_TURN' } as never);
+        expect(state.logs.filter(l => l.includes('BARK_SHIELD_OS activates'))).toHaveLength(1);
+    });
+});
