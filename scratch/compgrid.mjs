@@ -35,6 +35,7 @@
  *   node scratch/compgrid.mjs --rounds 2           # stop after round 2 (a quick screen)
  *   node scratch/compgrid.mjs --limit 3 --panel-iters 1 --rounds 1 --lanes 2   # 2-minute smoke test
  *   node scratch/compgrid.mjs --comps top30.txt --rounds 1 --outdir results/compgrid_armB   # ticket 141 arm
+ *   node scratch/compgrid.mjs --comps ffn.txt --panel a+b+c,d+e+f --rounds 1 --panel-iters 0 --outdir results/gymcheck
  *
  * COST. Measured: one beamless 3v3 battle is ~70s on the (slow, 2-core) container that wrote this;
  * expect 25-40s on a desktop core. The default schedule is ~7,000 battles = 50-80 lane-hours, so
@@ -56,7 +57,8 @@ const LANES = Number(arg('lanes', String(Math.max(1, os.cpus().length - 1))));
 const MAX_ROUNDS = Number(arg('rounds', '4'));
 const OUTDIR = arg('outdir', 'results/compgrid');
 const LIMIT = Number(arg('limit', '0'));          // smoke testing: only the first N comps
-const COMPS_FILE = arg('comps', '');              // ticket 141: screen a fixed list (one comp id per line) instead of enumerating
+const COMPS_FILE = arg('comps', '');
+const PANEL_ARG = arg('panel', '');                // ticket 141 gym check: comma-separated comp ids to score against instead of the t.140 panel              // ticket 141: screen a fixed list (one comp id per line) instead of enumerating
 const PANEL_ITERS = Number(arg('panel-iters', '20'));
 const RESULTS = path.join(OUTDIR, 'results.jsonl');
 fs.mkdirSync(OUTDIR, { recursive: true });
@@ -69,7 +71,7 @@ const ELEMENT = {
 };
 const FW = Object.keys(ELEMENT);
 
-/** Ticket 140's panel: the three archetype comps and two "three solo decks" references. */
+/** Ticket 140's panel: the three archetype comps and two "three solo decks" references. `--panel` replaces it. */
 const PANEL = {
     zoo_gossip_tide: 'ratatoskr_v1+huldra_v1+kraken_v1',
     control_venom_court: 'huldra_v2+ratatoskr_v2+jormungandr_v2',
@@ -77,6 +79,10 @@ const PANEL = {
     ref_solo_a: 'kraken_v1+skoll_v1+huldra_v2',
     ref_solo_b: 'fenrir_v1+jormungandr_v1+ratatoskr_v2',
 };
+if (PANEL_ARG) {
+    for (const k of Object.keys(PANEL)) delete PANEL[k];
+    PANEL_ARG.split(',').forEach((c, i) => { PANEL[`opp_${i + 1}`] = c.trim(); });
+}
 const PANEL_IDS = Object.values(PANEL);
 
 function comps() {
@@ -223,7 +229,7 @@ async function main() {
     for (let i = 0; i < PANEL_IDS.length; i++)
         for (let j = i + 1; j < PANEL_IDS.length; j++)
             panelJobs.push({ a: PANEL_IDS[i], b: PANEL_IDS[j], iterations: PANEL_ITERS, seed: `panel:${PANEL_IDS[i]}:${PANEL_IDS[j]}` });
-    await runJobs(panelJobs, `panel round robin (${PANEL_ITERS} paired iterations)`);
+    if (PANEL_ITERS > 0) await runJobs(panelJobs, `panel round robin (${PANEL_ITERS} paired iterations)`);
     summary(all);
     projection(all.length);
 
