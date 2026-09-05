@@ -16,6 +16,7 @@ import { type HookContext } from './core/Hooks';
 // import { calculateDamage, calculateHeal, calculateModifier } from './combatUtils';
 
 import { GetProgramData } from './data/programRegistry';
+import { actionTargetIds } from './actions/ActionExecutors';
 import { getMacro, type IMacroDefinition } from './data/macroRegistry';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
@@ -424,6 +425,33 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     let finalState = snapshot;
     if (programData.actions) {
         for (const action of programData.actions) {
+            /*
+             * A DEAD CASTER STOPS CASTING — the 2026-09-05 playtest.
+             *
+             * Henry: *"Fenrir killed me, but added burn overload to himself and he died first, so I
+             * won?"* Fenrir's card applied Burn to himself, the overload detonation killed him, and
+             * the REST of the same card kept resolving and killed the player's last unit. The
+             * fizzle guard above catches only a cast whose PRICE is lethal — it runs once, before
+             * the action list — so a caster who dies to his own second action swung anyway.
+             *
+             * The rule this extends is already written and already ruled (see the guard above,
+             * from the round-3 `hel_v2` report: *"I died first yet still got the victory"*). It is
+             * the same sentence applied at the same granularity as the death itself: the actions
+             * that had already landed stand, and nothing after the moment of death happens.
+             *
+             * Checked between ACTIONS rather than between hits: a multi-hit attack that kills its
+             * caster mid-swing (recoil per hit) is one swing in the fiction, and stopping halfway
+             * through it would be a different, finer ruling than the one Henry is owed here.
+             */
+            const casterNow = finalState[activePartyKey].find(e => e.id === sourceId);
+            if (!casterNow || casterNow.currentHp <= 0) {
+                finalState = applyMutations(finalState, [{
+                    type: 'LOG',
+                    targetId: '',
+                    payload: `${sourceEntity.name} falls mid-cast — the rest of ${programData.name} does not resolve.`
+                }]);
+                break;
+            }
             //TODO: we don't need a hit count we can just loop through the actions array.
             // DISCARD reads `count` as "how many cards leave the hand" (the ticket-21
             // self-discard cost), not as a repeat count - resolve it once and let the
@@ -432,19 +460,13 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
             for (let i = 0; i < hitCount; i++) {
                 // Target Resolution (per hit)
-                let targetIds: string[] = [];
-                // DISCARD is always a self-cost: it empties the ACTING side's hand
-                // regardless of the card's declared target (Lance and Cavalry Charge
-                // both target an enemy). FORCE_DISCARD is the enemy-facing variant.
-                if (action.target === 'SELF' || action.target === 'Self' || action.type === 'DISCARD') {
-                    targetIds = [sourceId];
-                } else if (programData.target === 'Side' || programData.target === 'All') {
-                    const isOnPlayerSide = finalState.playerParty.some(e => e.id === targetId);
-                    const targetParty = isOnPlayerSide ? finalState.playerParty : finalState.enemyParty;
-                    targetIds = targetParty.filter(e => e.currentHp > 0).map(e => e.id);
-                } else {
-                    targetIds = [targetId];
-                }
+                // DISCARD is always a self-cost: it empties the ACTING side's hand regardless of
+                // the card's declared target (Lance and Cavalry Charge both target an enemy);
+                // FORCE_DISCARD is the enemy-facing variant. That rule, and the `Side`/`All`
+                // widening below it, moved to `actionTargetIds` on 2026-09-05 — it was duplicated
+                // nowhere and MISSING everywhere else, which is how a replayed Heat Wave came to
+                // burn one enemy out of three.
+                const targetIds: string[] = actionTargetIds(finalState, programData, action, sourceId, targetId);
 
                 for (const tId of targetIds) {
                     const currentTarget = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
@@ -571,6 +593,12 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
         ...finalState,
         [activePartyKey]: activePartyAfter,
         lastProgramPlayed: card.dataId,
+        // Ticket-less, 2026-09-05 playtest: the per-SIDE record the replay effects read. Written
+        // beside the global one so the two can never disagree about the same play.
+        lastProgramBySide: {
+            PLAYER: state.activeSide === 'PLAYER' ? card.dataId : (state.lastProgramBySide?.PLAYER ?? null),
+            ENEMY: state.activeSide === 'ENEMY' ? card.dataId : (state.lastProgramBySide?.ENEMY ?? null),
+        },
         // Resolution is over: the card rejoins the reshuffle pool like any other discard.
         resolvingCardInstanceId: null
     };
@@ -666,7 +694,9 @@ export function canFireMacro(
     // Echo with nothing behind it. `lastProgramPlayed` is null until the first card of the battle
     // resolves, and `PlayLastCardExecutor` would otherwise log "no program was played previously"
     // and return — a rare consumable spent on a log line.
-    if (macro.actions.some(a => a.type === 'PLAY_LAST_CARD') && !state.lastProgramPlayed) {
+    // The PLAYER's own last card: a macro is fired by the player, and Echo replaying the enemy's
+    // card was the same defect Reprogram had (2026-09-05 playtest).
+    if (macro.actions.some(a => a.type === 'PLAY_LAST_CARD') && !state.lastProgramBySide?.PLAYER) {
         return 'nothing-to-echo';
     }
 

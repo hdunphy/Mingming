@@ -406,8 +406,11 @@ describe('every battle macro', () => {
      */
     const sweepBoard = () => board({
         playerParty: [unit('p1'), unit('p2', { currentHp: 40 }), unit('p3', { currentHp: 0 })],
-        // A card has already been played this battle, which is what Echo needs to be firable at all.
+        // A card has already been played this battle BY THIS SIDE, which is what Echo needs to be
+        // firable at all — `canFireMacro` reads the player's own last card since 2026-09-05, so a
+        // board where only the enemy had played would (correctly) refuse it.
         lastProgramPlayed: 'water_slap',
+        lastProgramBySide: { PLAYER: 'water_slap', ENEMY: null },
     });
 
     it('fires and changes the board', () => {
@@ -443,12 +446,16 @@ describe('every battle macro', () => {
          * same argument covers the per-unit OS card limit and Echo's own "last CARD" wording.
          */
         for (const id of BATTLE_MACRO_IDS) {
-            const before = { ...sweepBoard(), cardsPlayedThisTurn: 2, lastProgramPlayed: 'water_slap' };
+            const before = {
+                ...sweepBoard(), cardsPlayedThisTurn: 2, lastProgramPlayed: 'water_slap',
+                lastProgramBySide: { PLAYER: 'water_slap', ENEMY: null },
+            };
             before.playerParty = before.playerParty.map((p) => ({ ...p, playsThisTurn: 1 }));
             const after = fire(before, id);
 
             expect(after.cardsPlayedThisTurn).toBe(2);
             expect(after.lastProgramPlayed).toBe('water_slap');
+            expect(after.lastProgramBySide?.PLAYER).toBe('water_slap');
             expect(find(after, 'p1').playsThisTurn).toBe(1);
             expect(find(after, 'p1').nextProgramModifier === undefined || id === 'free_exec').toBe(true);
         }

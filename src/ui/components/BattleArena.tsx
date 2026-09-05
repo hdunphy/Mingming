@@ -28,6 +28,7 @@ import { getBestAction } from '../../engine/ai/TacticalAI';
 import { canFireMacro } from '../../engine/battleReducer';
 import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable } from '../../engine/RewardSystem';
+import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
 import { openSettings } from '../store/uiSlice';
@@ -600,10 +601,20 @@ const BattleArena: React.FC = () => {
         setIsTargeting(false);
     };
 
-    const isVictory = battleState?.enemyParty.every(e => e.currentHp <= 0) ?? false;
-    // Victory takes precedence: if both sides fall in the same resolution, count it as a win
-    // so the defeat overlay never renders and the save is never wiped.
-    const isDefeat = !isVictory && (battleState?.playerParty.every(p => p.currentHp <= 0) ?? false);
+    /*
+     * WHO WON — `engine/battleOutcome`, not two expressions here (2026-09-05 playtest).
+     *
+     * These read `isVictory = every enemy down` and `isDefeat = !isVictory && every ally down`, so
+     * a resolution that killed both sides scored a WIN — while the balance harness called the same
+     * board a draw. Henry hit it from the other end: *"Fenrir killed me, but added burn overload to
+     * himself and he died first, so I won?"*
+     *
+     * A mutual kill is a defeat now: a run whose last mingming is down does not continue, whatever
+     * happened to the enemy in the same instant. The old precedence's stated reason — keep the
+     * defeat overlay away so the save is not wiped — died with ticket 11, which deleted the wipe.
+     */
+    const isVictory = battleState ? isPlayerVictory(battleState) : false;
+    const isDefeat = battleState ? isPlayerDefeat(battleState) : false;
 
     // TICKET 11 DELETED THE SAVE WIPE THAT USED TO LIVE HERE.
     //

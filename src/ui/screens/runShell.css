@@ -231,7 +231,22 @@
 
 .rs-cnm { font-size: 12.5px; font-weight: 700; margin-bottom: 4px; line-height: 1.1; }
 .rs-desc { font-size: 10px; color: #aeb9c6; line-height: 1.35; flex: 1; overflow: hidden; }
-.rs-tags { font-size: 8.5px; color: #7d8ea1; letter-spacing: 0.5px; min-height: 11px; }
+/*
+ * `padding-right` is the ×N badge's room, and it is a fix for a collision the 2026-08-30 element
+ * word created: `.rs-nbadge` hangs off the bottom-right corner, and the tag line is the last thing
+ * in the tile's flow, so the two share that corner. One short tag never reached it; an element word
+ * plus a tag does. Henry, 2026-09-05: *"the x2 on the card in the load out editor is covered by the
+ * element line."*
+ *
+ * Reserved space rather than a z-index: the badge winning the paint would still leave the word
+ * unreadable underneath it. This is the same move `.mk-tags`' bottom margin makes for the price
+ * plate, for the same reason — two things that both want the bottom of a tile.
+ */
+.rs-tags {
+    font-size: 8.5px; color: #7d8ea1; letter-spacing: 0.5px;
+    min-height: 11px;
+    padding-right: 26px;
+}
 
 /*
  * The element, said out loud (2026-08-30 playtest). `--el` alone could not carry it: four of the
@@ -265,6 +280,8 @@
 
 .rs-nbadge {
     position: absolute; bottom: -10px; right: -8px;
+    /* Above the tag line it shares a corner with — see `.rs-tags`, which also reserves the room. */
+    z-index: 1;
     background: #ffd479; color: #0c0e12;
     font-weight: 800; font-size: 12px;
     border-radius: 11px; padding: 2px 8px;

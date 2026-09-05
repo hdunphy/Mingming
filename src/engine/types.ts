@@ -643,6 +643,23 @@ export interface IBattleState {
   readonly discardedByEffect?: ReadonlyArray<string>;
   readonly lastProgramPlayed: string | null;
   /**
+   * The last card each SIDE played, which is what "play your last card again" has always meant.
+   *
+   * `lastProgramPlayed` above is one slot written by whoever played last, so Reprogram and Echo
+   * replayed the ENEMY's card whenever the enemy had acted more recently than you — Henry,
+   * 2026-09-05 playtest: *"Reprogram plays last card played by anyone. It should be last played by
+   * this side."* The global field is kept because the log and the balance harness legitimately want
+   * "the last card at all"; what the replay effects read is this.
+   *
+   * Optional so that a state built by an older factory or a hand-written test fixture still parses.
+   * Readers take `?.[side] ?? null` and NEVER fall back to the global — a fallback would restore
+   * exactly the bug, quietly, on the states least likely to be looked at.
+   */
+  readonly lastProgramBySide?: {
+    readonly PLAYER: string | null;
+    readonly ENEMY: string | null;
+  };
+  /**
    * TICKET 111: the INSTANCE id of the card whose actions are resolving right now, or null.
    *
    * `handlePlayProgram` moves the played card to the discard while paying its cost - at step 3,

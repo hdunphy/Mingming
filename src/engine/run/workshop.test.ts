@@ -333,15 +333,51 @@ describe('assemblableSpecies', () => {
         expect(workshopBlockFor('fenrir', makeRanch({}), RUN)).toBe('no-blueprint');
     });
 
-    it('refuses a species already on the team — the standing species clause', () => {
-        // Map § Notes: the roster may hold ten krakens, the party fields one. `partyBlockFor` is the
-        // one implementation of that law and this is a call to it, not a copy.
+    /**
+     * RULED by Henry, 2026-09-05: the duplicate clause is species + FIRMWARE.
+     *
+     * `RUN`'s party is one `kraken_v1`, and kraken offers `kraken_v1` and `kraken_v2`. So the
+     * refusal is now a question about which OS is asked for — and the RACK, which lists species
+     * before an OS is picked, refuses the row only when no build is left.
+     */
+    it('refuses the firmware already on the team, and welcomes the other one', () => {
         const ranch = makeRanch({ kraken: 3 });
-        expect(workshopBlockFor('kraken', ranch, RUN)).toBe('duplicate-species');
-        expect(assemblableSpecies(ranch, RUN)).toEqual([]);
-        // The blueprint is still LISTED, with its reason — a blueprint you cannot spend here is news.
+
+        expect(workshopBlockFor('kraken', ranch, RUN, 'kraken_v1')).toBe('duplicate-build');
+        expect(workshopBlockFor('kraken', ranch, RUN, 'kraken_v2')).toBeNull();
+
+        // No OS named: `kraken_v2` is free, so the row is offerable and carries no reason.
+        expect(workshopBlockFor('kraken', ranch, RUN)).toBeNull();
+        expect(assemblableSpecies(ranch, RUN).map((entry) => entry.speciesId)).toEqual(['kraken']);
         expect(workshopSpecies(ranch, RUN).map((s) => [s.speciesId, s.block]))
-            .toEqual([['kraken', 'duplicate-species']]);
+            .toEqual([['kraken', null]]);
+    });
+
+    it('refuses the row once EVERY firmware of that species is on the team', () => {
+        // Both kraken builds fielded: there is no legal kraken left, and the rack says so rather
+        // than offering a recruit that `planRecruit` would then refuse.
+        const both = makeRun('both-krakens', [
+            KRAKEN,
+            { ...KRAKEN, id: 'mm2', activeOS: 'kraken_v2' },
+        ]);
+        const ranch = makeRanch({ kraken: 3 }, [
+            rosterMember('mm1', 'kraken', 'kraken_v1'),
+            rosterMember('mm2', 'kraken', 'kraken_v2'),
+        ]);
+
+        expect(workshopBlockFor('kraken', ranch, both)).toBe('duplicate-build');
+        expect(assemblableSpecies(ranch, both)).toEqual([]);
+        // Still LISTED, with its reason — a blueprint you cannot spend here is news.
+        expect(workshopSpecies(ranch, both).map((s) => [s.speciesId, s.block]))
+            .toEqual([['kraken', 'duplicate-build']]);
+    });
+
+    it('plans the recruit the ruling allows, and only that one', () => {
+        const ranch = makeRanch({ kraken: 3 });
+        expect(planRecruit({ ranch, run: RUN, node: NODE, speciesId: 'kraken', osId: 'kraken_v2' }))
+            .not.toBeNull();
+        expect(planRecruit({ ranch, run: RUN, node: NODE, speciesId: 'kraken', osId: 'kraken_v1' }))
+            .toBeNull();
     });
 
     it('refuses everything once the party is full', () => {

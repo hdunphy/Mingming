@@ -633,6 +633,24 @@ body {
   overflow-y: auto;
 }
 
+/*
+ * Reprogram's live answer (2026-09-05 playtest: "it needs to tell you what card its going to
+ * play"). Cyan rather than the description's white: it is not part of the printed card, it is the
+ * state of the board quoted on it, and the two must not read as one sentence. `flex: none` so it
+ * cannot be eaten by the scrolling description above it.
+ */
+.card-replay {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #7fe3d0;
+  margin-top: 2px;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .card-target {
   font-size: 0.6rem;
   font-weight: 600;

@@ -201,7 +201,9 @@ export default function RunStart(): ReactNode {
                                         <span><Icon name="hp" size={12} /> {member.hpIV}</span>
                                     </div>
                                     {picked && <div className="ranch-card-badge">Deploying</div>}
-                                    {block === 'duplicate-species' && <div className="ranch-card-block">Already fielding this species</div>}
+                                    {/* 2026-09-05: the clause is species + firmware, so the copy
+                                        names the BUILD — a second kraken is welcome on another OS. */}
+                                    {block === 'duplicate-build' && <div className="ranch-card-block">Already fielding this OS</div>}
                                     {block === 'party-full' && <div className="ranch-card-block">Party is full</div>}
                                 </button>
                             );

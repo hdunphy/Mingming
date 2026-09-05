@@ -252,14 +252,39 @@ describe('WorkshopNode — the blueprint rack', () => {
         expect(ymirRow).toContain('disabled=""');
     });
 
-    it('shows a blueprint the species clause refuses, with the reason rather than not at all', () => {
+    it('shows a blueprint the duplicate clause refuses, with the reason rather than not at all', () => {
         // A blueprint you are holding but cannot spend HERE is news, so it is listed with its
-        // refusal. The party already fields a kraken; the roster may hold ten. Said in the player's
-        // terms — *"already on the team"* — because "illegal" explains nothing (ticket 20).
+        // refusal. Said in the player's terms — *"this OS already on the team"* — because "illegal"
+        // explains nothing (ticket 20).
+        //
+        // Henry's 2026-09-05 ruling moved what counts as a duplicate from the SPECIES to the build,
+        // so the row is refused only once every firmware of that species is fielded: the party here
+        // runs both kraken OSes, where the old fixture ran one and expected a refusal.
+        const bothKrakens = makeRun(400, {
+            partyIds: ['mm1', 'mm2'],
+        });
+        const ranch = makeRanch({ kraken: 3 }, [
+            { id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', attackIV: 10, defenseIV: 10, hpIV: 10 },
+            { id: 'mm2', definitionId: 'kraken', activeOS: 'kraken_v2', attackIV: 10, defenseIV: 10, hpIV: 10 },
+        ]);
+        const markup = render(bothKrakens, ranch);
+
+        expect(markup).toContain('>Kraken</span>');
+        expect(markup).toContain('blueprints ×3 · this OS already on the team');
+    });
+
+    /**
+     * THE OTHER HALF OF THE SAME RULING — Henry: *"I would like to add kraken_v2 to my kraken_v1."*
+     *
+     * One kraken in the party used to refuse the whole species. It now refuses only the firmware it
+     * runs, so the rack offers the row and the stage's ASSEMBLE verbs answer to the OS picked
+     * beside them.
+     */
+    it('offers the species when a DIFFERENT firmware of it is still free', () => {
         const markup = render(makeRun(400), makeRanch({ kraken: 3 }));
 
         expect(markup).toContain('>Kraken</span>');
-        expect(markup).toContain('blueprints ×3 · already on the team');
+        expect(markup).not.toContain('this OS already on the team');
     });
 
     it('says what an empty shelf means rather than going quiet', () => {
@@ -345,8 +370,32 @@ describe('WorkshopNode — the assembly stage', () => {
             expect(markup).toContain(`<span class="rs-rnm">${escapeHtml(name!)}</span>`);
             expect(markup).not.toContain(`>${osId}<`);
         }
-        expect(markup.match(/<button type="button" class="rs-row/g)?.length).toBe(definition.availableOS.length);
+        expect(markup.match(/<button type="button" class="ws-oschoice/g)?.length).toBe(definition.availableOS.length);
         expect(markup.match(/>chosen</g)?.length).toBe(1);
+    });
+
+    /**
+     * AND WHAT EACH ONE DOES — Henry, 2026-09-05 playtest: *"Workbench doesn't show what the OS's
+     * do."*
+     *
+     * The choice was two words of jargon (`ABYSSAL_INK_SYS` against `TIDAL_CRUSH_OS`) for the thing
+     * that defines a mingming's whole playstyle. The REFLASH panel two decisions away had printed
+     * the description since it was built, which is what made the omission a gap rather than a
+     * missing feature: the text exists, is ruled (`lib/hooks.json`) and was already on screen
+     * somewhere else.
+     *
+     * Asserted against `getOSBehavior(...).description` rather than a literal, so a firmware whose
+     * text is rewritten cannot leave this test passing on yesterday's sentence.
+     */
+    it('prints what each firmware DOES, not just what it is called', () => {
+        const definition = GetMingmingData('skoll');
+        const markup = render(makeRun(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        for (const osId of definition.availableOS) {
+            const description = getOSBehavior(osId)?.description;
+            expect(description, `${osId} has no description to print`).toBeTruthy();
+            expect(markup).toContain(escapeHtml(description!));
+        }
     });
 
     it('shows ?? for the stat roll — the ruling, not an oversight', () => {

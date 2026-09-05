@@ -649,9 +649,16 @@ export function reconcileLoadedState(rawRanch: unknown, rawRun: unknown): Reconc
         return { ranch, run: null, discarded: 'party-references-missing-member' };
     }
 
-    // Law 2: NO DUPLICATE SPECIES PER TEAM (map § Notes). First enforcement anywhere.
-    const species = run.partyIds.map((id) => byId.get(id)!.definitionId);
-    if (new Set(species).size !== species.length) {
+    // Law 2: NO DUPLICATE BUILD PER TEAM — species AND firmware (Henry, 2026-09-05; see
+    // `party.partyBlockFor` for the ruling). This was species alone, which is now legal: a party
+    // holding `kraken_v1` beside `kraken_v2` is exactly what the ruling asked for, and a loader
+    // still enforcing the old clause would throw that run away on the next launch — the worst
+    // possible place for the two rules to disagree, because it costs the run silently.
+    const builds = run.partyIds.map((id) => {
+        const member = byId.get(id)!;
+        return `${member.definitionId}::${member.activeOS ?? ''}`;
+    });
+    if (new Set(builds).size !== builds.length) {
         return { ranch, run: null, discarded: 'party-has-duplicate-species' };
     }
 

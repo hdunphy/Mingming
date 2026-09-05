@@ -266,6 +266,11 @@ function partyMembersOf(ranch: IRanchState, run: IRunState): PartyMember[] {
     return run.partyIds.map((id) => ranch.roster.find((m) => m.id === id) ?? { id, definitionId: `unresolved:${id}` });
 }
 
+/** Every firmware a species offers, in registry order. Empty for a species nothing knows. */
+function firmwaresOf(speciesId: string): ReadonlyArray<string> {
+    return MingmingRegistry[speciesId]?.availableOS ?? [];
+}
+
 /**
  * Can this species be assembled into the party here?
  *
@@ -275,9 +280,42 @@ function partyMembersOf(ranch: IRanchState, run: IRunState): PartyMember[] {
  * synthesised with an id no roster can hold, so `partyBlockFor`'s "already in the party, this click
  * removes it" early return cannot fire and both clauses that matter are actually evaluated.
  */
-export function workshopBlockFor(speciesId: string, ranch: IRanchState, run: IRunState): WorkshopBlock | null {
+export function workshopBlockFor(
+    speciesId: string,
+    ranch: IRanchState,
+    run: IRunState,
+    /**
+     * The firmware the player has picked, when they have picked one.
+     *
+     * Henry's 2026-09-05 ruling made the duplicate clause species + firmware, so whether a recruit
+     * is legal now depends on WHICH OS it runs — a question the rack cannot answer, because the
+     * rack lists species before anything is chosen. Omitted, this function answers the rack's
+     * question instead: *is there any legal build of this species left?* A kraken in the party
+     * blocks the row only once every kraken firmware is spoken for.
+     */
+    osId?: string,
+): WorkshopBlock | null {
     if ((ranch.blueprints[speciesId] ?? 0) < 1) return 'no-blueprint';
-    return partyBlockFor({ id: `workshop-candidate:${speciesId}`, definitionId: speciesId }, partyMembersOf(ranch, run));
+
+    const party = partyMembersOf(ranch, run);
+    const candidate = (os?: string): PartyBlock | null =>
+        partyBlockFor({ id: `workshop-candidate:${speciesId}`, definitionId: speciesId, activeOS: os }, party);
+
+    if (osId !== undefined) return candidate(osId);
+
+    // No OS chosen yet: the row is refused only if EVERY firmware is refused. `party-full` beats
+    // the duplicate clause either way, and is what a species with no free build reports when the
+    // party has room — so the first blocking reason is kept rather than invented.
+    const options = firmwaresOf(speciesId);
+    if (options.length === 0) return candidate(undefined);
+
+    let firstBlock: PartyBlock | null = null;
+    for (const os of options) {
+        const block = candidate(os);
+        if (block === null) return null;
+        firstBlock ??= block;
+    }
+    return firstBlock;
 }
 
 /** Display name for a species, falling back to its id rather than throwing at a render. */
@@ -397,7 +435,18 @@ function uniqueMemberId(id: string, ranch: IRanchState): string {
  */
 export function planRecruit(input: RecruitPlanInput): IRecruitPlan | null {
     const { ranch, run, node, speciesId, osId } = input;
-    if (workshopBlockFor(speciesId, ranch, run) !== null) return null;
+
+    /*
+     * The firmware this plan will actually build, resolved BEFORE the legality check.
+     *
+     * `createRanchMember` resolves an omitted OS to the species' first, so a caller that names no
+     * firmware is not asking an open question — it is asking for `availableOS[0]`. Checking the
+     * open question instead ("is any build free?") would let a plan through that then assembled a
+     * duplicate `kraken_v1` because a free `kraken_v2` existed somewhere. The rack asks the open
+     * question deliberately; a plan never can.
+     */
+    const buildOS = osId ?? MingmingRegistry[speciesId]?.availableOS[0];
+    if (workshopBlockFor(speciesId, ranch, run, buildOS) !== null) return null;
 
     const seed = nodeSeed(run, node, 'workshop');
     const rollStream = new SeedStream(new SeedStream(seed).fork(`assembly:${speciesId}`));
@@ -406,7 +455,7 @@ export function planRecruit(input: RecruitPlanInput): IRecruitPlan | null {
     // `createRanchMember` resolves an omitted OS to the definition's first — deliberately the same
     // fallback `getDeckForOS`, `initializeBattleEntity` and `createRun`'s kit resolution use, so a
     // recruit runs the same firmware in every subsystem rather than a different one per caller.
-    const rolled = createRanchMember(speciesId, osId, rollStream);
+    const rolled = createRanchMember(speciesId, buildOS, rollStream);
     const member: IRanchMember = { ...rolled, id: uniqueMemberId(rolled.id, ranch) };
 
     // Minted AFTER the id is settled: `ownerId` is the member's roster instance id, and a card
