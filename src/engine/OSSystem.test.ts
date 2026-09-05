@@ -153,7 +153,7 @@ describe('OS System - Ratatoskr', () => {
 });
 
 describe('OS System - Kraken', () => {
-    it('v1 (ABYSSAL_INK_SYS): applies 2 Dazed to every enemy when drawing outside draw phase', () => {
+    it('v1 (ABYSSAL_INK_SYS): applies 2 Dazed to a random enemy when drawing outside draw phase', () => {
         let state = createInitialState('kraken_v1');
         state = {
             ...state,
@@ -196,7 +196,7 @@ describe('OS System - Kraken', () => {
         const newState = battleReducer(state, action);
         const e1 = newState.enemyParty[0];
         expect(e1.statusEffects.some(s => s.type === StatusType.Dazed && s.stacks === 2)).toBe(true);
-        expect(newState.logs).toContain('Abyssal Ink blinds the enemy side!');
+        expect(newState.logs).toContain('Abyssal Ink blinds an enemy!');
     });
 
     it('v2 (TIDAL_CRUSH_OS): high-cost Water cards deal 30% more damage', () => {
