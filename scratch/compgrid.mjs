@@ -34,6 +34,7 @@
  *   node scratch/compgrid.mjs --summary            # just rewrite SUMMARY.md from what is on disk
  *   node scratch/compgrid.mjs --rounds 2           # stop after round 2 (a quick screen)
  *   node scratch/compgrid.mjs --limit 3 --panel-iters 1 --rounds 1 --lanes 2   # 2-minute smoke test
+ *   node scratch/compgrid.mjs --comps top30.txt --rounds 1 --outdir results/compgrid_armB   # ticket 141 arm
  *
  * COST. Measured: one beamless 3v3 battle is ~70s on the (slow, 2-core) container that wrote this;
  * expect 25-40s on a desktop core. The default schedule is ~7,000 battles = 50-80 lane-hours, so
@@ -55,6 +56,7 @@ const LANES = Number(arg('lanes', String(Math.max(1, os.cpus().length - 1))));
 const MAX_ROUNDS = Number(arg('rounds', '4'));
 const OUTDIR = arg('outdir', 'results/compgrid');
 const LIMIT = Number(arg('limit', '0'));          // smoke testing: only the first N comps
+const COMPS_FILE = arg('comps', '');              // ticket 141: screen a fixed list (one comp id per line) instead of enumerating
 const PANEL_ITERS = Number(arg('panel-iters', '20'));
 const RESULTS = path.join(OUTDIR, 'results.jsonl');
 fs.mkdirSync(OUTDIR, { recursive: true });
@@ -78,6 +80,11 @@ const PANEL = {
 const PANEL_IDS = Object.values(PANEL);
 
 function comps() {
+    if (COMPS_FILE) {
+        const list = fs.readFileSync(COMPS_FILE, 'utf8').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+        for (const c of list) for (const fw of c.split('+')) if (!ELEMENT[fw]) throw new Error(`--comps: unknown firmware ${fw} in ${c}`);
+        return LIMIT ? list.slice(0, LIMIT) : list;
+    }
     const out = [];
     for (let i = 0; i < FW.length; i++)
         for (let j = i + 1; j < FW.length; j++)
@@ -184,13 +191,16 @@ function summary(compList) {
         for (const f of FW) lines.push(`| ${f} | ${cnt[f] ?? 0} |`);
     }
     fs.writeFileSync(path.join(OUTDIR, 'SUMMARY.md'), lines.join('\n') + '\n');
+    // The ranked ids, one per line, so another run can screen exactly these (`--comps`). Ticket 141 uses the top 30.
+    fs.writeFileSync(path.join(OUTDIR, 'ranked.txt'), sc.map(s => s.comp).join('\n') + '\n');
     console.log(`\nSUMMARY -> ${path.join(OUTDIR, 'SUMMARY.md')} (${sc.length} comps scored)`);
     if (sc.length) console.log('top 10:\n' + sc.slice(0, 10).map((s, i) => `  ${i + 1}. ${s.comp}  ${s.score.toFixed(1)}  (${s.dec} games)`).join('\n'));
 }
 
 /** Battles still to run under the schedule, and how long they will take at the measured pace. */
 function projection(nComps) {
-    const rows = loadResults();
+    // Recent rows only: the pace changes with --lanes, and old rows from a choked run would poison the average.
+    const rows = loadResults().slice(-40);
     if (!rows.length) return;
     const secPerBattle = rows.reduce((a, r) => a + r.ms, 0) / rows.reduce((a, r) => a + r.games, 0) / 1000;
     let battles = 0, n = nComps;
@@ -199,7 +209,7 @@ function projection(nComps) {
         battles += n * PANEL_IDS.length * step.iters * 2;
     }
     const laneHours = battles * secPerBattle / 3600;
-    console.log(`\nPACE: ${secPerBattle.toFixed(0)}s a battle so far; the ${MAX_ROUNDS}-round schedule is ~${battles} battles `
+    console.log(`\nPACE: ${secPerBattle.toFixed(0)}s a battle over the last ${rows.length} jobs; the ${MAX_ROUNDS}-round schedule is ~${battles} battles `
         + `= ${laneHours.toFixed(0)} lane-hours = about ${(laneHours / LANES).toFixed(1)} h on ${LANES} lanes.`);
 }
 

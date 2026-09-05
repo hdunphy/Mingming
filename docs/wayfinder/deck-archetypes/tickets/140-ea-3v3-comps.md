@@ -170,3 +170,58 @@ Games run 4.5–7.25 turns; nothing truncated, no first-turn kills.
 4. **Two of a species is legal and sometimes right.** ratatoskr_v1 + ratatoskr_v2 is the purest zoo
    in the game (the same 0-cost fuel feeds both OSes). Not proposed above because it has no answer
    to Fire at all.
+
+---
+
+## 7. The comp grid, measured (successive halving, 2026-09-04/05)
+
+Instrument: `scratch/compgrid.mjs` + `scratch/compshard.ts`, beamless, all 144 two-plus-one comps
+against the five-comp panel of §5. Round 1: every comp × 1 paired iteration (10 battles). Round 2:
+the top 72 × 2 more (30 battles each). Panel round robin at 20 paired iterations (40 battles a
+cell). 1,089 result rows, 2,178 battles, 0 truncations, 0 first-turn kills, 4.8–5.0 turns a game.
+Rounds 3–4 were not run: round 1 and round 2 rank the survivors with r = 0.82, so the order was
+already stable, and ticket 141 changes the roster underneath it.
+
+**Panel round robin (40 battles a cell):** zoo 79 · ref a 68 · control 47 · ramp 36 · ref b 20.
+Control beats the zoo 55–45 (the §5 number at 4 battles was noise) and loses to ref a's wall 20–80.
+
+**Round 1 (144 comps):** mean 37.6, sd 23.5. Comps containing kraken_v1 average **68**; the other
+108 average **27**. Element mix: NWW 58 · FWW 48 · FFW 37 · NNW 35 · FFN 31 · FNN 17 (best FNN
+comp: 30). Per-firmware average of the comps containing it: kraken_v1 68, jormungandr_v1 44,
+skoll_v1 42, jormungandr_v2 41, kraken_v2 36, huldra_v2 34, fenrir_v1 33, ratatoskr_v2 33,
+ratatoskr_v1 32, skoll_v2 31, huldra_v1 29, fenrir_v2 27. Best pairs: jormungandr_v1 + kraken_v1
+78, jormungandr_v2 + kraken_v1 68, kraken_v1 + kraken_v2 66, fenrir_v1 + skoll_v1 54. Same-species
+pairs are weak (fenrir 19, huldra 22, ratatoskr 30) — the §6.4 "purest zoo" idea does not measure.
+
+**Round 2 (top 72, 30 battles each):** mean 55.7, sd 17.7. All 36 kraken_v1 comps survived and
+they hold the top **nineteen** places; kraken_v1 comps average 69 against 43 for the rest of the
+survivors. Top ten: kraken_v1 + jormungandr_v1 + huldra_v2 (90), kraken_v1 + kraken_v2 +
+ratatoskr_v2 (87), kraken_v1 + ratatoskr_v1 + huldra_v1 (87), kraken_v1 + jormungandr_v1 +
+ratatoskr_v1 (83), fenrir_v2 + kraken_v1 + jormungandr_v1 (83), kraken_v1 + jormungandr_v1 +
+ratatoskr_v2 (83), kraken_v1 + jormungandr_v2 + ratatoskr_v1 (83), kraken_v1 + ratatoskr_v2 +
+huldra_v2 (80), kraken_v1 + kraken_v2 + ratatoskr_v1 (80), kraken_v1 + jormungandr_v1 + huldra_v1
+(80). Best comp without kraken_v1: fenrir_v1 + skoll_v1 + jormungandr_v1 (70), then fenrir_v1 +
+skoll_v1 + huldra_v2 / huldra_v1 (63) — the fenrir_v1 + skoll_v1 Strength pair is the only
+non-kraken engine in the roster.
+
+**Reads.**
+1. ABYSSAL_INK is the grid. Ally trigger × side-wide payoff × uncapped Dazed is the one
+   combination in the roster that scales as the width findings predicted, and it decides 3v3 by
+   itself. Ticket 141 pulls it to a single random enemy and opens the other firmwares' triggers.
+2. "Nature is weak" was the wrong read of round 1. Every Nature body ranks 8th–11th overall but
+   huldra_v1 averages **60** among survivors and kraken_v1 + ratatoskr_v1 + huldra_v1 is third in
+   the game. What is weak is Fire + Nature: all 24 FNN comps died in round 1 (best 30) and FFN
+   survivors average 45. The type triangle taxes that pairing twice (Fire beats the Nature
+   majority; nobody in the comp beats Fire back).
+3. kraken_v2 is not a Water partner. The bottom of the survivors is kraken_v2 + jormungandr_v1 +
+   X (27); kraken_v1 + kraken_v2 works because of v1.
+4. Two panel members carry no information: the field beats ramp 73% and ref b 78% in round 2, and
+   every kraken_v1 comp goes 5/6 or 6/6 against both. Keep them for the ticket-141 arms (so the
+   baseline here is reusable) and replace them for the next full grid with the #1 comp and the best
+   non-kraken comp.
+5. The zoo is still the deck the field cannot beat (24% in round 2), but the comps that do beat it
+   are Water pair + ratatoskr or huldra, i.e. the control shell with a kraken_v1 draw engine —
+   not Venom Court's huldra_v2 wall (the field beats control 59%).
+
+The screen list for ticket 141 is `scratch/top30.txt` (30th place: fenrir_v2 + skoll_v1 +
+kraken_v1 at 60); the full order is `results/compgrid/ranked.txt`.
