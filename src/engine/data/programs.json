@@ -4047,7 +4047,7 @@
     "unbound_fang": {
         "id": "unbound_fang",
         "name": "Unbound Fang",
-        "description": "Deal 5 power for each stack of Strengthened you hold.",
+        "description": "Deal 5 power for each stack of Strengthened you hold, then lose half of them.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -4064,6 +4064,19 @@
                 "power": 5,
                 "scaling": "STRENGTH_STACKS",
                 "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 0.5,
+                "scaling": "STATUS_CONSUMED",
+                "target": "SELF"
             }
         ]
     },
