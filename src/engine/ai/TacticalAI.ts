@@ -382,9 +382,11 @@ function findBestSequence(
     let bestAction: BattleAction | null = null;
     let bestLeaf: IBattleState = state;
     const siblings = CENSUS ? new Set<string>() : null;
+    // Ticket 144 §2: the width is a property of the battle now, not of the process.
+    const beam = beamFor(state);
     const deferred: Array<{
         action: BattleAction; nextState: IBattleState; immediate: number; order: number;
-    }> | null = BEAM > 0 && depth > 0 ? [] : null;
+    }> | null = beam > 0 && depth > 0 ? [] : null;
 
     /*
      * TICKET 144a — THE AI CONSIDERS A HAND IN A CANONICAL ORDER, NOT IN DRAW ORDER.
@@ -555,7 +557,7 @@ function findBestSequence(
 
     if (deferred !== null && deferred.length > 0) {
         let explore = deferred;
-        if (deferred.length > BEAM) {
+        if (deferred.length > beam) {
             // Select the best BEAM by immediate score, then RESTORE ENUMERATION ORDER before
             // recursing. Both halves matter. Selecting is the optimisation; restoring the order is
             // what stops the beam changing anything it did not prune - `bestScore` improves on a
@@ -772,20 +774,53 @@ export function censusNewDecision(): void { census.decisions++; }
 export const GAME_BEAM_WIDTH = 8;
 
 /**
- * The rule above, as a pure function, so both branches are testable.
+ * TICKET 144 §2 — THE BROWSER/NODE SPLIT IS GONE. RULED BY HENRY, 2026-09-06: BEAM 8 EVERYWHERE.
  *
- * A test cannot reach the browser branch by running in a browser - vitest is Node, and jsdom does
- * not remove `process` - so the decision is separated from the detection. `resolveBeam` is the rule;
- * the two arguments below it are the only facts it needs.
+ * Everything above this line describes the state ticket 127 left the beam in, and the reasoning was
+ * sound for its moment: the game could not reach the beam at all, and flipping the default would
+ * have silently re-beamed every measurement on record. So 127 keyed the default on "is this Node",
+ * which gave the player the 2.3x and left every harness beamless.
+ *
+ * What that bought was a permanent gap between the two: **the game played a beamed search and the
+ * instrument measured a beamless one.** Henry's ruling names that as the thing that is not
+ * coherent — in either direction — because the grid's whole job is to measure what the player
+ * faces. So the default is now 8 for everyone, and the rebaseline it costs was paid once, on
+ * purpose, with a commit saying so.
+ *
+ * HOW TO ASK FOR BEAMLESS, AND THE TRAP. Ticket 108's standing rule — *"confirm anything you intend
+ * to act on at full, BEAMLESS"* — needs a switch that works. There is exactly one:
+ *
+ *   - **`aiBeam: 0` on the battle state** (`BatchOptions.aiBeam` threads it through the harness).
+ *     This works.
+ *   - **`AI_BEAM=0` does NOT work in any harness lane**, despite the reader below being written to
+ *     dodge the vite define. Verified rather than assumed: `vite.config.ts` substitutes
+ *     `define: { 'process.env': {} }`, vite-node transforms `scratch/` and `src/debug/` through the
+ *     same config, and the variable simply never arrives. It is live in a plain-node process and
+ *     dead everywhere a measurement is taken — which is the worse half of the pair, so the state
+ *     switch is the one to reach for.
+ *
+ * `hasNodeProcess` is kept in the signature deliberately, unused. It is the seam the browser/Node
+ * split lived in, and leaving it visible is what makes a future re-split a deliberate edit here
+ * rather than a quiet condition added at a call site.
  */
-export function resolveBeam(hasNodeProcess: boolean, override: string | undefined): number {
+export function resolveBeam(_hasNodeProcess: boolean, override: string | undefined): number {
     if (override !== undefined) return Number(override);
-    return hasNodeProcess ? 0 : GAME_BEAM_WIDTH;
+    return GAME_BEAM_WIDTH;
 }
 
 // A bare `globalThis.process` is safe to name: the define matches the token pair `process.env`, not
 // `process` alone - which is exactly why the `env` reader above reaches the bag by a computed key.
 const BEAM = resolveBeam((globalThis as unknown as Record<string, unknown>).process !== undefined, env.AI_BEAM);
+
+/**
+ * The width THIS battle searches at — the same shape as `tierFor` above it.
+ *
+ * A battle that names a width gets it; everything else takes the process default. That is what lets
+ * a gate run one beamless battle beside a beamed grid without an environment variable.
+ */
+function beamFor(state: IBattleState): number {
+    return state.aiBeam ?? BEAM;
+}
 
 /**
  * The PROCESS-WIDE default tier, for a harness that wants to record it beside its numbers.

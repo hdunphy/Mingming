@@ -695,6 +695,22 @@ export interface IBattleState {
    * both would measure two changes at once.
    */
   readonly enemyAiTier?: 'greedy' | 'lite' | 'full';
+  /**
+   * TICKET 144 §2 — THE BEAM, AS A PROPERTY OF THE BATTLE.
+   *
+   * How many candidate lines the search recurses into at each node below depth 0. Ruled ON at 8
+   * everywhere by Henry, 2026-09-06: what is NOT coherent is a beam in the game and a beamless
+   * search in the grid, because then the instrument stops measuring what the player faces.
+   *
+   * Undefined means "take the process default", which is 8 — exactly the shape `enemyAiTier` above
+   * already uses. It is on the state rather than in module scope so a gate can ask for a beamless
+   * search on ONE battle without an environment variable and without changing anything else's mind:
+   * ticket 108's standing rule is *"confirm anything you intend to act on at full, BEAMLESS"*, and
+   * that rule needs a switch it can reach per battle.
+   *
+   * 0 means beamless.
+   */
+  readonly aiBeam?: number;
   /** Stacks removed by the most recent STATUS consume action (for STATUS_CONSUMED heal scaling). Reset each card play. */
   readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;
