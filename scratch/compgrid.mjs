@@ -73,12 +73,16 @@ const FW = Object.keys(ELEMENT);
 
 /** Ticket 140's panel: the three archetype comps and two "three solo decks" references. `--panel` replaces it. */
 const PANEL = {
+    // Refreshed after ticket 141 (2026-09-05). The ticket-140 panel's ramp and ref_b were fodder
+    // (field beat them 73-78%) and the zoo fell to 50 under 141; the post-141 read wants the two new
+    // leaders in it. The old five are kept as T140_PANEL for a `--panel` rerun against results/compgrid.
     zoo_gossip_tide: 'ratatoskr_v1+huldra_v1+kraken_v1',
     control_venom_court: 'huldra_v2+ratatoskr_v2+jormungandr_v2',
-    ramp_tidal_forge: 'fenrir_v2+skoll_v1+kraken_v2',
+    fire_pair: 'fenrir_v1+skoll_v1+jormungandr_v1',
+    ink_loop: 'kraken_v1+jormungandr_v1+huldra_v2',
     ref_solo_a: 'kraken_v1+skoll_v1+huldra_v2',
-    ref_solo_b: 'fenrir_v1+jormungandr_v1+ratatoskr_v2',
 };
+/** The ticket-140 panel: `--panel ratatoskr_v1+huldra_v1+kraken_v1,huldra_v2+ratatoskr_v2+jormungandr_v2,fenrir_v2+skoll_v1+kraken_v2,kraken_v1+skoll_v1+huldra_v2,fenrir_v1+jormungandr_v1+ratatoskr_v2` */
 if (PANEL_ARG) {
     for (const k of Object.keys(PANEL)) delete PANEL[k];
     PANEL_ARG.split(',').forEach((c, i) => { PANEL[`opp_${i + 1}`] = c.trim(); });
@@ -107,7 +111,14 @@ function comps() {
 // --- results on disk ------------------------------------------------------------------------
 function loadResults() {
     if (!fs.existsSync(RESULTS)) return [];
-    return fs.readFileSync(RESULTS, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+    // Dedupe on (a, b, seed): two launches into one outdir append identical rows (the engine is
+    // deterministic per seed), and counting them twice would double-weight those cells.
+    const seen = new Map();
+    for (const l of fs.readFileSync(RESULTS, 'utf8').split('\n').filter(Boolean)) {
+        const r = JSON.parse(l); const k = key(r.a, r.b, r.seed);
+        if (!seen.has(k)) seen.set(k, r);
+    }
+    return [...seen.values()];
 }
 const key = (a, b, seed) => `${a}|${b}|${seed}`;
 
