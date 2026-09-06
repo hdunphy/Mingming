@@ -830,6 +830,24 @@ body {
   color: #ccc;
 }
 
+/* TICKET 143c — the collapsed strip. One line, the newest entry, ellipsised rather than wrapped:
+   the whole point of the collapsed state is that it cannot grow over the board. The container is
+   `position: absolute` against the stage, so toggling moves nothing else. */
+.log-strip {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  color: #ccc;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-strip-empty {
+  opacity: 0.45;
+  font-style: italic;
+}
+
 .log-timestamp {
   opacity: 0.4;
   margin-right: 4px;
