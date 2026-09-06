@@ -86,3 +86,61 @@ scrolls; a screenshot before/after in the write-back so Henry can eyeball it.
 
 The two 1v1 rows (each arm alone and together), the gym-comp check, the ship choice for 143a with
 the cast-rate number, which consume shape 143b used, and the log screenshots.
+
+---
+
+## RESULTS — measured 2026-09-05
+
+### The two card rows only make sense together
+
+Full `fenrir_v1` 1v1 row, 30 opponents × 30 iterations, against a **post-141 baseline of 53.46**.
+(`deck_grid.json` still says 54.35; that is pre-141, and it is his OPPONENTS that moved.)
+
+| arm | field |
+|---|---|
+| a1 — `ragnarok_edge` 1e / 20 base | 63.44 |
+| a2 — `ragnarok_edge` 2e / 50 base | 54.85 |
+| b — `unbound_fang` half-consume | **34.56** |
+| **a1 + b — SHIPPED** | **54.77** |
+| a2 + b | 38.44 |
+
+**Ship a1, not a2**, and the gate's "whichever is nearer 50" has to be read on the COMBINATION.
+Alone, a2 (54.85) beats a1 (63.44) on that test. But 143b lands in the same nine cards and takes 19
+points off whatever it is paired with: a1+b is 54.77, a2+b is 38.44 — the bottom of the band. Each
+row alone is a 10-to-19-point swing; together they cancel, and the deck ends up 1.3 points from
+where it started with both of Henry's complaints answered.
+
+### The cast rates, which are what the complaints actually were
+
+`npm run balance:deck -- --subjects fenrir_v1 --suites vs-control`, 60 iterations:
+
+| card | before | after |
+|---|---|---|
+| `ragnarok_edge` | **0.105** | **0.562** |
+| `unbound_fang` | **0.771** | **0.425** |
+| `war_pact` | 0.875 | 0.898 |
+| `battle_rhythm` | 0.674 | 0.647 |
+| `blood_rite` | 0.533 | 0.617 |
+
+"Dead in my hand most turns" was a 10.5% play rate — the lowest card in the deck by a factor of
+five. "Gets out of hand" was the most-cast attack in the deck. Both are now mid-pack, and the two
+cards have swapped places without either becoming the obvious pick.
+
+### The gym comp still holds
+
+`fenrir_v1 + skoll_v1 + ratatoskr_v2` against the three Nature-gym builds, 6 battles a cell:
+
+| opponent | |
+|---|---|
+| `kraken_v1+ratatoskr_v1+huldra_v1` | 50.0% |
+| `kraken_v1+ratatoskr_v1+ratatoskr_v2` | 83.3% |
+| `kraken_v1+ratatoskr_v2+huldra_v2` | 100.0% |
+| **total** | **77.8% over 18 battles** |
+
+Against the ≥ 55 bar, and against 75.0 over 120 battles before 143. Games run 3.75–5.5 turns, no
+truncations.
+
+**But note what that number does NOT say.** The 141 ship read named 143b as the first trim on the
+Fire Strength pair, and at 18 battles (±20) the pair has not visibly come down — 77.8 against 75.0
+is noise in either direction. If the pair is still the outlier on the next full grid, the ship
+read's own order says the next lever is 141b's ally hook, not another card.
