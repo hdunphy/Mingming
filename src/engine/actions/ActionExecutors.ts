@@ -10,8 +10,11 @@ import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
 import { NEGATIVE_STATUSES } from '../core/ConditionValidator';
+import { isSimulating } from '../core/simulationDepth';
 
 function addLog(state: IBattleState, message: string): IBattleState {
+    // Ticket 144c: a simulated play narrates nothing. See `core/simulationDepth.ts`.
+    if (isSimulating()) return state;
     return { ...state, logs: [...state.logs, message] };
 }
 

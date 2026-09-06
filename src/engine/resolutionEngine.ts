@@ -7,8 +7,11 @@ import { getOSBehavior } from './data/firmwareRegistry';
 import { drawCards, discardCard, exhaustCard, returnCard, searchCard, HAND_SIZE_LIMIT } from './deckLogic';
 import { PRNG } from './core/PRNG';
 import { GetProgramData } from './data/programRegistry';
+import { isSimulating } from './core/simulationDepth';
 
 function addLog(state: IBattleState, message: string): IBattleState {
+    // Ticket 144c: a simulated play narrates nothing. See `core/simulationDepth.ts`.
+    if (isSimulating()) return state;
     return { ...state, logs: [...state.logs, message] };
 }
 

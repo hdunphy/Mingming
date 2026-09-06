@@ -5,8 +5,11 @@ import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUt
 import { globalBattleEventBus } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { applyHealModifiers } from './core/Hooks';
+import { isSimulating } from './core/simulationDepth';
 
 function addLog(state: IBattleState, message: string): IBattleState {
+    // Ticket 144c: a simulated play narrates nothing. See `core/simulationDepth.ts`.
+    if (isSimulating()) return state;
     return { ...state, logs: [...state.logs, message] };
 }
 
@@ -322,7 +325,9 @@ export function checkDefeat(state: IBattleState, targetId: string): IBattleState
     if (!target) return state;
 
     const targetIsPlayer = state.playerParty.some(e => e.id === targetId);
-    console.log(`[checkDefeat] Checking defeat for ${target.name} (${targetId}) (Internal side: ${targetIsPlayer ? 'PLAYER' : 'ENEMY'}).`);
+    // TICKET 144c: a `[checkDefeat]` console.log used to sit here. It wrote 92,341 lines (6.5 MB)
+    // for ONE two-battle job — synchronously, on a path the search takes ninety thousand times a
+    // decision. It was debug residue. `targetIsPlayer` stays: `applyBereavementRally` needs it.
     let newState = state;
 
     // Clear Daemons upon fainting

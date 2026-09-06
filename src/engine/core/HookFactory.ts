@@ -6,6 +6,7 @@ import { ConditionValidator, NEGATIVE_STATUSES } from './ConditionValidator';
 import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExecutors';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
+import { isSimulating } from './simulationDepth';
 
 // Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
 const warnedBadConditions = new Set<string>();
@@ -183,7 +184,8 @@ export const HookFactory = {
 
             if (action.type === 'LOG') {
                 const logMsg = this.interpolateText(action.text ?? '', { ...context, state: currentState }, owner, resolvedTargetName);
-                currentState = { ...currentState, logs: [...currentState.logs, logMsg] };
+                // Ticket 144c: a simulated play narrates nothing.
+                if (!isSimulating()) currentState = { ...currentState, logs: [...currentState.logs, logMsg] };
                 continue;
             }
 

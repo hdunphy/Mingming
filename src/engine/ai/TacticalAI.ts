@@ -1,5 +1,6 @@
 
 import { battleReducer, validateProgramConstraints, getEffectiveCardCost, type BattleAction } from '../battleReducer';
+import { beginSimulation, endSimulation } from '../core/simulationDepth';
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
@@ -888,8 +889,15 @@ export function getBestAction(state: IBattleState): BattleAction {
     // the headless batch sims), or card-user enemies (enemyMode === 'CARDS').
     const side = state.activeSide;
 
-    // Silence events during AI simulation to prevent log spam and side effects
+    // Silence events during AI simulation to prevent log spam and side effects.
+    //
+    // TICKET 144c pairs the combat LOG with the event bus here, for the same reason and in the same
+    // place: everything below this line is a question put to the engine, not a play. Ticket 127
+    // measured 93,889 reducer calls for one 3v3 decision, and each one was appending to
+    // `state.logs` — an array copied whole on every append and growing all battle. The bus was
+    // already muted for exactly this; the transcript simply never was.
     globalBattleEventBus.mute();
+    beginSimulation();
     try {
         const candidates: Candidate[] = [];
         findBestSequence(state, side, 0, MAX_DEPTH, candidates);
@@ -971,6 +979,7 @@ export function getBestAction(state: IBattleState): BattleAction {
         });
         return best.action;
     } finally {
+        endSimulation();
         globalBattleEventBus.unmute();
     }
 }

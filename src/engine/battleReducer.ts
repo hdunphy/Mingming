@@ -25,9 +25,12 @@ import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
 import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 import { getOSBehavior } from './data/firmwareRegistry';
+import { isSimulating } from './core/simulationDepth';
 
 // --- Helpers ---
 function addLog(state: IBattleState, message: string): IBattleState {
+    // Ticket 144c: a simulated play narrates nothing. See `core/simulationDepth.ts`.
+    if (isSimulating()) return state;
     return { ...state, logs: [...state.logs, message] };
 }
 
