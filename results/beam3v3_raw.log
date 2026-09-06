@@ -1,0 +1,8 @@
+{"a":"fenrir_v1+skoll_v1+ratatoskr_v2","b":"kraken_v1+ratatoskr_v1+huldra_v1","beam":0,"ms":302837,"decisive":6,"winRate":100,"turns":3.5}
+{"a":"fenrir_v1+skoll_v1+ratatoskr_v2","b":"kraken_v1+ratatoskr_v1+huldra_v1","beam":8,"ms":92857,"decisive":6,"winRate":83.33,"turns":4.67}
+{"a":"kraken_v1+jormungandr_v1+huldra_v2","b":"huldra_v2+ratatoskr_v2+jormungandr_v2","beam":0,"ms":409393,"decisive":6,"winRate":33.33,"turns":6}
+{"a":"kraken_v1+jormungandr_v1+huldra_v2","b":"huldra_v2+ratatoskr_v2+jormungandr_v2","beam":8,"ms":117810,"decisive":6,"winRate":16.67,"turns":6.33}
+{"a":"fenrir_v1+skoll_v1+jormungandr_v1","b":"ratatoskr_v1+huldra_v1+kraken_v1","beam":0,"ms":292791,"decisive":6,"winRate":100,"turns":3.83}
+{"a":"fenrir_v1+skoll_v1+jormungandr_v1","b":"ratatoskr_v1+huldra_v1+kraken_v1","beam":8,"ms":88544,"decisive":6,"winRate":83.33,"turns":5.33}
+{"a":"huldra_v2+ratatoskr_v2+jormungandr_v2","b":"fenrir_v2+skoll_v1+kraken_v2","beam":0,"ms":269445,"decisive":6,"winRate":83.33,"turns":4.83}
+{"a":"huldra_v2+ratatoskr_v2+jormungandr_v2","b":"fenrir_v2+skoll_v1+kraken_v2","beam":8,"ms":86693,"decisive":6,"winRate":83.33,"turns":4.83}

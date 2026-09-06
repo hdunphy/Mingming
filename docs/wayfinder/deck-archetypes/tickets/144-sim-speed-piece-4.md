@@ -382,3 +382,85 @@ row. The clean attribution for 144a alone is the three-deck table above.
 
 `docs/balance/deck_grid.json` is deliberately NOT overwritten. Promoting it is Henry's call, and it
 should probably wait for the beam, so the roster is re-pinned once rather than twice.
+
+---
+
+## §2 — the beam, built and measured (2026-09-06)
+
+`IBattleState.aiBeam`, alongside `enemyAiTier` and with the same semantics: undefined means "take
+the process default", which is now **8 for every caller**. `resolveBeam`'s browser/Node split is
+gone.
+
+### At 1v1 it is very nearly a no-op
+
+Full 32-deck grid, 30 iterations, beam against beamless on the same build:
+
+**4 of 960 cells moved**, by 0.83 to 1.67 points. Roster mean 50.3% either way, zero decks outside
+the 35–80 band either way.
+
+| deck | opponent | | |
+|---|---|---|---|
+| audhumbla_v1 | ratatoskr_v1 | 32.50 → 33.33 | +0.83 |
+| draugr_v2 | ratatoskr_v1 | 40.00 → 41.67 | +1.67 |
+| ratatoskr_v1 | audhumbla_v1 | 63.64 → 64.44 | +0.80 |
+| ymir_v1 | ratatoskr_v1 | 63.33 → 65.00 | +1.67 |
+
+**Every one of them involves ratatoskr_v1** — and two are the same matchup seen from both ends, so
+it is really three matchups and one deck. That is the deck whose hand is all 0-costs, so it is the
+one deck whose 1v1 branching regularly exceeds 8 and therefore the only one with anything to prune.
+Ticket 127's 90-cell finding holds and now extends to the whole grid.
+
+**`results/rebaseline_144a` therefore did not need redoing**, and `results/rebaseline_beam` is the
+belt-and-braces confirmation rather than a replacement.
+
+### At 3v3 it is not free, and this is the part to read
+
+Four comps, 6 battles a cell, same seeds both ways:
+
+| | beamless | beam 8 | |
+|---|---|---|---|
+| cells whose win rate moved | — | **3 of 4** | |
+| mean win rate of side A | 79.2 | **66.7** | **−12.5** |
+| mean turns | 4.54 | **5.29** | **+0.75** |
+| time | 1274 s | 386 s | **3.30×** |
+
+| comp | beamless | beam 8 | beam 16 | turns |
+|---|---|---|---|---|
+| fenrir_v1+skoll_v1+ratatoskr_v2 vs the Nature gym | 100% | 83% | 83% | 3.50 → 4.67 |
+| kraken_v1+jormungandr_v1+huldra_v2 vs Venom Court | 33% | 17% | 17% | 6.00 → 6.33 |
+| fenrir_v1+skoll_v1+jormungandr_v1 vs the zoo | 100% | 83% | 83% | 3.83 → 5.33 |
+| Venom Court vs Tidal Forge | 83% | 83% | 83% | 4.83 → 4.83 |
+
+**Every move is in the same direction: the side that was winning wins less, and games run longer.**
+That is the bias the beam's own header predicts — it ranks candidates by immediate score, so it
+under-reads lines whose payoff is one play further on, and the first thing to go is the kill two
+plays out. It does not make the AI play badly; it makes it play less sharply, symmetrically, and
+the side with the shorter clock is the one that pays.
+
+Note what that does to a ship gate: ticket 141's *"average turns stay ≥ 4.0"* now passes more
+easily, but for the wrong reason — a slightly weaker search rather than a healthier roster.
+
+### A wider beam is not the answer
+
+Beam 16 — twice the ruled width — moves the **same three cells to the same win rates**, and costs
+almost as much (3.13× against 8's 3.30×). The lines that mattered were already outside 16. This is
+not a width-tuning problem, and if beaming at all, 8 is right.
+
+### One plumbing fact, and it matters more than it looks
+
+**`AI_BEAM` does not reach any harness lane.** `vite.config.ts` substitutes
+`define: { 'process.env': {} }`, and vite-node transforms `scratch/` and `src/debug/` through the
+same config, so the variable never arrives — verified, not assumed. Before this change that was
+harmless, because the Node default was beamless anyway. After it, it would have left every
+measurement beamed with **no way to ask for otherwise**, which is exactly what ticket 108's
+*"confirm anything you intend to act on at full, BEAMLESS"* forbids. So `BatchOptions.aiBeam`
+threads the per-battle switch through `runOne` the way `enemyAiTier` already does, and that is now
+the only working way to take a beamless measurement.
+
+### What this leaves open
+
+The **3v3 corpus was all measured beamless** — ticket 140's 144-comp grid, 141's arm B, the gym
+check. Those numbers remain internally consistent with each other and are now inconsistent with what
+the game plays. Re-running them under the beam is a real cost (the comp grid is the expensive one),
+and until it happens, a 3v3 number on record and a 3v3 number measured today are not comparable.
+That is a decision for Henry, not a defect.

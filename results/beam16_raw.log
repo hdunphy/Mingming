@@ -1,0 +1,4 @@
+{"a":"fenrir_v1+skoll_v1+ratatoskr_v2","b":"kraken_v1+ratatoskr_v1+huldra_v1","beam":16,"ms":96766,"decisive":6,"winRate":83.33,"turns":4.5}
+{"a":"kraken_v1+jormungandr_v1+huldra_v2","b":"huldra_v2+ratatoskr_v2+jormungandr_v2","beam":16,"ms":120871,"decisive":6,"winRate":16.67,"turns":6.17}
+{"a":"fenrir_v1+skoll_v1+jormungandr_v1","b":"ratatoskr_v1+huldra_v1+kraken_v1","beam":16,"ms":100885,"decisive":6,"winRate":83.33,"turns":5}
+{"a":"huldra_v2+ratatoskr_v2+jormungandr_v2","b":"fenrir_v2+skoll_v1+kraken_v2","beam":16,"ms":88551,"decisive":6,"winRate":83.33,"turns":4.83}
