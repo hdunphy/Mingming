@@ -243,3 +243,79 @@ unreadable. It is its own row, with its own rebaseline, on top of these three.
 144e (bundled lanes) and 144f (comp-grid cell cache) are wins on Henry's box specifically — lane RAM
 and rerun cost — and neither can be honestly verified on the 2-core container these rows were
 measured on. 144g (transposition table) is a measured arm rather than a ship row and is untouched.
+
+---
+
+## 144a — the hole in §1, found (2026-09-06)
+
+**§1's premise is false, and not by a little.** It says two copies of the same card produce the same
+subtree, so they can only diverge through a rare mid-search reshuffle. They diverge on the first
+ply, on most turns, for a reason that has nothing to do with reshuffles.
+
+### What playing a copy actually does
+
+`scratch/probe144a.ts` walks a real battle and, at every decision, plays each member of every
+interchangeable group ONE PLY and structurally diffs the results. Across three of the matchups that
+moved:
+
+| matchup | groups seen | one-ply states identical | **differ** |
+|---|---|---|---|
+| fenrir_v1 vs kraken_v2 | 10 | 5 | **4** |
+| kraken_v1 vs nidhoggr_v1 | 6 | 0 | **5** |
+| ratatoskr_v2 vs huldra_v2 | 21 | 6 | **14** |
+
+The differing field is always the same one — the deck state — and always in the same way:
+
+```
+copy A: hand = [maelstrom, scald, capacitor, boiling_surge, boiling_surge, hydro_blast, capacitor]
+copy B: hand = [scald, maelstrom, capacitor, boiling_surge, boiling_surge, hydro_blast, capacitor]
+```
+
+Same cards. **Different order.** Removing index 0 from a list leaves a differently-ordered remainder
+than removing index 1, and hand order is the AI's enumeration order — and `bestScore` improves on a
+strict `>`, so among equal-scoring lines the first one VISITED wins. The engine already knows this
+about itself: the beam's own comment says restoring enumeration order is *"what stops the beam
+changing anything it did not prune… that bug cost a measurement"*.
+
+*(The first version of this probe sorted the hand before comparing, and reported 9 of 9 groups
+identical. Sorting is exactly what hid the mechanism. Worth remembering when writing the next
+fingerprint.)*
+
+### And two more, downstream, in how candidates are consumed
+
+Even with identical subtrees, dropping a candidate would still move numbers:
+
+1. **`topN = improving.slice(0, lookaheadTopN(tier))` is a fixed-size window.** Duplicates occupy
+   slots in it, so removing them promotes genuinely different plays into the lookahead. That is not
+   rare, it is most contested turns.
+2. **`lookaheadValue` seeds its determinization PRNG with the candidate's INDEX** —
+   `lookahead|${leaf.seed}|${leaf.turn}|${candidateIndex}|${d}`. Removing an entry shifts every
+   later index, so every lookahead value after it changes.
+
+### Both fixes were built and both failed the gate
+
+| attempt | speed | cells moved |
+|---|---|---|
+| v1 — skip the duplicate card entirely | 3.9 → 2.6 min | 69 / 90 |
+| v2 — keep every candidate, reuse the twin's subtree | 3.9 → 2.7 min | 68 / 90 |
+
+v2 was built specifically to answer mechanisms 1 and 2: same candidate count, same order, same
+indices, each copy carrying its own action — only the recursion shared. It still moves, because of
+the hand-order finding above: the twin's subtree is genuinely a different search, so there is
+nothing sound to reuse.
+
+**144a cannot be made bit-identical by memoisation.** Reverted; the tree is back to 0 of 90.
+
+### The three ways forward, and what each costs
+
+1. **Drop it.** The package keeps its 1.41×, and nothing else in the ticket is at risk.
+2. **Rule the drift acceptable.** Henry's call, and it is the beam question in a smaller coat — the
+   deck fields move about a point, individual cells up to 15. Not recommended while the AI's
+   decision demonstrably depends on which copy of a card sits earlier in your hand.
+3. **Make enumeration order canonical** — sort the hand for enumeration by (dataId, cost, growth)
+   so the search stops depending on hand order at all. Then the copies really are interchangeable,
+   the dedupe becomes sound, and 144a's 1.5× is available. This is the interesting option, because
+   the dependency it removes is arguably a defect: **the order cards happen to sit in your hand is
+   an artifact, not information, and right now it changes what the AI does.** It is not free — it
+   moves every number once and needs its own rebaseline — but Henry has already accepted one
+   rebaseline for the beam, and these two could ride together.
