@@ -58,6 +58,7 @@ import { z } from 'zod';
  */
 export type NodeKind =
     | 'wild'        // the ordinary fight; symmetric to your party size
+    | 'rival'       // ticket 142a: a wild in every way but its species — the PATH elements, not the biome's
     | 'elite'       // `economy-session.md`: ONE harder fight, the Driver visible as the stakes
     | 'alpha'       // `exploration-map.md`: one overtuned wild vs your full team, guards a rare blueprint
     | 'ambush'      // `exploration-map.md`: their 3 vs your 2, marked high-risk
@@ -67,7 +68,7 @@ export type NodeKind =
     | 'gym';        // the region boss — a three-fight gauntlet, not a node you clear in one battle
 
 export const NODE_KINDS = [
-    'wild', 'elite', 'alpha', 'ambush', 'marketplace', 'workshop', 'event', 'gym',
+    'wild', 'rival', 'elite', 'alpha', 'ambush', 'marketplace', 'workshop', 'event', 'gym',
 ] as const;
 
 /**
@@ -107,6 +108,13 @@ export interface IRegionNode {
      * content roll at entry — see the note above on why re-entry must re-roll.
      */
     readonly visited: number;
+    /**
+     * Ticket 142b: this elite is the SCOUT — the last fight before the gauntlet, fielding two
+     * bodies of the gym leader's own comp. Optional rather than required because save v4 has no
+     * migration path (ticket 06): a run saved before this shipped simply has no scout, which is
+     * the honest reading of a map generated without one.
+     */
+    readonly scout?: boolean;
 }
 
 /**
@@ -443,6 +451,8 @@ export const RegionNodeSchema = z.object({
     pocket: z.boolean(),
     edges: z.array(z.string()),
     visited: z.number().int().min(0),
+    // Ticket 142b. Optional, not defaulted: a pre-142 save has no scout and must resume as it was.
+    scout: z.boolean().optional(),
 });
 
 export const RunCardSchema = z.object({

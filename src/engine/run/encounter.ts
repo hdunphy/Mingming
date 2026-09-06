@@ -39,11 +39,12 @@
 import { SeedStream } from '../core/SeedStream';
 import type { AiTier } from '../ai/TacticalAI';
 import { getSectorSpecies } from '../data/EncounterGenerator';
-import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
+import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
 import { authoredBossFor } from './bosses';
+import { GYM_REGISTRY, pathElementsFor } from './gyms';
 import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
 
@@ -72,7 +73,7 @@ import { nodeSeed } from './nodeSeed';
  * and the fights themselves are rolled by `engine/run/gauntlet.rollGauntletFight`. Removing it from
  * this list would make entering the gym do nothing at all, which is why it stays.
  */
-export const FIGHT_KINDS: ReadonlyArray<NodeKind> = ['wild', 'elite', 'alpha', 'ambush', 'gym'];
+export const FIGHT_KINDS: ReadonlyArray<NodeKind> = ['wild', 'rival', 'elite', 'alpha', 'ambush', 'gym'];
 
 export function isFightNode(kind: NodeKind): boolean {
     return FIGHT_KINDS.includes(kind);
@@ -240,6 +241,9 @@ export type EnemyGrade = 'wild' | 'elite' | 'gauntlet';
 export function gradeFor(kind: NodeKind): EnemyGrade {
     if (kind === 'elite') return 'elite';
     if (kind === 'gym') return 'gauntlet';
+    // Ticket 142a: a rival is a WILD. It fields different species, and nothing else about it moves
+    // — same rung, same kit fraction, same AI, same blueprint rate. Giving the road a harder rung
+    // as well would make "route toward the species you need" a cost rather than a choice.
     return 'wild';
 }
 
@@ -378,7 +382,18 @@ const warnedEmptyPools = new Set<string>();
  * rather than twice from whatever overlaps.
  */
 export function encounterSpeciesPool(run: IRunState, node: IRegionNode): string[] {
-    const elements = run.biomes[node.biomeIndex]?.elements ?? [];
+    // TICKET 142b — the scout fields the leader's own bodies, so its pool is the species behind
+    // `gym.leaderComp` rather than an element at all. Ahead of the element branch because it is not
+    // a narrowing of it: this fight is the exam, not the biome.
+    const scoutSpecies = scoutSpeciesFor(run, node);
+    if (scoutSpecies.length > 0) return scoutSpecies;
+
+    // TICKET 142a — a rival fields the PATH species: what beats the gym, and the gym's own element.
+    // The biome keeps its promise either way, because two wilds in three are still its element and
+    // the exit elite always is.
+    const elements = node.kind === 'rival'
+        ? pathElementsFor(GYM_REGISTRY[run.gymId]?.element ?? '')
+        : run.biomes[node.biomeIndex]?.elements ?? [];
 
     const ids: string[] = [];
     for (const element of elements) {
@@ -523,6 +538,33 @@ export function gymDriverForNode(run: IRunState, node: IRegionNode): string | un
     return authoredBossFor(run.gymId)?.driver;
 }
 
+/**
+ * TICKET 142b — the firmwares the scout fields: two of the leader's three, chosen by the node seed.
+ *
+ * Two rather than three so it is a CUT of the gym and not a rehearsal of it, and so the fight sits
+ * at an elite's size rather than the gauntlet's. Which two is stable per node: the same scout on
+ * the same run always shows the same pair, because a preview that reshuffled on re-entry would be
+ * a slot machine rather than information.
+ */
+export function scoutFirmwareFor(run: IRunState, node: IRegionNode): string[] {
+    if (!node.scout) return [];
+    const comp = GYM_REGISTRY[run.gymId]?.leaderComp ?? [];
+    if (comp.length === 0) return [];
+    const stream = new SeedStream(new SeedStream(encounterSeed(run, node)).fork('scout-comp'));
+    return stream.shuffle([...comp]).slice(0, 2);
+}
+
+/** The species behind those firmwares — what `encounterSpeciesPool` has to return. */
+function scoutSpeciesFor(run: IRunState, node: IRegionNode): string[] {
+    const species: string[] = [];
+    for (const firmware of scoutFirmwareFor(run, node)) {
+        const owner = Object.values(MingmingRegistry)
+            .find((definition) => definition.availableOS.includes(firmware));
+        if (owner && !species.includes(owner.id)) species.push(owner.id);
+    }
+    return species;
+}
+
 export function rollEncounter(input: EncounterInput): IRunEncounter {
     const { run, node, party } = input;
 
@@ -536,13 +578,24 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
     const opening = isOpeningFight(run);
     const loadout = opening ? OPENING_FIGHT_LOADOUT : enemyLoadoutFor(node.kind, run.tier);
     const pool = encounterSpeciesPool(run, node);
-    const size = opening ? 1 : enemyPartySize(node.kind, party.length);
+    // Ticket 142b: the scout is TWO bodies of the leader's comp, whatever the player brought — a
+    // preview that mirrored your party size would show a different fight to a solo run than to a
+    // full one, and the thing being previewed is the gym's team.
+    const scoutFirmware = scoutFirmwareFor(run, node);
+    const size = opening
+        ? 1
+        : scoutFirmware.length > 0 ? scoutFirmware.length : enemyPartySize(node.kind, party.length);
 
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];
 
     for (let i = 0; i < size; i += 1) {
-        const definitionId = pool[roster.nextInt(0, pool.length - 1)];
+        // The scout's bodies are named, not rolled — `pool` holds exactly their species, in the
+        // same order as the firmwares, so body i is firmware i running on its own species.
+        const scoutOS = scoutFirmware[i];
+        const definitionId = scoutOS
+            ? (pool[i] ?? pool[pool.length - 1])
+            : pool[roster.nextInt(0, pool.length - 1)];
         const definition = GetMingmingData(definitionId);
 
         // Ticket 21: IVs are the ONLY per-individual variance left, and their range is the same at
@@ -558,7 +611,12 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         // by firmware, so a biome-0 enemy still needs a firmware to have chosen its five cards
         // FROM, it just does not get to run it. Drawing it unconditionally also keeps the stream
         // position identical across depths, which is what the no-scaling test compares.
-        const activeOS = definition.availableOS[roster.nextInt(0, definition.availableOS.length - 1)];
+        // Drawn even for the scout, so the stream position is identical whether or not this node
+        // is one — the same reason it is drawn for a loadout that will not run it.
+        const rolledOS = definition.availableOS[roster.nextInt(0, definition.availableOS.length - 1)];
+        // Ticket 142b: which firmware is the whole point of a preview. `kraken_v1` and `kraken_v2`
+        // are different fights on the same body, and the comp grid picked one of them.
+        const activeOS = scoutOS ?? rolledOS;
 
         const state: IMingmingState = {
             id: roster.nextId(`enemy_${definitionId}`),

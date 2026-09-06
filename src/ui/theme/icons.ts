@@ -20,7 +20,7 @@ export type IconName =
     // Top-level navigation and the ranch's five sections.
     | 'ranch' | 'debug' | 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex'
     // The eight region-node kinds (`engine/runTypes.NodeKind`).
-    | 'wild' | 'elite' | 'alpha' | 'ambush' | 'marketplace' | 'workshop' | 'event' | 'gym'
+    | 'wild' | 'rival' | 'elite' | 'alpha' | 'ambush' | 'marketplace' | 'workshop' | 'event' | 'gym'
     // Chrome.
     | 'sound-on' | 'sound-off' | 'search' | 'settings' | 'warning' | 'check' | 'skull' | 'trophy'
     | 'door' | 'swap' | 'scrap' | 'blueprint'
@@ -54,6 +54,10 @@ export const PATHS: Readonly<Record<IconName, ReadonlyArray<string>>> = {
      */
     wild: ['M12 3.2v11.3', 'M8.4 12.6h7.2', 'M12 14.5v4.2', 'M9.9 19.6h4.2'],
     // An elite is a wild you can lose to, so it is the skull rather than a bigger sword.
+    // Ticket 142a: two crossed banners — another trainer walking the same road to the same leader.
+    // Deliberately unlike `wild` (a lone track) and unlike `elite` (a helm): the map's whole job is
+    // that a kind is legible from across it, and a rival is a CHOICE to route toward or around.
+    rival: ['M6 20V5.5l6 2 6-2V20', 'M6 11.5l12-4', 'M12 7.5V20'],
     elite: ['M12 3.5a7 7 0 0 1 7 7v3.2l-1.6 1.4v3.4H6.6v-3.4L5 13.7v-3.2a7 7 0 0 1 7-7z', 'M9.3 10.8h.01', 'M14.7 10.8h.01', 'M10.5 16v2.5', 'M13.5 16v2.5'],
     alpha: ['M3.5 7.5 6 16h12l2.5-8.5-5 3.5L12 4.5 8.5 11z', 'M6 19h12'],
     // A mouth in the ground. Drawn as a rim you can see over and a dark that has no bottom.

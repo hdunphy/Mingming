@@ -88,6 +88,10 @@ const RARITY_WEIGHTS: Record<Rarity, number> = {
  */
 export const BLUEPRINT_DROP_RATE: Readonly<Record<NodeKind, number>> = {
     wild: 0.20,
+    // Ticket 142a: the road pays the SAME rate — the rival is not a bonus node, it is an ordinary
+    // wild that happens to field the species you are trying to assemble. Paying more would make it
+    // a farm target and undo the routing decision the node exists to create.
+    rival: 0.20,
     ambush: 0.20,
     elite: 0.25,
     alpha: 1.00,
