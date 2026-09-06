@@ -319,3 +319,66 @@ nothing sound to reuse.
    an artifact, not information, and right now it changes what the AI does.** It is not free — it
    moves every number once and needs its own rebaseline — but Henry has already accepted one
    rebaseline for the beam, and these two could ride together.
+
+---
+
+## 144a, SHIPPED — the AI reads a hand by its contents, not by its draw order (2026-09-06)
+
+Henry, 2026-09-06, on being shown the hand-order finding: *"if what you're suggesting is for the AI
+sort by card then I think that's the obvious answer to help reduce timing. make sure the player is
+still by draw order."*
+
+### What changed, in one sentence
+
+The order the **search** walks the hand in. `findBestSequence` now iterates a sorted **copy** —
+`dataId`, then cost, then banked growth, then instance id — so two copies of a card sort adjacently
+and the second is skipped. Nothing writes back to the state.
+
+### The player's hand is untouched, and that is tested
+
+`src/engine/ai/enumerationOrder.test.ts` runs the AI against a hand whose draw order is the reverse
+of its sorted order and asserts the hand comes back identical — same instances, same positions, and
+the array is not even a new object. A fourth test asserts the thing the row is *for*: the same six
+cards dealt in three different orders now produce the same play. **That test fails on the pre-144a
+build and passes on this one**, so it is measuring the fix rather than describing it.
+
+### Why this was the right shape rather than the dedupe alone
+
+Draw order was never information. It is an artifact of the shuffle, and the search was reading it:
+`bestScore` improves on a strict `>`, so among equal-scoring lines the first one VISITED won, and
+"first" meant "wherever that card happened to land when it was drawn". Once order is a function of
+the hand's CONTENTS, two copies really are interchangeable — same remainder after playing either,
+same subtree — and skipping the second is sound rather than an approximation.
+
+### Speed
+
+| | 3 deck rows, 2 lanes | vs pre-144 |
+|---|---|---|
+| pre-144 baseline | 5.5 min | — |
+| + 144b/c/d | 3.9 min | 1.41× |
+| **+ 144a** | **2.0 min** | **2.75×** |
+
+### The drift it costs, measured on the three gate decks
+
+| deck | cells moved | mean \|Δ\| | max \|Δ\| | field |
+|---|---|---|---|---|
+| fenrir_v1 | 21 / 30 | 3.9 | 18.3 | 54.77 → 53.47 (−1.30) |
+| kraken_v1 | 27 / 30 | 5.2 | 15.0 | 48.22 → 50.00 (+1.78) |
+| ratatoskr_v2 | 21 / 30 | 1.8 | 6.7 | 41.55 → 41.28 (−0.28) |
+
+Cells move; decks barely do. The AI plays differently, not better or worse.
+
+### The new 1v1 baseline — the roster is healthy under it
+
+Full 32-deck grid, 30 iterations, `grid` seed base: `results/rebaseline_144a/`.
+
+**Roster mean 50.3%** (the old grid read 49.9%). **Zero decks outside the 35–80 band.** 360 of 960
+cells moved by 5+.
+
+Read the per-deck deltas in that SUMMARY with care: its `was` column is
+`docs/balance/deck_grid.json`, which is **pre-141**, so those numbers carry 141, 142, 143 and 144a
+together. The biggest mover there — skoll_v1 at +12.2 — is ticket 141e's `sun_devourer`, not this
+row. The clean attribution for 144a alone is the three-deck table above.
+
+`docs/balance/deck_grid.json` is deliberately NOT overwritten. Promoting it is Henry's call, and it
+should probably wait for the beam, so the roster is re-pinned once rather than twice.

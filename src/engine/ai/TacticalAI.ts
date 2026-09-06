@@ -386,7 +386,57 @@ function findBestSequence(
         action: BattleAction; nextState: IBattleState; immediate: number; order: number;
     }> | null = BEAM > 0 && depth > 0 ? [] : null;
 
-    for (const card of hand) {
+    /*
+     * TICKET 144a — THE AI CONSIDERS A HAND IN A CANONICAL ORDER, NOT IN DRAW ORDER.
+     *
+     * WHAT THIS CHANGES, IN ONE SENTENCE: the order the SEARCH walks the hand in. Nothing writes
+     * back to `state`, so the hand a player is holding — in the UI, in the reducer, in the save —
+     * is still in draw order, and the card a player clicks is still the card they clicked.
+     *
+     * WHY. The search used to walk the hand in draw order, and `bestScore` improves on a strict
+     * `>`, so among equal-scoring lines the first one VISITED wins. That made the AI's decision a
+     * function of where a card happened to land when it was drawn — which is an artifact of the
+     * shuffle, not information about the board. `scratch/probe144a.ts` caught it: playing the FIRST
+     * copy of a pair versus the SECOND leaves the same cards in hand in a different order (removing
+     * index 0 leaves a different remainder than removing index 1), and 23 of 37 interchangeable
+     * groups across three matchups diverged on the first ply because of it. The engine already knew
+     * the shape of this bug — the beam's own comment says restoring enumeration order is "what
+     * stops the beam changing anything it did not prune… that bug cost a measurement".
+     *
+     * WHAT IT BUYS. Once order is a function of the hand's CONTENTS rather than its history, the
+     * two copies of a card really are interchangeable: they sort adjacently, the remainder after
+     * playing either is identical key-for-key, and the subtree beneath the second is provably the
+     * same search as beneath the first. So it can be skipped — which is the whole point, because a
+     * hand is full of pairs and branching compounds at MAX_DEPTH = 3.
+     *
+     * THE SORT KEY is total and deterministic: `dataId`, then cost, then banked growth, then the
+     * instance id as the final tie-break (assigned once by `instantiateDeck`, stable across
+     * reshuffles). The first three are the fields that make two copies genuinely the same card; the
+     * fourth only exists so the order can never depend on array position.
+     *
+     * THIS MOVES NUMBERS, ON PURPOSE, ONCE. Every measurement before it was taken against an AI
+     * that read its own draw order. That is the rebaseline this row costs, and it is the reason it
+     * is not gated on bit-identity like 144b/c/d.
+     */
+    const growthOf = (id: string): number => state.counters?.[`card_growth:${id}`] ?? 0;
+    const orderedHand = [...hand].sort((a, b) => (
+        a.dataId < b.dataId ? -1 : a.dataId > b.dataId ? 1
+            : a.currentCost - b.currentCost
+            || growthOf(a.id) - growthOf(b.id)
+            || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    ));
+
+    let previousKey: string | null = null;
+
+    for (const card of orderedHand) {
+        // Copies sort adjacently, so one comparison against the previous card is the whole dedupe.
+        const key = `${card.dataId}|${card.currentCost}|${growthOf(card.id)}`;
+        if (key === previousKey) {
+            if (CENSUS) census.deduped++;
+            continue;
+        }
+        previousKey = key;
+
         const programData = GetProgramData(card.dataId);
 
         // Determine valid targets based on card target type
@@ -652,7 +702,7 @@ const lookaheadDeterminizations = (tier: AiTier): number => (tier === 'lite' ? 1
  * byte-identical repeats (research/3v3-optimisation.md).
  */
 const CENSUS = env.AI_CENSUS === '1';
-export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0 };
+export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0, deduped: 0 };
 export function censusReset(): void {
     census.enumerated = 0; census.duplicate = 0; census.simulated = 0;
     census.pruned = 0; census.decisions = 0;
