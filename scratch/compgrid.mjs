@@ -23,8 +23,16 @@
  * RESUMABLE. Every finished (comp, opponent, round) is one line in results/compgrid/results.jsonl;
  * rerunning skips what is on disk. Kill it any time.
  *
- * BEAMLESS. Under Node the AI's beam is off unless AI_BEAM is set, so these are the same search as
- * every 1v1 number on record. Each lane reports loudly if a beam ever loads.
+ * BEAM. Ticket 144 §2, as amended: the beam is a rung of `ENEMY_LADDER`, so the GAME beams its
+ * wilds and elites, its GYM does not, and this harness is BEAMLESS unless asked. The default run is
+ * therefore the same instrument as every 3v3 number on record (ticket 140's grid, 141's arm B, the
+ * gym check) and as the gym fight itself.
+ *
+ * `--beam 8` opts in through `BatchOptions.aiBeam` (the only route that works under vite-node) and
+ * buys about 3.3x. It is a SCREENING tool, not a cheaper version of the same answer: at 3v3 the beam
+ * takes ~12.5 points of win rate off whichever side is winning and adds 0.75 turns, and that bias
+ * has a DIRECTION - it systematically flatters grindy comps over comps that close. Screen wide with
+ * it if you like, then confirm the survivors at `--beam 0`. Every result row records its beam.
  *
  * RUN, from the repo root (needs node_modules, which Henry's machine has again):
  *
@@ -58,7 +66,8 @@ const MAX_ROUNDS = Number(arg('rounds', '4'));
 const OUTDIR = arg('outdir', 'results/compgrid');
 const LIMIT = Number(arg('limit', '0'));          // smoke testing: only the first N comps
 const COMPS_FILE = arg('comps', '');
-const PANEL_ARG = arg('panel', '');                // ticket 141 gym check: comma-separated comp ids to score against instead of the t.140 panel              // ticket 141: screen a fixed list (one comp id per line) instead of enumerating
+const PANEL_ARG = arg('panel', '');
+const BEAM = arg('beam', '');                     // '' = the default, which is BEAMLESS; '8' = the screening beam
 const PANEL_ITERS = Number(arg('panel-iters', '20'));
 const RESULTS = path.join(OUTDIR, 'results.jsonl');
 fs.mkdirSync(OUTDIR, { recursive: true });
@@ -180,7 +189,8 @@ function summary(compList) {
     const lines = [];
     lines.push(`# EA 3v3 comp grid - successive halving (${SCOPE}: ${compList.length} comps)`, '');
     lines.push(`Panel: ${Object.entries(PANEL).map(([k, v]) => `${k} = ${v}`).join('; ')}.`, '');
-    lines.push('Beamless. Score = wins / decisive games against the panel, summed over every round the comp survived; `games` is how many battles that rests on.', '');
+    const beams = [...new Set(results.map(r => r.beam ?? 'unrecorded'))].join('/');
+    lines.push(`Beam ${beams}. Score = wins / decisive games against the panel, summed over every round the comp survived; \`games\` is how many battles that rests on.`, '');
     lines.push('| # | comp | score | games | elements |', '|---|---|---|---|---|');
     sc.forEach((s, i) => {
         const els = s.comp.split('+').map(f => ELEMENT[f][0]).join('');
@@ -192,10 +202,14 @@ function summary(compList) {
         lines.push('', '## Panel round robin (the archetype triangle)', '');
         const names = Object.keys(PANEL); const id2name = Object.fromEntries(Object.entries(PANEL).map(([k, v]) => [v, k]));
         const M = {}; for (const n of names) M[n] = {};
-        for (const r of pr) { const a = id2name[r.a], b = id2name[r.b]; const w = r.decisive ? r.winsA / r.decisive * 100 : NaN; M[a][b] = w; M[b][a] = 100 - w; }
+        for (const r of pr) {
+            const a = id2name[r.a], b = id2name[r.b];
+            if (!a || !b) continue; // a row from an earlier panel in the same outdir
+            const w = r.decisive ? r.winsA / r.decisive * 100 : NaN; M[a][b] = w; M[b][a] = 100 - w;
+        }
         lines.push('| comp | ' + names.join(' | ') + ' | avg |', '|---'.repeat(names.length + 2) + '|');
         for (const n of names) {
-            const vals = names.map(m => m === n ? null : M[n][m]);
+            const vals = names.map(m => m === n ? null : (M[n][m] ?? null));
             const have = vals.filter(v => v !== null && !Number.isNaN(v));
             lines.push(`| ${n} | ` + vals.map(v => v === null ? '-' : v.toFixed(0)).join(' | ') + ` | ${have.length ? (have.reduce((x, y) => x + y, 0) / have.length).toFixed(0) : '-'} |`);
         }
@@ -232,14 +246,14 @@ function projection(nComps) {
 
 async function main() {
     const all = comps();
-    console.log(`${all.length} comps (${SCOPE}), panel of ${PANEL_IDS.length}, lanes ${LANES}`);
+    console.log(`${all.length} comps (${SCOPE}), panel of ${PANEL_IDS.length}, lanes ${LANES}, beam ${BEAM === '' ? 'default (beamless)' : BEAM}`);
     if (flag('summary')) { summary(all); return; }
 
     // The panel plays itself at full confidence first: it is the archetype triangle and it is cheap (10 pairs).
     const panelJobs = [];
     for (let i = 0; i < PANEL_IDS.length; i++)
         for (let j = i + 1; j < PANEL_IDS.length; j++)
-            panelJobs.push({ a: PANEL_IDS[i], b: PANEL_IDS[j], iterations: PANEL_ITERS, seed: `panel:${PANEL_IDS[i]}:${PANEL_IDS[j]}` });
+            panelJobs.push({ a: PANEL_IDS[i], b: PANEL_IDS[j], iterations: PANEL_ITERS, seed: `panel:${PANEL_IDS[i]}:${PANEL_IDS[j]}`, ...(BEAM === '' ? {} : { beam: Number(BEAM) }) });
     if (PANEL_ITERS > 0) await runJobs(panelJobs, `panel round robin (${PANEL_ITERS} paired iterations)`);
     summary(all);
     projection(all.length);
@@ -256,7 +270,7 @@ async function main() {
             for (const p of PANEL_IDS) {
                 // A comp that IS a panel member does not play itself.
                 if (c === p) continue;
-                jobs.push({ a: c, b: p, iterations: step.iters, seed: `r${step.round}:${c}:${p}` });
+                jobs.push({ a: c, b: p, iterations: step.iters, seed: `r${step.round}:${c}:${p}`, ...(BEAM === '' ? {} : { beam: Number(BEAM) }) });
             }
         await runJobs(jobs, `round ${step.round}: ${survivors.length} comps x ${step.iters} paired iterations`);
         summary(all);

@@ -566,7 +566,20 @@ function findBestSequence(
             // above 1v1's branching and pruning nothing there, 23 of 90 grid cells still moved.
             explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
             explore.sort((a, b) => a.order - b.order);
-            if (CENSUS) census.pruned += deferred.length - explore.length;
+            /*
+             * UNCONDITIONAL, unlike every other census counter — ticket 144 §2.
+             *
+             * `census.pruned` is the only one a HARNESS uses as a dead-arm check: `compshard`
+             * asserts that a beamless lane pruned nothing and a beamed lane pruned something,
+             * which is what stops a run silently measuring a different search than its rows claim.
+             * That check was decorative, because this line was gated on `CENSUS` and `CENSUS` reads
+             * `AI_CENSUS`, which — exactly like `AI_BEAM` — never reaches a vite-node lane through
+             * the `process.env` define. So the guard could not fire in the one place it was for.
+             *
+             * One integer add per beamed node, on a path that has just simulated dozens of battles
+             * worth of state. Measured against making a safety check real, that is not a cost.
+             */
+            census.pruned += deferred.length - explore.length;
         }
         for (const d of explore) {
             const result = findBestSequence(d.nextState, side, depth + 1, maxDepth);
