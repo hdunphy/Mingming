@@ -72,6 +72,11 @@ export interface BattleOptions {
      * See `IBattleState.enemyAiTier`.
      */
     readonly enemyAiTier?: AiTier;
+    /**
+     * TICKET 144 §2 — the beam width for this battle. Comes off the enemy ladder
+     * (`IEnemyLoadout.beam`): bosses beamless, everything else 8. See `IBattleState.aiBeam`.
+     */
+    readonly aiBeam?: number;
 }
 
 /**
@@ -397,6 +402,9 @@ export function createBattleState(
         counters: {},
         activeRelics: [...setup.drivers],
         enemyMode,
+        // Ticket 144 §2: unset means "take the process default", which is BEAMLESS. The game
+        // supplies a width per fight off the enemy ladder; a harness that wants one asks by name.
+        aiBeam: options?.aiBeam,
         // Undefined rather than a default, deliberately: `TacticalAI.tierFor` reads "unset" as
         // "take the process default", and writing a concrete 'full' here would override the
         // AI_GREEDY / AI_LITE environment the balance corpus runs under.

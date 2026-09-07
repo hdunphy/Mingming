@@ -774,38 +774,43 @@ export function censusNewDecision(): void { census.decisions++; }
 export const GAME_BEAM_WIDTH = 8;
 
 /**
- * TICKET 144 §2 — THE BROWSER/NODE SPLIT IS GONE. RULED BY HENRY, 2026-09-06: BEAM 8 EVERYWHERE.
+ * TICKET 144 §2, AMENDED — THE BEAM IS A RUNG OF THE ENEMY LADDER, NOT A GLOBAL.
  *
- * Everything above this line describes the state ticket 127 left the beam in, and the reasoning was
- * sound for its moment: the game could not reach the beam at all, and flipping the default would
- * have silently re-beamed every measurement on record. So 127 keyed the default on "is this Node",
- * which gave the player the 2.3x and left every harness beamless.
+ * Everything above describes where ticket 127 left this, and the first version of 144 §2 replaced
+ * its browser/Node split with "8 for everyone". Henry corrected that on 2026-09-06, and the
+ * correction is the design: **the boss thinks at full depth; everything else gets the beam.**
  *
- * What that bought was a permanent gap between the two: **the game played a beamed search and the
- * instrument measured a beamless one.** Henry's ruling names that as the thing that is not
- * coherent — in either direction — because the grid's whole job is to measure what the player
- * faces. So the default is now 8 for everyone, and the rebaseline it costs was paid once, on
- * purpose, with a commit saying so.
+ * That is right because of what the beam actually costs, which 144 §2 measured rather than assumed:
+ * at 3v3 it takes about **12.5 points of win rate off the side that is winning** and adds 0.75
+ * turns, because ranking candidates by immediate score means the first thing it stops seeing is the
+ * kill two plays out. Cheap and invisible on a wild you meet twenty times an hour. Wrong on the
+ * fight the whole run was built to reach. (At 1v1 it is nearly free — 4 of 960 grid cells, all of
+ * them `ratatoskr_v1`, the one deck whose hand is wide enough to prune.)
  *
- * HOW TO ASK FOR BEAMLESS, AND THE TRAP. Ticket 108's standing rule — *"confirm anything you intend
- * to act on at full, BEAMLESS"* — needs a switch that works. There is exactly one:
+ * So the width lives in `ENEMY_LADDER` beside the deck rule, the firmware flag and the AI grade
+ * (`IEnemyLoadout.beam`: wild 8, elite 8, **gauntlet 0**), travels on `IRunEncounter.aiBeam`, and
+ * reaches the battle as `IBattleState.aiBeam`. That also fixes ticket 127's actual complaint —
+ * the game could not reach the beam — properly, by handing every fight a width, rather than by a
+ * global default the game happened to fall into.
  *
- *   - **`aiBeam: 0` on the battle state** (`BatchOptions.aiBeam` threads it through the harness).
- *     This works.
- *   - **`AI_BEAM=0` does NOT work in any harness lane**, despite the reader below being written to
- *     dodge the vite define. Verified rather than assumed: `vite.config.ts` substitutes
- *     `define: { 'process.env': {} }`, vite-node transforms `scratch/` and `src/debug/` through the
- *     same config, and the variable simply never arrives. It is live in a plain-node process and
- *     dead everywhere a measurement is taken — which is the worse half of the pair, so the state
- *     switch is the one to reach for.
+ * **THE PROCESS DEFAULT IS BEAMLESS**, and that is the safe direction: ticket 108's standing rule
+ * is *"confirm anything you intend to act on at full, BEAMLESS"*, so a harness that says nothing
+ * gets the full search and the entire 3v3 corpus stays comparable. A caller that wants the beam
+ * asks for it — the game through the ladder, a harness through `BatchOptions.aiBeam`.
  *
- * `hasNodeProcess` is kept in the signature deliberately, unused. It is the seam the browser/Node
- * split lived in, and leaving it visible is what makes a future re-split a deliberate edit here
- * rather than a quiet condition added at a call site.
+ * HOW TO ASK, AND THE TRAP. `aiBeam` on the battle state is the switch that works
+ * (`BatchOptions.aiBeam` threads it through the harness). **`AI_BEAM` does NOT reach any harness
+ * lane** — verified, not assumed: `vite.config.ts` substitutes `define: { 'process.env': {} }` and
+ * vite-node transforms `scratch/` and `src/debug/` through the same config, so the variable never
+ * arrives. It is live in a plain-node process and dead everywhere a measurement is taken.
+ *
+ * `hasNodeProcess` is kept in the signature, unused, because it is the seam the old split lived in:
+ * leaving it visible makes a future re-split a deliberate edit here rather than a quiet condition
+ * added at a call site.
  */
 export function resolveBeam(_hasNodeProcess: boolean, override: string | undefined): number {
     if (override !== undefined) return Number(override);
-    return GAME_BEAM_WIDTH;
+    return 0;
 }
 
 // A bare `globalThis.process` is safe to name: the define matches the token pair `process.env`, not

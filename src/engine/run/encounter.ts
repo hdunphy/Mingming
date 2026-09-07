@@ -37,7 +37,7 @@
  */
 
 import { SeedStream } from '../core/SeedStream';
-import type { AiTier } from '../ai/TacticalAI';
+import { GAME_BEAM_WIDTH, type AiTier } from '../ai/TacticalAI';
 import { getSectorSpecies } from '../data/EncounterGenerator';
 import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
@@ -162,6 +162,22 @@ export interface IEnemyLoadout {
     readonly os: boolean;
     /** Which grade of `TacticalAI` plays it — see `IBattleState.enemyAiTier`. */
     readonly ai: AiTier;
+    /**
+     * TICKET 144 §2, RULED BY HENRY 2026-09-06: **the boss thinks at full depth; everything else
+     * gets the beam.**
+     *
+     * The beam is a fourth column of this ladder rather than a global setting, and that is the
+     * whole correction. Ticket 127 keyed it on "is this Node", which gave the game a beamed search
+     * everywhere including its bosses. Measured at 3v3 (ticket 144 §2), the beam costs the side
+     * that is winning about 12.5 points of win rate and adds 0.75 turns — it ranks candidates by
+     * immediate score, so the first thing it stops seeing is the kill two plays out. That is a fine
+     * trade for a wild you meet twenty times an hour; it is the wrong trade for the fight the whole
+     * run was built to reach.
+     *
+     * 0 means beamless. `undefined` is not used here — every rung states its width, so a new rung
+     * cannot inherit one by accident.
+     */
+    readonly beam: number;
     /** Inclusive IV band, both ends. See `IV_BANDS` for why each rung has its own. */
     readonly iv: readonly [number, number];
 }
@@ -229,9 +245,11 @@ const ELITE_IV: readonly [number, number] = [0, 31];
  * giving them a fourth rung as well would be two knobs for one idea.
  */
 export const ENEMY_LADDER: Readonly<Record<EnemyGrade, IEnemyLoadout>> = {
-    wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV },
-    elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV },
-    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV },
+    wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV, beam: GAME_BEAM_WIDTH },
+    elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV, beam: GAME_BEAM_WIDTH },
+    // The gym. Beamless: the boss is the one fight worth the full search, and it is the one fight
+    // a player meets once. See `IEnemyLoadout.beam`.
+    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV, beam: 0 },
 };
 
 /** The three rungs. Named rather than inferred, so a fourth is a deliberate act. */
@@ -284,6 +302,7 @@ export const OPENING_FIGHT_LOADOUT: IEnemyLoadout = {
     os: false,
     ai: 'greedy',
     iv: WILD_IV,
+    beam: GAME_BEAM_WIDTH,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -445,6 +464,14 @@ export interface IRunEncounter {
      * straight to `startBattle` as `options.enemyAiTier`.
      */
     readonly enemyAiTier: AiTier;
+    /**
+     * TICKET 144 §2 — the beam width this fight's search runs at, from the same ladder row as
+     * `enemyAiTier` above and carried for the same reason: the screen must not have to re-derive
+     * it. `RunScreen` and `GauntletNode` hand it to `startBattle` as `options.aiBeam`.
+     *
+     * Bosses are beamless. See `IEnemyLoadout.beam`.
+     */
+    readonly aiBeam: number;
     /**
      * TICKET 68 — the Drivers this fight's enemy SIDE runs, if any.
      *
@@ -643,6 +670,7 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         enemyDeckIds,
         seed,
         enemyAiTier: loadout.ai,
+        aiBeam: loadout.beam,
         ...(gymDriver ? { enemyDrivers: [gymDriver] } : {}),
     };
 }

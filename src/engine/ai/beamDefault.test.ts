@@ -31,52 +31,82 @@
 import { describe, expect, it } from 'vitest';
 import { resolveBeam, GAME_BEAM_WIDTH } from './TacticalAI';
 
-describe('ticket 144 §2 — beam 8 everywhere, and the one way to opt out', () => {
-    it('gives EVERY caller the beam — the browser/Node split is gone', () => {
-        // Ticket 127 gave the browser 8 and Node 0, so the game played a beamed search while the
-        // instrument measured a beamless one. Henry ruled that incoherent on 2026-09-06: the grid's
-        // job is to measure what the player faces.
-        expect(resolveBeam(false, undefined)).toBe(GAME_BEAM_WIDTH);
-        expect(resolveBeam(true, undefined)).toBe(GAME_BEAM_WIDTH);
-        expect(GAME_BEAM_WIDTH).toBe(8);
+describe('ticket 144 §2 amended — the beam is a rung of the enemy ladder, not a global', () => {
+    it('the PROCESS default is beamless, so nothing measures a beamed search by accident', () => {
+        // Ticket 108's standing rule: "confirm anything you intend to act on at full, BEAMLESS".
+        // A harness that says nothing gets the full search, and the whole 3v3 corpus stays
+        // comparable with itself. Callers that want the beam ask for it.
+        expect(resolveBeam(false, undefined)).toBe(0);
+        expect(resolveBeam(true, undefined)).toBe(0);
     });
 
-    it('still lets anyone name a width, which is now the ONLY way to differ', () => {
-        expect(resolveBeam(true, '6')).toBe(6);
+    it('still lets anyone name a width', () => {
+        expect(resolveBeam(true, '8')).toBe(8);
         expect(resolveBeam(false, '12')).toBe(12);
+        expect(resolveBeam(false, '0')).toBe(0);
     });
 
-    it('`AI_BEAM=0` means beamless AS A RULE — but see the caveat, it cannot be delivered', () => {
-        // The rule is right and the plumbing is not: `vite.config.ts` substitutes
-        // `define: { 'process.env': {} }` and vite-node transforms every `scratch/` lane and
-        // `src/debug/` suite through that same config, so AI_BEAM never reaches the module in the
-        // one place measurements are taken. Verified, not assumed. The switch that WORKS is
-        // `aiBeam` on the battle state — `BatchOptions.aiBeam` threads it — and that is what
-        // ticket 108's "confirm it beamless" rule has to use.
-        expect(resolveBeam(false, '0')).toBe(0);
-        expect(resolveBeam(true, '0')).toBe(0);
+    it('BUT `AI_BEAM` cannot be delivered to a harness lane — the switch that works is on the state', () => {
+        // `vite.config.ts` substitutes `define: { 'process.env': {} }` and vite-node transforms
+        // every `scratch/` lane and `src/debug/` suite through that same config, so the variable
+        // never reaches the module in the one place measurements are taken. Verified, not assumed.
+        // The reachable switch is `aiBeam` on the battle state; `BatchOptions.aiBeam` threads it.
+        expect(GAME_BEAM_WIDTH).toBe(8);
     });
 });
 
-describe('ticket 144 §2 — the per-battle switch', () => {
-    it('a battle that names a width overrides the process default', async () => {
-        const { createSparseBattleState, createSparseEntity } = await import('../../debug/scenarios/scenarioTestSupport');
-        const { getBestAction } = await import('./TacticalAI');
-        // The assertion here is narrow on purpose: that a state carrying `aiBeam` is ACCEPTED and
-        // decided on. Whether the beam changes THIS decision is a measurement, not a unit test —
-        // it is the 90-cell grid gate in `results/beam144_*` that answers that.
-        const board = (aiBeam?: number) => createSparseBattleState({
-            activeSide: 'PLAYER', phase: 'ACTION',
-            ...(aiBeam === undefined ? {} : { aiBeam }),
-            playerParty: [createSparseEntity({ id: 'p1', name: 'A', currentHp: 900, maxHp: 1000, currentEnergy: 3 })],
-            enemyParty: [createSparseEntity({ id: 'e1', name: 'B', currentHp: 900, maxHp: 1000 })],
-            playerDeck: {
-                ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
-                hand: [{ id: 'h1', dataId: 'fire_poke', currentCost: 1, isPlayable: true }],
-            },
+describe('ticket 144 §2 amended — the boss thinks at full depth', () => {
+    it('wild and elite get the beam; the GAUNTLET is beamless', async () => {
+        const { ENEMY_LADDER, OPENING_FIGHT_LOADOUT } = await import('../run/encounter');
+        // Henry, 2026-09-06: "for the AI in the game we want the bosses to use beamless, some of
+        // the other AI should use beam 8." Measured at 3v3, the beam costs the winning side ~12.5
+        // points of win rate — cheap on a wild you meet twenty times an hour, wrong on the fight
+        // the whole run was built to reach.
+        expect(ENEMY_LADDER.wild.beam).toBe(GAME_BEAM_WIDTH);
+        expect(ENEMY_LADDER.elite.beam).toBe(GAME_BEAM_WIDTH);
+        expect(ENEMY_LADDER.gauntlet.beam).toBe(0);
+        expect(OPENING_FIGHT_LOADOUT.beam).toBe(GAME_BEAM_WIDTH);
+    });
+
+    it('every rung STATES a width — a new rung cannot inherit one by accident', async () => {
+        const { ENEMY_LADDER } = await import('../run/encounter');
+        for (const [grade, row] of Object.entries(ENEMY_LADDER)) {
+            expect(typeof row.beam, `${grade} has no beam width`).toBe('number');
+        }
+    });
+
+    it('a real WILD fight carries 8 and a real GYM fight carries 0 — end to end', async () => {
+        // The plumbing is what the ticket-127 bug was made of: a width that exists but never
+        // reaches the fight. So this asserts the two ends rather than the table.
+        const { rollEncounter } = await import('../run/encounter');
+        const { rollGauntletFight } = await import('../run/gauntlet');
+        const { createRun } = await import('../run/createRun');
+        const { GYM_REGISTRY } = await import('../run/gyms');
+
+        const member = (id: string, definitionId: string) => ({
+            id, definitionId, nickname: id, activeOS: `${definitionId}_v1`,
+            blueprintsCollected: 0, hpIV: 0, attackIV: 0, defenseIV: 0,
         });
-        expect(getBestAction(board(0)).type).toBe('PLAY_PROGRAM');
-        expect(getBestAction(board(8)).type).toBe('PLAY_PROGRAM');
-        expect(getBestAction(board()).type).toBe('PLAY_PROGRAM');
+        const party = [member('mm1', 'fenrir')];
+        const run = {
+            ...createRun({
+                seed: 'beam-ladder-test',
+                offer: {
+                    gym: GYM_REGISTRY.gym_rootfall,
+                    biomes: ['Nature', 'Fire', 'Water'].map((e, i) => (
+                        { id: `b${i}`, name: `${e} ${i}`, elements: [e] }
+                    )),
+                },
+                party,
+                startedAt: 0,
+            }),
+            fightsResolved: 1,
+        };
+
+        const wild = run.nodes.find(n => n.kind === 'wild' && n.visited === 0)!;
+        expect(rollEncounter({ run, node: wild, party }).aiBeam).toBe(GAME_BEAM_WIDTH);
+
+        const gym = run.nodes.find(n => n.kind === 'gym')!;
+        expect(rollGauntletFight({ run, node: gym, fightIndex: 0 }).aiBeam).toBe(0);
     });
 });
