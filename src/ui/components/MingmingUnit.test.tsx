@@ -24,7 +24,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import MingmingUnit, { ENERGY_PIP_BUDGET } from './MingmingUnit';
+import MingmingUnit, { ENERGY_PIP_BUDGET, STATUS_BADGE_BUDGET } from './MingmingUnit';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
 
 /** Enemy-only: one ATTACK action, `target: 'Single'`, no HEAL or STATUS to open the ally carve-out. */
@@ -173,6 +173,68 @@ describe('energy is legible at six entities', () => {
     });
 });
 
+const badgeCount = (markup: string): number => (markup.match(/class="hud-status-badge"/g) ?? []).length;
+const overflowChip = (markup: string): RegExpMatchArray | null =>
+    markup.match(/class="hud-status-badge hud-status-more"[\s\S]*?<\/div>/);
+
+describe('the status row cannot grow past its own card', () => {
+    /*
+     * Henry, 2026-09-07, with a screenshot of a six-status enemy: *"statuses can go so far and
+     * cover the picture."* `.hud-status-badges` was `flex-shrink: 0` with no ceiling inside a
+     * `.hud-card` that is `overflow: visible`, so the sixth badge painted over `.hud-sidebar`.
+     *
+     * These pin the two halves of the fix that markup can see: the count is bounded, and the
+     * remainder is NAMED rather than dropped. The pixel arithmetic itself lives in
+     * `STATUS_BADGE_BUDGET`'s docblock and on `.hud-status-badges` in index.css.
+     */
+    const statuses = (n: number) => Array.from({ length: n }, (_, i) => ({
+        id: `s${i}`, type: (['Dazed', 'Sharp', 'Burn', 'Poison', 'Strengthened', 'Weakened', 'Regen'] as const)[i],
+        stacks: i + 2, duration: 3, sourceId: 'e1',
+    }));
+
+    it('renders every badge while the pile is inside the budget, and no chip', () => {
+        const markup = render(unit('x', { statusEffects: statuses(STATUS_BADGE_BUDGET) as never }), false);
+        expect(badgeCount(markup)).toBe(STATUS_BADGE_BUDGET);
+        expect(overflowChip(markup)).toBeNull();
+    });
+
+    it('stops at the budget past it, however deep the pile goes', () => {
+        // Six is the screenshot; seven is there so the assertion is about the BUDGET rather than
+        // about one number of statuses happening to fit.
+        for (const n of [STATUS_BADGE_BUDGET + 1, 6, 7]) {
+            const markup = render(unit('x', { statusEffects: statuses(n) as never }), false);
+            expect(badgeCount(markup)).toBe(STATUS_BADGE_BUDGET);
+        }
+    });
+
+    it('keeps the DEEPEST piles visible, not the oldest', () => {
+        // Two is a hard budget, so which two is a real decision: the number a payoff card is
+        // waiting on must not be the one that falls off the end. statuses() gives stacks 2..n in
+        // ascending order, so the last two applied are the deepest and both must survive.
+        const markup = render(unit('x', { statusEffects: statuses(6) as never }), false);
+        const shown = markup.slice(0, markup.indexOf('hud-status-more'));
+        expect(shown).toContain('\u00d77');   // Weakened, 6 stacks + 1
+        expect(shown).toContain('\u00d76');   // Strengthened
+        expect(shown).not.toContain('\u00d72'); // the first-applied, shallowest pile
+    });
+
+    it('names what it hid instead of dropping it', () => {
+        // The bargain that makes a budget acceptable: a hidden status still decides whether a card
+        // is safe to play, so the chip has to carry the count AND the statuses behind it.
+        const markup = render(unit('x', { statusEffects: statuses(6) as never }), false);
+        const chip = overflowChip(markup);
+        expect(chip).not.toBeNull();
+        expect(chip![0]).toContain(`+${6 - STATUS_BADGE_BUDGET}`);
+    });
+
+    it('keeps the name from being eaten by the row that sits next to it', () => {
+        // The name was the first casualty, and it went silently: `overflow: hidden` sets the flex
+        // item's automatic minimum to 0, so a long enough badge row shrank it to nothing. The
+        // 48px floor lives in index.css; what markup can prove is that the name is still emitted.
+        const markup = render(unit('longname', { statusEffects: statuses(7) as never }), false);
+        expect(markup).toContain('LONGNAME');
+    });
+});
 describe('target validity is obvious, and the invalid case says why', () => {
     it('marks a legal target', () => {
         expect(render(ENEMIES[0], true, { card: 'atk' })).toContain('✓ TARGET');
