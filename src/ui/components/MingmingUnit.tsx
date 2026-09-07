@@ -186,38 +186,44 @@ interface MingmingUnitProps {
 export const ENERGY_PIP_BUDGET = 6;
 
 /**
- * How many status badges the top row shows before the rest collapse into one `+k` chip.
+ * How many status badges the row shows before the rest collapse into one `+k` chip.
  *
  * Henry, 2026-09-07, with a screenshot of a six-status enemy: *"statuses can go so far and cover
- * the picture."* `.hud-status-badges` was `flex-shrink: 0` with no ceiling inside a `.hud-card`
- * that is `overflow: visible`, so the surplus badges painted over `.hud-sidebar` — the art.
+ * the picture."* The badges lived in `.hud-top-row` with `flex-shrink: 0` and no ceiling inside a
+ * `.hud-card` that is `overflow: visible`, so the surplus painted over the art. Offered a 2-badge
+ * budget or a taller card, Henry took the taller card — so the badges have their own row now and
+ * this number is SIX rather than the two that fitted beside the name.
  *
- * TWO, and the 2 is measured rather than chosen: `.hud-top-row` is 195px, the element dot, the OS
- * chip and three gaps take 80 of it, and two badges plus the chip cost 112 of the remaining 115.
- * The full arithmetic, and why the two alternatives (a second row, a shrinking row) were both
- * rejected on measurement, is on `.hud-status-badges` in index.css.
+ * Six is not a compromise: sampled every step across 360 games (10 firmwares round robin), a live
+ * entity carries 0–6 distinct statuses, **98.8% of the time four or fewer, and six is the maximum
+ * ever seen** — the exact board in the screenshot. So this is the ceiling for a pathological case
+ * rather than a routine one. The pixel arithmetic that turns 195px of row into six badges lives on
+ * `.hud-status-badges` in index.css, and `scratch/fitcheck.mjs` re-measures it.
  *
- * The overflow is a CHIP, not a clip. A hidden status still decides whether a card is safe to
- * play, so the `+k` names every one of them and its stacks on hover — the same bargain
- * `ENERGY_PIP_BUDGET` makes when it swaps seven pips for a bar. And because two is a hard number,
- * WHICH two matters: `visibleStatuses` shows the deepest piles rather than the oldest, so the
- * stack a payoff card is waiting on cannot hide behind two 1-stack riders.
+ * The overflow is still a CHIP, not a clip. A hidden status decides whether a card is safe to play,
+ * so the `+k` names every one of them and its stacks on hover — the same bargain
+ * `ENERGY_PIP_BUDGET` makes when it swaps seven pips for a bar.
  */
-export const STATUS_BADGE_BUDGET = 2;
+export const STATUS_BADGE_BUDGET = 6;
 
 /**
  * The badges the row shows, deepest pile first, and the ones it hides.
  *
- * Sorted by STACKS rather than by application order. The cost is that a badge can change position
- * between turns; the benefit is that `Dazed ×7` — the number the player is deciding a `slander` on
- * — cannot be the one that fell off the end. Ties keep their original order (`Array.sort` is
+ * Sorted by STACKS rather than by application order, which matters only past the budget — but that
+ * is exactly the case where it matters: `Dazed ×7`, the number the player is deciding a `slander`
+ * on, must not be the one that fell off the end. Ties keep their original order (`Array.sort` is
  * stable), so a board of 1-stack statuses does not shuffle itself every turn.
  */
 /* Not exported: `react-refresh/only-export-components` allows a constant beside a component but
    not a function, and one helper does not earn its own module the way `combatLogModel` did. */
 function visibleStatuses<T extends { stacks: number }>(all: ReadonlyArray<T>): { shown: T[]; hidden: T[] } {
     const ranked = [...all].sort((a, b) => b.stacks - a.stacks);
-    return { shown: ranked.slice(0, STATUS_BADGE_BUDGET), hidden: ranked.slice(STATUS_BADGE_BUDGET) };
+    // The chip COSTS a slot, so the ceiling is not the same number in both cases: six badges are
+    // 190px of the 195px row and fit exactly, but six badges plus an 18px chip are 211px and do
+    // not. Past the budget the row therefore shows one fewer, which is what keeps `+k` from being
+    // the thing that clips the row it exists to prevent clipping.
+    if (ranked.length <= STATUS_BADGE_BUDGET) return { shown: ranked, hidden: [] };
+    return { shown: ranked.slice(0, STATUS_BADGE_BUDGET - 1), hidden: ranked.slice(STATUS_BADGE_BUDGET - 1) };
 }
 
 /** Ticket 90: human labels for the post-damage scalings the preview now shows. */
@@ -568,17 +574,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                             </div>
                         );
                     })()}
-                    {(() => {
-                        const { shown, hidden } = visibleStatuses(entity.statusEffects);
-                        return (
-                            <div className="hud-status-badges">
-                                {shown.map((se, i) => (
-                                    <StatusBadge key={se.id || `${se.type}-${i}`} type={se.type} stacks={se.stacks} />
-                                ))}
-                                {hidden.length > 0 && <StatusOverflowBadge hidden={hidden} />}
-                            </div>
-                        );
-                    })()}
+
                 </div>
 
                 {/* Daemons Row */}
@@ -602,6 +598,19 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         })}
                     </div>
                 )}
+
+                {/* Status Row (ticket 145): its own line, so six badges fit and the art stays clear. */}
+                {entity.statusEffects.length > 0 && (() => {
+                    const { shown, hidden } = visibleStatuses(entity.statusEffects);
+                    return (
+                        <div className="hud-status-badges">
+                            {shown.map((se, i) => (
+                                <StatusBadge key={se.id || `${se.type}-${i}`} type={se.type} stacks={se.stacks} />
+                            ))}
+                            {hidden.length > 0 && <StatusOverflowBadge hidden={hidden} />}
+                        </div>
+                    );
+                })()}
 
                 {/* HP Row */}
                 <div className="hud-bar-row">

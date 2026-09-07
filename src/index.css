@@ -74,6 +74,10 @@ body {
 }
 
 .party-column {
+  /* THE COLUMN BUDGET, re-derived at ticket 145's 122px card. A 1280x800 frame leaves 535px under
+     the 265px `.console-area`, and a column spends 100 (padding-top) + 3x122 (cards) + 2x30
+     (gaps) = 526 of it. 9px of slack. This is the sum that decides the card height, so any future
+     card-height change is a change to THIS comment first. */
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -100,7 +104,11 @@ body {
   display: flex;
   align-items: stretch;
   width: 300px;
-  height: 115px;
+  /* TICKET 145: 115 -> 122. Henry ruled the taller card so every status is visible at once; the
+     badges moved to their own row and that row measures 21px against the 18px of slack the body
+     had. The 3v3 column budget re-adds to 100 + 3x122 + 2x30 = 526 of the 535px a 1280x800 frame
+     leaves under the 265px console, so it still fits with 9px to spare - see `.party-column`. */
+  height: 122px;
   background: linear-gradient(135deg, #12121c 0%, #0c0c14 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
@@ -219,9 +227,9 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   color: #eee;
-  /* The row's shock absorber, per the badge arithmetic above: the name gives up its width so a
-     badge never has to give up its stack count. Explicit rather than relying on `overflow:
-     hidden`'s automatic minimum, because that is a subtlety and this is load-bearing. */
+  /* Ticket 145: the badges left this row, so the name gets the space back. `min-width: 0` stays
+     because `.hud-intent-container` and the OS chip still share the row and the name is still
+     the item that should ellipsis rather than push. */
   flex-shrink: 1;
   min-width: 0;
 }
@@ -259,73 +267,78 @@ body {
 }
 
 /* ── Status Badges ─────────────────────────────────────────────────────
-   THE FIT, AS ARITHMETIC — the same shape ticket 22 gave the energy pips, for the same
-   reason: this row had `flex-shrink: 0` and no ceiling inside a `.hud-card` that is
-   `overflow: visible`, so N statuses were N badges wide however wide that came out and the
-   surplus painted over `.hud-sidebar` — the art. Henry, 2026-09-07, with a screenshot of a
-   six-status enemy: *"statuses can go so far and cover the picture."*
+   ITS OWN ROW, AND THE ROW HOLDS SIX. Henry, 2026-09-07, with a screenshot of a six-status
+   enemy: *"statuses can go so far and cover the picture."* The row lived in `.hud-top-row` with
+   `flex-shrink: 0` and no ceiling inside a `.hud-card` that is `overflow: visible`, so the
+   surplus painted over `.hud-sidebar` — the art — and the name was silently squeezed to nothing
+   on the way. Henry ruled the taller card over a 2-badge budget, so this is the taller card.
 
-   MEASURED, not estimated (scratch/fitcheck.mjs, headless Chromium against this stylesheet).
-   `.hud-top-row` is 195px. It spends 16px on the element dot, 40px on `.hud-os-icon-container`
-   and 8px on each of three row gaps, so with the name squeezed to nothing the badges get
-   195 − 16 − 40 − 24 = **115px**. A badge measures 35px at `×2`, 40px at `×6` and 46px at
-   `×4.8`, and the `+k` chip 31px. Two badges plus the chip cost 40 + 35 + 31 + 2×3 = **112px**
-   and fit with 3px to spare; three plus the chip cost 155px and do not. `STATUS_BADGE_BUDGET`
-   in MingmingUnit.tsx holds that 2.
+   THE FIT, AS ARITHMETIC — measured with `scratch/fitcheck.mjs`, which renders the real
+   component against this stylesheet in headless Chromium rather than estimating.
 
-   TWO IS LOW, AND IT IS THE HONEST NUMBER FOR A 300×115 CARD. The alternatives were measured
-   and both fail: giving the badges their OWN row costs 14px of body height against a card with
-   none to give (tightening the padding and gaps recovers 10 of the 14, and the hover preview
-   row would eat that back), and letting the row shrink instead of bounding it clips 47px off
-   the badges — which takes the stack count, the one thing on a badge anybody reads. Showing
-   all six needs a taller card, and the card height is the 3v3 column budget's problem: ticket
-   22 spends 100 + 3×115 + 2×30 = 505px of the 535px a 1280×800 frame leaves under the console.
+   HORIZONTAL. On its own row the badges get the whole 195px of the body's content width instead
+   of the 115px left over beside the element dot, the OS chip and the name. At the old size a
+   badge measured 32px (40px at `×4.8`) and six needed 215px; compacted here — 2px row gap, 1px/2px
+   padding, a 0.58rem icon and a 0.42rem count — a badge is **28px** (35px at `×4.8`), so six cost
+   **190px against 195**. Five pixels, and they are real ones: `scratch/fitcheck.mjs` renders the
+   shipped component against this stylesheet and prints the sum.
 
-   So the budget is a display decision, not a data one: the remainder collapses into one `+k`
-   chip whose tooltip names every hidden status and its stacks, and the visible two are the two
-   with the DEEPEST piles rather than the two that happened to be applied first — see
-   `STATUS_BADGE_BUDGET`. */
+   The `+k` chip is 18px and COSTS a slot, so `visibleStatuses` drops to five badges the moment it
+   has to draw one — six badges plus a chip is 211px and would clip the row the chip exists to
+   keep from clipping.
+
+   VERTICAL. The body's rows measure 114px natural with this row and a daemon row present, inside
+   a 122px box — 8px of slack, against the 18px the old four-row body had. So the card goes to
+   **122px**, which the `.hud-card` docblock re-derives against the 3v3 column budget.
+
+   WHY SIX. Sampled every step across 360 games (`/tmp/distinct.ts` shape, 10 firmwares round
+   robin), a live entity carries 0–6 distinct statuses: **98.8% of the time it is four or fewer,
+   and six is the maximum ever seen** — the exact board Henry screenshotted. Six is therefore
+   "all of them" in practice rather than a compromise, and `STATUS_BADGE_BUDGET` is the honest
+   ceiling for the pathological case rather than a routine one. Past it the remainder collapses
+   into one `+k` chip whose tooltip names every hidden status and its stacks — the same bargain
+   `ENERGY_PIP_BUDGET` makes when it swaps seven pips for a bar. */
 .hud-status-badges {
   display: flex;
-  gap: 3px;
-  margin-left: auto;
-  /* Back to `0`, deliberately. With both this row and `.hud-name` shrinkable the deficit was
-     SHARED - measured at 47px of badge clipped with the name still 53px wide - which loses the
-     stack count, the one thing on a badge a player reads. The name absorbs the whole deficit
-     instead, and the badge COUNT is what bounds this row. */
-  flex-shrink: 0;
-}
-
-/* The overflow chip. Neutral rather than any one status's colour, because it stands for a
-   set — colouring it after the first hidden status would read as that status. */
-.hud-status-badge.hud-status-more {
-  border-color: rgba(148, 163, 184, 0.55);
-  color: #cbd5e1;
-  font-weight: 800;
-  padding: 2px 6px;
-  cursor: help;
+  gap: 2px;
+  /* Left-aligned on its own row, and `nowrap` + `overflow: hidden` keep the 122px card height a
+     guarantee rather than a hope even if a ninth status ever appears. */
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .hud-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
-  padding: 2px 5px;
-  border-radius: 6px;
+  gap: 0;
+  padding: 1px 2px;
+  border-radius: 5px;
   border: 1px solid;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   font-size: 0.55rem;
   line-height: 1;
+  flex: 0 0 auto;
 }
 
 .hud-status-icon {
-  font-size: 0.75rem;
+  font-size: 0.58rem;
 }
 
 .hud-status-stacks {
-  font-size: 0.5rem;
+  font-size: 0.42rem;
   font-weight: 700;
+}
+
+/* The overflow chip. Neutral rather than any one status's colour, because it stands for a set —
+   colouring it after the first hidden status would read as that status. */
+.hud-status-badge.hud-status-more {
+  border-color: rgba(148, 163, 184, 0.55);
+  color: #cbd5e1;
+  font-weight: 800;
+  padding: 1px 3px;
+  cursor: help;
 }
 
 /* ── Daemons Row ── */

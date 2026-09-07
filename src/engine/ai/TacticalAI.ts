@@ -95,7 +95,13 @@ function handValue(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
         * (Math.min(held, window) + Math.max(0, held - window) * CARD_OVERDRAW_DISCOUNT);
 }
 
-/** Mirrors Hooks.ts applyDamageModifiers: 2%/stack, net cap 25% either way. */
+/**
+ * The PERCENT shape's constants, mirroring `applyDamageModifiers`: 2%/stack, net cap 25% either
+ * way. DEAD AT THE LIVE MODEL - `STATUS_MODEL.shape` is POWER since ticket 102 and `dualityValue`
+ * branches past them - and kept only so the eval follows the engine if the shape is switched
+ * back on a grid arm. Named here rather than deleted for that reason; do not read them as a
+ * description of what the game currently does.
+ */
 const STATUS_PCT_PER_STACK = 0.02;
 const STATUS_PCT_CAP = 0.25;
 const cappedPct = (stacks: number): number => Math.min(STATUS_PCT_CAP, stacks * STATUS_PCT_PER_STACK);

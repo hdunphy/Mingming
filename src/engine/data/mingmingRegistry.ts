@@ -504,8 +504,16 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    Feedback token that re-triggers the OS (the daemon excludes tokens, the OS does
         //    not), so every real 0-cost is worth two procs. seed_bomb x2 is the payoff.
         // v2 INSTIGATOR_OS - Dazed stacking. Same fuel, opposite payoff: slander reads the
-        //    target's RAW Dazed stacks and so ignores the +-25% cap the OS would otherwise
-        //    pay into.
+        //    target's RAW Dazed stacks.
+        // TICKET 145: slander pays 10 power a stack, not 5, and the deck is 41.28 -> 52.72 on
+        //    the field for it - nine points under the roster mean to level with it, off one
+        //    number. The 5 was not a mistake for THIS deck: rev 3.6 set it against a measured
+        //    13.7 stacks at cast, and under the POWER shape a payoff card breaks even with a
+        //    vanilla one at budget/rate stacks - 75/5 = 15, i.e. exactly this deck's median.
+        //    It was on rate here and strictly worse than a plain 2e attack in every other hand
+        //    it was ever drafted into, which is what Henry hit in the playtest. At 10 the
+        //    break-even is 7.5, so the card is worth drafting onto a half-sized pile and this
+        //    deck still gets the payoff it was built around. See rev 3.11.
         // Ticket 47: v1 traded squirrel_away for shrug_off. The two firmwares pay out at the
         //    SAME rate - one HP or one Dazed per 0-cost play - and one of those is worth far
         //    more, so v2 took the head-to-head 80/20 while the decks sat five points apart
@@ -522,7 +530,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // Both kits lead with the 0-cost fuel doubled, because these decks win on card VOLUME
         // and a single copy of the fuel starves the OS proc that the whole species is built on.
         // v1 keeps `echo_chamber_v2` (each 0-cost is then worth two procs) over the `seed_bomb_v2`
-        // payoff; v2 keeps `crippling_vine` and leaves `slander` to be drafted onto a real pile.
+        // payoff; v2 keeps `crippling_vine` and leaves `slander` to be drafted. Ticket 145 is
+        // what makes that honest: at 5 a drafted slander was worse than a vanilla 2e attack
+        // unless the pile was already 15 deep, so "drafted onto a real pile" was the only
+        // case it worked in. At 10 it pays from 7.5 stacks.
         startKits: {
             // THE DECK THAT PROVED THE RULE. Round 5: "ratatoskr's startKit carried none of his
             // engine (seed_bomb/echo were untagged), making him pure feed." Both are tagged now.

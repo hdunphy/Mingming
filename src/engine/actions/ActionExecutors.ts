@@ -47,8 +47,16 @@ export abstract class ActionExecutor<T extends ExecutableAction> {
  * STRENGTH_STACKS (power MULTIPLIED by the attacker's Strengthened stacks - Momentum
  * Crash cashing MOMENTUM_DRIVE), which boost the POWER fed into the damage formula so
  * the bonus scales with level/stats like any other power and survives resistances.
- * STRENGTH_STACKS reads RAW stacks on purpose: Strengthened's own damage bonus is
- * capped at +-25%, and the whole point of the payoff card is to bypass that cap.
+ * STRENGTH_STACKS reads RAW stacks on purpose. That USED to be about bypassing a cap:
+ * Strengthened's own bonus was 2% a stack against a +-25% ceiling, so the payoff card
+ * existed to cash the stacks the ceiling threw away. TICKET 102 replaced that shape -
+ * `STATUS_MODEL` is POWER now, +1 power a stack, UNCAPPED - so there is no ceiling left to
+ * bypass and the card's job changed without the comment noticing.
+ *
+ * What it does now is a TRADE, and rev 3.11 gives the rate: the pile is already worth +1
+ * power on every attack, so a payoff at `p` power a stack breaks even with a vanilla card
+ * at its own budget `B` when the pile reaches `B / p` - the `+n` cancels off both sides.
+ * `unbound_fang` is 5 into a 35 budget, so it pays from 7 stacks against a measured 8.7.
  *
  * Shared by AttackExecutor AND the UI hover preview (computeDamagePreview) so
  * the previewed number and the real reducer damage cannot drift for Sharp
@@ -115,13 +123,21 @@ export function getEffectiveAttackPower(
 ): number {
     const power = action.power || 0;
     if (action.scaling === 'DAZED_STACKS') {
-        // Ticket 32: reads the TARGET's raw Dazed stacks, deliberately UNCAPPED. The 2%/stack
-        // damage effect is capped at +-25% in Hooks.ts, and bypassing that cap is the entire
-        // point of a payoff card. Henry's law: per-stack scaling attacks should underperform
-        // early and overperform late - that is the shape, not a bug. Cap only if a balance run
-        // shows it running away (the STRENGTH_STACKS cap was added AFTER measurement, not
-        // before). `target` is optional so the UI preview can call this without one; with no
-        // target the card reads as 0 power, which is what an unaimed card is worth.
+        // Ticket 32: reads the TARGET's raw Dazed stacks, deliberately UNCAPPED. Henry's law:
+        // per-stack scaling attacks should underperform early and overperform late - that is
+        // the shape, not a bug. Cap only if a balance run shows it running away (the
+        // STRENGTH_STACKS cap was added AFTER measurement, not before).
+        //
+        // TICKET 145: the 5 this shipped with was set against a measured 13.7 Dazed at cast in
+        // `ratatoskr_v2`, and that was the trap - under ticket 102's POWER shape a payoff card
+        // breaks even with a vanilla one at `budget / rate` stacks, so 75/5 = 15 put the
+        // crossover at the exact median of the only deck that feeds it. On rate there, worse
+        // than a plain 2e attack in every hand it was drafted into. Henry ruled 10; the deck
+        // measured 41.28 -> 52.72 on the field. Price the NEXT one by `B / p` against the pile
+        // its deck actually builds - see power_curve_spec rev 3.11.
+        //
+        // `target` is optional so the UI preview can call this without one; with no target the
+        // card reads as 0 power, which is what an unaimed card is worth.
         const dazed = target?.statusEffects.find(s => s.type === 'Dazed')?.stacks || 0;
         return power * dazed;
     }

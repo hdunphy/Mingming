@@ -624,3 +624,63 @@ arithmetic would be:
 
 That is a repricing with knock-on effects on the section-1.3 card budget redlines, so it was
 NOT taken as part of the ship. It is Henry's call.
+
+## rev 3.11 — the per-stack payoff rate, and a warning about reading this file (ticket 145, 2026-09-07)
+
+### FIRST: the "Status prices" table in section 1 is SUPERSEDED. Read to the end.
+
+This document is append-only — a revision corrects earlier ones further down rather than in place.
+The section-1 table still prices **Strengthened / Dazed at 15** and annotates them "2%/stack, 25%
+cap", and both halves of that have been wrong for a long time:
+
+- **rev 3.4 (ticket 28)** repriced the stream statuses **15 → 5** and **10 → 3.5**.
+- **ticket 102** replaced the PERCENT shape entirely with `STATUS_MODEL.shape = 'POWER'`: a stack
+  is **+1 POWER on every attack, uncapped**. Re-derived from scratch — `powerPerStack (1) ×
+  STACK_ATTACK_HORIZON (5 attacks)` — it lands on the same **5 power a stack**, which is why the
+  number never had to move again.
+
+`powerscale.ts` computes both stream constants off `STATUS_MODEL` and `streamStacks()` drops the
+12.5-stack clamp under POWER, so **the scorer cannot lag the engine**. This paragraph exists
+because a reader (me, this ticket) took the section-1 table at face value, told Henry every status
+applier in the game was mispriced, and was wrong. The table stays for the history; this is the sign
+next to it.
+
+### The rate a per-stack payoff attack pays
+
+Henry, mid-playtest: *"Slander does almost no damage (86 when the enemy has 7 Dazed)... much less
+than the other 1e cards."* He is right, and under the POWER shape the reason is one line of
+algebra rather than a matter of frame or feel.
+
+A stack is already worth +1 power on **every** attack. So a payoff card at `p` power per stack and
+a vanilla card at its own budget `B` both collect the same `+n` from the pile, and
+
+    p·n + n  =  B + n     ⟹     **break-even at n = B / p**
+
+The pile cancels. What a per-stack payoff is really selling is *"instead of 1 power per attack
+forever, take `p` power once"*, and `B / p` is the size the pile has to reach before that is a
+trade worth making. At the old numbers:
+
+| card | cost | p | B | break-even | measured pile at cast |
+|---|---|---|---|---|---|
+| `slander` | 2e | 5 | 75 | **15 stacks** | 14.5 (ratatoskr_v2) |
+| `unbound_fang` | 1e | 5 | 35 | 7 stacks | 8.7 (fenrir_v1) |
+| `avalanche` | 2e | 9 | 75 | 8.3 stacks | — |
+| `momentum_crash` | 1e | 8 | 35 | 4.4 stacks | — |
+
+Henry's rev-3.6 law still holds: **underperform early, overperform late.** What rev 3.6 could not
+say, because the POWER shape did not exist yet, is that "late" has to arrive *inside the pile the
+deck actually builds*. `slander` at 15 broke even at the exact median of the one deck built to feed
+it — so it was on rate for `ratatoskr_v2` and strictly worse than a vanilla attack in every hand it
+was ever drafted into. A 2e attack into a 7-Dazed target dealt **nearly twice** what it did.
+
+**`slander` 5 → 10 (Henry's ruling).** Break-even moves to 7.5 stacks. Measured on the full grid,
+`ratatoskr_v2` goes **41.28% → 52.72% field (+11.44)** against a 50.30% roster mean — a deck nine
+points under the mean lands on it, off one number.
+
+`unbound_fang` is NOT changed: it breaks even at 7 against a measured 8.7 and plays at **143% of a
+vanilla 1e** over 258 casts. Its weak second cast is the half-consume doing its job as the valve.
+
+**The rule this leaves behind:** price a per-stack payoff by `B / p` against the pile its deck
+measurably builds, not by the static score. `powerscale` prices scaling attacks at
+`ASSUMED_STATUS_COUNT = 3` and rev 3.6 already called that a floor rather than a price; `B / p` is
+the number to hand-check it with.

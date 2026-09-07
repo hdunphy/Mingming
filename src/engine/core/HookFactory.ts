@@ -116,9 +116,12 @@ export const HookFactory = {
                 return owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
             case 'STRENGTH_STACKS':
                 // Ticket 26: same cap as the card-side scaler in ActionExecutors. Uncapped,
-                // core_overclock_daemon's x(1 + 0.20 * raw stacks) reaches x5.00 at 20 stacks
-                // on top of Strengthened's own capped +-25%, and the static scorer cannot see
-                // daemons at all (they carry empty `actions`), so nothing else would catch it.
+                // core_overclock_daemon's x(1 + 0.20 * raw stacks) reaches x5.00 at 20 stacks,
+                // and the static scorer cannot see daemons at all (they carry empty `actions`),
+                // so nothing else would catch it. (That used to read "on top of Strengthened's
+                // own capped +-25%" - ticket 102 replaced the percent shape with POWER +1 a
+                // stack, uncapped, so the pile underneath the multiplier is now unbounded too.
+                // The argument for a cap HERE got stronger, not weaker.)
                 return Math.min(
                     owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0,
                     STRENGTH_STACK_CAP

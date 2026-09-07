@@ -4260,7 +4260,7 @@
     "slander": {
         "id": "slander",
         "name": "Slander",
-        "description": "5 power per stack of Dazed on the target.",
+        "description": "10 power per stack of Dazed on the target.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -4274,7 +4274,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 5,
+                "power": 10,
                 "scaling": "DAZED_STACKS",
                 "target": "TARGET"
             }
