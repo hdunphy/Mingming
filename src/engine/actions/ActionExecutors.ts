@@ -10,8 +10,11 @@ import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
 import { NEGATIVE_STATUSES } from '../core/ConditionValidator';
+import { isSimulating } from '../core/simulationDepth';
 
 function addLog(state: IBattleState, message: string): IBattleState {
+    // Ticket 144c: a simulated play narrates nothing. See `core/simulationDepth.ts`.
+    if (isSimulating()) return state;
     return { ...state, logs: [...state.logs, message] };
 }
 
@@ -44,8 +47,16 @@ export abstract class ActionExecutor<T extends ExecutableAction> {
  * STRENGTH_STACKS (power MULTIPLIED by the attacker's Strengthened stacks - Momentum
  * Crash cashing MOMENTUM_DRIVE), which boost the POWER fed into the damage formula so
  * the bonus scales with level/stats like any other power and survives resistances.
- * STRENGTH_STACKS reads RAW stacks on purpose: Strengthened's own damage bonus is
- * capped at +-25%, and the whole point of the payoff card is to bypass that cap.
+ * STRENGTH_STACKS reads RAW stacks on purpose. That USED to be about bypassing a cap:
+ * Strengthened's own bonus was 2% a stack against a +-25% ceiling, so the payoff card
+ * existed to cash the stacks the ceiling threw away. TICKET 102 replaced that shape -
+ * `STATUS_MODEL` is POWER now, +1 power a stack, UNCAPPED - so there is no ceiling left to
+ * bypass and the card's job changed without the comment noticing.
+ *
+ * What it does now is a TRADE, and rev 3.11 gives the rate: the pile is already worth +1
+ * power on every attack, so a payoff at `p` power a stack breaks even with a vanilla card
+ * at its own budget `B` when the pile reaches `B / p` - the `+n` cancels off both sides.
+ * `unbound_fang` is 5 into a 35 budget, so it pays from 7 stacks against a measured 8.7.
  *
  * Shared by AttackExecutor AND the UI hover preview (computeDamagePreview) so
  * the previewed number and the real reducer damage cannot drift for Sharp
@@ -112,13 +123,21 @@ export function getEffectiveAttackPower(
 ): number {
     const power = action.power || 0;
     if (action.scaling === 'DAZED_STACKS') {
-        // Ticket 32: reads the TARGET's raw Dazed stacks, deliberately UNCAPPED. The 2%/stack
-        // damage effect is capped at +-25% in Hooks.ts, and bypassing that cap is the entire
-        // point of a payoff card. Henry's law: per-stack scaling attacks should underperform
-        // early and overperform late - that is the shape, not a bug. Cap only if a balance run
-        // shows it running away (the STRENGTH_STACKS cap was added AFTER measurement, not
-        // before). `target` is optional so the UI preview can call this without one; with no
-        // target the card reads as 0 power, which is what an unaimed card is worth.
+        // Ticket 32: reads the TARGET's raw Dazed stacks, deliberately UNCAPPED. Henry's law:
+        // per-stack scaling attacks should underperform early and overperform late - that is
+        // the shape, not a bug. Cap only if a balance run shows it running away (the
+        // STRENGTH_STACKS cap was added AFTER measurement, not before).
+        //
+        // TICKET 145: the 5 this shipped with was set against a measured 13.7 Dazed at cast in
+        // `ratatoskr_v2`, and that was the trap - under ticket 102's POWER shape a payoff card
+        // breaks even with a vanilla one at `budget / rate` stacks, so 75/5 = 15 put the
+        // crossover at the exact median of the only deck that feeds it. On rate there, worse
+        // than a plain 2e attack in every hand it was drafted into. Henry ruled 10; the deck
+        // measured 41.28 -> 52.72 on the field. Price the NEXT one by `B / p` against the pile
+        // its deck actually builds - see power_curve_spec rev 3.11.
+        //
+        // `target` is optional so the UI preview can call this without one; with no target the
+        // card reads as 0 power, which is what an unaimed card is worth.
         const dazed = target?.statusEffects.find(s => s.type === 'Dazed')?.stacks || 0;
         return power * dazed;
     }
@@ -815,9 +834,60 @@ export class TriggerStatusExecutor extends ActionExecutor<TriggerStatusActionDat
     }
 }
 
+/**
+ * The side a unit fights on. Replay effects need it because "your last card" is a per-side fact.
+ */
+export function sideOf(state: IBattleState, entityId: string): 'PLAYER' | 'ENEMY' {
+    return state.playerParty.some(e => e.id === entityId) ? 'PLAYER' : 'ENEMY';
+}
+
+/**
+ * WHICH UNITS ONE ACTION OF A CARD LANDS ON — the single answer, shared by the reducer and by every
+ * free-cast path.
+ *
+ * This rule lived only inside `battleReducer`'s resolution loop, so a card resolved anywhere ELSE
+ * (Reprogram, Echo, VALHALLA's free cast) quietly lost the part of it that makes a card WIDE:
+ *
+ *     Henry, 2026-09-05 playtest: *"When reprogram played Heat wave to double a side's burn it only
+ *     worked on the single target. Same for any 'side' attack/status applier."*
+ *
+ * A replay that hits one of three enemies is not the card the player is holding, and no log said so
+ * — the burn simply landed once. Three rules, in the order the reducer applies them:
+ *
+ *  1. a SELF-targeted action (and every DISCARD, which is always a self-cost) lands on the caster;
+ *  2. a card whose PROGRAM target is `Side` or `All` lands on every living member of the side the
+ *     chosen target stands on — the program's width, not the action's;
+ *  3. everything else lands on the chosen target.
+ *
+ * Dead units are filtered only in the wide case, exactly as before: a single-target action keeps
+ * its id and the caller does the liveness check, because several callers want to say something
+ * different about a corpse.
+ */
+export function actionTargetIds(
+    state: IBattleState,
+    programData: ProgramData | undefined,
+    action: ProgramAction,
+    sourceId: string,
+    targetId: string,
+): string[] {
+    if (action.target === 'SELF' || (action.target as string) === 'Self' || action.type === 'DISCARD') {
+        return [sourceId];
+    }
+    if (programData?.target === 'Side' || programData?.target === 'All') {
+        const isOnPlayerSide = state.playerParty.some(e => e.id === targetId);
+        const party = isOnPlayerSide ? state.playerParty : state.enemyParty;
+        return party.filter(e => e.currentHp > 0).map(e => e.id);
+    }
+    return [targetId];
+}
+
 export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData> {
     execute(state: IBattleState, sourceId: string, targetId: string, _actionData: PlayLastCardActionData, _program: ProgramData | undefined, _context: HookContext): IBattleState {
-        if (!state.lastProgramPlayed) {
+        // YOUR side's last card, not the last card anybody played (2026-09-05 playtest). No fallback
+        // to the global `lastProgramPlayed`: falling back would replay the enemy's card in exactly
+        // the states where nobody is looking.
+        const lastId = state.lastProgramBySide?.[sideOf(state, sourceId)] ?? null;
+        if (!lastId) {
             return applyMutations(state, [{
                 type: 'LOG',
                 targetId: '',
@@ -825,12 +895,9 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
             }]);
         }
 
-        // Re-execute handlePlayProgram for the last card
-        // Note: This might cost energy again if we just call handlePlayProgram.
-        // The user said "Re-executes the actions of whatever card is in lastProgramPlayed".
-        // Usually "Echo" effects in card games don't re-pay cost.
-        // I will manually execute the actions of the last program to avoid re-paying cost.
-        const lastProgramData = GetProgramData(state.lastProgramPlayed);
+        // Re-executes the last card's ACTIONS: no Energy is paid a second time, no card moves piles,
+        // and no constraint is re-checked — an echo is not a play.
+        const lastProgramData = GetProgramData(lastId);
         let finalState = state;
 
         if (lastProgramData.actions) {
@@ -842,9 +909,20 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
                 }
 
                 const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[action.type];
-                if (executor) {
-                    // For simplicity, we use the current target for the repeated actions
-                    finalState = executor.execute(finalState, sourceId, targetId, action, lastProgramData, _context);
+                if (!executor) continue;
+
+                // The replay is the CARD, so it keeps the card's width and the card's hit count.
+                // `count` is the multi-hit repeat the reducer applies; DISCARD reads `count` as
+                // "how many cards leave the hand" and resolves once, which is the same exception
+                // the reducer makes.
+                const hits = action.type === 'DISCARD' ? 1 : ((action as { count?: number }).count ?? 1);
+                for (let hit = 0; hit < hits; hit++) {
+                    for (const tId of actionTargetIds(finalState, lastProgramData, action, sourceId, targetId)) {
+                        const target = finalState.playerParty.find(e => e.id === tId)
+                            ?? finalState.enemyParty.find(e => e.id === tId);
+                        if (!target || target.currentHp <= 0) continue;
+                        finalState = executor.execute(finalState, sourceId, tId, action, lastProgramData, _context);
+                    }
                 }
             }
         }
@@ -894,11 +972,6 @@ export function resolveProgramFree(
         // No recursion: a free cast may not itself echo, or VALHALLA + Reprogram loops.
         if (action.type === 'PLAY_LAST_CARD') continue;
 
-        const isSelf = action.target === 'SELF' || (action.target as string) === 'Self' || action.type === 'DISCARD';
-        const tId = isSelf ? sourceId : defaultTargetId;
-        const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
-        if (!target || target.currentHp <= 0) continue;
-
         // `resolved` is a fresh shallow copy, so mutating it is safe - but every field on a
         // ProgramAction is declared readonly (the index signature included), hence the mutable
         // view for the write. The read side goes through AttackActionData, which is what a
@@ -909,7 +982,14 @@ export function resolveProgramFree(
         }
 
         const executor = (ActionExecutorRegistry as Record<string, ActionExecutor<ExecutableAction> | undefined>)[resolved.type];
-        if (executor) {
+        if (!executor) continue;
+
+        // The free cast keeps the card's WIDTH — `actionTargetIds`, the same rule the reducer and
+        // the replay use. Before 2026-09-05 this resolved one target, so a resurrected Side card
+        // (VALHALLA_UPLINK's whole point is replaying a real card) landed on one body.
+        for (const tId of actionTargetIds(finalState, programData, resolved, sourceId, defaultTargetId)) {
+            const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
+            if (!target || target.currentHp <= 0) continue;
             finalState = executor.execute(finalState, sourceId, tId, resolved, programData, { ...context, state: finalState });
         }
     }

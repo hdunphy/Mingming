@@ -1,0 +1,4 @@
+fenrir_v1+skoll_v1+ratatoskr_v2
+fenrir_v1+skoll_v1+huldra_v1
+fenrir_v2+skoll_v1+huldra_v1
+fenrir_v2+skoll_v2+huldra_v1

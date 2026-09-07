@@ -88,6 +88,7 @@ import {
     firstFreeMacroSlot,
     getMacro,
     isBiomeRevealed,
+    macroOfferBlockFor,
     macroRackBlockFor,
 } from '../../engine/data/macroRegistry';
 import { PARTY_SIZE } from '../../engine/party';
@@ -801,7 +802,10 @@ const runSlice = createSlice({
             const { macroId, price } = action.payload;
             if (!Number.isInteger(price) || price < 0) return { run };
             if (run.scrap < price) return { run };
-            if (macroRackBlockFor(run.macros, macroId) !== null) return { run };
+            // `macroOfferBlockFor`, not `macroRackBlockFor`: a purchase also answers to the shop's
+            // one-of-each rule (Henry, 2026-09-04), and ticket 20's law says the reducer checks it
+            // independently rather than trusting the screen that disabled the button.
+            if (macroOfferBlockFor(run.macros, macroId) !== null) return { run };
             const slot = firstFreeMacroSlot(run.macros);
             return { run: { ...run, scrap: run.scrap - price, macros: withMacroSlot(run.macros, slot, macroId) } };
         },

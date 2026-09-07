@@ -66,7 +66,7 @@ describe('OUROBOROS_LOOP is the 5th Water card, and it only draws', () => {
 
     it('the description a player reads matches what the hook does', () => {
         expect(getOSBehavior('jormungandr_v1')!.description)
-            .toBe('Each turn, the 5th Water card you play draws 1 card.');
+            .toBe('Each turn, the 5th Water card your side plays draws 1 card.');
     });
 });
 

@@ -88,10 +88,13 @@ describe('Advanced Archetypes Logic', () => {
     });
 
     it('PLAY_LAST_CARD should repeat the previous card actions', () => {
-        // 1. Mock a "Test Strike" played previously
+        // 1. Mock a "Test Strike" played previously — by THIS side. Since 2026-09-05 the replay
+        //    reads `lastProgramBySide`, because the single global slot made Reprogram replay
+        //    whatever the ENEMY had just played. The global field is still written beside it.
         const state: IBattleState = {
             ...initialState,
-            lastProgramPlayed: 'test_strike'
+            lastProgramPlayed: 'test_strike',
+            lastProgramBySide: { PLAYER: 'test_strike', ENEMY: null },
         };
 
         const action: PlayLastCardActionData = {

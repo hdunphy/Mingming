@@ -34,12 +34,22 @@
 export const PARTY_SIZE = 3;
 
 /** Why a roster member cannot join the party right now. `null` means it can. */
-export type PartyBlock = 'party-full' | 'duplicate-species';
+export type PartyBlock = 'party-full' | 'duplicate-build';
 
 /** The minimum a caller has to know about a member for these rules to apply. */
 export interface PartyMember {
     readonly id: string;
     readonly definitionId: string;
+    /**
+     * The firmware this individual runs. Part of the duplicate clause since Henry's ruling of
+     * 2026-09-05 — see `partyBlockFor`.
+     *
+     * Optional because two callers legitimately have no OS to give: `reconcileLoadedState`'s
+     * synthetic rows for ids it could not resolve, and any test fixture written before the ruling.
+     * Undefined compares as its own value, so two OS-less members of one species still collide —
+     * the old rule, kept for the states that cannot express the new one.
+     */
+    readonly activeOS?: string;
 }
 
 /**
@@ -47,13 +57,35 @@ export interface PartyMember {
  * dropped click is indistinguishable from a bug to whoever is holding the controller.
  *
  * A member **already in the party** is never blocked: that click removes it.
+ *
+ * # THE DUPLICATE CLAUSE IS SPECIES + FIRMWARE — RULED by Henry, 2026-09-05
+ *
+ * *"You can't add the same mingming, but with a different OS. I would like to add kraken_v2 to my
+ * kraken_v1."*
+ *
+ * The old clause was species alone, and it was written when a species WAS a build: one stat line,
+ * one deck, one behaviour. It is not any more — ticket 61 gave every OS its own five-card engine,
+ * so `kraken_v1` (ABYSSAL_INK: draw outside the draw phase applies Dazed) and `kraken_v2`
+ * (TIDAL_CRUSH: expensive Water cards hit 30% harder) share a stat block and nothing else that
+ * matters at the table. Refusing the pair enforced a rule about ART where the rule was about
+ * VARIETY, and it cost the player the one axis of team-building the roster actually offers.
+ *
+ * What the clause still forbids is the thing it was always aimed at: two of the SAME build, which
+ * is a team with one idea and two bodies. That is why this reads both fields rather than dropping
+ * the check — and why the reason is now named `duplicate-build`, because "duplicate species" is
+ * exactly the thing that is legal.
+ *
+ * `reconcileLoadedState`'s Law 2 enforces the same clause at load. The two must agree or a party
+ * this function allows is a save the loader throws away.
  */
 export function partyBlockFor(
     member: PartyMember,
     party: ReadonlyArray<PartyMember>,
 ): PartyBlock | null {
     if (party.some((m) => m.id === member.id)) return null;
-    if (party.some((m) => m.definitionId === member.definitionId)) return 'duplicate-species';
+    if (party.some((m) => m.definitionId === member.definitionId && m.activeOS === member.activeOS)) {
+        return 'duplicate-build';
+    }
     if (party.length >= PARTY_SIZE) return 'party-full';
     return null;
 }
@@ -84,13 +116,16 @@ export function legalParty(
     roster: ReadonlyArray<PartyMember>,
 ): string[] {
     const byId = new Map(roster.map((m) => [m.id, m]));
-    const seenSpecies = new Set<string>();
+    // Species + firmware since 2026-09-05, the same key `partyBlockFor` uses — a trim that dropped
+    // a legal `kraken_v2` would be this file disagreeing with itself.
+    const seenBuilds = new Set<string>();
     const accepted: string[] = [];
     for (const id of ids) {
         const member = byId.get(id);
         if (!member) continue;
-        if (seenSpecies.has(member.definitionId)) continue;
-        seenSpecies.add(member.definitionId);
+        const build = `${member.definitionId}::${member.activeOS ?? ''}`;
+        if (seenBuilds.has(build)) continue;
+        seenBuilds.add(build);
         accepted.push(id);
         if (accepted.length === PARTY_SIZE) break;
     }

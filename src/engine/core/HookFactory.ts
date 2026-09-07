@@ -6,6 +6,7 @@ import { ConditionValidator, NEGATIVE_STATUSES } from './ConditionValidator';
 import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExecutors';
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
+import { isSimulating } from './simulationDepth';
 
 // Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
 const warnedBadConditions = new Set<string>();
@@ -115,9 +116,12 @@ export const HookFactory = {
                 return owner.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
             case 'STRENGTH_STACKS':
                 // Ticket 26: same cap as the card-side scaler in ActionExecutors. Uncapped,
-                // core_overclock_daemon's x(1 + 0.20 * raw stacks) reaches x5.00 at 20 stacks
-                // on top of Strengthened's own capped +-25%, and the static scorer cannot see
-                // daemons at all (they carry empty `actions`), so nothing else would catch it.
+                // core_overclock_daemon's x(1 + 0.20 * raw stacks) reaches x5.00 at 20 stacks,
+                // and the static scorer cannot see daemons at all (they carry empty `actions`),
+                // so nothing else would catch it. (That used to read "on top of Strengthened's
+                // own capped +-25%" - ticket 102 replaced the percent shape with POWER +1 a
+                // stack, uncapped, so the pile underneath the multiplier is now unbounded too.
+                // The argument for a cap HERE got stronger, not weaker.)
                 return Math.min(
                     owner.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0,
                     STRENGTH_STACK_CAP
@@ -183,7 +187,8 @@ export const HookFactory = {
 
             if (action.type === 'LOG') {
                 const logMsg = this.interpolateText(action.text ?? '', { ...context, state: currentState }, owner, resolvedTargetName);
-                currentState = { ...currentState, logs: [...currentState.logs, logMsg] };
+                // Ticket 144c: a simulated play narrates nothing.
+                if (!isSimulating()) currentState = { ...currentState, logs: [...currentState.logs, logMsg] };
                 continue;
             }
 

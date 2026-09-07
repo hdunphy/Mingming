@@ -341,8 +341,14 @@ export function getMacro(id: string | null | undefined): IMacroDefinition | unde
 // The rack
 // =================================================================================================
 
-/** Why a macro cannot be taken into the rack. `null` means it can. */
-export type MacroRackBlock = 'unknown-macro' | 'rack-full';
+/**
+ * Why a macro cannot be taken into the rack. `null` means it can.
+ *
+ * `already-held` is a SHOP rule, not a rack rule — see `macroOfferBlockFor`. It lives in this union
+ * because it is printed on the same tile by the same mechanism, and a second union would mean two
+ * places to look for "why is this button dead".
+ */
+export type MacroRackBlock = 'unknown-macro' | 'rack-full' | 'already-held';
 
 /**
  * The index of the first empty slot, or `-1` when the rack is full.
@@ -370,6 +376,34 @@ export function macroRackBlockFor(macros: MacroSlots, macroId: string): MacroRac
     if (!MacroRegistry[macroId]) return 'unknown-macro';
     if (firstFreeMacroSlot(macros) === -1) return 'rack-full';
     return null;
+}
+
+/**
+ * Can this macro be BOUGHT? The rack's own rules, plus the shop's — RULED by Henry, 2026-09-04:
+ * *"the shops should only have one of each item in stock so once you buy it, it's gone."*
+ *
+ * # WHY HOLDING IT IS THE SAME AS HAVING BOUGHT IT
+ *
+ * A card offer answers this with a minted `instanceId` (`marketplace.isOfferSold`): the shelf sells
+ * one specific card, and the row goes SOLD when that instance is owned. A macro has no instance to
+ * mint — the rack stores bare ids — so the equivalent DERIVED question is whether the rack holds
+ * one. That keeps the sold-out slot out of the save file exactly as the card shelf does, and it
+ * survives a resume for free.
+ *
+ * The consequence, stated rather than discovered later: **you cannot buy a second copy of a macro
+ * you are already carrying.** That is a real rule change and not only a shelf one, and it is the
+ * reading of the ruling that makes a three-slot rack interesting — three different answers rather
+ * than three of the same. A macro fired in a fight empties its slot, so the shelf re-opens on the
+ * next visit, which is also when the stock re-rolls.
+ *
+ * `grantMacro` deliberately does NOT go through this: an event reward or a debug grant is not a
+ * purchase, and nothing about "the shop sold its one copy" should stop a drop from handing you a
+ * duplicate. That path keeps `macroRackBlockFor` — capacity only.
+ */
+export function macroOfferBlockFor(macros: MacroSlots, macroId: string): MacroRackBlock | null {
+    const rack = macroRackBlockFor(macros, macroId);
+    if (rack !== null) return rack;
+    return macros.includes(macroId) ? 'already-held' : null;
 }
 
 // =================================================================================================

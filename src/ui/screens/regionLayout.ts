@@ -56,6 +56,7 @@ import type { IconName } from '../theme/icons';
  */
 export const NODE_ICON: Record<NodeKind, IconName> = {
     wild: 'wild',
+    rival: 'rival',
     elite: 'elite',
     alpha: 'alpha',
     ambush: 'ambush',
@@ -67,6 +68,7 @@ export const NODE_ICON: Record<NodeKind, IconName> = {
 
 export const NODE_LABEL: Record<NodeKind, string> = {
     wild: 'Wild',
+    rival: 'Rival',
     elite: 'Elite',
     alpha: 'Alpha',
     ambush: 'Ambush',

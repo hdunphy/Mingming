@@ -25,6 +25,16 @@ export interface IGym {
     readonly element: string;
     /** Difficulty, 0-based. `IRunState.tier` is copied from here at run start. */
     readonly tier: number;
+    /**
+     * TICKET 142b — the three firmwares the leader fields, and the thing the SCOUT shows two of.
+     *
+     * **Placeholders, like `name`, and ticket 28 owns the real ones.** These are the ticket-140
+     * comp grid's best measured comps of each gym's element pair, which is the most defensible
+     * stand-in available: it is what a good player would build for that element, so a cut of it is
+     * a fair preview of the exam. Ticket 28 should overwrite these with the authored teams and
+     * leave nothing else here alone.
+     */
+    readonly leaderComp: ReadonlyArray<string>;
 }
 
 /**
@@ -47,9 +57,18 @@ export interface IGym {
  * `exploration-map.md`'s "harder tiers unlock by beating gyms" is post-launch content.
  */
 export const GYM_REGISTRY: Readonly<Record<string, IGym>> = {
-    gym_emberfall: { id: 'gym_emberfall', name: 'Emberfall', element: 'Fire', tier: 0 },
-    gym_tidewrack: { id: 'gym_tidewrack', name: 'Tidewrack', element: 'Water', tier: 0 },
-    gym_rootfall: { id: 'gym_rootfall', name: 'Rootfall', element: 'Nature', tier: 0 },
+    gym_emberfall: {
+        id: 'gym_emberfall', name: 'Emberfall', element: 'Fire', tier: 0,
+        leaderComp: ['fenrir_v1', 'skoll_v1', 'jormungandr_v1'],
+    },
+    gym_tidewrack: {
+        id: 'gym_tidewrack', name: 'Tidewrack', element: 'Water', tier: 0,
+        leaderComp: ['kraken_v1', 'jormungandr_v1', 'huldra_v2'],
+    },
+    gym_rootfall: {
+        id: 'gym_rootfall', name: 'Rootfall', element: 'Nature', tier: 0,
+        leaderComp: ['kraken_v1', 'ratatoskr_v1', 'huldra_v1'],
+    },
 };
 
 /**
@@ -69,7 +88,7 @@ export const LAUNCH_ELEMENTS: ReadonlyArray<string> = ['Fire', 'Water', 'Nature'
  * a local forward table would be dead weight. If the triangle ever changes, this is the second
  * place it has to change.
  */
-const COUNTERED_BY: Readonly<Record<string, string>> = {
+export const COUNTERED_BY: Readonly<Record<string, string>> = {
     Nature: 'Fire',
     Water: 'Nature',
     Fire: 'Water',
@@ -137,6 +156,28 @@ export interface IGymOffer {
      * reading the element the leader *beats*, and will do so silently.
      */
     readonly biomes: ReadonlyArray<IBiome>;
+}
+
+/**
+ * TICKET 142a — THE PATH ELEMENTS: what beats the gym, then the gym's own. Rootfall: Fire, Nature.
+ *
+ * These are the elements the ROAD fields at a `rival` node, and the ticket-141 gym check is why
+ * they are this pair: Fire×2 + Nature beats the Nature gym 75% of the time, so a Rootfall run needs
+ * one more Fire body and one Nature body off the road. The biome the player is standing in decides
+ * what they can recruit, so without rivals the map dictates the order — Nature bridge first, then
+ * carry it through the Fire biome at a disadvantage, or bench it. That is the complaint.
+ *
+ * **A FUNCTION, NOT A STORED FIELD, and this is a deliberate deviation from the ticket.** §3 asks
+ * for `pathElements` on `IGymOffer` and reads `run.pathElements` in `encounterSpeciesPool`. Both
+ * are fully determined by the gym, so storing them means two copies that can disagree with
+ * `gymId` — and on the run state it means a save field, which save v4 has no migration path for
+ * (ticket 06): a pre-142 run would resume with the field absent and need a default that is either
+ * wrong or this derivation anyway. Deriving costs one call at each site, keeps one source of truth,
+ * and makes rivals work in a run that was saved before this shipped. The offer screen calls it with
+ * `offer.gym.element`; `encounterSpeciesPool` calls it with the run's gym.
+ */
+export function pathElementsFor(gymElement: string): ReadonlyArray<string> {
+    return [COUNTERED_BY[gymElement], gymElement];
 }
 
 /**

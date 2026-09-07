@@ -50,13 +50,15 @@ paying the caster:
 
 | body | OS | what it does at width |
 |---|---|---|
-| ratatoskr_v1 GOSSIP_NODE | every 0-cost card heals **all allies** 2.5% | the whole party sustains off the zoo's free cards, cast by anyone |
+| ratatoskr_v1 GOSSIP_NODE | every 0-cost card *ratatoskr himself* casts heals **all allies** 2.5% | the trigger is caster-scoped (Henry's fix), the payoff is side-wide: keep the free cards in ratatoskr's hands and the whole party sustains |
 | huldra_v1 ALLURE_PROXY | every buff she applies to herself **or an ally** mirrors 1 Weakened onto a random enemy | Growth / Iron Bark / Shrug Off become enemy Weakened; hexbloom cashes it |
 | kraken_v1 ABYSSAL_INK | every effect-draw **by any ally** Dazes **every enemy** ×2 | Forage ×2, Undertow, Whirlpool ×2, Pressure Point ×2, Echo Chamber tokens — the zoo's draw engine becomes a side-wide Dazed engine, and Dazed is +1 power on every hit |
 
 Why it holds together: the pile is 0.67–0.73 average cost, so whichever body has Energy can cast
-almost anything; seed_bomb and Crushing Depths are the two payoffs and both read piles the other
-two bodies build (cards played this turn; Dazed on the target). The splash is Water, which the
+almost anything; the two payoffs read different piles: Crushing Depths reads Dazed on the target,
+which all three bodies build, while seed_bomb reads only the cards *its caster* played this turn
+(caster-scoped since ticket 123) — so seed_bomb wants ratatoskr to cast it after his own 0-costs,
+and the only OSes here that fire on an ally's action are ABYSSAL_INK and (in Tidal Forge) TREACHERY. The splash is Water, which the
 Nature pair *beats*, so an enemy Water majority cannot punish the two Nature bodies.
 
 **Weakness to know:** Fire majority beats both Nature bodies. Kraken is the answer body there and
@@ -154,9 +156,11 @@ Games run 4.5–7.25 turns; nothing truncated, no first-turn kills.
 
 ## 6. Design rules that fell out of this
 
-1. **A 3v3 comp needs at least one side-aware OS** (fires on ally actions or hits every enemy).
-   In the EA roster those are: GOSSIP_NODE, ABYSSAL_INK, ALLURE_PROXY, TREACHERY_KERNEL, and
-   TOXIN_FANG by virtue of reading a pile others build. Every other EA firmware is self-gated.
+1. **A 3v3 comp needs at least one side-aware OS** — one that fires on an ally's action (only
+   ABYSSAL_INK and TREACHERY_KERNEL in the EA roster), or whose *payoff* is side-wide even though
+   its trigger is the owner's own play (GOSSIP_NODE heals all allies, ABYSSAL_INK Dazes every enemy,
+   ALLURE_PROXY mirrors buffs the owner puts on an ally), or that reads a pile others build
+   (TOXIN_FANG). Every other EA firmware is self-gated on both ends.
 2. **The splash body's job is not damage.** It loses STAB on most of what it casts and it is the
    element the majority beats. Give the splash the OS that reads the party (kraken_v1's draw
    trigger, jormungandr_v2's Poison reader, kraken_v2's Energy bank).
@@ -166,3 +170,58 @@ Games run 4.5–7.25 turns; nothing truncated, no first-turn kills.
 4. **Two of a species is legal and sometimes right.** ratatoskr_v1 + ratatoskr_v2 is the purest zoo
    in the game (the same 0-cost fuel feeds both OSes). Not proposed above because it has no answer
    to Fire at all.
+
+---
+
+## 7. The comp grid, measured (successive halving, 2026-09-04/05)
+
+Instrument: `scratch/compgrid.mjs` + `scratch/compshard.ts`, beamless, all 144 two-plus-one comps
+against the five-comp panel of §5. Round 1: every comp × 1 paired iteration (10 battles). Round 2:
+the top 72 × 2 more (30 battles each). Panel round robin at 20 paired iterations (40 battles a
+cell). 1,089 result rows, 2,178 battles, 0 truncations, 0 first-turn kills, 4.8–5.0 turns a game.
+Rounds 3–4 were not run: round 1 and round 2 rank the survivors with r = 0.82, so the order was
+already stable, and ticket 141 changes the roster underneath it.
+
+**Panel round robin (40 battles a cell):** zoo 79 · ref a 68 · control 47 · ramp 36 · ref b 20.
+Control beats the zoo 55–45 (the §5 number at 4 battles was noise) and loses to ref a's wall 20–80.
+
+**Round 1 (144 comps):** mean 37.6, sd 23.5. Comps containing kraken_v1 average **68**; the other
+108 average **27**. Element mix: NWW 58 · FWW 48 · FFW 37 · NNW 35 · FFN 31 · FNN 17 (best FNN
+comp: 30). Per-firmware average of the comps containing it: kraken_v1 68, jormungandr_v1 44,
+skoll_v1 42, jormungandr_v2 41, kraken_v2 36, huldra_v2 34, fenrir_v1 33, ratatoskr_v2 33,
+ratatoskr_v1 32, skoll_v2 31, huldra_v1 29, fenrir_v2 27. Best pairs: jormungandr_v1 + kraken_v1
+78, jormungandr_v2 + kraken_v1 68, kraken_v1 + kraken_v2 66, fenrir_v1 + skoll_v1 54. Same-species
+pairs are weak (fenrir 19, huldra 22, ratatoskr 30) — the §6.4 "purest zoo" idea does not measure.
+
+**Round 2 (top 72, 30 battles each):** mean 55.7, sd 17.7. All 36 kraken_v1 comps survived and
+they hold the top **nineteen** places; kraken_v1 comps average 69 against 43 for the rest of the
+survivors. Top ten: kraken_v1 + jormungandr_v1 + huldra_v2 (90), kraken_v1 + kraken_v2 +
+ratatoskr_v2 (87), kraken_v1 + ratatoskr_v1 + huldra_v1 (87), kraken_v1 + jormungandr_v1 +
+ratatoskr_v1 (83), fenrir_v2 + kraken_v1 + jormungandr_v1 (83), kraken_v1 + jormungandr_v1 +
+ratatoskr_v2 (83), kraken_v1 + jormungandr_v2 + ratatoskr_v1 (83), kraken_v1 + ratatoskr_v2 +
+huldra_v2 (80), kraken_v1 + kraken_v2 + ratatoskr_v1 (80), kraken_v1 + jormungandr_v1 + huldra_v1
+(80). Best comp without kraken_v1: fenrir_v1 + skoll_v1 + jormungandr_v1 (70), then fenrir_v1 +
+skoll_v1 + huldra_v2 / huldra_v1 (63) — the fenrir_v1 + skoll_v1 Strength pair is the only
+non-kraken engine in the roster.
+
+**Reads.**
+1. ABYSSAL_INK is the grid. Ally trigger × side-wide payoff × uncapped Dazed is the one
+   combination in the roster that scales as the width findings predicted, and it decides 3v3 by
+   itself. Ticket 141 pulls it to a single random enemy and opens the other firmwares' triggers.
+2. "Nature is weak" was the wrong read of round 1. Every Nature body ranks 8th–11th overall but
+   huldra_v1 averages **60** among survivors and kraken_v1 + ratatoskr_v1 + huldra_v1 is third in
+   the game. What is weak is Fire + Nature: all 24 FNN comps died in round 1 (best 30) and FFN
+   survivors average 45. The type triangle taxes that pairing twice (Fire beats the Nature
+   majority; nobody in the comp beats Fire back).
+3. kraken_v2 is not a Water partner. The bottom of the survivors is kraken_v2 + jormungandr_v1 +
+   X (27); kraken_v1 + kraken_v2 works because of v1.
+4. Two panel members carry no information: the field beats ramp 73% and ref b 78% in round 2, and
+   every kraken_v1 comp goes 5/6 or 6/6 against both. Keep them for the ticket-141 arms (so the
+   baseline here is reusable) and replace them for the next full grid with the #1 comp and the best
+   non-kraken comp.
+5. The zoo is still the deck the field cannot beat (24% in round 2), but the comps that do beat it
+   are Water pair + ratatoskr or huldra, i.e. the control shell with a kraken_v1 draw engine —
+   not Venom Court's huldra_v2 wall (the field beats control 59%).
+
+The screen list for ticket 141 is `scratch/top30.txt` (30th place: fenrir_v2 + skoll_v1 +
+kraken_v1 at 60); the full order is `results/compgrid/ranked.txt`.

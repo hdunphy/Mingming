@@ -8,6 +8,20 @@ import { PRNG } from './PRNG';
 
 /** Decided in the OS design review (deck-archetypes ticket 09): 50% of maxHP. */
 const HULDRA_V2_SHIELD_PERCENT = 50;
+/**
+ * TICKET 141g — the wall covers the side, at half strength for everyone who is not Huldra.
+ *
+ * Ticket 140's round-1 grid says every comp that lost to the zoo lost in the first three turns,
+ * and that control's problem is the FRONT of its deck rather than its payoff. A turn-one shield is
+ * the only thing in the Early Access roster that answers a tempo start without needing a card
+ * drawn, and Huldra was spending it on one body out of three.
+ *
+ * 25 rather than 50 (arm g1 of the ticket's two): 50 on every ally is 150% of a health pool
+ * handed out for free on turn one, which does not fail a win rate so much as it fails the
+ * five-turn game — and average turns staying at or above 4.0 is the ship gate. g2 (50 flat) is a
+ * one-line change here if the grid says g1 is not enough.
+ */
+const HULDRA_V2_ALLY_SHIELD_PERCENT = 25;
 
 /**
  * UNDERWORLD_GATEWAY (hel_v2), ticket 57 — throttled blood, %-denominated.
@@ -162,7 +176,7 @@ function helBloodHpCost(pct: number, owner: IBattleEntity): number {
 // 3.63 turns), and it cost 12.7 field points and 20 control points. Reverted. The dead-card
 // overage is a CURVE problem - three 2-cost cards on a 2-Energy frame - and no authorized
 // knob reaches it. See the ticket-64 Resolution.
-const SKOLL_V2_DAMAGE_PER_STRENGTH = 0.15;
+const SKOLL_V2_DAMAGE_PER_STRENGTH = 0.10;
 /**
  * TICKET 103: THE CAP IS GONE. It was 5, and it was the reason the one deck built to hoard
  * Strength was the worst deck in the game after statuses became POWER: every other status deck
@@ -380,8 +394,17 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                     // BarkShield stacks are a percent of maxHp (see StatusBehaviors), so this is a
                     // flat percent and not a scaled one. HULDRA_V2_SHIELD_PERCENT = 50 was the
                     // value confirmed by the OS design review (deck-archetypes ticket 09).
+                    // The owner's side, read off the state rather than passed in: this hook fires
+                    // for an enemy Huldra too, and hard-coding `playerParty` would have quietly
+                    // shielded the player's team from the opponent's wall.
+                    const side = state.playerParty.some(e => e.id === owner.id) ? state.playerParty : state.enemyParty;
+                    const allies = side.filter(e => e.id !== owner.id && e.currentHp > 0);
                     state = applyMutations(state, [
                         { type: 'STATUS', targetId: owner.id, sourceId: owner.id, payload: { status: 'BarkShield', stacks: HULDRA_V2_SHIELD_PERCENT } },
+                        ...allies.map(ally => ({
+                            type: 'STATUS' as const, targetId: ally.id, sourceId: owner.id,
+                            payload: { status: 'BarkShield', stacks: HULDRA_V2_ALLY_SHIELD_PERCENT }
+                        })),
                         { type: 'COUNTER', targetId: '', payload: { key: guardKey, operator: 'SET', amount: 1 } },
                         { type: 'LOG', targetId: '', payload: `${owner.name}'s BARK_SHIELD_OS activates a massive temporary shield!` }
                     ]);

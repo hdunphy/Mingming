@@ -1,5 +1,6 @@
 
 import { battleReducer, validateProgramConstraints, getEffectiveCardCost, type BattleAction } from '../battleReducer';
+import { beginSimulation, endSimulation } from '../core/simulationDepth';
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
 import { GetProgramData } from '../data/programRegistry';
@@ -94,7 +95,13 @@ function handValue(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
         * (Math.min(held, window) + Math.max(0, held - window) * CARD_OVERDRAW_DISCOUNT);
 }
 
-/** Mirrors Hooks.ts applyDamageModifiers: 2%/stack, net cap 25% either way. */
+/**
+ * The PERCENT shape's constants, mirroring `applyDamageModifiers`: 2%/stack, net cap 25% either
+ * way. DEAD AT THE LIVE MODEL - `STATUS_MODEL.shape` is POWER since ticket 102 and `dualityValue`
+ * branches past them - and kept only so the eval follows the engine if the shape is switched
+ * back on a grid arm. Named here rather than deleted for that reason; do not read them as a
+ * description of what the game currently does.
+ */
 const STATUS_PCT_PER_STACK = 0.02;
 const STATUS_PCT_CAP = 0.25;
 const cappedPct = (stacks: number): number => Math.min(STATUS_PCT_CAP, stacks * STATUS_PCT_PER_STACK);
@@ -381,11 +388,63 @@ function findBestSequence(
     let bestAction: BattleAction | null = null;
     let bestLeaf: IBattleState = state;
     const siblings = CENSUS ? new Set<string>() : null;
+    // Ticket 144 §2: the width is a property of the battle now, not of the process.
+    const beam = beamFor(state);
     const deferred: Array<{
         action: BattleAction; nextState: IBattleState; immediate: number; order: number;
-    }> | null = BEAM > 0 && depth > 0 ? [] : null;
+    }> | null = beam > 0 && depth > 0 ? [] : null;
 
-    for (const card of hand) {
+    /*
+     * TICKET 144a — THE AI CONSIDERS A HAND IN A CANONICAL ORDER, NOT IN DRAW ORDER.
+     *
+     * WHAT THIS CHANGES, IN ONE SENTENCE: the order the SEARCH walks the hand in. Nothing writes
+     * back to `state`, so the hand a player is holding — in the UI, in the reducer, in the save —
+     * is still in draw order, and the card a player clicks is still the card they clicked.
+     *
+     * WHY. The search used to walk the hand in draw order, and `bestScore` improves on a strict
+     * `>`, so among equal-scoring lines the first one VISITED wins. That made the AI's decision a
+     * function of where a card happened to land when it was drawn — which is an artifact of the
+     * shuffle, not information about the board. `scratch/probe144a.ts` caught it: playing the FIRST
+     * copy of a pair versus the SECOND leaves the same cards in hand in a different order (removing
+     * index 0 leaves a different remainder than removing index 1), and 23 of 37 interchangeable
+     * groups across three matchups diverged on the first ply because of it. The engine already knew
+     * the shape of this bug — the beam's own comment says restoring enumeration order is "what
+     * stops the beam changing anything it did not prune… that bug cost a measurement".
+     *
+     * WHAT IT BUYS. Once order is a function of the hand's CONTENTS rather than its history, the
+     * two copies of a card really are interchangeable: they sort adjacently, the remainder after
+     * playing either is identical key-for-key, and the subtree beneath the second is provably the
+     * same search as beneath the first. So it can be skipped — which is the whole point, because a
+     * hand is full of pairs and branching compounds at MAX_DEPTH = 3.
+     *
+     * THE SORT KEY is total and deterministic: `dataId`, then cost, then banked growth, then the
+     * instance id as the final tie-break (assigned once by `instantiateDeck`, stable across
+     * reshuffles). The first three are the fields that make two copies genuinely the same card; the
+     * fourth only exists so the order can never depend on array position.
+     *
+     * THIS MOVES NUMBERS, ON PURPOSE, ONCE. Every measurement before it was taken against an AI
+     * that read its own draw order. That is the rebaseline this row costs, and it is the reason it
+     * is not gated on bit-identity like 144b/c/d.
+     */
+    const growthOf = (id: string): number => state.counters?.[`card_growth:${id}`] ?? 0;
+    const orderedHand = [...hand].sort((a, b) => (
+        a.dataId < b.dataId ? -1 : a.dataId > b.dataId ? 1
+            : a.currentCost - b.currentCost
+            || growthOf(a.id) - growthOf(b.id)
+            || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    ));
+
+    let previousKey: string | null = null;
+
+    for (const card of orderedHand) {
+        // Copies sort adjacently, so one comparison against the previous card is the whole dedupe.
+        const key = `${card.dataId}|${card.currentCost}|${growthOf(card.id)}`;
+        if (key === previousKey) {
+            if (CENSUS) census.deduped++;
+            continue;
+        }
+        previousKey = key;
+
         const programData = GetProgramData(card.dataId);
 
         // Determine valid targets based on card target type
@@ -504,7 +563,7 @@ function findBestSequence(
 
     if (deferred !== null && deferred.length > 0) {
         let explore = deferred;
-        if (deferred.length > BEAM) {
+        if (deferred.length > beam) {
             // Select the best BEAM by immediate score, then RESTORE ENUMERATION ORDER before
             // recursing. Both halves matter. Selecting is the optimisation; restoring the order is
             // what stops the beam changing anything it did not prune - `bestScore` improves on a
@@ -513,7 +572,20 @@ function findBestSequence(
             // above 1v1's branching and pruning nothing there, 23 of 90 grid cells still moved.
             explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
             explore.sort((a, b) => a.order - b.order);
-            if (CENSUS) census.pruned += deferred.length - explore.length;
+            /*
+             * UNCONDITIONAL, unlike every other census counter — ticket 144 §2.
+             *
+             * `census.pruned` is the only one a HARNESS uses as a dead-arm check: `compshard`
+             * asserts that a beamless lane pruned nothing and a beamed lane pruned something,
+             * which is what stops a run silently measuring a different search than its rows claim.
+             * That check was decorative, because this line was gated on `CENSUS` and `CENSUS` reads
+             * `AI_CENSUS`, which — exactly like `AI_BEAM` — never reaches a vite-node lane through
+             * the `process.env` define. So the guard could not fire in the one place it was for.
+             *
+             * One integer add per beamed node, on a path that has just simulated dozens of battles
+             * worth of state. Measured against making a safety check real, that is not a cost.
+             */
+            census.pruned += deferred.length - explore.length;
         }
         for (const d of explore) {
             const result = findBestSequence(d.nextState, side, depth + 1, maxDepth);
@@ -651,7 +723,7 @@ const lookaheadDeterminizations = (tier: AiTier): number => (tier === 'lite' ? 1
  * byte-identical repeats (research/3v3-optimisation.md).
  */
 const CENSUS = env.AI_CENSUS === '1';
-export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0 };
+export const census = { enumerated: 0, duplicate: 0, simulated: 0, pruned: 0, decisions: 0, deduped: 0 };
 export function censusReset(): void {
     census.enumerated = 0; census.duplicate = 0; census.simulated = 0;
     census.pruned = 0; census.decisions = 0;
@@ -721,20 +793,58 @@ export function censusNewDecision(): void { census.decisions++; }
 export const GAME_BEAM_WIDTH = 8;
 
 /**
- * The rule above, as a pure function, so both branches are testable.
+ * TICKET 144 §2, AMENDED — THE BEAM IS A RUNG OF THE ENEMY LADDER, NOT A GLOBAL.
  *
- * A test cannot reach the browser branch by running in a browser - vitest is Node, and jsdom does
- * not remove `process` - so the decision is separated from the detection. `resolveBeam` is the rule;
- * the two arguments below it are the only facts it needs.
+ * Everything above describes where ticket 127 left this, and the first version of 144 §2 replaced
+ * its browser/Node split with "8 for everyone". Henry corrected that on 2026-09-06, and the
+ * correction is the design: **the boss thinks at full depth; everything else gets the beam.**
+ *
+ * That is right because of what the beam actually costs, which 144 §2 measured rather than assumed:
+ * at 3v3 it takes about **12.5 points of win rate off the side that is winning** and adds 0.75
+ * turns, because ranking candidates by immediate score means the first thing it stops seeing is the
+ * kill two plays out. Cheap and invisible on a wild you meet twenty times an hour. Wrong on the
+ * fight the whole run was built to reach. (At 1v1 it is nearly free — 4 of 960 grid cells, all of
+ * them `ratatoskr_v1`, the one deck whose hand is wide enough to prune.)
+ *
+ * So the width lives in `ENEMY_LADDER` beside the deck rule, the firmware flag and the AI grade
+ * (`IEnemyLoadout.beam`: wild 8, elite 8, **gauntlet 0**), travels on `IRunEncounter.aiBeam`, and
+ * reaches the battle as `IBattleState.aiBeam`. That also fixes ticket 127's actual complaint —
+ * the game could not reach the beam — properly, by handing every fight a width, rather than by a
+ * global default the game happened to fall into.
+ *
+ * **THE PROCESS DEFAULT IS BEAMLESS**, and that is the safe direction: ticket 108's standing rule
+ * is *"confirm anything you intend to act on at full, BEAMLESS"*, so a harness that says nothing
+ * gets the full search and the entire 3v3 corpus stays comparable. A caller that wants the beam
+ * asks for it — the game through the ladder, a harness through `BatchOptions.aiBeam`.
+ *
+ * HOW TO ASK, AND THE TRAP. `aiBeam` on the battle state is the switch that works
+ * (`BatchOptions.aiBeam` threads it through the harness). **`AI_BEAM` does NOT reach any harness
+ * lane** — verified, not assumed: `vite.config.ts` substitutes `define: { 'process.env': {} }` and
+ * vite-node transforms `scratch/` and `src/debug/` through the same config, so the variable never
+ * arrives. It is live in a plain-node process and dead everywhere a measurement is taken.
+ *
+ * `hasNodeProcess` is kept in the signature, unused, because it is the seam the old split lived in:
+ * leaving it visible makes a future re-split a deliberate edit here rather than a quiet condition
+ * added at a call site.
  */
-export function resolveBeam(hasNodeProcess: boolean, override: string | undefined): number {
+export function resolveBeam(_hasNodeProcess: boolean, override: string | undefined): number {
     if (override !== undefined) return Number(override);
-    return hasNodeProcess ? 0 : GAME_BEAM_WIDTH;
+    return 0;
 }
 
 // A bare `globalThis.process` is safe to name: the define matches the token pair `process.env`, not
 // `process` alone - which is exactly why the `env` reader above reaches the bag by a computed key.
 const BEAM = resolveBeam((globalThis as unknown as Record<string, unknown>).process !== undefined, env.AI_BEAM);
+
+/**
+ * The width THIS battle searches at — the same shape as `tierFor` above it.
+ *
+ * A battle that names a width gets it; everything else takes the process default. That is what lets
+ * a gate run one beamless battle beside a beamed grid without an environment variable.
+ */
+function beamFor(state: IBattleState): number {
+    return state.aiBeam ?? BEAM;
+}
 
 /**
  * The PROCESS-WIDE default tier, for a harness that wants to record it beside its numbers.
@@ -888,8 +998,15 @@ export function getBestAction(state: IBattleState): BattleAction {
     // the headless batch sims), or card-user enemies (enemyMode === 'CARDS').
     const side = state.activeSide;
 
-    // Silence events during AI simulation to prevent log spam and side effects
+    // Silence events during AI simulation to prevent log spam and side effects.
+    //
+    // TICKET 144c pairs the combat LOG with the event bus here, for the same reason and in the same
+    // place: everything below this line is a question put to the engine, not a play. Ticket 127
+    // measured 93,889 reducer calls for one 3v3 decision, and each one was appending to
+    // `state.logs` — an array copied whole on every append and growing all battle. The bus was
+    // already muted for exactly this; the transcript simply never was.
     globalBattleEventBus.mute();
+    beginSimulation();
     try {
         const candidates: Candidate[] = [];
         findBestSequence(state, side, 0, MAX_DEPTH, candidates);
@@ -971,6 +1088,7 @@ export function getBestAction(state: IBattleState): BattleAction {
         });
         return best.action;
     } finally {
+        endSimulation();
         globalBattleEventBus.unmute();
     }
 }

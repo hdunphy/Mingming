@@ -74,8 +74,41 @@ const inflateConstraint = (constraint: string | ProgramConstraint, parentId: str
     return constraintObj as ProgramConstraint;
 };
 
+/*
+ * TICKET 144d — THE INFLATED CARD, BUILT ONCE.
+ *
+ * `GetProgramData` re-inflated from scratch on every call: a spread of the raw record, then
+ * `inflateConstraint` over every constraint, then `inflateAction` over every action plus every
+ * action's conditionals, then the same again for `discardEffect`. That is several object
+ * allocations per call, and the profile puts the function at 2.4% of a run with `inflateConstraint`
+ * alone at 0.8% — because the AI calls it per candidate, per hook scan, per daemon, inside a search
+ * that makes 93,889 reducer calls a decision.
+ *
+ * Nothing about the result depends on the battle, so it is memoised by id.
+ *
+ * THE ONE THING THAT MADE THIS DELICATE. Ticket 97 warns that the engine mutates registry-resident
+ * card data during a battle, which would make a stale cache a silent behaviour change. Two checks
+ * before trusting it: nothing writes to `ProgramRegistry[id]` or `InternalTestRegistry[id]` outside
+ * `programRegistry.test.ts` (which uses a distinct id per case, so each is a cache miss), and
+ * nothing writes into the object `GetProgramData` returns. Growth (`growPerPlay`) is carried on
+ * `state.counters`, not on the card.
+ *
+ * Callers now share one object where they used to get a private copy. That is what the ticket asks
+ * for — identity, not equality — and it is safe for exactly as long as the second check above holds.
+ * `clearProgramDataCache` is the seam for a suite that rebuilds a registry entry in place.
+ */
+const inflatedByIdCache = new Map<string, ProgramData>();
+
+/** Drop the memo. For a test that redefines an id it has already asked for. */
+export const clearProgramDataCache = (): void => {
+    inflatedByIdCache.clear();
+    inflatedCache = null;
+};
+
 export const GetProgramData = (id: string): ProgramData => {
     initDaemonHooks();
+    const memo = inflatedByIdCache.get(id);
+    if (memo) return memo;
     const rawData = ProgramRegistry[id] || InternalTestRegistry[id];
     if (!rawData) {
         console.warn(`Program ID not found: ${id}`);
@@ -96,7 +129,7 @@ export const GetProgramData = (id: string): ProgramData => {
     }
 
     // Inflate Data with validation checks
-    return {
+    const inflated: ProgramData = {
         ...rawData,
         constraints: rawData.constraints?.map(c => inflateConstraint(c, id)) || [],
         actions: rawData.actions?.map(action => {
@@ -120,6 +153,11 @@ export const GetProgramData = (id: string): ProgramData => {
             return inflatedAction;
         }) : undefined
     };
+    // The `missing` fallback above returns WITHOUT caching, on purpose: an id absent now may be
+    // registered a moment later (test registries, lazy daemon init), and caching the placeholder
+    // would make that first miss permanent.
+    inflatedByIdCache.set(id, inflated);
+    return inflated;
 };
 
 /**

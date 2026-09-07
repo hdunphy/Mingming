@@ -92,6 +92,16 @@ const CardHand: React.FC<{
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const isOurTurn = battleState?.activeSide === 'PLAYER';
+    /**
+     * The card a `PLAY_LAST_CARD` card would replay — YOUR side's last card (2026-09-05).
+     *
+     * Null before your first play of the fight, which is a real state the hand has to say out loud:
+     * Reprogram cast then is a wasted Energy and a log line.
+     */
+    const replayTargetName: string | null = useMemo(() => {
+        const id = battleState?.lastProgramBySide?.PLAYER ?? null;
+        return id ? (GetProgramData(id)?.name ?? id) : null;
+    }, [battleState?.lastProgramBySide?.PLAYER]);
     const drawPileCount = battleState?.playerDeck.drawpile.length || 0;
     const discardPileCount = battleState?.playerDeck.discard.length || 0;
     const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
@@ -277,6 +287,28 @@ const CardHand: React.FC<{
                                 <div className="card-description">
                                     {data.description}
                                 </div>
+
+                                {/*
+                                  * WHAT "PLAY LAST CARD AGAIN" ACTUALLY MEANS, RIGHT NOW.
+                                  *
+                                  * Henry, 2026-09-05 playtest: *"It needs to tell you what card its
+                                  * going to play."* Reprogram's printed text is a rule, not an
+                                  * answer, and the answer changes every time anyone plays anything
+                                  * — it is the one card in the game whose effect you cannot read off
+                                  * its own face.
+                                  *
+                                  * Read from `lastProgramBySide.PLAYER`, which is what the executor
+                                  * reads, so the hand cannot promise a card the cast will not play.
+                                  * Printed as the card's NAME and nothing else: a full second
+                                  * description on a hand tile would crowd out the card's own.
+                                  */}
+                                {data.actions?.some((a) => a.type === 'PLAY_LAST_CARD') && (
+                                    <div className="card-replay">
+                                        {replayTargetName
+                                            ? `↻ ${replayTargetName}`
+                                            : '↻ nothing of yours played yet'}
+                                    </div>
+                                )}
 
                                 {/*
                                   * THE TRUE READOUT — ticket 22.

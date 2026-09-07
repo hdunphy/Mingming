@@ -33,6 +33,7 @@ import {
     firstFreeMacroSlot,
     macroRackBlockFor,
     revealedBiomesFrom,
+    macroOfferBlockFor,
 } from '../../engine/data/macroRegistry';
 import { battleReducer, canFireMacro } from '../../engine/battleReducer';
 import { MACRO_SLOTS, RunStateSchema } from '../../engine/runTypes';
@@ -81,13 +82,36 @@ describe('buying a macro', () => {
         expect(runOf(state).macros).toEqual(['surge', 'mend', 'kindle']);
     });
 
-    it('allows DUPLICATES — a macro is a consumable, not a driver', () => {
-        // `addDriver` dedupes because a second copy of a passive is not a second effect. Two Surges
-        // in two slots are two Surges, so there is deliberately no dedupe here.
+    /**
+     * RULED by Henry, 2026-09-04: *"the shops should only have one of each item in stock so once you
+     * buy it, it's gone."*
+     *
+     * This case asserted the opposite until that ruling — two Surges in two slots — on the reasoning
+     * that a consumable is not a driver and a second copy is a second effect. Both halves of that
+     * are still true; what changed is the SHOP, which now sells the one copy it stocked. The rule
+     * lives in `macroOfferBlockFor` rather than in the rack, so a gift can still duplicate (below).
+     *
+     * The reducer refuses independently of the disabled tile — ticket 20's law — and takes nothing,
+     * which is the half worth pinning: a purchase that charged and did not deliver is the failure
+     * shape the 2026-09-04 playtest was already suspicious of.
+     */
+    it('sells one copy: a second purchase of a macro you hold is refused, and charges nothing', () => {
         let state = stateFor(makeRun());
         state = runReducer(state, buyMacro({ macroId: 'surge', price: macroPrice('surge') }));
+        const afterFirst = state;
+
         state = runReducer(state, buyMacro({ macroId: 'surge', price: macroPrice('surge') }));
-        expect(runOf(state).macros).toEqual(['surge', 'surge', null]);
+
+        expect(runOf(state).macros).toEqual(['surge', null, null]);
+        expect(runOf(state).scrap).toBe(runOf(afterFirst).scrap);
+        // Byte-identical, the slice's convention for a refusal.
+        expect(state.run).toEqual(afterFirst.run);
+
+        // And the reason the shelf prints, produced by the engine rather than by the reducer.
+        expect(macroOfferBlockFor(['surge', null, null], 'surge')).toBe('already-held');
+        expect(macroOfferBlockFor(['surge', null, null], 'mend')).toBeNull();
+        // The RACK's own rule is unchanged — holding one is a shop rule, not a capacity rule.
+        expect(macroRackBlockFor(['surge', null, null], 'surge')).toBeNull();
     });
 
     it('REFUSES a full rack — with a reason available, and byte-identically', () => {
@@ -135,6 +159,14 @@ describe('granting a macro', () => {
     it('refuses a full rack too — a gift cannot overflow it either', () => {
         const before = stateFor(makeRun({ macros: ['surge', 'mend', 'kindle'] }));
         expect(runReducer(before, grantMacro('revive')).run).toEqual(before.run);
+    });
+
+    it('still DUPLICATES — the shop sold its copy, a drop did not', () => {
+        // The 2026-09-04 one-of-each ruling is about the shelf. An event reward or a debug grant is
+        // not a purchase, and `grantMacro` therefore keeps `macroRackBlockFor` (capacity only) —
+        // which is also what keeps "a macro is a consumable, not a driver" true where it still is.
+        const after = runReducer(stateFor(makeRun({ macros: ['surge', null, null] })), grantMacro('surge'));
+        expect(runOf(after).macros).toEqual(['surge', 'surge', null]);
     });
 });
 

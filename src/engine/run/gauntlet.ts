@@ -398,6 +398,9 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
         enemyDeckIds,
         seed,
         enemyAiTier: ENEMY_LADDER.gauntlet.ai,
+        // Ticket 144 §2: read off the ladder for the same reason the grade is — the gym must not
+        // hold a second opinion about its own rung. This row is 0: the boss thinks at full depth.
+        aiBeam: ENEMY_LADDER.gauntlet.beam,
         // Ticket 68: one side-level Driver, on the authored boss fight only. Ticket 60's rung reads
         // "kit + OS + Driver" and this is the Driver — literally, now that there is one.
         ...(authored ? { enemyDrivers: [authored.driver] } : {}),

@@ -101,6 +101,31 @@
 .ws-stat.unrolled .ws-stat-v { color: #4d5866; }
 .ws-stat-k { font-size: 9px; color: #8fa0b3; letter-spacing: 1px; display: block; }
 
+/*
+ * The OS choices (2026-09-05 playtest). A left rail in the species' element, the name, and the
+ * ruled description under it — the same three things the reflash comparison shows, at the size a
+ * picker can afford. `text-align: left` because these are sentences: the rest of this stage is
+ * centred, and centred prose is the one thing that would make them harder to read than the names
+ * they replace.
+ */
+.ws-oslist { display: flex; flex-direction: column; gap: 6px; }
+
+.ws-oschoice {
+    display: flex; flex-direction: column; gap: 3px;
+    text-align: left;
+    padding: 7px 9px;
+    border: 1px solid #2b3441;
+    border-left: 4px solid var(--el);
+    border-radius: 3px;
+    background: #12141c;
+    color: inherit; font: inherit;
+    cursor: pointer;
+}
+.ws-oschoice:hover { border-color: var(--el); }
+.ws-oschoice.on { background: #171d27; box-shadow: 0 0 0 1px var(--el); }
+.ws-oshead { display: flex; align-items: center; gap: 7px; }
+.ws-oschoice .ws-osdesc { font-size: 10px; color: #aeb9c6; line-height: 1.35; margin: 0; }
+
 .ws-cols { display: flex; gap: 14px; width: 100%; justify-content: center; flex-wrap: wrap; }
 .ws-col { width: 260px; }
 .ws-col h3 {

@@ -76,6 +76,7 @@ import {
     planReflash,
     reflashBlockFor,
     reflashOptionsFor,
+    workshopBlockFor,
     workshopSpecies,
     type WorkshopBlock,
 } from '../../engine/run/workshop';
@@ -121,11 +122,12 @@ function blockLabel(block: WorkshopBlock): string {
     switch (block) {
         case 'no-blueprint':
             return 'no blueprints';
-        case 'duplicate-species':
-            // The standing species clause (map § Notes): the roster may hold ten krakens, the TEAM
-            // may field one — party and bench together. Said in those terms, because "illegal"
-            // explains nothing.
-            return 'already on the team';
+        case 'duplicate-build':
+            // The clause, as Henry ruled it on 2026-09-05: the roster may hold ten krakens and the
+            // team may field several — but not two running the SAME firmware, which is one idea with
+            // two bodies. Said in those terms, because "illegal" explains nothing, and said about
+            // the BUILD because the species is no longer what is refused.
+            return 'this OS already on the team';
         case 'party-full':
             // Not a refusal any more: the bench takes the overflow, and ASSEMBLE → PARTY asks who
             // to swap out. Kept in the label table because `workshopSpecies` still reports it.
@@ -188,6 +190,19 @@ export default function WorkshopNode({
     const definition = speciesId ? GetMingmingData(speciesId) : null;
     const chosenOS = osId ?? definition?.availableOS[0] ?? null;
     const partyFull = run.partyIds.length >= PARTY_SIZE;
+
+    /**
+     * The refusal for the build the player is ACTUALLY about to assemble.
+     *
+     * Since Henry's 2026-09-05 ruling the duplicate clause is species + firmware, so legality moved
+     * from the rack row to the OS picker beside it: a kraken in the party refuses a second
+     * `kraken_v1` and welcomes a `kraken_v2`. `selected.block` is still the ROW's answer ("is any
+     * build of this species free"), which is the right thing to print on a rack that lists species;
+     * the buttons need this one, because they spend the blueprint on one specific firmware.
+     */
+    const assemblyBlock: WorkshopBlock | null = speciesId
+        ? workshopBlockFor(speciesId, ranch, run, chosenOS ?? undefined)
+        : null;
 
     /** The shortfall, in the words the player needs: what they are short, not that they are short. */
     const shortBy = (price: number): number => Math.max(0, price - scrap);
@@ -472,21 +487,42 @@ export default function WorkshopNode({
                         <div className="ws-cols">
                             <div className="ws-col">
                                 <h3>OS — CHOOSE AT ASSEMBLY</h3>
-                                <div className="rs-cards">
-                                    {definition.availableOS.map((id) => (
-                                        <button
-                                            key={id}
-                                            type="button"
-                                            className={`rs-row ${id === chosenOS ? 'on' : ''}`}
-                                            style={{ ['--el' as string]: colorFor(definition.primaryElement) }}
-                                            aria-pressed={id === chosenOS}
-                                            onClick={() => { setOsId(id); playSfx('uiClick'); }}
-                                        >
-                                            <span className="rs-g">◈</span>
-                                            <span className="rs-rnm">{getOSBehavior(id)?.name ?? id}</span>
-                                            {id === chosenOS && <span className="rs-t">chosen</span>}
-                                        </button>
-                                    ))}
+                                {/*
+                                  * WHAT THE FIRMWARE DOES, ON THE ROW THAT CHOOSES IT.
+                                  *
+                                  * Henry, 2026-09-05 playtest: *"Workbench doesn't show what the
+                                  * OS's do."* These were 27px `rs-row`s carrying a NAME —
+                                  * `ABYSSAL_INK_SYS` against `TIDAL_CRUSH_OS` — which asks the
+                                  * player to choose the thing that defines a mingming's whole
+                                  * playstyle from two words of jargon they have never seen.
+                                  *
+                                  * The REFLASH screen two panels over has printed
+                                  * `getOSBehavior(id).description` since it was built; this is the
+                                  * same field on the other decision, and the description is the
+                                  * ruled text (`lib/hooks.json`), not a second copy that can drift.
+                                  */}
+                                <div className="ws-oslist">
+                                    {definition.availableOS.map((id) => {
+                                        const os = getOSBehavior(id);
+                                        return (
+                                            <button
+                                                key={id}
+                                                type="button"
+                                                className={`ws-oschoice ${id === chosenOS ? 'on' : ''}`}
+                                                style={{ ['--el' as string]: colorFor(definition.primaryElement) }}
+                                                aria-pressed={id === chosenOS}
+                                                onClick={() => { setOsId(id); playSfx('uiClick'); }}
+                                            >
+                                                <span className="ws-oshead">
+                                                    <span className="rs-rnm">{os?.name ?? id}</span>
+                                                    {id === chosenOS && <span className="rs-t">chosen</span>}
+                                                </span>
+                                                <span className="ws-osdesc">
+                                                    {os?.description ?? 'No firmware description.'}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -510,7 +546,7 @@ export default function WorkshopNode({
                                 disabled={
                                     !selected
                                     || selected.blueprints < 1
-                                    || selected.block === 'duplicate-species'
+                                    || assemblyBlock === 'duplicate-build'
                                     || shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
                                 }
                                 onClick={() => {
@@ -519,8 +555,8 @@ export default function WorkshopNode({
                                     assemble('party');
                                 }}
                             >
-                                {selected?.block === 'duplicate-species'
-                                    ? 'ALREADY ON THE TEAM'
+                                {assemblyBlock === 'duplicate-build'
+                                    ? 'THIS OS ALREADY ON THE TEAM'
                                     : shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
                                         ? `ASSEMBLE → PARTY — ${shortBy(WORKSHOP_ASSEMBLY_SCRAP)} SHORT`
                                         : partyFull ? 'ASSEMBLE → PARTY (SWAP)' : 'ASSEMBLE → PARTY'}
@@ -531,7 +567,7 @@ export default function WorkshopNode({
                                 disabled={
                                     !selected
                                     || selected.blueprints < 1
-                                    || selected.block === 'duplicate-species'
+                                    || assemblyBlock === 'duplicate-build'
                                     || shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
                                 }
                                 onClick={() => { playSfx('uiClick'); assemble('bench'); }}

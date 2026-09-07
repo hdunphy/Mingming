@@ -72,8 +72,18 @@ export interface PlayedCardAnnouncement {
  * How long a reveal stays up, and therefore how long the enemy loop holds before it starts thinking
  * about its next card (`BattleArena`). Ticket 127: this is the number that turns dead waiting into
  * information - the old loop slept 600ms with nothing on screen and then thought for 1.3s.
+ *
+ * **1200ms since the 2026-09-05 playtest** — Henry: *"Enemy AI cards disappear to fast."* 700 was
+ * set against a 3v3 search that takes ~1.3s a decision, where the think itself padded the read;
+ * in a SOLO fight the search returns in tens of milliseconds, so the hold WAS the whole exposure
+ * and a card the player has never seen before got 0.65 seconds. The number is the floor on how long
+ * a stranger's card is legible, so it is set for the fast case and the slow case keeps paying its
+ * own way.
+ *
+ * It is a hold, not an animation length: the reveal itself never expires on a timer (see the
+ * `PROGRAM_PLAYED` case below) — the next play or the turn flip is what takes it down.
  */
-export const PLAYED_CARD_REVEAL_MS = 700;
+export const PLAYED_CARD_REVEAL_MS = 1200;
 
 export interface BattleVfx {
     unitFx: Record<string, UnitFx>;

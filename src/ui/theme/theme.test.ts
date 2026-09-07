@@ -76,7 +76,7 @@ describe('the theme tokens', () => {
         // one before its last reader is a screen that loses a colour with no error anywhere.
         const legacy = [
             '--bg-dark', '--bg-card', '--accent-primary', '--hp-green', '--hp-red',
-            '--energy-blue', '--glass-border', '--premium-shadow',
+            '--energy-blue', '--glass-border', '--glass-bg', '--accent-secondary', '--premium-shadow',
             '--fire', '--water', '--nature', '--earth', '--air', '--ice', '--light', '--dark',
         ];
         for (const name of legacy) expect(tokens.has(name), `${name} was dropped`).toBe(true);

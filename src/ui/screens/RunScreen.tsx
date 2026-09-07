@@ -227,6 +227,8 @@ export default function RunScreen(): ReactNode {
                 // Ticket 60's ladder, third column. Carried on the encounter rather than
                 // re-derived here — this screen has no business knowing the tier rules.
                 enemyAiTier: encounter.enemyAiTier,
+                // Ticket 144 §2: the fight's beam width, off the same ladder row as the grade.
+                aiBeam: encounter.aiBeam,
             },
         }));
     }, [run, ranch, roster, dispatch]);

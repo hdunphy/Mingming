@@ -201,8 +201,11 @@ describe('enemy party size', () => {
 });
 
 describe('isFightNode', () => {
-    it('names the five kinds that start a battle, and only those', () => {
-        expect([...FIGHT_KINDS].sort()).toEqual(['alpha', 'ambush', 'elite', 'gym', 'wild']);
+    it('names the six kinds that start a battle, and only those', () => {
+        // `rival` joined the list under ticket 142a. It had to: a kind absent from here does not
+        // put the run into `phase: 'encounter'`, so a rival node would have been a fight the
+        // player walks onto and nothing happens.
+        expect([...FIGHT_KINDS].sort()).toEqual(['alpha', 'ambush', 'elite', 'gym', 'rival', 'wild']);
         for (const kind of ['marketplace', 'workshop', 'event'] as NodeKind[]) {
             expect(isFightNode(kind)).toBe(false);
         }

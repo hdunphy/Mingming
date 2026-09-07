@@ -103,6 +103,21 @@ export const REGION_PARAMS = {
      * prototype Henry actually looked at.
      */
     pocketKinds: ['wild', 'wild', 'alpha', 'ambush'],
+    /**
+     * TICKET 142a — one wild in three is a RIVAL: another trainer on the road to the same leader,
+     * fielding the path species rather than the biome's.
+     *
+     * Every biome gets at least one even when the roll says otherwise (`Math.floor` of two wilds is
+     * zero), because the whole point is that the path species are reachable in EVERY biome — a
+     * biome with no rival is a biome where the map dictates your recruiting order again.
+     */
+    rivalWildFraction: 1 / 3,
+    /**
+     * TICKET 142b — the SCOUT's layer in the final biome. Layer 4 there is the gym itself
+     * (`finalBiomeExitKind`), so the last fight before the gauntlet is a layer-3 node, and this
+     * forces one of them to an elite that fields a cut of the leader's own comp.
+     */
+    scoutLayer: 3,
 } as const;
 
 // ---------------------------------------------------------------------------------------------
@@ -130,6 +145,8 @@ interface MutableNode {
     pocket: boolean;
     edges: string[];
     visited: number;
+    /** Ticket 142b — set on exactly one final-biome elite. Absent everywhere else. */
+    scout?: boolean;
 }
 
 /**
@@ -296,14 +313,109 @@ export function generateRegionGraph(seed: string): RegionGraph {
         const assigned = stream.shuffle(kinds);
         rollable.forEach((node, i) => { node.kind = assigned[i]; });
 
+        /*
+         * --- TICKET 142b: the scout ------------------------------------------------------------
+         *
+         * Henry: the team you assemble for the leader is untested when the gauntlet's HP carry-over
+         * starts. Nothing before gauntlet tier 1 looks like the gym, and by then attrition has
+         * begun. So the last fight before the gauntlet is two bodies of the leader's own comp, at
+         * elite rung, at full HP, with a workshop and a market still behind you.
+         *
+         * It has to be a layer-3 node rather than "the exit elite" the ticket names: in the FINAL
+         * biome layer 4 is the gym itself, so there is no exit elite there to promote. Every route
+         * through the biome converges on layer 4, not on layer 3, so this fight is avoidable by
+         * routing — which is right for a free look, and is why it does not replace gauntlet tier 1.
+         *
+         * IT RUNS BEFORE THE RIVALS, and the order is load-bearing. Promoting a node to the scout
+         * consumes it, so doing this second could eat the final biome's only rival and leave the
+         * biome the ticket cares about most — the one where the Nature bridge is still recruitable
+         * — with none. Rivals are assigned from what is left, and their floor of one then applies
+         * to a pool the scout has already taken its cut from.
+         */
+        if (isFinalBiome) {
+            // It may only take over a FIGHT node. The market and the workshop are guaranteed one
+            // per biome and the guarantee is structural — promoting one of them would silently
+            // delete the last shop before the gym, which is the one the scout exists to send you
+            // back to. Layer 3 first, then layer 2, because "the last fight before the gauntlet"
+            // is a position and not a coordinate: a layer where every node is a shop is rare but
+            // it is not a reason to ship a run with no scout.
+            // In preference order. An `elite` is already the right rung so promoting one costs the
+            // biome nothing; a `wild` costs a wild; a `rival` is last among fights because eating
+            // one can leave the final biome — the one where the gym's own element is still
+            // recruitable — without the node this ticket's other half exists to provide. `event` is
+            // the floor: a layer of nothing but shops and events is rare, and shipping a run with
+            // no scout is worse than one event fewer.
+            const promotable: ReadonlyArray<NodeKind> = ['elite', 'wild', 'rival', 'event'];
+            const scoutStream = new SeedStream(new SeedStream(seed).fork('scout'));
+            for (const layer of [REGION_PARAMS.scoutLayer, REGION_PARAMS.scoutLayer - 1]) {
+                const eligible = middles.filter((node) => node.layer === layer);
+                const best = promotable.find((kind) => eligible.some((node) => node.kind === kind));
+                if (!best) continue;
+                const chosen = pick(scoutStream, eligible.filter((node) => node.kind === best));
+                chosen.kind = 'elite';
+                chosen.scout = true;
+                break;
+            }
+        }
+
+        /*
+         * --- TICKET 142a: rivals --------------------------------------------------------------
+         *
+         * A rival keeps its wild's rung, kit fraction and blueprint rate — only the SPECIES POOL
+         * changes (`encounterSpeciesPool`). That is the whole mechanism: blueprints drop from what
+         * you beat, so putting the path species on the road makes the Fire pair assemblable in
+         * biome 1 or 2 and the Nature bridge in 2 or 3, in whichever order the player's hand wants,
+         * instead of in the order the map happens to lay the biomes out.
+         *
+         * FORKED STREAM, not the biome's. Drawing from `stream` here would shift every subsequent
+         * number in the generator, so every existing seed would produce a different map — the
+         * layout, the market positions, the pocket. A labelled fork leaves all of that byte-identical
+         * and changes only which wilds become rivals.
+         */
+        const rivalStream = new SeedStream(new SeedStream(seed).fork(`rivals:${biomeIndex}`));
+        const convertible = middles.filter((node) => !scripted.includes(node));
+        const wilds = convertible.filter((node) => node.kind === 'wild');
+        if (wilds.length > 0) {
+            const count = Math.max(1, Math.floor(wilds.length * REGION_PARAMS.rivalWildFraction));
+            for (const node of rivalStream.shuffle(wilds).slice(0, count)) node.kind = 'rival';
+        } else {
+            // No wild left to convert — the scout took it, or the biome rolled shops and events.
+            // An `event` becomes the rival rather than the biome going without one: "the path
+            // species are reachable in EVERY biome" is the mechanic, and a biome that misses it is
+            // a biome where the map dictates the recruiting order again, which is the complaint.
+            const events = convertible.filter((node) => node.kind === 'event');
+            if (events.length > 0) pick(rivalStream, events).kind = 'rival';
+        }
+
         // --- The pocket ---------------------------------------------------------------------------
         // A dead end hanging off a middle node, sharing its host's layer because it is beside the
         // route rather than along it. Its single edge is what makes it a decision: everything you
         // spend getting there you spend again coming back.
+        const pockets: MutableNode[] = [];
         for (let i = 0; i < REGION_PARAMS.pocketsPerBiome; i += 1) {
             const host = pick(stream, middles);
             const pocket = add(biomeIndex, host.layer, pick(stream, REGION_PARAMS.pocketKinds), true);
             link(host, pocket);
+            pockets.push(pocket);
+        }
+
+        /*
+         * TICKET 142a, the last resort. Biome 0 can reach this point with no rival: its layer-1
+         * wilds are the scripted opening and are held back, and the rest of the biome can roll
+         * elites and shops. Measured at 2 biomes in 1,200 before this fallback and 0 after.
+         *
+         * The opening itself must NOT be the rival, which is why it is excluded above. Ticket 24
+         * pins that fight to the biome's own element on purpose — *"an opponent whose element is
+         * chosen to punish them is an opponent the map lied about"* — and a Rootfall rival is Fire,
+         * which is precisely the thing a Nature starter must not meet as its first fight ever.
+         *
+         * A pocket is the right place for the overflow rather than a compromise: it is a dead end
+         * you spend two moves reaching, so a rival sitting in one is the purest version of the
+         * routing decision this ticket is about.
+         */
+        if (!middles.some((node) => node.kind === 'rival')) {
+            const wildPocket = pockets.find((node) => node.kind === 'wild');
+            if (wildPocket) wildPocket.kind = 'rival';
         }
 
         // --- Layer 4: the exit --------------------------------------------------------------------
@@ -321,6 +433,9 @@ export function generateRegionGraph(seed: string): RegionGraph {
     }
 
     return {
+        // `scout` is spread through only where it is set: an explicit `scout: undefined` on every
+        // ordinary node would serialise into the save as a null and make every map file noisier
+        // than the one flag it carries.
         nodes: nodes.map((node): IRegionNode => ({ ...node, edges: [...node.edges] })),
         entryNodeId,
         gymNodeId,

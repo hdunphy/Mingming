@@ -73,6 +73,53 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
     );
 };
 
+/**
+ * The `+k` chip that stands in for every status past `STATUS_BADGE_BUDGET`. Same portal-tooltip
+ * pattern as `StatusBadge` so the list it carries is never clipped by the row that made it
+ * necessary.
+ */
+const StatusOverflowBadge: React.FC<{ hidden: ReadonlyArray<{ type: StatusType; stacks: number }> }> = ({ hidden }) => {
+    const [showTooltip, setShowTooltip] = React.useState(false);
+    const { ref: badgeRef, rect } = useAnchoredRect<HTMLDivElement>(showTooltip);
+
+    return (
+        <div
+            ref={badgeRef}
+            className="hud-status-badge hud-status-more"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+        >
+            <span className="hud-status-stacks">+{hidden.length}</span>
+
+            {showTooltip && rect !== null && createPortal(
+                <div
+                    className="os-tooltip-portal"
+                    style={(() => {
+                        const isRightSide = rect.left > window.innerWidth / 2;
+                        return {
+                            position: 'fixed' as const,
+                            left: isRightSide ? 'auto' : rect.right + 12,
+                            right: isRightSide ? (window.innerWidth - rect.left) + 12 : 'auto',
+                            top: rect.top,
+                            transform: 'translateY(-30%)',
+                            borderColor: 'rgba(148, 163, 184, 0.55)',
+                        };
+                    })()}
+                >
+                    <div className="tooltip-title">ALSO ACTIVE</div>
+                    {hidden.map(se => (
+                        <div key={se.type} style={{ color: STATUS_COLORS[se.type] ?? '#ccc' }}>
+                            {statusGlossary[se.type]?.icon ?? '\u2726'} {se.type}
+                            {se.stacks > 1 ? ` \u00d7${Math.round(se.stacks * 10) / 10}` : ''}
+                        </div>
+                    ))}
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
 /** Maps element names to neon accent colors */
 const ELEMENT_COLORS: Record<string, string> = {
     fire: '#ff3333',
@@ -137,6 +184,47 @@ interface MingmingUnitProps {
  * only the energy row.
  */
 export const ENERGY_PIP_BUDGET = 6;
+
+/**
+ * How many status badges the row shows before the rest collapse into one `+k` chip.
+ *
+ * Henry, 2026-09-07, with a screenshot of a six-status enemy: *"statuses can go so far and cover
+ * the picture."* The badges lived in `.hud-top-row` with `flex-shrink: 0` and no ceiling inside a
+ * `.hud-card` that is `overflow: visible`, so the surplus painted over the art. Offered a 2-badge
+ * budget or a taller card, Henry took the taller card — so the badges have their own row now and
+ * this number is SIX rather than the two that fitted beside the name.
+ *
+ * Six is not a compromise: sampled every step across 360 games (10 firmwares round robin), a live
+ * entity carries 0–6 distinct statuses, **98.8% of the time four or fewer, and six is the maximum
+ * ever seen** — the exact board in the screenshot. So this is the ceiling for a pathological case
+ * rather than a routine one. The pixel arithmetic that turns 195px of row into six badges lives on
+ * `.hud-status-badges` in index.css, and `scratch/fitcheck.mjs` re-measures it.
+ *
+ * The overflow is still a CHIP, not a clip. A hidden status decides whether a card is safe to play,
+ * so the `+k` names every one of them and its stacks on hover — the same bargain
+ * `ENERGY_PIP_BUDGET` makes when it swaps seven pips for a bar.
+ */
+export const STATUS_BADGE_BUDGET = 6;
+
+/**
+ * The badges the row shows, deepest pile first, and the ones it hides.
+ *
+ * Sorted by STACKS rather than by application order, which matters only past the budget — but that
+ * is exactly the case where it matters: `Dazed ×7`, the number the player is deciding a `slander`
+ * on, must not be the one that fell off the end. Ties keep their original order (`Array.sort` is
+ * stable), so a board of 1-stack statuses does not shuffle itself every turn.
+ */
+/* Not exported: `react-refresh/only-export-components` allows a constant beside a component but
+   not a function, and one helper does not earn its own module the way `combatLogModel` did. */
+function visibleStatuses<T extends { stacks: number }>(all: ReadonlyArray<T>): { shown: T[]; hidden: T[] } {
+    const ranked = [...all].sort((a, b) => b.stacks - a.stacks);
+    // The chip COSTS a slot, so the ceiling is not the same number in both cases: six badges are
+    // 190px of the 195px row and fit exactly, but six badges plus an 18px chip are 211px and do
+    // not. Past the budget the row therefore shows one fewer, which is what keeps `+k` from being
+    // the thing that clips the row it exists to prevent clipping.
+    if (ranked.length <= STATUS_BADGE_BUDGET) return { shown: ranked, hidden: [] };
+    return { shown: ranked.slice(0, STATUS_BADGE_BUDGET - 1), hidden: ranked.slice(STATUS_BADGE_BUDGET - 1) };
+}
 
 /** Ticket 90: human labels for the post-damage scalings the preview now shows. */
 const SCALING_LABEL: Record<string, string> = {
@@ -486,11 +574,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                             </div>
                         );
                     })()}
-                    <div className="hud-status-badges">
-                        {entity.statusEffects.map((se, i) => (
-                            <StatusBadge key={se.id || `${se.type}-${i}`} type={se.type} stacks={se.stacks} />
-                        ))}
-                    </div>
+
                 </div>
 
                 {/* Daemons Row */}
@@ -514,6 +598,19 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         })}
                     </div>
                 )}
+
+                {/* Status Row (ticket 145): its own line, so six badges fit and the art stays clear. */}
+                {entity.statusEffects.length > 0 && (() => {
+                    const { shown, hidden } = visibleStatuses(entity.statusEffects);
+                    return (
+                        <div className="hud-status-badges">
+                            {shown.map((se, i) => (
+                                <StatusBadge key={se.id || `${se.type}-${i}`} type={se.type} stacks={se.stacks} />
+                            ))}
+                            {hidden.length > 0 && <StatusOverflowBadge hidden={hidden} />}
+                        </div>
+                    );
+                })()}
 
                 {/* HP Row */}
                 <div className="hud-bar-row">

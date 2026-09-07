@@ -102,6 +102,17 @@ export interface BatchOptions {
      */
     enemyAiTier?: AiTier;
     /**
+     * TICKET 144 §2 — the beam width for these battles. Undefined takes the process default, which
+     * is now 8 everywhere.
+     *
+     * This is the ONLY working way for a harness to ask for a beamless search. `AI_BEAM=0` looks
+     * like it should work and does not: `vite.config.ts` substitutes `define: { 'process.env': {} }`
+     * and vite-node transforms these files through the same config, so the variable never reaches
+     * the module — verified, not assumed. Ticket 108's standing rule ("confirm anything you intend
+     * to act on at full, BEAMLESS") needs a switch that is actually reachable, and this is it.
+     */
+    aiBeam?: number;
+    /**
      * TICKET 70's Q2b, as an EXPERIMENTAL ARM — Henry, 2026-08-29: *"if an ally dies that side gets
      * a stack of energized, see if that allows more comebacks."*
      *
@@ -443,6 +454,8 @@ export function runOne(
     startingSide: Side = 'PLAYER',
     collectTelemetry = false,
     enemyAiTier?: AiTier,
+    /** Ticket 144 §2: beam width for this battle. Undefined = the process default (8). */
+    aiBeam?: number,
     /** EXPERIMENTAL, ticket 70 Q2b. Undefined in every shipped path. */
     bereavement?: BereavementEnergy,
     /** EXPERIMENTAL, ticket 70 Q3b. Undefined in every shipped path. */
@@ -454,6 +467,9 @@ export function runOne(
         // Left off the state entirely when unset, so `TacticalAI.tierFor` reads it as "take the
         // process default" rather than as a grade someone chose.
         ...(enemyAiTier === undefined ? {} : { enemyAiTier }),
+        // Same shape, same reason: left OFF the state entirely when unset, so the search reads it
+        // as "take the process default" rather than as a width someone chose.
+        ...(aiBeam === undefined ? {} : { aiBeam }),
     };
 
     // Dead-card bookkeeping. `seen` accumulates every card instance that has ever been in
@@ -867,7 +883,7 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
             runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier,
-                options.bereavementEnergy, options.bereavementDraw)),
+                options.aiBeam, options.bereavementEnergy, options.bereavementDraw)),
     );
 }
 

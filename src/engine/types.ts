@@ -643,6 +643,23 @@ export interface IBattleState {
   readonly discardedByEffect?: ReadonlyArray<string>;
   readonly lastProgramPlayed: string | null;
   /**
+   * The last card each SIDE played, which is what "play your last card again" has always meant.
+   *
+   * `lastProgramPlayed` above is one slot written by whoever played last, so Reprogram and Echo
+   * replayed the ENEMY's card whenever the enemy had acted more recently than you — Henry,
+   * 2026-09-05 playtest: *"Reprogram plays last card played by anyone. It should be last played by
+   * this side."* The global field is kept because the log and the balance harness legitimately want
+   * "the last card at all"; what the replay effects read is this.
+   *
+   * Optional so that a state built by an older factory or a hand-written test fixture still parses.
+   * Readers take `?.[side] ?? null` and NEVER fall back to the global — a fallback would restore
+   * exactly the bug, quietly, on the states least likely to be looked at.
+   */
+  readonly lastProgramBySide?: {
+    readonly PLAYER: string | null;
+    readonly ENEMY: string | null;
+  };
+  /**
    * TICKET 111: the INSTANCE id of the card whose actions are resolving right now, or null.
    *
    * `handlePlayProgram` moves the played card to the discard while paying its cost - at step 3,
@@ -678,6 +695,22 @@ export interface IBattleState {
    * both would measure two changes at once.
    */
   readonly enemyAiTier?: 'greedy' | 'lite' | 'full';
+  /**
+   * TICKET 144 §2 — THE BEAM, AS A PROPERTY OF THE BATTLE.
+   *
+   * How many candidate lines the search recurses into at each node below depth 0. Ruled ON at 8
+   * everywhere by Henry, 2026-09-06: what is NOT coherent is a beam in the game and a beamless
+   * search in the grid, because then the instrument stops measuring what the player faces.
+   *
+   * Undefined means "take the process default", which is 8 — exactly the shape `enemyAiTier` above
+   * already uses. It is on the state rather than in module scope so a gate can ask for a beamless
+   * search on ONE battle without an environment variable and without changing anything else's mind:
+   * ticket 108's standing rule is *"confirm anything you intend to act on at full, BEAMLESS"*, and
+   * that rule needs a switch it can reach per battle.
+   *
+   * 0 means beamless.
+   */
+  readonly aiBeam?: number;
   /** Stacks removed by the most recent STATUS consume action (for STATUS_CONSUMED heal scaling). Reset each card play. */
   readonly lastStatusConsumed?: number;
   readonly elementPlays?: Record<Element, number>;

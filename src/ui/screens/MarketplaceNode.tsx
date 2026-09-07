@@ -66,7 +66,7 @@ import {
     type IMacroOffer,
     type IMarketOffer,
 } from '../../engine/run/marketplace';
-import { getMacro, macroRackBlockFor } from '../../engine/data/macroRegistry';
+import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
@@ -280,35 +280,100 @@ export default function MarketplaceNode({
                     <h2 className="mk-h">
                         MACROS · {MACRO_SLOTS - macrosHeld}/{MACRO_SLOTS} slots free
                     </h2>
-                    <div className="mk-grid mk-macros" style={STALL_TILE}>
+
+                    {/*
+                      * YOUR RACK, ON THE SHELF — the 2026-09-04 playtest. Henry: *"I bought a macro
+                      * at the shop ... I also don't see it on the screen in my inventory."*
+                      *
+                      * He was right and the purchase was fine: `buyMacro` had put it in slot 1. The
+                      * shop simply never showed him. A bought CARD lands in a list he is already
+                      * looking at and its tile goes SOLD; a bought macro left the tile identical,
+                      * decremented a number in a heading, and put the thing itself on a screen he
+                      * would not see again until he closed the shop. That is indistinguishable from
+                      * a purchase that failed, and a consumable you cannot confirm you own is one
+                      * you stop buying.
+                      *
+                      * So the rack is drawn here, all three slots, empty ones included — the same
+                      * argument `MacroRack` makes for the battle rack: the empties are what tell you
+                      * how much room you have, and they are where the next purchase visibly lands.
+                      */}
+                    <ul className="mk-rack" aria-label="Your macro rack">
+                        {run.macros.map((macroId, slot) => {
+                            const held = getMacro(macroId);
+                            return (
+                                <li key={slot} className={`mk-rack-slot ${held ? 'full' : 'empty'}`}>
+                                    <span className="mk-rack-i">{slot + 1}</span>
+                                    <span className="mk-rack-nm">{held ? held.name : 'empty'}</span>
+                                </li>
+                            );
+                        })}
+                    </ul>
+
+                    {/*
+                      * A MACRO IS NOT A CARD, AND THE TILE MUST NOT SAY IT IS.
+                      *
+                      * Henry, same playtest: *"first it looks like a card, it needs a different
+                      * style."* It wore `rs-card` — ticket 66's card chassis — which promises four
+                      * things a macro does not have: an energy cost (it printed one unfilled pip,
+                      * which reads as "0 energy" rather than "no energy"), card art, a place in your
+                      * DECK, and a draw. A macro is a consumable in a three-slot rack, fired free,
+                      * gone after one use. The type mark alone could not carry that against a
+                      * silhouette the player had already learned means "card".
+                      *
+                      * So it gets a rack-slot shape instead: landscape, a violet rail, the ● mark,
+                      * and the two facts that actually govern it printed on the face.
+                      */}
+                    <div className="mk-macros">
                         {macroStock.map((offer) => {
                             const macro = getMacro(offer.macroId)!;
-                            const block = macroRackBlockFor(run.macros, offer.macroId);
+                            const block = macroOfferBlockFor(run.macros, offer.macroId);
                             const short = shortBy(offer.price);
+                            const inRack = run.macros.filter((held) => held === offer.macroId).length;
                             return (
                                 <button
                                     key={offer.macroId}
                                     type="button"
-                                    className={`rs-card ${macro.rarity === 'Rare' ? 'rare' : ''}`}
-                                    style={{ ['--el' as string]: '#c9a2f0' }}
+                                    className={`mk-macro ${macro.rarity === 'Rare' ? 'rare' : ''} ${block === 'already-held' ? 'sold' : ''}`}
                                     disabled={block !== null || short > 0}
                                     onClick={() => purchaseMacro(offer)}
                                 >
-                                    {/* A macro costs no energy — it is free and single-use — so its
-                                        rack is a single unfilled slot, the same shape a 0-cost card
-                                        shows. Ticket 66 gives it its own mark instead. */}
-                                    <EnergyPips cost={0} />
-                                    <TypeMark banner="MACRO" />
-                                    <span className="rs-art" />
-                                    <span className="rs-cnm">{macro.name}</span>
-                                    <span className="rs-desc">{macro.description}</span>
-                                    <span className="rs-tags mk-tags">{macro.rarity === 'Rare' ? 'rare' : ''}</span>
-                                    <span className="rs-price">
-                                        {block === 'rack-full'
-                                            ? 'RACK FULL'
-                                            : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
+                                    {/*
+                                      * FLAT, not nested, because the layout is a GRID of named areas
+                                      * (see the CSS). Wrapping the text in a `body` span made it one
+                                      * middle column between the mark and the price, so a long
+                                      * description — `echo`'s is the longest in the registry — was
+                                      * squeezed into a ribbon barely a third of the tile wide.
+                                      * The description spans the full width now; only the NAME
+                                      * shares a row with the price.
+                                      */}
+                                    <span className="mk-macro-mark" aria-hidden>●</span>
+                                    <span className="mk-macro-nm">{macro.name}</span>
+                                    <span className="mk-macro-price">
+                                        {/*
+                                          * SOLD is the CARD shelf's word for the same state, and
+                                          * using it here is the point: one copy of each thing, gone
+                                          * once you take it (Henry, 2026-09-04). The stock re-rolls
+                                          * on the next visit, so a sold slot is this visit's answer.
+                                          */}
+                                        {block === 'already-held'
+                                            ? 'SOLD'
+                                            : block === 'rack-full'
+                                                ? 'RACK FULL'
+                                                : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
                                     </span>
-                                    <span className="rs-elbar" />
+                                    <span className="mk-macro-desc">{macro.description}</span>
+                                    <span className="mk-macro-tags">
+                                        {/* The two ruled facts (`macros-and-drivers.md`), printed
+                                            rather than implied: no Energy, and it is gone after one
+                                            use. */}
+                                        <span className="mk-macro-use">SINGLE USE · FIRES FREE</span>
+                                        {macro.rarity === 'Rare' && <span className="mk-macro-rare">RARE</span>}
+                                        {inRack > 0 && (
+                                            <span className="mk-macro-held">
+                                                IN RACK{inRack > 1 ? ` ×${inRack}` : ''}
+                                            </span>
+                                        )}
+                                    </span>
                                 </button>
                             );
                         })}

@@ -60,8 +60,155 @@
     padding-top: 14px;
     flex: none;
 }
-/* The macro shelf is shorter — the mockup drops it to 200px. Same tile, less card. */
-.mk-macros { --ch: 200px; }
+/*
+ * --- THE MACRO SHELF (2026-09-04 playtest) -----------------------------------------------------
+ *
+ * This was `.mk-macros { --ch: 200px }` — the card grid with shorter cards, which is exactly the
+ * thing Henry read as "it looks like a card". A macro is not a smaller card, it is a different
+ * object: three slots, no Energy, fired free, consumed on use. So the shelf stops being a grid of
+ * portraits and becomes a list of RACK SLOTS — landscape, wider than tall, the shape of the thing
+ * it will become when you buy it.
+ *
+ * Violet throughout (`#c9a2f0`), which is the colour ticket 66 already gave the MACRO type mark, so
+ * the shop and the battle rack agree about what a macro looks like.
+ */
+/*
+ * `minmax(340px, 1fr)`, and the number is measured rather than picked. The centre column is roughly
+ * 900px in a 1280 window (the sell shelf takes 310 and the body pads 18 a side), so this gives TWO
+ * macro slots across and never three. At the 260px it started as, three fitted — and three across a
+ * 900px shelf is a 260px tile, which is where `echo`'s description got squeezed into a ribbon.
+ */
+.mk-macros {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 10px;
+    padding-top: 12px;
+    align-content: start;
+    flex: none;
+}
+
+/*
+ * NAMED AREAS, so the description gets the tile's whole width.
+ *
+ *     [mark]  name .......... price
+ *     [    ]  description spanning
+ *     [    ]  chips
+ *
+ * The first layout put the text in one middle column between the mark and the price, which reads
+ * fine for `Rally` ("Gives one ally 3 Strengthened.") and terribly for `Echo` ("Replays the last
+ * card you played, free, at a target you choose.") — the longest description on the shelf wrapped
+ * to five lines in a third of the width. Henry, 2026-09-04: *"Echo the text is squished."*
+ *
+ * Only the NAME shares a row with the price, because a name is short by construction and a price
+ * plate is fixed-width; everything that can grow gets the full span.
+ */
+.mk-macro {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    grid-template-areas:
+        "mark name  price"
+        ".    desc  desc"
+        ".    tags  tags";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 4px;
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid #3a3050;
+    /* The rail, not a frame: a slot has an edge it plugs into, a card has a border all round. */
+    border-left: 4px solid #c9a2f0;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #1b1626 0%, #12141c 60%);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.mk-macro:hover:not(:disabled) { border-color: #c9a2f0; background: linear-gradient(90deg, #241d33 0%, #141722 60%); }
+.mk-macro:disabled { cursor: default; opacity: 0.5; }
+/*
+ * A SOLD slot stays on the shelf, greyed — `.rs-card.sold`'s argument, which ticket 63 made about
+ * cards and Henry's 2026-09-04 ruling extends to macros: the gap it leaves is what tells you the
+ * stock was finite, and a vanished row reads as a bug.
+ */
+.mk-macro.sold { opacity: 0.55; border-left-color: #5b4f72; }
+.mk-macro.rare { box-shadow: 0 0 0 1px #c9a2f0, 0 3px 12px #0008; }
+
+.mk-macro-mark {
+    grid-area: mark;
+    /* Top-aligned against a name that is one line, rather than centred against a tile whose height
+       is set by however long the description runs. */
+    align-self: start;
+    font-size: 20px; line-height: 1.1;
+    color: #c9a2f0;
+    text-shadow: 0 0 8px currentColor;
+    text-align: center;
+}
+
+.mk-macro-nm { grid-area: name; font-size: 12.5px; font-weight: 700; min-width: 0; }
+.mk-macro-desc { grid-area: desc; font-size: 10.5px; color: #aeb9c6; line-height: 1.4; }
+
+.mk-macro-tags {
+    grid-area: tags;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-size: 8.5px; letter-spacing: 0.08em; font-weight: 800;
+}
+
+/* The rule, not decoration: these two facts are what separate a macro from every card on the shelf. */
+.mk-macro-use { color: #8f7fb0; }
+
+/*
+ * The two OPTIONAL chips wear a border, and that is legibility rather than ornament: unpilled, they
+ * ran straight on from the caption and the tile read "SINGLE USE · FIRES FREE RARE" as one sentence.
+ * Colour alone could not separate them — the same lesson the element word taught the card chassis.
+ */
+.mk-macro-rare,
+.mk-macro-held {
+    padding: 1px 5px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    line-height: 1.4;
+}
+.mk-macro-rare { color: #ffd479; }
+/* What the 2026-09-04 playtest was missing: proof that the last purchase landed. */
+.mk-macro-held { color: #7fe3d0; }
+
+/*
+ * The price plate does NOT ride over the face here. On a card tile it does, because the tile is a
+ * portrait with a bottom edge to sit on; on a rack slot it is the third column, beside the thing it
+ * prices, where a disabled "RACK FULL" reads as a state of the rack rather than a price.
+ */
+.mk-macro-price {
+    grid-area: price;
+    justify-self: end;
+    align-self: start;
+    background: #ffd479; color: #0c0e12;
+    font-weight: 800; font-size: 11.5px;
+    border-radius: 3px; padding: 3px 9px;
+    white-space: nowrap;
+}
+.mk-macro:disabled .mk-macro-price { background: #3a4351; color: #8fa0b3; }
+
+/* --- your rack, drawn on the shelf you buy from --- */
+
+.mk-rack {
+    display: flex; gap: 8px;
+    list-style: none; margin: 8px 0 0; padding: 0;
+    flex: none;
+}
+
+.mk-rack-slot {
+    display: flex; align-items: center; gap: 6px;
+    min-width: 110px;
+    padding: 4px 8px;
+    border: 1px solid #2b3441;
+    border-radius: 3px;
+    font-size: 10.5px;
+    background: #12141c;
+}
+.mk-rack-slot.full { border-color: #c9a2f0; color: #e6e9ef; }
+.mk-rack-slot.empty { border-style: dashed; color: #5f6b7a; font-style: italic; }
+.mk-rack-i { font-size: 9px; font-weight: 800; color: #7d8ea1; }
+.mk-rack-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /*
  * The price plate sits OVER the bottom of the face, so the tag line has to stop short of it.

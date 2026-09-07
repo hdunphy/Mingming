@@ -24,7 +24,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import MingmingUnit, { ENERGY_PIP_BUDGET } from './MingmingUnit';
+import MingmingUnit, { ENERGY_PIP_BUDGET, STATUS_BADGE_BUDGET } from './MingmingUnit';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
 
 /** Enemy-only: one ATTACK action, `target: 'Single'`, no HEAL or STATUS to open the ally carve-out. */
@@ -173,6 +173,76 @@ describe('energy is legible at six entities', () => {
     });
 });
 
+const badgeCount = (markup: string): number => (markup.match(/class="hud-status-badge"/g) ?? []).length;
+const overflowChip = (markup: string): RegExpMatchArray | null =>
+    markup.match(/class="hud-status-badge hud-status-more"[\s\S]*?<\/div>/);
+
+describe('the status row cannot grow past its own card', () => {
+    /*
+     * Henry, 2026-09-07, with a screenshot of a six-status enemy: *"statuses can go so far and
+     * cover the picture."* `.hud-status-badges` was `flex-shrink: 0` with no ceiling inside a
+     * `.hud-card` that is `overflow: visible`, so the surplus painted over `.hud-sidebar`. Offered
+     * a 2-badge budget or a taller card, Henry took the taller card: the badges have their own
+     * 195px row, six of them cost 190px of it, and the card is 122px.
+     *
+     * These pin the two halves markup can see — the count is bounded, and the remainder is NAMED
+     * rather than dropped. The pixel arithmetic lives on `.hud-status-badges` in index.css and is
+     * re-measured by `scratch/fitcheck.mjs`; the 0–6 distribution behind the 6 is in
+     * `STATUS_BADGE_BUDGET`'s docblock.
+     */
+    const TYPES = ['Dazed', 'Sharp', 'Burn', 'Poison', 'Strengthened', 'Weakened', 'Regen', 'BarkShield'] as const;
+    const statuses = (n: number) => Array.from({ length: n }, (_, i) => ({
+        id: `s${i}`, type: TYPES[i], stacks: i + 2, duration: 3, sourceId: 'e1',
+    }));
+
+    it('shows every badge while the pile is inside the budget, and no chip', () => {
+        // Six is the screenshot AND the deepest pile ever measured, so this is the case that has
+        // to render whole — a budget that hid one of these would not be the taller card Henry asked
+        // for.
+        for (const n of [1, 4, STATUS_BADGE_BUDGET]) {
+            const markup = render(unit('x', { statusEffects: statuses(n) as never }), false);
+            expect(badgeCount(markup)).toBe(n);
+            expect(overflowChip(markup)).toBeNull();
+        }
+    });
+
+    it('drops to five and draws a chip past the budget, because the chip costs a slot', () => {
+        // Six badges are 190px of a 195px row and fit; six badges plus the 18px chip are 211px and
+        // do not. So the overflow case shows one FEWER, or the chip clips the row it exists to keep
+        // from clipping.
+        for (const n of [STATUS_BADGE_BUDGET + 1, 8]) {
+            const markup = render(unit('x', { statusEffects: statuses(n) as never }), false);
+            expect(badgeCount(markup)).toBe(STATUS_BADGE_BUDGET - 1);
+            expect(overflowChip(markup)).not.toBeNull();
+        }
+    });
+
+    it('keeps the DEEPEST piles visible when it has to hide any', () => {
+        // Which ones matter only past the budget — but that is exactly where it matters: the number
+        // a payoff card is waiting on must not be the one that falls off the end. statuses() gives
+        // stacks 2..n+1 ascending, so the shallowest are the ones that must go.
+        const markup = render(unit('x', { statusEffects: statuses(8) as never }), false);
+        const shown = markup.slice(0, markup.indexOf('hud-status-more'));
+        expect(shown).toContain('\u00d79');   // the deepest
+        expect(shown).not.toContain('\u00d72'); // the first-applied, shallowest pile
+    });
+
+    it('names what it hid instead of dropping it', () => {
+        // The bargain that makes a budget acceptable: a hidden status still decides whether a card
+        // is safe to play, so the chip carries the count AND the statuses behind it.
+        const markup = render(unit('x', { statusEffects: statuses(8) as never }), false);
+        const chip = overflowChip(markup);
+        expect(chip).not.toBeNull();
+        expect(chip![0]).toContain(`+${8 - (STATUS_BADGE_BUDGET - 1)}`);
+    });
+
+    it('keeps the name, which the old row ate on its way off the card', () => {
+        // `overflow: hidden` sets a flex item's automatic minimum to 0, so the badges used to shrink
+        // the name to nothing before they started spilling. Its own row is what gives the name back.
+        const markup = render(unit('longname', { statusEffects: statuses(6) as never }), false);
+        expect(markup).toContain('LONGNAME');
+    });
+});
 describe('target validity is obvious, and the invalid case says why', () => {
     it('marks a legal target', () => {
         expect(render(ENEMIES[0], true, { card: 'atk' })).toContain('✓ TARGET');

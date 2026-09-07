@@ -134,6 +134,20 @@
     --energy-blue: #3b82f6;
     --glass-border: rgba(255, 255, 255, 0.08);
     --premium-shadow: var(--shadow-panel);
+    /*
+     * TICKET 143c. These two were dropped by the ticket-34 migration while `index.css` was still
+     * reading them, which is precisely the failure the legacy block above exists to prevent and the
+     * one `theme.test.ts` calls "a screen that loses a colour with no error anywhere". The combat
+     * log is their only reader and it has been shipping with NO panel background at all — just
+     * `backdrop-filter: blur(10px)` over the board, which is why an always-expanded log read as a
+     * smear rather than as text. 143c puts a one-line strip in that space permanently, so the
+     * background stops being cosmetic.
+     *
+     * Values are the pre-34 ones: the card glass at panel opacity, and the cyan the log header has
+     * always been described as having.
+     */
+    --glass-bg: rgba(18, 18, 24, 0.82);
+    --accent-secondary: #22d3ee;
 
     /*
      * The pre-ticket-34 element names, still read by `index.css` and several screen sheets. They are
