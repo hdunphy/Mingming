@@ -9,6 +9,7 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { targetVerdict, type TargetVerdict } from '../utils/targeting';
 import { useStageAnchors } from '../hooks/useStageAnchors';
 import { spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
+import { StatusBadgeRow, PLAQUE_STATUS_BUDGET } from './StatusBadges';
 
 /**
  * BATTLE STAGE — the stagger stage. Ticket 145a.
@@ -66,6 +67,8 @@ interface StageSpriteProps {
     isEnemy: boolean;
     fx?: UnitFx;
     width: number;
+    /** The acting ally. Ticket 145b gives it a rim light in its element colour. */
+    isActive: boolean;
 }
 
 /**
@@ -74,7 +77,7 @@ interface StageSpriteProps {
  * that moved from a sidebar onto the stage kept its whole feedback vocabulary. What changed is that
  * six of these exist at once, so the frame takes its size from the caller rather than from CSS.
  */
-const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width }) => {
+const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width, isActive }) => {
     const controls = useAnimation();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
     const [artBroken, setArtBroken] = React.useState(false);
@@ -146,7 +149,23 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width })
                     draggable={false}
                     style={{
                         transform: isEnemy ? 'scaleX(-1)' : 'none',
-                        filter: `drop-shadow(0 0 18px ${accent}44) drop-shadow(0 10px 14px rgba(0,0,0,0.7))`,
+                        /*
+                         * TICKET 145b — THREE STATES IN ONE FILTER, in priority order.
+                         *
+                         * Dead wins over active (a corpse does not glow), and active wins over
+                         * resting. The rim light is a second, tighter drop-shadow in the element
+                         * colour rather than a border or an outline: it follows the sprite's own
+                         * silhouette, which a box around a transparent PNG cannot.
+                         *
+                         * The dead state is §2b's "40%-brightness silhouette" as a FILTER rather
+                         * than an opacity, deliberately — opacity would fade the TERMINATED stamp
+                         * with it, and ticket 34 already settled that the stamp keeps its neon red.
+                         */
+                        filter: isDead
+                            ? 'brightness(0.4) saturate(0.35) drop-shadow(0 10px 14px rgba(0,0,0,0.7))'
+                            : isActive
+                                ? `drop-shadow(0 0 8px ${accent}) drop-shadow(0 0 22px ${accent}66) drop-shadow(0 10px 14px rgba(0,0,0,0.7))`
+                                : `drop-shadow(0 0 18px ${accent}44) drop-shadow(0 10px 14px rgba(0,0,0,0.7))`,
                     }}
                     onError={() => setArtBroken(true)}
                 />
@@ -155,9 +174,16 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width })
                     className="stage-art-disc"
                     style={{
                         color: accent,
-                        borderColor: `${accent}88`,
+                        borderColor: isActive ? accent : `${accent}88`,
                         background: `radial-gradient(circle at 38% 32%, ${accent}55 0%, ${accent}22 45%, rgba(8,8,14,0.9) 100%)`,
-                        boxShadow: `0 0 30px ${accent}33, inset 0 0 24px ${accent}22`,
+                        // The art-less fallback earns the same three states, or a species without a
+                        // sprite yet would be the one unit on the board that never looks active.
+                        boxShadow: isDead
+                            ? 'none'
+                            : isActive
+                                ? `0 0 14px ${accent}, inset 0 0 24px ${accent}33`
+                                : `0 0 30px ${accent}33, inset 0 0 24px ${accent}22`,
+                        filter: isDead ? 'brightness(0.4) saturate(0.35)' : undefined,
                     }}
                 >
                     {entity.primaryElement[0]}
@@ -238,7 +264,7 @@ const StageSlot: React.FC<SlotProps> = ({
                         {verdict.ok ? '✓ TARGET' : verdict.reason}
                     </div>
                 )}
-                <StageSprite entity={entity} isEnemy={isEnemy} fx={fx} width={rect.w} />
+                <StageSprite entity={entity} isEnemy={isEnemy} fx={fx} width={rect.w} isActive={isActive} />
             </div>
 
             <div
@@ -268,6 +294,21 @@ const StageSlot: React.FC<SlotProps> = ({
                     </span>
                     <span className="stage-plaque-value">{entity.currentEnergy}/{entity.maxEnergy} EP</span>
                 </div>
+                {/*
+                  * TICKET 145b — the statuses come to the plaque. Same chip and same tooltip the
+                  * HUD card draws (`StatusBadges`), because a player learns one vocabulary rather
+                  * than two; only the budget differs, and it differs because the two rows are
+                  * different widths.
+                  *
+                  * `pointer-events` are re-enabled on the row alone: the plaque is inert so it can
+                  * never eat a drag aimed at the sprite behind it, but a badge whose tooltip cannot
+                  * be hovered is a badge that has stopped explaining itself.
+                  */}
+                <StatusBadgeRow
+                    statuses={entity.statusEffects}
+                    budget={PLAQUE_STATUS_BUDGET}
+                    className="hud-status-badges stage-plaque-statuses"
+                />
             </div>
         </>
     );

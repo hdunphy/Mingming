@@ -18,6 +18,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import BattleStage from './BattleStage';
 import { setServerViewport } from '../hooks/useStageAnchors';
 import { ACTIVE_STEP, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, plaqueRect, spriteRect } from './stageGeometry';
+import { PLAQUE_STATUS_BUDGET } from './StatusBadges';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
 
 function unit(id: string, name: string, element: string, hp = 100): IBattleEntity {
@@ -30,6 +31,14 @@ function unit(id: string, name: string, element: string, hp = 100): IBattleEntit
         daemons: [], statusEffects: [],
     } as unknown as IBattleEntity;
 }
+
+const TYPES = ['Dazed', 'Sharp', 'Burn', 'Poison', 'Strengthened', 'Weakened'] as const;
+/** n statuses with ascending stacks, so "which ones survive the budget" is decidable. */
+const statuses = (n: number) => Array.from({ length: n }, (_, i) => ({
+    id: `s${i}`, type: TYPES[i], stacks: i + 2, duration: 3, sourceId: 'x',
+}));
+const withStatuses = (e: IBattleEntity, n: number): IBattleEntity =>
+    ({ ...e, statusEffects: statuses(n) } as unknown as IBattleEntity);
 
 const ALLIES = [unit('p1', 'FENRIR', 'Fire'), unit('p2', 'SKOLL', 'Fire'), unit('p3', 'RATATOSKR', 'Nature')];
 const ENEMIES = [unit('e1', 'KRAKEN', 'Water'), unit('e2', 'HULDRA', 'Nature'), unit('e3', 'NIDHOGGR', 'Dark')];
@@ -138,6 +147,89 @@ describe('145a — the stagger', () => {
     });
 });
 
+describe('145b — the plaque carries the statuses', () => {
+    /*
+     * The statuses lived on the sidebar HUD card, which the stagger stage replaces. Until they
+     * moved, `SHOW_LEGACY_HUD_COLUMNS` could not be turned off without taking the only readable
+     * copy of a Dazed count off the screen with it.
+     */
+    it('draws a badge per status, on the unit that has it', () => {
+        const allies = [withStatuses(ALLIES[0], 3), ALLIES[1], ALLIES[2]];
+        const markup = render({}, state(allies, ENEMIES));
+        const plaque = markup.slice(markup.indexOf('data-testid="stage-plaque-p1"'));
+        const badges = (plaque.slice(0, plaque.indexOf('stage-plaque-p2')).match(/class="hud-status-badge"/g) ?? []);
+        expect(badges).toHaveLength(3);
+    });
+
+    it('stops at the plaque budget and names the rest in a chip', () => {
+        // §2b: "one row, overflow chip after the fourth". The plaque is 168px wide — four badges
+        // are 118px of its 152px of content, which leaves room for the 18px chip beside them.
+        const allies = [withStatuses(ALLIES[0], 6), ALLIES[1], ALLIES[2]];
+        const markup = render({}, state(allies, ENEMIES));
+        const plaque = markup.slice(
+            markup.indexOf('data-testid="stage-plaque-p1"'),
+            markup.indexOf('data-testid="stage-slot-p2"'),
+        );
+        expect(plaque.match(/class="hud-status-badge"/g) ?? []).toHaveLength(PLAQUE_STATUS_BUDGET);
+        expect(plaque).toContain('hud-status-more');
+        expect(plaque).toContain(`+${6 - PLAQUE_STATUS_BUDGET}`);
+    });
+
+    it('keeps the DEEPEST piles when it has to hide any', () => {
+        // The number a payoff card is waiting on must not be the one that falls off the end.
+        const allies = [withStatuses(ALLIES[0], 6), ALLIES[1], ALLIES[2]];
+        const markup = render({}, state(allies, ENEMIES));
+        const plaque = markup.slice(markup.indexOf('data-testid="stage-plaque-p1"'));
+        const shown = plaque.slice(0, plaque.indexOf('hud-status-more'));
+        expect(shown).toContain('\u00d77');   // stacks 7, the deepest
+        expect(shown).not.toContain('\u00d72'); // stacks 2, the shallowest
+    });
+
+    it('says nothing at all when a unit is clean — no empty row', () => {
+        const markup = render();
+        expect(markup).not.toContain('hud-status-badge');
+    });
+});
+
+describe('145b — active and dead read at a glance', () => {
+    it('rim-lights the acting ally and nobody else, on the ART path', () => {
+        // With art, the rim is a tight drop-shadow in the element colour against the resting
+        // state's loose 18px one.
+        const withArt = ALLIES.map(a => ({ ...a, artReference: `${a.name.toLowerCase()}.png` } as unknown as IBattleEntity));
+        const markup = render({ selectedSourceId: 'p2' }, state(withArt, ENEMIES));
+        const p2 = markup.slice(markup.indexOf('stage-slot-p2'), markup.indexOf('stage-plaque-p2'));
+        const p3 = markup.slice(markup.indexOf('stage-slot-p3'), markup.indexOf('stage-plaque-p3'));
+        expect(p2).toContain('drop-shadow(0 0 8px');
+        expect(p3).not.toContain('drop-shadow(0 0 8px');
+        expect(p3).toContain('drop-shadow(0 0 18px');
+    });
+
+    it('rim-lights the ART-LESS fallback disc too', () => {
+        // A species whose sprite has not landed yet must not be the one unit on the board that
+        // never looks like it is acting.
+        const markup = render({ selectedSourceId: 'p2' });
+        const p2 = markup.slice(markup.indexOf('stage-slot-p2'), markup.indexOf('stage-plaque-p2'));
+        const p3 = markup.slice(markup.indexOf('stage-slot-p3'), markup.indexOf('stage-plaque-p3'));
+        expect(p2).toContain('0 0 14px');
+        expect(p3).toContain('0 0 30px');
+    });
+
+    it('draws a dead unit as a dimmed silhouette, not a hidden one', () => {
+        // §2b: 40% brightness, still in its slot. A FILTER rather than an opacity, so the
+        // TERMINATED stamp keeps its neon red (ticket 34).
+        const enemies = [unit('e1', 'KRAKEN', 'Water', 0), ENEMIES[1], ENEMIES[2]];
+        const markup = render({}, state(ALLIES, enemies));
+        const e1 = markup.slice(markup.indexOf('stage-slot-e1'), markup.indexOf('stage-plaque-e1'));
+        expect(e1).toContain('brightness(0.4)');
+        expect(markup).toContain('data-testid="stage-slot-e1"');
+    });
+
+    it('dims the dead unit PLAQUE too, so the board reads at a glance', () => {
+        const enemies = [unit('e1', 'KRAKEN', 'Water', 0), ENEMIES[1], ENEMIES[2]];
+        const markup = render({}, state(ALLIES, enemies));
+        expect(markup).toContain('stage-plaque-dead');
+    });
+});
 describe('145a — the composition on a real viewport', () => {
     it('is the mock at 1280x800', () => {
         const markup = render();

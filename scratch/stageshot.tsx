@@ -26,9 +26,17 @@ const unit = (id: string, name: string, el: string, hp: number, max: number, ep 
     daemons: [], statusEffects: [],
 } as unknown as IBattleEntity);
 
+const TYPES = ['Dazed','Sharp','Burn','Poison','Strengthened','Weakened'] as const;
+const withStatuses = (e: IBattleEntity, n: number): IBattleEntity => ({
+    ...e,
+    statusEffects: Array.from({ length: n }, (_, i) => ({
+        id: `s${i}`, type: TYPES[i], stacks: i === 4 ? 4.8 : i + 2, duration: 3, sourceId: 'x',
+    })),
+} as unknown as IBattleEntity);
+
 const state = {
-    playerParty: [unit('p1','FENRIR','Fire',414,1125), unit('p2','SKOLL','Fire',900,1000), unit('p3','RATATOSKR','Nature',900,1000)],
-    enemyParty: [unit('e1','KRAKEN','Water',1080,1080), unit('e2','HULDRA','Nature',900,1020), unit('e3','RATATOSKR','Nature',53,1080,0)],
+    playerParty: [withStatuses(unit('p1','FENRIR','Fire',414,1125), 2), unit('p2','SKOLL','Fire',900,1000), withStatuses(unit('p3','RATATOSKR','Nature',900,1000), 6)],
+    enemyParty: [withStatuses(unit('e1','KRAKEN','Water',1080,1080), 1), withStatuses(unit('e2','HULDRA','Nature',900,1020), 3), unit('e3','RATATOSKR','Nature',0,1080,0)],
     activeSide: 'PLAYER', turn: 3, phase: 'PLAYER_TURN',
     playerDeck: { hand: [], drawpile: [], discard: [], exhaust: [] },
     enemyDeck: { hand: [], drawpile: [], discard: [], exhaust: [] },

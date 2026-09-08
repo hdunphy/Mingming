@@ -2570,7 +2570,11 @@ body {
   font-weight: 900;
 }
 
-.stage-sprite-dead { opacity: 0.4; filter: grayscale(0.8); }
+/* TICKET 145b: the dead state is a filter on the ART, not an opacity on the frame — an opacity
+   here would fade the TERMINATED stamp with it, and ticket 34 settled that the stamp keeps its
+   neon red. §2b asks for a 40%-brightness silhouette; `StageSprite` applies it. This class stays
+   as the hook 146 will want for the death beat. */
+.stage-sprite-dead { }
 
 .stage-death-glitch { animation: stage-glitch 0.5s steps(2, end) 3; }
 
@@ -2662,6 +2666,15 @@ body {
 }
 
 .stage-plaque-pips i.off { background: #1e242c; }
+
+/* The plaque's status row. The plaque is `pointer-events: none` so it can never eat a drag aimed
+   at the sprite behind it — but a badge whose tooltip cannot be hovered has stopped explaining
+   itself, so the row alone takes them back. */
+.stage-plaque-statuses {
+  pointer-events: auto;
+  margin-left: 0;
+  flex-shrink: 0;
+}
 
 .stage-bar-track {
   flex: 1;
