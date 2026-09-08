@@ -1,5 +1,7 @@
 # Ticket 112 — which OSes scale with body count, and which were only ever scoped by accident
 
+> **Status: CLOSED 2026-09-08** — done — measured; the alarm was retired in its own §6. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** MEASURED 2026-08-22 — and the measurement retires the audit's alarm. See §6. Opened 2026-08-21 on `legion/balance`.
 **Asked for by Henry, 2026-08-21:** *"all OS's were tuned for 1v1 but some are not tied to that mingming.
 So some of the draw card or maybe even play 0 cost card might not be scoped to a mingming."*

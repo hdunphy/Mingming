@@ -1,5 +1,7 @@
 # Ticket 140 — Early Access 3v3: comps for Fire / Water / Nature, and the cards that bridge them
 
+> **Status: CLOSED 2026-09-08** — closed as the baseline document — §7/§8 hold the pre- and post-141 comp grids; nothing further to do here. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** design proposal, measured where the instrument allows (see §5)
 **Asked by Henry:** *"it feels bad to pull in another Mingming once you have a good 1v1 deck... start
 building 3v3 decks which you start off with the 1v1-tuned deck... create some suggestions for

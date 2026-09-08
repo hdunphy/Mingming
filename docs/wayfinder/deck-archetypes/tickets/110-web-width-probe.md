@@ -1,5 +1,7 @@
 # Ticket 110 — the web-inversion probe: body count, or type dilution?
 
+> **Status: CLOSED 2026-09-08** — done — measured; acted on via 114 → 116 → 141. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** OPEN, measuring. Opened 2026-08-21 on `legion/balance`.
 **Ruled by Henry 2026-08-21:** the web inversion is the first item off ticket 109's open list.
 **Report:** `research/web-width.md` (written when the probe lands).

@@ -1,5 +1,7 @@
 # Ticket 127 — the enemy turn takes 16 seconds, and 5.4 of them were paid twice
 
+> **Status: CLOSED 2026-09-08** — done — pause/search reorder shipped; the beam was ruled in 144 §2 (a ladder: wild 8 / elite 8 / gym 0). Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** PARTIALLY SHIPPED. The pause/search reorder is done; the beam needs a ruling.
 From Henry's ticket-118 playtest: *"enemy turns are taking a long time between each card. Its slow to
 think"*, and *"the AI is incredibly slow here. Taking a couple seconds to even play a card."*

@@ -1,5 +1,7 @@
 # Ticket 143 — Playtest 2026-09-05: fenrir_v1's two attacks, and the combat log
 
+> **Status: CLOSED 2026-09-08** — done — ragnarok_edge, unbound_fang and the collapsed log all shipped. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** Henry's playtest notes (Rootfall, Fire starter, did not reach the first elite), costed;
 ready for Legion. One commit per row, authored as Henry.
 

@@ -1,5 +1,7 @@
 # Team-sim skeleton + canary suite (ticket 98): stop tuning blind to the shipped game
 
+> **Status: CLOSED 2026-09-08** — done — the team sim, canary and owner rule all shipped (109, 141 §owner ruling); nothing left to deliver. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:task - infrastructure. Authorized 2026-08-19. Runs AFTER tickets 95
   (status shape) and 97 (speed). Spec: research/3v3-design.md - fight shape is
   Henry-ruled there (shared deck/hand, per-mingming energy, STAB by caster,

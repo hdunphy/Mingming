@@ -1,5 +1,7 @@
 # Firmware payoff power-rate census (ticket 63): what a printed power is actually worth, per frame
 
+> **Status: FOLDED INTO TICKET 149 (2026-09-08)** — the measurement and the fix are rows of `149-scorer-pricing.md`; this file stays as the finding. Closes when 149e does.
+
 - Type: wayfinder:research - REPORT-ONLY. No changes of any kind.
 - Status: **open** - authorized by Henry 2026-08-14 (ticket-61 review, Q3: "might be worth
   a sweep to see if there are any major offenders").

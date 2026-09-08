@@ -1,5 +1,7 @@
 # Resource conversion: what a card does when its resource is meaningless
 
+> **Status: CLOSED 2026-09-08** — superseded — the hel_v2 rework (57) removed the premise. The "no blank cards" law it states still stands and lives in HANDOFF. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:task
 - Status: open
 - Assignee:

@@ -1,5 +1,7 @@
 # Ticket 141 — Ally-triggered firmwares for the Early Access twelve
 
+> **Status: CLOSED 2026-09-08** — done — shipped 2026-09-05; gym check PASS (141-GYM-CHECK.md), ship read in 141-SHIP-READ.md. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** approved by Henry 2026-09-04, ready for Legion
 **Branch:** `legion/ai-perf`, one commit per lettered row, authored as Henry
 **Grounded in:** ticket 140's comp grid, round 1 (`results/compgrid/`, 144 comps × 10 battles, panel round robin at 40 battles a cell)

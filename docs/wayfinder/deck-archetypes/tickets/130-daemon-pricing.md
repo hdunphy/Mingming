@@ -1,5 +1,7 @@
 # Ticket 130 — daemons are priced by a guess, and the guess is load-bearing
 
+> **Status: FOLDED INTO TICKET 149 (2026-09-08)** — the measurement and the fix are rows of `149-scorer-pricing.md`; this file stays as the finding. Closes when 149e does.
+
 **Status:** OPEN. Widened 2026-09-01 with a second `powerscale` mispricing — see the DRAW section
 at the end.
 

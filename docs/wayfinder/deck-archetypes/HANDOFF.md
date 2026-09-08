@@ -2,6 +2,7 @@
 
 **READ _WARNING-line-endings.md AT REPO ROOT BEFORE ANY COMMIT - a sync-layer line-ending sweep sits in the working tree (162 phantom modifications). Stage explicit paths only until cleaned.**
 
+*Last updated: 2026-09-08. **The balance arc is CLOSED for now — 141 shipped (ally-triggered OS), 143 (fenrir + log), 144 (speed 2.1×, beam RULED as an enemy-ladder rung wild 8 / elite 8 / gym 0, harness beamless), 140 closed as the comp baseline (element triangle holds; Ink Loop 75, Sun Devourer 62, Venom Court).** The UI lane is live: **145 (battle scene) is RULED and mocked — Legion is building it**; 146/147 wait on its anchors; 148 (progression, slot-neutral) is ready for Legion; 59 (registry triage) before 148's policy arms; **149 (scorer pricing) is WRITTEN and awaits Henry's five rulings**; 142 waits on Henry's playtest. 23 stale tickets closed in the audit (`TICKET-AUDIT-2026-09-07.md`). Working branch is `playtest-polish` (legion/comp-grid merged as PR #12). Git on this machine cannot unlink its lock files from an agent shell — move `.git/*.lock` into `.git/_to_delete/` afterwards.*
 *Last updated: 2026-08-20. **STATUS ECONOMY IS POWER-BASED (+1/stack, uncapped, generation-bound - tickets 102/103); previews simulate (104); audhumbla drinks her own milk (101 SHIPPED - neutral absolutes 30 -> 15); ymir's build turn restored (106); hel death-order fixed (105); rimebreaker reads every status (107 - its Poison rider HELD for Henry); draw-4 DIED for sleipnir and points at huldra_v1 (100 - and found the glimmer infinite loop).** Legion is on ticket 100 (sleipnir draw-4). Open tickets: 96 (fenrir range), 98 (team sim), 108, plus a NEW one for the glimmer loop (pipeline: three-tier AI protocol + measurement menu apply NOW; push archetype-web to origin for the cloud second lane). Ticket 72 is stale-open - close as superseded, salvage riptide as optional kraken_v1 web tech. THE GAME'S SHAPE IS RULED: read research/vision.md (expedition roguelike, blueprints+scrap, no leveling, ranch, 3v3 gauntlet gyms) and research/exploration-map.md (map rulings). Design sessions remaining: blueprint/scrap economy, fafnir_v2 shield-piercing (engine-gated), deploy-choice question. A separate STEAM-RELEASE wayfinder is being spun up - it owns roadmap/build tickets; THIS wayfinder owns balance/decks/combat only.*
 *Last updated: 2026-08-20 (from implementation agent aka Legion), after ticket 103 (the mint bound with no caps; two caps removed) landed. Previously: ticket 102 (statuses re-denominated to POWER +1). Earlier note kept for the deck-pass lineage: after ticket 64 (skoll's deck pass) landed. **Both skoll decks are off the floor and ticket 64 is CLOSED GREEN — Amendment 1's curve swap took skoll_v2's dead cards 36.9/38.2 -> 32.5/32.8, under the gate on both seed bases.** Field now v1 47.7/48.1, v2 44.9/41.5. Queue next: repricing (66) -> kraken (65) -> hel_v1 -> hraesvelgr; ticket 63 census in any gap.*
 
@@ -183,6 +184,24 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 - **A curve change under ~20% is invisible to status cards**, because stacks are whole numbers. Status decks must be re-gated by hand after any curve move, and buffing the attack side is the finer instrument.
 
 ## Open items, in the order they should be taken
+
+**2026-09-08 — WHERE THE MAP IS.** Read `TICKET-AUDIT-2026-09-07.md` §4 for the open list; this
+is the short form.
+- **145 battle scene — RULED, BUILDING.** The stagger stage. `tickets/145-mock/145-mock.html` is the
+  spec (1280×800; the mock wins over the prose). Rows 145a–f in order; `useStageAnchors()` is the
+  contract 146 consumes. Do not re-open the rejected directions in §1 of the ticket.
+- **146 juice / 147 SFX** — after 145a lands (anchors). 146b's Burn flames can start earlier.
+- **148 progression curve** — P0–P3 for Legion, slot-neutral (ticket 77: deck size is the lever).
+- **59 registry triage** — 53 orphan cards are reward-pool traps; do this before 148's policy arms.
+- **149 scorer pricing** — written; needs Henry's §4 rulings (width shape, daemon play-turn, ±15%,
+  what happens to a card that moves, the drawback tail). Until 149c ships: **any card that draws
+  more than one is unpriced — gate it on a field arm, not a score** (ticket 130).
+- **142 route to gym** — shipped; Henry's playtest decides; his biome alternative is §5.
+- **Beam (144 §2):** harness default beamless; `BatchOptions.aiBeam` is the only route. Results
+  on Henry's machine: `results/compgrid_beam` is the post-143 BEAMLESS grid (rows record `beam: 0`)
+  despite its name.
+- **Design session backlog (not tickets yet):** kraken_v2 / fenrir_v2 / ratatoskr_v1 at ~20 on the
+  3v3 grid; the standardised balance report (below, unchanged); hexbloom side-scope after 149's 3c.
 
 **136u SHIPPED 2026-09-04: valkyrie_v2's REBIRTH_CYCLE is UNCAPPED and pays 15/15.** She goes
 **24.95 -> 49.51** and the roster reads **sd 8.6, 31 of 32 in band** - tighter than the pre-131

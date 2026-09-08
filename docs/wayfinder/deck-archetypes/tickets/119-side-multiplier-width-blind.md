@@ -1,5 +1,7 @@
 # Ticket 119 — the scorer's Side scope multiplier is width-blind
 
+> **Status: FOLDED INTO TICKET 149 (2026-09-08)** — the measurement and the fix are rows of `149-scorer-pricing.md`; this file stays as the finding. Closes when 149e does.
+
 **Status:** OPEN. Opened 2026-08-26 at Henry's request — *"Add a ticket to address later."*
 Created by ticket 115, which shipped five cards knowingly over band because of this.
 

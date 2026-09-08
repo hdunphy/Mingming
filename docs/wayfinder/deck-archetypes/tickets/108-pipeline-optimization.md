@@ -1,5 +1,7 @@
 # Pipeline optimization (ticket 108): the 3-hour run becomes minutes
 
+> **Status: CLOSED 2026-09-08** — done — three-tier AI and the process pool shipped here; the remaining speed work moved to 144. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:task - Henry-directed 2026-08-20 ('we really need to optimize our
   testing pipeline' - the latest design test ran 3+ hours). Branch archetype-web.
 - Status: **open**. Diagnosis: 2-core VM, single-threaded runs, fixed iteration counts,

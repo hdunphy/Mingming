@@ -1,5 +1,7 @@
 # Ticket 113 — valkyrie_v2's deck is the only one that can reach the self-draw loop
 
+> **Status: CLOSED 2026-09-08** — done — ascension change shipped and gated; valkyrie_v2 later uncapped in 136u. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** CHANGE MADE, GATE PART-RUN. Opened 2026-08-21 on `legion/balance`.
 **Henry ruled 2026-08-22: `ascension` drops `exhaust`, and the 50 power is KEPT.** Applied to
 `programs.json` (description updated to match); 868/868 tests green, `npm run build` clean, card scores
