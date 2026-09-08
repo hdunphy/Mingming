@@ -1,32 +1,46 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
 import { getElementAccent } from '../utils/contrastText';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { GetProgramData } from '../../engine/data/programRegistry';
-import { targetVerdict } from '../utils/targeting';
+import { targetVerdict, type TargetVerdict } from '../utils/targeting';
+import { useStageAnchors } from '../hooks/useStageAnchors';
+import { spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
 
 /**
- * BattleStage — the Pokémon-style center stage of the battle screen.
+ * BATTLE STAGE — the stagger stage. Ticket 145a.
  *
- * Fills the void between the two party sidebars with two big spotlights:
- *  - bottom-left: the currently selected player unit ("back-sprite" position)
- *  - top-right:   the focus enemy (hovered target > selected target > first living)
+ * # WHAT THIS REPLACED, AND WHY IT IS NOT COMING BACK
  *
- * The spotlights are an ALTERNATIVE interaction surface: clicking the enemy
- * spotlight targets it, dropping a dragged card on it plays the card there —
- * both through the exact same handlers the sidebar HUD cards use. The full
- * unit HUD stays in the sidebars; the stage only carries compact plaques.
+ * Until 145 this was two SPOTLIGHTS: one huge active ally lower-left, one focus enemy upper-right,
+ * with the other four units living only as HUD cards in two sidebars. Henry rejected it in three
+ * words — *"the active Mingming is really awkward"* — and rejected the obvious alternative in the
+ * same breath: *"we need vertical spacing for the Mingmings, otherwise the card draw becomes an
+ * issue."* Horizontal rows leave nowhere for the fan to open.
  *
- * FX reuse: the same per-entity UnitFx descriptors that drive the sidebar
- * cards are rendered here through the shared UnitFxLayer components, so the
- * two spotlighted entities get their damage floats, flashes, lunges and death
- * glitch on the big sprites too (sidebar feedback is untouched).
+ * So: both parties as three-row columns, plaques on the OUTSIDE of each column, and the ~300px
+ * between them left empty as the reveal lane. Every unit is on the board at all times; nothing is
+ * promoted or demoted as the turn moves. The only thing that moves is the ACTIVE ally, which steps
+ * 60px toward the centre — a step rather than a resize, so the composition holds still.
+ *
+ * # THE GEOMETRY IS NOT IN THIS FILE
+ *
+ * Every rectangle comes from `stageGeometry`, and `useStageAnchors` turns it into viewport pixels.
+ * That indirection is ticket 145 §3: the slots are a published interface that ticket 146 fires
+ * particles at, and its guarantee is that a slot does not move on selection, on a death, or on a
+ * change of hand size. A layout in JSX cannot promise that; a pure module tested against the mock
+ * can. See `stageGeometry.test.ts`.
+ *
+ * # WHAT 145a DELIBERATELY DOES NOT DO
+ *
+ * The plaque here is the SHAPE — name, HP, EP — at its final position and size. Status badges,
+ * the active-ally rim light and the dead silhouette are 145b; the top bar is 145c; the console and
+ * the fan are 145d/e; the reveal lane's card is 145f. This row is the skeleton those hang on, and
+ * it ships alone so the geometry can be screenshotted and argued with before anything decorates it.
  */
-
-const SWAP_DURATION = 0.2;
 
 const getHpColor = (percent: number) => {
     if (percent < 25) return '#ef4444';
@@ -34,20 +48,15 @@ const getHpColor = (percent: number) => {
     return '#22c55e';
 };
 
-const intentIcon = (intentType: string) =>
-    intentType === 'Attack' ? '⚔️' :
-        intentType === 'Defend' ? '🛡️' :
-            intentType === 'Debuff' ? '🧪' : '🌟';
-
-/** Slim HP/EP bar for the stage plaques (the full segmented HUD stays in the sidebar). */
-const StageBar: React.FC<{ percent: number; color: string; glow?: boolean }> = ({ percent, color, glow }) => (
+/** Slim HP bar. The plaque is 168px wide at the reference size and the bar is 6px tall (§2b). */
+const StageBar: React.FC<{ percent: number; color: string }> = ({ percent, color }) => (
     <div className="stage-bar-track">
         <motion.div
             className="stage-bar-fill"
             initial={false}
             animate={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            style={{ background: color, boxShadow: glow ? `0 0 8px ${color}` : 'none' }}
+            style={{ background: color }}
         />
     </div>
 );
@@ -56,14 +65,16 @@ interface StageSpriteProps {
     entity: IBattleEntity;
     isEnemy: boolean;
     fx?: UnitFx;
+    width: number;
 }
 
 /**
- * The big battle sprite + its event-driven FX. Mirrors MingmingUnit's
- * hit-shake / lunge / death-glitch behavior at stage scale.
- * Frame size lives in CSS (viewport-clamped per spotlight side).
+ * One sprite and its event-driven FX. Unchanged in substance from the spotlight version — the
+ * hit shake, the lunge and the death glitch are the same descriptors the HUD card used, so a unit
+ * that moved from a sidebar onto the stage kept its whole feedback vocabulary. What changed is that
+ * six of these exist at once, so the frame takes its size from the caller rather than from CSS.
  */
-const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
+const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width }) => {
     const controls = useAnimation();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
     const [artBroken, setArtBroken] = React.useState(false);
@@ -71,21 +82,17 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
     const isDead = entity.currentHp <= 0;
     const accent = getElementAccent(entity.primaryElement);
 
-    // The art fallback state is per-entity (a swapped-in unit gets a fresh try).
     useEffect(() => {
-        // ticket 55: reviewed, not a defect. This is "reset state when a prop changes"; React's
-        // preferred alternative is a `key` on this component, which the parent cannot supply
-        // without re-keying the whole stage and remounting the animation state that outlives an art
-        // swap.
+        // ticket 55: reviewed, not a defect. "Reset state when a prop changes"; the `key` React
+        // would prefer would remount animation state that must outlive an art swap.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setArtBroken(false);
     }, [entity.artReference]);
 
-    // Death FX: CRT glitch on the frame HP hits 0 (same beat as the HUD card).
     useEffect(() => {
         if (entity.currentHp <= 0 && prevHpRef.current > 0) {
-            // ticket 55: reviewed, not a defect. A 500ms one-shot FX owned by a timer, fired on an
-            // HP-crossing that only a ref can see. Same shape as the turn banner in `BattleArena`.
+            // ticket 55: reviewed. A 500ms one-shot owned by a timer, fired on an HP crossing only
+            // a ref can see.
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setDeathGlitch(true);
             const timeout = setTimeout(() => setDeathGlitch(false), 500);
@@ -95,7 +102,6 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
         prevHpRef.current = entity.currentHp;
     }, [entity.currentHp]);
 
-    // Hit shake, scaled by damage fraction (larger travel than the HUD card).
     const hitKey = fx?.hitKey ?? 0;
     const hitIntensity = fx?.hitIntensity ?? 0;
     useEffect(() => {
@@ -111,25 +117,26 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
         });
     }, [hitKey, hitIntensity, controls]);
 
-    // Lunge toward the opposing spotlight: player = up-right, enemy = down-left.
+    // Lunge toward the reveal lane: an ally moves right, an enemy left. Purely horizontal now that
+    // the columns face each other across the lane — the spotlight version's diagonal was aiming at
+    // a sprite that sat in a corner.
     const lungeKey = fx?.lungeKey ?? 0;
     useEffect(() => {
         if (!lungeKey || prefersReducedMotion()) return;
-        const dx = isEnemy ? -34 : 34;
-        const dy = isEnemy ? 20 : -20;
         controls.start({
-            x: [0, dx, 0],
-            y: [0, dy, 0],
+            x: [0, isEnemy ? -34 : 34, 0],
             transition: { duration: 0.28, times: [0, 0.35, 1], ease: 'easeOut' },
         });
     }, [lungeKey, isEnemy, controls]);
 
     const showArt = !!entity.artReference && !artBroken;
+    const height = width * (SPRITE_H / SPRITE_W);
 
     return (
         <motion.div
             className={`stage-sprite-frame ${isDead ? 'stage-sprite-dead' : ''} ${deathGlitch ? 'stage-death-glitch' : ''}`}
             animate={controls}
+            style={{ width, height }}
         >
             {showArt ? (
                 <img
@@ -157,7 +164,6 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
                 </div>
             )}
 
-            {/* Shared event-driven FX (same descriptors as the sidebar HUD card) */}
             <FxTransientOverlays fx={fx} />
             <FxFloats fx={fx} rise={120} slotSpacing={24} />
             <TerminatedStamp visible={isDead} glitching={deathGlitch} />
@@ -165,18 +171,114 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx }) => {
     );
 };
 
+interface SlotProps {
+    entity: IBattleEntity;
+    isEnemy: boolean;
+    rect: StageRect;
+    plaque: StageRect;
+    scale: number;
+    isActive: boolean;
+    isTargeted: boolean;
+    verdict: TargetVerdict | null;
+    fx?: UnitFx;
+    onClick: () => void;
+    onPointerUp: () => void;
+    onHoverChange: (hovering: boolean) => void;
+}
+
+/**
+ * One slot: the floor glow, the sprite, and the plaque outside it.
+ *
+ * The floor is drawn from the sprite's own box rather than being a sibling with its own
+ * coordinates, so a sprite and its shadow can never drift apart at a non-reference scale. The mock
+ * puts it 22px left of the sprite and 94px down, 195x26 — all four numbers scale together here.
+ */
+const StageSlot: React.FC<SlotProps> = ({
+    entity, isEnemy, rect, plaque, scale, isActive, isTargeted, verdict, fx,
+    onClick, onPointerUp, onHoverChange,
+}) => {
+    const accent = getElementAccent(entity.primaryElement);
+    const hpPercent = (entity.currentHp / entity.maxHp) * 100;
+    const isDead = entity.currentHp <= 0;
+    const pipCount = Math.max(entity.maxEnergy, entity.currentEnergy);
+
+    return (
+        <>
+            <div
+                className="stage-floor"
+                style={{
+                    // Derived from the DRAWN sprite box, not from the reference: past 1280 the
+                    // sprite caps at 190 while its slot keeps growing, so a floor sized off the
+                    // reference would sit wider than the thing casting it.
+                    left: rect.x - rect.w * (22 / SPRITE_W),
+                    top: rect.y + rect.h * (94 / SPRITE_H),
+                    width: rect.w * (195 / SPRITE_W),
+                    height: rect.h * (26 / SPRITE_H),
+                    background: `radial-gradient(ellipse at center, ${isEnemy ? accent : '#7c3aed'}44, transparent 70%)`,
+                }}
+            />
+            <div
+                className={[
+                    'stage-slot',
+                    isEnemy ? 'stage-slot-enemy' : 'stage-slot-ally',
+                    isActive ? 'stage-slot-active' : '',
+                    isTargeted ? 'stage-slot-targeted' : '',
+                    verdict ? (verdict.ok ? 'stage-slot-legal' : 'stage-slot-illegal') : '',
+                ].filter(Boolean).join(' ')}
+                data-testid={`stage-slot-${entity.id}`}
+                style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
+                title={verdict?.reason ?? undefined}
+                onClick={onClick}
+                onPointerUp={onPointerUp}
+                onMouseEnter={() => onHoverChange(true)}
+                onMouseLeave={() => onHoverChange(false)}
+            >
+                {verdict && (
+                    <div className={`stage-target-flag ${verdict.ok ? 'legal' : 'illegal'}`}>
+                        {verdict.ok ? '✓ TARGET' : verdict.reason}
+                    </div>
+                )}
+                <StageSprite entity={entity} isEnemy={isEnemy} fx={fx} width={rect.w} />
+            </div>
+
+            <div
+                className={`stage-plaque ${isActive ? 'stage-plaque-active' : ''} ${isDead ? 'stage-plaque-dead' : ''}`}
+                data-testid={`stage-plaque-${entity.id}`}
+                style={{
+                    left: plaque.x,
+                    top: plaque.y,
+                    width: plaque.w,
+                    fontSize: 11 * scale,
+                    borderColor: isActive ? `${accent}b3` : undefined,
+                }}
+            >
+                <div className="stage-plaque-name">
+                    <span className="stage-plaque-dot" style={{ background: accent }} />
+                    {entity.name.toUpperCase()}
+                </div>
+                <div className="stage-plaque-row">
+                    <StageBar percent={hpPercent} color={getHpColor(hpPercent)} />
+                    <span className="stage-plaque-value">{entity.currentHp}/{entity.maxHp}</span>
+                </div>
+                <div className="stage-plaque-row">
+                    <span className="stage-plaque-pips">
+                        {Array.from({ length: pipCount }, (_, i) => (
+                            <i key={i} className={i < entity.currentEnergy ? '' : 'off'} />
+                        ))}
+                    </span>
+                    <span className="stage-plaque-value">{entity.currentEnergy}/{entity.maxEnergy} EP</span>
+                </div>
+            </div>
+        </>
+    );
+};
+
 interface BattleStageProps {
     battleState: IBattleState;
     selectedSourceId: string | null;
     selectedTargetId: string | null;
-    /**
-     * Ticket 22: the spotlights are drop surfaces too, so they owe the player the same
-     * before-you-commit verdict the sidebar HUD cards give. Passed in rather than read from the
-     * store because this component is deliberately store-free (see BattleStage.test-less design —
-     * every input is a prop, which is what lets `BattleArena` own all the targeting policy).
-     */
+    /** Ticket 22: a slot is a drop surface, so it owes the player the same before-you-commit verdict. */
     selectedCardId?: string | null;
-    /** Hovered entity while drag-targeting (mirrors the sidebar hover state). */
     hoveredEntityId: string | null;
     isTargeting: boolean;
     unitFx: Record<string, UnitFx>;
@@ -197,159 +299,66 @@ const BattleStage: React.FC<BattleStageProps> = ({
     onEntityPointerUp,
     onEnemyHoverChange,
 }) => {
-    const reduced = prefersReducedMotion();
     const { playerParty, enemyParty } = battleState;
 
-    // LEFT SPOTLIGHT: the selected player unit, else the first living one.
-    const player =
-        playerParty.find(p => p.id === selectedSourceId) ??
-        playerParty.find(p => p.currentHp > 0) ??
-        playerParty[0];
+    /*
+     * WHO STEPS. The active ally is the SELECTED caster, and falls back to the first living body
+     * when nothing is selected — never to a hover. §3 requires the slots to hold still under the
+     * pointer, and a step that followed the mouse would be exactly the drift 146 caches against.
+     */
+    const activeAllyIndex = (() => {
+        const selected = playerParty.findIndex(p => p.id === selectedSourceId && p.currentHp > 0);
+        if (selected >= 0) return selected;
+        return playerParty.findIndex(p => p.currentHp > 0);
+    })();
 
-    // RIGHT SPOTLIGHT: hovered target while targeting > selected target > first living.
-    const hoveredEnemy = hoveredEntityId ? enemyParty.find(e => e.id === hoveredEntityId) : undefined;
-    const enemy =
-        hoveredEnemy ??
-        enemyParty.find(e => e.id === selectedTargetId) ??
-        enemyParty.find(e => e.currentHp > 0) ??
-        enemyParty[0];
+    const anchors = useStageAnchors(battleState, activeAllyIndex);
+    const spriteW = spriteWidthAt(anchors.scale);
 
-    if (!player || !enemy) return null;
-
-    const playerAccent = getElementAccent(player.primaryElement);
-    const enemyAccent = getElementAccent(enemy.primaryElement);
-    const enemyIsTargeted = selectedTargetId === enemy.id;
-
-    // Ticket 22: the same verdict, from the same predicate, that the sidebar cards draw. Both
-    // spotlights get one, because either can be dropped on and either can refuse.
+    // The same verdict predicate the HUD cards drew, now asked once per slot.
     const selectedCard = selectedCardId
         ? battleState.playerDeck.hand.find(c => c.id === selectedCardId)
         : undefined;
     const selectedCardData = selectedCard ? GetProgramData(selectedCard.dataId) : null;
     const caster = selectedSourceId
-        ? battleState.playerParty.find(p => p.id === selectedSourceId) ?? null
+        ? playerParty.find(p => p.id === selectedSourceId) ?? null
         : null;
-    const playerVerdict = selectedCardData ? targetVerdict(selectedCardData, player, false, caster) : null;
-    const enemyVerdict = selectedCardData ? targetVerdict(selectedCardData, enemy, true, caster) : null;
 
-    const swapTransition = { duration: reduced ? 0 : SWAP_DURATION, ease: 'easeOut' as const };
+    const renderSide = (party: ReadonlyArray<IBattleEntity>, isEnemy: boolean) =>
+        party.map((entity, index) => {
+            const slot = anchors.slots[entity.id];
+            const plaque = anchors.plaques[entity.id];
+            if (!slot || !plaque) return null;
+            // The cap is applied here rather than in the anchors: 146 wants the SLOT, which is the
+            // area the unit owns, while the drawn sprite may be smaller than its slot at 1920.
+            const rect: StageRect = { ...slot, w: spriteW, h: spriteW * (SPRITE_H / SPRITE_W) };
+            return (
+                <StageSlot
+                    key={entity.id}
+                    entity={entity}
+                    isEnemy={isEnemy}
+                    rect={rect}
+                    plaque={plaque}
+                    scale={anchors.scale}
+                    isActive={!isEnemy && index === activeAllyIndex}
+                    isTargeted={selectedTargetId === entity.id}
+                    verdict={selectedCardData ? targetVerdict(selectedCardData, entity, isEnemy, caster) : null}
+                    fx={unitFx[entity.id]}
+                    onClick={() => onEntityClick(entity, isEnemy)}
+                    onPointerUp={() => onEntityPointerUp(entity, isEnemy)}
+                    onHoverChange={(hovering) => {
+                        if (!isEnemy) return;
+                        if (hovering && isTargeting) onEnemyHoverChange(entity.id);
+                        else if (!hovering && hoveredEntityId === entity.id) onEnemyHoverChange(null);
+                    }}
+                />
+            );
+        });
 
     return (
         <div className="battle-stage" data-testid="battle-stage">
-            {/* ── LEFT SPOTLIGHT: selected player unit (back-sprite position) ── */}
-            <div
-                className={`stage-spot stage-spot-player ${playerVerdict ? (playerVerdict.ok ? 'stage-spot-legal' : 'stage-spot-illegal') : ''}`}
-                data-testid="stage-spot-player"
-                title={playerVerdict?.reason ?? undefined}
-                onClick={() => onEntityClick(player, false)}
-                onPointerUp={() => onEntityPointerUp(player, false)}
-            >
-                {playerVerdict && (
-                    <div className={`stage-target-flag ${playerVerdict.ok ? 'legal' : 'illegal'}`}>
-                        {playerVerdict.ok ? '✓ TARGET' : playerVerdict.reason}
-                    </div>
-                )}
-                <div
-                    className="stage-platform"
-                    style={{
-                        background: `radial-gradient(ellipse at center, ${playerAccent}30 0%, ${playerAccent}14 45%, transparent 72%)`,
-                        borderColor: `${playerAccent}2e`,
-                        boxShadow: selectedSourceId === player.id ? `0 0 24px ${playerAccent}33` : 'none',
-                    }}
-                >
-                    <div className="stage-platform-grid" />
-                </div>
-                <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.div
-                        key={player.id}
-                        className="stage-swap-wrap"
-                        initial={{ opacity: 0, x: reduced ? 0 : -28 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: reduced ? 0 : 20 }}
-                        transition={swapTransition}
-                    >
-                        <StageSprite entity={player} isEnemy={false} fx={unitFx[player.id]} />
-                    </motion.div>
-                </AnimatePresence>
-                <div className="stage-plaque" style={{ borderColor: `${playerAccent}55` }}>
-                    <div className="stage-plaque-name">
-                        <span className="stage-plaque-dot" style={{ background: playerAccent, boxShadow: `0 0 6px ${playerAccent}` }} />
-                        {player.name.toUpperCase()}
-                    </div>
-                    <div className="stage-plaque-row">
-                        <span className="stage-plaque-label">HP</span>
-                        <StageBar percent={(player.currentHp / player.maxHp) * 100} color={getHpColor((player.currentHp / player.maxHp) * 100)} />
-                        <span className="stage-plaque-value">{player.currentHp}/{player.maxHp}</span>
-                    </div>
-                    <div className="stage-plaque-row">
-                        <span className="stage-plaque-label">EP</span>
-                        <StageBar percent={(player.currentEnergy / Math.max(player.maxEnergy, player.currentEnergy)) * 100} color="#ffcc00" glow={player.currentEnergy > player.maxEnergy} />
-                        <span className="stage-plaque-value">{player.currentEnergy}/{player.maxEnergy}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── RIGHT SPOTLIGHT: focus enemy (front-sprite position) ── */}
-            <div
-                className={`stage-spot stage-spot-enemy ${enemyIsTargeted ? 'stage-spot-targeted' : ''} ${enemyVerdict ? (enemyVerdict.ok ? 'stage-spot-legal' : 'stage-spot-illegal') : ''}`}
-                data-testid="stage-spot-enemy"
-                title={enemyVerdict?.reason ?? undefined}
-                onClick={() => onEntityClick(enemy, true)}
-                onPointerUp={() => onEntityPointerUp(enemy, true)}
-                onMouseEnter={() => { if (isTargeting) onEnemyHoverChange(enemy.id); }}
-                onMouseLeave={() => { if (hoveredEntityId === enemy.id) onEnemyHoverChange(null); }}
-            >
-                {enemyVerdict && (
-                    <div className={`stage-target-flag ${enemyVerdict.ok ? 'legal' : 'illegal'}`}>
-                        {enemyVerdict.ok ? '✓ TARGET' : enemyVerdict.reason}
-                    </div>
-                )}
-                {enemy.currentIntent && enemy.currentHp > 0 && (
-                    <motion.div
-                        key={`${enemy.id}-${enemy.currentIntent.name}`}
-                        className="stage-intent-chip"
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={swapTransition}
-                    >
-                        <span className="stage-intent-icon">{intentIcon(enemy.currentIntent.intentType)}</span>
-                        {enemy.currentIntent.name.toUpperCase()}
-                    </motion.div>
-                )}
-                <div className="stage-plaque stage-plaque-enemy" style={{ borderColor: `${enemyAccent}55` }}>
-                    <div className="stage-plaque-name">
-                        <span className="stage-plaque-dot" style={{ background: enemyAccent, boxShadow: `0 0 6px ${enemyAccent}` }} />
-                        {enemy.name.toUpperCase()}
-                    </div>
-                    <div className="stage-plaque-row">
-                        <span className="stage-plaque-label">HP</span>
-                        <StageBar percent={(enemy.currentHp / enemy.maxHp) * 100} color={getHpColor((enemy.currentHp / enemy.maxHp) * 100)} />
-                        <span className="stage-plaque-value">{enemy.currentHp}/{enemy.maxHp}</span>
-                    </div>
-                </div>
-                <div
-                    className="stage-platform stage-platform-enemy"
-                    style={{
-                        background: `radial-gradient(ellipse at center, ${enemyAccent}30 0%, ${enemyAccent}14 45%, transparent 72%)`,
-                        borderColor: `${enemyAccent}2e`,
-                        boxShadow: enemyIsTargeted ? '0 0 24px rgba(239, 68, 68, 0.35)' : 'none',
-                    }}
-                >
-                    <div className="stage-platform-grid" />
-                </div>
-                <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.div
-                        key={enemy.id}
-                        className="stage-swap-wrap"
-                        initial={{ opacity: 0, x: reduced ? 0 : 28 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: reduced ? 0 : -20 }}
-                        transition={swapTransition}
-                    >
-                        <StageSprite entity={enemy} isEnemy fx={unitFx[enemy.id]} />
-                    </motion.div>
-                </AnimatePresence>
-            </div>
+            {renderSide(playerParty, false)}
+            {renderSide(enemyParty, true)}
         </div>
     );
 };

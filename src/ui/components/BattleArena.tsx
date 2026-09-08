@@ -1039,6 +1039,22 @@ const BattleArena: React.FC = () => {
         }
     };
 
+/**
+ * TICKET 145a — THE HUD COLUMNS, BEHIND A FLAG FOR ONE RELEASE.
+ *
+ * The stagger stage puts every unit on the board with its own plaque, so the two sidebar columns
+ * of `MingmingUnit` cards are now a second, worse copy of the same information — and §1 lists the
+ * old battle card chassis among the things Henry rejected outright.
+ *
+ * They are flagged rather than deleted because 145 ships as six lettered rows and this is the
+ * first. Until 145b moves the status badges onto the plaque, the HUD card is the only place a
+ * player can read them, and a release that shipped 145a alone with the columns gone would be a
+ * regression in information for the sake of a layout. Flip this to `false` after 145b and delete
+ * it (and `renderParty`, and `MingmingUnit`'s battle-screen usage) after one release.
+ *
+ * `MingmingUnit` itself stays either way — the ranch and the workshop draw the same card.
+ */
+const SHOW_LEGACY_HUD_COLUMNS = true;
     const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
         <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
             {party.map((entity, index) => {
@@ -1237,11 +1253,11 @@ const BattleArena: React.FC = () => {
                   */}
                 <PlayedCardReveal played={vfx.playedCard} />
 
-                {renderParty(battleState.playerParty, false)}
+                {SHOW_LEGACY_HUD_COLUMNS && renderParty(battleState.playerParty, false)}
 
                 <CombatLog />
 
-                {renderParty(battleState.enemyParty, true)}
+                {SHOW_LEGACY_HUD_COLUMNS && renderParty(battleState.enemyParty, true)}
             </motion.div>
 
             <div

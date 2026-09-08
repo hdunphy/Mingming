@@ -2498,218 +2498,140 @@ body {
 :root[data-reduced-motion="on"] .card-cost.card-cost-discounted { animation: none; }
 
 /* ═══════════════════════════════════════════════════
-   Battle Stage — Pokémon-style center spotlights
-   (player back-sprite bottom-left, focus enemy top-right)
+   BATTLE STAGE — the stagger stage (ticket 145a)
+
+   Both parties as three-row columns with the plaques on the OUTSIDE and a
+   ~300px reveal lane between them. Every RECTANGLE comes from
+   `stageGeometry.ts` and is applied as an inline left/top/width — this file
+   owns look, not position. That split is ticket 145 §3: the slots are an
+   interface ticket 146 fires particles at, so they have to be derivable and
+   testable rather than emergent from a stylesheet.
+
+   What it replaced: two spotlights, one huge ally lower-left and one focus
+   enemy upper-right, with the other four units alive only as sidebar HUD
+   cards. Henry: *"the active Mingming is really awkward"* — and, rejecting the
+   obvious fix in the same breath, *"we need vertical spacing for the
+   Mingmings, otherwise the card draw becomes an issue."*
    ═══════════════════════════════════════════════════ */
 
 .battle-stage {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 350px;
-  right: 350px;
+  inset: 0;
   z-index: 5;
+  /* A coordinate space, not a surface: only the slots take pointer events, so
+     the empty reveal lane never eats a drag. */
   pointer-events: none;
 }
 
-.stage-spot {
+.stage-slot {
   position: absolute;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: center;
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
 }
 
-.stage-spot-player {
-  left: 17%;
-  bottom: 70px;
-}
-
-.stage-spot-enemy {
-  right: 13%;
-  /* Pulled down off the top edge (toward vertical center) so the enemy stack
-     clears the top-center combat log; clamped so it never sinks into the
-     console on short viewports. */
-  top: clamp(115px, 21vh, 165px);
-}
-
-/* Sprite frames scale with viewport width so the inward-shifted spotlights
-   still clear the centered combat log on narrower windows. */
-.stage-spot-player .stage-sprite-frame {
-  width: clamp(180px, 16vw, 260px);
-  height: clamp(180px, 16vw, 260px);
-}
-
-.stage-spot-enemy .stage-sprite-frame {
-  width: clamp(150px, 13vw, 215px);
-  height: clamp(150px, 13vw, 215px);
-}
-
-/* ── Floor platform: subtle element-tinted ellipse + perspective grid ── */
-.stage-platform {
+.stage-floor {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 280px;
-  height: 84px;
   border-radius: 50%;
-  border: 1px solid transparent;
   pointer-events: none;
   z-index: 0;
-  transition: box-shadow 0.25s ease;
 }
 
-.stage-spot-player .stage-platform {
-  bottom: 64px;
-}
-
-.stage-spot-enemy .stage-platform {
-  bottom: -12px;
-}
-
-.stage-platform-grid {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  opacity: 0.3;
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 28px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 14px);
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
-  mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
-}
-
-/* ── Swap wrapper (fade/slide between spotlighted units) ── */
-.stage-swap-wrap {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── The big sprite frame (relative box the shared FX overlays mount into) ── */
+/* ── The sprite frame: the relative box the shared FX overlays mount into.
+   Sized inline from the slot, because six of these exist at once now and the
+   cap at 190px (§4.1) is arithmetic, not a media query. ── */
 .stage-sprite-frame {
   position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  z-index: 2;
 }
 
 .stage-art {
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  image-rendering: auto;
+  pointer-events: none;
 }
 
 .stage-art-disc {
   width: 78%;
-  height: 78%;
-  margin: auto;
+  aspect-ratio: 1;
   border-radius: 50%;
-  border: 1px solid;
+  border: 2px solid;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 4rem;
+  font-size: 2.2rem;
   font-weight: 900;
-  text-shadow: 0 0 18px currentColor;
 }
 
-.stage-sprite-dead {
-  filter: grayscale(100%) brightness(55%);
+.stage-sprite-dead { opacity: 0.4; filter: grayscale(0.8); }
+
+.stage-death-glitch { animation: stage-glitch 0.5s steps(2, end) 3; }
+
+@keyframes stage-glitch {
+  0% { transform: translateX(0); filter: none; }
+  50% { transform: translateX(-4px); filter: hue-rotate(90deg) saturate(3); }
+  100% { transform: translateX(0); filter: none; }
 }
 
-/* Death glitch reuses the HUD keyframes at stage scale */
-.stage-death-glitch {
-  animation: hud-death-glitch 0.45s steps(1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root:not([data-reduced-motion]) .stage-death-glitch {
-    animation: hud-death-fade 0.45s ease-out both;
-  }
-}
-
-:root[data-reduced-motion="on"] .stage-death-glitch {
-  animation: hud-death-fade 0.45s ease-out both;
-}
-
-/* Stage floats read larger than the HUD-card ones */
-.stage-sprite-frame .hud-float-damage {
-  font-size: 1.8rem;
-}
-
-.stage-sprite-frame .hud-float-crit {
-  font-size: 2.5rem;
-}
-
-.stage-sprite-frame .hud-float-heal {
-  font-size: 1.6rem;
-}
-
-.stage-sprite-frame .hud-float {
-  top: 10%;
-}
-
-/* Round the overlay flashes to the sprite silhouette region */
+.stage-sprite-frame .hud-float-damage { font-size: 1.6rem; }
+.stage-sprite-frame .hud-float-crit { font-size: 2rem; }
+.stage-sprite-frame .hud-float-heal { font-size: 1.5rem; }
+.stage-sprite-frame .hud-float { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
 .stage-sprite-frame .hud-hit-flash,
-.stage-sprite-frame .hud-heal-pulse {
-  border-radius: 16px;
-}
+.stage-sprite-frame .hud-heal-pulse { border-radius: 50%; }
+.stage-sprite-frame .hud-status-ring { border-radius: 50%; }
 
-.stage-sprite-frame .hud-status-ring {
-  border-radius: 20px;
-}
-
-/* ── Compact plaques (full HUD stays in the sidebars) ── */
+/* ── Plaque: `rgba(18,18,24,.85)` on a 1px hairline (§2b). Positioned by the
+   geometry module, sized by its content — a name is as long as it is. ── */
 .stage-plaque {
-  position: relative;
-  z-index: 2;
-  width: 220px;
-  margin-top: 6px;
-  padding: 6px 10px 7px;
-  background: rgba(8, 8, 16, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  position: absolute;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 6px 8px;
+  background: rgba(18, 18, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  z-index: 6;
+  box-sizing: border-box;
 }
 
-.stage-plaque-enemy {
-  margin-top: 4px;
-  margin-bottom: 10px;
+/* The active ally's border takes its element colour, set inline. On the plaque
+   rather than the sprite: it reads at a glance without touching the art. */
+.stage-plaque-active {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 20px rgba(0, 0, 0, 0.5);
 }
+
+.stage-plaque-dead { opacity: 0.45; }
 
 .stage-plaque-name {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: #eee;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.83em;
+  color: #f0f0f5;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stage-plaque-dot {
-  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-}
-
-.stage-plaque-level {
-  margin-left: auto;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #9aa;
+  flex: 0 0 auto;
 }
 
 .stage-plaque-row {
@@ -2718,64 +2640,62 @@ body {
   gap: 6px;
 }
 
-.stage-plaque-label {
-  flex: 0 0 16px;
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  color: #778;
+.stage-plaque-value {
+  font-size: 0.83em;
+  color: #c6ccd4;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
-.stage-plaque-value {
-  flex: 0 0 auto;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #bcc;
-  font-variant-numeric: tabular-nums;
+/* EP as PIPS, not a bar (§2b). Ticket 22 settled the argument on the HUD card:
+   "roughly two-thirds of a 6px bar" is not a number a player can plan a turn
+   with, and a countable pip is. */
+.stage-plaque-pips { display: flex; gap: 3px; }
+
+.stage-plaque-pips i {
+  width: 14px;
+  height: 6px;
+  border-radius: 2px;
+  background: #3b82f6;
+  display: block;
 }
+
+.stage-plaque-pips i.off { background: #1e242c; }
 
 .stage-bar-track {
-  flex: 1 1 auto;
+  flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
+  background: #1e242c;
   overflow: hidden;
+  min-width: 0;
 }
 
-.stage-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-}
+.stage-bar-fill { height: 100%; border-radius: 3px; }
 
-/* ── Enemy intent chip (icon + move name) above the focus enemy ── */
-.stage-intent-chip {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 12px;
-  margin-bottom: 6px;
-  border: 1px solid rgba(255, 80, 80, 0.45);
-  border-radius: 999px;
-  background: rgba(20, 4, 6, 0.8);
-  color: #ff9a9a;
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 2px;
+/* Ticket 22's before-you-commit verdict, unchanged in substance — it just has
+   six places to appear now instead of two. */
+.stage-slot-legal .stage-sprite-frame { filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.5)); }
+.stage-slot-illegal .stage-sprite-frame { opacity: 0.55; }
+.stage-slot-targeted .stage-sprite-frame { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.55)); }
+
+.stage-target-flag {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
   white-space: nowrap;
-  box-shadow: 0 0 12px rgba(255, 60, 60, 0.18);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  z-index: 8;
 }
 
-.stage-intent-icon {
-  font-size: 0.85rem;
-}
-
-/* Targeted enemy spotlight gets the same red signal as its HUD card */
-.stage-spot-targeted .stage-plaque {
-  border-color: rgba(239, 68, 68, 0.7);
-  box-shadow: 0 0 16px rgba(239, 68, 68, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6);
-}
+.stage-target-flag.legal { background: rgba(34, 197, 94, 0.85); color: #04140a; }
+.stage-target-flag.illegal { background: rgba(239, 68, 68, 0.85); color: #fff; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TICKET 22 — 3v3 GAME-SIDE COMPLETION
