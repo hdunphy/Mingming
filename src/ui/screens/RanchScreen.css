@@ -342,6 +342,28 @@
 
 .ranch-offer-element { margin-left: auto; opacity: 0.55; font-size: 0.7rem; }
 
+/* TICKET 142c — the path pair, under the route. A row rather than a list item because it is not a
+   step of the walk: it is what one wild in three fields in EVERY step of it. The elements keep
+   `.ranch-offer-element`'s type so the route above and this row read as the same kind of fact,
+   minus the `margin-left: auto` that pushes a route element to the right of its biome name. */
+.ranch-offer-path {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(160, 150, 210, 0.18);
+}
+
+.ranch-offer-path .ranch-offer-element { margin-left: 0; }
+
+.ranch-offer-path-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.45;
+}
+
 /*
  * Ticket 68 ruling 4 — the leader's signature passive, on the offer card.
  *

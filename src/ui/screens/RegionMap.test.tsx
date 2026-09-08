@@ -20,18 +20,73 @@ const graph = generateRegionGraph('map-render-seed');
 const BIOME_NAMES = ['Emberglass Flats', 'Brinehollow', 'Rootmire'];
 const BIOME_ELEMENTS = ['Fire', 'Water', 'Nature'];
 
-function render(currentNodeId = graph.entryNodeId, nodes = graph.nodes): string {
+/**
+ * TICKET 142c: what a rival fields in each biome, off-biome element first. The fixture mirrors a
+ * Rootfall run's shape — path Fire+Nature against biomes Fire / Water / Nature — so biome 0's
+ * rival leads with Nature (Fire is the biome's own) and biome 2's leads with Fire.
+ */
+const RIVAL_ELEMENTS = [['Nature', 'Fire'], ['Fire', 'Nature'], ['Fire', 'Nature']];
+
+function render(
+    currentNodeId = graph.entryNodeId,
+    nodes = graph.nodes,
+    rivalElements: ReadonlyArray<ReadonlyArray<string>> | undefined = undefined,
+): string {
     return renderToStaticMarkup(
         <RegionMap
             nodes={nodes}
             currentNodeId={currentNodeId}
             biomeNames={BIOME_NAMES}
             biomeElements={BIOME_ELEMENTS}
+            rivalElements={rivalElements}
             onTravel={() => {}}
         />,
     );
 }
 
+describe('142c — a rival and a scout say what they are', () => {
+    /*
+     * Henry, after the first Rootfall playtest: *"I thought I would see nature in the workshop
+     * somehow but I was seeing dual element wild encounters in the fire biome."* He had found the
+     * rival by walking into it. Every fight node took its colour and its label from
+     * `biomeElements[biomeIndex]`, so the ONE node kind that deliberately ignores its biome was the
+     * one node labelled with the wrong element — and `node.scout` was read by no UI file at all.
+     */
+    const rival = graph.nodes.find((n) => n.kind === 'rival')!;
+    const scout = graph.nodes.find((n) => n.scout)!;
+    /** Standing next to it, so it is revealed — the fog shows shape, not kind. */
+    const beside = (id: string) => graph.nodes.find((n) => n.edges.includes(id))!.id;
+
+    it('names BOTH of a rival elements, off-biome first', () => {
+        // Henry's ruling: show both. The pair IS the information — one element alone on a rival is
+        // exactly the label that hid it, whichever of the two you pick.
+        const markup = render(beside(rival.id), graph.nodes, RIVAL_ELEMENTS);
+        const pair = RIVAL_ELEMENTS[rival.biomeIndex];
+        expect(markup).toContain(`Rival, ${pair[0]} + ${pair[1]}`);
+    });
+
+    it('leaves an ordinary fight on its own biome element', () => {
+        const wild = graph.nodes.find((n) => n.kind === 'wild')!;
+        const markup = render(beside(wild.id), graph.nodes, RIVAL_ELEMENTS);
+        expect(markup).toContain(`Wild, ${BIOME_ELEMENTS[wild.biomeIndex]}`);
+    });
+
+    it('falls back to the biome when no pair is supplied — a caller with no run still draws', () => {
+        const markup = render(beside(rival.id), graph.nodes, undefined);
+        expect(markup).toContain(`Rival, ${BIOME_ELEMENTS[rival.biomeIndex]}`);
+        expect(markup).not.toContain('rm-legend-rival');
+    });
+
+    it('marks the scout, which is a FLAG on an ordinary fight rather than a kind', () => {
+        const markup = render(beside(scout.id), graph.nodes, RIVAL_ELEMENTS);
+        expect(markup).toContain('Scout ');
+        expect(markup).toContain('rm-node-scout-ring');
+    });
+
+    it('explains the rival in the legend, but only in a run that has them', () => {
+        expect(render(graph.entryNodeId, graph.nodes, RIVAL_ELEMENTS)).toContain('rm-legend-rival');
+    });
+});
 describe('RegionMap', () => {
     it('draws every node and every undirected edge exactly once', () => {
         const markup = render();

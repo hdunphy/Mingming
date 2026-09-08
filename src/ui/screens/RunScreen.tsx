@@ -74,10 +74,11 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
-import { RUN_ENEMY_MODE, isFightNode, rollEncounter } from '../../engine/run/encounter';
+import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
+import { PARTY_SIZE } from '../../engine/party';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
@@ -511,6 +512,14 @@ export default function RunScreen(): ReactNode {
                     currentNodeId={run.currentNodeId}
                     biomeNames={run.biomes.map((b) => b.name)}
                     biomeElements={run.biomes.map((b) => b.elements[0])}
+                    // Ticket 142c: what a rival fields in each biome, off-biome element first — the
+                    // same order `rivalElementPlan` deals the bodies in, so the map and the fight
+                    // agree by construction rather than by two copies of one rule.
+                    rivalElements={run.biomes.map((_, i) => rivalElementPlan(
+                        run,
+                        { biomeIndex: i, kind: 'rival' } as IRegionNode,
+                        PARTY_SIZE,
+                    ))}
                     // Ticket 15: the fog's third clause. Derived here rather than inside the map,
                     // because `regionLayout` is a pure function of the node set and knows nothing
                     // about a run — see its header.

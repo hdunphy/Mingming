@@ -102,6 +102,19 @@ export interface RegionMapProps {
     readonly biomeNames: ReadonlyArray<string>;
     readonly biomeElements: ReadonlyArray<string>;
     /**
+     * TICKET 142c — what a RIVAL in each biome fields, off-biome element first, indexed by biome.
+     *
+     * A rival is the one fight kind that ignores the biome it stands in, and until this prop it was
+     * drawn and described with the biome's element like every other fight — so the only node on the
+     * map deliberately off-element was the only node labelled with the wrong one. Henry found the
+     * mechanic by walking into it, which is the definition of a node that does not read as a choice.
+     *
+     * Passed in rather than derived: this component takes nodes and names, not a run (see
+     * `regionLayout`'s header), and the pair is a function of the run's GYM, which it has no view of.
+     * Empty by default so a caller with no run behind it draws the ordinary biome colouring.
+     */
+    readonly rivalElements?: ReadonlyArray<ReadonlyArray<string>>;
+    /**
      * Biome indices a map-reveal macro has surveyed (ticket 15). Optional, and empty by default, so
      * a caller that has no run behind it draws the ordinary one-layer fog.
      */
@@ -110,12 +123,14 @@ export interface RegionMapProps {
 }
 
 const NO_REVEALS: ReadonlyArray<number> = [];
+const NO_RIVAL_ELEMENTS: ReadonlyArray<ReadonlyArray<string>> = [];
 
 export default function RegionMap({
     nodes,
     currentNodeId,
     biomeNames,
     biomeElements,
+    rivalElements = NO_RIVAL_ELEMENTS,
     revealedBiomes = NO_REVEALS,
     onTravel,
 }: RegionMapProps): ReactNode {
@@ -197,11 +212,34 @@ export default function RegionMap({
     const reachable = layout.nodes.filter((n) => n.reachable);
     const current = layout.byId.get(currentNodeId);
 
+    /**
+     * The elements a fight node actually fields — the ONE place that decides it, so the colour, the
+     * label and the legend cannot drift apart. A rival fields its run's path pair (142c deals the
+     * off-biome one first, and that order is preserved here because it is the one that matters to a
+     * route decision); every other fight fields its biome's.
+     */
+    const elementsOf = (node: IRegionNode): ReadonlyArray<string> => {
+        if (node.kind === 'rival') {
+            const pair = rivalElements[node.biomeIndex] ?? [];
+            if (pair.length > 0) return pair;
+        }
+        const own = biomeElements[node.biomeIndex];
+        return own ? [own] : [];
+    };
     const describe = (laid: LaidOutNode): string => {
-        const element = biomeElements[laid.node.biomeIndex] ?? '';
-        const kind = laid.revealed ? NODE_LABEL[laid.node.kind] : 'Unknown';
+        const elements = elementsOf(laid.node);
+        // Ticket 142c: the scout takes over an ordinary fight node rather than being its own kind,
+        // so it has to be said rather than inferred from the icon. Before this, no UI file read the
+        // flag at all and the one fight that previews the gauntlet was indistinguishable from an elite.
+        const kind = laid.revealed
+            ? (laid.node.scout ? `Scout ${NODE_LABEL[laid.node.kind].toLowerCase()}` : NODE_LABEL[laid.node.kind])
+            : 'Unknown';
         const parts = [kind];
-        if (laid.revealed && FIGHT_KINDS.includes(laid.node.kind) && element) parts.push(element);
+        // BOTH elements on a rival, off-biome first (Henry's ruling): the pair IS the information —
+        // "Fire" alone on a Rootfall rival in the Fire biome is exactly the label that hid it.
+        if (laid.revealed && FIGHT_KINDS.includes(laid.node.kind) && elements.length > 0) {
+            parts.push(elements.join(' + '));
+        }
         parts.push(`biome ${laid.node.biomeIndex + 1}`, `layer ${laid.node.layer}`);
         if (laid.node.pocket) parts.push('dead end');
         if (laid.node.visited > 0) parts.push(`visited ${laid.node.visited}×`);
@@ -297,7 +335,11 @@ export default function RegionMap({
                     })}
                     {layout.nodes.map((laid) => {
                         const { x, y } = centreOf(laid, layout.maxRows);
-                        const element = biomeElements[laid.node.biomeIndex];
+                        // The leading element: the biome's for an ordinary fight, and for a rival the
+                        // OFF-BIOME half, because that is the one that makes it worth routing toward.
+                        const nodeElements = elementsOf(laid.node);
+                        const element = nodeElements[0];
+                        const secondElement = nodeElements[1];
                         const isFight = laid.revealed && FIGHT_KINDS.includes(laid.node.kind);
                         return (
                             <g
@@ -343,6 +385,34 @@ export default function RegionMap({
                                   * have stood on twice has been TWO different fights — so it earns
                                   * a badge rather than a footnote.
                                   */}
+                                {/*
+                                  * TICKET 142c — THE SECOND ELEMENT, and the scout ring.
+                                  *
+                                  * A rival carries two elements and the disc can only be stroked in
+                                  * one, so the second gets a dot on the node's lower shoulder. The
+                                  * stroke is the OFF-BIOME half — the reason to walk here — and the
+                                  * dot is the half the biome would have given you anyway, which is
+                                  * the right way round: the surprise is the one you can see from
+                                  * across the map.
+                                  *
+                                  * The scout gets an outer ring rather than an icon, because it is
+                                  * not a kind: it takes over whatever fight was already there, and
+                                  * an icon would have to replace that node's own shape to say so.
+                                  */}
+                                {laid.revealed && secondElement && (
+                                    <circle
+                                        cx={x - R + 5} cy={y + R - 4} r={4}
+                                        className="rm-node-second-element"
+                                        style={{ fill: ELEMENT_COLOR[secondElement] ?? undefined }}
+                                    />
+                                )}
+                                {laid.revealed && laid.node.scout && (
+                                    <circle
+                                        cx={x} cy={y} r={R + 4}
+                                        className="rm-node-scout-ring"
+                                        style={isFight ? { stroke: ELEMENT_COLOR[element] ?? undefined } : undefined}
+                                    />
+                                )}
                                 {laid.node.visited > 0 && (
                                     <g className="rm-node-visits">
                                         <circle cx={x + R - 4} cy={y - R + 4} r={8.5} className="rm-visit-disc" />
@@ -359,6 +429,18 @@ export default function RegionMap({
 
             <div className="rm-legend">
                 <span>You are here: <strong>{current ? describe(current) : '—'}</strong></span>
+                {/*
+                  * Ticket 142c: stated on the map rather than left to the tip, because the tip is
+                  * once-ever (`seenTips` lives on the ranch save) and this is the sentence a player
+                  * wants again on the run where it matters. Rendered only when the run HAS rivals,
+                  * so a caller without them is not told about a node kind it never draws.
+                  */}
+                {rivalElements.length > 0 && (
+                    <span className="rm-legend-rival">
+                        · a <strong>rival</strong> fields the two elements your route needs, not this
+                        biome&apos;s — the dot is its second element
+                    </span>
+                )}
                 <span className="rm-legend-fog">
                     · fogged nodes show their shape, not their kind — visibility is one layer ahead
                     {/* Ticket 15: a survey is a permanent change to what the map shows, so the

@@ -30,7 +30,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateRegionGraph, REGION_PARAMS } from './regionGraph';
 import { createRun } from './createRun';
-import { encounterSpeciesPool, scoutFirmwareFor, rollEncounter, gradeFor, enemyLoadoutFor } from './encounter';
+import { encounterSpeciesPool, scoutFirmwareFor, rollEncounter, gradeFor, enemyLoadoutFor, rivalElementPlan } from './encounter';
 import { GYM_REGISTRY, offerGyms, pathElementsFor, type IGymOffer } from './gyms';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 import { BLUEPRINT_DROP_RATE } from '../RewardSystem';
@@ -61,6 +61,80 @@ function rootfallRun(seed = 'path-test'): IRunState {
 const speciesOf = (firmware: string): string =>
     Object.values(MingmingRegistry).find(d => d.availableOS.includes(firmware))!.id;
 
+describe('142c — a rival always fields the body the biome cannot give you', () => {
+    /*
+     * Henry, after the first Rootfall playtest: *"We should guarantee at least one 'off biome'
+     * mingming. So the first is always the Nature in a fire biome (1v1 it's just nature); in 3v3 we
+     * can coin flip the last one to make it NFN or NFF."*
+     *
+     * 142a drew every body from the flat union of the two path elements, so with two species an
+     * element the guarantee was a coin flip and a solo player's rival was half the time an
+     * ordinary-looking on-biome fight dropping a blueprint they already had. The node's whole
+     * purpose is to break the map's grip on recruiting order, and half the time it did not.
+     */
+    const run = rootfallRun();
+    const rival = (biomeIndex: number) => ({
+        id: `rival_b${biomeIndex}`, kind: 'rival' as const, biomeIndex, layer: 2, visited: 1,
+        x: 0, y: 0, edges: [], pocket: false,
+    } as unknown as Parameters<typeof rivalElementPlan>[1]);
+
+    it('deals the off-biome element FIRST, and off-biome means this biome, not the gym', () => {
+        // The path is [Fire, Nature] in all three biomes — it is fully determined by the leader.
+        // What changes is which HALF of it the biome already gives you, so the rule has to be
+        // biome-relative. Fire beats Rootfall, but standing in the Fire biome the body you cannot
+        // otherwise get is the Nature one.
+        expect(rivalElementPlan(run, rival(0), 1)).toEqual(['Fire']);    // Nature biome
+        expect(rivalElementPlan(run, rival(1), 1)).toEqual(['Nature']);  // Fire biome — Henry's case
+    });
+
+    it('deals one of each path element before anything rolls', () => {
+        expect(rivalElementPlan(run, rival(1), 2)).toEqual(['Nature', 'Fire']);
+        expect(rivalElementPlan(run, rival(1), 3)).toEqual(['Nature', 'Fire']);
+    });
+
+    it('leaves the third body to the roll — NFN or NFF, never NNN or FFF', () => {
+        // The plan is shorter than the party on purpose: `rollEncounter` deals plan[i] while it
+        // lasts and rolls the rest from the union, which is the coin flip Henry asked for.
+        const plan = rivalElementPlan(run, rival(1), 3);
+        expect(plan).toHaveLength(2);
+    });
+
+    it('in the third biome neither path element is the biome, so the path order stands', () => {
+        // Rootfall's biome 3 is Water and the path is Fire+Nature — both off-biome. Nothing to
+        // reorder, and the counter element leads because that is the path's own order.
+        expect(rivalElementPlan(run, rival(2), 2)).toEqual(['Fire', 'Nature']);
+    });
+
+    it('says nothing about a wild — the deal is the rival node, not the biome', () => {
+        const wild = { ...rival(1), kind: 'wild' } as unknown as Parameters<typeof rivalElementPlan>[1];
+        expect(rivalElementPlan(run, wild, 3)).toEqual([]);
+    });
+
+    it('a solo player in the Fire biome meets a NATURE body every time, over 200 rivals', () => {
+        // The regression in one line: this was 50% before 142c. Rolled through the real
+        // `rollEncounter` rather than off the plan, so it covers the deal AND the draw.
+        for (let i = 0; i < 200; i += 1) {
+            const node = { ...rival(1), id: `rival_b1_${i}`, visited: i + 1 };
+            const { enemyParty } = rollEncounter({ run, node, party: [member('mm1', 'fenrir')] });
+            expect(enemyParty).toHaveLength(1);
+            expect(MingmingRegistry[enemyParty[0].definitionId].primaryElement).toBe('Nature');
+        }
+    });
+
+    it('a full party gets one of each and a coin flip — both NFN and NFF appear', () => {
+        const party = [member('mm1', 'fenrir'), member('mm2', 'skoll'), member('mm3', 'ratatoskr')];
+        const shapes = new Set<string>();
+        for (let i = 0; i < 200; i += 1) {
+            const node = { ...rival(1), id: `rival_full_${i}`, visited: i + 1 };
+            const { enemyParty } = rollEncounter({ run, node, party });
+            const els = enemyParty.map(e => MingmingRegistry[e.definitionId].primaryElement);
+            expect(els[0]).toBe('Nature');
+            expect(els[1]).toBe('Fire');
+            shapes.add(els.join(''));
+        }
+        expect(shapes).toEqual(new Set(['NatureFireNature', 'NatureFireFire']));
+    });
+});
 describe('142a — the path elements are what beats the gym, then the gym itself', () => {
     it('Rootfall walks Fire and Nature; each gym gets its own pair', () => {
         expect(pathElementsFor('Nature')).toEqual(['Fire', 'Nature']);

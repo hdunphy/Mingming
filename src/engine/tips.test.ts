@@ -207,6 +207,45 @@ describe('nextMapTip', () => {
         expect(nextMapTip({ ...r, currentNodeId: far.id }, seen)).toBeNull();
     });
 
+    /*
+     * TICKET 142c. Henry played the first Rootfall run and asked *"I thought I would see nature in
+     * the workshop somehow"* — the right instinct at the wrong end of the chain, and proof that 142a
+     * shipped a mechanic that never said what it was. These two tips are where it says it.
+     */
+    it('holds the rival tip until a rival is one step away', () => {
+        const r = run();
+        const seen = ['map:types', 'map:gym'];
+        const rival = r.nodes.find((n) => n.kind === 'rival');
+        expect(rival, 'every biome is guaranteed a rival — see REGION_PARAMS').toBeDefined();
+        const neighbour = r.nodes.find((n) => n.edges.includes(rival!.id))!;
+
+        // `map:workshop` sits ahead of this in MAP_TIPS, so it has to be marked seen for the
+        // sequence to reach the rival — otherwise this asserts the ORDER and not the predicate.
+        const withWorkshop = [...seen, 'map:workshop'];
+        expect(nextMapTip({ ...r, currentNodeId: neighbour.id }, withWorkshop)?.id).toBe('map:rival');
+
+        const far = r.nodes.find(
+            (n) => !n.edges.some((id) => r.nodes.find((x) => x.id === id)?.kind === 'rival')
+                && !n.edges.some((id) => r.nodes.find((x) => x.id === id)?.scout),
+        )!;
+        expect(nextMapTip({ ...r, currentNodeId: far.id }, withWorkshop)).toBeNull();
+    });
+
+    it('holds the scout tip until the scout is one step away, and reads the FLAG not a kind', () => {
+        // The scout takes over whatever fight was already at that node, so there is no `kind` to
+        // match on — this is the first predicate in the game to read `node.scout` at all, which is
+        // also why the scout was invisible everywhere until 142c.
+        const r = run();
+        const seen = ['map:types', 'map:gym', 'map:workshop', 'map:rival'];
+        const scout = r.nodes.find((n) => n.scout);
+        expect(scout, 'a run has exactly one scout — the last fight before the gauntlet').toBeDefined();
+        expect(scout!.kind).not.toBe('scout' as never);
+        const neighbour = r.nodes.find((n) => n.edges.includes(scout!.id))!;
+
+        expect(nextMapTip({ ...r, currentNodeId: neighbour.id }, seen)?.id).toBe('map:scout');
+        const far = r.nodes.find((n) => !n.edges.some((id) => r.nodes.find((x) => x.id === id)?.scout))!;
+        expect(nextMapTip({ ...r, currentNodeId: far.id }, seen)).toBeNull();
+    });
     it('goes quiet once everything has been seen', () => {
         expect(nextMapTip(run(), [...ALL_TIP_IDS])).toBeNull();
     });

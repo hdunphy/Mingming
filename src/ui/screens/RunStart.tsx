@@ -33,7 +33,7 @@ import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
 import { gymSignatures } from '../../engine/run/gauntlet';
-import { offerGyms, type IGymOffer } from '../../engine/run/gyms';
+import { offerGyms, pathElementsFor, type IGymOffer } from '../../engine/run/gyms';
 import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
 import type { RootState } from '../store/store';
@@ -127,6 +127,15 @@ export default function RunStart(): ReactNode {
                         the party second</strong> — the three offers always open on three different biomes,
                         so a counter is always available.
                     </p>
+                    <p className="ranch-note">
+                        {/* Ticket 142c: the four-link chain a player has to hold — biome decides who
+                            you fight, the fight drops the blueprint, the blueprint is what a workshop
+                            can build. Stated once, here, because the workshop is the end of that chain
+                            and has no element of its own to show. */}
+                        One wild in three is a <strong>rival</strong> walking the same road, and it fields
+                        the two elements that road needs rather than the biome&apos;s — so the blueprint
+                        for the body you are missing can be won in any biome, not just its own.
+                    </p>
                     <div className="ranch-offer-grid">
                         {offers.map((offer) => (
                             <button
@@ -148,6 +157,28 @@ export default function RunStart(): ReactNode {
                                         </li>
                                     ))}
                                 </ol>
+                                {/*
+                                  * TICKET 142c — THE PAIR THE ROAD FIELDS, on the screen where the
+                                  * road is chosen.
+                                  *
+                                  * Ticket 68 ruling 4 put the leader's signature here and gave the
+                                  * reason: the route is the run's one irreversible choice, so what
+                                  * you need to answer it belongs on THIS screen and no later. The
+                                  * path pair is the same kind of fact — it is what one wild in three
+                                  * will field in every biome, and it is fully determined by the gym
+                                  * you are about to pick.
+                                  *
+                                  * Henry played the first Rootfall run and asked *"I thought I would
+                                  * see nature in the workshop somehow"*. Nothing on any screen had
+                                  * ever said the pair out loud, so the mechanic could only be found
+                                  * by walking into it and inferring it from an enemy party.
+                                  */}
+                                <div className="ranch-offer-path">
+                                    <span className="ranch-offer-path-label">Rivals field</span>
+                                    {pathElementsFor(offer.gym.element).map((element) => (
+                                        <span key={element} className="ranch-offer-element">{element}</span>
+                                    ))}
+                                </div>
                                 {/*
                                   * TICKET 68 ruling 4 — THE TELEGRAPH.
                                   *

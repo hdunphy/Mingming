@@ -388,6 +388,10 @@ export function encounterSeed(run: IRunState, node: IRegionNode): string {
 // Species
 // ---------------------------------------------------------------------------------------------
 
+/** The species a single element fields, in registry order. Shared by the pool and 142c's deal. */
+function speciesOfElement(element: string): string[] {
+    return getSectorSpecies(element as Element).map(d => d.id);
+}
 /** Elements already warned about, so a three-enemy fight does not print the same line three times. */
 const warnedEmptyPools = new Set<string>();
 
@@ -400,6 +404,45 @@ const warnedEmptyPools = new Set<string>();
  * is the biome's order and duplicates are dropped, so a pair biome draws from both halves evenly
  * rather than twice from whatever overlaps.
  */
+/**
+ * TICKET 142c — WHICH ELEMENT EACH RIVAL BODY FIELDS, off-biome first.
+ *
+ * Henry, after the first Rootfall playtest: *"We should guarantee at least one 'off biome'
+ * mingming. So the first is always the Nature in a fire biome (1v1 it's just nature); in 3v3 we can
+ * coin flip the last one to make it NFN or NFF."*
+ *
+ * 142a shipped the pool as a flat UNION of the two path elements and drew every body from it
+ * independently, which made the guarantee a coin flip: each path element holds two species out of
+ * the four, so a solo player's rival was **50% an ordinary-looking on-biome fight** that dropped
+ * the blueprint they already had. The node exists to break the map's grip on recruiting order, and
+ * half the time it did not.
+ *
+ * So the first bodies are DEALT rather than rolled: one of each path element, the one that is NOT
+ * this biome's element first, and only the bodies past that roll from the union.
+ *
+ * | biome (Rootfall, path Fire+Nature) | 1 body | 2 bodies | 3 bodies |
+ * |---|---|---|---|
+ * | 1, Nature | Fire | Fire, Nature | Fire, Nature, roll |
+ * | 2, Fire | **Nature** | Nature, Fire | **N, F, roll → NFN or NFF** |
+ * | 3, Water | Fire | Fire, Nature | Fire, Nature, roll |
+ *
+ * OFF-BIOME IS BIOME-RELATIVE, not "the counter element". For Rootfall the path is [Fire, Nature]
+ * and it is FIRE that beats the leader — but standing in the Fire biome the body you cannot
+ * otherwise get is the NATURE one, and in the Nature biome it is the Fire one. Ordering by the
+ * biome rather than by the path is what makes one rule serve both. In the third biome neither path
+ * element is the biome's, both are off-biome, and the path's own order stands.
+ *
+ * Returns `[]` for anything that is not a rival, which is every caller's signal to roll as before.
+ */
+export function rivalElementPlan(run: IRunState, node: IRegionNode, size: number): string[] {
+    if (node.kind !== 'rival') return [];
+    const path = pathElementsFor(GYM_REGISTRY[run.gymId]?.element ?? '');
+    if (path.length === 0) return [];
+    const biomeElements = run.biomes[node.biomeIndex]?.elements ?? [];
+    const offBiome = path.filter(e => !biomeElements.includes(e));
+    const onBiome = path.filter(e => biomeElements.includes(e));
+    return [...offBiome, ...onBiome].slice(0, Math.max(0, size));
+}
 export function encounterSpeciesPool(run: IRunState, node: IRegionNode): string[] {
     // TICKET 142b — the scout fields the leader's own bodies, so its pool is the species behind
     // `gym.leaderComp` rather than an element at all. Ahead of the element branch because it is not
@@ -613,6 +656,8 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         ? 1
         : scoutFirmware.length > 0 ? scoutFirmware.length : enemyPartySize(node.kind, party.length);
 
+    const rivalPlan = rivalElementPlan(run, node, size);
+
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];
 
@@ -620,9 +665,17 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         // The scout's bodies are named, not rolled — `pool` holds exactly their species, in the
         // same order as the firmwares, so body i is firmware i running on its own species.
         const scoutOS = scoutFirmware[i];
+        // TICKET 142c: a rival's first bodies are DEALT one per path element, off-biome first, so
+        // the node cannot roll into the fight the biome already offers. Still exactly ONE draw per
+        // body — narrowed to that element's species rather than skipped — so the roster stream
+        // stays in step with the IV draws below and with every other node kind.
+        const dealtElement = rivalPlan[i];
+        const dealtPool = dealtElement ? speciesOfElement(dealtElement) : [];
         const definitionId = scoutOS
             ? (pool[i] ?? pool[pool.length - 1])
-            : pool[roster.nextInt(0, pool.length - 1)];
+            : dealtPool.length > 0
+                ? dealtPool[roster.nextInt(0, dealtPool.length - 1)]
+                : pool[roster.nextInt(0, pool.length - 1)];
         const definition = GetMingmingData(definitionId);
 
         // Ticket 21: IVs are the ONLY per-individual variance left, and their range is the same at

@@ -122,6 +122,28 @@
 .rm-node.fogged .rm-node-icon { fill: rgba(230, 224, 255, 0.35); }
 .rm-node.pocket .rm-node-disc { stroke-dasharray: 4 3; }
 
+/* TICKET 142c — a rival's SECOND element, as a dot on the node's lower shoulder. The disc's stroke
+   already carries the off-biome half; this carries the other one, so the pair is readable without
+   hovering. Ringed in the map's own background rather than left bare, so it stays a distinct mark
+   over a node that happens to share its colour. */
+.rm-node-second-element {
+    stroke: #0e0b18;
+    stroke-width: 1.5;
+}
+
+/* The scout ring. The scout is a FLAG on an ordinary fight node, not a kind, so it cannot take the
+   node's icon — it gets a ring outside the disc instead and the node keeps its own shape. Dashed
+   so it reads as an annotation on the node rather than a second, larger node. */
+.rm-node-scout-ring {
+    fill: none;
+    stroke: rgba(160, 150, 210, 0.7);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+}
+
+.rm-node.fogged .rm-node-second-element,
+.rm-node.fogged .rm-node-scout-ring { opacity: 0.35; }
+
 .rm-node.reachable { cursor: pointer; }
 .rm-node.reachable .rm-node-disc { stroke: #7a5cff; stroke-width: 3; }
 .rm-node.reachable:hover .rm-node-disc { fill: #241c46; }
@@ -143,6 +165,7 @@
 }
 
 .rm-legend-fog { opacity: 0.7; }
+.rm-legend-rival { opacity: 0.7; }
 
 .rm-travel-head {
     margin: 0.4rem 0 0.3rem;
