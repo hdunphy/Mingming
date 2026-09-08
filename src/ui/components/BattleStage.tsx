@@ -10,6 +10,9 @@ import { targetVerdict, type TargetVerdict } from '../utils/targeting';
 import { useStageAnchors } from '../hooks/useStageAnchors';
 import { spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
 import { StatusBadgeRow, PLAQUE_STATUS_BUDGET } from './StatusBadges';
+import { DaemonTags, FirmwareChip, UnitPreview } from './UnitReadouts';
+import type { DamagePreview } from '../utils/damagePreview';
+import { computeDamagePreview } from '../utils/damagePreview';
 
 /**
  * BATTLE STAGE — the stagger stage. Ticket 145a.
@@ -206,6 +209,8 @@ interface SlotProps {
     isActive: boolean;
     isTargeted: boolean;
     verdict: TargetVerdict | null;
+    /** Ticket 145b: what the held card would do to this unit. Null unless it is the hover target. */
+    preview: DamagePreview | null;
     fx?: UnitFx;
     onClick: () => void;
     onPointerUp: () => void;
@@ -220,13 +225,14 @@ interface SlotProps {
  * puts it 22px left of the sprite and 94px down, 195x26 — all four numbers scale together here.
  */
 const StageSlot: React.FC<SlotProps> = ({
-    entity, isEnemy, rect, plaque, scale, isActive, isTargeted, verdict, fx,
+    entity, isEnemy, rect, plaque, scale, isActive, isTargeted, verdict, preview, fx,
     onClick, onPointerUp, onHoverChange,
 }) => {
     const accent = getElementAccent(entity.primaryElement);
     const hpPercent = (entity.currentHp / entity.maxHp) * 100;
     const isDead = entity.currentHp <= 0;
     const pipCount = Math.max(entity.maxEnergy, entity.currentEnergy);
+    const previewDamage = preview?.damage ?? 0;
 
     return (
         <>
@@ -280,11 +286,21 @@ const StageSlot: React.FC<SlotProps> = ({
             >
                 <div className="stage-plaque-name">
                     <span className="stage-plaque-dot" style={{ background: accent }} />
-                    {entity.name.toUpperCase()}
+                    <span className="stage-plaque-name-text">{entity.name.toUpperCase()}</span>
+                    {/*
+                      * The firmware chip rides the name row: it is the shortest of the three
+                      * readouts Henry asked back in, and the name is the only line with room
+                      * beside it. `.stage-plaque-name-text` can ellipsis so the chip never gets
+                      * pushed off the plaque by a long species name.
+                      */}
+                    <FirmwareChip entity={entity} />
                 </div>
                 <div className="stage-plaque-row">
                     <StageBar percent={hpPercent} color={getHpColor(hpPercent)} />
-                    <span className="stage-plaque-value">{entity.currentHp}/{entity.maxHp}</span>
+                    <span className="stage-plaque-value">
+                        {entity.currentHp}/{entity.maxHp}
+                        {previewDamage > 0 && <span className="stage-plaque-preview-hp"> (-{previewDamage})</span>}
+                    </span>
                 </div>
                 <div className="stage-plaque-row">
                     <span className="stage-plaque-pips">
@@ -309,6 +325,24 @@ const StageSlot: React.FC<SlotProps> = ({
                     budget={PLAQUE_STATUS_BUDGET}
                     className="hud-status-badges stage-plaque-statuses"
                 />
+                {/*
+                  * The daemons get their own row rather than sharing the status line: a daemon is
+                  * named, not iconified, and a word does not share 152px with four badges.
+                  */}
+                <DaemonTags entity={entity} className="hud-daemons-row stage-plaque-daemons" />
+                {/*
+                  * ABSOLUTE, not in the plaque's flow, and that is load-bearing rather than
+                  * cosmetic. The preview appears and disappears as the pointer crosses a target;
+                  * a plaque that changed height on hover would shift everything under it on a
+                  * board where ticket 145 §3 promises the geometry holds still. The HUD card could
+                  * afford that reflow — a sidebar column has nothing depending on its rows — and
+                  * the stage cannot.
+                  */}
+                {preview && (
+                    <div className="stage-plaque-preview">
+                        <UnitPreview preview={preview} className="hud-preview-tags stage-preview-row" />
+                    </div>
+                )}
             </div>
         </>
     );
@@ -384,11 +418,23 @@ const BattleStage: React.FC<BattleStageProps> = ({
                     isActive={!isEnemy && index === activeAllyIndex}
                     isTargeted={selectedTargetId === entity.id}
                     verdict={selectedCardData ? targetVerdict(selectedCardData, entity, isEnemy, caster) : null}
+                    // Computed for the HOVER TARGET only, exactly as the HUD card did it: the
+                    // preview simulates the play, so asking for six of them every render would be
+                    // six speculative battles a frame to answer a question about one unit.
+                    preview={
+                        hoveredEntityId === entity.id && selectedCardId
+                            ? computeDamagePreview(battleState, selectedSourceId, selectedCardId, entity.id)
+                            : null
+                    }
                     fx={unitFx[entity.id]}
                     onClick={() => onEntityClick(entity, isEnemy)}
                     onPointerUp={() => onEntityPointerUp(entity, isEnemy)}
                     onHoverChange={(hovering) => {
-                        if (!isEnemy) return;
+                        // BOTH sides, not just enemies. The HUD card set `isHoveredTarget` on any
+                        // unit while a card was in hand, and it had to: an ally is a legal target
+                        // for a heal or a buff, and the preview is the only thing that says how
+                        // much before you let go. Gated on `isTargeting` so an idle mouse crossing
+                        // the board does not simulate a play per unit it passes.
                         if (hovering && isTargeting) onEnemyHoverChange(entity.id);
                         else if (!hovering && hoveredEntityId === entity.id) onEnemyHoverChange(null);
                     }}

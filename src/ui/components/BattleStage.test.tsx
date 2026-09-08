@@ -230,6 +230,38 @@ describe('145b — active and dead read at a glance', () => {
         expect(markup).toContain('stage-plaque-dead');
     });
 });
+describe('145b — the plaque carries what the HUD card carried', () => {
+    /*
+     * `SHOW_LEGACY_HUD_COLUMNS` is false now, so the plaque is the ONLY place these three appear.
+     * Henry: *"We need to include those three things please: firmware chip, daemon tags and
+     * damage/status preview."* Each of these is the assertion that the column can stay off.
+     */
+    it('names the firmware on the plaque', () => {
+        const markup = render();
+        // FENRIR runs `fenrir_v1`, so the chip reads V1.
+        const plaque = markup.slice(markup.indexOf('stage-plaque-p1'), markup.indexOf('stage-slot-p2'));
+        expect(plaque).toContain('hud-os-icon-container');
+        expect(plaque).toContain('V1');
+    });
+
+    it('lists the daemons on the plaque, by name', () => {
+        const withDaemon = {
+            ...ALLIES[0],
+            daemons: [{ id: 'd1', dataId: 'fertile_ground_daemon' }],
+        } as unknown as IBattleEntity;
+        const markup = render({}, state([withDaemon, ALLIES[1], ALLIES[2]], ENEMIES));
+        const plaque = markup.slice(markup.indexOf('stage-plaque-p1'), markup.indexOf('stage-slot-p2'));
+        expect(plaque).toContain('hud-daemon-tag');
+    });
+
+    it('says nothing about daemons or firmware a unit does not have', () => {
+        const bare = { ...ALLIES[0], activeOS: undefined, daemons: [] } as unknown as IBattleEntity;
+        const markup = render({}, state([bare, ALLIES[1], ALLIES[2]], ENEMIES));
+        const plaque = markup.slice(markup.indexOf('stage-plaque-p1'), markup.indexOf('stage-slot-p2'));
+        expect(plaque).not.toContain('hud-os-icon-container');
+        expect(plaque).not.toContain('hud-daemon-tag');
+    });
+});
 describe('145a — the composition on a real viewport', () => {
     it('is the mock at 1280x800', () => {
         const markup = render();

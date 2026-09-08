@@ -1040,21 +1040,25 @@ const BattleArena: React.FC = () => {
     };
 
 /**
- * TICKET 145a — THE HUD COLUMNS, BEHIND A FLAG FOR ONE RELEASE.
+ * TICKET 145b — THE HUD COLUMNS ARE OFF.
  *
  * The stagger stage puts every unit on the board with its own plaque, so the two sidebar columns
- * of `MingmingUnit` cards are now a second, worse copy of the same information — and §1 lists the
- * old battle card chassis among the things Henry rejected outright.
+ * of `MingmingUnit` cards were a second, worse copy of the same information — and §1 lists the old
+ * battle card chassis among the things Henry rejected outright.
  *
- * They are flagged rather than deleted because 145 ships as six lettered rows and this is the
- * first. Until 145b moves the status badges onto the plaque, the HUD card is the only place a
- * player can read them, and a release that shipped 145a alone with the columns gone would be a
- * regression in information for the sake of a layout. Flip this to `false` after 145b and delete
- * it (and `renderParty`, and `MingmingUnit`'s battle-screen usage) after one release.
+ * 145a left them on because the plaque did not yet carry everything the card did. 145b's first
+ * pass moved the statuses; it still owed the FIRMWARE chip, the DAEMON tags and the card PREVIEW,
+ * which ticket 145's mock gives no home to. I shipped that pass with the flag still on and put the
+ * gap to Henry rather than dropping three live readouts for a layout. He ruled: *"We need to
+ * include those three things."* They are on the plaque now (`UnitReadouts`), rendered from the
+ * same components the card used, so this can finally go false.
  *
+ * Kept as a constant for one release rather than deleted outright: if the plaque turns out to be
+ * too small for the preview in play, this is the one line that puts the columns back while that is
+ * worked out. Delete it, `renderParty`, and `MingmingUnit`'s battle-screen usage after that.
  * `MingmingUnit` itself stays either way — the ranch and the workshop draw the same card.
  */
-const SHOW_LEGACY_HUD_COLUMNS = true;
+const SHOW_LEGACY_HUD_COLUMNS = false;
     const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
         <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
             {party.map((entity, index) => {

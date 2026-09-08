@@ -2676,6 +2676,58 @@ body {
   flex-shrink: 0;
 }
 
+/* TICKET 145b (second pass) — the three readouts Henry asked back onto the plaque.
+
+   The name row now carries the firmware chip, so the NAME is the item that gives up width: the
+   chip is a fixed 34px and a species name is as long as it is. */
+.stage-plaque-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.stage-plaque-name .hud-os-icon-container {
+  margin-left: auto;
+  pointer-events: auto;
+  flex: 0 0 auto;
+}
+
+/* Daemons get their own row: a daemon is NAMED, not iconified, and a word does not share 152px
+   with four status badges. Wraps rather than clips — two daemons is the shipped maximum. */
+.stage-plaque-daemons {
+  pointer-events: auto;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+/* THE PREVIEW IS OUT OF FLOW. Not cosmetic: it appears and disappears as the pointer crosses a
+   target, and a plaque that changed height on hover would move every row under it on a board
+   whose geometry ticket 145 3 promises holds still. Anchored under the plaque instead. */
+.stage-plaque-preview {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.stage-preview-row {
+  position: static;
+  transform: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+/* The damage the held card would do, inline in the HP readout — the same `(-N)` the HUD card
+   printed, in the same red. */
+.stage-plaque-preview-hp { color: #ff4444; }
+
 .stage-bar-track {
   flex: 1;
   height: 6px;

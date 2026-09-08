@@ -3,14 +3,13 @@ import { createPortal } from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { IBattleEntity, ProgramData } from '../../engine/types';
 import type { IBattleState } from '../../engine/types';
-import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
 import { StatusBadgeRow, HUD_STATUS_BUDGET } from './StatusBadges';
+import { DaemonTags, FirmwareChip, UnitPreview } from './UnitReadouts';
 import { computeDamagePreview, type DamagePreview } from '../utils/damagePreview';
 import { targetVerdict } from '../utils/targeting';
-import { readableTextOn, badgeTextShadow, getElementAccent } from '../utils/contrastText';
-import { formatMultiplier } from './elementMatchups';
+import { readableTextOn, badgeTextShadow } from '../utils/contrastText';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
@@ -82,18 +81,6 @@ interface MingmingUnitProps {
 export const ENERGY_PIP_BUDGET = 6;
 
 
-/** Ticket 90: human labels for the post-damage scalings the preview now shows. */
-const SCALING_LABEL: Record<string, string> = {
-    CARDS_PLAYED: 'CARDS PLAYED',
-    CARDS_DRAWN: 'CARDS DRAWN',
-    CARDS_DRAWN_TRIGGERED: 'TRIGGERED DRAWS',
-    CARDS_DISCARDED: 'CARDS DISCARDED',
-    ENERGY_SPENT: 'ENERGY SPENT',
-    ENERGY_SPENT_SQUARED: 'ENERGY SPENT²',
-    ELEMENT_PLAYED: 'ELEMENT PLAYS',
-    STATUS_COUNT: 'TARGET STATUSES',
-    BURN_TIMES_ENERGY: 'BURN × ENERGY',
-};
 
 const MingmingUnit: React.FC<MingmingUnitProps> = ({
     entity,
@@ -112,9 +99,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 }) => {
     const controls = useAnimation();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
-    const [showOSTooltip, setShowOSTooltip] = React.useState(false);
     const [showIntentTooltip, setShowIntentTooltip] = React.useState(false);
-    const osIconRef = React.useRef<HTMLDivElement>(null);
     const intentIconRef = React.useRef<HTMLDivElement>(null);
     const prevHpRef = React.useRef(entity.currentHp);
     // Pending timeouts, cleared on unmount so we never setState on an unmounted component.
@@ -388,72 +373,12 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         </div>
                     )}
 
-                    {entity.activeOS && (() => {
-                        const behavior = getOSBehavior(entity.activeOS);
-                        return (
-                            <div
-                                ref={osIconRef}
-                                className="hud-os-icon-container"
-                                onMouseEnter={() => setShowOSTooltip(true)}
-                                onMouseLeave={() => setShowOSTooltip(false)}
-                            >
-                                <span className="hud-os-icon">💾</span>
-                                <span className="hud-os-version">{entity.activeOS.includes('_v2') ? 'V2' : 'V1'}</span>
-
-                                {showOSTooltip && createPortal(
-                                    <div
-                                        className="os-tooltip-portal"
-                                        style={osIconRef.current ? (() => {
-                                            const rect = osIconRef.current.getBoundingClientRect();
-                                            const isRightSide = rect.left > window.innerWidth / 2;
-                                            return {
-                                                position: 'fixed',
-                                                left: isRightSide ? 'auto' : rect.right + 15,
-                                                right: isRightSide ? (window.innerWidth - rect.left) + 15 : 'auto',
-                                                top: rect.top,
-                                                transform: 'translateY(-30%)'
-                                            };
-                                        })() : {}}
-                                    >
-                                        <div className="tooltip-header">
-                                            <span className="tooltip-os-name">{behavior?.name}</span>
-                                            <span className="tooltip-os-version">{entity.activeOS.includes('_v2') ? 'v2.0' : 'v1.0'}</span>
-                                        </div>
-                                        <div className="tooltip-divider" />
-                                        <div className="tooltip-body">
-                                            {behavior?.description}
-                                        </div>
-                                        <div className="tooltip-footer">TECHNICAL READOUT // SECTOR 0</div>
-                                    </div>,
-                                    document.body
-                                )}
-                            </div>
-                        );
-                    })()}
-
+                    {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
+                    <FirmwareChip entity={entity} />
                 </div>
 
-                {/* Daemons Row */}
-                {entity.daemons && entity.daemons.length > 0 && (
-                    <div className="hud-daemons-row">
-                        {entity.daemons.map((daemon, idx) => {
-                            if (!daemon.id) {
-                                console.warn(`[MingmingUnit] Daemon at index ${idx} on ${entity.name} has an empty ID!`);
-                            }
-                            const data = GetProgramData(daemon.dataId);
-                            return (
-                                <div
-                                    key={daemon.id || `daemon-${idx}`}
-                                    className="hud-daemon-tag"
-                                    title={data.description}
-                                >
-                                    <span className="hud-daemon-icon">⚙️</span>
-                                    <span className="hud-daemon-name">{data.name}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
+                <DaemonTags entity={entity} />
 
                 {/* Status Row (ticket 145): its own line, so six badges fit and the art stays clear. */}
                 {/* Ticket 145b: one implementation, shared with the stage plaque — see StatusBadges. */}
@@ -505,69 +430,8 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     own condition, because a status-only card has no damage to explain - it
                     previously showed nothing at all. Read from a diff of the simulated play,
                     so it covers every status card rather than hexbloom specifically. */}
-                {preview && preview.statusChanges.length > 0 && (
-                    <div className="hud-preview-tags">
-                        {preview.statusChanges.map(({ status, delta }) => (
-                            <span
-                                key={status}
-                                className={`hud-preview-chip ${delta > 0 ? 'hud-preview-chip-super' : 'hud-preview-chip-weak'}`}
-                            >
-                                {delta > 0 ? '+' : ''}{delta} {status.toUpperCase()}
-                            </span>
-                        ))}
-                    </div>
-                )}
-                {/* Elemental breakdown of the hover preview: STAB / type effectiveness / Sharp scaling */}
-                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0 || preview.scalingMultiplier !== 1 || preview.hitCount > 1 || preview.lethal) && (
-                    <div className="hud-preview-tags">
-                        {preview.stab && (
-                            <span
-                                className="hud-preview-chip"
-                                style={{ color: getElementAccent(preview.element), borderColor: getElementAccent(preview.element) }}
-                            >
-                                ×1.5 STAB
-                            </span>
-                        )}
-                        {/* TICKET 104: the multi-hit chip. The number above is the TOTAL the
-                            target loses - `blood_rite` reads 8, not "4" and then a surprise
-                            second 4. This says how that total arrives, which is the half of
-                            the information Henry was missing when he wrote "it did 5 damage +
-                            another 5 dmg". */}
-                        {preview.hitCount > 1 && (
-                            <span className="hud-preview-chip">
-                                ×{preview.hitCount} HITS
-                            </span>
-                        )}
-                        {preview.lethal && (
-                            <span className="hud-preview-chip hud-preview-chip-lethal">
-                                LETHAL
-                            </span>
-                        )}
-                        {preview.sharpBonus > 0 && (
-                            <span className="hud-preview-chip">
-                                +{preview.sharpBonus} SHARP
-                            </span>
-                        )}
-                        {/* Ticket 90: the turn-history multiplier, named. A `stampede` reading
-                            "x4 CARDS PLAYED" explains its own number; before this the preview
-                            silently showed the card's printed power. */}
-                        {preview.scalingMultiplier !== 1 && (
-                            <span className="hud-preview-chip">
-                                ×{formatMultiplier(preview.scalingMultiplier)} {SCALING_LABEL[preview.scalingKind ?? ''] ?? 'SCALING'}
-                            </span>
-                        )}
-                        {preview.effectiveness > 1 && (
-                            <span className="hud-preview-chip hud-preview-chip-super">
-                                SUPER EFFECTIVE ×{formatMultiplier(preview.effectiveness)}
-                            </span>
-                        )}
-                        {preview.effectiveness < 1 && (
-                            <span className="hud-preview-chip hud-preview-chip-weak">
-                                NOT VERY EFFECTIVE ×{formatMultiplier(preview.effectiveness)}
-                            </span>
-                        )}
-                    </div>
-                )}
+                {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
+                <UnitPreview preview={preview} />
 
                 {/* Energy Row — pips up to ENERGY_PIP_BUDGET, the compact bar past it */}
                 <div className="hud-bar-row">
