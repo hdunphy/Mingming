@@ -1,0 +1,38 @@
+| OS / hook | payoff text | printed | procs/game (offers/game) | delivered / proc | delivered / game | implied rate (HP per printed power, 75-frame) | flag |
+|---|---|---|---|---|---|---|---|
+| audhumbla_v2 PRIMORDIAL_MILK `aud_v2_milk` | heal card: +3 Regen | - | 10.20 (16.36) | Regen +3.00 | Regen +30.60; = 367.2 power-eq = 122.4% maxHp-eq | - |  |
+| draugr_v1 PERMAFROST_WAKE `draugr_v1_wake` | wake from Asleep: +1 Energized, draw 1 | - | 0.91 (2.05) | Energized +1.00; cards 1.00 | Energized +0.91; cards 0.91; = 45.5 power-eq = 15.2% maxHp-eq | - |  |
+| draugr_v2 GRAVE_CHILL_OS `draugr_v2_chill` | enemies with 2+ debuffs deal x0.8 to Draugr | - | 8.70 (25.12) | mod -15.2 HP on 74.2 (-1.23% frame; x0.79) | mod -132.7 HP | - |  |
+| fafnir_v1 HOARD_PROTOCOL `fafnir_v1_hoard` | turn end: unspent Energy -> Energized | - | 0.49 (7.89) | Energized +1.91 | Energized +0.94; = 33.1 power-eq = 11.0% maxHp-eq | - |  |
+| fafnir_v1 HOARD_PROTOCOL `fafnir_v1_recoil` | turn start: 1% maxHp per hoarded point (min 1) | - | 0.40 (7.83) | self -23.4 HP = 1.88% maxHp | self -9.4 HP | 1.88% maxHp per proc |  |
+| fafnir_v2 CORRUPTED_GOLD_OS `fafnir_v2_corrupted` | turn start: +2 Strengthened per debuff type, each debuff -1 | - | 3.08 (6.84) | Strengthened +3.66; Dazed -0.91; Poison -0.78; Weakened -0.18; Burn -0.09 | Strengthened +11.28; Dazed -2.82; Poison -2.41; Weakened -0.56; Burn -0.28; = 30.6 power-eq = 10.2% maxHp-eq | - |  |
+| fenrir_v1 UNBOUND_KERNEL `fenrir_v1_ally_hook` | ally attack: +1 Strengthened (in 1v1 SELF counts as ally: fires on own attacks) | - | 6.09 (19.15) | Strengthened +0.97; Weakened -0.03 | Strengthened +5.93; Weakened -0.16; = 29.1 power-eq = 9.7% maxHp-eq | - |  |
+| fenrir_v1 UNBOUND_KERNEL `fenrir_v1_berserk` | Fire attacks up to +50% scaled by missing HP | - | 6.79 (15.70) | mod +33.9 HP on 145.2 (3.00% frame; x1.23) | mod +230.3 HP | - |  |
+| fenrir_v1 UNBOUND_KERNEL `fenrir_v1_hook` | attack: +1 Strengthened and -2% maxHp recoil | - | 6.09 (19.15) | self -22.0 HP = 1.95% maxHp; Strengthened +0.98; Weakened -0.02 | self -134.1 HP; Strengthened +6.00; Weakened -0.10; = 29.6 power-eq = 9.9% maxHp-eq | 1.95% maxHp per proc |  |
+| fenrir_v2 CINDER_WALL_OS `fenrir_v2_hook` | ally applies Burn: +1 Sharp | - | 9.24 (28.89) | Sharp +0.95; Dazed -0.05 | Sharp +8.76; Dazed -0.48; = 28.3 power-eq = 9.4% maxHp-eq | - |  |
+| gullinbursti_v1 UNSTOPPABLE_MASS `gullin_v1_prepare` | non-attack status card primes next attack +3 power per Sharp | - | 0.00 (42.84) | (no measurable delta) | - | - |  |
+| hel_v1 TWILIGHT_CADENCE `hel_v1_cadence_dark` | Dark cast: DarkStance (+45% dmg dealt) | - | 6.02 (43.64) | DarkStance +1.00; LightStance -0.90 | DarkStance +6.02; LightStance -5.43; = 11.7 power-eq = 3.9% maxHp-eq | - |  |
+| hel_v1 TWILIGHT_CADENCE `hel_v1_cadence_light` | Light cast: LightStance (-45% dmg taken) | - | 5.89 (43.64) | DarkStance -0.91; LightStance +1.00 | DarkStance -5.38; LightStance +5.89; = 10.3 power-eq = 3.4% maxHp-eq | - |  |
+| hel_v2 lifeblood `hel_v2_lifeblood` | onHealCalculated multiplier 1.0 (INERT in shipped data) | - | 0.00 (8.30) | (no measurable delta) | - | - |  |
+| hel_v2 UNDERWORLD_GATEWAY `hel_v2_underworld_cost` | onCostCalculated: Dark spell ENERGY cost -> 0 (the mod delta here is energy, not HP) | - | 5.27 (25.50) | mod -2.1 HP on 2.1 (-0.17% frame; x0.00) | mod -10.9 HP | - |  |
+| hel_v2 hel_v2_underworld_reset `hel_v2_underworld_reset` | (not in PRINTED table) | - | 0.00 (4.78) | (no measurable delta) | - | - |  |
+| hel_v2 UNDERWORLD_GATEWAY `hel_v2_underworld_toll` | Dark spell costs 5% maxHp per printed Energy (cap 25%/turn) | - | 5.27 (25.50) | self -123.5 HP = 10.35% maxHp | self -651.4 HP | 10.35% maxHp per proc |  |
+| hraesvelgr_v1 GALE_FORCE_OS `hraes_v1_gale` | voluntary discard: 8 power Air to random enemy | 8 | 12.80 (14.18) | dmg raw 25.6 HP (applied 24.1) = 2.23% frame; enemy:BarkShield -0.11 | dmg raw 328.1 HP; enemy:BarkShield -1.47; = 5.9 power-eq = 2.0% maxHp-eq | 0.209 |  |
+| huldra_v1 ALLURE_PROXY `huldra_v1_hook` | ally buffs ally: 1 Weakened on random enemy | - | 20.34 (70.89) | enemy:Weakened +0.87; enemy:Strengthened -0.13 | enemy:Weakened +17.79; enemy:Strengthened -2.56; = 75.0 power-eq = 25.0% maxHp-eq | - |  |
+| huldra_v2 BARK_SHIELD_OS `huldra_v2_bark_end` | end of first turn: 50% BarkShield (allies smaller) | - | 1.00 (10.29) | BarkShield +50.00 | BarkShield +50.00; = 200.0 power-eq = 66.7% maxHp-eq | - |  |
+| jormungandr_v1 jorm_v1_count `jorm_v1_count` | (not in PRINTED table) | - | 0.00 (24.29) | (no measurable delta) | - | - |  |
+| jormungandr_v1 jorm_v1_reset `jorm_v1_reset` | (not in PRINTED table) | - | 0.00 (4.56) | (no measurable delta) | - | - |  |
+| jormungandr_v1 OUROBOROS_LOOP `jorm_v1_trigger` | 5th Water card a turn: draw 1 | - | 1.63 (24.29) | cards 1.00 | cards 1.63; = 24.4 power-eq = 8.1% maxHp-eq | - |  |
+| jormungandr_v2 TOXIN_FANG_OS `jorm_v2_toxin_fang` | attacks +10 HP (flat, post-divisor) per Poison stack on target | - | 5.70 (16.23) | mod +93.9 HP on 32.1 (7.07% frame; x3.93) | mod +535.2 HP | - |  |
+| kraken_v1 ABYSSAL_INK_SYS `kraken_v1_hook` | ally effect-draw: 2 Dazed on random enemy | - | 6.58 (37.22) | enemy:Dazed +1.80; enemy:Sharp -0.20 | enemy:Dazed +11.84; enemy:Sharp -1.32; = 63.8 power-eq = 21.3% maxHp-eq | - |  |
+| nidhoggr_v1 ROOT_CORRUPTION `nidhoggr_v1_root` | enemy turn end: +1 Poison (cancels the decay) | - | 2.66 (6.54) | enemy:Poison +1.00 | enemy:Poison +2.66; = 8.0 power-eq = 2.7% maxHp-eq | - |  |
+| nidhoggr_v2 BLOOD_SCENT_OS `nidhoggr_v2_bloodscent` | any unit crosses half HP: +1 Energy, draw 1 | - | 2.11 (2.11) | energy 1.00; cards 1.00 | energy 2.11; cards 2.11; = 115.9 power-eq = 38.6% maxHp-eq | - |  |
+| ratatoskr_v2 INSTIGATOR_OS `ratatoskr_v2_hook` | ally plays 0-cost at enemy: 1 Dazed on target | - | 12.55 (28.91) | enemy:Dazed +0.91; enemy:Sharp -0.09 | enemy:Dazed +11.43; enemy:Sharp -1.12; = 61.1 power-eq = 20.4% maxHp-eq | - |  |
+| skoll_v2 SOLAR_OVERDRIVE_OS `skoll_v2_solar_charge` | ally plays Fire attack: +1 Strengthened | - | 4.98 (17.43) | Strengthened +0.97; Weakened -0.03 | Strengthened +4.81; Weakened -0.17; = 23.4 power-eq = 7.8% maxHp-eq | - |  |
+| skoll_v2 SOLAR_OVERDRIVE_OS `skoll_v2_solar_overdrive` | attacks +10% per Strengthened stack | - | 4.75 (11.81) | mod +131.2 HP on 131.0 (11.43% frame; x2.00) | mod +623.5 HP | - |  |
+| valkyrie_v1 VALHALLA_UPLINK `valkyrie_v1_uplink` | turn end: replay a random discard for free | - | 7.07 (14.84) | dmg raw 66.0 HP (applied 62.3) = 5.43% frame; heal 30.4 HP = 2.50% maxHp; Strengthened +0.60; Sharp +0.35; Dazed -0.03; Weakened -0.06; enemy:BarkShield -0.19 | dmg raw 466.6 HP; heal 214.6 HP; Strengthened +4.27; Sharp +2.49; Dazed -0.24; Weakened -0.39; enemy:BarkShield -1.31; = 32.8 power-eq = 10.9% maxHp-eq | - |  |
+| valkyrie_v2 REBIRTH_CYCLE_OS `valk_v2_rebirth` | on reshuffle: 15 power Light to random enemy + heal self 15 power | 15 | 14.12 (18.28) | dmg raw 31.0 HP (applied 27.7) = 2.56% frame; heal 43.6 HP = 3.59% maxHp; enemy:BarkShield -0.25 | dmg raw 438.3 HP; heal 615.5 HP; enemy:BarkShield -3.48; = 13.9 power-eq = 4.6% maxHp-eq | 0.128 dmg / 0.179 heal |  |
+| ymir_v1 GLACIER_HEART_SYS `ymir_v1_hook` | turn start: +4 BarkShield (%maxHp) | - | 7.90 (15.88) | BarkShield +4.00 | BarkShield +31.59; = 126.3 power-eq = 42.1% maxHp-eq | - |  |
+| ymir_v2 GLACIAL_PACE_OS `ymir_v2_glacial` | Ice cards x1.25 | - | 6.74 (18.79) | mod +36.6 HP on 148.0 (2.67% frame; x1.25) | mod +246.8 HP | - |  |
+
+n: games per deck are in the rows' owner files (40 per opponent x 30 opponents = 1200 at --iter 20; 600 at --iter 10). Frame = owner maxHp.

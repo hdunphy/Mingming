@@ -1,5 +1,7 @@
 # Ticket 149 — The scorer prices what it can measure
 
+> **149b DELIVERED 2026-09-08** — all five measurements ran (3a/3b/3c/3e complete; 3d complete for 8 of ~14 lanes, the rest listed in the report). Read `../research/scorer-pricing.md` (short form, §6 = the §4 rulings with numbers) and `../research/firmware-power-census.md`; per-measurement findings in `results/t149_*/FINDINGS.md`; scripts `scratch/t149_*.ts`. Two findings not on the ticket: `hel_v2 lifeblood` ships at ×1.0 (inert) and `carrion_swoop` has no scorer branch (scores 1.1, delivers 2.2 fire-punches a cast). Next: Henry's §4 rulings, then 149c.
+
 **Type:** instrument work (`powerscale.ts` and the budget report). **Report-first: no card, deck,
 OS or engine number changes in this ticket.** A card that moves out of band because its price
 became honest goes to Henry with the measurement; it is not "corrected".
