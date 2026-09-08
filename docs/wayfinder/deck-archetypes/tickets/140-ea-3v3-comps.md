@@ -225,3 +225,59 @@ non-kraken engine in the roster.
 
 The screen list for ticket 141 is `scratch/top30.txt` (30th place: fenrir_v2 + skoll_v1 +
 kraken_v1 at 60); the full order is `results/compgrid/ranked.txt`.
+
+---
+
+## 8. After tickets 141–144: the grid re-run (beamless, 2026-09-07)
+
+`results/compgrid_beam` (the folder name predates the amended beam ruling; every row records
+`beam: 0`, which is the gym-grade search and the same instrument as §7). Refreshed panel: the zoo,
+Venom Court, the Fire pair (fenrir_v1 + skoll_v1 + jormungandr_v1), the ink loop (kraken_v1 +
+jormungandr_v1 + huldra_v2), ref a. Rounds 1–2: 144 comps × 10, top 72 × 20 more; 1,086 rows,
+5.08 turns a game, 1 truncation (skoll_v1 + ratatoskr_v1 + huldra_v1 vs the zoo, a heal stall).
+
+**The archetype triangle, measured (20 battles a cell):**
+
+| | ink loop | Fire pair | Venom Court | ref a | zoo |
+|---|---|---|---|---|---|
+| **ink loop** | – | **100** | 10 | 85 | 85 |
+| **Fire pair** | 0 | – | **100** | 50 | 65 |
+| **Venom Court** | **90** | 0 | – | 40 | 85 |
+| ref a | 15 | 50 | 60 | – | 40 |
+| zoo (Gossip Tide) | 15 | 35 | 15 | 60 | – |
+
+Ink > Fire > Control > Ink, and it is the type triangle (Water pair > Fire pair > Nature pair >
+Water pair) wearing archetype names. **Gossip Tide is retired** (31): its engine was ABYSSAL_INK's
+side-wide Daze. **Tidal Forge is retired** (it did not survive round 1 of §7).
+
+**The comps, re-picked:**
+- **Tempo / draw — "Ink Loop":** kraken_v1 + jormungandr_v1 + huldra_v2 (#1, 75). OUROBOROS counts
+  the side's Water cards (141j), its draw fires ABYSSAL_INK, huldra_v2's side shield (141g) buys the
+  first turns. The kraken_v1 + jormungandr_v1 pair averages 64 across its 8 comps — the best pair in
+  the game by 6 points and the thing to watch.
+- **Ramp — "Sun Devourer":** fenrir_v1 + skoll_v1 + jormungandr_v1 (62; the pair averages 58 across
+  8 comps). Strength from every attack on the side (141b/141e), cashed by Sun Devourer at 30.
+- **Control — Venom Court** stands: huldra_v2 + ratatoskr_v2 + jormungandr_v2 (54 in the round
+  robin; beats the ink loop 90–10). jormungandr_v2 + huldra_v1 + huldra_v2 (57, 7.8 turns) is the
+  grindier alternative.
+- **The Nature-gym counter (ticket 141 gym check):** fenrir_v1 + skoll_v1 + huldra_v1, #3 at 70,
+  5/6 into the zoo and 6/6 into Venom Court; the ALLURE mirror now edges the ratatoskr_v2 Dazed
+  feed (60).
+
+**The field:** round-1 mean 29.3 (a harder panel than §7's, so not comparable to 37.6 directly);
+kraken_v1 comps 36 vs 24 for the rest (gap 12, was 41). Element ladder: NWW 33 · FFN 32 · FFW 32 ·
+FWW 27 · NNW 26 · FNN 14 — Fire + Nature is above the field mean now; one Fire body with a Nature
+pair is still the floor. Per-firmware: skoll_v1 37, kraken_v1 36, jormungandr_v1 35, fenrir_v1 31,
+huldra_v2 28, jormungandr_v2 26, skoll_v2 25, huldra_v1 25, ratatoskr_v2 25, **kraken_v2 20,
+ratatoskr_v1 20, fenrir_v2 20**. Worst pairs: kraken_v2 + ratatoskr_v1 (7), jormungandr_v2 +
+kraken_v2 (10), fenrir_v2 + skoll_v2 (10).
+
+**What this asks for next:** a design session on the three bodies at 20 — kraken_v2 (TIDAL_CRUSH is
+an aura on cards the other bodies lose STAB on), fenrir_v2 (Burn → Sharp with no Burn partner
+outside kraken_v2's Scald), ratatoskr_v1 (heal-the-caster is honest but not an engine). Not number
+tweaks; those three need a reason to be in a comp. And a watch on the ink-loop pair: if it drifts
+past ~70 as a pair average, OUROBOROS's side count is the lever.
+
+Instrument note: round 1 vs round 2 correlate at 0.49 here (0.82 in §7) — a flatter field and a
+harder panel mean the screen is coarser and round 2 is doing real work; keep `--rounds 2`. The
+ink-loop column is 15% for the field, a fodder column in reverse; swap it for the #2 comp next time.
