@@ -387,6 +387,14 @@ const BattleStage: React.FC<BattleStageProps> = ({
         return playerParty.findIndex(p => p.currentHp > 0);
     })();
 
+    /*
+     * The backdrop takes the BIOME's element, not the active unit's: it is the room, and a room
+     * that changed colour when you selected a different ally would be reporting the wrong thing.
+     * Falls back to the stage's own violet outside a run, where there is no biome.
+     */
+    const biomeName = (battleState as unknown as { biomeName?: string }).biomeName ?? null;
+    const biomeColor = getElementAccent((battleState as unknown as { biomeElement?: string }).biomeElement ?? 'None');
+
     const anchors = useStageAnchors(battleState, activeAllyIndex);
     const spriteW = spriteWidthAt(anchors.scale);
 
@@ -444,6 +452,22 @@ const BattleStage: React.FC<BattleStageProps> = ({
 
     return (
         <div className="battle-stage" data-testid="battle-stage">
+            {/*
+              * TICKET 145f — THE BACKDROP MINIMUM. Not art (steam-release 33/34 owns that) and not
+              * motion (146 owns that): the least that makes the stage read as a PLACE rather than a
+              * dark rectangle with units on it. The biome name at 30%, three skewed shafts in its
+              * element at 6-10%, a haze at the foot and a one-pixel ground line — all of it in the
+              * biome's own colour, so the thing that changes between biomes is the thing the player
+              * already tracks.
+              */}
+            <div className="stage-backdrop" style={{ ["--biome" as string]: biomeColor }}>
+                <div className="stage-shaft" style={{ left: '33%' }} />
+                <div className="stage-shaft" style={{ left: '44%', opacity: 0.6 }} />
+                <div className="stage-shaft" style={{ left: '59%', opacity: 0.8 }} />
+                <div className="stage-haze" />
+                <div className="stage-ground" />
+                {biomeName && <div className="stage-biome-name">{biomeName}</div>}
+            </div>
             {renderSide(playerParty, false)}
             {renderSide(enemyParty, true)}
         </div>

@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import type { ProgramAction, ProgramConstraint } from '../../engine/types';
 import { selectCard, endTurn } from '../store/battleSlice';
+import {
+    FAN_CARD_H, FAN_CARD_W, FAN_SELECTED_LIFT, FAN_TRANSFORM_ORIGIN, fanCard,
+} from './fanGeometry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getEffectiveCardCost } from '../../engine/battleReducer';
 import { executeCostCalculated } from '../../engine/resolutionEngine';
@@ -142,9 +145,15 @@ const CardHand: React.FC<{
                         const isSelected = selectedCardId === card.id;
                         const isHovered = hoveredCardId === card.id;
 
-                        const centerOffset = index - (hand.length - 1) / 2;
-                        const rotation = centerOffset * 5;
-                        const arcDip = Math.abs(centerOffset) * 12;
+                        /*
+                         * TICKET 145d: the arch comes from `fanGeometry`, which is the mock's own
+                         * numbers. What was here was `rotation = offset * 5` and a DIP of
+                         * `|offset| * 12` — a fan that widened without limit as the hand grew, so a
+                         * seven-card hand ran into the draw and discard piles. The new one flattens
+                         * and tightens instead, and the cards never shrink: the card face is where
+                         * the numbers are.
+                         */
+                        const fan = fanCard(index, hand.length);
 
                         const source = caster;
                         // The cost the selected unit would ACTUALLY pay — includes primed
@@ -203,9 +212,9 @@ const CardHand: React.FC<{
                                 initial={{ opacity: 0, y: 40, scale: 0.9 }}
                                 animate={{
                                     opacity: isUnplayable ? 0.6 : 1,
-                                    y: isSelected ? -30 : (isHovered ? -30 : arcDip),
+                                    y: isSelected || isHovered ? -(fan.lift + FAN_SELECTED_LIFT + 20) : -fan.lift,
                                     scale: isSelected ? 1.08 : (isHovered ? 1.05 : 1),
-                                    rotate: isSelected ? 0 : (isHovered ? 0 : rotation),
+                                    rotate: isSelected || isHovered ? 0 : fan.rotation,
                                 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.2 }}
@@ -245,7 +254,11 @@ const CardHand: React.FC<{
                                 style={{
                                     cursor: 'pointer',
                                     flexShrink: 0,
-                                    transformOrigin: 'center bottom',
+                                    // §2c: below the card, so a rotation swings the top rather than the foot.
+                                    transformOrigin: FAN_TRANSFORM_ORIGIN,
+                                    marginLeft: fan.overlap,
+                                    width: FAN_CARD_W,
+                                    height: FAN_CARD_H,
                                     zIndex: isSelected ? 100 : (isHovered ? 99 : index),
                                     filter: isUnplayable ? 'grayscale(0.6)' : 'none',
                                     ...(stabAccent ? {
@@ -281,6 +294,22 @@ const CardHand: React.FC<{
                                         </span>
                                     </ElementMatchupHover>
                                     <div className="card-name">{data.name}</div>
+                                </div>
+
+                                {/*
+                                  * TICKET 145e — the target chip moved from the FOOT to directly
+                                  * under the name (§2c), and the foot now carries only the element.
+                                  * The reason is the stagger stage: with six units on the board at
+                                  * once, "who does this hit" stopped being obvious from there being
+                                  * one enemy, so it belongs where the eye already is rather than at
+                                  * the bottom of a 176px card.
+                                  *
+                                  * Still `describeLegalTargets` — the same predicate the drop
+                                  * handler refuses with, so the chip cannot promise a target the
+                                  * game rejects.
+                                  */}
+                                <div className="card-target" title={`Legal targets: ${describeLegalTargets(data)}`}>
+                                    {describeLegalTargets(data)}
                                 </div>
 
                                 {/* Description */}
@@ -369,9 +398,6 @@ const CardHand: React.FC<{
                                   * phrase from the very predicate the drop handler validates
                                   * against, so the legend cannot promise a target the game refuses.
                                   */}
-                                <div className="card-target" title={`Legal targets: ${describeLegalTargets(data)}`}>
-                                    {describeLegalTargets(data)}
-                                </div>
 
                                 {/* Hover tooltip: actions & constraints */}
                                 <AnimatePresence>
@@ -424,9 +450,19 @@ const CardHand: React.FC<{
                     className="pile-indicator draw-pile"
                     title={drawTooltipLines(draw).join('\n')}
                 >
-                    <span className="pile-icon">🃏</span>
-                    <span className="pile-count">{drawPileCount}</span>
+                    {/*
+                      * TICKET 145d — the pile IS a card, face down, with its count on its corner.
+                      * The emoji went with ticket 34's guard (an emoji ignores `color`), but the
+                      * real reason is §2c: a draw pile drawn as a card back says "these are cards"
+                      * without a label, and the count belongs ON the thing it counts rather than in
+                      * a row of numbers at the top of the screen — which is where §1 cut it from.
+                      * Two stacked shadows, because a pile of one and a pile of thirty should not
+                      * look identical; the number carries the precision, the stack carries the
+                      * glance.
+                      */}
                     <span className="pile-label">DRAW</span>
+                    <span className="pile-card pile-card-stacked" aria-hidden="true" />
+                    <span className="pile-count">{drawPileCount}</span>
                     <span className="pile-formula">+{draw.total}/turn</span>
                 </div>
                 <div className="hand-console-center">
@@ -455,7 +491,21 @@ const CardHand: React.FC<{
                         {keybindLegend()}
                     </div>
                 </div>
-                <div className="battle-controls">
+
+                {/*
+                  * The discard is a SINGLE card back, not a stack — §2c draws it that way and the
+                  * distinction is honest: the draw pile is what you will get and the discard is
+                  * what is spent, so only one of the two is worth reading a depth off.
+                  */}
+                <div className="pile-indicator discard-pile">
+                    <span className="pile-label">DISCARD</span>
+                    <span className="pile-card" aria-hidden="true" />
+                    <span className="pile-count">{discardPileCount}</span>
+                    {/*
+                      * END TURN sits DIRECTLY UNDER THE DISCARD (§2c), which is where the turn
+                      * ends up: the button and the pile it feeds are one column now instead of two
+                      * things at opposite ends of the console.
+                      */}
                     <button
                         disabled={!isOurTurn}
                         onClick={() => { playSfx('uiClick'); dispatch(endTurn()); }}
@@ -463,11 +513,6 @@ const CardHand: React.FC<{
                     >
                         END TURN
                     </button>
-                </div>
-                <div className="pile-indicator discard-pile">
-                    <span className="pile-icon">🗑️</span>
-                    <span className="pile-count">{discardPileCount}</span>
-                    <span className="pile-label">DISCARD</span>
                 </div>
             </div>
         </div>

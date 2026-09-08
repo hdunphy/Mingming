@@ -12,7 +12,13 @@ import { Icon } from '../theme/Icon';
  * just mirrors it into local state. Clicking the toggle is itself the user
  * gesture that unlocks the AudioContext.
  */
-const AudioControls: React.FC<{ floating?: boolean }> = ({ floating }) => {
+/**
+ * Ticket 145c added `inline`. The battle screen's `floating` variant is gone with the corner it
+ * floated in: the top bar owns that strip now and positions its own children, so the control has
+ * to be able to sit in a flex row rather than pin itself to the viewport. `floating` stays for any
+ * caller that still wants the old corner behaviour.
+ */
+const AudioControls: React.FC<{ floating?: boolean; inline?: boolean }> = ({ floating, inline }) => {
     const [muted, setMutedState] = useState(isMuted);
     const [volume, setVolumeState] = useState(getVolume);
 
@@ -42,20 +48,25 @@ const AudioControls: React.FC<{ floating?: boolean }> = ({ floating }) => {
                 borderRadius: '6px',
                 border: '1px solid rgba(0, 210, 255, 0.25)',
                 background: 'rgba(0, 0, 0, 0.45)',
-                ...(floating
-                    ? {
-                          position: 'fixed',
-                          top: '10px',
-                          right: '10px',
-                          zIndex: 1500,
-                      }
-                    : {
-                          // Nav corner: absolute so the centered tab row stays centered.
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                      }),
+                // Ticket 145c: `inline` sits in a flex row and positions nothing — the battle top
+                // bar owns its own layout, and a child that pins itself to the viewport cannot live
+                // in it.
+                ...(inline
+                    ? { position: 'static' as const }
+                    : floating
+                        ? {
+                              position: 'fixed' as const,
+                              top: '10px',
+                              right: '10px',
+                              zIndex: 1500,
+                          }
+                        : {
+                              // Nav corner: absolute so the centered tab row stays centered.
+                              position: 'absolute' as const,
+                              right: '10px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                          }),
             }}
         >
             <button

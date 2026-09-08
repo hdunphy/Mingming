@@ -41,6 +41,7 @@ const state = {
     playerDeck: { hand: [], drawpile: [], discard: [], exhaust: [] },
     enemyDeck: { hand: [], drawpile: [], discard: [], exhaust: [] },
     counters: {}, seed: 'x', logs: [], cardsPlayedThisTurn: 2,
+    biomeName: 'VERDANT SPRAWL', biomeElement: 'Nature',
 } as unknown as IBattleState;
 
 const css = fs.readFileSync('src/index.css','utf8');

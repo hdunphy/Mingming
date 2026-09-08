@@ -25,13 +25,32 @@ import { isPinnedToBottom } from './combatLogModel';
  * below is kept because it costs nothing and is correct if the stream is ever filled, but the [OS]
  * chip has never once rendered in a real fight.
  */
-const CombatLog: React.FC = () => {
+/**
+ * TICKET 145c: the collapsed state moved OUT of this component.
+ *
+ * 143c gave the log a collapsed/expanded model and owned the toggle itself. The top bar now shows
+ * the latest line with the chevron that opens the panel, so the two would be two sources of truth
+ * for one piece of state — and the bar's chevron would be unable to open a log that had closed
+ * itself. Controlled from `BattleArena`, which owns every other piece of battle-screen state for
+ * the same reason.
+ */
+const CombatLog: React.FC<{ isOpen?: boolean; onOpenChange?: (open: boolean) => void }> = ({
+    isOpen,
+    onOpenChange,
+}) => {
     const logs = useSelector((state: RootState) => state.battle.battle?.logs || []);
     const osLogs = useSelector((state: RootState) => state.battle.battle?.osLogs || []);
     const scrollRef = useRef<HTMLDivElement>(null);
     const pinnedRef = useRef(true);
     // Per session, deliberately not persisted (ticket 143c). Collapsed is the opening state.
-    const [isCollapsed, setIsCollapsed] = useState(true);
+    const [uncontrolledCollapsed, setUncontrolledCollapsed] = useState(true);
+    // Controlled when the parent passes `isOpen` (the battle screen); self-owned otherwise, so a
+    // debug scenario that renders the log alone still gets a working toggle.
+    const isCollapsed = isOpen === undefined ? uncontrolledCollapsed : !isOpen;
+    const setIsCollapsed = (collapsed: boolean) => {
+        if (onOpenChange) onOpenChange(!collapsed);
+        else setUncontrolledCollapsed(collapsed);
+    };
 
     // Both streams are append-only, so an entry's index WITHIN its own stream is
     // a stable identity ('log-17' / 'os-3'). Indexes into the combined array are

@@ -1344,52 +1344,98 @@ body {
 }
 
 /* ── Pile Indicators ── */
+/* Ticket 145d: the console is macro stack · draw · fan · discard, and END TURN sits inside
+   the discard column directly under its pile (§2c) rather than floating between them. */
 .hand-footer {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   width: 100%;
   justify-content: space-between;
-  padding: 0 60px;
+  padding: 0 30px 6px;
   box-sizing: border-box;
   position: relative;
 }
 
+/* ── The piles, ticket 145d §2c ──
+   Each pile is a face-down CARD with its count on its corner, not a labelled box with a number.
+   Two things follow from that. A card back says "these are cards" without a label, and the count
+   sits ON the thing it counts — which is exactly where §1 moved it TO, having cut the deck / hand /
+   discard counts out of the top bar. */
 .pile-indicator {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  min-width: 60px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
-.pile-icon {
-  font-size: 1.2rem;
+.pile-card {
+  position: relative;
+  width: 58px;
+  height: 80px;
+  border-radius: 6px;
+  border: 1px solid #303a48;
+  /* The same diagonal hatch the mock's card backs use, over the shop chassis' gradient — so a
+     face-down card is legibly the BACK of the card the fan shows face-up. */
+  background:
+    repeating-linear-gradient(45deg, transparent 0 5px, rgba(255, 255, 255, 0.04) 5px 10px),
+    linear-gradient(180deg, #171d27 0%, #10151d 100%);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
 }
+
+/* A pile of one and a pile of thirty must not look identical. The number carries the precision;
+   the stack carries the glance. Two offset shadows rather than N real cards, because the count is
+   already exact three pixels away. */
+.pile-card-stacked::before,
+.pile-card-stacked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  border: 1px solid #303a48;
+  background: linear-gradient(180deg, #171d27 0%, #10151d 100%);
+  z-index: -1;
+}
+
+.pile-card-stacked::before { transform: translate(3px, 3px); }
+.pile-card-stacked::after { transform: translate(6px, 6px); }
 
 .pile-count {
-  font-size: 1.1rem;
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: #eee;
+  color: #0a0a0f;
+  background: #ffcc00;
+  box-shadow: 0 0 0 2px #0a0a0f;
 }
 
 .pile-label {
-  font-size: 0.6rem;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.45);
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .draw-pile {
-  border-color: rgba(59, 130, 246, 0.3);
+  gap: 6px;
 }
 
 .discard-pile {
-  border-color: rgba(239, 68, 68, 0.3);
+  gap: 6px;
 }
 
 /* === Navigation Bar === */
@@ -2498,6 +2544,165 @@ body {
 :root[data-reduced-motion="on"] .card-cost.card-cost-discounted { animation: none; }
 
 /* ═══════════════════════════════════════════════════
+   THE TOP BAR — ticket 145c
+
+   44px, and it OWNS the strip. What it replaced was three fixed-position
+   islands from three different tickets — the gauntlet banner (18), the
+   TURN/CARDS PLAYED pills (90) and a floating AudioControls — none of which
+   knew about the others, so they overlapped the party columns at some widths
+   and each other at others.
+
+   Deliberately absent: the deck / hand / discard counts. §1 lists them among
+   what Henry cut from the bar, and 145d puts each count on the pile it counts.
+   ═══════════════════════════════════════════════════ */
+
+.battle-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  background: rgba(5, 5, 8, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.69rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7d8ea1;
+  z-index: 1500;
+}
+
+.battle-topbar .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 24, 0.75);
+  color: #dfe4ea;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.battle-topbar .pill b { color: #22d3ee; font-weight: 600; }
+
+/* PLAYED n is a plain number, not pips, and §2a is precise rather than lazy about
+   it: draws mean there is no known maximum, so a pip row would draw a denominator
+   the game does not have. Ticket 22 chose pips for ENERGY for the mirror reason. */
+.battle-topbar-played b { color: #8a837b; }
+.battle-topbar-played.is-live { border-color: rgba(255, 204, 0, 0.45); }
+.battle-topbar-played.is-live b { color: #ffcc00; }
+
+/* The log line takes the slack, so the pills keep their size and the SENTENCE is
+   what shortens on a narrow window. */
+.battle-topbar-log {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c6ccd4;
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.75rem;
+  padding: 0;
+}
+
+.battle-topbar-log-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.battle-topbar-chevron { opacity: 0.6; flex: 0 0 auto; }
+.battle-topbar-log:hover { color: #f0f0f5; }
+.battle-topbar-log:hover .battle-topbar-chevron { opacity: 1; }
+
+.battle-topbar-place { letter-spacing: 0.12em; }
+
+.battle-topbar-gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 24, 0.75);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+/* The bar swallowed AudioControls, so its own fixed positioning has to stop
+   applying inside the strip. */
+.battle-topbar .audio-controls { position: static; flex: 0 0 auto; }
+
+/* ── The Drivers row (§2a) ──
+   A Driver is the gym leader's standing rule for the WHOLE run. Ticket 68 ruling
+   4 put it on the offer screen because the route is irreversible; this is the
+   other half — it is still true while you are fighting, and a rule you cannot see
+   is a rule you cannot play around. Not a unit's daemons, which live on its
+   plaque. */
+.battle-drivers {
+  position: absolute;
+  top: 54px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1400;
+}
+
+.battle-drivers-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #5f6b7a;
+}
+
+.battle-driver-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 58, 237, 0.55);
+  background: rgba(124, 58, 237, 0.12);
+  color: #dfe4ea;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.battle-driver-chip i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7c3aed;
+  box-shadow: 0 0 6px #7c3aed;
+}
+
+/* Past three Drivers the chips go icon-only with the name on hover (§2a): five
+   named chips is a second top bar. */
+.battle-drivers:has(.battle-driver-chip:nth-child(5)) .battle-driver-chip {
+  padding: 0 8px;
+  font-size: 0;
+  gap: 0;
+}
+
+/* ═══════════════════════════════════════════════════
    BATTLE STAGE — the stagger stage (ticket 145a)
 
    Both parties as three-row columns with the plaques on the OUTSIDE and a
@@ -2514,6 +2719,87 @@ body {
    Mingmings, otherwise the card draw becomes an issue."*
    ═══════════════════════════════════════════════════ */
 
+/* ── The backdrop (ticket 145f §2b) ──
+   The MINIMUM that makes the stage read as a place: the biome's name, three shafts of its light,
+   a haze at the foot and a ground line. Art is steam-release 33/34 and motion is 146; this is the
+   floor under both, and everything in it takes `--biome` so the thing that changes between biomes
+   is the thing the player already tracks. */
+.stage-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stage-shaft {
+  position: absolute;
+  top: -40px;
+  width: 140px;
+  height: 520px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--biome) 10%, transparent), transparent);
+  transform: skewX(-12deg);
+  filter: blur(6px);
+}
+
+.stage-haze {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 140px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--biome) 8%, transparent));
+}
+
+.stage-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--biome) 40%, transparent), transparent);
+}
+
+.stage-biome-name {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--biome) 70%, transparent);
+}
+
+/* ── The reveal lane's card (ticket 145f §2b) ──
+   148x196 at -4 degrees. The tilt is doing work: an upright card in the middle of an upright board
+   reads as a modal, and this is not one — the fight continues behind it. */
+.reveal-card { transform: rotate(-4deg); }
+
+.reveal-caption {
+  margin-top: 14px;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Ticket 145e: the target chip under the name, and the foot carrying only the element. */
+.card-target {
+  align-self: center;
+  margin: 2px 0 4px;
+  padding: 1px 6px;
+  border: 1px solid #303a48;
+  border-radius: 3px;
+  background: #0f131a;
+  font-size: 0.53rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb4c8;
+  white-space: nowrap;
+}
 .battle-stage {
   position: absolute;
   inset: 0;

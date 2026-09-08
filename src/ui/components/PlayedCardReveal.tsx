@@ -82,22 +82,15 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                     ? { duration: 0.12 }
                     : { type: 'spring', stiffness: 420, damping: 26, opacity: { duration: 0.14 } }}
             >
+
+                {/*
+                  * TICKET 145f — THE REVEAL LANE. The card sits at 148x196 rotated -4 degrees,
+                  * which is the mock's geometry, and the caption goes UNDER it rather than over.
+                  * The tilt is doing work: an upright card in the middle of an upright board reads
+                  * as a modal, and this is not one — the fight continues behind it.
+                  */}
                 <div
-                    style={{
-                        fontSize: '0.72rem',
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        color: played.fromPlayer ? '#8fe3ff' : '#ff9d9d',
-                        textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-                        whiteSpace: 'nowrap',
-                    }}
-                >
-                    {played.sourceName}
-                    {played.targetName && played.targetName !== played.sourceName
-                        ? ` → ${played.targetName}`
-                        : ''}
-                </div>
-                <div
+                    className="reveal-card"
                     style={{
                         // The glow is the only thing that scales with the card's element; the face
                         // itself is untouched so it matches the hand exactly.
@@ -105,6 +98,17 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                     }}
                 >
                     <ProgramCard data={data} className="played-card-reveal" />
+                </div>
+                {/*
+                  * "FENRIR CASTS WAR PACT" — the sentence the mock prints under the lane. It says
+                  * the two things the card face cannot: WHO cast it, which at 3v3 is a real
+                  * question, and who it landed on.
+                  */}
+                <div className="reveal-caption" style={{ color: played.fromPlayer ? '#8fe3ff' : '#ff9d9d' }}>
+                    {played.sourceName} casts {data.name}
+                    {played.targetName && played.targetName !== played.sourceName
+                        ? ` \u2192 ${played.targetName}`
+                        : ''}
                 </div>
             </motion.div>
         </AnimatePresence>
