@@ -648,6 +648,17 @@ const BattleArena: React.FC = () => {
      */
     const dryFights: number = run?.blueprintDryFights ?? 0;
 
+    /**
+     * TICKET 59 (Henry, 2026-09-09): the opening run pays +10 points of blueprint on every kind
+     * that drops at all. Read beside `dryFights` for the same reason it is - a fact the reward
+     * roll needs and the engine cannot see for itself.
+     *
+     * From the RANCH, not the run: `runsCompleted` only moves when a run ends, so this cannot
+     * flip underneath a player mid-run. `?? 0` covers a save written before the field existed,
+     * which is a player who has completed no runs - the generous reading, and the true one.
+     */
+    const firstRun: boolean = useSelector((state: RootState) => (state.game.runsCompleted ?? 0) === 0);
+
     // Audio: battle-end stinger, played once per battle (seed = battle identity;
     // gauntlets chain battles without ever passing through battleState === null).
     const endSoundPlayedRef = useRef(false);
@@ -721,6 +732,7 @@ const BattleArena: React.FC = () => {
                  * a fight paid.
                  */
                 dryFights,
+                firstRun,
             });
 
             // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
@@ -743,7 +755,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers, dryFights]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers, dryFights, firstRun]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**

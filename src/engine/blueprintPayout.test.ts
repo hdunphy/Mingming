@@ -118,6 +118,41 @@ describe('the blueprint roll', () => {
         expect(blueprintRateFor('marketplace', 1)).toBe(0);
     });
 
+    it('pays the first run +10 points on every kind that drops, and nothing on the kinds that do not', () => {
+        /*
+         * Henry, 2026-09-09: "for the first run increase blueprint rate by 10% across the board."
+         *
+         * POINTS, NOT A MULTIPLIER, on the precedent of the solo bonus directly above - Henry's
+         * identical phrasing there was read the same way. A x1.1 reading would pay the gym +5
+         * points and a wild +2, which is generosity aimed away from a new player.
+         */
+        expect(blueprintRateFor('wild', 3, true)).toBeCloseTo(0.30, 10);
+        expect(blueprintRateFor('rival', 3, true)).toBeCloseTo(0.30, 10);
+        expect(blueprintRateFor('ambush', 3, true)).toBeCloseTo(0.30, 10);
+        expect(blueprintRateFor('elite', 3, true)).toBeCloseTo(0.35, 10);
+        expect(blueprintRateFor('gym', 3, true)).toBeCloseTo(0.60, 10);
+
+        // "Across the board" stops at the `base <= 0` guard: a workshop is not a fight and does not
+        // become one on your first run.
+        for (const kind of ['marketplace', 'workshop', 'event'] as const) {
+            expect(blueprintRateFor(kind, 3, true), kind).toBe(0);
+            expect(blueprintRateFor(kind, 1, true), kind).toBe(0);
+        }
+
+        // The alpha is already certain and the Math.min holds it there.
+        expect(blueprintRateFor('alpha', 3, true)).toBe(1);
+        expect(blueprintRateFor('alpha', 1, true)).toBe(1);
+
+        // THE TWO BONUSES STACK. A solo first-run wild is 0.40 - the highest ordinary rate in the
+        // game, and the number to bring back to Henry if the opening run reads rich.
+        expect(blueprintRateFor('wild', 1, true)).toBeCloseTo(0.40, 10);
+        expect(blueprintRateFor('elite', 1, true)).toBeCloseTo(0.45, 10);
+
+        // Default is OFF: every caller written before this, debug scenarios included, is unchanged.
+        expect(blueprintRateFor('wild', 3)).toBeCloseTo(0.20, 10);
+        expect(blueprintRateFor('wild', 3, false)).toBeCloseTo(0.20, 10);
+    });
+
     it('rolls a blueprint the player can actually be handed - never an unknown species', () => {
         // The drop IS the species you defeated (ticket 12). A corpse's `definitionId` is what the
         // ranch will be asked to assemble, so a drop naming anything else is a crash waiting at the

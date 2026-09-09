@@ -127,6 +127,30 @@ export const BLUEPRINT_DROP_RATE: Readonly<Record<NodeKind, number>> = {
 export const SOLO_BLUEPRINT_BONUS = 0.10;
 
 /**
+ * **THE FIRST-RUN BONUS - RULED by Henry, 2026-09-09: "for the first run increase blueprint rate
+ * by 10% across the board."**
+ *
+ * This is the modifier the long note below asks for by name. Early-game generosity was deleted
+ * in ticket 12 as `getBlueprintRate(rosterSize)` because it read a PERSISTENT stat that moved
+ * while you played; that note's own remedy is that it *"belongs as an explicit `firstRun: true`
+ * modifier on this table"*. `IRanchState.runsCompleted` counts ENDED runs, so during a run the
+ * answer cannot change - the objection that killed the curve does not apply to this shape.
+ *
+ * **+10 points, not x1.1**, on the precedent of `SOLO_BLUEPRINT_BONUS` directly above: Henry's
+ * identical phrasing there was read as points, and points leave the table's ordering intact.
+ * A multiplier would pay the elite +2.5 points and the gym +5 while paying a wild +2, making the
+ * generosity largest exactly where a new player is least likely to be.
+ *
+ * **"Across the board" means every kind that can drop at all.** The three non-fight kinds stay 0
+ * through the `base <= 0` guard in `blueprintRateFor` - a workshop does not start paying
+ * blueprints because it is your first run - and the alpha stays 1.00 through the `Math.min`.
+ * What moves: wild/rival/ambush 0.20 -> 0.30, elite 0.25 -> 0.35, gym 0.50 -> 0.60.
+ * **A SOLO first-run wild is 0.40**, because the two bonuses stack. That is the number to bring
+ * back to Henry if the opening run reads rich rather than forgiving.
+ */
+export const FIRST_RUN_BLUEPRINT_BONUS = 0.10;
+
+/**
  * **THE PITY FLOOR — RULED by Henry, 2026-09-01.** After this many won fights with no blueprint,
  * the next win drops one.
  *
@@ -149,13 +173,17 @@ export const BLUEPRINT_PITY_FIGHTS = 5;
  * state, and a second copy of "plus ten if solo" is exactly how a table and a screen come to
  * disagree. Capped at 1: the alpha is already certain and cannot become more so.
  */
-export function blueprintRateFor(nodeKind: NodeKind, bodies: number): number {
+export function blueprintRateFor(nodeKind: NodeKind, bodies: number, firstRun = false): number {
     const base = BLUEPRINT_DROP_RATE[nodeKind] ?? 0;
     // Rate 0 stays 0. A marketplace does not become a 10% blueprint because you walked in alone —
     // the three non-fight kinds are 0 by `FIGHT_KINDS`, and a bonus that ignored that would hand
     // a future event-fight a payout nobody authored.
     if (base <= 0) return 0;
-    return Math.min(1, bodies <= 1 ? base + SOLO_BLUEPRINT_BONUS : base);
+    // Ticket 59: the first-run bonus sits inside the same guard, which is what "across the board"
+    // has to mean for a kind that never rolls at all.
+    const solo = bodies <= 1 ? SOLO_BLUEPRINT_BONUS : 0;
+    const opening = firstRun ? FIRST_RUN_BLUEPRINT_BONUS : 0;
+    return Math.min(1, base + solo + opening);
 }
 
 /**
@@ -489,6 +517,8 @@ function rollForEntity(
     bodies: number,
     /** The pity floor has come due: this body drops whatever it rolled. */
     guaranteed: boolean,
+    /** Ticket 59: the player has finished no runs (`blueprintRateFor`'s second modifier). */
+    firstRun: boolean,
 ): { blueprint: string | null; cardChoice: ICardChoice; nextSeed: PrngSeed } {
     // 1. Blueprint, at the node-kind rate. Rolled even at rate 0 and at rate 1 so the seed chain
     //    advances identically whatever the node is — an alpha and a wild consume the same number of
@@ -498,7 +528,7 @@ function rollForEntity(
     //    fight** now (`scrapForWin`) and it is **flat**, so there is no scrap draw at all and this
     //    is the chain's first roll. One fewer draw per body — the sequence moved, which is a
     //    reward-roll change and not a battle one.
-    const bpRate = blueprintRateFor(nodeKind, bodies);
+    const bpRate = blueprintRateFor(nodeKind, bodies, firstRun);
     const bpRoll = prng.next();
     let currentSeed = bpRoll.nextSeed;
 
@@ -587,6 +617,15 @@ export interface IRewardRollInput {
      * owns it, and `BattleArena` advances it once per victory beside the banking dispatch.
      */
     readonly dryFights?: number;
+
+    /**
+     * True while the player has finished no runs - `IRanchState.runsCompleted === 0`, threaded in.
+     *
+     * Defaults to false, which is what a debug scenario and every caller written before ticket 59
+     * mean: an ordinary run, no opening-hand generosity. Read here and never written, exactly like
+     * `dryFights`: the ranch owns the counter and `gameSlice` advances it when a run ends.
+     */
+    readonly firstRun?: boolean;
 }
 
 /**
@@ -602,7 +641,7 @@ export interface IRewardRollInput {
  * re-entered node pay full rewards, by Henry's amendment of 2026-08-21.
  */
 export function rollDropTable(input: IRewardRollInput): IRewardBundle {
-    const { defeated, nodeKind, party, seed, dryFights = 0 } = input;
+    const { defeated, nodeKind, party, seed, dryFights = 0, firstRun = false } = input;
 
     /*
      * THE FIGHT'S SIZE IS ITS CORPSES, not the player's party.
@@ -639,7 +678,7 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         // Only get rewards for fainted enemies
         if (entity.currentHp > 0) continue;
 
-        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids, bodies, pityOwed);
+        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids, bodies, pityOwed, firstRun);
         pityOwed = false;
 
         defeatedCount += 1;
