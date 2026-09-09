@@ -624,7 +624,7 @@
     "overheat": {
         "id": "overheat",
         "name": "Overheat",
-        "description": "75 power + 1 Burn self.",
+        "description": "95 power + 1 Burn self.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -638,7 +638,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 75,
+                "power": 95,
                 "target": "TARGET"
             },
             {
@@ -1676,12 +1676,12 @@
     "sleep_powder": {
         "id": "sleep_powder",
         "name": "Sleep Powder",
-        "description": "Apply Sleep.",
+        "description": "Apply Sleep. Add 2 stacks of Poison.",
         "element": "Nature",
         "target": "Single",
         "category": "Status",
         "rarity": "Uncommon",
-        "baseCost": 1,
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -1692,6 +1692,12 @@
                 "type": "STATUS",
                 "status": "Asleep",
                 "stacks": 1,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 2,
                 "target": "TARGET"
             }
         ]
@@ -1918,7 +1924,7 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
-        "baseCost": 2,
+        "baseCost": 3,
         "constraints": [
             "not_stunned",
             "not_asleep",
