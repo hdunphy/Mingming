@@ -185,6 +185,8 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 
 ## Open items, in the order they should be taken
 
+**2026-09-09 — 149c and 150 are RULED and ready for Legion.** 149c (`tickets/149-scorer-pricing.md` §5): DRAW ladder 20/15/10, two-width score (Side ×1.0 / ×2.2), ±15% + MANUAL REVIEW, `CARDS_DISCARDED` branch, the daemon guard, hook formula with floor/ceiling trigger-rate tables, an OS band (15–40% of a pool per game, flag >50%) as balance report §1.4. 150 (`tickets/150-os-bonuses-ride-power.md`): delete `hel_v2_lifeblood`; new `onPowerCalculated` trigger; TOXIN_FANG +3 power/stack (equivalence); KINETIC_RAM two arms (+1 equivalence / +2.5 as printed) — Henry picks from the fields. Henry's framing for the scorer: a pre-grid lint and a general-insight tool, never width- or deck-specific; bands are a guide; daemons are the sanctioned over-band rare. The game AI does not read the scorer. Census: `research/scorer-pricing.md`, `research/firmware-power-census.md` (ticket 63 CLOSED by it).
+
 **2026-09-08 — WHERE THE MAP IS.** Read `TICKET-AUDIT-2026-09-07.md` §4 for the open list; this
 is the short form.
 - **145 battle scene — RULED, BUILDING.** The stagger stage. `tickets/145-mock/145-mock.html` is the
