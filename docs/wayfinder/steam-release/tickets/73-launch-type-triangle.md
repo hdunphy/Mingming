@@ -91,6 +91,42 @@ The grid is the source; no new harness is needed. Filter `docs/balance/deck_grid
 the six launch species by `primaryElement in {Nature, Water, Fire}`, count `winRate === 0 || === 1`,
 and split by whether `primaryElement` matches on both sides.
 
+## Numbers for the session (2026-09-02, recomputed from the current `deck_grid.json`) — DEFERRED by Henry
+
+Henry, 2026-09-02: *"I'll work on this in another branch. But keep a note of it."* Not ruled; the
+numbers below are what the session opens with when he picks it up.
+
+Current grid has **19** exact 0/100 cells in the 120 EA matchups (ticket text says 21 — earlier
+grid). Henry's standing target for a type matchup is **75/25 to 80/20**. Against that:
+
+| EA cells | n | mean WR | median WR | 0/100 | ≥90 or ≤10 | turns |
+| --- | --- | --- | --- | --- | --- | --- |
+| advantaged | 48 | **74.9%** | **85.8%** | 9 | **26 (54%)** | 4.2 |
+| disadvantaged | 48 | 26.5% | 14.2% | 8 | 23 | 4.0 |
+| same-element | 24 | 49.3% | 48.3% | 2 | 7 | 5.3 |
+
+**The mean is on target; the spread is not** — half the advantaged cells are blowouts. And the
+triangle is lopsided: per-deck mean when advantaged / disadvantaged —
+
+fenrir_v1 .97/.20 · fenrir_v2 .94/.20 · skoll_v1 .75/.20 · skoll_v2 .89/.28 ·
+kraken_v1 .91/.33 · kraken_v2 .89/.51 · jorm_v1 .97/.55 · jorm_v2 .42/.49 ·
+rat_v1 .70/.05 · rat_v2 .52/.04 · huldra_v1 .33/.30 · huldra_v2 .70/.03
+
+**Nature is the weak corner both ways**: Fire→Nature wins ~84%, Water→Fire ~93%, but
+Nature→Water only ~56%, and three Nature decks win 3–5% when disadvantaged. Two cells run
+*against* the triangle: skoll_v1 0% into huldra_v1 despite advantage (a 19–20-turn stall — the
+deliberately-weak team-leaning deck out-sustaining a burst deck) and huldra_v1 100% into jorm_v2
+while disadvantaged. huldra_v1 / ratatoskr_v1 remain the same-element 0/100 pair.
+
+Also filed here from ticket 76 (arm 3): in the gauntlet's **rolled** lead-in fights the type-correct
+party underperforms a water-lean one by 10pt of compound while the boss cell is identical — type
+advantage cashes where the enemy is authored, raw deck strength where the pool is mixed. Any
+weighting of the rolled pool toward the gym's element is this ticket's lever, not 77's.
+
+Reading for the session: the constant (Q2a) moves every cell the same amount and cannot fix a
+lopsided corner; the corner and the same-element pair are deck-shape problems that belong with the
+two-win-paths rework (ticket 78's frame — a deck with one damage path is the deck that reads 0/100).
+
 ## Resolution
 
 _(open)_

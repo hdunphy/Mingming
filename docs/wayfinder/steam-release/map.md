@@ -166,6 +166,7 @@ Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 
 | [74 Tidewrack re-authored: kraken_v2 replaces kraken_v1; thorn_tithe printing](tickets/74-tidewrack-comp-swap.md) | task | agent | [71](tickets/71-tidewrack-build.md) |
 | [76 Rootfall: find the hole before ruling the lever](tickets/76-rootfall-diagnosis.md) | grilling | Henry (arms: agent) | [75](tickets/75-tidewrack-rolled-fights.md) |
 | [77 The player side has never been in the graded arm: leveling, macros, Drivers, ROOT ROT reshaped](tickets/77-player-progression-arms.md) | grilling | Henry (arms: agent) | [76](tickets/76-rootfall-diagnosis.md) |
+| [78 Party synergy: the only channel between members is the enemy's status bar](tickets/78-party-synergy-matrix.md) **HELD — matrix runs after deck-archetypes 151** | grilling | Henry (tags + matrix: agent) | deck-archetypes [151](../deck-archetypes/tickets/151-ea-deck-rework-two-paths.md) |
 
 ### Phase 2 — Content Complete (~December 2026 → ~March 2027)
 

@@ -6461,5 +6461,111 @@
                 "target": "TARGET"
             }
         ]
+    },
+    "bark_lash": {
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "id": "bark_lash",
+        "name": "Bark Lash",
+        "description": "1 power for each stack of Bark Shield you hold.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 0,
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 1,
+                "target": "TARGET",
+                "scaling": "BARKSHIELD_STACKS"
+            }
+        ]
+    },
+    "seed_spit": {
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "id": "seed_spit",
+        "name": "Seed Spit",
+        "description": "6 power. Apply 1 Poison.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 6,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "serpent_flurry": {
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "id": "serpent_flurry",
+        "name": "Serpent Flurry",
+        "description": "Three strikes of 9 power.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 9,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 9,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 9,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "thorn_whip": {
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "id": "thorn_whip",
+        "name": "Thorn Whip",
+        "description": "15 power. +5 power per Sharp stack you have.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET",
+                "scaling": "SHARP_STACKS"
+            }
+        ]
     }
 }
