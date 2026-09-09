@@ -374,6 +374,17 @@ export const HookFactory = {
                 const enemies = (isOwnerPlayer ? state.enemyParty : state.playerParty)
                     .filter(e => e.currentHp > 0);
                 if (enemies.length === 0) return { targetId: null, state };
+                /*
+                 * TICKET 59 (Henry, 2026-09-09): with ONE candidate the pick is not a choice,
+                 * so it must not spend a draw. It used to: `nextInt(0, 0)` always returns 0 and
+                 * always advances the seed, so every 1v1 trigger silently shifted the whole
+                 * rest of that battle's random sequence relative to the same fight in 3v3.
+                 * That is what put 29 of 30 kraken_v1 grid cells off (field 46.81 vs 49.50).
+                 * Guarding is the correct shape rather than a baseline patch: a draw whose
+                 * outcome is forced is not randomness, and the CONDITION is the candidate
+                 * count, not a cap on anything.
+                 */
+                if (enemies.length === 1) return { targetId: enemies[0].id, state };
                 const prng = new PRNG(state.seed);
                 const { value: index, nextSeed } = prng.nextInt(0, enemies.length - 1);
                 return {

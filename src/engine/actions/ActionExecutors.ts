@@ -960,7 +960,10 @@ export function resolveProgramFree(
     // random consumer does not replay it (same contract as HookFactory.resolveTarget).
     const enemies = (isPlayerSource ? finalState.enemyParty : finalState.playerParty).filter(e => e.currentHp > 0);
     let defaultTargetId = sourceId;
-    if (enemies.length > 0) {
+    if (enemies.length === 1) {
+        // TICKET 59: one candidate is not a choice - see HookFactory.resolveTarget's guard.
+        defaultTargetId = enemies[0].id;
+    } else if (enemies.length > 1) {
         const { value: index, nextSeed } = new PRNG(finalState.seed).nextInt(0, enemies.length - 1);
         defaultTargetId = enemies[index].id;
         finalState = { ...finalState, seed: nextSeed };
@@ -1072,7 +1075,10 @@ export class RedirectTargetExecutor extends ActionExecutor<RedirectTargetActionD
             const targetParty = isPlayerTarget ? newState.playerParty : newState.enemyParty;
             const validTargets = targetParty.filter(e => e.currentHp > 0 && e.id !== targetId);
 
-            if (validTargets.length > 0) {
+            if (validTargets.length === 1) {
+                // TICKET 59: one candidate is not a choice - no draw spent.
+                finalTargetId = validTargets[0].id;
+            } else if (validTargets.length > 1) {
                 const { value: randIndex, nextSeed } = prng.nextInt(0, validTargets.length - 1);
                 finalTargetId = validTargets[randIndex].id;
                 newState = { ...newState, seed: nextSeed };
