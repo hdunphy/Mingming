@@ -73,6 +73,7 @@ export function createEmptyRanch(): IRanchState {
         highestTierCleared: 0,
         seenTips: [],
         codexMilestones: [],
+        runsCompleted: 0,
     };
 }
 
@@ -345,7 +346,24 @@ const gameSlice = createSlice({
             void state;
             return createEmptyRanch();
         },
-    }
+    },
+
+    /**
+     * TICKET 59: the ranch counts runs that ENDED, wherever they ended.
+     *
+     * Matched on the action TYPE rather than by importing `endRun`, because `runSlice` already
+     * reaches this way round and an import here would close the cycle. The three dispatch sites
+     * (defeat and victory in `BattleArena`, abandon in `RunScreen`) all pass through this one
+     * reducer, which is the point - a fourth ending added later is counted without finding it.
+     */
+    extraReducers: (builder) => {
+        builder.addMatcher(
+            (action: { type: string }) => action.type === 'run/endRun',
+            (state) => {
+                state.runsCompleted = (state.runsCompleted ?? 0) + 1;
+            },
+        );
+    },
 });
 
 export const {

@@ -417,6 +417,24 @@ export interface IRanchState {
      * Henry's numbers — see `CodexMilestone`.
      */
     readonly codexMilestones: ReadonlyArray<string>;
+    /**
+     * How many runs this player has FINISHED, by any outcome (victory, defeat or abandon).
+     *
+     * Ticket 59 (Henry, 2026-09-09): *"for the first run increase blueprint rate by 10% across
+     * the board"*. `RewardSystem`'s own note asks for exactly this shape - early-game generosity
+     * *"belongs as an explicit `firstRun: true` modifier on this table, not as a silent function
+     * of roster length"* - and this counter is what makes `firstRun` answerable.
+     *
+     * **It counts ENDED runs, not started ones, and it lives on the ranch.** A run in progress
+     * cannot change it, so the bonus can never switch off underneath a player mid-run - which is
+     * the failure that made the deleted `getBlueprintRate(rosterSize)` curve wrong. Abandoning
+     * counts: `endRun('abandoned')` is a finished attempt, and not counting it would let a player
+     * farm the first-run rate forever by quitting to the ranch.
+     *
+     * Optional and `.default(0)` for the same reason `seenTips` is: a save written before this
+     * field is a player who has completed no runs, which is what the default says. No version bump.
+     */
+    readonly runsCompleted?: number;
 }
 
 export interface IRanchMember {
@@ -567,6 +585,8 @@ export const RanchStateSchema = z.object({
     // reason the field is add-only and never removed — see `IRanchState.seenTips`.
     seenTips: z.array(z.string()).default([]),
     codexMilestones: z.array(z.string()).default([]),
+    // Ticket 59, same add-only shape as `seenTips` above: absent means zero completed runs.
+    runsCompleted: z.number().int().min(0).default(0),
 });
 
 /**

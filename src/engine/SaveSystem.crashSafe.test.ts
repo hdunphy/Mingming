@@ -65,6 +65,7 @@ function goodRanch(overrides: Partial<IRanchState> = {}): IRanchState {
         highestTierCleared: 0,
         seenTips: [],
         codexMilestones: [],
+        runsCompleted: 0,
         ...overrides,
     };
 }

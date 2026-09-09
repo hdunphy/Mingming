@@ -75,6 +75,7 @@ function makeRanch(overrides: Partial<IRanchState> = {}): IRanchState {
         highestTierCleared: 1,
         seenTips: [],
         codexMilestones: [],
+        runsCompleted: 0,
         ...overrides,
     };
 }
@@ -289,6 +290,7 @@ describe('malformed persistent currency FAILS rather than emptying itself', () =
             // seen none.
             seenTips: [],
             codexMilestones: [],
+            runsCompleted: 0,
         });
     });
 });
