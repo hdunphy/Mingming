@@ -26,10 +26,46 @@
 
 const ENV_PROP = 'env';
 
-/** The real process environment, or `{}` where there is no process. */
-export const ENV: Record<string, string | undefined> =
+/**
+ * The real process environment, or `{}` where there is no process.
+ *
+ * **IT IS EMPTY UNDER vite-node TODAY, AND THAT IS WHY THIS THROWS.** The computed-key reach was
+ * meant to dodge `vite.config.ts`'s `define: { 'process.env': {} }`. It does not: measured
+ * 2026-09-09, `Object.keys(process.env).length` inside a vite-node script is **0**, so every
+ * instrument that reads `ENV.DECK` has been silently running its DEFAULT deck and printing a
+ * perfectly plausible result for the wrong thing. That is the ticket-114 failure this file's own
+ * header describes, reproduced by the very guard written to prevent it.
+ *
+ * So reading a missing key is now a THROW rather than `undefined`. The header's own argument is
+ * the justification: a required flag "would have caught the re-baseline bug on its first lane
+ * instead of its thirty-first". Every env-based run line in this folder is ALREADY broken; this
+ * only decides whether it breaks loudly. `arg()` below works, and is the fix for each script.
+ *
+ * A caller that genuinely wants "unset is fine" reads `ENV_RAW` instead.
+ */
+export const ENV_RAW: Record<string, string | undefined> =
     ((globalThis as unknown as Record<string, Record<string, Record<string, string | undefined>>>)
         .process?.[ENV_PROP] ?? {}) as Record<string, string | undefined>;
+
+/** True when the substitution has blanked the environment, which is the only case that throws. */
+const ENV_IS_EMPTY = Object.keys(ENV_RAW).length === 0;
+
+export const ENV: Record<string, string | undefined> = new Proxy(ENV_RAW, {
+    get(target, key): string | undefined {
+        if (typeof key !== 'string') return undefined;
+        const value = target[key];
+        if (value === undefined && ENV_IS_EMPTY) {
+            throw new Error(
+                `${key}: the environment is EMPTY under vite-node - vite.config.ts substitutes ` +
+                `\`process.env\` with {} - so \`ENV.${key}\` cannot be read, and this script ` +
+                `would otherwise have silently run its DEFAULT (the ticket-114 dead-arm failure). ` +
+                `Pass a flag instead: \`npx vite-node <script> -- --${key.toLowerCase()} <value>\`, ` +
+                `and switch the script to \`arg('${key.toLowerCase()}')\`.`,
+            );
+        }
+        return value;
+    },
+});
 
 /**
  * A command-line flag, `--name value`. Prefer this in new instruments.
