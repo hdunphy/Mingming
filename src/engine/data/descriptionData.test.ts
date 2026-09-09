@@ -100,7 +100,6 @@ const ALLOWED: Record<string, string> = {
     // --- the number lives in code that is not hook data: hand-written firmware, or a daemon
     //     whose behaviour is implemented in daemonHooks.ts rather than declared in hooks.json ---
     harden_daemon: 'daemonHooks.ts implements it; no actions and no hooks.json entry',
-    core_overclock_daemon: 'daemonHooks.ts implements it; no actions and no hooks.json entry',
     war_molt: 'the discard payout is handled by the discard pipeline, not by an action',
 
     // --- arithmetic the extractor deliberately does not do ---

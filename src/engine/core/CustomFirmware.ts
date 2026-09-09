@@ -153,10 +153,10 @@ function helBloodHpCost(pct: number, owner: IBattleEntity): number {
  *
  * WHY IT IS HERE AND NOT IN hooks.json. The mechanism is `core_overclock_daemon`'s exactly —
  * an `onDamageCalculated` multiplier scaled by STRENGTH_STACKS — and that hook IS expressible
- * as data. What is not expressible is the CAP: `HookFactory.resolveScaling` hard-caps
- * STRENGTH_STACKS at `STRENGTH_STACK_CAP` (8), and this OS is specified at 5. A data hook
- * would read +120% at eight stacks where the design says +75% at five, and the difference is
- * not cosmetic on a deck built to hoard — `strength_burst` alone grants 5.
+ * as data. What is not expressible is the CAP: this OS is specified at a 5-stack ceiling,
+ * and `HookFactory.resolveScaling` no longer has one to lend it — ticket 136h set
+ * `STRENGTH_STACK_CAP` to Infinity on Henry's "no caps allowed", so the shared path is
+ * uncapped and a data hook would run away with a hoarding deck; `strength_burst` alone grants 5.
  *
  * Expressing it as data would have meant a new `scalingCap` field on the hook schema, which
  * per HANDOFF 8c2 means touching zod AND the TS unions in two places each, for one consumer.

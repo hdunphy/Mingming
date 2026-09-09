@@ -293,7 +293,7 @@
     "core_overclock_daemon": {
         "id": "core_overclock_daemon",
         "name": "CORE_OVERCLOCK",
-        "description": "Daemon: Strength bonus is doubled for the rest of battle.",
+        "description": "Daemon: +20% damage per stack of Strength. No cap.",
         "hooks": [
             {
                 "id": "daemon_double_strength",
