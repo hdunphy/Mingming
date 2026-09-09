@@ -92,3 +92,7 @@ carrion_swoop is the largest single miss in either table: a 1e card that hits fo
 - Frame = owner maxHp for every row, including damage on a differently-sized enemy (frames differ by up to ~15% across the roster); the 0.128 / 0.209 rates would move by that much on the target's frame.
 - Grants' HP-eq uses the scorer's tables; it is a price, not a measurement of HP moved. Regen at 12 power a stack is the loudest example (audhumbla_v2 reads 122% of a pool a game in Regen "price").
 - fire_punch_v2's benchmark rides fenrir_v2's frame, Fire STAB and CINDER_WALL Sharp (not on her own attacks — Sharp is defensive); baseline_strike on the control frame was queued as the no-STAB, no-firmware control and did not run.
+
+## Addendum 2026-09-09 — lane E (the nine owners the first pass did not reach; 20 games per opponent) and the 3v3 consume cells
+
+Folded into `research/firmware-power-census.md` (tables 1–3, companion table, Q3/Q10) and `research/scorer-pricing.md` §3–§4. Raw tables: `table_raw2.md` (full census incl. new decks), `scaler_table.md`.

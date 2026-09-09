@@ -103,3 +103,13 @@ umbral_feast 6.15 (+105%) · bloodwrath 8.45 (+182%) · ash_communion 8.83 (+36%
 - The probe's enemy-HP delta and `damageLedger` per cast include OS procs fired inside the same action (e.g. TOXIN_FANG on jormungandr_v2); for the consume family only the heal / stack numbers are used, which are not affected.
 - Poison "realized" turns count game turns remaining after the cast; in 1v1 the target's death is the game's end, so this is exact for enemy piles and slightly generous for self piles (the owner can die first).
 - The `_s` re-runs (nidhoggr_v2, huldra_v1) used the same seeds as the originals and differ only by the census samples and the enemy-side stack tracking; the non-`_s` files are kept for reference.
+
+## Addendum 2026-09-09 — 3v3 cells (hexbloom in zoo 25 games; contagion in control 20; corrosive_leak in ink_loop 26)
+
+| card | games | casts | casts/game | pile read at cast mean / median / max | empty at cast | enemy pile census at width |
+|---|---|---|---|---|---|---|
+| hexbloom | 25 | 5 | 0.20 | 6.0 / 7 / 7 | 0% | 0.93 Weakened (spread over three bodies) |
+| contagion | 20 | 6 | 0.30 | 15.7 / 12 / 44 | 0% | 1.05 Poison |
+| corrosive_leak | 26 | 13 | 0.50 | 0 / 0 / 0 (adds 2) | 100% | 3.15 self Poison |
+
+Files: `w3_huldra_v1_all.jsonl`, `w3_jormungandr_v2.jsonl`, `w3_jormungandr_v1_all.jsonl`. The cards are cast 4–10× less often at width; contagion is held for an even bigger pile (one cast at 44).

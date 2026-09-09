@@ -114,6 +114,12 @@ per owning deck at 1v1.
 | `ash_communion` | fenrir_v2 | 0.35 | self Burn **2.8** / 3 / 3 | 0.9 | 1.5 | 4.6 (−29%) | 8.8 (+36%) |
 | `corrosive_leak` | jormungandr_v1 | 1.83 | (adds 2; 69% of casts on an empty pile) | 1.4 | none — its price is the Energized term | 2.3 (+130%) | 2.3 |
 
+At 3v3 (panel cells, 20–26 games per deck, run 2026-09-09) the cards are cast far less — hexbloom
+0.20 a game, contagion 0.30, corrosive_leak 0.50 — and the pile at cast is *bigger* for contagion
+(15.7 Poison, one cast at 44) and about the same for hexbloom (6.0; the enemy Weakened census at
+width is 0.9 because ALLURE_PROXY's stacks spread over three bodies). corrosive_leak is cast on an
+empty pile 100% of the time at width.
+
 **Question 1 — is the pile at cast the census mean?** No. For every card that reads an existing pile
 the AI holds it for **~2× the pile it sees on an ordinary turn** (hexbloom 10.2 vs 4.3; contagion
 8.9 vs 5.5). The census means ticket 66 installed were the right measurement of the wrong moment.
@@ -155,18 +161,22 @@ the spec's own rates are 0.25 damage / 0.1875 heal; the folklore was 0.30):
 | hel_v2 UNDERWORLD_GATEWAY toll | 5.0%/Energy, exactly as printed; 55% of her pool a game | — |
 | hel_v2 `lifeblood` "+50% healing" | ships at `multiplier: 1.0` — **inert, 0 fires in 8.3 offers a game** | data defect or deliberate? |
 | huldra_v1 ALLURE_PROXY | ~18 free Weakened a game on the enemy | the pile hexbloom cashes (§3) |
+| gullinbursti_v2 KINETIC_RAM (+2.5 HP flat per Sharp, post-divisor) | **×2.53** on the attack (13 Sharp read; 23 procs, 63% of a pool a game) | the same flat-HP shape as TOXIN_FANG, bigger by volume |
+| ratatoskr_v1 GOSSIP_NODE (10-power heal per ally 0-cost) | 0.179 per proc — on spec — but **54 procs a game = 127% of her pool healed** | the largest delivered-per-game number in the census |
+| kraken_v2 TIDAL_CRUSH | ×1.30 exactly (data says 1.3, the ticket said 1.2) | — |
+| `baseline_strike` on the control frame (no STAB, no firmware) | 0.146; 0.77 of `fire_punch_v2` | the "same card, different deck" spread the scorer cannot see |
 
 Nothing crosses the ticket's >2× flag line on the *rate*; the 0.30 folklore is 1.6–2.3× above
-everything measured. Not measured this pass (the lane was cut off): ratatoskr_v1 GOSSIP,
-gullinbursti_v2 KINETIC_RAM, kraken_v2 TIDAL_CRUSH (×1.3 in data, not 1.2), hraesvelgr_v2 UPDRAFT,
-audhumbla_v1 GENESIS, skoll_v1 TREACHERY, sleipnir MOMENTUM/WAR_STEED, plus `stampede`,
-`momentum_crash`, `baseline_strike` in the companion table — one more lane, ~1 h on a quiet box.
+everything measured. The census is complete (the last nine owners ran 2026-09-09).
 
 **Companion table (scaling attacks vs `fire_punch_v2`):** `carrion_swoop` on hraesvelgr_v1 deals
 **2.2 fire-punches a cast** (16.6% of a target's pool, 1.6 casts a game) and scores **1.1** —
 `CARDS_DISCARDED` has no branch in `calculatePowerscale` (L687–726) and no manual-review flag, so
 it prices at the printed 11 with no scaling. `starfall` reads 3.0 triggered draws on valkyrie_v2
-against the 1.25 constant (divergence 2.1×); `serpents_coil` 4.06 cards played against 2.5 (1.5×).
+against the 1.25 constant (divergence 2.1×); `serpents_coil` 4.06 cards played against 2.5 (1.5×); `stampede` 4.3 against 2.5 on both sleipnir decks
+(2.5 fire-punches a cast on v1, 2.7×); `momentum_crash` consumes 8.6 Strengthened against the constant
+8 — the constant is right and the card is still 2.2 fire-punches for 1e (2.4×). `carrion_swoop` on
+sleipnir_v2, which has no discard engine, prices exactly — the scaler is the whole card.
 
 ## 5. Band tolerance (3e) — `bandspread` on the current pool, n = 232
 
