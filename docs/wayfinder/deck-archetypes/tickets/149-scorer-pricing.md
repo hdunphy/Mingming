@@ -1,11 +1,11 @@
 # Ticket 149 — The scorer prices what it can measure
 
-> **149b DELIVERED 2026-09-08** — all five measurements ran (3a/3b/3c/3e complete; 3d complete — the last nine owners and the 3v3 consume cells ran 2026-09-09). Read `../research/scorer-pricing.md` (short form, §6 = the §4 rulings with numbers) and `../research/firmware-power-census.md`; per-measurement findings in `results/t149_*/FINDINGS.md`; scripts `scratch/t149_*.ts`. Two findings not on the ticket: `hel_v2 lifeblood` ships at ×1.0 (inert) and `carrion_swoop` has no scorer branch (scores 1.1, delivers 2.2 fire-punches a cast). Next: Henry's §4 rulings, then 149c.
+> **149c RULED 2026-09-09 — Legion: start at §5.** 149b DELIVERED 2026-09-08 — all five measurements ran (3a/3b/3c/3e complete; 3d complete — the last nine owners and the 3v3 consume cells ran 2026-09-09). Read `../research/scorer-pricing.md` (short form, §6 = the §4 rulings with numbers) and `../research/firmware-power-census.md`; per-measurement findings in `results/t149_*/FINDINGS.md`; scripts `scratch/t149_*.ts`. Two findings not on the ticket: `hel_v2 lifeblood` ships at ×1.0 (inert) and `carrion_swoop` has no scorer branch (scores 1.1, delivers 2.2 fire-punches a cast). Next: Henry's §4 rulings, then 149c.
 
 **Type:** instrument work (`powerscale.ts` and the budget report). **Report-first: no card, deck,
 OS or engine number changes in this ticket.** A card that moves out of band because its price
 became honest goes to Henry with the measurement; it is not "corrected".
-**Status:** written 2026-09-08 off the ticket audit; Henry and the design session take the rulings
+**Status:** 149b delivered; **149c RULED by Henry 2026-09-09 (§4) — ready for Legion (§5)**. Originally: Henry and the design session take the rulings
 in §4 together, then Legion runs the rows in §5. **Absorbs and closes** 63, 119, 120 (the scorer
 half), 121 and 130.
 **Branch:** current working branch, one commit per lettered row, authored as Henry.
@@ -123,47 +123,99 @@ states, always with the percentage printed: `IN BAND`, `WITHIN TOLERANCE (+n%)`,
 ignores the outliers instead of being defined by them. `weak.ts`, `bandspread.ts` and §1.3 of the
 balance report all move to the same three words.
 
-## 4. Rulings for Henry (the design session)
+## 4. Rulings (Henry, design session 2026-09-09)
 
-1. **Width (3a):** two scores per card, one blended score, or exempt-by-measurement?
-   Recommendation: **two scores**. The run is two games; pretending it is one is how 119 happened,
-   and the report already has room for a second column. Blending needs the encounter mix and goes
-   stale every time 142/148 change the route.
-2. **Daemon play-turn (3b):** which turn is a daemon priced at? Recommendation: **turn 2**, and the
-   report prints turns 1–3. Turn 1 is the best case the current constant silently assumes; turn 3
-   is Henry's floor; turn 2 is the median first-cast if the measurement lands where 129 suggests.
-3. **Tolerance (3e):** confirm ±15%. (Henry's number; the data says 10–15.)
-4. **What happens to a card that moves out of band under an honest price.** Recommendation: it is
-   *reported*, never auto-tuned; each one is a one-line entry for Henry with the old score, the new
-   score, and the field measurement. Henry's law (*cards stay on-curve; fix enablers, never bend
-   card economics*) still governs what the fix is once he rules.
-5. **The drawback tail** (§6): take it here after 138 settles, or leave it for its own ticket?
+The measurements are in `../research/scorer-pricing.md` (short form) and
+`../research/firmware-power-census.md`. Henry's framing, which governs every row below: *the scorer's
+job is to keep cards balanced BEFORE the grid runs, and to give general insight — its numbers are
+not meant to work for a specific width or deck; the point is that no single card is one everyone has
+to get or lose to, and that AI cards that feel unfair to face get spotted. Power bands are a guide,
+not the law: some rare over-band cards are wanted so players win easier, and daemons may be that
+rare.* The game AI does not read the scorer (verified: no caller outside `src/debug` and tests).
 
-## 5. Order of work (Legion, after §4)
+1. **DRAW → 20 power.** The `'DRAW': 15` table entry is dead code; the live price is the ladder at
+   L803–810 (15/10/5 power for the 1st/2nd/3rd card). Ship the ladder as **20/15/10**. Modeled on
+   the pool: 24 cards move, none egregious. Newly past +15%: `dread_tidings` +37%, `whirlpool_v2`
+   +20% (the field says 47%, fine), `pressure_point` and `rejuvenation` +17%. The 0e cantrips
+   `glimmer`/`slipstream`/`undertow` go +40% → +80% — that is the 0e ceiling of 1.0 being tight, not
+   the cards; left alone. The draw-2 cards go −23% → +7%, which is the change doing its job.
+2. **Width: two scores per card.** `Side` is ×1.0 at 1v1 and ×2.2 at 3v3 (measured 1.9–2.2 per
+   cast; 2.6 for a pure-debuff Side card — use 2.2 for all). The report prints `score1v1` and
+   `score3v3`; the band verdict is against `score1v1` unless the card is `Side`/`All`, where both
+   are printed and the verdict is the worse of the two.
+3. **±15% tolerance**, three states (`IN BAND` / `WITHIN TOLERANCE +n%` / `OUT OF BAND +n%`),
+   the percentage always printed; a score ≤ 0 is routed to `MANUAL REVIEW` (drawback cards), never
+   to the under-band list. MAD not sd.
+4. **Hooks get a formula, general not deck-specific:** `hook score = per-proc payoff × trigger rate
+   × horizon`, printed twice — a **floor** at the roster-mean rate and a **ceiling** at the highest
+   home-deck rate the census saw. The ratio is the build-around index: a high floor is the card
+   everyone has to take (flag it); a low floor with a high ceiling is a legitimate deck-specific
+   rare (fine). Daemons keep the ×1.5 premium, now stated as *the size of the sanctioned rare*.
+   Daemons price at cast turn 2 (the AI's median), horizon = 3 turns; an OS's horizon is 5.
+5. **OSes get their own band**, in delivered value per game as a percentage of a health pool
+   (the census unit): **15–40% is in band, above 50% is flagged**, printed for every OS in the
+   balance report next to §1.3. Median today ≈ 20%; the flags fall out on their own (GOSSIP 127%,
+   PRIMORDIAL_MILK 122%, BARK_SHIELD 67%, KINETIC_RAM 63%, SOLAR_OVERDRIVE 51%).
+6. **A card that moves under an honest price is reported, never auto-tuned** — a §1.3 ledger line
+   with old score, new score and the field number where one exists. Henry rules each.
+7. **The drawback tail** (`desperate_strike`, `dark_pact`, `wither_feast`, `scrubber`, `vent`,
+   `unbound_fang`, `discharge`, `all_in`, `reckless_charge`) stays parked behind ticket 138; the
+   `MANUAL REVIEW` state (row 3) is what keeps it from polluting the under-band list meanwhile.
+8. **Consume-family constants stay** for now. The census showed the pile at cast is ~2× the
+   ordinary-turn pile and the triangular Poison lifetime is charged in full — both are honest
+   *findings* but neither has a general fix (a "pile at cast" constant is a deck property). The
+   two Poison-shed cards (`umbral_feast`, `bloodwrath`) do get one correction: the ×1.25 removal
+   premium (L951–953) does not apply when the pile being shed is the caster's own (the premium's
+   rationale is neutralising an opponent's card). They re-score 12.15 → 9.7 on the shed term.
+9. The three OS design items (lifeblood, TOXIN_FANG/KINETIC_RAM) are ticket 150. GOSSIP_NODE at
+   127% waits for the OS band to print.
 
-- **149a — the guard.** Daemon actions + hooks price additively. Tests: a daemon with an on-cast
-  draw and a hook scores both. No score in the pool changes (assert it: byte-identical §1.3).
-- **149b — the censuses.** `scratch/proccensus.ts` (per-trigger rates, 1v1 and 3v3, cast turns),
-  `scratch/consumecensus.ts` (3c), the width arm (3a) as a `compgrid --panel` run with the scope
-  flipped, and `scratch/oscensus.ts` extended for 3d. Outputs under `results/t149_*`; the tables in
-  `research/scorer-pricing.md` and `research/firmware-power-census.md`. **Report to Henry here.**
-- **149c — the constants.** Replace each constant that failed the §2 test with its measured value
-  and citation; add the width axis in the ruled shape; `DRAW` floor + per-deck term. §1.3 ledger of
-  every card that moved, with old/new/field. **Nothing else changes.** Henry rules the ledger.
-- **149d — tolerance.** ±15%, three states, percentage printed everywhere; `weak.ts` and the audit
-  scripts updated; `TICKET-AUDIT` style lists stop mixing +10% with +397%.
-- **149e — close-out.** Tickets 63/119/120/121/130 get their close lines pointing here; HANDOFF's
-  0-ASSUMED-STACKS and 8-DIFF notes updated; the "treat any draw-2 as unpriced" rule stays until
-  149c ships and is deleted then.
+## 5. Order of work (149c — Legion; scorer-only, one commit per row, authored as Henry)
 
-Tests: `powerscale.test.ts` gains one case per replaced constant (the measured value, cited), the
-guard case, and a width case (a `Side` card scores 1.0× at width 1). `npm run balance` §2–3
-byte-identical through 149a–b (instrument-only); §1.3 churn expected at 149c with the ledger.
+- **149c-1 — the guard.** `Daemon && score === 0` (L959) → price actions and hooks additively.
+  Test: a daemon with an on-cast draw and a hook scores both. §1.3 byte-identical (no shipped
+  daemon has actions).
+- **149c-2 — DRAW 20/15/10** (L803–810); delete the dead `'DRAW': 15` table entry. Ledger of the
+  24 cards that move (`scratch/t149_draw20.ts` has the list).
+- **149c-3 — `CARDS_DISCARDED` branch** in the scaling switch (L687–726): `power *=
+  ASSUMED_CARDS_DISCARDED`, constant **2** with the census citation (5.0 on hraesvelgr_v1, the
+  discard engine; 1.0 on sleipnir_v2 — the roster-general number is the low one, the ceiling
+  column in 149c-6 shows the rest). Ledger: `carrion_swoop` 1.1 → ~2.2.
+- **149c-4 — width.** `calculatePowerscale` returns `{score1v1, score3v3}` (`Side`/`All` scope
+  ×1.0 / ×2.2; everything else identical); the report and `weak.ts`/`bandspread.ts` print both;
+  verdict rule per §4.2. Ledger: the five Ice cards drop to 0–10% over at 1v1.
+- **149c-5 — tolerance.** ±15%, three states + `MANUAL REVIEW`, percentage printed everywhere
+  (`weak.ts`, `bandspread.ts`, `balance_report` §1.3, the audit scripts).
+- **149c-6 — the hook formula.** New `scoreHook(hook, {rate, horizon})` used for daemons (replacing
+  `EXPECTED_DAEMON_PROCS`) and, new, for OS hooks. Two rate tables in `powerscale.ts`, each entry
+  citing `research/scorer-pricing.md` §2: `TRIGGER_RATE_FLOOR` (roster mean, procs per unit-turn —
+  turn start/end 0.8, own 0-cost play 1.0, own triggered draw 0.33, Burn-on-self 0.14, Light attack
+  0, opponent card played 4.2, opponent triggered draw 0.84, damage taken 2.2 capped) and
+  `TRIGGER_RATE_CEILING` (the max home-deck rate — own 0-cost play 3.3, own triggered draw 1.4,
+  the rest = floor). Daemons: cast turn 2, horizon 3, ×1.5 premium kept and named
+  `DAEMON_RARE_PREMIUM`. Report columns: `floor`, `ceiling`, `ceiling/floor`. Ledger for the 14
+  daemons (expected: `riptide` and `short_circuit` up, `harden`/`cinder_armor`/`einherjar` down to
+  ~0 — the last two are honest zeros).
+- **149c-7 — the OS band.** `scoreOS(osId)` = Σ hooks via 149c-6 with horizon 5, converted to
+  %-of-pool per game with the scorer's own power→HP table; modifier hooks (`multiplier`) price as
+  `(multiplier − 1) × the deck's mean attack score × rate`. Printed for all 33 OSes in a new balance
+  report section `1.4 Firmware`, band 15–40%, flag >50%. Calibrate against the census table
+  (`research/firmware-power-census.md` tables 1–3): a formula that puts GOSSIP, PRIMORDIAL_MILK,
+  BARK_SHIELD, KINETIC_RAM and SOLAR_OVERDRIVE at the top and the 8–25% crowd in band is
+  calibrated; one that does not is reported, not forced.
+- **149c-8 — own-pile shed premium off** (§4.8). Test on `umbral_feast`.
+- **149c-9 — close-out.** 63/119/120/121/130 close lines point here; HANDOFF's 0-ASSUMED-STACKS
+  and the ticket-130 "draw-2 is unpriced" rule updated (the rule is retired by 149c-2 + 149c-4);
+  `research/scorer-pricing.md` gets a §7 with the shipped ledger.
+
+Tests: `powerscale.test.ts` gains one case per constant (cited), the guard, a width case (`Side`
+×1.0 at 1v1), a hook-formula case (`riptide` > `harden_daemon` > `einherjar_standard`), an OS case
+(GOSSIP above band, NULL_FIRMWARE at 0). `npm run balance` §2–3 byte-identical throughout
+(scorer-only); §1.3 churn expected with the ledger.
 
 ## 6. Parked, with the reason
 
-- Drawback cards priced at full self-harm (`desperate_strike`, `dark_pact` −410%; `wither_feast`
-  −266%): wait for 138's `damageOverride` → power conversion to settle, then measure recoil the way
-  3d measures payoffs.
-- `hexbloom`'s *design* (side-scope it for control, worth ~15 panel points per ticket 115): a
-  balance lever, not a scorer question; it needs 3c's answer first and then its own ruling.
+- Drawback tail: after 138 (§4.7).
+- A "pile at cast" model for the consume family: a deck property, not a card one; the ceiling
+  column (149c-6) is the general form of the same insight.
+- GOSSIP_NODE's volume: a design question once 149c-7 prints the OS band.
