@@ -1326,7 +1326,7 @@
     "acid_splash": {
         "id": "acid_splash",
         "name": "Acid Splash",
-        "description": "Add 1 stack of Poison + 1 Dazed.",
+        "description": "20 power. Add 1 stack of Poison + 1 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1338,6 +1338,11 @@
             "energy_base"
         ],
         "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
             {
                 "type": "STATUS",
                 "status": "Poison",
