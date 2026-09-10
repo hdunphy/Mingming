@@ -313,7 +313,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // stayed, because doubling the pile now doubles the amplifier immediately.
         decks: {
             "jormungandr_v1": ["undertow", "undertow", "blind_spot", "corrosive_leak", "surge_protection", "serpents_coil", "serpents_coil", "ink_stream", "ink_stream"],
-            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "water_slap", "water_slap", "toxic_surge", "contagion"]
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "water_slap", "water_slap", "toxic_surge", "contagion", "serpent_flurry", "serpent_flurry"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // v1 keeps `undertow` x2 - the loop counts Water cards drawn, so the draw half has to
@@ -523,7 +523,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    is strictly worse than the same effect at 0e in this deck - it costs the whole
         //    turn's Energy AND skips both the echo_chamber token and the OS proc.
         decks: {
-            "ratatoskr_v1": ["forage", "forage", "water_slap", "water_slap", "healing_mist", "shrug_off", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
+            "ratatoskr_v1": ["forage", "forage", "seed_spit", "seed_spit", "healing_mist", "shrug_off", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
             "ratatoskr_v2": ["pollen_cloud", "pollen_cloud", "water_slap", "water_slap", "nagging_bite", "nagging_bite", "crippling_vine", "slander", "echo_chamber_v2"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
@@ -592,8 +592,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    (keeping thornguard's conditional live), not on mitigation - a 1e budget buys 7%
         //    maxHP against an OS that grants 50%.
         decks: {
-            "huldra_v1": ["growth", "growth", "soothe", "water_slap", "iron_bark", "iron_bark", "thorn_tithe", "thorn_tithe", "hexbloom"],
-            "huldra_v2": ["sap_vigor", "sap_vigor", "water_slap", "nettle_sting", "nettle_sting", "heartwood", "thornguard", "thornguard", "blightbloom"]
+            "huldra_v1": ["growth", "growth", "soothe", "water_slap", "iron_bark", "iron_bark", "thorn_tithe", "thorn_tithe", "hexbloom", "thorn_whip", "thorn_whip"],
+            "huldra_v2": ["sap_vigor", "sap_vigor", "water_slap", "nettle_sting", "nettle_sting", "heartwood", "thornguard", "thornguard", "blightbloom", "bark_lash", "bark_lash"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // v1 keeps `growth` x2 so the mirror hook has statuses to mirror from turn one, plus

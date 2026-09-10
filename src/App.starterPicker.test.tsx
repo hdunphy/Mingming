@@ -10,68 +10,23 @@
  * That bug was unreachable from the test suite as it stood. Every other UI test in this repo uses
  * `renderToStaticMarkup`, which runs no effects and cannot click — a soft-lock is *precisely* the
  * class of defect a one-frame static render cannot see, because the frame it renders is correct.
- * `App.errorBoundary.test.tsx` already stands up the real thing (jsdom + `createRoot` + dispatched
- * `MouseEvent`s) for the same reason, so this file borrows its harness rather than inventing one.
+ * Ticket 58 made the jsdom + `createRoot` + dispatched-`MouseEvent` harness this file first borrowed
+ * from `App.errorBoundary.test.tsx` a shared module, `testing/interaction`; the click-level walk of
+ * the whole loop is `App.loop.test.tsx`. What stays here is the picker's GATE — the four states it
+ * must and must not appear in.
  *
  * The assertion is deliberately about the *transition*, not about `state.game.blueprints`. A unit
  * test on the reducer would have passed all along.
  */
 
-import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
-import type { Root } from 'react-dom/client';
-import { Provider } from 'react-redux';
+import { describe, expect, it } from 'vitest';
 
-import App from './App';
-import battleReducer from './ui/store/battleSlice';
-import gameReducer, { addBlueprint, addToRoster } from './ui/store/gameSlice';
-import runReducer from './ui/store/runSlice';
-import uiReducer from './ui/store/uiSlice';
+import { addBlueprint, addToRoster } from './ui/store/gameSlice';
 import { createRanchMember } from './engine/gameTypes';
-
-declare global {
-    var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
-function makeStore() {
-    return configureStore({
-        reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
-        middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
-    });
-}
-
-let host: HTMLDivElement;
-let root: Root;
-
-beforeEach(() => {
-    localStorage.clear();
-    host = document.createElement('div');
-    document.body.appendChild(host);
-    root = createRoot(host);
-});
-
-afterEach(async () => {
-    await act(async () => {
-        root.unmount();
-    });
-    host.remove();
-});
-
-async function mount(store: ReturnType<typeof makeStore>): Promise<void> {
-    await act(async () => {
-        root.render(
-            <Provider store={store}>
-                <App />
-            </Provider>,
-        );
-    });
-}
+import { click, makeStore, mountApp } from './testing/interaction';
 
 /** The starter cards are `motion.div`s, not buttons, so they are found by their copy. */
-function starterCard(name: string): HTMLElement {
+function starterCard(host: HTMLElement, name: string): HTMLElement {
     const card = [...host.querySelectorAll<HTMLElement>('div')]
         .filter((el) => el.textContent?.includes(`STARTER CARD:`) && el.textContent.includes(name))
         .pop();
@@ -81,17 +36,15 @@ function starterCard(name: string): HTMLElement {
 
 describe('the starter picker', () => {
     it('is what a brand-new save opens on', async () => {
-        await mount(makeStore());
+        const host = await mountApp(makeStore());
         expect(host.textContent).toContain('CHOOSE YOUR STARTER PROGRAM');
     });
 
     it('lets go of the screen when a starter is picked, and lands on the Assembly bay', async () => {
         const store = makeStore();
-        await mount(store);
+        const host = await mountApp(store);
 
-        await act(async () => {
-            starterCard('KRAKEN').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        });
+        await click(starterCard(host, 'KRAKEN'));
 
         // The regression: this used to still say CHOOSE YOUR STARTER PROGRAM.
         expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
@@ -105,21 +58,21 @@ describe('the starter picker', () => {
         // The exact state the old gate mis-read: this is a player mid-first-session, not a new one.
         const store = makeStore();
         store.dispatch(addBlueprint('fenrir'));
-        await mount(store);
+        const host = await mountApp(store);
         expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
     });
 
     it('does not come back for a player with a roster and no blueprints left', async () => {
         const store = makeStore();
         store.dispatch(addToRoster(createRanchMember('ratatoskr')));
-        await mount(store);
+        const host = await mountApp(store);
         expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
     });
 
     it('does come back after a wipe — nothing held, nothing built', async () => {
         // `wipeSave` leaves exactly this: the picker is the right thing to show, and the branch
         // reads both halves rather than remembering a "has onboarded" flag that a wipe could miss.
-        await mount(makeStore());
+        const host = await mountApp(makeStore());
         expect(host.textContent).toContain('CHOOSE YOUR STARTER PROGRAM');
     });
 });

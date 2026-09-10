@@ -21,25 +21,14 @@
  * are what stops the fix from degrading into "deleted the listener".
  */
 
-import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { act } from 'react';
-import { createRoot } from 'react-dom/client';
-import type { Root } from 'react-dom/client';
-import { Provider } from 'react-redux';
 
-import battleReducer, { playProgram, startBattle } from '../store/battleSlice';
-import gameReducer from '../store/gameSlice';
-import runReducer from '../store/runSlice';
-import uiReducer from '../store/uiSlice';
+import { playProgram, startBattle } from '../store/battleSlice';
 import { useCodexRecorder } from './useCodexRecorder';
+import { makeStore, mount } from '../../testing/interaction';
 import type { IBattleSetup } from '../../engine/data/battleFactories';
 import type { IMingmingState } from '../../engine/types';
-
-declare global {
-    var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const MEMBER: IMingmingState = {
     id: 'mm_codex_1',
@@ -58,46 +47,22 @@ const SETUP: IBattleSetup = {
     persistedHp: {},
 };
 
-function makeStore() {
-    return configureStore({
-        reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
-        middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
-    });
-}
-
 /** The hook under test needs a host component and a Provider; it renders nothing. */
 function Recorder(): null {
     useCodexRecorder();
     return null;
 }
 
-let host: HTMLDivElement;
-let root: Root;
-
-beforeEach(() => {
-    localStorage.clear();
-    host = document.createElement('div');
-    document.body.appendChild(host);
-    root = createRoot(host);
-});
-
-afterEach(async () => {
-    await act(async () => {
-        root.unmount();
-    });
-    host.remove();
-});
-
+/*
+ * Ticket 58: mounted through `testing/interaction`, whose `console.error` trap is the second half of
+ * this test — the original defect surfaced as exactly one console error, and the trap fails the test
+ * on any, so the assertions below no longer have to be the only thing standing between the bug and
+ * a green suite.
+ */
 async function mountedStore() {
     const store = makeStore();
     store.dispatch(startBattle({ setup: SETUP, enemyIds: ['kraken'], sectorElement: 'Water', options: { seed: 'codex-recorder-seed' } }));
-    await act(async () => {
-        root.render(
-            <Provider store={store}>
-                <Recorder />
-            </Provider>,
-        );
-    });
+    await mount(store, <Recorder />);
     return store;
 }
 
