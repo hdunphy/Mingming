@@ -21,6 +21,13 @@ export const REF_HEIGHT = 800;
 /** The three bands, in reference pixels. `44 + 546 + 210 = 800`. */
 export const TOP_BAR_H = 44;
 export const STAGE_H = 546;
+/*
+ * NOTE, 2026-09-10: this is the MOCK's console band, and `.console-area` is `flex: 0 0 265px`.
+ * The two have never agreed. Reconciling them moves the board's scale at every viewport, which
+ * is 145a's ruled composition, so it is written down here for Henry rather than changed inside
+ * a card-size fix. The hand does not need it: a 255px card bottom-aligned in the 195px row
+ * overflows UPWARD into the empty lower third of the stage, which costs the board nothing.
+ */
 export const CONSOLE_H = 210;
 /** Frame y of the stage band's top edge. */
 export const STAGE_TOP = TOP_BAR_H;

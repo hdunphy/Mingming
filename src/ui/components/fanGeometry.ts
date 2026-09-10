@@ -24,8 +24,20 @@
  */
 
 /** The card face in the fan. The reveal lane's card is bigger (148×196) — see `stageGeometry`. */
-export const FAN_CARD_W = 140;
-export const FAN_CARD_H = 176;
+/*
+ * HENRY, 2026-09-10 PLAYTEST: *"the cards in hand are too small and I can't read the text."*
+ *
+ * He was reading a card that had been squeezed. `.program-card` is authored at **180x255** in
+ * `index.css` and every type size on the face is chosen against that box; the fan then forced
+ * the wrapper to 140x176, so the face lost 40px of width and 79px of height and `.card-description`
+ * (`overflow-y: auto`) silently clipped mid-sentence - which is how `brute_force` came to read
+ * "25 power. +8 power if" and `strength_burst` never got to say it REFUNDS an energy.
+ *
+ * So the fan now states the face's own size rather than a smaller one. The numbers below are
+ * `.program-card`'s, not new ones, which is what stops the two disagreeing again.
+ */
+export const FAN_CARD_W = 180;
+export const FAN_CARD_H = 255;
 
 /** The hand size the mock draws, and the anchor every constant below is stated at. */
 export const FAN_REFERENCE_HAND = 5;
@@ -38,9 +50,9 @@ export const FAN_MIN_ANGLE = 8;
 export const FAN_WIDE_HAND = 8;
 
 /** Overlap at the reference hand (negative: cards sit on each other). */
-export const FAN_OVERLAP = -18;
+export const FAN_OVERLAP = -23;
 /** Overlap at `FAN_WIDE_HAND`. */
-export const FAN_TIGHT_OVERLAP = -30;
+export const FAN_TIGHT_OVERLAP = -39;
 
 /** Lift of the centre card. The edges sit at 0 — the arch is measured from the baseline up. */
 export const FAN_MAX_LIFT = 18;

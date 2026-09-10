@@ -23,8 +23,15 @@ describe('145d — five cards, exactly as the mock draws them', () => {
         expect(five.map(c => Math.round(c.lift))).toEqual([0, 10, 18, 10, 0]);
     });
 
-    it('overlaps by -18, on every card but the first', () => {
-        expect(five.map(c => c.overlap)).toEqual([0, -18, -18, -18, -18]);
+    /*
+     * -23, AND -18 IS STILL THE MOCK'S NUMBER. The mock states its overlap against a 140px card;
+     * 2026-09-10 the fan stopped squeezing the face and draws it at `.program-card`'s own 180px,
+     * so holding the mock's SHAPE means holding the ratio, not the pixel count: 18/140 x 180 = 23.
+     * Keeping -18 at the wider card would have loosened the fan by a sixth and run the hand into
+     * the draw and discard piles, which is the exact failure the overlap dial exists to prevent.
+     */
+    it('overlaps by -23 at the 180px card, holding the mock\'s -18/140 ratio', () => {
+        expect(five.map(c => c.overlap)).toEqual([0, -23, -23, -23, -23]);
     });
 });
 

@@ -61,7 +61,7 @@ body {
 }
 
 .console-area {
-  /* 265: fits the enlarged hand row (195px) + footer without squeezing. */
+  /* 265: fits the hand row + footer. The 255px card is bottom-aligned and overflows upward. */
   flex: 0 0 265px;
   background: #0a0a0f;
   border-top: 2px solid var(--glass-border);
@@ -613,7 +613,14 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: 195px;
+  /*
+   * 208, not the card's 255. Henry, 2026-09-10: *"there is plenty of space under the cards to
+   * extend into"* - so the row grows 13px into the console's own slack and the card's remaining
+   * height overflows UPWARD (`overflow: visible`, cards `align-items: flex-end`) into the empty
+   * lower third of the stage. A hand of cards overlapping the board is what a hand looks like,
+   * and it buys the face its full 255px without shrinking the board to pay for it.
+   */
+  height: 208px;
   width: 100%;
   padding: 0 20px;
   box-sizing: border-box;
@@ -2774,7 +2781,15 @@ body {
 /* ── The reveal lane's card (ticket 145f §2b) ──
    148x196 at -4 degrees. The tilt is doing work: an upright card in the middle of an upright board
    reads as a modal, and this is not one — the fight continues behind it. */
-.reveal-card { transform: rotate(-4deg); }
+/*
+ * UPRIGHT, since Henry's 2026-09-10 playtest: *"the card in the middle is titled"*.
+ *
+ * 145f tilted it -4deg on the mock's geometry, arguing an upright card in an upright board
+ * would read as a modal. It does not - the caption under it and the fight continuing behind it
+ * already say that - and at 3v3 the tilt reads as a rendering fault rather than as style,
+ * because every other card on screen (the hand, the shop, the editor) is square to the board.
+ */
+.reveal-card { transform: none; }
 
 .reveal-caption {
   margin-top: 14px;
