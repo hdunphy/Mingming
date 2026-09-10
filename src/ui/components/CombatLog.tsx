@@ -85,35 +85,31 @@ const CombatLog: React.FC<{ isOpen?: boolean; onOpenChange?: (open: boolean) => 
         if (!isCollapsed) pinnedRef.current = true;
     }, [isCollapsed]);
 
+    /*
+     * COLLAPSED DRAWS NOTHING — Henry, 2026-09-10: *"The combat log is duplicated."*
+     *
+     * It was. 145c moved the collapsed surface to the top bar (see the docblock above) but left
+     * this component still rendering its own: the `COMBAT LOG` header and a `.log-strip` holding
+     * the newest line. `.combat-log-container` is `position: absolute; top: 0` centred, which is
+     * exactly where the bar's own latest-line button sits, so the two drew over each other and
+     * the newest line appeared twice - once in the bar, once again underneath it.
+     *
+     * The bar IS the collapsed state now, so there is nothing left for this to draw until it is
+     * open. Half a move finished: 145c wrote the rule in a comment and moved only the state.
+     */
+    if (isCollapsed) return null;
+
     return (
-        <div className={`combat-log-container ${isCollapsed ? 'is-collapsed' : ''}`}>
+        <div className="combat-log-container">
             <div
                 className="log-header"
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 style={{ cursor: 'pointer', userSelect: 'none' }}
             >
                 <span>COMBAT LOG</span>
-                <span style={{ float: 'right' }}>{isCollapsed ? '▼' : '▲'}</span>
+                <span style={{ float: 'right' }}>▲</span>
             </div>
 
-            {isCollapsed && (
-                <div
-                    className="log-strip"
-                    onClick={() => setIsCollapsed(false)}
-                    style={{ cursor: 'pointer' }}
-                    title={newest?.text ?? ''}
-                >
-                    {newest
-                        ? (
-                            <>
-                                <span className="log-timestamp">{'>>'}</span>{' '}
-                                {newest.isOS && <span className="log-os-chip">OS</span>}
-                                {newest.text}
-                            </>
-                        )
-                        : <span className="log-strip-empty">awaiting first action…</span>}
-                </div>
-            )}
 
             <AnimatePresence>
                 {!isCollapsed && (

@@ -46,31 +46,37 @@ function renderWith(logs: string[]): string {
     return renderToStaticMarkup(<Provider store={store}><CombatLog /></Provider>);
 }
 
-describe('143c — the log opens collapsed and shows the newest line', () => {
-    it('renders the strip, not the panel, on first mount', () => {
+/*
+ * SUPERSEDED BY 145c, FINISHED 2026-09-10. This block used to assert that a collapsed log renders
+ * its own `.log-strip` carrying the newest line. 145c moved that surface to the top bar and left
+ * this component still drawing it, so both appeared - Henry, 2026-09-10: *"The combat log is
+ * duplicated."* `.combat-log-container` is `position: absolute; top: 0` centred, the same place the
+ * bar's latest-line button sits, so the newest line was printed twice, one over the other.
+ *
+ * The contract now: COLLAPSED DRAWS NOTHING. The bar is the collapsed state; this component is the
+ * panel and only the panel. What the bar shows is `BattleTopBar.latestLogLine`'s business.
+ */
+describe('145c — collapsed draws nothing; the top bar is the collapsed surface', () => {
+    it('renders no container at all on first mount', () => {
         const html = renderWith(['first thing', 'second thing', 'the newest thing']);
-        expect(html).toContain('log-strip');
+        expect(html).toBe('');
+    });
+
+    it('does not print the newest line — that would be the duplicate', () => {
+        const html = renderWith(['first thing', 'second thing', 'the newest thing']);
+        expect(html).not.toContain('the newest thing');
+        expect(html).not.toContain('log-strip');
         expect(html).not.toContain('log-messages');
     });
 
-    it('the strip carries the NEWEST entry and only that one', () => {
-        const html = renderWith(['first thing', 'second thing', 'the newest thing']);
-        expect(html).toContain('the newest thing');
-        expect(html).not.toContain('first thing');
-        expect(html).not.toContain('second thing');
+    it('draws nothing before the first action either', () => {
+        // The "awaiting first action" placeholder belongs to the bar now, for the same reason.
+        expect(renderWith([])).toBe('');
     });
 
-    it('says something rather than nothing before the first action', () => {
-        // An empty strip is indistinguishable from a broken one, and a battle opens with no logs.
-        const html = renderWith([]);
-        expect(html).toContain('log-strip');
-        expect(html).toContain('awaiting first action');
-    });
-
-    it('is collapsed for the ENEMY turn too — the state is per session, never persisted', () => {
-        // Two independent mounts, because a persisted toggle would make the second one expanded.
-        expect(renderWith(['a'])).toContain('log-strip');
-        expect(renderWith(['a', 'b'])).toContain('log-strip');
+    it('stays closed across mounts — the state is per session, never persisted', () => {
+        expect(renderWith(['a'])).toBe('');
+        expect(renderWith(['a', 'b'])).toBe('');
     });
 });
 
