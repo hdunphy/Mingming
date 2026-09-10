@@ -70,10 +70,20 @@ async function playAnAttackAtTheEnemy(host: HTMLElement, store: TestStore): Prom
         return data.target !== 'Self' && data.actions.some((a) => a.type === 'ATTACK');
     });
     if (index < 0) throw new Error(`no attack in hand: ${hand.map((c) => c.dataId).join(', ')}`);
-    await click(host.querySelector('.hud-card[data-side="player"]')!);
+    /*
+     * THE STAGE SLOTS, NOT THE OLD HUD CARDS. This harness was written against the sidebar
+     * columns of `.hud-card`s; ticket 145b turned those off (`SHOW_LEGACY_HUD_COLUMNS = false`,
+     * on Henry's ruling that the plaque carries the firmware chip, daemons and preview), so the
+     * battle screen draws `BattleStage`'s slots and `querySelector('.hud-card')` is null.
+     *
+     * `.stage-slot-ally` / `.stage-slot-enemy` are ticket 145 §3's published interface - the same
+     * anchors ticket 146 fires particles at - so they are the stable thing to click, and a future
+     * chassis change has to keep them.
+     */
+    await click(host.querySelector('.stage-slot-ally')!);
     await fire(host.querySelectorAll('.program-card')[index], 'pointerdown');
     expect(store.getState().battle.selectedCardId).toBe(hand[index].id);
-    await fire(host.querySelector('.hud-card[data-side="enemy"]')!, 'pointerup');
+    await fire(host.querySelector('.stage-slot-enemy')!, 'pointerup');
     await flush();
     return hand[index].id;
 }
