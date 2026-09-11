@@ -81,7 +81,7 @@ async function playAnAttackAtTheEnemy(host: HTMLElement, store: TestStore): Prom
      * chassis change has to keep them.
      */
     await click(host.querySelector('.stage-slot-ally')!);
-    await fire(host.querySelectorAll('.program-card')[index], 'pointerdown');
+    await fire(host.querySelectorAll('.hand-card')[index], 'pointerdown');
     expect(store.getState().battle.selectedCardId).toBe(hand[index].id);
     await fire(host.querySelector('.stage-slot-enemy')!, 'pointerup');
     await flush();

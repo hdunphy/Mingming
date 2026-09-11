@@ -18,10 +18,13 @@ import { describeLegalTargets } from '../utils/targeting';
 import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
 import CardKeywordChips from './CardKeywordChips';
+import HandCardFace from './HandCardFace';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { formatMultiplier } from './elementMatchups';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx } from '../audio/AudioEngine';
+// The fight draws ticket 66's ruled chassis now — same stylesheet as the shop and the editor.
+import '../screens/runShell.css';
 
 /**
  * One line per action, in the player's terms.
@@ -218,7 +221,7 @@ const CardHand: React.FC<{
                                 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.2 }}
-                                className={`program-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
+                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
                                 /*
                                  * Ticket 22: the refusal also rides the card frame, not only the
                                  * hover tooltip below. The tooltip needs a deliberate hover on a
@@ -267,129 +270,19 @@ const CardHand: React.FC<{
                                     } as React.CSSProperties : {}),
                                 }}
                             >
-                                {/* Cost badge */}
-                                <div
-                                    className={`card-cost ${isDiscounted ? 'card-cost-discounted' : ''}${isBlocked ? ' card-cost-blocked' : ''}`}
-                                    title={isBlocked
-                                        ? (blockReason ?? 'Cannot be paid for right now')
-                                        : (isDiscounted ? `Discounted from ${card.currentCost} (primed effect)` : undefined)}
-                                >
-                                    {displayCost}
-                                    {isDiscounted && <span className="card-cost-original">{card.currentCost}</span>}
-                                </div>
-                                {isStabMatch && source && (
-                                    <div
-                                        className="card-stab-pip"
-                                        title={`${data.element} matches ${source.name} — ×1.5 STAB`}
-                                    >
-                                        ×1.5
-                                    </div>
-                                )}
-
-                                {/* Header: element + name */}
-                                <div className="card-header">
-                                    <ElementMatchupHover element={data.element}>
-                                        <span className={`element-badge ${data.element.toLowerCase()}`}>
-                                            {data.element[0]}
-                                        </span>
-                                    </ElementMatchupHover>
-                                    <div className="card-name">{data.name}</div>
-                                </div>
-
-                                {/*
-                                  * TICKET 145e — the target chip moved from the FOOT to directly
-                                  * under the name (§2c), and the foot now carries only the element.
-                                  * The reason is the stagger stage: with six units on the board at
-                                  * once, "who does this hit" stopped being obvious from there being
-                                  * one enemy, so it belongs where the eye already is rather than at
-                                  * the bottom of a 176px card.
-                                  *
-                                  * Still `describeLegalTargets` — the same predicate the drop
-                                  * handler refuses with, so the chip cannot promise a target the
-                                  * game rejects.
-                                  */}
-                                <div className="card-target" title={`Legal targets: ${describeLegalTargets(data)}`}>
-                                    {describeLegalTargets(data)}
-                                </div>
-
-                                {/* Description */}
-                                <div className="card-description">
-                                    {data.description}
-                                </div>
-
-                                {/*
-                                  * WHAT "PLAY LAST CARD AGAIN" ACTUALLY MEANS, RIGHT NOW.
-                                  *
-                                  * Henry, 2026-09-05 playtest: *"It needs to tell you what card its
-                                  * going to play."* Reprogram's printed text is a rule, not an
-                                  * answer, and the answer changes every time anyone plays anything
-                                  * — it is the one card in the game whose effect you cannot read off
-                                  * its own face.
-                                  *
-                                  * Read from `lastProgramBySide.PLAYER`, which is what the executor
-                                  * reads, so the hand cannot promise a card the cast will not play.
-                                  * Printed as the card's NAME and nothing else: a full second
-                                  * description on a hand tile would crowd out the card's own.
-                                  */}
-                                {data.actions?.some((a) => a.type === 'PLAY_LAST_CARD') && (
-                                    <div className="card-replay">
-                                        {replayTargetName
-                                            ? `↻ ${replayTargetName}`
-                                            : '↻ nothing of yours played yet'}
-                                    </div>
-                                )}
-
-                                {/*
-                                  * THE TRUE READOUT — ticket 22.
-                                  *
-                                  * Always on, not hover-gated. The previous build only computed a
-                                  * number while a card was selected AND an entity was hovered, which
-                                  * meant the hand was blank at the exact moment the player was
-                                  * choosing between cards. It also names WHO the number is measured
-                                  * against, because a figure quoted against an enemy the player did
-                                  * not pick is a hidden assumption even when the number is right.
-                                  */}
-                                {(trueDamage > 0 || trueHealing > 0) && (
-                                    <div className={`card-true-readout ${preview?.lethal ? 'lethal' : ''}`}>
-                                        <span className="card-true-number">
-                                            {trueDamage > 0 ? `${trueDamage} DMG` : `+${trueHealing} HP`}
-                                        </span>
-                                        {preview?.measuredOn && (
-                                            <span className="card-true-target">
-                                                {trueDamage > 0 ? 'vs' : 'to'} {preview.measuredOn}
-                                            </span>
-                                        )}
-                                        {preview && preview.hitCount > 1 && (
-                                            <span className="card-true-chip">×{preview.hitCount} HITS</span>
-                                        )}
-                                        {/*
-                                          * Ruling 2 (Henry, 2026-08-24) at DECISION time rather than
-                                          * after the swing: the number above is what the card hits
-                                          * for, and against a shielded target most of it may never
-                                          * reach HP. Saying so here is what makes "how much bark do
-                                          * I take off" answerable before committing the card.
-                                          */}
-                                        {preview && preview.absorbed > 0 && (
-                                            <span className="card-true-chip shielded">
-                                                🛡 {preview.absorbed}
-                                            </span>
-                                        )}
-                                        {effectiveness > 1 && (
-                                            <span className="card-true-chip super">
-                                                SUPER ×{formatMultiplier(effectiveness)}
-                                            </span>
-                                        )}
-                                        {effectiveness < 1 && (
-                                            <span className="card-true-chip weak">
-                                                RESISTED ×{formatMultiplier(effectiveness)}
-                                            </span>
-                                        )}
-                                        {preview?.lethal && <span className="card-true-chip lethal">LETHAL</span>}
-                                    </div>
-                                )}
-
-                                {/* Keyword + applied-status chips */}
-                                <CardKeywordChips data={data} />
+                                <HandCardFace
+                                    data={data}
+                                    displayCost={displayCost}
+                                    originalCost={card.currentCost}
+                                    isDiscounted={isDiscounted}
+                                    isBlocked={isBlocked}
+                                    blockReason={blockReason ?? undefined}
+                                    isStabMatch={isStabMatch && !!source}
+                                    stabTitle={source ? `${data.element} matches ${source.name} — ×1.5 STAB` : undefined}
+                                    preview={preview}
+                                    replayTargetName={replayTargetName}
+                                    showReplay={!!data.actions?.some((a) => a.type === 'PLAY_LAST_CARD')}
+                                />
 
                                 {/*
                                   * Ticket 22: this printed the raw `TargetType` enum ("Single"),

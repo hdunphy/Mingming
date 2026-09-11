@@ -226,8 +226,15 @@ describe('CardHand reads for the SELECTED CASTER', () => {
  * a separate, larger, and already-broken problem. The exclusion is narrow and named on purpose: if
  * the leak ever creeps back into the chrome, this fails.
  */
+/*
+ * `.rs-desc`, not `.card-description`, since 2026-09-11: the hand moved onto ticket 66's chassis
+ * (`HandCardFace`) and the description is the chassis' own element now. The exclusion has to name
+ * whatever element actually prints the registry string - if it names one that no longer renders,
+ * this helper strips nothing, the printed text falls into the assertion, and the suite fails on a
+ * leak that is not there. It did exactly that on the chassis change.
+ */
 const stripDescriptions = (markup: string): string =>
-    markup.replace(/<div class="card-description">[\s\S]*?<\/div>/g, '');
+    markup.replace(/<span class="rs-desc">[\s\S]*?<\/span>/g, '');
 
 describe('CardHand obeys "power dies at the surface"', () => {
     it('never prints the word “power” in anything the component itself writes', () => {

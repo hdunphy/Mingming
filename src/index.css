@@ -3290,3 +3290,112 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.5);
   font-weight: 600;
 }
+
+/* ============================================================================================
+ * THE HAND CARD, ON TICKET 66'S CHASSIS — Henry, 2026-09-11:
+ * *"I want them to use the same style as the card shop."*
+ *
+ * `HandCardFace` draws the shop's own markup, so everything below is SIZE and the two rows the
+ * shop does not have. The chassis' variables are the whole mechanism: `.rs-card` reads `--cw` and
+ * `--ch`, so a bigger fight card is two custom properties rather than a second set of rules.
+ * ============================================================================================ */
+
+.hand-card {
+  /* The face's authored size (see `fanGeometry`) — the fan states the same pair. */
+  --cw: 180px;
+  --ch: 255px;
+  --ah: 44px;
+  text-align: left;
+  /*
+   * BORDER-BOX, and it is not a tidy-up. `.rs-card` sizes content-box, so `--ch: 255px` plus its
+   * own 8px padding and 1px border renders a 273px tile — 18px taller than the height the fan
+   * reserves for it, which the readout row pays for by hanging out of the bottom of the card.
+   * The shop never noticed because its tiles sit in a grid that grows; a fan cannot.
+   */
+  box-sizing: border-box;
+}
+
+/* The shop centres its tiles; a hand is read down the left edge, one card after another. */
+.hand-card .rs-cnm { text-align: left; font-size: 13.5px; }
+.hand-card .rs-desc { text-align: left; font-size: 10.5px; line-height: 1.4; }
+
+.hand-card.selected { border-color: #fff; box-shadow: 0 0 26px rgba(255, 255, 255, 0.45); }
+.hand-card.grayscale { filter: grayscale(0.6); }
+.hand-card.stab-match { border-color: var(--stab-color, var(--el)); box-shadow: 0 0 14px var(--stab-glow, transparent); }
+
+/* The printed cost, kept beside the live pips so a discount reads as a change. */
+.hc-cost-was {
+  position: absolute; top: 6px; left: 34px;
+  font-size: 9px; font-weight: 700; color: #6f7d8c;
+  text-decoration: line-through;
+}
+.hc-cost-blocked { position: absolute; top: 5px; left: 34px; font-size: 11px; color: #ff6b6b; font-weight: 900; }
+
+/*
+ * Left of the type mark, never under it — the mark owns the corner (`.rs-typ`, top:2 right:7).
+ *
+ * It also carries `.card-stab-pip`, which `CardHand.test` matches this signal by (deliberately, on
+ * the CLASS: the SUPER chip prints the same ×1.5 and a string match could not tell them apart).
+ * That class brings the old face's boxed pip styling — `left: 42px`, a border and an opaque
+ * background — so every one of its positional and painted properties is restated here. Dropping
+ * the class instead would have been quieter and would have silently retired the assertion.
+ */
+.hand-card .hc-stab {
+  position: absolute;
+  top: 5px; right: 24px; left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+  font-size: 9px; font-weight: 900; letter-spacing: 0.02em; line-height: 1;
+  color: var(--stab-color, var(--el));
+  text-shadow: 0 0 6px var(--stab-glow, transparent);
+}
+
+/* TARGETING, under the name — `describeLegalTargets`, the drop handler's own predicate. */
+.hc-target {
+  display: block;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #9fb0c4;
+  background: #ffffff0d;
+  border: 1px solid #ffffff14;
+  border-radius: 3px;
+  padding: 2px 4px;
+  margin-bottom: 5px;
+  align-self: flex-start;
+}
+
+.hc-replay { font-size: 9px; color: #5fd4e4; margin-top: 3px; flex: none; }
+
+/*
+ * THE LAST ROW. The shop spends it on `FIRE · pick`; the fight spends it on what the card does —
+ * the true figure for the selected caster, then the chips that qualify it. `.rs-tags` keeps the
+ * chassis' reserved height so the tile is the same height in both modes.
+ */
+.hand-card .hc-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding-right: 0;
+  min-height: 13px;
+  letter-spacing: 0;
+}
+.hc-figure { font-size: 12px; font-weight: 900; color: #ff8a7a; text-shadow: 0 0 8px #ff8a7a55; }
+.hc-readout.is-lethal .hc-figure { color: #ffd479; text-shadow: 0 0 10px #ffd47966; }
+.hc-vs { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; color: #8b98a8; text-transform: uppercase; }
+.hc-chip {
+  font-size: 7.5px; font-weight: 800; letter-spacing: 0.05em;
+  padding: 1px 3px; border-radius: 3px;
+  background: #ffffff12; color: #c3cedb; text-transform: uppercase;
+}
+.hc-chip.is-super { background: #2f6b3a; color: #b6f0c2; }
+.hc-chip.is-weak { background: #4a3a5e; color: #d9c6f0; }
+.hc-chip.is-lethal { background: #7a5a12; color: #ffe9b0; }
+.hc-chip.is-shielded { background: #24405c; color: #bcd9f2; }
+/* The no-damage row: what the card PUTS ON something. `↺` is on the caster, `→` outward. */
+.hc-chip.is-status { background: #1d3a4d; color: #a9d4ea; font-size: 8px; }
+.hc-chip.is-status.is-self { background: #33304f; color: #cdc4ee; }
