@@ -226,34 +226,20 @@ describe('CardHand reads for the SELECTED CASTER', () => {
  * a separate, larger, and already-broken problem. The exclusion is narrow and named on purpose: if
  * the leak ever creeps back into the chrome, this fails.
  */
+
 /*
- * `.rs-desc`, not `.card-description`, since 2026-09-11: the hand moved onto ticket 66's chassis
- * (`HandCardFace`) and the description is the chassis' own element now. The exclusion has to name
- * whatever element actually prints the registry string - if it names one that no longer renders,
- * this helper strips nothing, the printed text falls into the assertion, and the suite fails on a
- * leak that is not there. It did exactly that on the chassis change.
+ * THE "power dies at the surface" BLOCK IS GONE — RETIRED by Henry, 2026-09-11:
+ * *"I went back on my ruling because without it players can't compare cards ... We still need to
+ * understand power on each card. Please remove that ruling."*
+ *
+ * Four assertions lived here: the hand never prints the word `power`, never leaks the printed
+ * figure as a number, and a `stripDescriptions` helper that excused the card's own description
+ * from both. They enforced a law that no longer exists, so they are deleted rather than loosened -
+ * a test kept as `expect(true)` is a law nobody can find.
+ *
+ * The targeting case below was in the same block and is NOT about power. It survives.
  */
-const stripDescriptions = (markup: string): string =>
-    markup.replace(/<span class="rs-desc">[\s\S]*?<\/span>/g, '');
-
-describe('CardHand obeys "power dies at the surface"', () => {
-    it('never prints the word “power” in anything the component itself writes', () => {
-        // Standing law (map § Notes), the same assertion `MarketplaceNode.test.tsx` and
-        // `MacroRack.test.tsx` make. `CardHand.formatAction` is the helper both of those tests name
-        // as the likeliest way to break it — it printed `action.power` straight out of the registry,
-        // so `fire_punch_v2`'s tooltip read "⚔️ 30 Fire dmg" in every caster's hand alike.
-        for (const source of ['blaze', 'trickle', 'spark', null]) {
-            expect(stripDescriptions(render({ source, card: 'c1' }))).not.toMatch(/power/i);
-        }
-    });
-
-    it('does not leak the printed figure as a number either', () => {
-        // `fire_punch_v2` is priced at 30, and no caster's true damage is 30. Word-bounded, so an
-        // unrelated "130" could not decide it either way.
-        expect(stripDescriptions(render({ source: 'blaze' }))).not.toMatch(/\b30\b/);
-        expect(stripDescriptions(render({ source: 'trickle' }))).not.toMatch(/\b30\b/);
-    });
-
+describe('CardHand names where a card may land', () => {
     it('replaces the raw TargetType enum with a phrase about where the card may land', () => {
         const markup = render({ source: 'blaze' });
         expect(markup).toContain('ONE ENEMY');

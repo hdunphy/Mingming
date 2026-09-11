@@ -17,10 +17,7 @@ import { computeHandPreviews, pickPreviewTarget } from '../utils/handPreview';
 import { describeLegalTargets } from '../utils/targeting';
 import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
-import CardKeywordChips from './CardKeywordChips';
 import HandCardFace from './HandCardFace';
-import ElementMatchupHover from './ElementMatchupTooltip';
-import { formatMultiplier } from './elementMatchups';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx } from '../audio/AudioEngine';
 // The fight draws ticket 66's ruled chassis now — same stylesheet as the shop and the editor.
@@ -29,19 +26,18 @@ import '../screens/runShell.css';
 /**
  * One line per action, in the player's terms.
  *
- * # `power` NEVER — TICKET 22 CLOSED THE LAST LEAK
+ * # IT NAMES THE PRINTED POWER AGAIN — THE LAW IS RETIRED (Henry, 2026-09-11)
  *
- * Standing law (map § Notes), tested on the marketplace by ticket 13 and on the macro rack by ticket
- * 15: *"previews show true damage everywhere, power remains the pricing currency."* This helper was
- * the counter-example both of those tickets cite by name — `MacroRack`'s own docblock warns that
- * *"the cheapest way to break it here would be a well-meant reuse of `CardHand.formatAction`, which
- * prints `action.power` straight out of the data."* It printed `⚔️ 18 Fire dmg` and `💚 Heal 12`.
+ * This helper was the counter-example tickets 13 and 15 cited by name: it printed `action.power`
+ * straight out of the data, so `fire_punch_v2` read `⚔️ 30 Fire dmg` in every caster's hand alike.
+ * Ticket 22 stripped the figure and left the SHAPE (`⚔️ Damage ×2 hits`).
  *
- * That was already wrong at 1v1. At 3v3 it is worse than wrong: `power` is a property of the CARD,
- * and the HP that moves is a property of the (caster, card, target) triple, so the same "18" sat in
- * front of three units who would each produce a different number from it. The tooltip now names the
- * SHAPE of each action and the card face carries the true figure for the selected caster — see
- * `handPreview.ts`. `CardHand.test.tsx` asserts the rendered hand contains no "power" at all.
+ * Henry has now retired the law that required that: *"without it players can't compare cards ...
+ * We still need to understand power on each card."* The original objection is still true — one
+ * `power` in front of three casters produces three different HP swings — but it was an argument
+ * for labelling the number honestly, not for hiding it. So the line says **power**, in those
+ * words, and the card face's readout beside it says what this caster actually does to that
+ * target. Two numbers that never claimed to be the same one.
  */
 const formatAction = (action: ProgramAction): string => {
     // Widened for the switch only: three of the cases below name action types that are not in
@@ -50,11 +46,12 @@ const formatAction = (action: ProgramAction): string => {
     switch (action.type as string) {
         case 'ATTACK': {
             const hits = Math.max(1, action.count ?? 1);
-            if (action.target === 'SELF') return `⚔️ Recoil onto the caster${hits > 1 ? ` ×${hits}` : ''}`;
-            return `⚔️ Damage${hits > 1 ? ` ×${hits} hits` : ''}`;
+            const p = typeof action.power === 'number' ? `${action.power} power` : 'Damage';
+            if (action.target === 'SELF') return `⚔️ Recoil onto the caster — ${p}${hits > 1 ? ` ×${hits}` : ''}`;
+            return `⚔️ ${p}${hits > 1 ? ` ×${hits} hits` : ''}`;
         }
         case 'HEAL':
-            return '💚 Restores HP';
+            return typeof action.power === 'number' ? `💚 Heals with ${action.power} power` : '💚 Restores HP';
         case 'APPLY_STATUS':
             return `✦ ${action.status} ×${action.stacks || 1}`;
         case 'DRAW':
@@ -205,9 +202,6 @@ const CardHand: React.FC<{
                         const preview = previews.get(card.id);
                         const isStabMatch = !!preview?.stab;
                         const stabAccent = isStabMatch ? getElementAccent(data.element) : null;
-                        const trueDamage = preview?.damage ?? 0;
-                        const trueHealing = preview?.healing ?? 0;
-                        const effectiveness = preview?.effectiveness ?? 1;
 
                         return (
                             <motion.div

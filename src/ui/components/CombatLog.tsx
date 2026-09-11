@@ -64,7 +64,7 @@ const CombatLog: React.FC<{ isOpen?: boolean; onOpenChange?: (open: boolean) => 
         ...osLogs.map((text, i) => ({ key: `os-${i}`, text, isOS: true })),
     ];
     const shown = visibleEntries(entries, isCollapsed);
-    const newest = entries.length > 0 ? entries[entries.length - 1] : null;
+    // (`newest` lived here for the collapsed strip; the top bar owns that line now.)
 
     const onScroll = useCallback(() => {
         pinnedRef.current = isPinnedToBottom(scrollRef.current);

@@ -84,21 +84,12 @@ function render(
 }
 
 describe('MacroRack', () => {
-    it('never prints the word “power”, anywhere, for any macro', () => {
-        // Every macro in one rack is impossible (three slots), so the law is checked a rack at a
-        // time across the whole registry — including the tooltips, which live in `title` attributes
-        // and therefore ARE in the markup.
-        const racks: MacroSlots[] = [
-            ['surge', 'mend', 'venom_shot'],
-            ['kindle', 'rally', 'cripple'],
-            ['salve', 'free_exec', 'echo'],
-            ['cache_pull', 'recharge', 'revive'],
-            ['ping_sweep', null, null],
-        ];
-        for (const rack of racks) {
-            expect(render(rack)).not.toMatch(/power/i);
-        }
-    });
+    /*
+     * RETIRED 2026-09-11 with the law it enforced (Henry: *"Please remove that ruling."*). It swept
+     * every macro in the registry, tooltips included, for the word `power`. A macro may name its
+     * printed figure now, for the reason the ruling was dropped: with no target to measure against,
+     * the printed number is the only way to compare two of them.
+     */
 
     it('shows the TRUE damage a Surge will do, not the figure it is priced at', () => {
         const markup = render(['surge', null, null]);
