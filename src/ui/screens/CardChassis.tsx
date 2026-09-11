@@ -125,3 +125,48 @@ export function EnergyPips({ cost }: { readonly cost: number }): ReactElement {
         </span>
     );
 }
+
+/**
+ * THE WHOLE TILE — the face the shop and the collection draw, as one component.
+ *
+ * Henry, 2026-09-11: *"on hover of the Edit Loadout screen you should see what the active deck
+ * cards look like. I need to see the full card that I would see from the shop or card collection
+ * when I hover."*
+ *
+ * The active deck is a list of 27px rows — cost, element code, name — which is the right shape for
+ * a list you are editing and the wrong shape for deciding whether to cut a card. The hover answer
+ * has to be the SAME card the collection shows, not a second rendering that could drift from it,
+ * so the tile stops being markup inlined at each call site and becomes this.
+ *
+ * Pure and prop-driven: the grid tile is a `<button>` that adds a card, the hover preview is a
+ * floating `<div>`, and neither behaviour belongs in the face. The caller supplies the element.
+ */
+export function CardTileFace({ face, count, tags }: {
+    readonly face: {
+        readonly name: string;
+        readonly description: string;
+        readonly element: string;
+        readonly cost: number;
+        readonly banner: Banner;
+    };
+    /** Copies held. Prints the ×N badge above 1, exactly as the collection grid does. */
+    readonly count?: number;
+    /** `pick`, `benched` — the collection's own word for where this card sits. */
+    readonly tags?: string;
+}): ReactElement {
+    return (
+        <>
+            <EnergyPips cost={face.cost} />
+            <TypeMark banner={face.banner} />
+            <span className="rs-art" />
+            <span className="rs-cnm">{face.name}</span>
+            <span className="rs-desc">{face.description}</span>
+            <span className="rs-tags">
+                <ElementMark element={face.element} />
+                {tags && <span className="rs-tg">{tags}</span>}
+            </span>
+            {count !== undefined && count > 1 && <span className="rs-nbadge">×{count}</span>}
+            <span className="rs-elbar" />
+        </>
+    );
+}

@@ -38,6 +38,7 @@
  * deck. Same argument ticket 20 made for affordability living beside the payment.
  */
 
+import type React from 'react';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
@@ -55,7 +56,7 @@ import {
 import { cardFace, colorFor, groupByData, isPayoff, type Banner } from './runShell';
 import './runShell.css';
 import './LoadoutEditor.css';
-import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
+import { CardTileFace, ElementMark } from './CardChassis';
 
 /** Eight big cards, four across and two down. The mockup's page size, and the reason it pages. */
 export const CARDS_PER_PAGE = 8;
@@ -131,6 +132,8 @@ export default function LoadoutEditor({
     const [page, setPage] = useState(initialPage);
     const [element, setElement] = useState<ElementFilter>('ALL');
     const [type, setType] = useState<TypeFilter>('ALL');
+    /** The deck row under the pointer (or keyboard focus), and where to hang its tile. */
+    const [peek, setPeek] = useState<{ stack: Stack; top: number } | null>(null);
     const [sort, setSort] = useState<Sort>('COST');
     const [search, setSearch] = useState('');
     /** The benched member awaiting a party slot to swap into. Null is the ordinary state. */
@@ -328,19 +331,7 @@ export default function LoadoutEditor({
                                 style={{ ['--el' as string]: colorFor(stack.element) }}
                                 onClick={() => add(stack)}
                             >
-                                <EnergyPips cost={stack.cost} />
-                                <TypeMark banner={stack.banner} />
-                                <span className="rs-art" />
-                                <span className="rs-cnm">{stack.name}</span>
-                                <span className="rs-desc">{stack.description}</span>
-                                <span className="rs-tags">
-                                    <ElementMark element={stack.element} />
-                                    {stack.tags && <span className="rs-tg">{stack.tags}</span>}
-                                </span>
-                                {stack.instances.length > 1 && (
-                                    <span className="rs-nbadge">×{stack.instances.length}</span>
-                                )}
-                                <span className="rs-elbar" />
+                                <CardTileFace face={stack} count={stack.instances.length} tags={stack.tags} />
                             </button>
                         ))}
                         {pageCards.length === 0 && (
@@ -367,6 +358,26 @@ export default function LoadoutEditor({
 
                 <div className="rs-panel led-deck">
                     <h2>ACTIVE DECK · {run.deck.length} / floor {floor}</h2>
+                    {/*
+                      * The peek. Fixed-positioned and anchored to the row's own top, so it tracks
+                      * the list rather than the pointer - a tile that chases the cursor is unusable
+                      * at 255px tall. `pointer-events: none` so it can never eat the click that
+                      * sends the card back.
+                      */}
+                    {peek && (
+                        <div
+                            className="rs-card led-peek"
+                            style={{ ['--el' as string]: colorFor(peek.stack.element), top: peek.top } as React.CSSProperties}
+                            aria-hidden="true"
+                        >
+                            <CardTileFace
+                                face={peek.stack}
+                                count={peek.stack.instances.length}
+                                tags={peek.stack.tags}
+                            />
+                        </div>
+                    )}
+
                     <div className="led-rows">
                         {deckStacks
                             .slice()
@@ -379,6 +390,35 @@ export default function LoadoutEditor({
                                     style={{ ['--el' as string]: colorFor(stack.element) }}
                                     disabled={atFloor}
                                     onClick={() => send(stack)}
+                                    /*
+                                     * Henry, 2026-09-11: the row is the right shape for editing a
+                                     * list and the wrong one for deciding what to cut. Hovering
+                                     * gives back the collection's own tile - `CardTileFace`, the
+                                     * same component the grid on the left draws - rather than a
+                                     * second rendering that could drift from it.
+                                     *
+                                     * `onFocus`/`onBlur` as well as the mouse: these are buttons in
+                                     * a list a keyboard walks, and a preview only the mouse can
+                                     * reach is one half the players cannot see.
+                                     */
+                                    /*
+                                     * OVER/OUT, not ENTER/LEAVE. React synthesises enter and leave
+                                     * from these two, and a bare `mouseover` in jsdom does not drive
+                                     * that synthesis - so the enter/leave form is a peek no
+                                     * interaction test can see. The guard below is what enter/leave
+                                     * was buying: the row has child spans, and moving onto one fires
+                                     * `mouseout` on the row, so the peek would drop and reopen on
+                                     * every internal crossing. `relatedTarget` inside the row means
+                                     * the pointer never left it.
+                                     */
+                                    onMouseOver={(e) => setPeek({ stack, top: e.currentTarget.getBoundingClientRect().top })}
+                                    onFocus={(e) => setPeek({ stack, top: e.currentTarget.getBoundingClientRect().top })}
+                                    onMouseOut={(e) => {
+                                        const to = e.relatedTarget as Node | null;
+                                        if (to && e.currentTarget.contains(to)) return;
+                                        setPeek(null);
+                                    }}
+                                    onBlur={() => setPeek(null)}
                                 >
                                     <span className="rs-g">{stack.cost}</span>
                                     <ElementMark element={stack.element} compact />

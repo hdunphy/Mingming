@@ -118,7 +118,7 @@ const collectionElements = (ids: ReadonlyArray<string>): string[] =>
         .filter((element) => element !== 'None')
         .sort();
 
-function makeRun(over: Partial<IRunState> = {}): IRunState {
+export function makeRun(over: Partial<IRunState> = {}): IRunState {
     const run = createRun({
         seed: 'loadout-render-seed',
         offer: offerGyms('offer-seed')[0],
@@ -128,7 +128,7 @@ function makeRun(over: Partial<IRunState> = {}): IRunState {
     return { ...run, ...over };
 }
 
-function makeRanch(roster: IRanchMember[] = ROSTER): IRanchState {
+export function makeRanch(roster: IRanchMember[] = ROSTER): IRanchState {
     return { ...createEmptyRanch(), roster };
 }
 

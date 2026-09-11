@@ -73,3 +73,33 @@
 
 .led-rows { display: flex; flex-direction: column; gap: 3px; overflow: auto; flex: 1; }
 .led-foot { margin-top: 8px; flex: none; }
+
+/*
+ * THE DECK-ROW PEEK — Henry, 2026-09-11: *"on hover of the Edit Loadout screen you should see what
+ * the active deck cards look like. I need to see the full card that I would see from the shop or
+ * card collection when I hover."*
+ *
+ * It IS the collection's tile (`CardTileFace` under `.rs-card`), so everything here is placement.
+ * `position: fixed` against the row's own viewport top rather than the cursor: a 200px card that
+ * chases the pointer is unreadable, and one pinned to the row you are pointing at is not. It sits
+ * to the LEFT of the deck column, which is where the empty gutter is on this screen.
+ */
+.led-peek {
+  position: fixed;
+  right: calc(50% + 360px);
+  z-index: 400;
+  /* Never eats the click that sends the card back — the row underneath owns that. */
+  pointer-events: none;
+  box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
+  animation: led-peek-in 0.12s ease-out;
+}
+
+@keyframes led-peek-in {
+  from { opacity: 0; transform: translateX(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Under ~1200px the gutter is gone, so the tile would sit off-screen. Tuck it against the edge. */
+@media (max-width: 1200px) {
+  .led-peek { right: auto; left: 12px; }
+}
