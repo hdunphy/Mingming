@@ -7,6 +7,7 @@ import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExe
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
 import { isSimulating } from './simulationDepth';
+import { globalBattleEventBus } from '../events';
 
 // Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
 const warnedBadConditions = new Set<string>();
@@ -37,7 +38,35 @@ function evaluateCustomCondition(
  * HookFactory: Generates functional hooks from data definitions.
  */
 export const HookFactory = {
-    createHook(data: DataHookDefinition | ModifierDataHookDefinition): HookDefinition {
+    /**
+     * TICKET 16 — the engine's half of the PROC-VISIBLE law.
+     *
+     * Called when a hook flagged `proc: true` has passed its `when` and is about to act. Emits
+     * `DRIVER_PROC` so the UI can flash the Driver's chip and float its name on the owner. Two
+     * guards: the AI's search drives this same code ninety thousand times a decision
+     * (`isSimulating`), and a hook with no Driver to announce (a firmware hook someone flagged by
+     * mistake) announces nothing rather than a nameless flash.
+     *
+     * The event, not the LOG line, is the proc: a LOG is prose the player has to go and read, and
+     * `macros-and-drivers.md` rejected invisible passives precisely because nobody reads the prose.
+     */
+    announceProc(driverId: string | undefined, hookId: string, context: HookContext, owner: IBattleEntity): void {
+        if (!driverId || isSimulating()) return;
+        globalBattleEventBus.emit({
+            type: 'DRIVER_PROC',
+            timestamp: Date.now(),
+            driverId,
+            hookId,
+            ownerId: owner.id,
+            fromPlayer: context.state.playerParty.some(e => e.id === owner.id),
+        });
+    },
+
+    /**
+     * @param driverId Ticket 16: the Driver this hook belongs to, when it belongs to one. Set by
+     *   `firmwareRegistry` for every `driver_*` entry; undefined for firmware and daemons.
+     */
+    createHook(data: DataHookDefinition | ModifierDataHookDefinition, driverId?: string): HookDefinition {
         const priority = data.priority;
         const id = data.id;
 
@@ -49,6 +78,7 @@ export const HookFactory = {
                 [data.trigger]: (damage: number, context: HookContext, owner: IBattleEntity) => {
                     if (this.checkCondition(modifierData.when, context, owner)
                         && evaluateCustomCondition(id, modifierData.condition, context, owner)) {
+                        if (modifierData.proc) this.announceProc(driverId, id, context, owner);
                         let newDamage = damage;
 
                         const scaleFactor = modifierData.scaling
@@ -75,6 +105,7 @@ export const HookFactory = {
                 [eventData.trigger]: (context: HookContext, owner: IBattleEntity): HookResult => {
                     if (this.checkCondition(eventData.when, context, owner)
                         && evaluateCustomCondition(id, eventData.condition, context, owner)) {
+                        if (eventData.proc) this.announceProc(driverId, id, context, owner);
                         return {
                             state: this.executeActions(eventData.do, context, owner)
                         };

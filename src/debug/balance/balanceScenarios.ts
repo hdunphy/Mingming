@@ -126,7 +126,7 @@ export function matchupScenario(spec: MatchupSpec): ComposedSetup {
         player: {
             party: [unit(player, playerOS)],
             deck: getDeckForOS(player, playerOS ?? MingmingRegistry[player].availableOS[0]),
-            relics: [],
+            drivers: [],
         },
         enemies: [enemyUnit(enemy, enemyOS)],
         statJitter: BALANCE_STAT_JITTER,
@@ -225,7 +225,7 @@ export function teamScenario(spec: TeamSpec): ComposedSetup {
             // Shared pile, per the ruled design. `buildScenarioState` already flattens the enemy
             // side the same way, so both sides get the same treatment without a special case.
             deck: [...player.flatMap(([sp, os]) => getDeckForOS(sp, os)), ...(spec.playerExtras ?? [])],
-            relics: [],
+            drivers: [],
         },
         // Enemy extras ride on the first enemy's list - `buildScenarioState` flattens every
         // enemy's deck into one side pile, so which member carries them is immaterial.

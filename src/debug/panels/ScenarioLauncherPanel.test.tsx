@@ -120,11 +120,12 @@ describe('ScenarioLauncherPanel', () => {
         expect(markup).not.toContain('DeckTerminal');
     });
 
-    it('keeps relics, and says they override game state', () => {
+    it('lists the player Drivers, and says they override game state', () => {
         const markup = render();
 
-        expect(markup).toContain('RELICS');
-        expect(markup).toContain('Expansion Slot');
+        expect(markup).toContain('DRIVERS');
+        expect(markup).toContain('FIRST BLOOD');
+        expect(markup).not.toContain('RELICS');
         expect(markup).toContain('is never read from game state');
     });
 

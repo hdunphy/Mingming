@@ -23,7 +23,7 @@ function makeEntity(id: string, name: string, overrides: Partial<IBattleEntity> 
 function makeState(player: IBattleEntity[], enemy: IBattleEntity[]): IBattleState {
     return {
         sessionId: 'test', seed: '123', turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: player, enemyParty: enemy,
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },

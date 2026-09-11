@@ -159,10 +159,8 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);
 
-  // Milestone 8.4: Relic Attack Multiplier
-  if (attacker.relicBonuses?.attackMod) {
-    damage = Math.floor(damage * attacker.relicBonuses.attackMod);
-  }
+  // TICKET 16: the Milestone 8.4 relic attack multiplier that sat here is gone with the relics.
+  // A Driver that scales damage is a hook on the modifier path below, like every OS that does.
 
   // Step 5: Hooks
   damage = applyDamageModifiers(damage, {

@@ -1527,5 +1527,498 @@
                 ]
             }
         ]
+    },
+    "driver_third_strike": {
+        "id": "driver_third_strike",
+        "name": "THIRD STRIKE",
+        "description": "Every 10th attack card this side plays deals 50% more damage.",
+        "hooks": [
+            {
+                "id": "driver_third_strike_count",
+                "trigger": "onActionStart",
+                "priority": 91,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "third_strike",
+                        "scope": "SIDE",
+                        "operator": "ADD",
+                        "amount": 1
+                    }
+                ]
+            },
+            {
+                "id": "driver_third_strike_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "third_strike",
+                        "operator": "GTE",
+                        "value": 10,
+                        "scope": "SIDE"
+                    }
+                },
+                "multiplier": 1.5
+            },
+            {
+                "id": "driver_third_strike_fire",
+                "trigger": "onActionEnd",
+                "priority": 90,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "third_strike",
+                        "operator": "GTE",
+                        "value": 10,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "third_strike",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "⚔️ THIRD STRIKE! {owner}'s attack lands 50% harder."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_static_field": {
+        "id": "driver_static_field",
+        "name": "STATIC FIELD",
+        "description": "Every card this side plays deals 2 power to a random enemy.",
+        "hooks": [
+            {
+                "id": "driver_static_field_zap",
+                "trigger": "onActionEnd",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 2,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "⚡ STATIC FIELD arcs off {owner}'s card."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_antivenom": {
+        "id": "driver_antivenom",
+        "name": "ANTIVENOM",
+        "description": "At the end of this side's turn, each poisoned member loses 1 extra Poison.",
+        "hooks": [
+            {
+                "id": "driver_antivenom_purge",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "sourceStatus": {
+                        "status": "Poison",
+                        "minStacks": 1
+                    }
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Poison",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "🧪 ANTIVENOM purges 1 Poison from {owner}."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_overkill_recovery": {
+        "id": "driver_overkill_recovery",
+        "name": "OVERKILL RECOVERY",
+        "description": "Whenever an enemy faints, every living member of this side heals 8% of max HP.",
+        "hooks": [
+            {
+                "id": "driver_overkill_recovery_heal",
+                "trigger": "onUnitFainted",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "target": "OPPONENT"
+                },
+                "do": [
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "percentMaxHP": 8
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "💚 OVERKILL RECOVERY: {owner} recovers."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_first_blood": {
+        "id": "driver_first_blood",
+        "name": "FIRST BLOOD",
+        "description": "The first attack card this side plays each turn deals 20% more damage.",
+        "hooks": [
+            {
+                "id": "driver_first_blood_count",
+                "trigger": "onActionStart",
+                "priority": 91,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "first_blood",
+                        "scope": "SIDE",
+                        "operator": "ADD",
+                        "amount": 1
+                    }
+                ]
+            },
+            {
+                "id": "driver_first_blood_fire",
+                "trigger": "onActionStart",
+                "priority": 90,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "first_blood",
+                        "operator": "EQ",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "LOG",
+                        "text": "🩸 FIRST BLOOD! {owner} strikes first, 20% harder."
+                    }
+                ]
+            },
+            {
+                "id": "driver_first_blood_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "first_blood",
+                        "operator": "EQ",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "multiplier": 1.2
+            },
+            {
+                "id": "driver_first_blood_reset",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "first_blood",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_element_fire": {
+        "id": "driver_element_fire",
+        "name": "FIRE DRIVER",
+        "description": "This side's Fire attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_fire_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Fire"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_water": {
+        "id": "driver_element_water",
+        "name": "WATER DRIVER",
+        "description": "This side's Water attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_water_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Water"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_earth": {
+        "id": "driver_element_earth",
+        "name": "EARTH DRIVER",
+        "description": "This side's Earth attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_earth_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Earth"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_air": {
+        "id": "driver_element_air",
+        "name": "AIR DRIVER",
+        "description": "This side's Air attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_air_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Air"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_nature": {
+        "id": "driver_element_nature",
+        "name": "NATURE DRIVER",
+        "description": "This side's Nature attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_nature_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Nature"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_ice": {
+        "id": "driver_element_ice",
+        "name": "ICE DRIVER",
+        "description": "This side's Ice attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_ice_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Ice"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_light": {
+        "id": "driver_element_light",
+        "name": "LIGHT DRIVER",
+        "description": "This side's Light attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_light_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Light"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_dark": {
+        "id": "driver_element_dark",
+        "name": "DARK DRIVER",
+        "description": "This side's Dark attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_dark_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Dark"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_bulwark_reflex": {
+        "id": "driver_bulwark_reflex",
+        "name": "BULWARK REFLEX",
+        "description": "The first time each member drops below 50% HP in a fight, it gains 15 Bark Shield.",
+        "hooks": [
+            {
+                "id": "driver_bulwark_reflex_shield",
+                "trigger": "onHpThresholdCrossed",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "target": "SELF",
+                    "counter": {
+                        "key": "bulwark_reflex",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "bulwark_reflex",
+                        "scope": "OWNER",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "BarkShield",
+                        "stacks": 15
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "🪵 BULWARK REFLEX: {owner} braces behind bark."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_deep_cache": {
+        "id": "driver_deep_cache",
+        "name": "DEEP CACHE",
+        "description": "The first bonus (non-natural) draw this side makes each turn grants the drawer 1 Strengthened.",
+        "hooks": [
+            {
+                "id": "driver_deep_cache_fire",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "ALLY",
+                    "isNaturalDraw": false,
+                    "counter": {
+                        "key": "deep_cache",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "deep_cache",
+                        "scope": "SIDE",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Strengthened",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "💾 DEEP CACHE hits: {target} is Strengthened."
+                    }
+                ]
+            },
+            {
+                "id": "driver_deep_cache_reset",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "deep_cache",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    }
+                ]
+            }
+        ]
     }
 }

@@ -84,7 +84,7 @@ function board(over: Partial<IBattleState> = {}): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: [unit('p1'), unit('p2')],
         enemyParty: [unit('e1', { primaryElement: 'Water' }), unit('e2', { primaryElement: 'Water' })],
         playerDeck: {

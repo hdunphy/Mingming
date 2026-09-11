@@ -69,7 +69,7 @@ function stateWithHand(handDataIds: string[], seed = 'discard-seed', drawpileDat
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        activeRelics: []
+        activeDrivers: []
     } as unknown as IBattleState;
 }
 
@@ -169,7 +169,7 @@ function reducerState(hand: ProgramEntity[]): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: [unit('p1', 'Sleipnir')],
         enemyParty: [unit('e1', 'Enemy', { definitionId: 'fenrir' })],
         playerDeck: { ownerId: 'PLAYER', hand, drawpile: [], discard: [], exhaust: [], deck: [] },

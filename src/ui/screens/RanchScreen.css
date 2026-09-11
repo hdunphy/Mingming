@@ -266,20 +266,20 @@
 
 /* --- Vault --- */
 
-.ranch-relic-grid {
+.ranch-driver-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
     gap: 0.6rem;
 }
 
-.ranch-relic {
+.ranch-driver {
     border: 1px solid rgba(122, 92, 255, 0.3);
     border-radius: 6px;
     padding: 0.7rem;
 }
 
-.ranch-relic-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.25rem; }
-.ranch-relic-desc { font-size: 0.75rem; opacity: 0.72; line-height: 1.5; }
+.ranch-driver-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.25rem; }
+.ranch-driver-desc { font-size: 0.75rem; opacity: 0.72; line-height: 1.5; }
 
 /* --- Run start (ticket 09) --- */
 

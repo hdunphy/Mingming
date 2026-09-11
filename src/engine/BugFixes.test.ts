@@ -32,7 +32,7 @@ function makeState(overrides: Partial<IBattleState> = {}): IBattleState {
         cardsPlayedThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: [makeEntity({ id: 'p1', name: 'Hero' })],
         enemyParty: [makeEntity({ id: 'e1', name: 'Foe', primaryElement: 'Water' })],
         playerDeck: {

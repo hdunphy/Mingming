@@ -4,7 +4,6 @@ import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
-import { GetRelic } from '../../engine/data/relicRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
@@ -34,7 +33,6 @@ interface BattleReportProps {
      */
     onContinue: (
         chosenCards: IOwnedProgram[],
-        chosenRelic?: string,
         storedInstanceIds?: ReadonlyArray<string>,
     ) => void;
 }
@@ -113,7 +111,6 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
      * cards even if you don't plan to use them."*
      */
     const [stored, setStored] = useState<Record<number, boolean>>({});
-    const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
     //
@@ -144,12 +141,9 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     const isResolved = (index: number): boolean => !!selections[index] || skipped[index] === true;
     const allCardsResolved = bundle.cardChoices.every((_, index) => isResolved(index));
 
-    const needsRelic = !!bundle.relicChoices && bundle.relicChoices.length > 0;
-    // The relic is still mandatory, and deliberately: there is at most one per run (the last
-    // gauntlet fight), it is a party-wide passive rather than a card in the deck, and it cannot
-    // dilute anything. Nothing in the playtest complained about it.
-    const relicSelected = !needsRelic || selectedRelic !== null;
-    const canContinue = allCardsResolved && relicSelected;
+    // Ticket 16: the "choose one sector relic" group that used to gate this is gone with the relics.
+    // A Driver is an ELITE's visible stakes (ticket 17), not a post-fight pick.
+    const canContinue = allCardsResolved;
 
     const handleSelect = (choiceIndex: number, card: IOwnedProgram) => {
         // Taking a card un-declines the pick, so a mis-click on SKIP is one click to undo.
@@ -180,7 +174,7 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
             .filter(([, on]) => on)
             .map(([index]) => selections[Number(index)]?.instanceId)
             .filter((id): id is string => id !== undefined);
-        onContinue(chosen, selectedRelic || undefined, storedIds);
+        onContinue(chosen, storedIds);
     };
 
     /** Advance the draft; card=null means the round was skipped. */
@@ -393,40 +387,6 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            {/* Relic Choices */}
-                            {needsRelic && (
-                                <div
-                                    className={selectedRelic === null ? 'choice-group-pending' : undefined}
-                                    style={{ padding: '12px 14px', background: 'rgba(255,165,0,0.1)', borderRadius: '8px', border: '1px solid rgba(255,165,0,0.5)' }}
-                                >
-                                    <div style={{ fontSize: '0.75rem', color: '#ffa500', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>CHOOSE ONE SECTOR RELIC</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
-                                        {bundle.relicChoices!.map((relicId) => {
-                                            const relic = GetRelic(relicId);
-                                            const isSelected = selectedRelic === relicId;
-                                            return (
-                                                <div
-                                                    key={relicId}
-                                                    onClick={() => { playSfx('rewardClaim'); setSelectedRelic(relicId); }}
-                                                    style={{
-                                                        padding: '15px',
-                                                        background: isSelected ? 'rgba(255,165,0,0.3)' : 'rgba(0,0,0,0.4)',
-                                                        border: `2px solid ${isSelected ? '#ffa500' : 'rgba(255,255,255,0.1)'}`,
-                                                        borderRadius: '8px',
-                                                        cursor: 'pointer',
-                                                        textAlign: 'center'
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>🏆</div>
-                                                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px' }}>{relic.name}</div>
-                                                    <div style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: '1.4' }}>{relic.description}</div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Gym-clear draft summary (draft already resolved above) */}
                             {draftRounds.length > 0 && (
                                 <div style={{ padding: '12px 14px', background: 'rgba(0, 255, 170, 0.05)', borderRadius: '8px', border: '1px solid rgba(0, 255, 170, 0.3)' }}>

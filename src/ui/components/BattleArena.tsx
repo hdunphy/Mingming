@@ -34,7 +34,6 @@ import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
 import { openSettings } from '../store/uiSlice';
 import {
-    addDriver,
     addRunCards,
     addRunCollection,
     addRunScrap,
@@ -49,8 +48,6 @@ import {
 } from '../store/runSlice';
 import { logRunEvent } from '../store/runLogMiddleware';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
-import { RelicRegistry } from '../../engine/data/relicRegistry';
-import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
 import PlayedCardReveal from './PlayedCardReveal';
@@ -174,7 +171,6 @@ const BattleArena: React.FC = () => {
     // receives from a won fight is blueprints, which are the one persistent currency.
     const run = useSelector((state: RootState) => state.run.run);
     const gauntlet = run?.gauntlet ?? null;
-    const drivers = run?.drivers;
     // Ticket 24. `seenTips` is a ranch field, so the lesson outlives the run that taught it.
     const seenTips = useSelector((state: RootState) => state.game.seenTips);
 
@@ -713,12 +709,16 @@ const BattleArena: React.FC = () => {
      * a state no code produces. `rollDraftRounds` and `IRewardBundle.draftRounds` are still there
      * for 18 to re-wire; what is gone is the invocation.
      *
-     * The driver choice on a gauntlet's last fight stays as ticket 11 left it — ticket 16 owns
-     * drivers and has not been through here yet.
+     * TICKET 16 REMOVED THE GYM-CLEAR DRIVER PICK. The last fight of a gauntlet used to pay "choose
+     * one of three random relics" on top of the bundle, rolled from `Date.now()` and dispatched as
+     * `addDriver`. The relics are deleted, and `economy-session.md` / `macros-and-drivers.md` rule
+     * that Drivers are ELITE drops — *"ONE harder fight, the Driver visible as the stakes"* — which
+     * is ticket 17's node, not the gym's. Until 17 lands the only way to field a Driver is the debug
+     * scenario launcher. Henry ruled the removal 2026-09-11.
      */
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
-            let bundle = rollDropTable({
+            const bundle = rollDropTable({
                 defeated: battleState.enemyParty,
                 nodeKind,
                 party: battleState.playerParty,
@@ -735,18 +735,6 @@ const BattleArena: React.FC = () => {
                 firstRun,
             });
 
-            // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
-            if (gauntlet && gauntlet.fightIndex >= gauntlet.totalFights - 1) {
-                const held = new Set(drivers ?? []);
-                const available = Object.keys(RelicRegistry).filter(r => !held.has(r));
-
-                if (available.length > 0) {
-                    const prng = new PRNG(Date.now().toString());
-                    const { shuffled } = prng.shuffle(available);
-                    bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
-                }
-            }
-
             // ticket 55: reviewed, not a defect, and deliberately NOT derived during render. The
             // bundle is ROLLED from a seeded PRNG and must be rolled exactly once per victory: a
             // render-phase derivation could run twice under StrictMode or a discarded render and
@@ -755,7 +743,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers, dryFights, firstRun]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, dryFights, firstRun]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -896,7 +884,6 @@ const BattleArena: React.FC = () => {
      */
     const handleContinue = (
         chosenCards: IOwnedProgram[],
-        chosenRelic?: string,
         storedInstanceIds: ReadonlyArray<string> = [],
     ) => {
         if (rewardBundle) {
@@ -931,10 +918,6 @@ const BattleArena: React.FC = () => {
                 if (forDeck.length > 0) dispatch(addRunCards(forDeck));
                 if (forCollection.length > 0) dispatch(addRunCollection(forCollection));
             }
-            if (chosenRelic) {
-                dispatch(addDriver(chosenRelic));
-            }
-
             /*
              * TICKET 59: report the pick outcome, one row per offered triple.
              *

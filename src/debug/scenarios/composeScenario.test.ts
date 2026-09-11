@@ -56,7 +56,7 @@ import {
     launchScenario,
     mirrorSaveParty,
     osOptions,
-    relicOptions,
+    driverOptions,
     resolveDeck,
     savedDeck,
     speciesOptions,
@@ -119,7 +119,7 @@ function makeFullStore(save: IRanchState = createEmptyRanch()) {
 }
 
 describe('registry-backed pickers', () => {
-    it('reads species, OS, cards and relics off the live registries', () => {
+    it('reads species, OS, cards and Drivers off the live registries', () => {
         const species = speciesOptions();
         expect(species.length).toBeGreaterThan(10);
         expect(species.map((s) => s.id)).toContain('fenrir');
@@ -129,7 +129,9 @@ describe('registry-backed pickers', () => {
         expect(osOptions('not_a_species')).toEqual([]);
 
         expect(cardOptions().length).toBeGreaterThan(10);
-        expect(relicOptions().map((r) => r.id)).toContain('expansion_slot');
+        expect(driverOptions().map((r) => r.id)).toContain('driver_first_blood');
+        // Ticket 68 ruling 4: a gym's signature Driver is never on offer.
+        expect(driverOptions().map((r) => r.id)).not.toContain('driver_war_footing');
     });
 });
 
@@ -225,10 +227,10 @@ describe('toComposedSetup', () => {
         expect(member.activeOS).toBe('fenrir_v1');
     });
 
-    it('carries HP, statuses, enemy overrides, relics and gauntlet context', () => {
+    it('carries HP, statuses, enemy overrides, drivers and gauntlet context', () => {
         const draft: LauncherDraft = {
             ...playableDraft(),
-            relics: ['expansion_slot'],
+            drivers: ['driver_first_blood'],
             // Ticket 18 reconciled `GauntletContext` with the ratified `IGauntletProgress`: no
             // `type` and no `element`, `fightIndex`/`totalFights` rather than
             // `currentBattleIndex`/`totalBattles`, and HP as a flat map beside the downed list.
@@ -250,7 +252,7 @@ describe('toComposedSetup', () => {
 
         expect(setup.player.party[0].currentHp).toBe(12);
         expect(setup.player.party[0].statusEffects).toHaveLength(1);
-        expect(setup.player.relics).toEqual(['expansion_slot']);
+        expect(setup.player.drivers).toEqual(['driver_first_blood']);
         expect(setup.enemies[0].maxHpOverride).toBe(500);
         expect(setup.enemies[0].deck).toEqual(['ignite']);
         expect(setup.gauntlet?.totalFights).toBe(3);
@@ -269,7 +271,7 @@ describe('toComposedSetup', () => {
         const original = toComposedSetup(
             {
                 ...playableDraft(),
-                relics: ['heatsink'],
+                drivers: ['driver_antivenom'],
                 enemies: [{ ...createEnemyUnit(), deck: ['ignite', 'scorch'], maxHpOverride: 90 }],
             },
             null,
@@ -286,7 +288,7 @@ describe('file round trip', () => {
         const draft: LauncherDraft = {
             ...playableDraft(),
             name: 'burn stall repro',
-            relics: ['heatsink'],
+            drivers: ['driver_antivenom'],
             enemyMode: 'CARDS',
             enemies: [{ ...createEnemyUnit(), deck: ['ignite', 'ignite'], maxHpOverride: 240 }],
         };
@@ -401,13 +403,13 @@ describe('launchScenario — compose, materialize, dispatch', () => {
 });
 
 describe('launchScenario — seeding an empty slot', () => {
-    /** A launchable two-unit setup with a relic, so every field the launcher carries has content. */
+    /** A launchable two-unit setup with a Driver, so every field the launcher carries has content. */
     function seedableSetup() {
         return toComposedSetup(
             {
                 ...playableDraft(),
                 party: [createUnit('fenrir'), createUnit('kraken')],
-                relics: ['heatsink'],
+                drivers: ['driver_antivenom'],
             },
             null,
         );
@@ -443,7 +445,7 @@ describe('launchScenario — seeding an empty slot', () => {
 
     it('seeds NOTHING run-scoped — the deck and the drivers stay out of the ranch', () => {
         // Ticket 11: the old version wrote the scenario deck into `cardInventory` + `activeDeck`
-        // and unioned its relics into the save. A ranch holds neither, and a scratch slot has no
+        // and unioned its Drivers into the save. A ranch holds neither, and a scratch slot has no
         // run to hold them instead. The battle already got both, directly out of `ComposedSetup`.
         const store = makeFullStore();
         const setup = seedableSetup();

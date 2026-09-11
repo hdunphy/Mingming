@@ -1,5 +1,6 @@
 /**
- * DRIVERS — side-level passives, for either side. Ticket 68.
+ * DRIVERS — side-level passives, for either side. Ticket 68 built the machinery; ticket 16 built
+ * the player's eight and deleted the relics.
  *
  * # THE NAMING IS THE RULING, NOT A PREFERENCE
  *
@@ -9,20 +10,20 @@
  * never "potions"/"relics" for the player's; this extends it to the enemy's, and makes ticket 60's
  * gauntlet rung — *"kit + OS + **Driver**"* — literal rather than aspirational.
  *
- * The three `boss_relic_*` entries in `lib/hooks.json` are NOT deleted here. Ruling 6 keeps
- * Tidewrack and Rootfall exactly as ticket 18 built them until their own authoring session, so
- * exactly one gym migrates at a time and the diffs stay readable. Emberfall is the one that moved.
+ * # WHAT A DRIVER IS, MECHANICALLY (ticket 16: there is one kind now)
  *
- * # WHAT A DRIVER IS, MECHANICALLY
+ * A Driver is an entry in `lib/hooks.json` whose id starts with `driver_`. Its hooks are registered
+ * by `firmwareRegistry` like any firmware's, and this module attaches their **ids** to every
+ * member's `IBattleEntity.hooks`. That is the whole mechanism — a Driver is *"a weaker OS for the
+ * whole party"* (`economy-session.md`), and it is built out of exactly the parts an OS is.
  *
- * Two kinds share the word, because the player already had one of them:
- *
- * - **A STAT Driver** is an entry in `relicRegistry.RelicRegistry` with an `effect` this module
- *   applies at battle creation (`DRAW_BONUS`, `ENERGY_CAP_BONUS`, `ATTACK_MULTIPLIER`). This is the
- *   Milestone 8.4 system, unchanged; only its call site moved here.
- * - **A HOOK Driver** is an entry in `lib/hooks.json` whose id starts with `driver_`. Its hooks are
- *   registered by `firmwareRegistry` like any firmware's, and this module attaches their **ids** to
- *   every member's `IBattleEntity.hooks`.
+ * The other kind — the Milestone 8.4 STAT relics (`expansion_slot`, `heatsink`, `buffer_cache`,
+ * `overclock_module`), applied as a draw bonus, an energy cap, a death-prevent and a flat 1.1x —
+ * is DELETED in ticket 16. Two reasons, both rulings rather than tidiness: the player-facing law
+ * says never call them relics, and the Driver law says PROC-VISIBLE — *"flat percents rejected as
+ * INVISIBLE (the 2%-status disease)"* — which three of the four stat relics were by construction.
+ * `RelicRegistry`, `GetRelic`, `IRelic`, `relicBonuses` and `IBattleState.activeRelics` (now
+ * `activeDrivers`) are gone with them.
  *
  * **Attaching ids to `hooks` rather than setting `activeOS` is the whole of ruling 2's "additive,
  * not an OS replacement".** `Hooks.ts` collects a unit's hooks from three sources — `e.hooks`,
@@ -36,28 +37,44 @@
  *
  * Ticket 68 build step 1 asks for the enemy list to be *"the same side-level machinery"* as the
  * player's, and the cheapest way to be sure of that is for there to be one function and two call
- * sites. `createBattleState` now applies this to the player party from `setup.drivers` and to the
- * enemy party from `setup.enemyDrivers`; a Driver that works on one side therefore works on the
- * other by construction, which is what ticket 16 will want when elites start dropping them.
+ * sites. `createBattleState` applies this to the player party from `setup.drivers` and to the enemy
+ * party from `setup.enemyDrivers`; a Driver that works on one side therefore works on the other by
+ * construction. Ticket 16 leaned on exactly that: every player Driver below is written with
+ * `source: SELF` / `target: OPPONENT` relative to its OWNER, so handing `driver_first_blood` to a
+ * boss makes the boss's first attack the boosted one.
  *
- * # WHY UNKNOWN IDS ARE SURVIVABLE HERE AND NOT IN `GetRelic`
+ * # THE PLAYER'S EIGHT (ticket 16; shapes ruled in `macros-and-drivers.md`, numbers by Henry 2026-09-11)
  *
- * `GetRelic` throws on an unknown id, which is right for a lookup: a caller asking for a specific
- * relic wants to know it does not exist. It is wrong for an *application loop* over a list that may
- * legitimately mix the two kinds — the first `driver_*` id handed to the old loop would have thrown
- * mid-battle-creation. So the dispatch below asks which kind an id is before it asks the registry
- * anything, and an id that is neither is warned about once and skipped rather than killing the
- * fight it was supposed to decorate.
+ * | Driver | proc moment | v1 |
+ * |---|---|---|
+ * | THIRD STRIKE | every 10th ATTACK card this side plays | that card 1.5x |
+ * | STATIC FIELD | every card this side plays | 2 power to a random enemy (zoo-compounding FLAG) |
+ * | ANTIVENOM | end of this side's turn, each poisoned member | -1 extra Poison |
+ * | OVERKILL RECOVERY | an enemy faints | each living member heals 8% max HP |
+ * | FIRST BLOOD | the first ATTACK card this side plays each turn | 1.2x |
+ * | <ELEMENT> DRIVER (x8) | an attack card of that element | 1.1x |
+ * | BULWARK REFLEX | a member drops below 50%, once per fight per member | +15 Bark Shield |
+ * | DEEP CACHE | this side's first bonus draw each turn | the drawer gains 1 Strengthened |
+ *
+ * THIRD STRIKE is Henry's ruled name and his ruled cadence — *"third strike is too often, it should
+ * be like every 10 attacks"* — so the name and the number disagree on purpose; renaming is his call.
+ * The `proc: true` flag on each payoff hook is what makes them PROC-VISIBLE (see `HookTypes`).
+ *
+ * # WHY UNKNOWN IDS ARE SURVIVABLE HERE
+ *
+ * This is an *application loop* over a list that comes from a save. An id that is not in
+ * `hooks.json` — a Driver renamed after a run was saved, a typo in a scenario file — is warned
+ * about once and skipped rather than killing the fight it was supposed to decorate.
  *
  * Engine module: no React, no Redux, no `src/ui` or `src/debug` imports, no `Math.random`, no
  * `Date.now()`.
  */
 
-import type { IBattleEntity } from '../types';
-import { RelicRegistry } from './relicRegistry';
+import type { IBattleEntity, Element } from '../types';
+import { ELEMENTS } from '../types';
 import { getOSBehavior, type OSDefinition } from './firmwareRegistry';
 
-/** Every hook-bearing Driver's id carries this prefix. Ruling 1: never `boss_relic_*`. */
+/** Every Driver's id carries this prefix. Ruling 1: never `boss_relic_*`. */
 export const DRIVER_ID_PREFIX = 'driver_';
 
 /** WAR FOOTING — Emberfall's leader Driver (ticket 68 ruling 5). */
@@ -70,22 +87,59 @@ export const DRIVER_TIDAL_SURGE = 'driver_tidal_surge';
 export const DRIVER_ROOT_ROT = 'driver_root_rot';
 
 /**
- * Every hook-bearing Driver that ships, in a stable order.
- *
- * All three gym Drivers: WAR FOOTING (Emberfall, 68), TIDAL SURGE (Tidewrack, 71), ROOT ROT
- * (Rootfall, 72). With Rootfall authored there is no gym left running ticket 18's formula boss. It
- * is a list rather than a constant because `driverRegistry.test.ts` sweeps it — a Driver added to
- * `hooks.json` and forgotten here is a Driver nothing checks.
+ * The three gym leaders' signature Drivers. Ticket 68 ruling 4 puts these explicitly out of the
+ * player's reach (*"enemy signature Drivers never enter the pool"*); `codex.ts` relies on that.
  */
-export const DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING, DRIVER_TIDAL_SURGE, DRIVER_ROOT_ROT];
+export const GYM_DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING, DRIVER_TIDAL_SURGE, DRIVER_ROOT_ROT];
 
-/** Is this a hook-bearing Driver id (as opposed to a stat Driver from `RelicRegistry`)? */
-export function isHookDriver(id: string): boolean {
+export const DRIVER_THIRD_STRIKE = 'driver_third_strike';
+export const DRIVER_STATIC_FIELD = 'driver_static_field';
+export const DRIVER_ANTIVENOM = 'driver_antivenom';
+export const DRIVER_OVERKILL_RECOVERY = 'driver_overkill_recovery';
+export const DRIVER_FIRST_BLOOD = 'driver_first_blood';
+export const DRIVER_BULWARK_REFLEX = 'driver_bulwark_reflex';
+export const DRIVER_DEEP_CACHE = 'driver_deep_cache';
+
+/** The Element Driver for one element. `None` has no Driver — there is no such thing as a None deck. */
+export function elementDriverId(element: Exclude<Element, 'None'>): string {
+    return `driver_element_${element.toLowerCase()}`;
+}
+
+/** One Element Driver per real element, in `ELEMENTS` order. */
+export const ELEMENT_DRIVER_IDS: ReadonlyArray<string> = ELEMENTS
+    .filter((e): e is Exclude<Element, 'None'> => e !== 'None')
+    .map(elementDriverId);
+
+/**
+ * The player's Drivers — the ruled eight, with the Element Drivers expanded. This is the pool an
+ * elite pays out of (ticket 17); the gym Drivers are deliberately NOT in it.
+ */
+export const PLAYER_DRIVER_IDS: ReadonlyArray<string> = [
+    DRIVER_THIRD_STRIKE,
+    DRIVER_STATIC_FIELD,
+    DRIVER_ANTIVENOM,
+    DRIVER_OVERKILL_RECOVERY,
+    DRIVER_FIRST_BLOOD,
+    ...ELEMENT_DRIVER_IDS,
+    DRIVER_BULWARK_REFLEX,
+    DRIVER_DEEP_CACHE,
+];
+
+/**
+ * Every Driver that ships, in a stable order.
+ *
+ * It is a list rather than a constant because `driverRegistry.test.ts` sweeps it — a Driver added
+ * to `hooks.json` and forgotten here is a Driver nothing checks.
+ */
+export const DRIVER_IDS: ReadonlyArray<string> = [...GYM_DRIVER_IDS, ...PLAYER_DRIVER_IDS];
+
+/** Is this a Driver id? */
+export function isDriverId(id: string): boolean {
     return id.startsWith(DRIVER_ID_PREFIX);
 }
 
 /**
- * A hook Driver's definition — its name, its rule text and its hooks.
+ * A Driver's definition — its name, its rule text and its hooks.
  *
  * Reads through `getOSBehavior` because `firmwareRegistry` is what loads and registers every
  * hooks.json entry, Drivers included; see the comment on its key filter for why there is one loader
@@ -93,17 +147,23 @@ export function isHookDriver(id: string): boolean {
  * the name only: a Driver is not an OS and is never assigned as one.
  */
 export function getDriver(id: string): OSDefinition | undefined {
-    if (!isHookDriver(id)) return undefined;
+    if (!isDriverId(id)) return undefined;
     return getOSBehavior(id);
 }
 
-/** The name and rule text to print for a Driver, for the offer screen's telegraph (ruling 4). */
+/** The name and rule text to print for a Driver — the chip, its tooltip, the offer screen's telegraph. */
 export function describeDriver(id: string): { readonly name: string; readonly description: string } {
     const driver = getDriver(id);
     if (driver) return { name: driver.name, description: driver.description };
-    const relic = RelicRegistry[id];
-    if (relic) return { name: relic.name, description: relic.description };
     return { name: id, description: '' };
+}
+
+/**
+ * Every Driver's name, rule text and id, for a picker (the debug scenario launcher today; ticket
+ * 17's elite stakes tomorrow). Player Drivers only — a gym's signature is not on offer.
+ */
+export function playerDriverOptions(): ReadonlyArray<{ id: string; name: string; description: string }> {
+    return PLAYER_DRIVER_IDS.map((id) => ({ id, ...describeDriver(id) }));
 }
 
 const warnedUnknown = new Set<string>();
@@ -114,52 +174,20 @@ const warnedUnknown = new Set<string>();
  * Pure: never mutates, and never touches `activeOS`.
  */
 export function applyDriver(entity: IBattleEntity, driverId: string): IBattleEntity {
-    if (isHookDriver(driverId)) {
-        const driver = getDriver(driverId);
-        if (!driver) {
-            if (!warnedUnknown.has(driverId)) {
-                warnedUnknown.add(driverId);
-                console.warn(`[driverRegistry] No hooks.json entry for Driver "${driverId}"; skipping it.`);
-            }
-            return entity;
-        }
-        // De-duplicated by id: a hook applied twice fires twice, and WAR FOOTING applied twice
-        // would be an aura at double rate rather than a no-op. `Hooks.ts` already dedupes when it
-        // collects, but the entity's own list is what a UI and a save would read.
-        const held = new Set(entity.hooks ?? []);
-        for (const hook of driver.hooks) held.add(hook.id);
-        return { ...entity, hooks: [...held] };
-    }
-
-    const relic = RelicRegistry[driverId];
-    if (!relic) {
+    const driver = getDriver(driverId);
+    if (!driver) {
         if (!warnedUnknown.has(driverId)) {
             warnedUnknown.add(driverId);
             console.warn(`[driverRegistry] Unknown Driver "${driverId}"; skipping it.`);
         }
         return entity;
     }
-
-    // Milestone 8.4's three stat effects, moved here verbatim from `createBattleState`.
-    // `DEATH_PREVENT` (buffer_cache) is deliberately absent: it is read off
-    // `IBattleState.activeRelics` by `resolutionEngine`, not off an entity, and moving it would be
-    // a behaviour change inside a ticket that is not about the player's Drivers.
-    if (relic.effect === 'ENERGY_CAP_BONUS') {
-        return { ...entity, maxEnergy: entity.maxEnergy + 1, currentEnergy: entity.currentEnergy + 1 };
-    }
-    if (relic.effect === 'DRAW_BONUS') {
-        return { ...entity, cardDraw: entity.cardDraw + 1 };
-    }
-    if (relic.effect === 'ATTACK_MULTIPLIER') {
-        return {
-            ...entity,
-            relicBonuses: {
-                ...entity.relicBonuses!,
-                attackMod: entity.relicBonuses!.attackMod * 1.1,
-            },
-        };
-    }
-    return entity;
+    // De-duplicated by id: a hook applied twice fires twice, and WAR FOOTING applied twice
+    // would be an aura at double rate rather than a no-op. `Hooks.ts` already dedupes when it
+    // collects, but the entity's own list is what a UI and a save would read.
+    const held = new Set(entity.hooks ?? []);
+    for (const hook of driver.hooks) held.add(hook.id);
+    return { ...entity, hooks: [...held] };
 }
 
 /** Apply a whole side's Drivers to one member of that side, in list order. */

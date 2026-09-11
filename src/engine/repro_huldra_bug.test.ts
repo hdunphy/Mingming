@@ -60,7 +60,7 @@ describe('Huldra OS V1 Bug Reproduction', () => {
             playerDeck: { ownerId: 'PLAYER', deck: [], hand: [], drawpile: [], discard: [], exhaust: [] },
             enemyDeck: { ownerId: 'ENEMY', deck: [], hand: [], drawpile: [], discard: [], exhaust: [] },
             cardsPlayedThisTurn: 0,
-            activeRelics: []
+            activeDrivers: []
         };
 
         const action: BattleAction = {

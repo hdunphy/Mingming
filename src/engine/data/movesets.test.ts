@@ -30,7 +30,7 @@ function makeState(playerParty: IBattleEntity[], enemyParty: IBattleEntity[]): I
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        activeRelics: []
+        activeDrivers: []
     } as unknown as IBattleState;
 }
 

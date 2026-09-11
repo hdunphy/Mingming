@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-    DEFAULT_RELIC_BONUSES,
     normalizeBattleEntity,
     normalizeBattleState,
     zeroFilledElementPlays,
@@ -57,8 +56,6 @@ describe('normalizeBattleState - fill class', () => {
     it('fills the entity-level defaults', () => {
         const entity = normalizeBattleEntity(createSparseEntity());
 
-        expect(entity.relicBonuses).toEqual({ draw: 0, energy: 0, attackMod: 1 });
-        expect(entity.relicBonuses).toEqual(DEFAULT_RELIC_BONUSES);
         expect(entity.hooks).toEqual([]);
         expect(entity.currentIntent).toBeNull();
         expect(entity.playsThisTurn).toBe(0);
@@ -75,7 +72,6 @@ describe('normalizeBattleState - fill class', () => {
         const rich = createRichEntity();
         const entity = normalizeBattleEntity(rich);
 
-        expect(entity.relicBonuses).toEqual({ draw: 1, energy: 2, attackMod: 1.5 });
         expect(entity.hooks).toEqual(['hook_a']);
         expect(entity.activeOS).toBe('draugr_v2');
         expect(entity.playsThisTurn).toBe(2);
@@ -160,7 +156,6 @@ describe('normalizeBattleState - canonical form', () => {
             elementPlays: zeroFilledElementPlays(),
             playerParty: [
                 createSparseEntity({
-                    relicBonuses: { draw: 0, energy: 0, attackMod: 1 },
                     hooks: [],
                     currentIntent: null,
                     playsThisTurn: 0,

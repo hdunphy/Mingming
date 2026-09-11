@@ -831,7 +831,8 @@ export interface BossOverride {
      * question §12 used it for, and which would have silently changed meaning if the field had been
      * left pointing at a mechanism only two of the three gyms still use.
      */
-    readonly relics?: 'off';
+    /** Ticket 16: was `relics`. The boss's signature Driver, off. */
+    readonly driver?: 'off';
 }
 
 /** Apply a run-scoped override to a sampled boss team. A no-op for every other fight. */
@@ -842,7 +843,7 @@ function withBossOverride(
 ): ReadonlyArray<IBattleEntity> {
     if (!override || cell.kind !== 'gauntlet') return enemyParty;
     if (!isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS)) return enemyParty;
-    if (override.ivs === undefined && override.relics === undefined) return enemyParty;
+    if (override.ivs === undefined && override.driver === undefined) return enemyParty;
 
     return enemyParty.map((enemy) => {
         const stats = override.ivs
@@ -862,12 +863,12 @@ function withBossOverride(
 
 /** A one-line description of the override, for a report header that must not lose its provenance. */
 export function describeBossOverride(override: BossOverride | undefined): string {
-    if (!override || (override.ivs === undefined && override.relics === undefined)) {
+    if (!override || (override.ivs === undefined && override.driver === undefined)) {
         return 'boss as shipped';
     }
     const parts: string[] = [];
     if (override.ivs) parts.push(`BOSS_IVS ${override.ivs.hp}/${override.ivs.attack}/${override.ivs.defense}`);
-    if (override.relics === 'off') parts.push('boss signature passive OFF (the gym Driver; tuned OS and deck untouched)');
+    if (override.driver === 'off') parts.push('boss signature passive OFF (the gym Driver; tuned OS and deck untouched)');
     return `ISOLATION — ${parts.join(' + ')}`;
 }
 
@@ -945,7 +946,7 @@ function setupForEncounter(
         // `rollEncounter`'s own ruling, re-exported by the encounter module so this cannot drift:
         // a run enemy plays cards, not telegraphed intents. `runBatch` rejects anything else.
         enemyMode: RUN_ENEMY_MODE,
-        player: { party: party.map(asSetupMember), deck: [...deck], relics: [] },
+        player: { party: party.map(asSetupMember), deck: [...deck], drivers: [] },
         enemies,
         // Ticket 68. Omitted rather than sent empty so that every setup written before this ticket
         // serializes byte-identically — the gate's own repros are compared as JSON.
@@ -1123,9 +1124,10 @@ export function sampleFight(
     // shipped game would field — only the named knob differs from the 0/60 baseline.
     const enemyParty = withBossOverride(cell, encounter.enemyParty, bossOverride);
 
-    // `--boss-relics off` means "the boss without its signature passive". Ticket 68 moved where that
-    // passive lives for an authored gym, so the flag follows it — see `BossOverride.relics`.
-    const stripSignature = bossOverride?.relics === 'off'
+    // `--boss-driver off` (ticket 16; `--boss-relics off` still accepted) means "the boss without its
+    // signature passive". Ticket 68 moved where that passive lives for an authored gym, so the flag
+    // follows it — see `BossOverride.driver`.
+    const stripSignature = bossOverride?.driver === 'off'
         && cell.kind === 'gauntlet'
         && isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS);
     const enemyDrivers = stripSignature ? [] : (encounter.enemyDrivers ?? []);

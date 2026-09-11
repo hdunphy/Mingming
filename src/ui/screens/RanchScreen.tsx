@@ -52,7 +52,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData, MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import { RelicRegistry } from '../../engine/data/relicRegistry';
+import { describeDriver } from '../../engine/data/driverRegistry';
 import { createRanchMember } from '../../engine/gameTypes';
 import type { IRanchMember } from '../../engine/runTypes';
 import { assembleMingming } from '../store/gameSlice';
@@ -384,16 +384,15 @@ function VaultSection({ drivers }: { drivers: ReadonlyArray<string> }): ReactNod
                     Nothing installed. Drivers are won from elites inside a run and are lost when it ends.
                 </div>
             )}
-            <div className="ranch-relic-grid">
+            <div className="ranch-driver-grid">
                 {drivers.map((driverId) => {
-                    // Indexed, not `GetRelic`, which throws on an unknown id. A run carrying a driver
-                    // that has since been renamed must not take the whole screen down with it.
-                    const relic = RelicRegistry[driverId];
-                    if (!relic) return null;
+                    // `describeDriver` never throws: a run carrying a Driver that has since been
+                    // renamed prints its id rather than taking the whole screen down with it.
+                    const { name, description } = describeDriver(driverId);
                     return (
-                        <div key={driverId} className="ranch-relic">
-                            <div className="ranch-relic-name">{relic.name}</div>
-                            <div className="ranch-relic-desc">{relic.description}</div>
+                        <div key={driverId} className="ranch-driver">
+                            <div className="ranch-driver-name">{name}</div>
+                            <div className="ranch-driver-desc">{description}</div>
                         </div>
                     );
                 })}

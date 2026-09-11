@@ -98,7 +98,7 @@ export interface IBattleSetup {
     readonly party: ReadonlyArray<IMingmingState>;
     /** The deck as dataIds. The instance-id indirection is gone — a run deck holds dataIds. */
     readonly deck: ReadonlyArray<string>;
-    /** Was `relics`. Applied to the player side and copied to `IBattleState.activeRelics`. */
+    /** Was `relics`. Applied to the player side and copied to `IBattleState.activeDrivers`. */
     readonly drivers: ReadonlyArray<string>;
     /**
      * The ENEMY side's Drivers — ticket 68 build step 1. Applied to every enemy member by the same
@@ -111,7 +111,7 @@ export interface IBattleSetup {
      * elite carry one, and everything else in the game would be writing `enemyDrivers: []` to say
      * nothing. Absent and empty mean the same thing here and the code treats them identically.
      *
-     * Not copied to `IBattleState.activeRelics`: that field is the PLAYER's list, read by
+     * Not copied to `IBattleState.activeDrivers`: that field is the PLAYER's list, read by
      * `resolutionEngine` for `buffer_cache`, and mixing both sides into it would make a
      * side-agnostic lookup out of something every reader treats as side-specific.
      */
@@ -400,7 +400,7 @@ export function createBattleState(
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         },
         counters: {},
-        activeRelics: [...setup.drivers],
+        activeDrivers: [...setup.drivers],
         enemyMode,
         // Ticket 144 §2: unset means "take the process default", which is BEAMLESS. The game
         // supplies a width per fight off the enemy ladder; a harness that wants one asks by name.

@@ -36,7 +36,7 @@ describe('Advanced Archetypes Logic', () => {
             cardsDrawnThisTurn: 0,
             lastProgramPlayed: null,
         counters: {},
-            activeRelics: []
+            activeDrivers: []
         };
     });
 

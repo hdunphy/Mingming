@@ -50,7 +50,7 @@ function board(playerParty: IBattleEntity[], over: Partial<IBattleState> = {}): 
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty,
         enemyParty: [unit('e1')],
         playerDeck: {

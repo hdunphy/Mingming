@@ -57,7 +57,7 @@ const makeState = (playerOverrides: Partial<IBattleEntity> = {}, hand: ProgramEn
     turn: 1,
     phase: 'ACTION',
     activeSide: 'PLAYER',
-    activeRelics: [],
+    activeDrivers: [],
     playerParty: [makeEntity(PLAYER_ID, 'Hel', playerOverrides)],
     enemyParty: [makeEntity(ENEMY_ID, 'Target Dummy')],
     playerDeck: { ownerId: 'PLAYER', deck: [], drawpile, hand, discard: [], exhaust: [] },

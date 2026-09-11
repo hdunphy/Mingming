@@ -63,7 +63,6 @@ export interface IRewardBundle {
     readonly blueprints: ReadonlyArray<string>;
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
-    readonly relicChoices?: ReadonlyArray<string>;
     /**
      * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented before the normal
      * report. **Nothing sets this since ticket 12** — the gauntlet and its draft belong to ticket

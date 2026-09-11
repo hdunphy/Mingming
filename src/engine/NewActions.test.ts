@@ -58,7 +58,7 @@ function createInitialState(): IBattleState {
         cardsDrawnThisTurn: 0,
         lastProgramPlayed: null,
         counters: {},
-        activeRelics: []
+        activeDrivers: []
     };
 }
 

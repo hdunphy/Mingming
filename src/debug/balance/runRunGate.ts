@@ -340,7 +340,9 @@ function parseArgs(argv: string[]): Args {
         tweaks: tweaks ?? [],
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
-            relics: get('--boss-relics') === 'off' ? 'off' : undefined,
+            // Ticket 16: the flag is `--boss-driver`; `--boss-relics` is kept as an alias so the run
+            // lines recorded in tickets 67-72 still paste.
+            driver: (get('--boss-driver') ?? get('--boss-relics')) === 'off' ? 'off' : undefined,
         },
         strict: argv.includes('--strict'),
         verbose: argv.includes('--verbose'),

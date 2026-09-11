@@ -4,6 +4,7 @@ import type { IBattleState, StatusType } from '../../engine/types';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx } from '../audio/AudioEngine';
+import { describeDriver } from '../../engine/data/driverRegistry';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -18,7 +19,12 @@ import { playSfx } from '../audio/AudioEngine';
  * The engine is never touched: this is a pure listener.
  */
 
-export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed';
+/**
+ * `proc` is ticket 16's: a Driver's NAME rising off the member whose copy fired. The Driver law is
+ * PROC-VISIBLE, and a float on the unit is the half of that law the eye is already on — the chip in
+ * the top bar flashes at the same moment for the half of the screen it is not.
+ */
+export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed' | 'proc';
 
 export interface CombatFloat {
     id: number;
@@ -116,6 +122,8 @@ const FLOAT_LIFETIME_MS = 1150;
 const FLOAT_SLOTS = 6;
 
 const HEAL_COLOR = '#4ade80';
+/** The Driver chip's violet (`.battle-driver-chip`), so the float and the chip read as one event. */
+const DRIVER_PROC_COLOR = '#c4b5fd';
 const ABSORB_COLOR = '#9aa0ae';
 
 /**
@@ -348,6 +356,14 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 }
                 case 'LEVEL_UP': {
                     playSfx('levelUp');
+                    return;
+                }
+                case 'DRIVER_PROC': {
+                    // Ticket 16. The name, not the number: what a Driver did is already on the
+                    // board as damage/heal/status floats of its own; what those floats cannot say
+                    // is WHY, and the why is the Driver.
+                    playSfx('driverProc');
+                    pushFloat(event.ownerId, 'proc', describeDriver(event.driverId).name, DRIVER_PROC_COLOR);
                     return;
                 }
                 default:

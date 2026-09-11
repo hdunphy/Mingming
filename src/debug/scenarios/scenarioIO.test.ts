@@ -13,7 +13,7 @@ const SETUP: ComposedSetup = {
     player: {
         party: [{ definitionId: 'fenrir', attackIV: 31, defenseIV: 0, hpIV: 15 }],
         deck: ['ignite', 'scorch'],
-        relics: [],
+        drivers: [],
     },
     enemies: [{ definitionId: 'draugr', attackIV: 0, defenseIV: 0, hpIV: 0 }],
     gauntlet: null,

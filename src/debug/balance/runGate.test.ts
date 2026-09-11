@@ -487,7 +487,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          */
         const base = at(driverIndex);
         const lowered = at(driverIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
-        const stripped = at(driverIndex, { relics: 'off' });
+        const stripped = at(driverIndex, { driver: 'off' });
 
         for (const arm of [lowered, stripped]) {
             expect(decksOf(arm)).toBe(decksOf(base));
@@ -523,7 +523,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          * research run-lines quote `--boss-relics off`.
          */
         const base = at(driverIndex);
-        const arm = at(driverIndex, { relics: 'off' });
+        const arm = at(driverIndex, { driver: 'off' });
 
         expect(base.enemyDrivers.length).toBeGreaterThan(0);
         expect(arm.enemyDrivers).toEqual([]);
@@ -545,7 +545,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
             const cell = CELLS.find((c) => c.id === id)!;
             const plain = sampleFight(cell, 3, 'favourable');
             const overridden = sampleFight(cell, 3, 'favourable', {
-                ivs: { hp: 10, attack: 10, defense: 10 }, relics: 'off',
+                ivs: { hp: 10, attack: 10, defense: 10 }, driver: 'off',
             });
             expect(overridden.setup.enemies).toEqual(plain.setup.enemies);
         }
@@ -577,7 +577,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          * That is the failure this test exists for; the §12 arms were read off this flag.
          */
         const base = at(driverIndex);
-        const stripped = at(driverIndex, { relics: 'off' });
+        const stripped = at(driverIndex, { driver: 'off' });
 
         expect(base.enemyDrivers.length).toBeGreaterThan(0);
         expect(stripped.enemyDrivers).toEqual([]);
@@ -597,7 +597,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
         expect(describeBossOverride(undefined)).toBe('boss as shipped');
         expect(describeBossOverride({})).toBe('boss as shipped');
         expect(describeBossOverride({ ivs: { hp: 10, attack: 10, defense: 10 } })).toContain('10/10/10');
-        expect(describeBossOverride({ relics: 'off' })).toContain('signature passive OFF');
+        expect(describeBossOverride({ driver: 'off' })).toContain('signature passive OFF');
     });
 });
 
