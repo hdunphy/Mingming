@@ -1,4 +1,4 @@
-# Ticket 151 — jormungandr_v1's two undertows draw each other: a base enemy deck that loops
+# Ticket 152 — jormungandr_v1's two undertows draw each other: a base enemy deck that loops
 
 **Type:** balance (card swap in one base deck). **Status:** RULED by Henry 2026-09-11 — *"let's try
 with a card swap first, another 0e Water card, maybe apply a status"*. Card swap only; no engine

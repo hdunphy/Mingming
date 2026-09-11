@@ -1,6 +1,6 @@
 # Ticket 142 — The route to the gym: rivals on the road, and a scout at the last exit
 
-**Status:** approved direction by Henry 2026-09-05 ("let's try your idea"); Henry's alternative is
+**Status:** RE-RULED 2026-09-11 — build Henry's alternative (§7; 142d–h ready for Legion). History: approved direction by Henry 2026-09-05 ("let's try your idea"); Henry's alternative is
 recorded in §5 and is NOT dead — it is the fallback if this does not fix the feel.
 **Branch:** `legion/ai-perf`, one commit per lettered row, authored as Henry.
 
@@ -131,7 +131,7 @@ it is what the player does *at the seam*, and it is the strongest note yet for 1
   three bodies wrong for two of the three biomes. Energized (ticket 135) is not enough to keep an
   off-type body on the field; the recruit is either the coming biome's counter or it is benched.
 - **Biome 3 opened with the biome-1 recruit alone (8 cards) against a wild jormungandr and died in
-  one turn.** That fight is ticket 151 (the undertow pair loops); the one-body party is this
+  one turn.** That fight is ticket 152 (the undertow pair loops); the one-body party is this
   ticket's problem.
 - **"I still don't feel like I'm leveling up with my decks. I almost always send cards to the
   collection and search for 2–3 cards to add to the deck."** Deck size 8 → 17 → 8 → 17 → 8 across
@@ -147,3 +147,42 @@ biome?* — candidates for the session: a boundary reflash that keeps the body b
 engine cards toward the coming biome; recruits offered at the workshop being the *next* biome's
 counter, not this one's; a persistent per-body axis (blueprint / level) that a bench does not
 reset, so the deck is not the only thing that "levels".
+
+
+## 7. RULED 2026-09-11 — build Henry's alternative (§5), and the shop becomes static
+
+Off the 2026-09-10 playtest (§6). Henry: *"Let's try my alternative route. It's fine if there are no
+Water mingmings in there."* One commit per lettered row, authored as Henry.
+
+- **142d — the route is [counter element, gym element, gym biome].** For Rootfall (Nature gym):
+  Fire biome → Nature biome → gym biome. The gym biome fields the gym's species (NNW for Rootfall)
+  at reduced strength until the gym itself. The Water biome is not on the Rootfall route and kraken
+  / jormungandr are not recruitable on it — accepted (*"it's fine if there are no Water mingmings"*).
+  142a's rivals and 142b's scout stay as built and re-key to the new order (the scout at the
+  Nature biome's exit previews two of the gym comp; rivals field the path species of the biome
+  they stand in). `pathAndScout.test` / `encounter.test` / `regionGraph.test` updated; the run
+  walker (`scratch/t149_runmix.ts`) re-run so the fight count and width mix are on record.
+- **142e — the marketplace stock is static per run.** Today `marketplace.ts` re-rolls the stock on
+  every visit (*"stock re-rolls per visit"*, L16). Henry: *"make it static per run so whenever you
+  come back it has the same stock, which doesn't get replenished — once you buy the card it's gone
+  from the shop."* Stock (cards, macros, and the blueprint slot below) is rolled once per
+  marketplace node from `nodeSeed(run seed, node id)` with visit count removed from the key; a
+  bought item leaves a gap; re-entry shows the same remaining stock. The no-farm rule in the
+  file's header is satisfied by construction (nothing replenishes).
+- **142f — refresh for scrap.** *"You can pay scrap to refresh it."* One button, **50 scrap**,
+  re-rolls the entire stock — cards, macros and the blueprint slot — from the next visit-count key.
+  Replaces today's 10-scrap card reroll. Henry: *"we might need to go higher"* — the number is a
+  constant with a comment, and the run walker reports scrap-at-gym so it can be retuned.
+- **142g — blueprints in the shop.** *"Add blueprints to the shop, but they should be expensive
+  and only offer 1 random option."* One slot, one random blueprint from the species the run can
+  recruit on this route, **50 scrap**. Bought → gone until a refresh. Blueprint economy per the
+  steam-release ruling in HANDOFF (blueprints are consumable; assembly rolls stats).
+- **142h — write-back.** A run walked end to end on the new route with the log attached; scrap
+  banked at each marketplace visit before and after; the §6 questions re-asked of Henry on his
+  next playtest.
+
+Gates: 142d — every route still reaches a gym in 11–13 fights (the ticket-149 walker measured 11.7
+on the old order); the scout still previews the gym comp; no unreachable species on the *other*
+gyms' routes (each gym's route visits its counter and its own element — check all three). 142e/f/g
+— `marketplace.test` covers static stock, gap-on-buy, refresh re-roll, blueprint slot pricing, and
+that a refresh cannot be bought with less than 50.
