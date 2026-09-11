@@ -1,5 +1,7 @@
 # Ticket 148 — The progression curve: does a run make the player stronger, and by how much
 
+> **Playtest input 2026-09-10** (Henry, see 142 §6): *"I still don't feel like I'm leveling up with my decks. I almost always send cards to the collection and search for 2–3 cards to add."* Deck size went 8→17→8→17→8 across the run because every boundary bench removes the recruit's five engine cards; and the type triangle at biome scale makes benching down to one on-type body the rational move at every seam. Two questions for this ticket's design session: a progression axis that survives a bench, and what makes an off-type body worth keeping through a biome.
+
 **Type:** measurement first, then Henry's design session. **Lane:** balance, aimed at the
 single-player question rather than the roster. **Asked by Henry, 2026-09-07:** *"is balanced fun?
 Balanced is good for PvP, but this is a single-player game."*

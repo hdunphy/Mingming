@@ -114,3 +114,36 @@ Not a grid — a playtest. Henry runs Rootfall with a Fire starter and reports: 
 assembled by the end of biome 2 without benching anyone; did the scout tell him anything the
 gauntlet then confirmed; did rivals read as a choice on the map. Plus the tests named in §3/§4 and
 `regionGraph.test.ts` / `encounter.test.ts` extended for the two new node behaviours.
+
+
+## 6. Playtest 2026-09-10 (Henry's run log `mingming_run_log.json`, Rootfall tier 0, lost at biome 3's first node)
+
+The route itself ran: 14 fights, three rivals in biome 1 and three in biome 2, both elites beaten,
+scrap never a constraint (80–110 banked most of the way). What the run surfaced is not the path;
+it is what the player does *at the seam*, and it is the strongest note yet for 148:
+
+- **Henry benched down to one body at every boundary, on purpose.** *"Losing a mingming in a fight
+  puts you at a real disadvantage … the type disadvantage is hard to overcome so I dropped rat when
+  I went to the fire biome and then dropped both fire mingmings when I went into water."* The
+  boundary editor works exactly as ticket 61 §3 asked — and the rational move it enables is to
+  enter every new biome 1v1 with the one on-type body, so the 3v3 the game is built around only
+  happens for a few nodes after a workshop. The type triangle at biome scale makes two of the
+  three bodies wrong for two of the three biomes. Energized (ticket 135) is not enough to keep an
+  off-type body on the field; the recruit is either the coming biome's counter or it is benched.
+- **Biome 3 opened with the biome-1 recruit alone (8 cards) against a wild jormungandr and died in
+  one turn.** That fight is ticket 151 (the undertow pair loops); the one-body party is this
+  ticket's problem.
+- **"I still don't feel like I'm leveling up with my decks. I almost always send cards to the
+  collection and search for 2–3 cards to add to the deck."** Deck size 8 → 17 → 8 → 17 → 8 across
+  the run: every recruit adds five engine cards, every bench removes them, and the tuned deck is
+  rebuilt from the same 2–3 picks each biome. This is ticket 77's finding (adding cards loses;
+  deck size is the lever) *felt from the player's side* — the run has no progression axis that
+  survives a boundary. Input to 148's design session, not to its P0–P3 arms.
+
+**Verdict on 142's own question** (does the road to the gym feel better?): not answered — the run
+did not reach a gym, and the seam dominated the feel. Henry's biome alternative (§5) stays live.
+The design question 142 and 148 now share: *what makes an off-type body worth keeping through a
+biome?* — candidates for the session: a boundary reflash that keeps the body but swaps its five
+engine cards toward the coming biome; recruits offered at the workshop being the *next* biome's
+counter, not this one's; a persistent per-body axis (blueprint / level) that a bench does not
+reset, so the deck is not the only thing that "levels".
