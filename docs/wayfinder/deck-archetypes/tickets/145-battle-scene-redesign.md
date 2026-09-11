@@ -1,5 +1,7 @@
 # Ticket 145 — Battle scene redesign: the stagger stage (mock approved 2026-09-08)
 
+> **Status: BUILT — all six rows shipped by Legion 2026-09-08/09** (`ae37565` 145a stagger stage + `useStageAnchors`; `0850b87` + `2040bc0` 145b plaque, statuses, rim light, dead-body silhouette, firmware chip/daemons/preview moved; `c782772` 145c–f top bar, console, target chip, reveal lane, backdrop; follow-ups `af7bc62` hand card 180×255, `168e0c1` hand on the marketplace chassis, `25f44ca` collapsed log draws nothing — the top bar is that surface; `bce8574` the ticket-58 harness clicks the stage slots). Renders in `Claude outputs/stage-1280x800.png` and `battle-screen-final.png`. **Closes on Henry's eyes**: play a fight at 1280×800 and 1920×1080 and note anything that differs from `145-mock/`; then 146/147 start.
+
 **Type:** UI. **Status:** design RULED by Henry after three prototyping rounds (2026-09-07/08);
 ready for Legion. **Branch:** `legion/comp-grid`, authored as Henry, one commit per lettered row.
 **Mock:** `145-mock/145-mock.html` (open in a browser; 1280×800) and `145-mock/final.png` /
