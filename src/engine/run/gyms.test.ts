@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { BiomeSchema } from '../runTypes';
-import { GYM_REGISTRY, LAUNCH_ELEMENTS, offerGyms } from './gyms';
+import { COUNTERED_BY, GYM_REGISTRY, gymCompElementPlan, LAUNCH_ELEMENTS, offerGyms } from './gyms';
 import type { IGymOffer } from './gyms';
 
 /** Wide enough that a per-offer coin flip on the ordering could not survive it. */
@@ -60,66 +60,78 @@ describe('offerGyms', () => {
         }
     });
 
-    // Rule 3 — a run walks the whole triangle, so a region is a permutation of the launch set.
-    it('walks all three launch elements in every offer', () => {
+    /*
+     * RULE 3 IS RETIRED — ticket 142 §7, Henry 2026-09-11, off the 09-10 playtest (*"the current
+     * road is not fun"*). A region no longer walks the triangle: it is [counter, gym, approach],
+     * and the approach is built from the leader's comp rather than from an element.
+     *
+     * The cost is the thing to keep visible, so it is asserted rather than described. Rootfall
+     * never stands in a Water biome, so kraken and jormungandr cannot be recruited on that route -
+     * Henry accepted that in the same breath: *"It's fine if there are no Water mingmings in
+     * there."* If that is ever revisited, this test is the one that has to be argued with.
+     */
+    it('walks [counter, gym, approach] — not the triangle', () => {
+        const expected: Readonly<Record<string, string[]>> = {
+            Water: ['Nature', 'Water'],
+            Fire: ['Water', 'Fire'],
+            Nature: ['Fire', 'Nature'],
+        };
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
                 expect(offer.biomes).toHaveLength(3);
-                const elements = offer.biomes.map((b) => b.elements[0]);
-                expect([...elements].sort()).toEqual([...LAUNCH_ELEMENTS].sort());
+                const walked = offer.biomes.slice(0, 2).map((b) => b.elements[0]);
+                expect(walked).toEqual(expected[offer.gym.element]);
+            }
+        }
+    });
+
+    it('leaves one launch element off every route — the accepted cost', () => {
+        for (const seed of SWEEP) {
+            for (const offer of offerGyms(seed)) {
+                const walked = new Set(offer.biomes.slice(0, 2).map((b) => b.elements[0]));
+                const missing = LAUNCH_ELEMENTS.filter((e) => !walked.has(e));
+                // Exactly one, and it is the element the GYM beats — the leg that used to be
+                // biome 3 before the approach replaced it.
+                expect(missing).toHaveLength(1);
+                expect(missing[0]).not.toBe(offer.gym.element);
             }
         }
     });
 
     /*
-     * Rule 4 — Henry's 2026-08-30 ruling, which REPLACED the old reading ("you fight the leader at
-     * the end of its own region"). The gym's element opens the region and the walk steps twice
-     * along the counter-chain, so the counter-picked party the offer invites you to bring gets an
-     * easy first biome, a neutral second, and the hardest one immediately before the boss it was
-     * built for.
-     *
-     * Asserted as the whole ordered triple rather than as "gym element first": the difficulty ramp
-     * is the point, and a generator that opened correctly but then rolled the last two biomes
-     * either way round would pass a first-position check while handing half its players the
-     * inverted biome at depth 1 — exactly the thing this ruling exists to stop.
+     * THE LEADER NOW STANDS ON ITS OWN GROUND. This inverts the old rule-4 pin, which existed to
+     * stop a "fix" quietly reverting Henry's 2026-08-30 ordering. That ordering is what 09-11
+     * replaced, and the thematic complaint it knowingly accepted (Tidewrack's Water leader fought
+     * at the end of a Fire biome) is the complaint the new road exists to answer.
      */
-    it('opens on the gym\'s own element, then walks the counter-chain', () => {
-        const expected: Readonly<Record<string, string[]>> = {
-            Water: ['Water', 'Nature', 'Fire'],
-            Fire: ['Fire', 'Water', 'Nature'],
-            Nature: ['Nature', 'Fire', 'Water'],
-        };
+    it('ends on the gym\'s own ground, and opens on what beats it', () => {
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
-                expect(offer.biomes.map((b) => b.elements[0])).toEqual(expected[offer.gym.element]);
+                expect(openingElement(offer)).toBe(COUNTERED_BY[offer.gym.element]);
+                expect(offer.biomes[1].elements[0]).toBe(offer.gym.element);
+                expect(lastElement(offer)).toBe(offer.gym.element);
             }
         }
     });
 
-    it('never stands the leader in the LAST biome — the cost of rule 4, pinned', () => {
-        // The thematic price Henry ruled on knowingly: Tidewrack's Water leader is fought at the
-        // end of a Fire biome. Pinned so that a future "fix" to the theme has to argue with the
-        // ruling instead of quietly reverting it.
+    /*
+     * The approach is the FIRST two-element biome the generator has ever emitted - `IBiome.elements`
+     * admitted two so friendly pairs could ship without a save migration (ticket 05), and §7 is the
+     * first caller to spend that headroom. The first two legs stay mono-element.
+     */
+    it('emits legal biomes: two mono-element, then the comp\'s elements', () => {
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
-                expect(lastElement(offer)).not.toBe(offer.gym.element);
-                expect(openingElement(offer)).toBe(offer.gym.element);
-            }
-        }
-    });
-
-    // Ticket 05's mono-element amendment. `IBiome.elements` admits two so friendly pairs can ship
-    // later without a save migration; nothing this generator emits may use that headroom yet.
-    it('emits mono-element biomes that satisfy BiomeSchema', () => {
-        for (const seed of SWEEP) {
-            for (const offer of offerGyms(seed)) {
-                for (const biome of offer.biomes) {
-                    expect(biome.elements).toHaveLength(1);
-                    expect(LAUNCH_ELEMENTS).toContain(biome.elements[0]);
+                for (const [i, biome] of offer.biomes.entries()) {
+                    expect(biome.elements.length).toBe(i === 2 ? 2 : 1);
+                    for (const element of biome.elements) expect(LAUNCH_ELEMENTS).toContain(element);
                     expect(biome.id).not.toBe('');
                     expect(biome.name).not.toBe('');
                     expect(BiomeSchema.safeParse(biome).success).toBe(true);
                 }
+                // The approach advertises exactly what its bodies are dealt from.
+                const plan = gymCompElementPlan(offer.gym);
+                expect(offer.biomes[2].elements).toEqual([...new Set(plan)]);
             }
         }
     });
@@ -159,6 +171,12 @@ describe('offerGyms', () => {
          * ordering is fixed" are both bugs under the other rule. What still varies across seeds is
          * which of three NAMED biomes stands in for each element; that is covered by
          * `produces different screens for different seeds`.
+         *
+         * Ticket 142 §7 (2026-09-11) changed WHICH single ordering, not that there is one: the
+         * road is [counter, gym, approach], and the approach leads with the gym's element, so
+         * Emberfall reads Water > Fire > Fire. The doubled Fire is the approach standing on the
+         * leader's own ground - the whole point of the new road - and not a repeated biome:
+         * `never repeats a biome within one offer` pins the ids apart.
          */
         const orderings = new Set(
             SWEEP.map((seed) => {
@@ -166,6 +184,6 @@ describe('offerGyms', () => {
                 return emberfall.biomes.map((b) => b.elements[0]).join('>');
             }),
         );
-        expect(orderings).toEqual(new Set(['Fire>Water>Nature']));
+        expect(orderings).toEqual(new Set(['Water>Fire>Fire']));
     });
 });

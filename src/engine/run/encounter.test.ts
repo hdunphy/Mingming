@@ -35,7 +35,7 @@ import {
 import { buildBattleSetup, toMingmingState } from './battleSetup';
 import { STARTER_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
 import { authoredBossFor } from './bosses';
-import { GYM_REGISTRY, type IGymOffer } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan, type IGymOffer } from './gyms';
 import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { createBattleState } from '../data/battleFactories';
 import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
@@ -220,13 +220,35 @@ describe('species come from the biome element', () => {
     const run = makeRun(['Fire', 'Water', 'Nature']);
     const party = [KRAKEN, FENRIR, RATATOSKR];
 
-    it('draws only from the element of the biome the node sits in', () => {
-        for (const [biomeIndex, element] of ['Fire', 'Water', 'Nature'].entries()) {
+    /*
+     * THE LAST BIOME IS NO LONGER AN ELEMENT — ticket 142 §7 (Henry, 2026-09-11). The first two
+     * legs keep this promise exactly; the third is the APPROACH, dealt one body per entry of the
+     * gym's comp shape, so a 3v3 there is NNW rather than three of anything. `the approach biome
+     * deals the comp shape` below is where that case is pinned.
+     */
+    it('draws only from the element of the biome the node sits in — the two walked legs', () => {
+        for (const [biomeIndex, element] of ['Fire', 'Water'].entries()) {
             const { enemyParty } = rollEncounter({ run, node: node({ biomeIndex }), party });
             expect(enemyParty).toHaveLength(3);
             for (const enemy of enemyParty) {
                 expect(GetMingmingData(enemy.definitionId).primaryElement).toBe(element);
             }
+        }
+    });
+
+    it('the approach biome deals the comp shape — N, NN, NNW by party size', () => {
+        // Henry, 2026-09-11: *"you only see the water in 3v3s — the first two are one of the four
+        // nature decks. If it's a 1v1 or 2v2 it would be a single N then two N's respectively."*
+        const gym = GYM_REGISTRY[run.gymId];
+        const expected = gymCompElementPlan(gym);
+        const last = run.biomes.length - 1;
+        for (const size of [1, 2, 3]) {
+            const { enemyParty } = rollEncounter({
+                run, node: node({ biomeIndex: last }), party: party.slice(0, size),
+            });
+            expect(enemyParty).toHaveLength(size);
+            expect(enemyParty.map((e) => GetMingmingData(e.definitionId).primaryElement))
+                .toEqual([...expected].slice(0, size));
         }
     });
 

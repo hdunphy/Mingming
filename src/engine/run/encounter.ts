@@ -39,12 +39,12 @@
 import { SeedStream } from '../core/SeedStream';
 import { GAME_BEAM_WIDTH, type AiTier } from '../ai/TacticalAI';
 import { getSectorSpecies } from '../data/EncounterGenerator';
-import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
+import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
 import { authoredBossFor } from './bosses';
-import { GYM_REGISTRY, pathElementsFor } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan, pathElementsFor, speciesOwningFirmware } from './gyms';
 import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
 
@@ -443,6 +443,29 @@ export function rivalElementPlan(run: IRunState, node: IRegionNode, size: number
     const onBiome = path.filter(e => biomeElements.includes(e));
     return [...offBiome, ...onBiome].slice(0, Math.max(0, size));
 }
+/**
+ * THE APPROACH BIOME'S BODIES — ticket 142 §7, Henry 2026-09-11.
+ *
+ * *"It should be NNW decks so the last spot is a water mingming (either jorm or kraken). So you
+ * only see the water in 3v3s — the first two are one of the four nature decks. If it's a 1v1 or
+ * 2v2 it would be a single N then two N's respectively."*
+ *
+ * Same shape as `rivalElementPlan` and dealt by the same loop: one element per body, each filled
+ * from that element's whole species pool, exactly one draw per body. `gymCompElementPlan` supplies
+ * the order (gym element first, the off-element body last), and slicing it to the party size is
+ * what makes a solo run meet one Nature and a full one meet the Water.
+ *
+ * Empty for every other node, which is the caller's signal to roll as before. The gym fight, the
+ * scout and rivals each have their own rule and are all resolved before this one - the approach
+ * biome governs the ORDINARY fights on it, not the set pieces standing in it.
+ */
+export function gymBiomeElementPlan(run: IRunState, node: IRegionNode, size: number): string[] {
+    if (node.biomeIndex !== run.biomes.length - 1) return [];
+    if (node.kind === 'gym' || node.kind === 'rival') return [];
+    const gym = GYM_REGISTRY[run.gymId];
+    if (!gym) return [];
+    return [...gymCompElementPlan(gym)].slice(0, Math.max(0, size));
+}
 export function encounterSpeciesPool(run: IRunState, node: IRegionNode): string[] {
     // TICKET 142b — the scout fields the leader's own bodies, so its pool is the species behind
     // `gym.leaderComp` rather than an element at all. Ahead of the element branch because it is not
@@ -628,9 +651,10 @@ export function scoutFirmwareFor(run: IRunState, node: IRegionNode): string[] {
 function scoutSpeciesFor(run: IRunState, node: IRegionNode): string[] {
     const species: string[] = [];
     for (const firmware of scoutFirmwareFor(run, node)) {
-        const owner = Object.values(MingmingRegistry)
-            .find((definition) => definition.availableOS.includes(firmware));
-        if (owner && !species.includes(owner.id)) species.push(owner.id);
+        // `speciesOwningFirmware` rather than the search written out again — this was the second
+        // copy of it, and the first copy is what 142d's biome builder needed and did not find.
+        const ownerId = speciesOwningFirmware(firmware);
+        if (ownerId && !species.includes(ownerId)) species.push(ownerId);
     }
     return species;
 }
@@ -656,7 +680,14 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         ? 1
         : scoutFirmware.length > 0 ? scoutFirmware.length : enemyPartySize(node.kind, party.length);
 
+    /*
+     * ONE DEALT PLAN, TWO RULES THAT PRODUCE ONE. A rival deals the PATH elements (142a); an
+     * ordinary fight on the approach biome deals the gym's comp shape (§7). They cannot both
+     * apply - `gymBiomeElementPlan` returns nothing for a rival - so the fallback below is a
+     * choice between them rather than a merge, and the dealing loop stays one loop.
+     */
     const rivalPlan = rivalElementPlan(run, node, size);
+    const dealtPlan = rivalPlan.length > 0 ? rivalPlan : gymBiomeElementPlan(run, node, size);
 
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];
@@ -669,7 +700,7 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         // the node cannot roll into the fight the biome already offers. Still exactly ONE draw per
         // body — narrowed to that element's species rather than skipped — so the roster stream
         // stays in step with the IV draws below and with every other node kind.
-        const dealtElement = rivalPlan[i];
+        const dealtElement = dealtPlan[i];
         const dealtPool = dealtElement ? speciesOfElement(dealtElement) : [];
         const definitionId = scoutOS
             ? (pool[i] ?? pool[pool.length - 1])
