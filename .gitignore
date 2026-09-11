@@ -37,3 +37,19 @@ docs/balance/.cell-cache*.json
 desktop/app/
 desktop/release/
 desktop/package-lock.json
+
+# Agent transfer scratch (Henry, 2026-09-11: "move the .tar and .tgz files to _delete").
+#
+# Sessions move files between this repo and the cloud workspace as tarballs, and staged copies of
+# ticket text land beside them. Every one of those is a COPY of something that is either already in
+# the tree or on its way in - the four `_sync/*.md` swept up on 09-11 were all already filed, and
+# one was a stale fork of its ticket (it still said 151 after the 152 renumber, which is exactly the
+# failure mode: a second copy that drifts). None of it belongs in history, and `_tree.tar` alone was
+# 41 MB.
+#
+# `_to_delete/` is ignored too: it is the bin this repo uses because the device mount forbids
+# unlink, so things are moved there to be removed by hand rather than deleted in place.
+_sync/
+_to_delete/
+_*.tar
+_*.tgz
