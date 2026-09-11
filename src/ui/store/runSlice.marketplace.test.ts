@@ -41,7 +41,7 @@ import runReducer, {
 import { createRun, minimumActiveDeck } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
-    REROLL_PRICE,
+    MARKET_REFRESH_PRICE,
     SELL_PRICE_BY_ENERGY,
     rollMarketStock,
     sellPrice,
@@ -323,14 +323,26 @@ describe('selling — the one card verb that pays the player', () => {
 });
 
 describe('rerolling', () => {
-    it('charges the reroll and counts as another visit, which is what re-rolls the stock', () => {
+    it('charges the refresh and counts a REFRESH, not a visit — that is what changes the stock', () => {
+        /*
+         * TICKET 142 §7 (Henry, 2026-09-11). This reducer used to buy a `visited` increment,
+         * because the stock was keyed on it - which also made walking out and back in a free
+         * re-roll. The stock is keyed on `marketRefreshes[nodeId]` now, so the purchase moves that
+         * and `visited` goes back to meaning only how many times the player has walked in.
+         */
         const run = atMarket(makeRun(100));
         const before = stockOf(run);
 
-        const after = runReducer(stateOf(run), rerollMarketStock({ nodeId: run.currentNodeId, price: REROLL_PRICE })).run!;
+        const after = runReducer(
+            stateOf(run),
+            rerollMarketStock({ nodeId: run.currentNodeId, price: MARKET_REFRESH_PRICE }),
+        ).run!;
 
-        expect(after.scrap).toBe(100 - REROLL_PRICE);
-        expect(marketNode(after).visited).toBe(marketNode(run).visited + 1);
+        expect(after.scrap).toBe(100 - MARKET_REFRESH_PRICE);
+        expect(after.marketRefreshes?.[run.currentNodeId]).toBe(1);
+        // The visit count is NOT touched. If this ever flips back, walking out becomes a free
+        // refresh again and the ruling is silently undone.
+        expect(marketNode(after).visited).toBe(marketNode(run).visited);
 
         const restocked = rollMarketStock({ run: after, node: marketNode(after), party: PARTY });
         expect(restocked.seed).not.toBe(before.seed);
@@ -338,8 +350,8 @@ describe('rerolling', () => {
     });
 
     it('refuses when the run cannot afford it', () => {
-        const run = atMarket(makeRun(REROLL_PRICE - 1));
-        expect(runReducer(stateOf(run), rerollMarketStock({ nodeId: run.currentNodeId, price: REROLL_PRICE })).run)
+        const run = atMarket(makeRun(MARKET_REFRESH_PRICE - 1));
+        expect(runReducer(stateOf(run), rerollMarketStock({ nodeId: run.currentNodeId, price: MARKET_REFRESH_PRICE })).run)
             .toEqual(run);
     });
 
@@ -349,13 +361,13 @@ describe('rerolling', () => {
         const run = atMarket(makeRun(100));
         const wild = run.nodes.find((n) => n.kind === 'wild')!;
 
-        const after = runReducer(stateOf(run), rerollMarketStock({ nodeId: wild.id, price: REROLL_PRICE })).run!;
+        const after = runReducer(stateOf(run), rerollMarketStock({ nodeId: wild.id, price: MARKET_REFRESH_PRICE })).run!;
         expect(after).toEqual(run);
     });
 
     it('refuses an id that names no node', () => {
         const run = atMarket(makeRun(100));
-        expect(runReducer(stateOf(run), rerollMarketStock({ nodeId: 'nowhere', price: REROLL_PRICE })).run).toEqual(run);
+        expect(runReducer(stateOf(run), rerollMarketStock({ nodeId: 'nowhere', price: MARKET_REFRESH_PRICE })).run).toEqual(run);
     });
 });
 

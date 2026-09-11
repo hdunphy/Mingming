@@ -60,7 +60,6 @@ import { isRewardable, rewardCardPool, type IRewardPartyMember } from '../Reward
 import { numericBaseCost } from '../types';
 import type { Element } from '../types';
 import type { IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
-import { nodeSeed } from './nodeSeed';
 
 // =================================================================================================
 // THE MARKETPLACE KNOB — some of it RULED by Henry in ticket 56, the rest still a proposal
@@ -411,23 +410,37 @@ export function sellPrice(dataId: string): number {
  */
 
 /**
- * A REROLL COSTS 10 SCRAP — and this is **the one number in the shop ticket 56 did not rule**, so
- * the arithmetic is here in full and it is the first thing to argue with.
+ * A REFRESH COSTS 50 SCRAP — **RULED by Henry, ticket 142 §7 (2026-09-11)**, replacing the 10-scrap
+ * card reroll that ticket 57 derived.
  *
- * Ticket 13 priced it at 20 with a stated law: *"priced BELOW the cheapest card, because a reroll
- * buys nothing but a new set of choices, so it must never be the most expensive thing on the
- * screen — and close to it, so it is never free variance."* Under ticket 56's table the cheapest
- * card is **15**, which makes the old 20 break its own rule: rerolling would cost more than buying.
+ * *"You can pay scrap to refresh it."* And, on the number: *"we might need to go higher"* — so it
+ * is a constant with this comment rather than a derivation, and the run walker reports scrap-at-gym
+ * so it can be retuned against a real run.
  *
- * Ticket 57's instruction is *"rescale, do not re-derive"*, so the ratio is what carries across:
- * 20/24 of the cheapest card is 0.83, and 0.83 x 15 = 12.5, which lands on **10** once the
- * deck-archetypes "numbers move in 5s" rule (`map` § Notes) rounds it. 10 is two thirds of the
- * cheapest card and half of a removal — cheap enough to be a real option at a poor visit, dear
- * enough that reroll-until-happy costs a card.
+ * # WHY THE OLD DERIVATION DOES NOT SURVIVE THE RULING
  *
- * **FLAGGED:** derived, not ruled. If it is wrong it is wrong by 5.
+ * Ticket 13's law was *"priced BELOW the cheapest card, because a reroll buys nothing but a new set
+ * of choices"*, and ticket 57 rescaled that to 10 (two thirds of the cheapest card). Both reasoned
+ * about a shelf that **re-rolled for free on re-entry** — the paid reroll only bought you the
+ * increment early, so it had to be cheap or nobody would ever pay for what walking out gave away.
+ *
+ * §7 deletes the free version. A refresh is now the ONLY way a shelf ever changes, which makes it a
+ * different purchase: not "skip the walk" but "this stall has nothing for me, buy a new one". At 10
+ * that is strictly better than saving for a card at almost any moment; at 50 it costs more than the
+ * dearest card (45) and is a real alternative to one, which is the shape a last-resort button wants.
+ *
+ * **It refreshes the WHOLE stall** — cards, macros and the blueprint slot — because they now share
+ * one seed (`marketStockSeed`) and a refresh that moved only the cards would leave two thirds of the
+ * shelf as the thing you just paid to get away from.
  */
-export const REROLL_PRICE = 10;
+export const MARKET_REFRESH_PRICE = 50;
+
+/**
+ * @deprecated Ticket 142 §7 renamed this to `MARKET_REFRESH_PRICE` and repriced it 10 -> 50. Kept
+ * as an alias for one release so a stale import fails loudly at review rather than silently
+ * charging the old price.
+ */
+export const REROLL_PRICE = MARKET_REFRESH_PRICE;
 
 // =================================================================================================
 // Prices
@@ -552,9 +565,12 @@ export type MarketSlot = 'pool' | 'neutral' | 'stranger';
 
 export interface IMarketStock {
     readonly offers: ReadonlyArray<IMarketOffer>;
-    /** `nodeSeed(run, node, 'market')` — handed back so a test can prove what the roll depended on. */
+    /** `marketStockSeed(run, node)` — handed back so a test can prove what the roll depended on. */
     readonly seed: string;
-    /** The visit this stock belongs to. Two visits are two stocks; see the module header. */
+    /**
+     * The REFRESH this stock belongs to. Ticket 142 §7 renamed the axis: two visits are one
+     * stock now, and two refreshes are two stocks.
+     */
     readonly visit: number;
 }
 
@@ -614,10 +630,31 @@ function drawDistinct(source: ReadonlyArray<string>, count: number, stream: Seed
  * Instance ids come from a third fork, so that a future change to *how many* things are on sale
  * cannot change the identity of the cards already in a resumed run's stock.
  */
+/**
+ * THE SHELF'S SEED — ticket 142 §7 (Henry, 2026-09-11).
+ *
+ * *"Make it static per run so whenever you come back it has the same stock, which doesn't get
+ * replenished — once you buy the card it's gone from the shop."*
+ *
+ * `nodeSeed` folds `node.visited` into its key, which is exactly right for a wild (a re-entered
+ * node should roll a different fight) and exactly wrong for a shelf: walking out and back in was a
+ * FREE re-roll, and the module header's no-farm rule was enforced only by the visit cap. The stock
+ * is now keyed on the node's REFRESH count instead — a number only a paid refresh moves (142f) —
+ * so the no-farm rule holds by construction rather than by a ceiling on visits.
+ *
+ * The purpose string keeps `market` so that a run saved before this change, with no refreshes,
+ * resumes on the same shelf it had at visit 0. Runs saved mid-visit-2 get a different shelf on
+ * resume; that is a one-time cost of the ruling and cheaper than a save migration for a field
+ * whose whole point is that it is derived.
+ */
+export function marketStockSeed(run: IRunState, node: IRegionNode): string {
+    const refreshes = run.marketRefreshes?.[node.id] ?? 0;
+    return new SeedStream(run.seed).fork(`market:${node.id}:${refreshes}`);
+}
 export function rollMarketStock(input: MarketStockInput): IMarketStock {
     const { run, node, party, fallbackElement = 'None' } = input;
 
-    const seed = nodeSeed(run, node, 'market');
+    const seed = marketStockSeed(run, node);
     const poolStream = new SeedStream(new SeedStream(seed).fork('market-pool'));
     const wildStream = new SeedStream(new SeedStream(seed).fork('market-wildcard'));
     // Its own fork, for the reason every fork here has one: adding or removing the neutral slot must
@@ -695,7 +732,7 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
         wildcard: slot === 'stranger',
     }));
 
-    return { offers, seed, visit: node.visited };
+    return { offers, seed, visit: run.marketRefreshes?.[node.id] ?? 0 };
 }
 
 // =================================================================================================
@@ -747,7 +784,7 @@ export interface IMacroOffer {
  */
 export function rollMacroStock(input: MarketStockInput): ReadonlyArray<IMacroOffer> {
     const { run, node } = input;
-    const seed = nodeSeed(run, node, 'market');
+    const seed = marketStockSeed(run, node);
     const macroStream = new SeedStream(new SeedStream(seed).fork('market-macros'));
 
     return drawDistinct([...MACRO_IDS], MACRO_STOCK_SIZE, macroStream)

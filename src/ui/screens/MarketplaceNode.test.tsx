@@ -56,7 +56,7 @@ import { createRun, minimumActiveDeck } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
     CARD_PRICE_BY_ENERGY,
-    REROLL_PRICE,
+    MARKET_REFRESH_PRICE,
     SELL_PRICE_BY_ENERGY,
     cardPrice,
     macroPrice,
@@ -418,22 +418,25 @@ describe('MarketplaceNode', () => {
             expect(tiles[i].plate).toBe(`${offer.price} scrap · ${offer.price} SHORT`);
             expect(tiles[i].disabled).toBe(true);
         });
-        // The reroll owes the same explanation, and it is the one control on the screen that buys
+        // The refresh owes the same explanation, and it is the one control on the screen that buys
         // nothing but a new set of choices, so a silent dead chip there is the easiest to miss.
-        expect(rerollChip(markup)).toBe(`REROLL ${REROLL_PRICE} scrap — ${REROLL_PRICE} SHORT`);
-        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REROLL ${REROLL_PRICE} scrap`);
+        expect(rerollChip(markup)).toBe(`REFRESH ${MARKET_REFRESH_PRICE} scrap — ${MARKET_REFRESH_PRICE} SHORT`);
+        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REFRESH ${MARKET_REFRESH_PRICE} scrap`);
         // The sell rows are the one thing on this screen a broke player can still use, and that is
         // the point of them: a sale is never short of anything. This line used to assert a disabled
         // `Remove (20) — 20 short`, which was the same screen charging the player to tidy up.
         expect(rowsIn(markup).every((row) => row.price > 0)).toBe(true);
     });
 
-    it('offers the reroll at its ruled price once the player can pay it', () => {
-        // The chip is not in the mockup and is kept deliberately (see the screen's comment on it):
-        // `rerollMarketStock` buys exactly the visit-increment that walking out and back in buys, so
-        // without it the context line's "stock re-rolls each visit" is a claim with no reachable
-        // second visit at a dead-end market.
-        expect(rerollChip(render(makeRun(REROLL_PRICE)))).toBe(`REROLL STOCK — ${REROLL_PRICE} scrap`);
+    it('offers the refresh at its ruled price once the player can pay it', () => {
+        /*
+         * TICKET 142 §7. The chip used to be a shortcut - it bought the visit-increment that
+         * walking out and back in bought anyway - and was kept so a dead-end market still had a
+         * reachable second visit. The stock is fixed for the run now, so this chip is not a
+         * shortcut at all: it is the ONLY thing in the game that changes a shelf.
+         */
+        expect(rerollChip(render(makeRun(MARKET_REFRESH_PRICE))))
+            .toBe(`REFRESH STALL — ${MARKET_REFRESH_PRICE} scrap`);
     });
 
     it('leaves a sold offer on the shelf, greyed and reading SOLD, rather than letting it be bought twice', () => {
@@ -745,25 +748,29 @@ describe('MarketplaceNode', () => {
             .toBe(false);
     });
 
-    it('says which biome and which visit this stock belongs to, so a re-roll reads as a re-entry', () => {
-        // The stock is a pure function of (run seed, node id, visit count), so "the shelf changed"
-        // and "you are standing here again" are the same event. If the screen did not print the
-        // visit, a player who rerolled and a player who walked back in would see the same unexplained
-        // new stock. The biome is in the same line because what a party pool is worth depends on it.
+    it('says which biome, which visit, and that the stock will NOT change', () => {
+        /*
+         * TICKET 142 §7 (Henry, 2026-09-11). This line used to promise "stock re-rolls each
+         * visit", and the assertion below pinned that promise. The ruling inverts it: *"static per
+         * run so whenever you come back it has the same stock, which doesn't get replenished"*.
+         *
+         * Which makes the line MORE load-bearing, not less. A shelf that re-rolled forgave a
+         * player who walked away from a card; a fixed one does not, so "buy it now or lose it" has
+         * to be stated rather than discovered. The biome stays in the same line because what a
+         * party-pool card is worth depends on it.
+         */
         const run = makeRun(400);
-        expect(render(run, 'Cinder Flats')).toContain('CINDER FLATS BIOME · VISIT 1 · stock re-rolls each visit');
+        expect(render(run, 'Cinder Flats'))
+            .toContain('CINDER FLATS BIOME · VISIT 1 · this stock is fixed for the run');
 
-        // A second visit says two, which is what makes the number a fact about the node rather than
-        // a decoration: `nodeSeed` reads exactly this counter.
+        // The visit number still counts VISITS - it is `node.visited`, not the refresh counter,
+        // and the two parted company in §7.
         const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
         const returned = {
             ...run,
             nodes: run.nodes.map((n) => (n.id === node.id ? { ...n, visited: n.visited + 1 } : n)),
         };
         expect(render(returned)).toContain('VISIT 2');
-        // The optional prop's fallback still produces a sentence rather than an empty word — the
-        // biome name is `RunScreen`'s to supply and a debug or test mount may not have one.
-        expect(render(run)).toContain('THIS BIOME · VISIT 1');
     });
 
     it('renders an empty deck and an empty collection without crashing', () => {

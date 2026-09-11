@@ -558,10 +558,17 @@ const runSlice = createSlice({
             const target = run.nodes.find((node) => node.id === nodeId);
             if (!target || !isMarketNode(target.kind)) return { run };
 
-            const nodes: IRegionNode[] = run.nodes.map((node) => (
-                node.id === target.id ? { ...node, visited: node.visited + 1 } : node
-            ));
-            return { run: { ...run, scrap: run.scrap - price, nodes } };
+            /*
+             * TICKET 142 §7 — REFRESHES, NOT VISITS. This used to buy a `visited` increment,
+             * because the stock was keyed on it. That made walking out and back in a FREE refresh,
+             * which is the farm Henry closed: *"make it static per run ... once you buy the card
+             * it's gone from the shop."* `marketStockSeed` reads this counter now, and nothing but
+             * a paid refresh moves it. `visited` goes back to meaning what it means everywhere
+             * else — how many times the player has walked in.
+             */
+            const refreshes = { ...(run.marketRefreshes ?? {}) };
+            refreshes[target.id] = (refreshes[target.id] ?? 0) + 1;
+            return { run: { ...run, scrap: run.scrap - price, marketRefreshes: refreshes } };
         },
 
         // --- The workshop's run half (ticket 14) ---

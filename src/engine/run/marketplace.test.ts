@@ -54,7 +54,9 @@ import {
     SELL_PRICE_BY_ENERGY,
     cardPrice,
     isMarketNode,
+    MARKET_REFRESH_PRICE,
     isOfferSold,
+    marketStockSeed,
     rollMarketStock,
     sellPrice,
 } from './marketplace';
@@ -111,7 +113,12 @@ function stockAt(node: IRegionNode, run = RUN, party = SOLO) {
 // The seed
 // ---------------------------------------------------------------------------------------------
 
-describe('the market re-rolls per visit, and only per visit', () => {
+/*
+ * RE-KEYED BY TICKET 142 §7 (Henry, 2026-09-11): *"make it static per run so whenever you come
+ * back it has the same stock, which doesn't get replenished — once you buy the card it's gone from
+ * the shop."* The axis was `node.visited`; it is the node's paid REFRESH count now.
+ */
+describe('the market is static per run, and moves only on a paid refresh', () => {
     it('puts a marketplace in every biome, so a run sees the three markets the prices assume', () => {
         expect(MARKETS.length).toBe(MARKET_VISITS_PER_RUN);
         expect(new Set(MARKETS.map((n) => n.biomeIndex)).size).toBe(MARKET_VISITS_PER_RUN);
@@ -125,13 +132,34 @@ describe('the market re-rolls per visit, and only per visit', () => {
             .toEqual(stockAt(MARKET).offers.map((o) => o.card.instanceId));
     });
 
-    it('rolls a different stock on the second visit', () => {
+    it('shows the SAME stock on the second visit — walking back in is not a re-roll', () => {
+        // The farm this ruling closes. Before §7 the stock was a function of `visited`, so leaving
+        // and returning re-rolled the shelf for free and only the three-visit cap held it down.
         const first = stockAt(MARKET);
         const second = stockAt(visited(MARKETS[0], 2));
 
-        expect(second.visit).toBe(2);
-        expect(second.seed).not.toBe(first.seed);
-        expect(second.offers.map((o) => o.card.dataId)).not.toEqual(first.offers.map((o) => o.card.dataId));
+        expect(second.seed).toBe(first.seed);
+        expect(second.offers.map((o) => o.card.dataId)).toEqual(first.offers.map((o) => o.card.dataId));
+        // Instance ids too: the offer IS the card, and an id that moved on re-entry would make
+        // "already bought" unresolvable — which is what keeps a bought slot a GAP.
+        expect(second.offers.map((o) => o.card.instanceId))
+            .toEqual(first.offers.map((o) => o.card.instanceId));
+    });
+
+    it('rolls a different stock once a refresh is paid for', () => {
+        const first = stockAt(MARKET);
+        const refreshed = stockAt(MARKET, { ...RUN, marketRefreshes: { [MARKET.id]: 1 } });
+
+        expect(refreshed.visit).toBe(1);
+        expect(refreshed.seed).not.toBe(first.seed);
+        expect(refreshed.offers.map((o) => o.card.dataId))
+            .not.toEqual(first.offers.map((o) => o.card.dataId));
+    });
+
+    it('refreshing one market leaves the other alone — two shelves, two counters', () => {
+        const run = { ...RUN, marketRefreshes: { [MARKETS[0].id]: 1 } };
+        expect(stockAt(MARKETS[1], run).seed).toBe(stockAt(MARKETS[1]).seed);
+        expect(stockAt(MARKETS[0], run).seed).not.toBe(stockAt(MARKETS[0]).seed);
     });
 
     it('rolls a different stock in a different market on the same visit', () => {
@@ -146,13 +174,19 @@ describe('the market re-rolls per visit, and only per visit', () => {
         expect(stockAt(visited(otherMarket, 1), other).seed).not.toBe(stockAt(MARKET).seed);
     });
 
-    it('shares ONE derivation with the encounter roll rather than copying it', () => {
-        // Ticket 13 extracted `nodeSeed`; `encounterSeed` is now a call to it. The two purposes must
-        // still land on different seeds, or a market and a fight on the same node would draw the
-        // same numbers.
+    it('no longer shares the encounter derivation — and must not collide with it', () => {
+        /*
+         * Ticket 13 had the shelf on `nodeSeed`, which folds in `node.visited`. §7 takes the shelf
+         * OFF that axis, so the two derivations part company - `encounterSeed` still wants the
+         * visit (a re-entered node should roll a different fight) and the shelf must not have it.
+         *
+         * What still has to hold is the property ticket 13 actually cared about: a market and a
+         * fight on the SAME node never draw the same numbers.
+         */
         expect(encounterSeed(RUN, MARKET)).toBe(nodeSeed(RUN, MARKET, 'encounter'));
-        expect(stockAt(MARKET).seed).toBe(nodeSeed(RUN, MARKET, 'market'));
+        expect(stockAt(MARKET).seed).toBe(marketStockSeed(RUN, MARKET));
         expect(stockAt(MARKET).seed).not.toBe(encounterSeed(RUN, MARKET));
+        expect(stockAt(MARKET).seed).not.toBe(nodeSeed(RUN, MARKET, 'market'));
     });
 });
 
@@ -668,39 +702,39 @@ describe('the market buys back, and always for less than it sold', () => {
         expect(sellPrice('no-such-card')).toBe(SELL_PRICE_BY_ENERGY[0]);
     });
 
-    it('charges for a reroll, and charges strictly less for it than the cheapest card', () => {
-        // The one ordering law this module still claims, and the reason REROLL_PRICE moved at all:
-        // a reroll buys nothing but a new set of choices, so it must never be the most expensive
-        // thing on the screen — and it must never be free, or the stock is a slot machine.
-        expect(REROLL_PRICE).toBeGreaterThan(0);
-        expect(REROLL_PRICE).toBeLessThan(Math.min(...CARD_PRICE_BY_ENERGY));
+    /*
+     * THE REROLL'S PRICING LAW IS RETIRED — ticket 142 §7, Henry 2026-09-11.
+     *
+     * Three tests lived here, all descended from ticket 13's law: *"priced BELOW the cheapest card,
+     * because a reroll buys nothing but a new set of choices"*, plus "close enough that variance is
+     * never free" and "costs two 0-energy sales". Every one of them reasoned about a shelf that
+     * **re-rolled free on re-entry** — the paid reroll only bought the increment early, so it had to
+     * undercut a card or nobody would pay for what walking out gave away.
+     *
+     * §7 deleted the free version. A refresh is now the ONLY way a shelf ever changes, which makes
+     * it a different purchase and puts it on the other side of the card price on purpose.
+     */
+    it('prices the refresh above the dearest card — it competes WITH a purchase, not under one', () => {
+        // Henry ruled 50 and flagged it: *"we might need to go higher."* So this pins the RULED
+        // number and the relationship that makes it mean something, not a derivation.
+        expect(MARKET_REFRESH_PRICE).toBe(50);
+        expect(MARKET_REFRESH_PRICE % 5).toBe(0);
+        expect(MARKET_REFRESH_PRICE).toBeGreaterThan(Math.max(...CARD_PRICE_BY_ENERGY));
         // Against the shelf as it actually stocks, not only against the table.
-        expect(REROLL_PRICE).toBeLessThan(Math.min(...REGISTRY_IDS.map(cardPrice)));
-        // Ticket 13's 20 is what this catches: it was under a 24-scrap floor and is over a 15 one.
-        expect(20).toBeGreaterThan(Math.min(...CARD_PRICE_BY_ENERGY));
+        expect(MARKET_REFRESH_PRICE).toBeGreaterThan(Math.max(...REGISTRY_IDS.map(cardPrice)));
     });
 
-    it('keeps the reroll close enough to a card that variance is never free', () => {
-        // The other half of ticket 13's stated law — "close to it, so it is never free variance."
-        // Two thirds of the cheapest card. A reroll at 5 would make the stall a slot machine you
-        // pull until it pays.
-        expect(REROLL_PRICE / Math.min(...CARD_PRICE_BY_ENERGY)).toBeGreaterThan(0.5);
-        // Pinned exactly. This line used to read `REROLL_PRICE === REMOVAL_PRICE / 2`, which held
-        // the number to the digit by tying it to a price that no longer exists — so the digit is
-        // written down instead, with its derivation: ticket 13's 20/24 ratio (0.83) against ticket
-        // 56's 15-scrap floor is 12.5, rounded onto the 5-scrap grid. Still FLAGGED as derived
-        // rather than ruled; if it is wrong it is wrong by 5.
-        expect(REROLL_PRICE).toBe(10);
-        expect(REROLL_PRICE % 5).toBe(0);
+    it('is not reachable by selling filler — a refresh is a run decision, not small change', () => {
+        // The old law's paying-side clause, kept because it still says something true: at 50 a
+        // refresh is ten 0-energy sales, which is more filler than any run holds. What changed is
+        // the direction — it used to be TWO sales, and cheap enough to pull like a lever.
+        expect(MARKET_REFRESH_PRICE / SELL_PRICE_BY_ENERGY[0]).toBeGreaterThan(5);
     });
 
-    it('costs more than the cheapest sale, so one generic never buys a fresh shelf', () => {
-        // The reroll is the one thing at the stall that consumes scrap and hands back nothing, and
-        // now that the market pays out again it is worth stating what it costs in SALES rather than
-        // only in cards: two 0-energy sales, which is every generic a solo run holds but one. That
-        // keeps "never free variance" true from the paying side as well as the buying side.
-        expect(REROLL_PRICE).toBeGreaterThan(SELL_PRICE_BY_ENERGY[0]);
-        expect(REROLL_PRICE / SELL_PRICE_BY_ENERGY[0]).toBe(2);
+    it('keeps the deprecated alias pointing at the ruled number', () => {
+        // `REROLL_PRICE` survives one release as an alias so a stale import cannot quietly charge
+        // the old 10. If this ever drifts, something is importing a price that no longer exists.
+        expect(REROLL_PRICE).toBe(MARKET_REFRESH_PRICE);
     });
 });
 

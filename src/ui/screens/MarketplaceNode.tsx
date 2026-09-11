@@ -59,7 +59,7 @@ import {
     CARD_PRICE_BY_ENERGY,
     SELL_PRICE_BY_ENERGY,
     sellPrice,
-    REROLL_PRICE,
+    MARKET_REFRESH_PRICE,
     isOfferSold,
     rollMacroStock,
     rollMarketStock,
@@ -116,12 +116,12 @@ export default function MarketplaceNode({
 }: MarketplaceNodeProps): ReactNode {
     const dispatch = useDispatch();
 
-    // Rolled from (run seed, node id, visit count) — never held in component state. A remount, an
-    // app close or a resume therefore shows the same stock, and the *only* thing that changes it is
-    // a new visit: walking back in, or paying `REROLL_PRICE` for the same increment.
+    // Rolled from (run seed, node id, REFRESH count) — never held in component state, so a remount,
+    // an app close or a resume shows the same stock. Ticket 142 §7 took the visit count out of that
+    // key: walking back in no longer changes anything, and a paid refresh is the only thing that does.
     const stock = useMemo(() => rollMarketStock({ run, node, party }), [run, node, party]);
-    // Rolled off its own fork of the same node seed (`market-macros`), so the macro shelf re-rolls
-    // per visit exactly as the card shelf does and neither can shift the other.
+    // Its own fork of the same seed (`market-macros`), so the macro shelf holds and refreshes with
+    // the card shelf and neither can shift the other.
     const macroStock = useMemo(() => rollMacroStock({ run, node, party }), [run, node, party]);
 
     const scrap = run.scrap;
@@ -177,7 +177,7 @@ export default function MarketplaceNode({
     };
 
     const reroll = (): void => {
-        dispatch(rerollMarketStock({ nodeId: node.id, price: REROLL_PRICE }));
+        dispatch(rerollMarketStock({ nodeId: node.id, price: MARKET_REFRESH_PRICE }));
         playSfx('uiClick');
     };
 
@@ -189,7 +189,13 @@ export default function MarketplaceNode({
             <div className="rs-top">
                 <span className="rs-title">MARKETPLACE</span>
                 <span className="rs-ctx">
-                    {(biomeName ?? 'THIS').toUpperCase()} BIOME · VISIT {stock.visit} · stock re-rolls each visit
+                    {/*
+                      * TICKET 142 §7: this line used to read "VISIT n · stock re-rolls each visit",
+                      * and both halves are now wrong. `stock.visit` counts REFRESHES, not visits,
+                      * and the shelf does not re-roll on re-entry at all - which is the fact the
+                      * player most needs, because it is what makes "buy it now or lose it" true.
+                      */}
+                    {(biomeName ?? 'THIS').toUpperCase()} BIOME · VISIT {node.visited} · this stock is fixed for the run
                 </span>
                 <span className="rs-spacer" />
                 <span className="rs-scrap" aria-label="Scrap held">{scrap} <Icon name="scrap" size={12} /></span>
@@ -211,22 +217,27 @@ export default function MarketplaceNode({
                         </span>
                         <span className="rs-spacer" />
                         {/*
-                          * The re-roll is not in the mockup, and it is kept because it is not
-                          * decoration: `rerollMarketStock` buys exactly the visit-increment that
-                          * walking out and back in would buy (ticket 13), and deleting the button
-                          * would leave the ctx line's "re-rolls each visit" as a claim with no
-                          * reachable second visit at a dead-end market. It sits as a filter chip
-                          * rather than a `.btn` so it never competes with LEAVE.
+                          * TICKET 142 §7 — THE REFRESH IS NOW THE ONLY WAY A SHELF CHANGES.
+                          *
+                          * It used to buy the visit-increment that walking out and back in gave
+                          * away free, which is why it was cheap (10) and why the ctx line promised
+                          * a re-roll each visit. Both are gone: the stock is fixed for the run, so
+                          * this button is not a shortcut any more, it is the whole mechanism -
+                          * *"You can pay scrap to refresh it"* - and it refreshes the WHOLE stall.
+                          *
+                          * Still a filter chip rather than a `.btn`, so it never competes with
+                          * LEAVE. At 50 it costs more than the dearest card, which is the point:
+                          * it should read as an alternative to a purchase, not as a free look.
                           */}
                         <button
                             type="button"
                             className="rs-f"
                             onClick={reroll}
-                            disabled={scrap < REROLL_PRICE}
+                            disabled={scrap < MARKET_REFRESH_PRICE}
                         >
-                            {scrap < REROLL_PRICE
-                                ? `REROLL ${REROLL_PRICE} scrap — ${shortBy(REROLL_PRICE)} SHORT`
-                                : `REROLL STOCK — ${REROLL_PRICE} scrap`}
+                            {scrap < MARKET_REFRESH_PRICE
+                                ? `REFRESH ${MARKET_REFRESH_PRICE} scrap — ${shortBy(MARKET_REFRESH_PRICE)} SHORT`
+                                : `REFRESH STALL — ${MARKET_REFRESH_PRICE} scrap`}
                         </button>
                     </div>
 

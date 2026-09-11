@@ -331,6 +331,23 @@ export interface IRunState {
     readonly blueprintDryFights?: number;
 
     /**
+     * How many times each marketplace node's stock has been REFRESHED, by node id.
+     *
+     * Ticket 142 §7 (Henry, 2026-09-11): *"make it static per run so whenever you come back it has
+     * the same stock, which doesn't get replenished — once you buy the card it's gone from the
+     * shop."* Stock used to be a function of `node.visited`, so walking back in was a free re-roll
+     * — the farm the ticket closes. It is now a function of this counter, which only a PAID
+     * refresh moves (142f).
+     *
+     * Keyed by node id rather than a single run-wide number: two markets are two shelves, and
+     * refreshing one must not disturb the other's stock.
+     *
+     * Optional with `.default({})` — the `seenTips` precedent. A run saved before this field is a
+     * run that has refreshed nothing, which is what the default says.
+     */
+    readonly marketRefreshes?: Readonly<Record<string, number>>;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -517,6 +534,8 @@ export const RunStateSchema = z.object({
     // run that predates the field — no fights have gone dry as far as this counter knows — so the
     // parse can supply it and every reader downstream is spared a `?? 0`.
     blueprintDryFights: z.number().int().min(0).default(0),
+    // Ticket 142 §7, add-only like the field above it.
+    marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),
 })
