@@ -61,6 +61,9 @@ import {
     sellPrice,
     MARKET_REFRESH_PRICE,
     isOfferSold,
+    type IBlueprintOffer,
+    rollBlueprintOffer,
+    isBlueprintSlotSold,
     rollMacroStock,
     rollMarketStock,
     type IMacroOffer,
@@ -70,7 +73,9 @@ import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
-import { buyMacro, buyMarketCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { buyMacro, buyMarketBlueprint, buyMarketCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { addBlueprint } from '../store/gameSlice';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { cardFace, colorFor, groupByData } from './runShell';
 import './runShell.css';
 import './MarketplaceNode.css';
@@ -123,6 +128,10 @@ export default function MarketplaceNode({
     // Its own fork of the same seed (`market-macros`), so the macro shelf holds and refreshes with
     // the card shelf and neither can shift the other.
     const macroStock = useMemo(() => rollMacroStock({ run, node, party }), [run, node, party]);
+    // Ticket 142 §7: one blueprint, from the species this ROUTE can recruit. Same seed, so it holds
+    // and refreshes with the rest of the stall.
+    const blueprintOffer = useMemo(() => rollBlueprintOffer(run, node), [run, node]);
+    const blueprintSold = isBlueprintSlotSold(run, node);
 
     const scrap = run.scrap;
     const floor = minimumActiveDeck(run.partyIds.length);
@@ -167,6 +176,18 @@ export default function MarketplaceNode({
 
     const purchaseMacro = (offer: IMacroOffer): void => {
         dispatch(buyMacro({ macroId: offer.macroId, price: offer.price }));
+        playSfx('rewardClaim');
+    };
+
+    /*
+     * TWO SLICES, RANCH FIRST — the workshop's recruit makes the same split for the same reason.
+     * If the app dies between the dispatches, a player who paid and got nothing has lost scrap; a
+     * player who got the blueprint and was not charged has been given a present. Only one of those
+     * is a bug report.
+     */
+    const purchaseBlueprint = (offer: IBlueprintOffer): void => {
+        dispatch(addBlueprint(offer.speciesId));
+        dispatch(buyMarketBlueprint({ nodeId: node.id, price: offer.price }));
         playSfx('rewardClaim');
     };
 
@@ -288,6 +309,45 @@ export default function MarketplaceNode({
                       * dead tile — a reducer has no error channel, so this is the only place it can
                       * be said.
                       */}
+                    {/*
+                      * TICKET 142 §7 — ONE BLUEPRINT, and one is the ruling: *"only offer 1 random
+                      * option."* It sits between the cards and the macros because that is its price
+                      * order (50, above the dearest card) and because it is the shelf's one
+                      * non-card body. Absent entirely on a route that can recruit nothing, rather
+                      * than drawn as a dead slot - an empty heading is a bug report waiting.
+                      */}
+                    {blueprintOffer && (
+                        <>
+                            <h2 className="mk-h">BLUEPRINT — one body, this route only</h2>
+                            <div className="mk-grid" style={STALL_TILE}>
+                                <button
+                                    type="button"
+                                    className={`rs-card mk-bp ${blueprintSold ? "sold" : ""}`}
+                                    style={{ ["--el" as string]: colorFor(GetMingmingData(blueprintOffer.speciesId).primaryElement) }}
+                                    disabled={blueprintSold || shortBy(blueprintOffer.price) > 0}
+                                    onClick={() => purchaseBlueprint(blueprintOffer)}
+                                >
+                                    <span className="rs-art" />
+                                    <span className="rs-cnm">{GetMingmingData(blueprintOffer.speciesId).name}</span>
+                                    <span className="rs-desc">
+                                        A blueprint. Spend it at a workshop or the ranch to assemble one.
+                                    </span>
+                                    <span className="rs-tags mk-tags">
+                                        <ElementMark element={GetMingmingData(blueprintOffer.speciesId).primaryElement} />
+                                    </span>
+                                    <span className={`rs-price ${blueprintSold ? "sold" : ""}`}>
+                                        {blueprintSold
+                                            ? "SOLD"
+                                            : shortBy(blueprintOffer.price) > 0
+                                                ? `${blueprintOffer.price} scrap · ${shortBy(blueprintOffer.price)} SHORT`
+                                                : `${blueprintOffer.price} scrap`}
+                                    </span>
+                                    <span className="rs-elbar" />
+                                </button>
+                            </div>
+                        </>
+                    )}
+
                     <h2 className="mk-h">
                         MACROS · {MACRO_SLOTS - macrosHeld}/{MACRO_SLOTS} slots free
                     </h2>

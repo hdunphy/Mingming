@@ -348,6 +348,19 @@ export interface IRunState {
     readonly marketRefreshes?: Readonly<Record<string, number>>;
 
     /**
+     * Which marketplace blueprint slots have been bought, as `nodeId:refreshCount` keys.
+     *
+     * Ticket 142 §7: *"Add blueprints to the shop ... Bought -> gone until a refresh."* A CARD
+     * offer answers "already bought?" from ownership - `isOfferSold` looks for its minted instance
+     * id - and a blueprint cannot, because blueprints are a persistent COUNT on the ranch and
+     * owning a kraken blueprint says nothing about which stall it came from.
+     *
+     * The refresh count is IN the key rather than beside it, so a refresh makes the slot available
+     * again with no clearing step and nothing to forget to clear.
+     */
+    readonly boughtBlueprints?: ReadonlyArray<string>;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -536,6 +549,7 @@ export const RunStateSchema = z.object({
     blueprintDryFights: z.number().int().min(0).default(0),
     // Ticket 142 §7, add-only like the field above it.
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
+    boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),
 })

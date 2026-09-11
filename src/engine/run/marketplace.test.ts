@@ -40,6 +40,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 
 import * as marketplace from './marketplace';
+import { GetMingmingData } from '../data/mingmingRegistry';
 import {
     CARD_PRICE_BY_ENERGY,
     MARKET_NEUTRAL_SLOTS,
@@ -54,7 +55,12 @@ import {
     SELL_PRICE_BY_ENERGY,
     cardPrice,
     isMarketNode,
+    MARKET_BLUEPRINT_PRICE,
     MARKET_REFRESH_PRICE,
+    blueprintSlotKey,
+    isBlueprintSlotSold,
+    rollBlueprintOffer,
+    routeRecruitableSpecies,
     isOfferSold,
     marketStockSeed,
     rollMarketStock,
@@ -862,5 +868,67 @@ describe('the generics, measured against the run’s income', () => {
         expect(cardPrice(GENERIC_HIT)).toBe(CARD_PRICE_BY_ENERGY[0]);
         expect(sellPrice(GENERIC_HIT)).toBeLessThan(cardPrice(GENERIC_HIT));
         expect(cardPrice(GENERIC_HIT) - sellPrice(GENERIC_HIT)).toBe(10);
+    });
+});
+
+// =================================================================================================
+// THE BLUEPRINT SLOT — ticket 142g
+// =================================================================================================
+
+describe('142g — one blueprint on the shelf, from this route', () => {
+    it('offers exactly one, priced above the dearest card', () => {
+        // Henry, 2026-09-11: *"Add blueprints to the shop, but they should be expensive and only
+        // offer 1 random option."* One is the ruling; "expensive" is pinned against the card table
+        // rather than as a bare digit, so a future reprice of cards cannot silently make it cheap.
+        const offer = rollBlueprintOffer(RUN, MARKET)!;
+        expect(offer).not.toBeNull();
+        expect(offer.price).toBe(MARKET_BLUEPRINT_PRICE);
+        expect(offer.price).toBeGreaterThan(Math.max(...CARD_PRICE_BY_ENERGY));
+    });
+
+    it('draws only from species the ROUTE can recruit', () => {
+        // The point of the derivation. After 142d the road deliberately leaves one launch element
+        // off — Rootfall never visits Water — so a shelf selling a kraken blueprint would hand back
+        // for scrap exactly the thing the route was built to withhold.
+        const pool = routeRecruitableSpecies(RUN);
+        expect(pool.length).toBeGreaterThan(0);
+        expect(pool).toContain(rollBlueprintOffer(RUN, MARKET)!.speciesId);
+
+        const routeElements = new Set(RUN.biomes.flatMap((b) => [...b.elements]));
+        for (const id of pool) {
+            expect(routeElements.has(GetMingmingData(id).primaryElement)).toBe(true);
+        }
+    });
+
+    it('holds across visits and moves on a refresh, like the rest of the stall', () => {
+        const first = rollBlueprintOffer(RUN, MARKET)!;
+        expect(rollBlueprintOffer(RUN, visited(MARKETS[0], 2))!.speciesId).toBe(first.speciesId);
+
+        // Sampled across the markets: one refresh CAN legitimately redraw the same species.
+        const differs = MARKETS.some((node) => rollBlueprintOffer(
+            { ...RUN, marketRefreshes: { [node.id]: 1 } }, node,
+        )!.speciesId !== rollBlueprintOffer(RUN, node)!.speciesId);
+        expect(differs).toBe(true);
+    });
+
+    it('reads SOLD from the run, not from the ranch — and a refresh restocks the slot', () => {
+        // A card offer answers "already bought?" from ownership; a blueprint cannot, because
+        // blueprints are a persistent COUNT and owning one says nothing about which stall it came
+        // from. The refresh count is IN the key, so a refresh reopens the slot with no clearing step.
+        expect(isBlueprintSlotSold(RUN, MARKET)).toBe(false);
+
+        const bought = { ...RUN, boughtBlueprints: [blueprintSlotKey(RUN, MARKET)] };
+        expect(isBlueprintSlotSold(bought, MARKET)).toBe(true);
+
+        const refreshed = { ...bought, marketRefreshes: { [MARKET.id]: 1 } };
+        expect(isBlueprintSlotSold(refreshed, MARKET)).toBe(false);
+    });
+
+    it('does not shift the cards or the macros — the slot has its own fork', () => {
+        // Every shelf here forks the same seed for this reason: adding a slot must not change what
+        // the other slots drew, or this commit would silently restock every saved run.
+        expect(stockAt(MARKET).offers.map((o) => o.card.dataId).length).toBeGreaterThan(0);
+        expect(rollBlueprintOffer(RUN, MARKET)!.speciesId)
+            .not.toBe(stockAt(MARKET).offers[0].card.dataId);
     });
 });

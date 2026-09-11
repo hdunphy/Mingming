@@ -548,6 +548,43 @@ const runSlice = createSlice({
          * checks a node's kind before mutating it. A stray dispatch naming a wild would otherwise
          * increment *that* node's visit count and silently re-roll a fight the player is standing in.
          */
+        /**
+         * Buy the stall's blueprint (ticket 142 §7).
+         *
+         * # THIS IS HALF A TRANSACTION, like the workshop's recruit
+         *
+         * The scrap and the slot-is-spent record are RUN state; the blueprint itself is a
+         * persistent count on the RANCH (`gameSlice.addBlueprint`). No reducer writes two slices,
+         * so the screen dispatches both — and **the ranch goes first**, by the same argument the
+         * workshop's recruit makes: if the app dies between them, a player who paid and got nothing
+         * has lost scrap, while a player who got the blueprint and was not charged has been given a
+         * present. Only one of those is a bug report.
+         *
+         * Refuses rather than throws, as every reducer on this slice does: a bad price, a poor
+         * player, a node that is not a market, or a slot already spent all leave the run untouched.
+         */
+        buyMarketBlueprint: (state, action: PayloadAction<{ nodeId: string; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { nodeId, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+
+            const target = run.nodes.find((node) => node.id === nodeId);
+            if (!target || !isMarketNode(target.kind)) return { run };
+
+            const key = `${nodeId}:${run.marketRefreshes?.[nodeId] ?? 0}`;
+            // Idempotent: a double-click must not charge twice for one slot.
+            if ((run.boughtBlueprints ?? []).includes(key)) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    boughtBlueprints: [...(run.boughtBlueprints ?? []), key],
+                },
+            };
+        },
         rerollMarketStock: (state, action: PayloadAction<{ nodeId: string; price: number }>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
@@ -1221,6 +1258,7 @@ export const {
     moveCardToDeck,
     swapBenchMember,
     benchPartyMember,
+    buyMarketBlueprint,
     rerollMarketStock,
     recruitIntoParty,
     recruitToBench,

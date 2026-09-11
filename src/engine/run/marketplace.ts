@@ -55,6 +55,7 @@
 
 import { SeedStream } from '../core/SeedStream';
 import { MACRO_IDS, MacroRegistry } from '../data/macroRegistry';
+import { getSectorSpecies } from '../data/EncounterGenerator';
 import { ProgramRegistry } from '../data/programRegistry';
 import { isRewardable, rewardCardPool, type IRewardPartyMember } from '../RewardSystem';
 import { numericBaseCost } from '../types';
@@ -563,6 +564,11 @@ export interface IMarketOffer {
 /** Where an offer came from. See `IMarketOffer.slot`. */
 export type MarketSlot = 'pool' | 'neutral' | 'stranger';
 
+/** The stall's single blueprint slot (ticket 142 §7). One option, or none on a bare route. */
+export interface IBlueprintOffer {
+    readonly speciesId: string;
+    readonly price: number;
+}
 export interface IMarketStock {
     readonly offers: ReadonlyArray<IMarketOffer>;
     /** `marketStockSeed(run, node)` — handed back so a test can prove what the roll depended on. */
@@ -647,6 +653,73 @@ function drawDistinct(source: ReadonlyArray<string>, count: number, stream: Seed
  * resume; that is a one-time cost of the ruling and cheaper than a save migration for a field
  * whose whole point is that it is derived.
  */
+/**
+ * A BLUEPRINT ON THE SHELF — ticket 142 §7, RULED by Henry 2026-09-11.
+ *
+ * *"Add blueprints to the shop, but they should be expensive and only offer 1 random option."*
+ *
+ * **50 scrap, the same as a refresh, and that equality is the design.** The two are the only
+ * things at a stall that are not a card, and they are the two ways to answer a shelf that has
+ * nothing for you: buy a body, or buy a different shelf. Pricing them alike makes that a choice
+ * rather than an ordering. It is also above the dearest card (45), which is what Henry asked for -
+ * a blueprint is a whole mingming, and it should cost more than any single card on the wall.
+ */
+export const MARKET_BLUEPRINT_PRICE = 50;
+
+/**
+ * The species this run could actually field, derived from the ROUTE.
+ *
+ * §7's wording is *"1 random option"*; which options is not stated, and the honest reading after
+ * 142d is the route itself. The road is [counter, gym, approach] and it deliberately leaves one
+ * launch element off - Rootfall never visits Water - so a shelf that sold a kraken blueprint on the
+ * Rootfall road would hand back exactly the thing the route was built to withhold, for scrap.
+ *
+ * Reads `run.biomes`, so it follows the route automatically rather than restating it: if the road
+ * changes again, this does too.
+ */
+export function routeRecruitableSpecies(run: IRunState): string[] {
+    const elements = new Set<string>();
+    for (const biome of run.biomes) for (const element of biome.elements) elements.add(element);
+
+    const ids: string[] = [];
+    for (const element of elements) {
+        for (const definition of getSectorSpecies(element as Element)) {
+            if (!ids.includes(definition.id)) ids.push(definition.id);
+        }
+    }
+    return ids.sort();
+}
+
+/**
+ * The one blueprint this shelf is selling, or `null` where the route offers nothing.
+ *
+ * Its own fork of the shelf seed, for the reason every fork here has one: adding the slot must not
+ * shift which cards or macros the other slots drew. It therefore holds and refreshes exactly as
+ * they do, which is what makes *"once you buy the card it's gone"* true of the blueprint too.
+ */
+export function rollBlueprintOffer(run: IRunState, node: IRegionNode): IBlueprintOffer | null {
+    const pool = routeRecruitableSpecies(run);
+    if (pool.length === 0) return null;
+    const stream = new SeedStream(new SeedStream(marketStockSeed(run, node)).fork('market-blueprint'));
+    return { speciesId: pool[stream.nextInt(0, pool.length - 1)], price: MARKET_BLUEPRINT_PRICE };
+}
+
+/**
+ * Has this shelf's blueprint already been bought?
+ *
+ * A card offer answers this from OWNERSHIP (`isOfferSold` looks for its minted instance id), and a
+ * blueprint cannot: blueprints are a persistent COUNT on the ranch, so "I own a kraken blueprint"
+ * says nothing about whether this stall is where it came from. So the run records the purchase,
+ * keyed by node AND refresh - which means a refresh makes the slot available again for free, with
+ * no clearing step and nothing to forget to clear.
+ */
+export function blueprintSlotKey(run: IRunState, node: IRegionNode): string {
+    return `${node.id}:${run.marketRefreshes?.[node.id] ?? 0}`;
+}
+
+export function isBlueprintSlotSold(run: IRunState, node: IRegionNode): boolean {
+    return (run.boughtBlueprints ?? []).includes(blueprintSlotKey(run, node));
+}
 export function marketStockSeed(run: IRunState, node: IRegionNode): string {
     const refreshes = run.marketRefreshes?.[node.id] ?? 0;
     return new SeedStream(run.seed).fork(`market:${node.id}:${refreshes}`);

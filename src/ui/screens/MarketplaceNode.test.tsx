@@ -61,6 +61,7 @@ import {
     cardPrice,
     macroPrice,
     rollMacroStock,
+    rollBlueprintOffer,
     rollMarketStock,
     sellPrice,
 } from '../../engine/run/marketplace';
@@ -137,6 +138,11 @@ function render(run: IRunState, biomeName?: string): string {
 
 function stockFor(run: IRunState) {
     return rollMarketStock({ run, node: run.nodes.find((n) => n.id === run.currentNodeId)!, party: RANCH_PARTY });
+}
+
+/** The market the run is standing in — what every `*For` helper here rolls against. */
+function marketNodeOf(run: IRunState) {
+    return run.nodes.find((n) => n.id === run.currentNodeId)!;
 }
 
 function macrosFor(run: IRunState) {
@@ -218,7 +224,11 @@ const rackIn = (markup: string): string[] =>
 const tilesIn = (markup: string): Tile[] => {
     const cut = markup.indexOf('mk-macros');
     const scoped = markup.slice(0, cut);
-    return [...scoped.matchAll(/<button[^>]*class="rs-card[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
+    // Ticket 142g put a BLUEPRINT tile on the same chassis (`rs-card`) above the macro shelf, and
+    // it is not a card: it has no pips, no type mark and no energy cost, so every assertion below
+    // would read empty strings off it. It carries `mk-bp` so this parser can leave it to the
+    // blueprint cases, which assert it directly.
+    return [...scoped.matchAll(/<button[^>]*class="rs-card(?! mk-bp)[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
         html,
         // Ticket 66: the cost gem is an energy PIP rack now. The rack's `aria-label` is the
         // machine-readable cost, which is what this parser wants — a count of `<i>` would be the
@@ -802,8 +812,11 @@ describe('MarketplaceNode', () => {
         const offers = stockFor(run).offers.length;
         const macros = macrosFor(run).length;
         const rows = rowsIn(markup).length;
-        // Every tile, every macro, every sell row, the reroll chip, EDIT LOADOUT and LEAVE.
-        expect(markup.match(/<button/g)).toHaveLength(offers + macros + rows + 3);
+        // Every card tile, every macro, every sell row, the BLUEPRINT tile (142g), the refresh
+        // chip, EDIT LOADOUT and LEAVE. Derived rather than a literal, so a route that can recruit
+        // nothing — where the slot is absent by design rather than drawn dead — still counts right.
+        const blueprints = rollBlueprintOffer(run, marketNodeOf(run)) ? 1 : 0;
+        expect(markup.match(/<button/g)).toHaveLength(offers + macros + rows + blueprints + 3);
         // And each of the four affordance classes appears ONLY on a button — the check that catches
         // a `<div class="rs-row">` that looks and styles identically and cannot be tabbed to.
         for (const cls of ['rs-card', 'rs-row', 'rs-f', 'rs-btn']) {
