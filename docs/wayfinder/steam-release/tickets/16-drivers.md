@@ -131,6 +131,17 @@ matchup, not the Driver. **Nothing here asks for a knob.** Findings confirm at f
 on Henry's machine: `npm run balance:drivers -- --full --iterations 3 --out canary-drivers.txt` (~9 hours
 at full fidelity; `AI_LITE=1 ... --beam 8` for the screening tier at a third of that).
 
+### Amendment 2026-09-12 (Henry, on reading the resolution)
+
+1. **THIRD STRIKE is TENTH STRIKE** — id `driver_tenth_strike`, counter `tenth_strike`. The name says the number.
+2. **STATIC FIELD is 6 power per card, not 2** (*"it should be felt, just not overpowered and an automatic
+   win condition"* — he asked for 2-3x; 3x taken, ~10-11 damage a zap at parity, ~31 zaps a battle ≈ 14%
+   of a 3v3 pool over a fight). Screening re-run of that arm: **30.4 procs/battle, 0/0 flips, no new sweep, mean turns 6.0 vs the bare 6.7** (`research/16-canary-runs/static6.txt`, which also re-measures TENTH STRIKE under its new id: 2.08 procs, 1/1, identical to before). Felt as pace, not as outcome, at this n.
+3. The hook-inheritance finding above was explained and is **left as is** pending his call; it is not a
+   bug in the Driver, it is how the engine attributes a hook's attack to the card that triggered it.
+4. The full-fidelity canary he started before this amendment measures STATIC FIELD at 2 power and
+   THIRD STRIKE by its old id; the other six arms are unaffected.
+
 ### Also
 
 - `--boss-relics off` is **`--boss-driver off`** (`BossOverride.driver`); the old spelling still parses so

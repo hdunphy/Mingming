@@ -42,7 +42,7 @@
 import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 import {
     DRIVER_ANTIVENOM, DRIVER_BULWARK_REFLEX, DRIVER_DEEP_CACHE, DRIVER_FIRST_BLOOD,
-    DRIVER_OVERKILL_RECOVERY, DRIVER_STATIC_FIELD, DRIVER_THIRD_STRIKE,
+    DRIVER_OVERKILL_RECOVERY, DRIVER_STATIC_FIELD, DRIVER_TENTH_STRIKE,
     describeDriver, elementDriverId,
 } from '../../engine/data/driverRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
@@ -54,7 +54,7 @@ import { REFERENCE_PANEL, type Comp } from './teamComps';
 
 /** The arms, in report order. `element` resolves per comp — see the header. */
 export const CANARY_ARMS: ReadonlyArray<string> = [
-    DRIVER_FIRST_BLOOD, DRIVER_THIRD_STRIKE, DRIVER_STATIC_FIELD, DRIVER_ANTIVENOM,
+    DRIVER_FIRST_BLOOD, DRIVER_TENTH_STRIKE, DRIVER_STATIC_FIELD, DRIVER_ANTIVENOM,
     DRIVER_OVERKILL_RECOVERY, DRIVER_BULWARK_REFLEX, DRIVER_DEEP_CACHE, 'element',
 ];
 

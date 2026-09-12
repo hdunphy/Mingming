@@ -29,7 +29,7 @@ import {
     DRIVER_FIRST_BLOOD,
     DRIVER_OVERKILL_RECOVERY,
     DRIVER_STATIC_FIELD,
-    DRIVER_THIRD_STRIKE,
+    DRIVER_TENTH_STRIKE,
     ELEMENT_DRIVER_IDS,
     GYM_DRIVER_IDS,
     PLAYER_DRIVER_IDS,
@@ -163,12 +163,12 @@ describe('FIRST BLOOD — the first attack card this side plays each turn, 1.2x'
     });
 });
 
-describe('THIRD STRIKE — every 10th attack card this side plays, 1.5x', () => {
+describe('TENTH STRIKE — every 10th attack card this side plays, 1.5x', () => {
     const DECK = Array(24).fill('frost_jab');
 
     it('boosts exactly the tenth attack, procs there, and resets to count again', () => {
         let bare = arena(DECK, []);
-        let driven = arena(DECK, [DRIVER_THIRD_STRIKE]);
+        let driven = arena(DECK, [DRIVER_TENTH_STRIKE]);
         const target = bare.enemyParty[2].id;
         const casters = bare.playerParty.map(m => m.id);
 
@@ -188,15 +188,15 @@ describe('THIRD STRIKE — every 10th attack card this side plays, 1.5x', () => 
             if (i === 9) expect(hits[i].driven, `attack ${i + 1}`).toBe(Math.floor(hits[i].bare * 1.5));
             else expect(hits[i].driven, `attack ${i + 1}`).toBe(hits[i].bare);
         }
-        expect(procsOf(DRIVER_THIRD_STRIKE)).toHaveLength(1);
+        expect(procsOf(DRIVER_TENTH_STRIKE)).toHaveLength(1);
         // The counter reset: after the tenth, the side is back to zero.
-        const key = Object.keys(driven.counters).find(k => k.startsWith('third_strike@'));
+        const key = Object.keys(driven.counters).find(k => k.startsWith('tenth_strike@'));
         expect(key).toBeDefined();
         expect(driven.counters[key!]).toBe(hits.length - 10);
     });
 });
 
-describe('STATIC FIELD — every card this side plays, 2 power to a random enemy', () => {
+describe('STATIC FIELD — every card this side plays, 6 power to a random enemy', () => {
     it('zaps on an attack AND on a skill, and procs each time', () => {
         const DECK = Array(6).fill('frost_jab').concat(Array(6).fill('undertow'));
         const bare = arena(DECK, []);
@@ -368,7 +368,7 @@ describe('the whole roster at once', () => {
          * TWO, not one — a pinned FINDING rather than a design. A hook-originated ATTACK runs under
          * the triggering card's `context.program` (`AttackExecutor`: `program || { element }`), so
          * STATIC FIELD's zap reads as "an Ice attack card" to the ICE DRIVER's modifier and the
-         * modifier procs again on the zap. At 2 power the compounding is worth at most a point of
+         * modifier procs again on the zap. At 6 power the compounding is worth a point or two of
          * damage; the visible cost is a second ICE DRIVER float when both Drivers are held. Engine
          * semantics predate this ticket (riptide's undertow inherits the OPPONENT's card the same
          * way) and changing them is not authorised here — flagged in the ticket for Henry.

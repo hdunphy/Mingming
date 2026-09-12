@@ -47,8 +47,8 @@
  *
  * | Driver | proc moment | v1 |
  * |---|---|---|
- * | THIRD STRIKE | every 10th ATTACK card this side plays | that card 1.5x |
- * | STATIC FIELD | every card this side plays | 2 power to a random enemy (zoo-compounding FLAG) |
+ * | TENTH STRIKE | every 10th ATTACK card this side plays | that card 1.5x |
+ * | STATIC FIELD | every card this side plays | 6 power to a random enemy (Henry 2026-09-12: 2 -> 6, "it should be felt") |
  * | ANTIVENOM | end of this side's turn, each poisoned member | -1 extra Poison |
  * | OVERKILL RECOVERY | an enemy faints | each living member heals 8% max HP |
  * | FIRST BLOOD | the first ATTACK card this side plays each turn | 1.2x |
@@ -56,9 +56,9 @@
  * | BULWARK REFLEX | a member drops below 50%, once per fight per member | +15 Bark Shield |
  * | DEEP CACHE | this side's first bonus draw each turn | the drawer gains 1 Strengthened |
  *
- * THIRD STRIKE is Henry's ruled name and his ruled cadence — *"third strike is too often, it should
- * be like every 10 attacks"* — so the name and the number disagree on purpose; renaming is his call.
- * The `proc: true` flag on each payoff hook is what makes them PROC-VISIBLE (see `HookTypes`).
+ * TENTH STRIKE was ruled as "Third Strike" and re-cadenced the same day — *"third strike is too
+ * often, it should be like every 10 attacks"* — then renamed by Henry on 2026-09-12 so the name says
+ * the number. The `proc: true` flag on each payoff hook is what makes them PROC-VISIBLE (see `HookTypes`).
  *
  * # WHY UNKNOWN IDS ARE SURVIVABLE HERE
  *
@@ -92,7 +92,7 @@ export const DRIVER_ROOT_ROT = 'driver_root_rot';
  */
 export const GYM_DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING, DRIVER_TIDAL_SURGE, DRIVER_ROOT_ROT];
 
-export const DRIVER_THIRD_STRIKE = 'driver_third_strike';
+export const DRIVER_TENTH_STRIKE = 'driver_tenth_strike';
 export const DRIVER_STATIC_FIELD = 'driver_static_field';
 export const DRIVER_ANTIVENOM = 'driver_antivenom';
 export const DRIVER_OVERKILL_RECOVERY = 'driver_overkill_recovery';
@@ -115,7 +115,7 @@ export const ELEMENT_DRIVER_IDS: ReadonlyArray<string> = ELEMENTS
  * elite pays out of (ticket 17); the gym Drivers are deliberately NOT in it.
  */
 export const PLAYER_DRIVER_IDS: ReadonlyArray<string> = [
-    DRIVER_THIRD_STRIKE,
+    DRIVER_TENTH_STRIKE,
     DRIVER_STATIC_FIELD,
     DRIVER_ANTIVENOM,
     DRIVER_OVERKILL_RECOVERY,
