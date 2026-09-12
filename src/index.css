@@ -2824,6 +2824,32 @@ body {
   pointer-events: none;
 }
 
+/* ── TICKET 146a — THE PARTICLE CANVAS.
+
+   `inset: 0` over `.battle-stage`, which is itself `inset: 0` over the stage
+   area, so the canvas box is exactly the coordinate space the anchors describe.
+   The layer translates viewport coordinates into this box in its own context
+   transform; nothing here needs to know the offset.
+
+   `pointer-events: none` because the stage is a coordinate space and only the
+   slots take input (see `.battle-stage`) — a canvas that swallowed clicks would
+   make every unit untargetable the moment something caught fire.
+
+   z-index 3 is ABOVE `.stage-floor` (0) and the sprite frame, and below the
+   plaques and the reveal lane: flame reads as being in front of the body, and
+   a number the player has to read is never behind a particle.
+
+   No `@media (prefers-reduced-motion)` rule here on purpose — the layer removes
+   itself from the tree entirely, so there is nothing left to style. ── */
+.stage-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
 .stage-slot {
   position: absolute;
   display: flex;

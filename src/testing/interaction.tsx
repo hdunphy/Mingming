@@ -26,6 +26,7 @@ import battleReducer from '../ui/store/battleSlice';
 import gameReducer from '../ui/store/gameSlice';
 import runReducer from '../ui/store/runSlice';
 import uiReducer from '../ui/store/uiSlice';
+import { installCanvasStub } from './canvasStub';
 
 declare global {
     var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -48,6 +49,14 @@ export interface MountOptions {
     /** Leave `localStorage` as the test set it, instead of clearing it before the first render. */
     keepStorage?: boolean;
 }
+
+/*
+ * jsdom has no canvas, and its `getContext` stub writes to `console.error` — which the trap below
+ * turns into a failure. Installed once, at module load, because `BattleStage` mounts its particle
+ * canvas inside an effect that no test can reach. See `canvasStub.ts` for why this is a stub and
+ * not the `canvas` package.
+ */
+installCanvasStub();
 
 const cleanups: Array<() => Promise<void>> = [];
 let consoleError: ReturnType<typeof vi.spyOn> | null = null;

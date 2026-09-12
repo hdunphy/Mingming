@@ -8,6 +8,7 @@ import { prefersReducedMotion } from '../utils/motionPrefs';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { targetVerdict, type TargetVerdict } from '../utils/targeting';
 import { useStageAnchors } from '../hooks/useStageAnchors';
+import ParticleLayer from '../vfx/ParticleLayer';
 import { spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
 import { StatusBadgeRow, PLAQUE_STATUS_BUDGET } from './StatusBadges';
 import { DaemonTags, FirmwareChip, UnitPreview } from './UnitReadouts';
@@ -470,6 +471,16 @@ const BattleStage: React.FC<BattleStageProps> = ({
             </div>
             {renderSide(playerParty, false)}
             {renderSide(enemyParty, true)}
+            {/*
+              * TICKET 146a — THE PARTICLE LAYER, LAST IN THE STAGE.
+              *
+              * Last so it paints over the sprites without a z-index fight: flames that render
+              * behind the body they come off are the one arrangement that reads as a bug. It sits
+              * INSIDE `.battle-stage` because that is where the anchors' coordinate space is
+              * already correct and where the layer dies with the fight; it draws nothing and
+              * schedules no frames until something on the board is on fire.
+              */}
+            <ParticleLayer battleState={battleState} anchors={anchors} />
         </div>
     );
 };
