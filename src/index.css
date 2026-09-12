@@ -2867,6 +2867,35 @@ body {
 
    No `@media (prefers-reduced-motion)` rule here on purpose — the layer removes
    itself from the tree entirely, so there is nothing left to style. ── */
+/* ── TICKET 146g — THE FIRMWARE CHIP FLASH.
+
+   §2g's family default, and the half of every authored signature that is the
+   same for all of them: when an OS or daemon fires, the owner's chip lights.
+   That is what attributes whatever just played to the thing that did it.
+
+   Driven by `data-os-flash`, set for 320ms by `osTells.ts`. A keyframe rather
+   than a transition so a second trigger inside the window restarts it — an OS
+   that fires twice in a turn must flash twice, and a transition would simply
+   stay lit.
+
+   `data-animations="off"` kills it, the same switch the rest of 146 reads. It
+   is deliberately NOT under `vfx`: the chip flash is the cheapest attribution
+   in the game and the last thing worth losing. ── */
+@keyframes os-chip-flash {
+  0%   { filter: none; transform: scale(1); }
+  25%  { filter: brightness(2.6) drop-shadow(0 0 6px currentColor); transform: scale(1.22); }
+  100% { filter: none; transform: scale(1); }
+}
+[data-os-flash="on"] .hud-os-icon {
+  animation: os-chip-flash 320ms ease-out;
+}
+[data-animations="off"] [data-os-flash="on"] .hud-os-icon {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduced-motion="off"]) [data-os-flash="on"] .hud-os-icon { animation: none; }
+}
+
 .stage-particles {
   position: absolute;
   inset: 0;

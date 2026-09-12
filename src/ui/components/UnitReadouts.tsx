@@ -66,6 +66,16 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
         <div
             ref={osIconRef}
             className="hud-os-icon-container"
+            /*
+             * TICKET 146g — the handle the OS tell flashes. §2g's family default is *"the owner's
+             * plaque firmware chip flashes in the element colour"*, and every authored signature
+             * gets the flash too: it is what ties whatever just played to the OS that did it.
+             *
+             * An attribute rather than React state on purpose. The alternative is a flag per unit
+             * lifted to `BattleArena` and threaded back down through the stage, re-rendering six
+             * plaques to flash one chip, for an effect that lasts 320ms and can affect nothing.
+             */
+            data-os-chip={entity.id}
             onMouseEnter={() => setShowOSTooltip(true)}
             onMouseLeave={() => setShowOSTooltip(false)}
         >

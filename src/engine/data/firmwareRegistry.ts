@@ -20,6 +20,31 @@ export interface OSDefinition {
      * castable-while-asleep for whoever happens to draft it.
      */
     actsWhileAsleep?: boolean;
+    /**
+     * TICKET 146g — the authored tell for this OS, as DATA.
+     *
+     * §2g: *"keyed in `hooks.json` as `vfx: { shape, color?, at? }` **so it is data, not code**"*.
+     * The reason is the roster: there are 51 firmware entries and twelve authored tells, and the
+     * other thirty-nine get a family default. If the tell lived in a UI switch statement, adding an
+     * OS would mean editing a component, and the day someone forgets is the day an OS ships with no
+     * tell and nothing says so.
+     *
+     * Undefined means the family default, which is a complete effect rather than a gap.
+     */
+    vfx?: OSVfx;
+}
+
+/** §2g's signature vocabulary. `ring` is in the table too, for CINDER_WALL's Sharp. */
+export type OSVfxShape = 'pulse' | 'rise' | 'arc' | 'crack' | 'swirl' | 'drain' | 'spark' | 'ring';
+
+export interface OSVfx {
+    readonly shape: OSVfxShape;
+    /** Hex. Defaults to the owner's element colour, which is the family default's colour too. */
+    readonly color?: string;
+    /** Where it plays. `owner` unless the tell is about somebody else. */
+    readonly at?: 'owner' | 'target' | 'owner-to-target' | 'target-to-owner';
+    /** Free text for whoever reads the JSON. Never rendered. */
+    readonly note?: string;
 }
 
 /** hooks.json, keyed by firmware id — only the fields read below. */
@@ -29,6 +54,7 @@ type HookLibraryEntry = {
     description?: string;
     maxCardsPerTurn?: number;
     actsWhileAsleep?: boolean;
+    vfx?: OSVfx;
     hooks?: Array<DataHookDefinition | ModifierDataHookDefinition>;
 };
 
@@ -87,7 +113,8 @@ function initFirmwareHooks() {
                 description: data.description || 'Custom Firmware',
                 hooks,
                 maxCardsPerTurn: data.maxCardsPerTurn,
-                actsWhileAsleep: data.actsWhileAsleep
+                actsWhileAsleep: data.actsWhileAsleep,
+                vfx: data.vfx
             };
             hooks.forEach(hook => registerHook(hook));
         }

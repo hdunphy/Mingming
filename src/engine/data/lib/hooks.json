@@ -109,7 +109,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "spark",
+            "color": "#ff4d3d",
+            "at": "owner",
+            "note": "UNBOUND_KERNEL — the free attack"
+        }
     },
     "fenrir_v2": {
         "id": "fenrir_v2",
@@ -137,7 +143,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "ring",
+            "color": "#ff7a33",
+            "at": "owner",
+            "note": "CINDER_WALL — Sharp going up"
+        }
     },
     "kraken_v1": {
         "id": "kraken_v1",
@@ -165,7 +177,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "swirl",
+            "color": "#4aa8ff",
+            "at": "owner",
+            "note": "ABYSSAL_INK — Dazed ink"
+        }
     },
     "kraken_v2": {
         "id": "kraken_v2",
@@ -213,7 +231,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "rise",
+            "color": "#5fd97a",
+            "at": "target",
+            "note": "GOSSIP_NODE — on the ally healed"
+        }
     },
     "ratatoskr_v2": {
         "id": "ratatoskr_v2",
@@ -238,7 +262,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "arc",
+            "color": "#5fd97a",
+            "at": "owner-to-target",
+            "note": "INSTIGATOR — Dazed passed on"
+        }
     },
     "recursion_daemon": {
         "id": "recursion_daemon",
@@ -513,7 +543,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "rise",
+            "color": "#ffd24a",
+            "at": "owner",
+            "note": "TREACHERY_KERNEL — Strengthened motes"
+        }
     },
     "skoll_v2": {
         "id": "skoll_v2",
@@ -538,7 +574,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "spark",
+            "color": "#ff9a2e",
+            "at": "owner",
+            "note": "SOLAR_OVERDRIVE"
+        }
     },
     "jormungandr_v1": {
         "id": "jormungandr_v1",
@@ -630,7 +672,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "pulse",
+            "color": "#4aa8ff",
+            "at": "owner",
+            "note": "OUROBOROS — the loop closing on a draw"
+        }
     },
     "jormungandr_v2": {
         "id": "jormungandr_v2",
@@ -647,7 +695,13 @@
                 "bonus": 10,
                 "scaling": "TARGET_POISON_STACKS"
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "drain",
+            "color": "#7ed957",
+            "at": "target-to-owner",
+            "note": "TOXIN_FANG — pulled off the bitten"
+        }
     },
     "gullinbursti_v1": {
         "id": "gullinbursti_v1",
@@ -837,13 +891,25 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "arc",
+            "color": "#5fd97a",
+            "at": "owner-to-target",
+            "note": "ALLURE_PROXY — the mirrored hex"
+        }
     },
     "huldra_v2": {
         "id": "huldra_v2",
         "name": "BARK_SHIELD_OS",
         "description": "At the end of Huldra's first turn, she raises a massive Bark Shield, and a smaller one around each ally.",
-        "hooks": []
+        "hooks": [],
+        "vfx": {
+            "shape": "crack",
+            "color": "#b58d4c",
+            "at": "owner",
+            "note": "BARK_SHIELD — when it breaks"
+        }
     },
     "ymir_v1": {
         "id": "ymir_v1",
@@ -970,7 +1036,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "crack",
+            "color": "#ffd700",
+            "at": "owner",
+            "note": "REBIRTH_CYCLE — the reshuffle"
+        }
     },
     "audhumbla_v1": {
         "id": "audhumbla_v1",

@@ -41,6 +41,7 @@ import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from './trails';
 import {
     emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick,
 } from './statusTells';
+import { emitHookTell } from './osTells';
 
 /** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
 export const FLIGHT_MS = 180;
@@ -207,6 +208,24 @@ export function useCastSequence(battleState: IBattleState | null): void {
                     if (open && event.cause !== 'status' && !open.targetIds.includes(event.targetId)) {
                         open.targetIds.push(event.targetId);
                     }
+                    return;
+                }
+                case 'HOOK_FIRED': {
+                    /*
+                     * TICKET 146g. Played at arrival rather than queued behind a cast: a hook fires
+                     * DURING the cast that triggered it, and the whole point of the tell is that
+                     * the player connects the two. Delaying it past the sequence would break the
+                     * only link it has to its cause.
+                     *
+                     * The event is already guarded against AI lookahead in the engine (146b), so
+                     * everything reaching here happened in the real fight.
+                     */
+                    emitHookTell(
+                        findEntity(event.ownerId),
+                        event.osId,
+                        event.daemonId,
+                        open?.targetIds[0],
+                    );
                     return;
                 }
                 case 'TURN_END':
