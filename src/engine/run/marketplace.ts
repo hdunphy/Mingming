@@ -55,7 +55,7 @@
 
 import { SeedStream } from '../core/SeedStream';
 import { MACRO_IDS, MacroRegistry } from '../data/macroRegistry';
-import { getSectorSpecies } from '../data/EncounterGenerator';
+import { LAUNCH_SPECIES } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
 import { isRewardable, rewardCardPool, type IRewardPartyMember } from '../RewardSystem';
 import { numericBaseCost } from '../types';
@@ -667,27 +667,31 @@ function drawDistinct(source: ReadonlyArray<string>, count: number, stream: Seed
 export const MARKET_BLUEPRINT_PRICE = 50;
 
 /**
- * The species this run could actually field, derived from the ROUTE.
+ * Every species the shop may sell a blueprint for — the WHOLE Early Access roster.
  *
- * §7's wording is *"1 random option"*; which options is not stated, and the honest reading after
- * 142d is the route itself. The road is [counter, gym, approach] and it deliberately leaves one
- * launch element off - Rootfall never visits Water - so a shelf that sold a kraken blueprint on the
- * Rootfall road would hand back exactly the thing the route was built to withhold, for scrap.
+ * # THIS WAS ROUTE-RESTRICTED, AND THAT WAS MY MISREADING OF 142d
  *
- * Reads `run.biomes`, so it follows the route automatically rather than restating it: if the road
- * changes again, this does too.
+ * The first version derived the pool from `run.biomes` and argued that a stall selling a kraken
+ * blueprint on the Rootfall road would hand back the thing the route was built to withhold.
+ * **The route was never built to withhold anything.** Henry, 2026-09-12:
+ *
+ * > *"We aren't intentionally withholding blueprints. The stall can sell a kraken blueprint, it
+ * > just felt bad trying to prepare for a NNW deck by going through an entire water biome when you
+ * > want to focus on your fire team ... It's not about limiting, it was about avoiding having to
+ * > drop your fire starters to get through the biome then last minute switch back to FFN party."*
+ *
+ * The complaint 142d answers is about being FORCED to walk a biome you have no team for, and the
+ * shop is the opposite of that problem: it is how you reach an off-route body **without** the
+ * detour. Restricting it turned a fix for a routing annoyance into a content lock, which is a
+ * different game — Henry names the play it would have deleted: *"maybe you want to try a certain
+ * deck archetype and take the type disadvantage, or maybe it's an achievement to beat a grass boss
+ * with water mingmings."*
+ *
+ * `LAUNCH_SPECIES` rather than `PLAYABLE_SPECIES`: the other ten live in the registry for the
+ * balance harness and are not Early Access content, so a stall must not sell one.
  */
-export function routeRecruitableSpecies(run: IRunState): string[] {
-    const elements = new Set<string>();
-    for (const biome of run.biomes) for (const element of biome.elements) elements.add(element);
-
-    const ids: string[] = [];
-    for (const element of elements) {
-        for (const definition of getSectorSpecies(element as Element)) {
-            if (!ids.includes(definition.id)) ids.push(definition.id);
-        }
-    }
-    return ids.sort();
+export function blueprintPool(): string[] {
+    return [...LAUNCH_SPECIES];
 }
 
 /**
@@ -698,7 +702,7 @@ export function routeRecruitableSpecies(run: IRunState): string[] {
  * they do, which is what makes *"once you buy the card it's gone"* true of the blueprint too.
  */
 export function rollBlueprintOffer(run: IRunState, node: IRegionNode): IBlueprintOffer | null {
-    const pool = routeRecruitableSpecies(run);
+    const pool = blueprintPool();
     if (pool.length === 0) return null;
     const stream = new SeedStream(new SeedStream(marketStockSeed(run, node)).fork('market-blueprint'));
     return { speciesId: pool[stream.nextInt(0, pool.length - 1)], price: MARKET_BLUEPRINT_PRICE };

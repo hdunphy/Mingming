@@ -40,7 +40,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 
 import * as marketplace from './marketplace';
-import { GetMingmingData } from '../data/mingmingRegistry';
+import { GetMingmingData, LAUNCH_SPECIES } from '../data/mingmingRegistry';
 import {
     CARD_PRICE_BY_ENERGY,
     MARKET_NEUTRAL_SLOTS,
@@ -60,7 +60,7 @@ import {
     blueprintSlotKey,
     isBlueprintSlotSold,
     rollBlueprintOffer,
-    routeRecruitableSpecies,
+    blueprintPool,
     isOfferSold,
     marketStockSeed,
     rollMarketStock,
@@ -886,20 +886,32 @@ describe('142g — one blueprint on the shelf, from this route', () => {
         expect(offer.price).toBeGreaterThan(Math.max(...CARD_PRICE_BY_ENERGY));
     });
 
-    it('draws only from species the ROUTE can recruit', () => {
-        // The point of the derivation. After 142d the road deliberately leaves one launch element
-        // off — Rootfall never visits Water — so a shelf selling a kraken blueprint would hand back
-        // for scrap exactly the thing the route was built to withhold.
-        const pool = routeRecruitableSpecies(RUN);
-        expect(pool.length).toBeGreaterThan(0);
-        expect(pool).toContain(rollBlueprintOffer(RUN, MARKET)!.speciesId);
+    it('draws from the WHOLE Early Access roster — off-route species included', () => {
+        /*
+         * CORRECTED 2026-09-12. The first version restricted this to the route's own elements and
+         * argued a kraken blueprint on the Rootfall road would undo the route. Henry: *"We aren't
+         * intentionally withholding blueprints. The stall can sell a kraken blueprint ... It's not
+         * about limiting, it was about avoiding having to drop your fire starters to get through
+         * the biome then last minute switch back to FFN party."*
+         *
+         * So the shop is the opposite of 142d's problem, not a leak in it: it is how an off-route
+         * body is reached WITHOUT the detour. Asserted with the off-route species named, because
+         * that is the case a well-meaning 'fix' would break first.
+         */
+        expect(blueprintPool()).toEqual([...LAUNCH_SPECIES]);
 
         const routeElements = new Set(RUN.biomes.flatMap((b) => [...b.elements]));
-        for (const id of pool) {
-            expect(routeElements.has(GetMingmingData(id).primaryElement)).toBe(true);
-        }
-    });
+        const offRoute = blueprintPool()
+            .filter((id) => !routeElements.has(GetMingmingData(id).primaryElement));
+        expect(offRoute.length, 'this route should leave something off, or the case is vacuous')
+            .toBeGreaterThan(0);
 
+        // And an off-route species is actually reachable across the seed space, not merely allowed.
+        const drawn = new Set(MARKETS.flatMap((node) => [0, 1, 2, 3].map((r) => rollBlueprintOffer(
+            { ...RUN, marketRefreshes: { [node.id]: r } }, node,
+        )!.speciesId)));
+        expect(offRoute.some((id) => drawn.has(id))).toBe(true);
+    });
     it('holds across visits and moves on a refresh, like the rest of the stall', () => {
         const first = rollBlueprintOffer(RUN, MARKET)!;
         expect(rollBlueprintOffer(RUN, visited(MARKETS[0], 2))!.speciesId).toBe(first.speciesId);
@@ -930,5 +942,71 @@ describe('142g — one blueprint on the shelf, from this route', () => {
         expect(stockAt(MARKET).offers.map((o) => o.card.dataId).length).toBeGreaterThan(0);
         expect(rollBlueprintOffer(RUN, MARKET)!.speciesId)
             .not.toBe(stockAt(MARKET).offers[0].card.dataId);
+    });
+});
+
+// =================================================================================================
+// HENRY'S SHELF, 2026-09-12 — the scenario in his own words
+// =================================================================================================
+
+describe("each shop is its own shelf, and it persists", () => {
+    it('biome 1 and biome 2 are different shelves', () => {
+        // *"I want to make sure each shop node is unique, but persists."*
+        const a = stockAt(MARKETS[0]);
+        const b = stockAt(MARKETS[1]);
+        expect(b.seed).not.toBe(a.seed);
+        expect(b.offers.map((o) => o.card.instanceId)).not.toEqual(a.offers.map((o) => o.card.instanceId));
+    });
+
+    it('buying at biome 1 leaves biome 2 untouched, and biome 1 keeps the rest', () => {
+        /*
+         * *"If I go into shop at biome 1 and buy tackle, the shop in biome 2 is different, but if I
+         * were to return to biome 1 shop the same cards would be there except the tackle that I
+         * bought."*
+         *
+         * Walked end to end rather than asserted a piece at a time, because the three claims only
+         * mean something together: the gap is in the right shelf, the other shelf did not move, and
+         * coming back shows the same wall minus one.
+         */
+        const before = stockAt(MARKETS[0]);
+        const otherBefore = stockAt(MARKETS[1]);
+        const bought = before.offers[0];
+
+        // Buying = the offer's minted instance is now owned. That is the whole mechanism.
+        const owned = [bought.card];
+
+        const returned = stockAt(visited(MARKETS[0], 2));
+        expect(returned.offers.map((o) => o.card.instanceId))
+            .toEqual(before.offers.map((o) => o.card.instanceId));
+        expect(returned.offers.filter((o) => isOfferSold(owned, o))).toHaveLength(1);
+        expect(returned.offers.filter((o) => !isOfferSold(owned, o)))
+            .toHaveLength(before.offers.length - 1);
+
+        // The other shelf neither restocked nor lost anything.
+        expect(stockAt(MARKETS[1]).offers.map((o) => o.card.instanceId))
+            .toEqual(otherBefore.offers.map((o) => o.card.instanceId));
+        expect(stockAt(MARKETS[1]).offers.some((o) => isOfferSold(owned, o))).toBe(false);
+    });
+
+    it('sells a card you already own — one stock of each item, not one copy per run', () => {
+        /*
+         * Henry, 2026-09-12: *"you should be able to purchase duplicate cards that you already own.
+         * What we don't want is the shop has unlimited stock. It should work like Slay the Spire
+         * where you have a single stock of each item."*
+         *
+         * Both halves are already true and neither is obvious, so both are pinned. SOLD is keyed on
+         * the offer's minted INSTANCE, not on its card id, so holding three Tackles greys out
+         * nothing; and `drawDistinct` puts each id on the wall at most once, which is the single
+         * stock. A future "don't offer what they already have" filter would pass the second and
+         * break the first.
+         */
+        const shelf = stockAt(MARKET);
+        const ids = shelf.offers.map((o) => o.card.dataId);
+        expect(new Set(ids).size, 'one stock of each item').toBe(ids.length);
+
+        // Own a copy of the first offer's CARD — a different instance of the same dataId.
+        const ownedCopy = [{ ...shelf.offers[0].card, instanceId: 'owned_elsewhere' }];
+        expect(isOfferSold(ownedCopy, shelf.offers[0])).toBe(false);
+        expect(shelf.offers.every((o) => !isOfferSold(ownedCopy, o))).toBe(true);
     });
 });

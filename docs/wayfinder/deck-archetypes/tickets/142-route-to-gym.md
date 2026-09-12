@@ -186,3 +186,40 @@ on the old order); the scout still previews the gym comp; no unreachable species
 gyms' routes (each gym's route visits its counter and its own element — check all three). 142e/f/g
 — `marketplace.test` covers static stock, gap-on-buy, refresh re-roll, blueprint slot pricing, and
 that a refresh cannot be bought with less than 50.
+
+## 8. CORRECTION 2026-09-12 — the route was never about withholding
+
+Henry, reading 142g back:
+
+> *"We aren't intentionally withholding blueprints. The stall can sell a kraken blueprint, it just
+> felt bad trying to prepare for a NNW deck by going through an entire water biome when you want to
+> focus on your fire team. You should be able to get water mingmings — maybe you want to try a
+> certain deck archetype and take the type disadvantage, or maybe it's an achievement to beat a
+> grass boss with water mingmings. It's not about limiting, it was about avoiding having to drop
+> your fire starters to get through the biome then last minute switch back to FFN party."*
+
+**This corrects §7's 142d bullet, and a claim I built on it.** That bullet reads *"kraken /
+jormungandr are not recruitable on it — accepted"*, and 142g took it as a design goal: the shop's
+blueprint pool was restricted to the route's own elements so an off-route body could not be bought.
+That inverted the ruling. The complaint 142d answers is being FORCED to walk a biome you have no
+team for; the shop is the opposite of that problem, because it is how an off-route body is reached
+**without** the detour. Restricting it turned a fix for a routing annoyance into a content lock.
+
+So: the blueprint pool is the whole Early Access roster (`blueprintPool()`), and the route's
+element gap is a fact about where you WALK, not about what you can own. What §7's bullet should
+have said is that the route no longer forces a detour — not that it closes a door.
+
+Two more clarifications from the same message, both already true and now pinned by tests rather
+than left to luck:
+
+- **Duplicates are buyable.** *"You should be able to purchase duplicate cards that you already
+  own. What we don't want is the shop has unlimited stock. It should work like Slay the Spire where
+  you have a single stock of each item."* `isOfferSold` keys on the offer's minted INSTANCE, not on
+  its card id, so holding three Tackles greys out nothing; `drawDistinct` puts each id on the wall
+  at most once, which is the single stock. A future "don't offer what they already have" filter
+  would satisfy the second half and break the first, so both are asserted together.
+- **Each shop is its own shelf, and it persists.** *"If I go into shop at biome 1 and buy tackle,
+  the shop in biome 2 is different, but if I were to return to biome 1 shop the same cards would be
+  there except the tackle that I bought."* That is 142e's per-node seed plus the instance-keyed
+  gap, and it is now walked end to end in one test rather than asserted a piece at a time — the
+  three claims only mean anything together.
