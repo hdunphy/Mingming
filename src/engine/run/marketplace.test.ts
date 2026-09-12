@@ -72,7 +72,7 @@ import { nodeSeed } from './nodeSeed';
 import { offerGyms } from './gyms';
 import { PARTY_SIZE } from '../party';
 import { isRewardable, rewardCardPool, scrapForWin } from '../RewardSystem';
-import { GENERIC_HIT, LAUNCH_SPECIES, MingmingRegistry, getDeckForOS } from '../data/mingmingRegistry';
+import { GENERIC_HIT, MingmingRegistry, getDeckForOS } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
 import { numericBaseCost } from '../types';
 import type { ProgramData, Rarity } from '../types';
