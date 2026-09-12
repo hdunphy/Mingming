@@ -12,7 +12,7 @@
  */
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 
-import { globalBattleEventBus, type BattleEvent } from './events';
+import { globalBattleEventBus, type BattleEvent, type DamageTakenEvent, type HookFiredEvent } from './events';
 import { createBattleState } from './data/battleFactories';
 import type { IBattleSetup } from './data/battleFactories';
 import { getDeckForOS } from './data/mingmingRegistry';
@@ -47,7 +47,9 @@ afterEach(() => {
     unsubscribe = null;
 });
 
-const damageEvents = () => seen.filter((e) => e.type === 'DAMAGE_TAKEN');
+/** Narrowed, so a test can read `cause` without a cast on every line. */
+const damageEvents = (): DamageTakenEvent[] =>
+    seen.filter((e): e is DamageTakenEvent => e.type === 'DAMAGE_TAKEN');
 
 describe('146b — DAMAGE_TAKEN.cause', () => {
     it('says `attack` for a hit that went through the damage formula', () => {
@@ -148,7 +150,8 @@ describe('146b — STATUS_APPLIED / STATUS_REMOVED source', () => {
 });
 
 describe('146b — HOOK_FIRED', () => {
-    const hookEvents = () => seen.filter((e) => e.type === 'HOOK_FIRED');
+    const hookEvents = (): HookFiredEvent[] =>
+        seen.filter((e): e is HookFiredEvent => e.type === 'HOOK_FIRED');
 
     it('fires with its owner and trigger when a hook actually acts', () => {
         const state = freshBattle();
@@ -190,8 +193,15 @@ describe('146b — HOOK_FIRED', () => {
         // shrugs teaches the player that the icon means nothing.
         const state = freshBattle();
         seen = [];
-        // A phase no hook in the roster acts on leaves the state identical by definition.
-        battleReducer(state, { type: 'SELECT_TARGET', payload: { targetId: state.enemyParty[0].id } });
+        /*
+         * `SET_INTENT` runs no hook phase at all, so every hook on the board is left unconsulted
+         * and the state change is a single field. If HOOK_FIRED ever appears here, the emit has
+         * drifted from "a hook acted" toward "the reducer ran", which is the failure this guards.
+         */
+        battleReducer(state, {
+            type: 'SET_INTENT',
+            payload: { entityId: state.enemyParty[0].id, move: null },
+        });
         expect(hookEvents()).toHaveLength(0);
     });
 });

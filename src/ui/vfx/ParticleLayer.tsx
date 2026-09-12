@@ -60,6 +60,7 @@ import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { StageAnchors } from '../hooks/useStageAnchors';
 import { ParticleField } from './particles';
 import { setParticleSink, setStageAnchors } from './emit';
+import { isHitStopped } from './hitStop';
 
 interface Props {
     /**
@@ -111,7 +112,14 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
             const dt = last === 0 ? 16 : now - last;
             last = now;
 
-            const live = field.step(dt);
+            /*
+             * HIT-STOP (146e): a delta of 0 rather than a skipped frame. Every particle holds its
+             * position AND its remaining life, so a flame that was half-way through its rise is
+             * still half-way through it when the stop lifts. Skipping the frame instead would let
+             * the clock run on and the burst would jump forward when drawing resumed, which is the
+             * opposite of the effect.
+             */
+            const live = field.step(isHitStopped(now) ? 0 : dt);
             // CSS pixels, not `canvas.width/height` — those are DEVICE pixels, and under the DPR
             // transform they describe an area twice the canvas on a retina screen.
             ctx.clearRect(0, 0, cssW, cssH);

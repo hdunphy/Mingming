@@ -56,6 +56,7 @@ import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
 import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
+import { useImpactFeedback } from '../vfx/useImpactFeedback';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -201,11 +202,18 @@ const BattleArena: React.FC = () => {
         stageControls.start({ opacity: 1, transition: { duration: 1 } });
     }, [stageControls]);
 
-    // Big hits (>= 33% max HP) nudge the whole arena a few px.
-    useEffect(() => {
-        if (!vfx.shakeKey || prefersReducedMotion()) return;
-        stageControls.start({ x: [0, -3, 3, -2, 2, 0], transition: { duration: 0.22 } });
-    }, [vfx.shakeKey, stageControls]);
+    /*
+     * TICKET 146e — HIT-STOP AND THE SCALED SHAKE.
+     *
+     * This replaces the threshold shake that lived here: a fixed 3px nudge above 33% of max HP,
+     * which is a boolean pretending to be feedback — a 34% hit and a lethal one shook identically,
+     * and everything below the line shook not at all.
+     *
+     * Ruling 2 makes it continuous: *"Everything gets a hit stop but it scales with damage."* The
+     * hook owns both the stop and the shake because they run off one number, and two sources
+     * driving `stageControls` would race.
+     */
+    useImpactFeedback(battleState, stageControls);
 
     const prevSideRef = useRef(battleState?.activeSide);
     // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect
