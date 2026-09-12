@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ProgramCard from './ProgramCard';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -46,8 +46,14 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
      * `resolveVfxGates` is the generalisation, and reading it here rather than
      * `prefersReducedMotion()` means the switch and the OS preference reach this card through the
      * one function that also stamps the DOM attributes.
+     *
+     * ONCE PER MOUNT, not per render. This component re-renders on every battle state change, and
+     * `loadSettings` is a `localStorage` read and a JSON parse — the first version of this line put
+     * both on every render and the write-back measured it: frame spikes to 46ms on a board whose
+     * particle layer peaked at 21. The settings screen is a route away from a fight, so there is
+     * nothing to miss by reading at mount.
      */
-    const reduced = !resolveVfxGates(loadSettings()).animations;
+    const [reduced] = useState(() => !resolveVfxGates(loadSettings()).animations);
 
     // A missing program is a dead reveal rather than a crash: `GetProgramData` returns a not-found
     // stub, and rendering that stub's face would be worse than rendering nothing.

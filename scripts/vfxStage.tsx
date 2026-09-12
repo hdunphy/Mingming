@@ -43,9 +43,14 @@
  */
 
 import { StrictMode } from 'react';
+import { useAnimation } from 'framer-motion';
 import { createRoot } from 'react-dom/client';
 
 import BattleStage from '../src/ui/components/BattleStage';
+import PlayedCardReveal from '../src/ui/components/PlayedCardReveal';
+import { useBattleVfx } from '../src/ui/hooks/useBattleVfx';
+import { useCastSequence } from '../src/ui/vfx/useCastSequence';
+import { useImpactFeedback } from '../src/ui/vfx/useImpactFeedback';
 import { createBattleState } from '../src/engine/data/battleFactories';
 import type { IBattleSetup } from '../src/engine/data/battleFactories';
 import { getDeckForOS } from '../src/engine/data/mingmingRegistry';
@@ -54,6 +59,7 @@ import { createRanchMember } from '../src/engine/gameTypes';
 import { toMingmingState } from '../src/engine/run/battleSetup';
 import { setReducedMotionOverride } from '../src/ui/utils/motionPrefs';
 import { anchorFor, emit, emitImpact, emitTrail, type ParticleKind } from '../src/ui/vfx/emit';
+import { globalBattleEventBus } from '../src/engine/events';
 import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from '../src/ui/vfx/trails';
 import { TOP_BAR_H, CONSOLE_H } from '../src/ui/components/stageGeometry';
 import type { IBattleEntity, IBattleState } from '../src/engine/types';
@@ -182,12 +188,88 @@ if (BURN > 0 && !TRAIL) {
  * The spacers are plain divs because the top bar and the console are not being photographed; their
  * HEIGHTS are the only thing the geometry reads.
  */
-createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-        <div className="battle-screen">
-            <div style={{ height: TOP_BAR_H, flex: '0 0 auto' }} />
-            <div className="stage-area">
-                <BattleStage
+/*
+ * ── CAST MODE — ticket 146h ────────────────────────────────────────────────────────────────────
+ *
+ * `?cast=Fire` fires a whole cast: the card reveal, the trail, the impact, the status tell and an
+ * OS tell, by emitting on the REAL bus the same events the reducer emits, in the same synchronous
+ * burst. Every subscriber 146 added runs for real — the window that groups a cast, the queue, the
+ * hit-stop, the trails, the tells.
+ *
+ * Synthetic events rather than a live battle because the alternative is mounting `BattleArena` with
+ * a full redux store and a run state, and none of it would exercise anything this ticket touched:
+ * 146 changes no reducer and no rule. What it changes is what happens when those events arrive, and
+ * this is those events arriving.
+ *
+ *   ?cast=<element>  the element to cast (default Fire)
+ *   ?side=1          hit all three enemies, 146c's Side-card path and §2h's frame-budget case
+ *   ?enemy=1         cast from the enemy side instead, for ruling 6's mirrored sequence
+ */
+const CAST = params.get('cast');
+if (CAST) {
+    const attackers = params.get('enemy') === '1' ? battleState.enemyParty : battleState.playerParty;
+    const defenders = params.get('enemy') === '1' ? battleState.playerParty : battleState.enemyParty;
+    const side = params.get('side') === '1';
+
+    // Real card ids, so the reveal renders a real face rather than the registry's missing-card
+    // stub — the capture is supposed to show what a player sees.
+    const CARD_BY_ELEMENT: Record<string, string> = {
+        Fire: 'cinder_slash', Water: 'hydro_blast', Nature: 'seed_bomb_v2', None: 'hamstring',
+    };
+
+    const fireCast = (): void => {
+        const caster = attackers[0];
+        const targets = side ? defenders : defenders.slice(0, 1);
+
+        /*
+         * ONE synchronous burst, exactly as the reducer produces: the play, then every hit, then
+         * every status. If these were spread over timers the cast window in `useCastSequence` would
+         * close between them and the capture would prove the opposite of what it is for.
+         */
+        globalBattleEventBus.emit({
+            type: 'PROGRAM_PLAYED', sourceId: caster.id, targetId: targets[0].id,
+            programId: CARD_BY_ELEMENT[CAST] ?? 'tackle', timestamp: Date.now(),
+        });
+        for (const target of targets) {
+            globalBattleEventBus.emit({
+                type: 'DAMAGE_TAKEN', targetId: target.id, amount: 24, element: CAST as never,
+                cause: 'attack', damage: { raw: 24, absorbed: 0, applied: 24 } as never,
+                timestamp: Date.now(),
+            });
+        }
+        globalBattleEventBus.emit({
+            type: 'STATUS_APPLIED', targetId: targets[0].id, status: 'Burn', stacks: 2,
+            source: { kind: 'card', id: 'harness', ownerId: caster.id }, timestamp: Date.now(),
+        });
+        globalBattleEventBus.emit({
+            type: 'HOOK_FIRED', osId: caster.activeOS, hookId: 'harness_hook',
+            ownerId: caster.id, trigger: 'onPostDamage', timestamp: Date.now(),
+        });
+    };
+
+    window.setTimeout(fireCast, 600);
+    window.setInterval(fireCast, 2200);
+}
+
+/**
+ * The stage plus everything `BattleArena` mounts around it that 146 touches: the cast sequence, the
+ * impact feedback, and the played-card reveal. Not `BattleArena` itself — that needs a redux store
+ * and a whole run — and none of what it would add is what this ticket changed.
+ */
+/*
+ * Exported only to satisfy `react-refresh/only-export-components`, which wants a file containing a
+ * component to export something. This file is a Vite ENTRY — nothing imports it — so the export is
+ * a formality; splitting the component out would mean two files to keep in step for a harness.
+ */
+export const Stage: React.FC = () => {
+    const vfx = useBattleVfx(battleState);
+    const stageControls = useAnimation();
+    useImpactFeedback(battleState, stageControls);
+    useCastSequence(battleState);
+
+    return (
+        <>
+            <BattleStage
                     battleState={battleState}
                     selectedSourceId={battleState.playerParty[0]?.id ?? null}
                     selectedTargetId={null}
@@ -197,8 +279,21 @@ createRoot(document.getElementById('root')!).render(
                     unitFx={{}}
                     onEntityClick={() => undefined}
                     onEntityPointerUp={() => undefined}
-                    onEnemyHoverChange={() => undefined}
-                />
+                onEnemyHoverChange={() => undefined}
+            />
+            {/* `?noreveal=1` mounts everything EXCEPT the card face, which is how 146h attributes
+                a frame spike to the reveal's mount rather than to the particle layer. */}
+            {params.get('noreveal') === '1' ? null : <PlayedCardReveal played={vfx.playedCard} />}
+        </>
+    );
+};
+
+createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+        <div className="battle-screen">
+            <div style={{ height: TOP_BAR_H, flex: '0 0 auto' }} />
+            <div className="stage-area">
+                <Stage />
             </div>
             <div style={{ height: CONSOLE_H, flex: '0 0 auto' }} />
         </div>
