@@ -405,7 +405,19 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             payload: {
                 amount: damage,
                 isHeal: false,
-                element: element || program?.element
+                element: element || program?.element,
+                /*
+                 * Ticket 146b. A card hurting its own caster is a RECOIL, and 146f draws it as a
+                 * red pulse on the caster with no trail rather than as an incoming hit.
+                 *
+                 * Two ways to be one, because the game has two: `percentMaxHp` is the priced
+                 * recoil ticket 138 ruled must not scale, and a Self-target ATTACK action is the
+                 * hand-authored kind (odin_v1's `unbound_fang`, the Dark card at line 969). Both
+                 * are "the attacker is the target", which is the only test that matters here.
+                 */
+                cause: (typeof actionData.percentMaxHp === 'number' || targetId === sourceId)
+                    ? 'recoil' as const
+                    : 'attack' as const
             }
         }]);
 
@@ -569,7 +581,13 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             type: 'STATUS',
             targetId: targetId,
             sourceId: sourceId,
-            payload: { status, stacks: effectiveStacks }
+            payload: {
+                status,
+                stacks: effectiveStacks,
+                // Ticket 146b. A card put this here, and `_program` is which card — 146g and 146f
+                // both want to point at the caster rather than only at the target.
+                source: { kind: 'card' as const, id: _program?.id ?? 'card', ownerId: sourceId }
+            }
         }]);
     }
 }

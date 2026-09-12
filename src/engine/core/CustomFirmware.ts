@@ -447,7 +447,9 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                 const hpCost = helBloodHpCost(pct, owner);
                 const spentKey = resolveCounterKey('hel_blood_spent', 'OWNER', owner);
                 state = applyMutations(state, [
-                    { type: 'HP', targetId: owner.id, sourceId: owner.id, payload: { amount: hpCost } },
+                    // `cause: 'toll'` (ticket 146b): an engine PRICE, not a hit and not a recoil.
+                    // 146f draws it as a red pulse on the caster with no trail.
+                    { type: 'HP', targetId: owner.id, sourceId: owner.id, payload: { amount: hpCost, cause: 'toll' } },
                     { type: 'COUNTER', targetId: '', payload: { key: spentKey, operator: 'ADD', amount: pct } },
                     { type: 'LOG', targetId: '', payload: `${owner.name}'s UNDERWORLD_GATEWAY pays ${hpCost} HP in blood!` }
                 ]);

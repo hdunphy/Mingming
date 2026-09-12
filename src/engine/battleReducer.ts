@@ -1089,7 +1089,11 @@ function tickStatuses(
                 logs.push(`  \u2192 ${entity.name} takes ${damage} damage from ${effect.type}`);
                 globalBattleEventBus.emit({
                     type: 'DAMAGE_TAKEN', targetId: entity.id, amount: damage,
-                    element: effect.type === 'Burn' ? 'Fire' : 'None', timestamp: Date.now(),
+                    element: effect.type === 'Burn' ? 'Fire' : 'None',
+                    // Ticket 146b: the DoT tick. 146f rules this is NOT a hit — no hit-stop, no
+                    // shake, no flash — and `status` is what the float takes its colour from.
+                    cause: 'status', status: effect.type,
+                    timestamp: Date.now(),
                 });
             }
 

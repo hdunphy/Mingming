@@ -11,6 +11,7 @@ export type BattleEventType =
     | 'HEAL'
     | 'STATUS_APPLIED'
     | 'STATUS_REMOVED'
+    | 'HOOK_FIRED'
     | 'PHASE_START'
     | 'PHASE_END'
     | 'DECK_SHUFFLED'
@@ -48,9 +49,33 @@ export interface ProgramDiscardedEvent extends BaseEvent {
     readonly manual: boolean; // Was it manually discarded or end-of-turn cleanup?
 }
 
+/**
+ * WHY a unit lost HP — ticket 146b.
+ *
+ * The bus already carried *what* happened; it never carried *why*, and the UI cannot infer it. A
+ * Burn tick and a sword both arrive as `DAMAGE_TAKEN` on the same target for the same 9 points, and
+ * 146f rules that they must not look alike: *"Status damage ... is not a hit."* Hit-stop, shake and
+ * the impact flash are all `attack` only.
+ *
+ * - `attack` — a card, or anything that resolved through the normal damage formula.
+ * - `status` — a damage-over-time tick, or damage dealt at the moment a status lands. Carries
+ *   `status` so 146f can colour the float and pick the tell.
+ * - `recoil` — the caster paying for its own card (`percentMaxHp`, a Self-target attack).
+ * - `toll`  — an engine price extracted by a hook, such as hel's UNDERWORLD_GATEWAY blood cost.
+ *
+ * Optional, because a handful of test fixtures hand-build this event and additive is the whole
+ * point of this row: `SimRunner` and the balance suite must stay byte-identical, which they do by
+ * ignoring every field here they do not read.
+ */
+export type DamageCause = 'attack' | 'status' | 'recoil' | 'toll';
+
 export interface DamageTakenEvent extends BaseEvent {
     readonly type: 'DAMAGE_TAKEN';
     readonly targetId: string;
+    /** Why. See `DamageCause`. Absent on a hand-built fixture; treat that as `attack`. */
+    readonly cause?: DamageCause;
+    /** Which status did it, when `cause` is `status`. */
+    readonly status?: StatusType;
     /**
      * Post-shield, pre-floor damage. **Not** the number to put on a card face — it is what got past
      * the shield, so a fully absorbed hit reports 0. Left with its original meaning so that adding
@@ -74,17 +99,59 @@ export interface HealEvent extends BaseEvent {
     readonly sourceId?: string; // Optional source
 }
 
+/**
+ * WHO applied or removed a status — ticket 146b.
+ *
+ * 146g needs it to point a tell at the right unit: ALLURE_PROXY's signature is an arc from the OWNER
+ * to the weakened target, and without a source the UI knows the target and nothing else. `ownerId`
+ * is the unit whose card, OS or daemon did it — which is not the target, and on a self-buff is.
+ */
+export interface StatusSource {
+    readonly kind: 'card' | 'os' | 'daemon' | 'engine';
+    /** The card, OS or daemon id. `engine` uses a short reason, e.g. `'dot-expiry'`. */
+    readonly id: string;
+    /** The unit that owns the thing that did it. */
+    readonly ownerId: string;
+}
+
 export interface StatusAppliedEvent extends BaseEvent {
     readonly type: 'STATUS_APPLIED';
     readonly targetId: string;
     readonly status: StatusType;
     readonly stacks: number;
+    readonly source?: StatusSource;
 }
 
 export interface StatusRemovedEvent extends BaseEvent {
     readonly type: 'STATUS_REMOVED';
     readonly targetId: string;
     readonly status: StatusType;
+    readonly source?: StatusSource;
+}
+
+/**
+ * A HOOK FIRED — ticket 146b's new event, and the whole basis of 146g.
+ *
+ * Ruling 8: *"OS should have some unique VFX for each effect to help with the trigger."* Nothing on
+ * the bus said an OS had done anything; the player saw the consequence (a card got cheaper, a unit
+ * took extra damage) with no way to attribute it. This is the attribution.
+ *
+ * # EMITTED OUTSIDE AI LOOKAHEAD ONLY
+ *
+ * `TacticalAI` drives the real reducer to score candidate plays — ticket 127 measured 93,889
+ * reducer calls for one 3v3 decision — so every hook in the search would fire this event and the
+ * stage would strobe with tells for a fight that never happened. The guard is `isSimulating()`,
+ * the same predicate ticket 144c added for exactly this class of problem.
+ */
+export interface HookFiredEvent extends BaseEvent {
+    readonly type: 'HOOK_FIRED';
+    /** Whichever applies; an OS hook sets `osId`, a daemon's sets `daemonId`. */
+    readonly osId?: string;
+    readonly daemonId?: string;
+    readonly hookId: string;
+    readonly ownerId: string;
+    /** The lifecycle point that fired it, e.g. `onPostDamage`. */
+    readonly trigger: string;
 }
 
 export interface PhaseEvent extends BaseEvent {
@@ -124,6 +191,7 @@ export type BattleEvent =
     | HealEvent
     | StatusAppliedEvent
     | StatusRemovedEvent
+    | HookFiredEvent
     | PhaseEvent
     | CardDrawnEvent
     | DeckShuffledEvent

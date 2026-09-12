@@ -66,7 +66,11 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                         targetId: mutation.targetId,
                         power: 0,
                         damageOverride: amount,
-                        element: mutation.payload.element || 'None'
+                        element: mutation.payload.element || 'None',
+                        // Ticket 146b. Every engine price in the game comes through here as an HP
+                        // mutation, and from inside `handleAttack` they are indistinguishable from
+                        // a sword. The caller says which it is; undefined means `attack`.
+                        cause: mutation.payload.cause
                     });
                 }
                 break;
@@ -92,7 +96,10 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     targetId: mutation.targetId,
                     status: mutation.payload.status,
                     stacks: mutation.payload.stacks,
-                    sourceId: mutation.sourceId
+                    sourceId: mutation.sourceId,
+                    // Ticket 146b: passed straight through. The mutation's builder is the only
+                    // one that knows whether a card or an OS raised it.
+                    source: mutation.payload.source
                 });
 
                 break;
@@ -489,8 +496,11 @@ function executeResolutionStackInner(
         const handler = pair.hook[phase] as EventHook | undefined;
         if (!handler) continue;
 
+        const before = currentState;
         const result: HookResult = handler({ ...initialContext, state: currentState }, pair.owner);
         currentState = result.state;
+
+        emitHookFired(pair.hook.id, pair.owner, phase as string, before !== currentState || !!result.isCancelled);
 
         if (result.isCancelled) {
             isCancelled = true;
@@ -499,6 +509,59 @@ function executeResolutionStackInner(
     }
 
     return { state: currentState, isCancelled };
+}
+
+/**
+ * HOOK_FIRED — ticket 146b, and the whole basis of 146g's *"unique VFX for each effect to help with
+ * the trigger"*.
+ *
+ * # "FIRED" MEANS IT DID SOMETHING
+ *
+ * Every hook carrying a phase is CONSULTED on that phase, and most of them decline — a conditional
+ * hook whose condition is false returns the state it was handed. Emitting on consultation would put
+ * a tell on screen every time an OS looked at the board and did nothing, which is worse than no
+ * tell at all: it teaches the player that the icon means nothing.
+ *
+ * The predicate is reference inequality on the state. Every mutation path in this engine is
+ * immutable, so a hook that changed anything returns a different object, and one that returns the
+ * same object changed nothing. A cancellation counts too — refusing to let something happen is the
+ * most consequential thing a hook can do and it may leave the state untouched.
+ *
+ * # OUTSIDE AI LOOKAHEAD ONLY
+ *
+ * `TacticalAI` drives this same reducer to score candidate plays: ticket 127 measured 93,889
+ * reducer calls for a single 3v3 decision. Unguarded, the stage would strobe with tells for fights
+ * that never happened, and the bus would carry tens of thousands of events a turn. `isSimulating()`
+ * is ticket 144c's predicate, added for exactly this class of problem.
+ *
+ * The `isLive` check is the second guard and not a redundant one: the AI mutes the bus for its
+ * search, so cheap-exiting on a muted bus keeps the id resolution below off the hot path entirely.
+ */
+function emitHookFired(hookId: string, owner: IBattleEntity, trigger: string, didSomething: boolean): void {
+    if (!didSomething) return;
+    if (isSimulating() || !globalBattleEventBus.isLive) return;
+
+    /*
+     * WHICH OS or daemon owns this hook. The event carries the hook id regardless, but 146g keys
+     * its authored signatures off the OS, so an unattributed hook would fall back to the family
+     * default and the twelve authored tells would never play.
+     */
+    let osId: string | undefined;
+    let daemonId: string | undefined;
+
+    const os = owner.activeOS ? getOSBehavior(owner.activeOS) : undefined;
+    if (os?.hooks.some(h => h.id === hookId)) osId = owner.activeOS;
+
+    if (!osId) {
+        for (const daemon of owner.daemons ?? []) {
+            const data = GetProgramData(daemon.dataId);
+            if (data.hooks?.includes(hookId)) { daemonId = daemon.dataId; break; }
+        }
+    }
+
+    globalBattleEventBus.emit({
+        type: 'HOOK_FIRED', osId, daemonId, hookId, ownerId: owner.id, trigger, timestamp: Date.now(),
+    });
 }
 
 /**

@@ -3,6 +3,7 @@ import { StatusType } from './types';
 import type { HookContext } from './core/Hooks';
 import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
 import { globalBattleEventBus } from './events';
+import type { DamageCause, StatusSource } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { applyHealModifiers } from './core/Hooks';
 import { isSimulating } from './core/simulationDepth';
@@ -34,9 +35,33 @@ export type EffectPayloads = {
         damageOverride?: number;
         program?: ProgramData;
         action?: AttackActionData;
+        /**
+         * Ticket 146b. Why this damage is happening, for the UI's benefit only — nothing in the
+         * engine branches on it.
+         *
+         * It is threaded from the CALLER rather than inferred here because the caller is the only
+         * one who knows. Every non-attack price in the game resolves through this same handler: a
+         * recoil is an ATTACK with `percentMaxHp`, and hel's blood toll is an HP mutation that
+         * `applyMutations` turns into an ATTACK with a `damageOverride` and `sourceId: 'SYSTEM'`.
+         * From in here they are all indistinguishable from a sword, which is exactly the confusion
+         * 146f has to undo.
+         *
+         * Defaults to `attack`, which is what an unannotated caller is.
+         */
+        cause?: DamageCause;
     };
     HEAL: { sourceId: string; targetId: string; power: number; flatHeal?: number; healPower?: number };
-    APPLY_STATUS: { targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number };
+    APPLY_STATUS: {
+        targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number;
+        /**
+         * Ticket 146b. WHO did this, for 146g's benefit — `sourceId` says which unit, and a tell
+         * needs to know whether it was that unit's card, OS or daemon, and which one.
+         *
+         * Optional and threaded from the caller for `cause`'s reason: by the time a status reaches
+         * this handler, a card's STATUS action and an OS hook's STATUS mutation look identical.
+         */
+        source?: StatusSource;
+    };
     GENERATE_CARD: { sourceId: string; dataId: string };
     CLEANSE: { targetId: string; statusTarget?: StatusType };
 };
@@ -53,7 +78,7 @@ export const effectHandlers: { [K in keyof EffectPayloads]: EffectHandler<K> } =
 };
 
 function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): IBattleState {
-    const { sourceId, targetId, power, element, damageOverride } = payload;
+    const { sourceId, targetId, power, element, damageOverride, cause } = payload;
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
 
@@ -157,12 +182,17 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
         amount: finalDamage,
         element: element,
         damage: damageRecord,
+        // Ticket 146b. `attack` is the honest default here: an unannotated caller went through the
+        // full damage formula, which is what an attack is.
+        cause: cause ?? 'attack',
         timestamp: Date.now()
     });
 
     if (wakesUp) {
         globalBattleEventBus.emit({
             type: 'STATUS_REMOVED',
+            // The sleeper woke because it was hit — engine, not anybody's card.
+            source: { kind: 'engine', id: 'sleep-chipped', ownerId: target.id },
             targetId: target.id,
             status: 'Asleep',
             timestamp: Date.now()
@@ -469,7 +499,7 @@ const DUALITY_MAP: Partial<Record<StatusType, StatusType>> = {
 };
 
 function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_STATUS']): IBattleState {
-    const { targetId, status, stacks, sourceId, power } = payload;
+    const { targetId, status, stacks, sourceId, power, source } = payload;
     const behavior = getStatusBehavior(status);
     if (!behavior) {
         return addLog(state, `  ⚠️ Error: Status effect "${status}" is not defined in StatusBehaviors!`);
@@ -597,6 +627,9 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
             targetId,
             status,
             stacks: remainingStacks,
+            // Ticket 146b. `engine` is the honest fallback: something in the engine did it and did
+            // not say what, which is true of expiries, overflow and hand-built fixtures alike.
+            source: source ?? { kind: 'engine', id: 'engine', ownerId: sourceId ?? targetId },
             timestamp: Date.now()
         });
     }
@@ -608,6 +641,10 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
             amount: immediateDamage,
             element: 'None',
             damage: immediateRecord,
+            // Damage dealt at the MOMENT a status lands — a status doing it, not a hit, so 146f
+            // gives it the status treatment rather than a hit-stop.
+            cause: 'status',
+            status,
             timestamp: Date.now()
         });
     }
