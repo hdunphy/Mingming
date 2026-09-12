@@ -2818,11 +2818,35 @@ body {
 .battle-stage {
   position: absolute;
   inset: 0;
-  z-index: 5;
   /* A coordinate space, not a surface: only the slots take pointer events, so
      the empty reveal lane never eats a drag. */
   pointer-events: none;
 }
+
+/* ── TICKET 146a — ONE STACKING CONTEXT FOR THE WHOLE BOARD.
+
+   `.battle-stage` used to carry `z-index: 5`, which made it a stacking context
+   and sealed its children's z-indices inside it. That was harmless while the
+   stage only had to sit under the reveal-lane card (z 60, a sibling in
+   `.stage-area`) — but 146a puts the particle canvas ABOVE that card and below
+   the plaques, and no z-index inside a sealed context can straddle a sibling of
+   its parent.
+
+   So the z-index comes off, `.battle-stage` stops creating a context (it is
+   `position: absolute` with `z-index: auto`), and its children order themselves
+   against the lane card directly. One ladder for the board, listed here because
+   it is now spread across four rules and a component:
+
+     0   .stage-backdrop      the room
+     2   .stage-sprite-frame  the bodies
+     60  .reveal-card         the card that was just played (PlayedCardReveal)
+     61  .stage-particles     146c's trail crosses IN FRONT of the lane card
+     62  .stage-plaque        a number the player has to read is never behind FX
+
+   The gap from 2 to 60 is the lane card's existing number, kept rather than
+   renumbered: moving it would touch the reward and celebration screens that
+   reuse `.reveal-card`. ── */
+
 
 /* ── TICKET 146a — THE PARTICLE CANVAS.
 
@@ -2835,9 +2859,11 @@ body {
    slots take input (see `.battle-stage`) — a canvas that swallowed clicks would
    make every unit untargetable the moment something caught fire.
 
-   z-index 3 is ABOVE `.stage-floor` (0) and the sprite frame, and below the
-   plaques and the reveal lane: flame reads as being in front of the body, and
-   a number the player has to read is never behind a particle.
+   z-index 61 puts it above the sprites AND the reveal-lane card (§2a: *"above
+   the sprites and the reveal-lane card, below the plaques and the top bar"*),
+   which 146c depends on — its trail crosses the board in front of the played
+   card. The plaques sit above it at 62, so a number the player has to read is
+   never behind a particle. The full ladder is at `.battle-stage`.
 
    No `@media (prefers-reduced-motion)` rule here on purpose — the layer removes
    itself from the tree entirely, so there is nothing left to style. ── */
@@ -2847,7 +2873,7 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 3;
+  z-index: 61;
 }
 
 .stage-slot {
@@ -2932,7 +2958,7 @@ body {
   border-radius: 6px;
   backdrop-filter: blur(10px);
   pointer-events: none;
-  z-index: 6;
+  z-index: 62;   /* see the ladder at .battle-stage */
   box-sizing: border-box;
 }
 

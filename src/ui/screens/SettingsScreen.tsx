@@ -10,6 +10,7 @@ import {
     TEXT_SCALES,
     applySettings,
     loadSettings,
+    resolveVfxGates,
     saveSettings,
     type ISettings,
     type MotionChoice,
@@ -25,6 +26,36 @@ import {
 } from '../settings/exportRunLog';
 import { playSfx } from '../audio/AudioEngine';
 import './SettingsScreen.css';
+
+/**
+ * The three effect switches, as rows. Ticket 146a.
+ *
+ * A table rather than three hand-written blocks because they are genuinely the same control three
+ * times, and the notes are where the difference lives: each one says what a player LOSES, since
+ * "Particles: Off" tells you nothing about whether the fight still reads.
+ */
+const VFX_SWITCHES: ReadonlyArray<{
+    key: 'particles' | 'vfx' | 'animations';
+    label: string;
+    note: string;
+}> = [
+    {
+        key: 'particles',
+        label: 'Particles',
+        note: 'Flames, drops, leaves, sparks. The first thing to turn off on a machine that struggles.',
+    },
+    {
+        key: 'vfx',
+        label: 'Effects',
+        note: 'Flashes, trails, impacts, and the tells that say which status or program just fired.',
+    },
+    {
+        key: 'animations',
+        label: 'Animations',
+        note: 'Cards flying to the lane and back, lunges, screen shake, and the pause on a heavy hit.',
+    },
+];
+
 
 /**
  * THE SETTINGS SCREEN — ticket 36.
@@ -149,6 +180,42 @@ export default function SettingsScreen(): ReactNode {
                     <p className="settings-note">
                         <strong>Follow system</strong> uses your OS setting, which is what the game did
                         before this screen existed. The other two overrule it in either direction.
+                    </p>
+
+                    {/*
+                      * TICKET 146a — THE THREE EFFECT SWITCHES, under Motion rather than in a group
+                      * of their own.
+                      *
+                      * They belong next to reduced motion because reduced motion OVERRULES them
+                      * (see `resolveVfxGates`), and a player who turns that on and then finds three
+                      * switches elsewhere still claiming to be On has been told something false.
+                      * Sitting together, the note below can say so in one line.
+                      */}
+                    {VFX_SWITCHES.map(({ key, label, note }) => (
+                        <div className="settings-row" key={key}>
+                            <span className="settings-label">{label}</span>
+                            <div className="settings-control settings-choices">
+                                {([true, false] as const).map((choice) => (
+                                    <button
+                                        key={String(choice)}
+                                        type="button"
+                                        className={`settings-choice ${settings[key] === choice ? 'active' : ''}`}
+                                        aria-pressed={settings[key] === choice}
+                                        onClick={() => update({ ...settings, [key]: choice })}
+                                    >
+                                        {choice ? 'On' : 'Off'}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="settings-note">{note}</p>
+                        </div>
+                    ))}
+                    <p className="settings-note">
+                        Off means off, not fewer — the fight stays fully playable with all three off,
+                        reading from the numbers and the badges on each plaque.{' '}
+                        {resolveVfxGates(settings).particles
+                            ? null
+                            : <strong>Reduced motion is on, so particles and animations are off whatever these say.</strong>}
                     </p>
                 </section>
 

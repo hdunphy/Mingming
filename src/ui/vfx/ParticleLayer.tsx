@@ -1,19 +1,33 @@
 /**
  * THE PARTICLE LAYER — ticket 146a.
  *
- * One canvas over the stage, one rAF loop, and the bridge from battle state to emitters. Everything
- * with a number in it lives in `particles.ts` and `emitters.ts`; this file is wiring, and it is
- * deliberately the only part that knows React exists.
+ * One canvas over the stage, one rAF loop, and the registration that lets `emit()` reach it.
+ * Everything with a number in it lives in `particles.ts` and `emitters.ts`; this file is wiring,
+ * and it is deliberately the only part that knows React exists.
+ *
+ * # NOTHING HERE WATCHES THE BOARD
+ *
+ * Ruling 3: *"For now no persistent status emitters; it was the apply status or remove status that
+ * should get an emitter."* §4 repeats it — persistent status emitters are out, because the plaque
+ * badge is the standing read.
+ *
+ * The first build of this row missed that and polled `battleState` every frame, keeping every
+ * burning unit on fire for as long as the status sat on it. It is worth naming the shape of the
+ * mistake rather than just deleting it: a layer that can SEE the battle state will always drift
+ * back toward drawing conditions instead of events, because the state is right there. So this
+ * component no longer takes the state at all. Its only inputs are the anchors and the bus, and the
+ * only way anything reaches the field is a call to `emit()` from a handler that saw something
+ * happen. The property is structural, not a matter of remembering.
  *
  * # REDUCED MOTION TURNS IT OFF, NOT DOWN
  *
- * §2: *"the particle layer is **off**, not smaller — the plaque chips still carry every status."*
- * That is the whole accessibility argument in one line: the particles are a SECOND telling of
- * something the plaque already states, so removing them costs a player nothing they needed. A
- * "reduced" particle layer would still animate, which is what the preference is asking us not to do.
+ * §2a: with reduced motion, particles are off. That is the whole accessibility argument in one
+ * line: the particles are a SECOND telling of something the plaque already states, so removing
+ * them costs a player nothing they needed. A "reduced" particle layer would still animate, which is
+ * what the preference is asking us not to do.
  *
- * The check is `prefersReducedMotion()` rather than a media query, so the settings screen's
- * explicit on/off override wins over the OS the same way it does everywhere else.
+ * The gate is `resolveVfxGates`, not a bare media query, so the `particles` switch and the
+ * reduced-motion choice are read through the one function that also stamps the DOM attributes.
  *
  * # WHY THE CANVAS IS SIZED IN AN EFFECT AND NOT IN JSX
  *
@@ -30,73 +44,43 @@
  * stage-box coordinates.
  *
  * This canvas is `inset: 0` on that same box and draws with an IDENTITY transform for exactly that
- * reason: whatever the anchors mean, a flame lands wherever its sprite lands, because both read the
- * number the same way. Translating viewport-to-canvas here is the obvious-looking correction and
- * the wrong one — it offsets every particle by the stage box's own top-left and lifts every flame
- * off the body it belongs to.
+ * reason: whatever the anchors mean, an effect lands wherever its sprite lands, because both read
+ * the number the same way. Translating viewport-to-canvas here is the obvious-looking correction
+ * and the wrong one — it offsets every particle by the stage box's own top-left.
  *
- * The rule for 146b/c/d: take the anchor as given and do no arithmetic on it. If the anchors are
- * ever moved into true viewport space, `StageSlot` and this file change together or neither does.
+ * The rule for the later rows: take the anchor as given and do no arithmetic on it. If the anchors
+ * are ever moved into true viewport space, `StageSlot` and this file change together or neither
+ * does.
  */
 
 import { useEffect, useRef } from 'react';
 
-import type { IBattleState } from '../../engine/types';
-import { prefersReducedMotion } from '../utils/motionPrefs';
+import { globalBattleEventBus } from '../../engine/events';
+import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { StageAnchors } from '../hooks/useStageAnchors';
 import { ParticleField } from './particles';
-import { STATUS_EMIT_INTERVAL_MS, burnEmitter, type EmitterAnchor } from './emitters';
+import { setParticleSink, setStageAnchors } from './emit';
 
 interface Props {
-    readonly battleState: IBattleState | null;
+    /**
+     * Where things are. The layer holds these so that `emit()` callers can pass an entity's slot
+     * rather than a raw point — but it never reads them on its own initiative.
+     */
     readonly anchors: StageAnchors;
 }
 
-/** Every unit on the board with its Burn stacks, or an empty list. 146b adds the other statuses. */
-function burningUnits(state: IBattleState | null): Array<{ id: string; stacks: number }> {
-    if (!state) return [];
-    const out: Array<{ id: string; stacks: number }> = [];
-    for (const entity of [...state.playerParty, ...state.enemyParty]) {
-        if (entity.currentHp <= 0) continue;
-        const burn = entity.statusEffects?.find((s) => s.type === 'Burn');
-        if (burn && burn.stacks > 0) out.push({ id: entity.id, stacks: burn.stacks });
-    }
-    return out;
-}
-
-const ParticleLayer: React.FC<Props> = ({ battleState, anchors }) => {
+const ParticleLayer: React.FC<Props> = ({ anchors }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const fieldRef = useRef<ParticleField | null>(null);
-    const frameRef = useRef<number | null>(null);
-    const lastRef = useRef<number>(0);
-    const emitAtRef = useRef<number>(0);
-    /** The mount effect's loop starter, so the restart edge below can wake a parked loop. */
-    const startRef = useRef<(() => void) | null>(null);
 
-    /*
-     * The live inputs, held in refs rather than closed over.
-     *
-     * The loop is started once and must see the CURRENT board — closing over `battleState` would
-     * pin it to the state at the frame the loop began, so a unit that caught fire mid-turn would
-     * never emit until something else restarted the loop. Refs are the standard answer and the
-     * reason is worth stating: this is the one place where a stale closure is invisible rather than
-     * a crash.
-     *
-     * The copy happens in an effect, not in the render body. Writing `ref.current` during render is
-     * what `react-hooks/refs` forbids, and the rule is not pedantry here: React may render this
-     * component without committing (a discarded concurrent pass, StrictMode's double render), and a
-     * ref written on that pass would hand the loop a board that the screen never showed. An effect
-     * runs only on a commit, so the field can never draw a state the player did not see.
-     */
-    const stateRef = useRef(battleState);
-    const anchorsRef = useRef(anchors);
+    // Published in an effect rather than during render: a render that React discards (a concurrent
+    // pass, StrictMode's double call) must not leave the module pointing at anchors nobody sees.
     useEffect(() => {
-        stateRef.current = battleState;
-        anchorsRef.current = anchors;
-    });
+        setStageAnchors(anchors);
+        return () => setStageAnchors(null);
+    }, [anchors]);
 
     useEffect(() => {
-        if (prefersReducedMotion()) return;
+        if (!resolveVfxGates(loadSettings()).particles) return;
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -104,7 +88,8 @@ const ParticleLayer: React.FC<Props> = ({ battleState, anchors }) => {
         if (!ctx) return;
 
         const field = new ParticleField();
-        fieldRef.current = field;
+        let frame: number | null = null;
+        let last = 0;
 
         // Backing store vs CSS box — see the header. The DPR is the only correction in the
         // transform; the coordinate system stays the stage box's own, untouched.
@@ -122,82 +107,66 @@ const ParticleLayer: React.FC<Props> = ({ battleState, anchors }) => {
         resize();
         window.addEventListener('resize', resize);
 
-        const rng = Math.random;
-
         const tick = (now: number): void => {
-            const dt = lastRef.current === 0 ? 16 : now - lastRef.current;
-            lastRef.current = now;
-
-            // Feed the loops. Spawning is throttled (see STATUS_EMIT_INTERVAL_MS) rather than done
-            // per frame, which is what keeps four statuses on six units inside the pool.
-            if (now >= emitAtRef.current) {
-                emitAtRef.current = now + STATUS_EMIT_INTERVAL_MS;
-                for (const unit of burningUnits(stateRef.current)) {
-                    const slot = anchorsRef.current.slots[unit.id];
-                    if (!slot) continue;
-                    field.spawn(burnEmitter(slot as EmitterAnchor, unit.stacks, rng));
-                }
-            }
+            const dt = last === 0 ? 16 : now - last;
+            last = now;
 
             const live = field.step(dt);
             // CSS pixels, not `canvas.width/height` — those are DEVICE pixels, and under the DPR
-            // transform they describe an area twice the canvas on a retina screen. Clearing too
-            // little is the visible bug; this direction is only waste, which is why it survives
-            // review so often.
+            // transform they describe an area twice the canvas on a retina screen.
             ctx.clearRect(0, 0, cssW, cssH);
             field.draw(ctx);
 
             /*
-             * THE IDLE RULE (§2): a frame is only scheduled while there is something to draw OR
-             * something that will shortly want to emit. Both halves are needed - stopping on `live
-             * === 0` alone would park the loop forever the moment a burst finished, and a unit that
-             * is still on fire would never light again.
+             * THE IDLE RULE (§2a): *"a single `rAF` loop that runs only while `alive > 0"`*. With
+             * no persistent emitters there is no second condition to check — when the last particle
+             * of a burst dies, nothing is coming until something else HAPPENS, and that something
+             * calls `wake()` through `emit`.
              */
-            if (live > 0 || burningUnits(stateRef.current).length > 0) {
-                frameRef.current = requestAnimationFrame(tick);
+            if (live > 0) {
+                frame = requestAnimationFrame(tick);
             } else {
-                frameRef.current = null;
-                lastRef.current = 0;
+                frame = null;
+                last = 0;
             }
         };
 
-        // Kick the loop whenever the board gains something to draw. Cheap: if it is already
-        // running, `frameRef.current` is non-null and this does nothing.
-        const start = (): void => {
-            if (frameRef.current === null) frameRef.current = requestAnimationFrame(tick);
+        const wake = (): void => {
+            if (frame === null) frame = requestAnimationFrame(tick);
         };
-        startRef.current = start;
-        start();
+
+        setParticleSink({ spawn: (seeds) => field.spawn(seeds), wake });
+
+        /*
+         * THE BUS SUBSCRIPTION — §2a: *"driven by the same `globalBattleEventBus` subscription
+         * `useBattleVfx` uses."*
+         *
+         * It is here and it maps nothing, which is 146a being infrastructure: the rows that decide
+         * what each event LOOKS like are 146c (the cast sequence), 146f (status tells) and 146g (OS
+         * tells), and each of them adds its cases to this switch. Subscribing now rather than in
+         * the first row that needs it means the teardown, the guard and the idle interaction are
+         * proven before any of them are load-bearing.
+         *
+         * The empty body is also the regression guard for ruling 3: anything this layer draws has
+         * to arrive as an EVENT through here, and there is no other door.
+         */
+        const unsubscribe = globalBattleEventBus.subscribe(() => {
+            // 146c / 146f / 146g fill this in.
+        });
 
         return () => {
+            unsubscribe();
             window.removeEventListener('resize', resize);
-            if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-            frameRef.current = null;
-            lastRef.current = 0;
+            if (frame !== null) cancelAnimationFrame(frame);
+            frame = null;
+            setParticleSink(null);
             field.clear();
-            fieldRef.current = null;
-            startRef.current = null;
         };
-        // Mount-scoped on purpose: the loop reads live values through refs, so re-running this
-        // effect on every state change would tear down and rebuild the field mid-burst.
+        // Mount-scoped on purpose: the loop owns its field, and re-running this effect on a state
+        // change would tear that field down and rebuild it mid-burst.
     }, []);
 
-    /*
-     * THE RESTART EDGE. The loop parks itself when the board goes quiet (the idle rule), so
-     * something has to wake it when a unit catches fire — and the honest trigger is "the set of
-     * burning units changed", which React already re-renders for.
-     *
-     * `startRef` is how: the mount effect stores its own starter there, and this effect calls it.
-     * The alternative is re-running the mount effect on every state change, which would tear the
-     * field down and rebuild it mid-burst.
-     */
-    const burningKey = burningUnits(battleState).map((u) => `${u.id}:${u.stacks}`).join(',');
-    useEffect(() => {
-        if (!burningKey) return;
-        startRef.current?.();
-    }, [burningKey]);
-
-    if (prefersReducedMotion()) return null;
+    if (!resolveVfxGates(loadSettings()).particles) return null;
 
     return <canvas ref={canvasRef} className="stage-particles" aria-hidden="true" />;
 };

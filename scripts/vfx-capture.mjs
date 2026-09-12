@@ -107,6 +107,21 @@ for (let i = 0; i < total; i += 1) {
     await page.waitForTimeout(Math.max(0, Math.round(1000 / FPS) - 55));
 }
 console.log('[vfx]', total, 'frames captured');
+// ── 7. THE VOCABULARY SHEET: one crop per kind, side by side. ──────────────
+/*
+ * §2a's seven kinds are 146a's actual deliverable, and only `flame` has been judged on a capture.
+ * A contact sheet is how the other six stop being assumed: each one gets the same unit, the same
+ * intensity and the same moment, so they can be compared rather than described.
+ */
+const KINDS = ['flame', 'drop', 'leaf', 'spark', 'puff', 'ring', 'streak'];
+mkdirSync(`${OUT}/kinds`, { recursive: true });
+for (const kind of KINDS) {
+    await page.goto(`${BASE}?kind=${kind}&burn=4&units=1`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: `${OUT}/kinds/${kind}.png` });
+}
+console.log('[vfx] vocabulary sheet captured for', KINDS.length, 'kinds');
+
 await browser.close();
 
 /*

@@ -477,10 +477,13 @@ const BattleStage: React.FC<BattleStageProps> = ({
               * Last so it paints over the sprites without a z-index fight: flames that render
               * behind the body they come off are the one arrangement that reads as a bug. It sits
               * INSIDE `.battle-stage` because that is where the anchors' coordinate space is
-              * already correct and where the layer dies with the fight; it draws nothing and
-              * schedules no frames until something on the board is on fire.
+              * already correct and where the layer dies with the fight.
+              *
+              * It is NOT handed the battle state, and that is the ruling rather than an oversight:
+              * §1.3 rules out persistent status emitters, so the layer draws events and never
+              * conditions. A component that could see the state would drift back toward polling it.
               */}
-            <ParticleLayer battleState={battleState} anchors={anchors} />
+            <ParticleLayer anchors={anchors} />
         </div>
     );
 };

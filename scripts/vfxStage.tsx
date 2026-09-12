@@ -22,9 +22,21 @@
  *
  * Query parameters, so one page serves every row of the ticket rather than four pages drifting
  * apart:
- *   ?burn=N     Burn stacks on every living unit (default 3). 146a's proof.
- *   ?units=N    Party size per side, 1-3 (default 3) — §6's "3v3 with all six units".
+ *   ?kind=K     Which particle kind to fire (default `flame`). §2a's seven.
+ *   ?burn=N     Intensity handed to the emitter (default 3). For `flame`, that is Burn stacks.
+ *   ?units=N    Party size per side, 1-3 (default 3) — a 3v3 board with all six units.
  *   ?reduced=1  Force the reduced-motion override ON, which is how the off-switch is photographed.
+ *
+ * # THE HARNESS CALLS `emit`, THE GAME DOES NOT — YET
+ *
+ * Ruling 3 rules out persistent status emitters: the plaque badge is the standing read, and only
+ * the MOMENT a status lands or leaves gets an effect. So nothing in the shipped game fires a
+ * particle yet — 146c, 146f and 146g are the rows that decide what each event looks like.
+ *
+ * This page therefore drives `emit()` on a timer ITSELF. That is a harness doing a harness's job:
+ * it lets the vocabulary be photographed and tuned one row ahead of the code that will trigger it,
+ * without a single line of "just for now" emission living in `src/`. The timer is here and nowhere
+ * else, which is the property that matters.
  *
  * NOT part of any build: vite only bundles `index.html`, and `scripts/` is outside `src/`, so
  * `assert-no-debug.mjs` and the production bundle never see this file.
@@ -41,6 +53,7 @@ import { SeedStream } from '../src/engine/core/SeedStream';
 import { createRanchMember } from '../src/engine/gameTypes';
 import { toMingmingState } from '../src/engine/run/battleSetup';
 import { setReducedMotionOverride } from '../src/ui/utils/motionPrefs';
+import { anchorFor, emit, type ParticleKind } from '../src/ui/vfx/emit';
 import { TOP_BAR_H, CONSOLE_H } from '../src/ui/components/stageGeometry';
 import type { IBattleEntity, IBattleState } from '../src/engine/types';
 import '../src/index.css';
@@ -53,6 +66,7 @@ const num = (key: string, fallback: number): number => {
 
 const BURN = num('burn', 3);
 const UNITS = Math.max(1, Math.min(3, num('units', 3)));
+const KIND = (params.get('kind') ?? 'flame') as ParticleKind;
 if (params.get('reduced') === '1') setReducedMotionOverride(true);
 
 /*
@@ -74,7 +88,10 @@ const base = createBattleState(setup, Array.from({ length: UNITS }, () => 'ratat
     seed: SEED,
 });
 
-/** Put `BURN` stacks on every living unit. The status id shape is `${entityId}-burn`, as the engine writes it. */
+/**
+ * The badges still go on, because the point of ruling 3 is that the PLAQUE is the standing read —
+ * a capture that shows flames without the badge under them is showing half the design.
+ */
 const ignite = (party: ReadonlyArray<IBattleEntity>): IBattleEntity[] =>
     party.map((e) => (BURN > 0
         ? { ...e, statusEffects: [...e.statusEffects, { id: `${e.id}-burn`, type: 'Burn' as const, stacks: BURN }] }
@@ -85,6 +102,51 @@ const battleState: IBattleState = {
     playerParty: ignite(base.playerParty),
     enemyParty: ignite(base.enemyParty),
 };
+
+const everyUnitId = [...battleState.playerParty, ...battleState.enemyParty].map((e) => e.id);
+
+/*
+ * The timer that stands in for 146f. Fires the chosen kind at every unit on a loop, which is what
+ * makes a still and a five-second GIF possible before any row triggers anything.
+ *
+ * 90ms rather than something faster: this is a harness pretending to be a stream of events, and at
+ * this interval a burst is still legible as a burst. The real trigger will be one event, once.
+ *
+ * `?burn=0` stops the timer entirely rather than emitting nothing, so the capture's idle-rule probe
+ * measures the LAYER parking itself and not the harness declining to speak.
+ */
+/*
+ * A COLOUR, because six of the seven kinds do not have one of their own.
+ *
+ * Only `flame` carries its own gradient; `drop`, `leaf`, `spark`, `puff`, `ring` and `streak` take
+ * theirs from the caller, since 146d passes the element colour and 146f passes
+ * `STATUS_COLORS[status]`. Emitting them with no colour is therefore white — which on a Mingming's
+ * near-white art card is invisible, and photographs as "the kind is broken" rather than "the kind
+ * has no opinion". The harness supplies one so the SHAPE can be judged; the default is deliberately
+ * a colour no sprite uses.
+ */
+const COLOR = (() => {
+    const raw = params.get('color');
+    const parts = raw?.split(',').map(Number);
+    return parts?.length === 3 && parts.every(Number.isFinite)
+        ? { r: parts[0], g: parts[1], b: parts[2] }
+        : { r: 90, g: 210, b: 255 };
+})();
+
+if (BURN > 0) {
+    window.setInterval(() => {
+        for (const id of everyUnitId) {
+            const at = anchorFor(id);
+            if (!at) continue;
+            // `streak` is directional and degrades to a spark without somewhere to go, so the
+            // harness gives it the other side of the board — which is what 146c will pass.
+            const toward = KIND === 'streak'
+                ? anchorFor(everyUnitId[everyUnitId.length - 1]) ?? undefined
+                : undefined;
+            emit(KIND, at, { intensity: BURN, color: COLOR, toward });
+        }
+    }, 90);
+}
 
 /*
  * `.battle-screen` > 44px top bar > `.stage-area` > 210px console is the REAL chrome, reproduced

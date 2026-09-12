@@ -64,7 +64,16 @@ export interface ParticleSeed {
     readonly lean?: number;
 }
 
-export type ParticleShape = 'flame' | 'dot' | 'spark' | 'leaf' | 'drop' | 'star';
+/**
+ * §2a's vocabulary, and nothing else: *"`kind` draws one of: `flame`, `drop`, `leaf`, `spark`,
+ * `puff`, `ring`, `streak`."*
+ *
+ * Closed on purpose. An earlier draft of this file carried a `dot` and a `star` that the ticket
+ * never named — `dot` because the first Burn was built out of soft blobs, `star` because it was
+ * easy. Both are gone: `puff` IS the soft blob under the name the ticket gave it, and a shape with
+ * no row asking for it is a shape nobody tunes.
+ */
+export type ParticleShape = 'flame' | 'drop' | 'leaf' | 'spark' | 'puff' | 'ring' | 'streak';
 
 interface Particle {
     alive: boolean;
@@ -162,7 +171,7 @@ const blank = (): Particle => ({
     r: 255, g: 255, b: 255, a: 1,
     r2: 255, g2: 255, b2: 255,
     drag: 1, gravity: 0,
-    shape: 'dot',
+    shape: 'puff',
 });
 
 export class ParticleField {
@@ -203,7 +212,7 @@ export class ParticleField {
             p.a = seed.a ?? 1;
             p.drag = seed.drag ?? 1;
             p.gravity = seed.gravity ?? 0;
-            p.shape = seed.shape ?? 'dot';
+            p.shape = seed.shape ?? 'puff';
             p.lean = seed.lean ?? 0;
         }
     }
@@ -292,7 +301,7 @@ export class ParticleField {
                 continue;
             }
 
-            const atlas = p.shape === 'dot' ? rampAtlas(p.r, p.g, p.b, p.r2, p.g2, p.b2) : null;
+            const atlas = p.shape === 'puff' ? rampAtlas(p.r, p.g, p.b, p.r2, p.g2, p.b2) : null;
             if (atlas) {
                 // One stamp. `s` is a radius, the sprite is a diameter square.
                 const s = p.size * (0.4 + 0.6 * t);
@@ -425,11 +434,38 @@ function drawShape(ctx: CanvasRenderingContext2D, p: Particle, t: number): void 
             ctx.ellipse(p.x, p.y, s, s * 0.45, p.x * 0.05, 0, Math.PI * 2);
             ctx.fill();
             return;
-        case 'star':
-            ctx.fillRect(p.x - s, p.y - s * 0.25, s * 2, s * 0.5);
-            ctx.fillRect(p.x - s * 0.25, p.y - s, s * 0.5, s * 2);
+        case 'ring': {
+            /*
+             * An expanding outline, not a disc. `t` runs 1 → 0 over the life, so the radius grows
+             * as the particle ages and the stroke thins with it — which is the whole read of an
+             * impact ring: something left this point, fast, and is still leaving.
+             */
+            const grow = 1 - t;
+            const radius = p.size * (1 + grow * 5.5);
+            ctx.lineWidth = Math.max(1, p.size * 0.55 * t);
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+            ctx.stroke();
             return;
-        case 'dot':
+        }
+        case 'streak': {
+            // A line along its own travel. Length from speed, so a fast streak is long and the
+            // same code draws a slow one as a dash rather than as a tracer.
+            const speed = Math.hypot(p.vx, p.vy);
+            const len = Math.min(64, Math.max(p.size * 2, speed * 0.05));
+            const nx = speed > 0 ? p.vx / speed : 0;
+            const ny = speed > 0 ? p.vy / speed : -1;
+            ctx.lineWidth = Math.max(1, p.size * t);
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - nx * len, p.y - ny * len);
+            ctx.stroke();
+            return;
+        }
+        case 'puff':
         default:
             /*
              * TWO circles, not one: a wide soft body at reduced alpha and a small dense core.

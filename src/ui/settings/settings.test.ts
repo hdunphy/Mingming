@@ -18,6 +18,7 @@ import {
     applySettings,
     fontSizeFor,
     loadSettings,
+    resolveVfxGates,
     saveSettings,
     type ISettings,
     type SettingsStorage,
@@ -147,5 +148,94 @@ describe('applySettings', () => {
 
         applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'system', textScale: 1 }, root);
         expect(getReducedMotionOverride()).toBeNull();
+    });
+});
+
+
+describe('146a — the three effect switches', () => {
+    it('default to on, so an existing player notices nothing', () => {
+        expect(DEFAULT_SETTINGS.particles).toBe(true);
+        expect(DEFAULT_SETTINGS.vfx).toBe(true);
+        expect(DEFAULT_SETTINGS.animations).toBe(true);
+    });
+
+    it('round-trip through storage, which is the ticket Done-when for every setting', () => {
+        const storage = makeMockStorage();
+        const settings: ISettings = {
+            ...DEFAULT_SETTINGS, particles: false, vfx: false, animations: true,
+        };
+        saveSettings(settings, storage);
+
+        const reloaded = loadSettings(makeMockStorage({ ...storage.data }));
+        expect(reloaded.particles).toBe(false);
+        expect(reloaded.vfx).toBe(false);
+        expect(reloaded.animations).toBe(true);
+    });
+
+    it('parse a blob written before they existed, into everything-on', () => {
+        // The upgrade path. A player on an older build has a settings blob with three fields; it
+        // must not fail the parse (which would silently reset their text scale) and it must not
+        // turn anything OFF that they never asked to lose.
+        const older = JSON.stringify({ reducedMotion: 'off', textScale: 1.15, autoSaveRunLog: true });
+        const loaded = loadSettings(makeMockStorage({ [SETTINGS_STORAGE_KEY]: older }));
+
+        expect(loaded.textScale).toBe(1.15);
+        expect(loaded.autoSaveRunLog).toBe(true);
+        expect(loaded.particles).toBe(true);
+        expect(loaded.vfx).toBe(true);
+        expect(loaded.animations).toBe(true);
+    });
+});
+
+describe('146a — reduced motion overrules the switches', () => {
+    afterEach(() => setReducedMotionOverride(null));
+
+    it('maps to particles off, animations off, vfx flashes-only', () => {
+        // §2a's mapping, exactly. `flashes` rather than `off` because a flash has no motion in it —
+        // it keeps the feedback that says WHICH unit was hit while declining all the movement.
+        const gates = resolveVfxGates({ ...DEFAULT_SETTINGS }, true);
+        expect(gates).toEqual({ particles: false, animations: false, vfx: 'flashes' });
+    });
+
+    it('overrules switches that are stored ON, rather than sitting beside them', () => {
+        // The asymmetry is the point: a player who asked for less motion has said something about
+        // their body, and a stored `animations: true` from before that is not consent.
+        const gates = resolveVfxGates(
+            { ...DEFAULT_SETTINGS, particles: true, vfx: true, animations: true }, true,
+        );
+        expect(gates.particles).toBe(false);
+        expect(gates.animations).toBe(false);
+    });
+
+    it('can only ever turn things further off — a switch off stays off without it', () => {
+        const gates = resolveVfxGates({ ...DEFAULT_SETTINGS, particles: false }, false);
+        expect(gates).toEqual({ particles: false, animations: true, vfx: 'full' });
+    });
+
+    it('reads the player override through prefersReducedMotion when not told', () => {
+        setReducedMotionOverride(true);
+        expect(resolveVfxGates({ ...DEFAULT_SETTINGS }).particles).toBe(false);
+        setReducedMotionOverride(false);
+        expect(resolveVfxGates({ ...DEFAULT_SETTINGS }).particles).toBe(true);
+    });
+
+    it('stamps the RESOLVED gates on the document, so CSS and the layer agree', () => {
+        // Publishing the raw stored booleans here is how a stylesheet asking [data-particles]
+        // ends up disagreeing with the layer about the same player.
+        const root = document.createElement('div');
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'on', particles: true }, root);
+
+        expect(root.getAttribute('data-particles')).toBe('off');
+        expect(root.getAttribute('data-animations')).toBe('off');
+        expect(root.getAttribute('data-vfx')).toBe('flashes');
+    });
+
+    it('stamps the switches themselves when motion is not reduced', () => {
+        const root = document.createElement('div');
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'off', particles: false, vfx: false }, root);
+
+        expect(root.getAttribute('data-particles')).toBe('off');
+        expect(root.getAttribute('data-animations')).toBe('on');
+        expect(root.getAttribute('data-vfx')).toBe('off');
     });
 });

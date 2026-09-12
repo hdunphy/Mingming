@@ -11,7 +11,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { PARTICLE_POOL, ParticleField } from './particles';
-import { PARTICLES_PER_TONGUE, STATUS_EMIT_INTERVAL_MS, burnEmitter } from './emitters';
+import { PARTICLES_PER_TONGUE, burnEmitter, burstFor } from './emitters';
+import { emit, hasParticleSink, setParticleSink, type ParticleKind } from './emit';
 
 /** A deterministic stand-in for `Math.random`: even spread, no repeats within a burst. */
 const counterRng = (): (() => number) => {
@@ -164,24 +165,99 @@ describe('146a — the Burn emitter', () => {
         expect(burnEmitter(ANCHOR, 3, counterRng())).toEqual(burnEmitter(ANCHOR, 3, counterRng()));
     });
 
-    it('fits four tongues on six units inside the pool at the ruled interval', () => {
+    it('fits the worst simultaneous moment the ticket describes, inside the pool', () => {
         /*
-         * THE BUDGET, AS ARITHMETIC RATHER THAN A HOPE. §2 caps the pool at 600; §6 asks for the
-         * frame budget measured at "3v3 with all six units carrying two statuses each". The worst
-         * case for 146a is six units at four tongues, emitting every STATUS_EMIT_INTERVAL_MS, with
-         * the longest-lived particle (about 680ms) still in flight.
+         * THE BUDGET, AS ARITHMETIC RATHER THAN A HOPE.
+         *
+         * §2a caps the pool at 600. With persistent emitters ruled out, the worst case is no longer
+         * a rate — it is the single busiest MOMENT, and §2h names it: a Side card hitting three
+         * targets, on a 3v3 board. Take the ugliest reading of that: all six units resolve a status
+         * tell at once (a ring, a puff and four Burn tongues each), while the cast's own trails are
+         * still in flight.
          */
-        const bursts = Math.ceil(500 / STATUS_EMIT_INTERVAL_MS);
-        const worst = 6 * 4 * PARTICLES_PER_TONGUE * bursts;
-        expect(worst).toBeLessThanOrEqual(PARTICLE_POOL);
+        const rng = counterRng();
+        const moment = [
+            ...Array.from({ length: 6 }, () => burstFor('ring', ANCHOR, { rng })),
+            ...Array.from({ length: 6 }, () => burstFor('puff', ANCHOR, { rng })),
+            ...Array.from({ length: 6 }, () => burnEmitter(ANCHOR, 4, rng)),
+            ...Array.from({ length: 3 }, () => burstFor('streak', ANCHOR, { toward: { x: 9, y: 9 }, rng })),
+        ].flat();
+
+        expect(moment.length).toBeLessThanOrEqual(PARTICLE_POOL);
+        expect(6 * 4 * PARTICLES_PER_TONGUE).toBeLessThanOrEqual(PARTICLE_POOL);
 
         // And the field actually survives it without growing.
         const field = new ParticleField();
-        const rng = counterRng();
-        for (let b = 0; b < bursts; b += 1) {
-            for (let unit = 0; unit < 6; unit += 1) field.spawn(burnEmitter(ANCHOR, 4, rng));
-            field.step(STATUS_EMIT_INTERVAL_MS);
+        field.spawn(moment);
+        expect(field.live).toBe(moment.length);
+        expect(field.capacity).toBe(PARTICLE_POOL);
+    });
+});
+
+
+describe('146a — the emit vocabulary', () => {
+    const KINDS: ParticleKind[] = ['flame', 'drop', 'leaf', 'spark', 'puff', 'ring', 'streak'];
+    const AT = { x: 100, y: 100, w: 190, h: 190 };
+
+    it('has a recipe for all seven kinds and no eighth', () => {
+        // §2a names exactly these. A kind with no recipe is a silent no-op at the call site — the
+        // worst failure mode a visual effect has, because nothing errors and nothing draws.
+        for (const kind of KINDS) {
+            expect(burstFor(kind, AT, { rng: counterRng() }).length).toBeGreaterThan(0);
         }
-        expect(field.live).toBeLessThanOrEqual(PARTICLE_POOL);
+    });
+
+    it('gives every seed a shape from the closed vocabulary', () => {
+        for (const kind of KINDS) {
+            for (const seed of burstFor(kind, AT, { rng: counterRng() })) {
+                expect(KINDS).toContain(seed.shape);
+            }
+        }
+    });
+
+    it('honours an explicit colour, because 146f passes the status colour in', () => {
+        const color = { r: 12, g: 200, b: 90 };
+        for (const kind of KINDS) {
+            if (kind === 'flame') continue;   // Burn owns its own gradient; see `burnEmitter`.
+            for (const seed of burstFor(kind, AT, { color, rng: counterRng() })) {
+                expect({ r: seed.r, g: seed.g, b: seed.b }).toEqual(color);
+            }
+        }
+    });
+
+    it('draws ONE ring, however much intensity it is handed', () => {
+        // A ring is an expanding outline, so N of them is a thicker ring rather than more rings.
+        expect(burstFor('ring', AT, { intensity: 20, rng: counterRng() })).toHaveLength(1);
+    });
+
+    it('degrades a streak with nowhere to go into a spark rather than guessing a heading', () => {
+        const [seed] = burstFor('streak', AT, { rng: counterRng() });
+        expect(seed.shape).toBe('spark');
+    });
+
+    it('aims a streak at its target', () => {
+        const [seed] = burstFor('streak', { x: 0, y: 0 }, { toward: { x: 100, y: 0 }, rng: counterRng() });
+        expect(seed.vx).toBeGreaterThan(0);
+        expect(Math.abs(seed.vy)).toBeLessThan(1);
+    });
+});
+
+describe('146a — emit is a no-op without a mounted layer', () => {
+    it('does not throw, because a missing effect must never break a fight', () => {
+        setParticleSink(null);
+        expect(hasParticleSink()).toBe(false);
+        expect(() => emit('puff', { x: 0, y: 0 })).not.toThrow();
+    });
+
+    it('spawns and wakes the sink when one is mounted', () => {
+        const spawned: number[] = [];
+        let woken = 0;
+        setParticleSink({ spawn: (seeds) => spawned.push(seeds.length), wake: () => { woken += 1; } });
+
+        emit('puff', { x: 0, y: 0 }, { intensity: 4 });
+        expect(spawned).toEqual([4]);
+        expect(woken).toBe(1);
+
+        setParticleSink(null);
     });
 });
