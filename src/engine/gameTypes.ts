@@ -64,6 +64,11 @@ export interface IRewardBundle {
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
     /**
+     * Ticket 17: the Driver this fight pays — the node's `driverStake`, carried on the bundle so the
+     * report can show it and the claim can install it. Only an elite or an ambush sets it.
+     */
+    readonly driver?: string;
+    /**
      * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented before the normal
      * report. **Nothing sets this since ticket 12** — the gauntlet and its draft belong to ticket
      * 18, which is where the invocation went. `RewardSystem.rollDraftRounds` and `BattleReport`'s

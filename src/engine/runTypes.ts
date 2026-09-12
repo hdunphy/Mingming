@@ -115,6 +115,13 @@ export interface IRegionNode {
      * the honest reading of a map generated without one.
      */
     readonly scout?: boolean;
+    /**
+     * Ticket 17: the Driver this node pays on a win — set on every `elite` and `ambush` at run
+     * creation (`run/driverStakes.ts`) so the map can show the stakes before the player commits.
+     * Optional for the scout's reason: a run saved before this shipped has no stakes, and resumes
+     * as it was rather than failing the parse.
+     */
+    readonly driverStake?: string;
 }
 
 /**
@@ -471,6 +478,8 @@ export const RegionNodeSchema = z.object({
     visited: z.number().int().min(0),
     // Ticket 142b. Optional, not defaulted: a pre-142 save has no scout and must resume as it was.
     scout: z.boolean().optional(),
+    // Ticket 17. Optional, not defaulted, for the same reason as `scout`.
+    driverStake: z.string().optional(),
 });
 
 export const RunCardSchema = z.object({

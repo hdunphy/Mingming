@@ -308,7 +308,10 @@ describe('createRun', () => {
     it('opens on the region graph generated from the same seed', () => {
         const run = createRun(soloInput());
         const graph = generateRegionGraph(SEED);
-        expect(run.nodes).toEqual(graph.nodes);
+        // Ticket 17 stamps a `driverStake` onto every elite and ambush after generation; the graph
+        // itself — ids, kinds, layers, edges — is the generator's, untouched.
+        expect(run.nodes.map(({ driverStake: _stake, ...node }) => node)).toEqual(graph.nodes);
+        expect(run.nodes.filter((n) => n.kind === 'elite' || n.kind === 'ambush').every((n) => n.driverStake)).toBe(true);
         expect(run.currentNodeId).toBe(graph.entryNodeId);
         expect(run.nodes.some((n) => n.id === run.currentNodeId)).toBe(true);
     });

@@ -4,6 +4,7 @@ import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
+import { describeDriver } from '../../engine/data/driverRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
@@ -370,6 +371,34 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                             <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>+1</span>
                                         </div>
                                     ))}
+                                </motion.div>
+                            )}
+                            {/*
+                              * TICKET 17: the Driver an elite or an ambush pays. It was the stake on the
+                              * map node before the player committed, so this is a receipt rather than a
+                              * reveal — name and rule text, in the Driver chip's violet, installed on
+                              * CONTINUE alongside the cards. Not a choice: the node promised ONE Driver.
+                              */}
+                            {bundle.driver && (
+                                <motion.div
+                                    initial={prefersReducedMotion() ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    transition={{ delay: BLUEPRINT_POP_DELAY_S, duration: 0.35, ease: 'easeOut' }}
+                                    className="driver-won"
+                                    data-testid="reward-driver"
+                                    style={{
+                                        marginTop: '12px',
+                                        padding: '12px',
+                                        background: 'rgba(124, 58, 237, 0.12)',
+                                        border: '1px solid #a78bfa',
+                                        borderRadius: '6px'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.7rem', color: '#c4b5fd', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
+                                        Driver Installed
+                                    </div>
+                                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{describeDriver(bundle.driver).name}</div>
+                                    <div style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: '1.4', marginTop: '4px' }}>{describeDriver(bundle.driver).description}</div>
                                 </motion.div>
                             )}
 
