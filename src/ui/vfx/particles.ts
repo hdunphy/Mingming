@@ -60,12 +60,20 @@ export interface ParticleSeed {
     /** Pixels per second squared, positive is down. */
     readonly gravity?: number;
     readonly shape?: ParticleShape;
+    /** Tip lean off vertical, as a fraction of height. Only `flame` reads it. */
+    readonly lean?: number;
 }
 
-export type ParticleShape = 'dot' | 'spark' | 'leaf' | 'drop' | 'star';
+export type ParticleShape = 'flame' | 'dot' | 'spark' | 'leaf' | 'drop' | 'star';
 
 interface Particle {
     alive: boolean;
+    /**
+     * How far the tip leans off vertical, as a fraction of the flame's height. Rolled once at birth
+     * and never changed, which is the cheapest way to stop four flames from being one flame drawn
+     * four times — a real fire's tongues all lean differently and none of them lean straight up.
+     */
+    lean: number;
     x: number; y: number;
     vx: number; vy: number;
     life: number; maxLife: number;
@@ -147,6 +155,7 @@ function rampAtlas(r: number, g: number, b: number, r2: number, g2: number, b2: 
 
 const blank = (): Particle => ({
     alive: false,
+    lean: 0,
     x: 0, y: 0, vx: 0, vy: 0,
     life: 0, maxLife: 1,
     size: 1,
@@ -195,6 +204,7 @@ export class ParticleField {
             p.drag = seed.drag ?? 1;
             p.gravity = seed.gravity ?? 0;
             p.shape = seed.shape ?? 'dot';
+            p.lean = seed.lean ?? 0;
         }
     }
 
@@ -273,16 +283,23 @@ export class ParticleField {
              */
             const k = Math.pow(1 - t, 0.45);
 
-            const atlas = 'shape' in p && p.shape === 'dot'
-                ? rampAtlas(p.r, p.g, p.b, p.r2, p.g2, p.b2)
-                : null;
+            const cr = (p.r + (p.r2 - p.r) * k) | 0;
+            const cg = (p.g + (p.g2 - p.g) * k) | 0;
+            const cb = (p.b + (p.b2 - p.b) * k) | 0;
+
+            if (p.shape === 'flame') {
+                drawFlame(ctx, p, t, cr, cg, cb);
+                continue;
+            }
+
+            const atlas = p.shape === 'dot' ? rampAtlas(p.r, p.g, p.b, p.r2, p.g2, p.b2) : null;
             if (atlas) {
                 // One stamp. `s` is a radius, the sprite is a diameter square.
                 const s = p.size * (0.4 + 0.6 * t);
                 const step = atlas[Math.min(RAMP_STEPS - 1, Math.max(0, Math.round(k * (RAMP_STEPS - 1))))];
                 ctx.drawImage(step, p.x - s, p.y - s, s * 2, s * 2);
             } else {
-                ctx.fillStyle = `rgb(${(p.r + (p.r2 - p.r) * k) | 0},${(p.g + (p.g2 - p.g) * k) | 0},${(p.b + (p.b2 - p.b) * k) | 0})`;
+                ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
                 drawShape(ctx, p, t);
             }
         }
@@ -307,6 +324,73 @@ export class ParticleField {
  * flame narrows as it rises because it is cooling, and since these particles rise as they age,
  * age is already the right variable — no extra state, no per-shape special case.
  */
+/**
+ * A FLAME TONGUE — a silhouette, not a blob.
+ *
+ * Henry's reference is a sheet of sprite-art flames: a rounded belly, a drawn-out pointed tip, a
+ * hard outer edge and a brighter flame nested inside it. That is a SHAPE, and the soft round
+ * particles this file drew first cannot make one however they are clustered — a fire built from
+ * blobs reads as smoke or embers, because the thing the eye recognises as flame is the outline.
+ *
+ * So each particle is one whole tongue. Two bezier curves from tip to base and back, and a second
+ * smaller copy of the same curve in a hotter colour for the inner flame. The nested core is what
+ * the reference art is really doing: it gives depth without a gradient, and it is what makes a flat
+ * fill read as burning rather than as a coloured leaf.
+ *
+ * # WHY THIS IS NOT THE "DRIP" THAT FAILED EARLIER
+ *
+ * An earlier tuning drew a tapered tongue and photographed as liquid running down the sprite, so
+ * the shape got blamed and dropped. That was the wrong diagnosis twice over: those tongues were
+ * thin (roughly 3:1), pale, and drawn with additive blending that erased them over the white cards.
+ * A drip is narrow with its weight at the bottom; a flame is WIDE — barely taller than it is
+ * broad — with its weight at the bottom and a tip that leans. The proportion and the lean are what
+ * separate the two, and both are here on purpose.
+ */
+function drawFlame(
+    ctx: CanvasRenderingContext2D, p: Particle, t: number, r: number, g: number, b: number,
+): void {
+    /*
+     * Shrink hard as it ages. §: *"a quick burn that fades away going up"* — a tongue that keeps
+     * its size and only loses alpha dissolves in place, which reads as a fade-out rather than as
+     * fire being consumed. Dropping to a fifth means it climbs, narrows and is gone.
+     */
+    const scale = 0.2 + 0.8 * t;
+    const halfW = p.size * scale;
+    const h = halfW * 3.1;
+    const tipX = p.x + p.lean * h;
+    const tipY = p.y - h * 0.62;
+    const baseY = p.y + h * 0.38;
+
+    /*
+     * WHERE THE WIDTH SITS IS THE WHOLE SHAPE. Both control points govern one side of the tongue:
+     * the first keeps it NARROW near the tip, the second throws it wide near the base. Putting the
+     * bulge high (the first attempt at this shape) gives a balloon with a nub on top — recognisably
+     * not a flame, and the reference sheet is unambiguous about why: a flame is a wide belly with a
+     * long drawn-out flick above it, and almost all of its area is in the bottom third.
+     */
+    const tongue = (hw: number, height: number, tx: number, ty: number, by: number): void => {
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.bezierCurveTo(p.x + hw * 0.26, p.y - height * 0.30, p.x + hw * 1.08, p.y + height * 0.08, p.x, by);
+        ctx.bezierCurveTo(p.x - hw * 1.08, p.y + height * 0.08, p.x - hw * 0.26, p.y - height * 0.30, tx, ty);
+        ctx.fill();
+    };
+
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    tongue(halfW, h, tipX, tipY, baseY);
+
+    /*
+     * The inner flame. Mixed toward a pale yellow rather than given its own seed fields, because a
+     * flame's core is always the same colour as its body only hotter — one ratio covers Burn now
+     * and every coloured fire 146b/c will want, with nothing extra to tune per emitter.
+     *
+     * It sits LOWER and is shorter than the outer tongue, which is where the heat actually is.
+     */
+    const mix = 0.62;
+    ctx.fillStyle = `rgb(${(r + (255 - r) * mix) | 0},${(g + (248 - g) * mix) | 0},${(b + (170 - b) * mix) | 0})`;
+    tongue(halfW * 0.44, h * 0.55, p.x + p.lean * h * 0.44, p.y - h * 0.12, p.y + h * 0.30);
+}
+
 function drawShape(ctx: CanvasRenderingContext2D, p: Particle, t: number): void {
     const s = p.size * (0.4 + 0.6 * t);
     switch (p.shape) {

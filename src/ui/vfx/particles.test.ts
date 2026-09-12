@@ -108,17 +108,33 @@ describe('146a — the Burn emitter', () => {
         expect(burnEmitter(ANCHOR, 0.4, rng).length).toBeGreaterThan(0);
     });
 
-    it('fires from the sprite lower half and rises', () => {
-        // The slot rect is the unit's whole cell and the art sits on its floor line, so seeding
-        // from the middle would put flames in the air above the body.
+    it('fires across the body, not the floor line, and rises', () => {
+        // The band is the lower ~60% of the slot: flames at the feet read as a unit standing in a
+        // fire, and flames above the shoulders read as a halo. On the body, it reads as burning,
+        // which is the status being drawn.
         const rng = counterRng();
         for (const p of burnEmitter(ANCHOR, 4, rng)) {
-            expect(p.y).toBeGreaterThan(ANCHOR.y + ANCHOR.h * 0.55);
+            expect(p.y).toBeGreaterThanOrEqual(ANCHOR.y + ANCHOR.h * 0.4);
             expect(p.y).toBeLessThanOrEqual(ANCHOR.y + ANCHOR.h);
             expect(p.x).toBeGreaterThan(ANCHOR.x);
             expect(p.x).toBeLessThan(ANCHOR.x + ANCHOR.w);
             // Up the screen is negative y.
             expect(p.vy).toBeLessThan(0);
+        }
+    });
+
+    it('gives every tongue its own lean, so four are not one flame drawn four times', () => {
+        const leans = burnEmitter(ANCHOR, 4, counterRng()).map((p) => p.lean);
+        expect(new Set(leans).size).toBeGreaterThan(1);
+        for (const lean of leans) expect(Math.abs(lean!)).toBeLessThan(0.2);
+    });
+
+    it('burns QUICK — every tongue is gone inside half a second', () => {
+        // Henry's ruling: "a quick burn that fades away going up". The fire persists because the
+        // emitter keeps firing; no individual flame does. A long life is what turns this back into
+        // the steady jet the first tuning drew.
+        for (const p of burnEmitter(ANCHOR, 4, counterRng())) {
+            expect(p.life).toBeLessThanOrEqual(500);
         }
     });
 
@@ -133,7 +149,7 @@ describe('146a — the Burn emitter', () => {
             // it to the current literal would mean every future nudge to the flame's colour breaks
             // a test that had no opinion about the nudge.
             expect(p.r).toBe(255);
-            expect(p.g).toBeGreaterThan(170);
+            expect(p.g).toBeGreaterThan(150);
             expect(p.b).toBeLessThan(p.g);
             // Death: cooler and deeper, so every channel has dropped and the spread has widened.
             expect(p.r2!).toBeLessThanOrEqual(p.r);
@@ -155,7 +171,7 @@ describe('146a — the Burn emitter', () => {
          * case for 146a is six units at four tongues, emitting every STATUS_EMIT_INTERVAL_MS, with
          * the longest-lived particle (about 680ms) still in flight.
          */
-        const bursts = Math.ceil(680 / STATUS_EMIT_INTERVAL_MS);
+        const bursts = Math.ceil(500 / STATUS_EMIT_INTERVAL_MS);
         const worst = 6 * 4 * PARTICLES_PER_TONGUE * bursts;
         expect(worst).toBeLessThanOrEqual(PARTICLE_POOL);
 

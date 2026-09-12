@@ -27,11 +27,18 @@
  * the layer makes, which is exactly as much canvas as a headless test needs.
  */
 
-/** Every 2D method `particles.ts` and `ParticleLayer.tsx` reach for. Additions go here, loudly. */
+/**
+ * Every 2D method `particles.ts` and `ParticleLayer.tsx` reach for. Additions go here, loudly.
+ *
+ * A missing entry is a `TypeError` inside the rAF loop, which `interaction.tsx` reports as a failed
+ * test — and that is the arrangement working, not a nuisance. `bezierCurveTo` was added exactly
+ * that way: the flame silhouette started using it, `App.loop.test` went red the same run, and the
+ * alternative was finding out from a blank canvas in a browser.
+ */
 const METHODS = [
     'setTransform', 'clearRect', 'fillRect', 'beginPath', 'closePath', 'arc', 'ellipse', 'fill',
-    'stroke', 'moveTo', 'lineTo', 'quadraticCurveTo', 'save', 'restore', 'translate', 'scale',
-    'rotate', 'drawImage',
+    'stroke', 'moveTo', 'lineTo', 'quadraticCurveTo', 'bezierCurveTo', 'save', 'restore',
+    'translate', 'scale', 'rotate', 'drawImage',
 ] as const;
 
 function makeContext(): CanvasRenderingContext2D {

@@ -48,67 +48,43 @@ export function burnEmitter(anchor: EmitterAnchor, intensity: number, rng: Rng):
     const seeds: ParticleSeed[] = [];
 
     for (let t = 0; t < tongues; t += 1) {
-        // Spread the tongues across the sprite's width, then jitter, so four do not read as a row.
-        const lane = (t + 0.5) / tongues;
-        const baseX = anchor.x + anchor.w * (0.22 + lane * 0.56);
-
         for (let n = 0; n < PARTICLES_PER_TONGUE; n += 1) {
-            const x = baseX + (rng() - 0.5) * anchor.w * 0.09;
-            const y = anchor.y + anchor.h * (0.60 + rng() * 0.32);
+            /*
+             * DISPERSED, not a column. Each tongue gets its own place on the body every burst
+             * rather than a fixed lane — Henry's note is *"dispersed, a quick burn that fades away
+             * going up"*, and a lane that refills in the same spot builds a steady jet, which is
+             * what a torch does and not what a burning creature does.
+             *
+             * The band is the BODY (40%-92% of the slot), not the floor line. Flames at the feet
+             * read as standing in a fire; flames over the body read as being on fire, which is the
+             * status being drawn.
+             */
+            const x = anchor.x + anchor.w * (0.16 + rng() * 0.68);
+            const y = anchor.y + anchor.h * (0.40 + rng() * 0.52);
 
-            // Orange at the base, yellow at the tip — a birth colour rather than a gradient,
-            // because a particle that is simply born hotter than its neighbour IS the flicker §3
-            // asks for, and it costs nothing.
             seeds.push({
                 x,
                 y,
-                // A wide horizontal spread with LITTLE drag, so the tongues splay apart as they
-                // rise instead of running up four parallel lanes. Four straight columns is what
-                // the first tuning drew, and it read as a bar chart rather than as a fire.
-                vx: (rng() - 0.5) * 46,
-                // Reach, not a shower of sparks. The first tuning rose about 30px off a 190px
-                // sprite and photographed as orange lint; flame has to lick up the BODY to read as
-                // burning, so the rise is roughly a third of the sprite over the particle's life.
-                vy: -56 - rng() * 48,
-                life: 400 + rng() * 280,
-                // BIG ENOUGH TO MERGE. This is the number every earlier tuning got wrong: at
-                // radius 3-7 the blobs never touch, and sixty of them read as orange polka dots
-                // however good the colour is. A flame is a CONNECTED mass, so the particles have
-                // to overlap — radius 5.5-12 against a ~10px spawn jitter means each one is
-                // touching its neighbours from birth, and the cluster has an outline instead of
-                // sixty outlines.
-                size: 5.5 + rng() * 6.5,
-                // HOT AT THE BASE, COOL AT THE TIP — from age, not from a random roll. A newborn
-                // particle is near-white; by the time it has risen it is deep orange. That is what
-                // fire does, and because these particles rise as they age, the gradient comes free.
-                // Randomising the hue per particle instead (the first version) gives a fire with no
-                // structure, and it photographed as confetti.
-                // SATURATED, and high alpha, because of what is behind it. Every Mingming's art
-                // sits on a near-white card, and a pale translucent orange over white is a smudge —
-                // the tuning before this one photographed as dust. Colour has to carry the read
-                // here, so the flame is a strong amber cooling to a deep red that white cannot
-                // wash out.
-                r: 255, g: 198, b: 76,
-                r2: 198, g2: 32, b2: 4,
-                a: 0.94,
-                // Rising flame slows as it cools; a touch of negative gravity keeps the tip
-                // drifting up after drag has taken the speed out, which is what stops the whole
-                // thing looking like an upside-down fountain.
-                drag: 0.72,
-                gravity: -26,
-                /*
-                 * ROUND, not a streak. Two tunings of this emitter drew tapered tongues — long,
-                 * narrow, pointed at the top — and both photographed as DRIPS running down the
-                 * sprite rather than flame coming off it. A tall thin shape with a rounded bottom
-                 * and a point on top is a teardrop, and the eye calls that falling however fast it
-                 * is actually rising.
-                 *
-                 * Fire at this scale is not made of flame-shaped pieces. It is a cluster of round
-                 * warm blobs whose outline narrows as the blobs shrink, and 'dot' plus the taper in
-                 * `drawShape` gives exactly that. `spark` stays in the vocabulary for 146c, where a
-                 * streak is the right read because the thing really is travelling.
-                 */
-                shape: 'dot',
+                vx: (rng() - 0.5) * 26,
+                // Quick. A tongue covers 25-45px in its short life and is gone; the NEXT burst
+                // lights somewhere else. That flicker — appear, climb, vanish — is the read, and it
+                // is why the life below is roughly a third of what the first tuning used.
+                vy: -96 - rng() * 58,
+                life: 300 + rng() * 190,
+                // Wide. A flame is barely taller than it is broad (see `drawFlame`); at 3-7px these
+                // were embers, and at 3:1 they were drips.
+                size: 5.2 + rng() * 4.6,
+                // Hot amber cooling to a deep red, and saturated, because every Mingming's art sits
+                // on a near-white card and a pale translucent orange over white is a smudge.
+                r: 255, g: 186, b: 58,
+                r2: 214, g2: 40, b2: 8,
+                a: 0.95,
+                // Each tongue leans its own way. Four tongues all standing straight up is one
+                // flame drawn four times.
+                lean: (rng() - 0.5) * 0.30,
+                drag: 0.55,
+                gravity: -34,
+                shape: 'flame',
             });
         }
     }
@@ -118,22 +94,27 @@ export function burnEmitter(anchor: EmitterAnchor, intensity: number, rng: Rng):
 /**
  * Particles emitted per tongue per burst.
  *
- * One was the first guess and it was wrong in a way only a screenshot shows: a single 2px spark
- * every 90ms is four ticks of orange, not a fire. Two overlap under additive blending, and the
- * overlap is what makes a tongue read as a continuous body of flame rather than as its particles.
+ * One was the first guess and it was wrong in a way only a screenshot shows: a single small
+ * particle every burst is a tick of orange, not a fire. Two gives each tongue a companion close
+ * enough to overlap, which is what makes a stack of them read as a body of flame.
  *
- * It is also the number the budget is most sensitive to — see the arithmetic in `particles.test.ts`
- * — so it is a named constant rather than a loop bound someone can quietly raise to three.
+ * It is also the number the budget is most sensitive to — see the arithmetic in
+ * `particles.test.ts` — so it is a named constant rather than a loop bound someone can quietly
+ * raise to three.
  */
-export const PARTICLES_PER_TONGUE = 3;
+export const PARTICLES_PER_TONGUE = 2;
 
 /**
  * How often a looping status emitter should fire, in milliseconds.
  *
- * Not per frame: at 60fps a four-tongue Burn would spawn 720 particles a second and blow the
- * 600-pool cap inside one, which is the whole budget spent on one status. 100ms is 10 bursts a
- * second — dense enough to read as continuous at these lifetimes (400-680ms, so 4-7 bursts are
- * always in flight) and cheap enough that six burning units still fit inside the pool with room to
- * spare. The arithmetic is pinned in `particles.test.ts` rather than left as a claim here.
+ * Not per frame: at 60fps a four-tongue Burn would spawn 480 particles a second and eat the
+ * 600-pool cap in little over one, which is the whole budget spent on one status.
+ *
+ * 70ms is ~14 bursts a second. At the short lifetimes this emitter now uses (300-490ms, so 4-7
+ * bursts are in flight at any moment) that is what keeps the fire CONTINUOUS while each individual
+ * tongue is brief — which is the whole trick behind *"a quick burn that fades away going up"*: the
+ * fire persists, no single flame does. Slower than this and the gaps between bursts show as the
+ * unit flickering out. The budget arithmetic is pinned in `particles.test.ts` rather than left as
+ * a claim here.
  */
-export const STATUS_EMIT_INTERVAL_MS = 100;
+export const STATUS_EMIT_INTERVAL_MS = 70;
