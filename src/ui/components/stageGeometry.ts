@@ -129,6 +129,29 @@ export const HAND_ANCHOR: StageRect = {
 };
 
 /**
+ * WHERE A SPENT CARD GOES — ticket 146c step 5.
+ *
+ * §2c: *"the lane card shrinks and flies to the discard pile anchor, 200 ms; the discard count
+ * ticks on arrival."*
+ *
+ * Derived from the hand rather than measured from the console's DOM, for the reason this whole
+ * module exists (see the header): a measured anchor moves the first time the pile grows a digit,
+ * and 146c's flight would land somewhere new every few turns. The pile sits at the right-hand end
+ * of the hand row, so this is the fan's own band, pushed out past where the fan can reach.
+ *
+ * **Approximate, and deliberately so.** The console owns its own layout and does not publish an
+ * anchor; when it does, this should read it. The cost of being a little off is that a card flies
+ * toward the pile rather than exactly into it, which is a thing nobody can see at 200ms — and the
+ * alternative was blocking a juice row on a console refactor.
+ */
+export const DISCARD_ANCHOR: StageRect = {
+    x: REF_WIDTH / 2 + 300,
+    y: HAND_ANCHOR.y + 30,
+    w: 70,
+    h: 90,
+};
+
+/**
  * How the reference composition maps onto a real viewport.
  *
  * UNIFORM, and clamped so it can only shrink the composition, never stretch it out of proportion.

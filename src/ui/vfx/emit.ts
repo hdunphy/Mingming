@@ -35,6 +35,7 @@ import type { StageAnchors } from '../hooks/useStageAnchors';
  * alternative — a third module holding four type declarations — buys nothing.
  */
 import { burstFor } from './emitters';
+import { impactFor, trailSeed, type TrailElement } from './trails';
 
 /**
  * The whole particle vocabulary of ticket 146 — §2a names these seven and no others.
@@ -97,6 +98,11 @@ export function plaqueFor(entityId: string): EmitAt | null {
     return anchors?.plaques[entityId] ?? null;
 }
 
+/** The reveal lane box, and the hand fan's centre — 146c flies the played card between them. */
+export const revealAnchor = (): EmitAt | null => anchors?.reveal ?? null;
+export const handAnchor = (): EmitAt | null => anchors?.hand ?? null;
+export const discardAnchor = (): EmitAt | null => anchors?.discard ?? null;
+
 /**
  * Called by `ParticleLayer` on mount and with `null` on unmount.
  *
@@ -123,4 +129,49 @@ export function emit(kind: ParticleKind, at: EmitAt, opts: EmitOpts = {}): void 
     if (seeds.length === 0) return;
     sink.spawn(seeds);
     sink.wake();
+}
+
+/**
+ * Send an element's trail from one anchor to another — ticket 146d, called by 146c's step 2.
+ *
+ * Separate from `emit` because a trail is not a burst: it is one head with a path and a lifetime,
+ * and the interesting arguments are `from`/`to` rather than `intensity`. Folding it into `emit`
+ * would mean a `toward` that most kinds ignore and an intensity this one does.
+ */
+export function emitTrail(element: TrailElement, from: EmitAt, to: EmitAt): void {
+    if (!sink) return;
+    sink.spawn([trailSeed(element, from, to)]);
+    sink.wake();
+}
+
+/**
+ * The burst where a trail lands. §2d's impact column.
+ *
+ * `ring` goes out first and in the element's colour, so the moment of contact has an edge on it
+ * before the element's own particles read — a burst with no ring reads as something appearing
+ * rather than as something arriving.
+ */
+export function emitImpact(element: TrailElement, at: EmitAt, doubled = false, resisted = false): void {
+    if (!sink) return;
+    const { kind, count, color, gravity } = impactFor(element);
+
+    /*
+     * §2c's effectiveness reading, which is a real gameplay tell and not decoration: *"Super-
+     * effective: the ring is doubled and takes the attacker's colour; resisted: half-size ring,
+     * grey puff, the float reads smaller."* A player who can see the matchup landing does not have
+     * to remember the type chart mid-fight.
+     */
+    const ringColor = resisted ? { r: 150, g: 155, b: 162 } : color;
+    emit('ring', at, { color: ringColor, intensity: 1 });
+    if (doubled) emit('ring', at, { color: ringColor, intensity: 1 });
+
+    // The fall is already right per kind — `burstFor` gives `drop` positive gravity and `flame`
+    // negative — so the impact does not restate it. `gravity` on the style is there for the SHED
+    // particles, where the head's own motion would otherwise swamp it.
+    void gravity;
+
+    emit(resisted ? 'puff' : kind, at, {
+        intensity: resisted ? Math.ceil(count / 2) : (doubled ? count * 2 : count),
+        color: resisted ? { r: 150, g: 155, b: 162 } : color,
+    });
 }

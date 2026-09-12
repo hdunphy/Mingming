@@ -20,7 +20,8 @@ import { useMemo, useSyncExternalStore } from 'react';
 
 import type { IBattleState } from '../../engine/types';
 import {
-    place, plaqueRect, spriteRect, HAND_ANCHOR, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, type StageRect,
+    place, plaqueRect, spriteRect, DISCARD_ANCHOR, HAND_ANCHOR, REF_HEIGHT, REF_WIDTH, REVEAL_RECT,
+    type StageRect,
 } from '../components/stageGeometry';
 
 export interface StageAnchors {
@@ -30,6 +31,8 @@ export interface StageAnchors {
     readonly plaques: Readonly<Record<string, StageRect>>;
     readonly reveal: StageRect;
     readonly hand: StageRect;
+    /** Where a spent card flies — ticket 146c step 5. */
+    readonly discard: StageRect;
     /** The uniform scale the composition was placed at. 1 at exactly 1280x800. */
     readonly scale: number;
 }
@@ -99,6 +102,7 @@ export function useStageAnchors(state: IBattleState, activeAllyIndex: number): S
             plaques,
             reveal: place(REVEAL_RECT, width, height),
             hand: place(HAND_ANCHOR, width, height),
+            discard: place(DISCARD_ANCHOR, width, height),
             scale: place({ x: 0, y: 0, w: 1, h: 1 }, width, height).w,
         };
     }, [state.playerParty, state.enemyParty, activeAllyIndex, width, height]);

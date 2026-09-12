@@ -57,6 +57,7 @@ import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { useImpactFeedback } from '../vfx/useImpactFeedback';
+import { useCastSequence } from '../vfx/useCastSequence';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -214,6 +215,14 @@ const BattleArena: React.FC = () => {
      * driving `stageControls` would race.
      */
     useImpactFeedback(battleState, stageControls);
+
+    /*
+     * TICKET 146c — THE CAST SEQUENCE. Owns steps 2-4 (trail, impact, status tells) and the queue
+     * that keeps seven enemy casts in one synchronous burst from animating on top of each other.
+     * Steps 1 and 5 — the card's flight to the lane and out to the discard — are
+     * `PlayedCardReveal`'s, because the card is a React element and these are particles.
+     */
+    useCastSequence(battleState);
 
     const prevSideRef = useRef(battleState?.activeSide);
     // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect

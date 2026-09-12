@@ -122,6 +122,26 @@ for (const kind of KINDS) {
 }
 console.log('[vfx] vocabulary sheet captured for', KINDS.length, 'kinds');
 
+// ── 8. THE TRAIL SHEET: the four authored elements, mid-flight. ────────────
+const TRAIL_ELEMENTS = ['Fire', 'Water', 'Nature', 'None'];
+mkdirSync(`${OUT}/trails`, { recursive: true });
+for (const element of TRAIL_ELEMENTS) {
+    await page.goto(`${BASE}?trail=${element}&units=1&burn=0`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    /*
+     * A FILMSTRIP, not a still. A trail is 220ms of travel on a 520ms loop, so a single screenshot
+     * is a coin toss between "mid-flight" and "nothing there" — the first attempt at this caught
+     * all four elements after their heads had landed and photographed an empty board. Six frames
+     * across one loop always contains the flight, and the SHAPE of a path is a thing you can only
+     * see across frames anyway.
+     */
+    for (let i = 0; i < 6; i += 1) {
+        await page.screenshot({ path: `${OUT}/trails/${element}-${i}.png` });
+        await page.waitForTimeout(20);
+    }
+}
+console.log('[vfx] trail sheet captured for', TRAIL_ELEMENTS.length, 'elements');
+
 await browser.close();
 
 /*

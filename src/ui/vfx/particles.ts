@@ -62,6 +62,32 @@ export interface ParticleSeed {
     readonly shape?: ParticleShape;
     /** Tip lean off vertical, as a fraction of height. Only `flame` reads it. */
     readonly lean?: number;
+    /**
+     * A TRAIL HEAD — ticket 146d. Position as a function of progress (0 at birth, 1 at death)
+     * instead of velocity, so the particle follows an authored curve rather than a ballistic arc.
+     *
+     * Ticket 146d: *"One trail is one `streak` particle with a per-element path function and a
+     * spawner."* A flame arc bends upward, a water lash ripples along its length and a vine curls
+     * as it grows — none of which is reachable by setting `vx`/`vy`, because all three are shapes
+     * in SPACE rather than the result of forces.
+     *
+     * A particle with a path ignores velocity, drag and gravity entirely; the path is the motion.
+     */
+    readonly path?: (t: number) => { x: number; y: number };
+    /**
+     * What this head sheds as it travels — the "spawner" half of a trail.
+     *
+     * `every` is milliseconds between drops. The field spawns them itself rather than making the
+     * caller run a timer, because only the field knows where the head actually is on a given frame.
+     */
+    readonly trail?: {
+        readonly kind: ParticleShape;
+        readonly every: number;
+        readonly color: { r: number; g: number; b: number };
+        /** Downward pull on the shed particles. Water's drops fall; fire's embers rise. */
+        readonly gravity?: number;
+        readonly size?: number;
+    };
 }
 
 /**
@@ -77,6 +103,10 @@ export type ParticleShape = 'flame' | 'drop' | 'leaf' | 'spark' | 'puff' | 'ring
 
 interface Particle {
     alive: boolean;
+    path: ((t: number) => { x: number; y: number }) | null;
+    trail: ParticleSeed['trail'] | null;
+    /** Milliseconds since this head last shed a particle. */
+    trailClock: number;
     /**
      * How far the tip leans off vertical, as a fraction of the flame's height. Rolled once at birth
      * and never changed, which is the cheapest way to stop four flames from being one flame drawn
@@ -164,6 +194,9 @@ function rampAtlas(r: number, g: number, b: number, r2: number, g2: number, b2: 
 
 const blank = (): Particle => ({
     alive: false,
+    path: null,
+    trail: null,
+    trailClock: 0,
     lean: 0,
     x: 0, y: 0, vx: 0, vy: 0,
     life: 0, maxLife: 1,
@@ -214,6 +247,9 @@ export class ParticleField {
             p.gravity = seed.gravity ?? 0;
             p.shape = seed.shape ?? 'puff';
             p.lean = seed.lean ?? 0;
+            p.path = seed.path ?? null;
+            p.trail = seed.trail ?? null;
+            p.trailClock = 0;
         }
     }
 
@@ -229,6 +265,14 @@ export class ParticleField {
         const dt = Math.min(Math.max(dtMs, 0), 64) / 1000;
         if (this.liveCount === 0) return 0;
 
+        /*
+         * Trail heads shed particles as they travel, and spawning INTO the pool while walking it
+         * would let a newly-shed particle be stepped in the same frame it was born — a subtle
+         * double-advance that shows up as the first drop of every trail sitting slightly ahead of
+         * the rest. Collected here and spawned after the walk instead.
+         */
+        let shed: ParticleSeed[] | null = null;
+
         for (const p of this.pool) {
             if (!p.alive) continue;
             p.life -= dt * 1000;
@@ -237,6 +281,25 @@ export class ParticleField {
                 this.liveCount -= 1;
                 continue;
             }
+
+            if (p.path) {
+                // A path owns the motion completely: progress 0 at birth, 1 at death. Velocity,
+                // drag and gravity are meaningless for a head that is following a curve.
+                const t = 1 - p.life / p.maxLife;
+                const at = p.path(t);
+                p.x = at.x;
+                p.y = at.y;
+
+                if (p.trail) {
+                    p.trailClock += dt * 1000;
+                    while (p.trailClock >= p.trail.every) {
+                        p.trailClock -= p.trail.every;
+                        (shed ??= []).push(shedFrom(p, p.trail));
+                    }
+                }
+                continue;
+            }
+
             p.vy += p.gravity * dt;
             if (p.drag !== 1) {
                 const k = Math.pow(p.drag, dt);
@@ -246,6 +309,8 @@ export class ParticleField {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
         }
+
+        if (shed) this.spawn(shed);
         return this.liveCount;
     }
 
@@ -355,6 +420,34 @@ export class ParticleField {
  * broad — with its weight at the bottom and a tip that leans. The proportion and the lean are what
  * separate the two, and both are here on purpose.
  */
+/**
+ * One particle dropped behind a trail head.
+ *
+ * The head's own colour is NOT reused: a trail is a bright streak and the things it sheds are
+ * cooler and dimmer, which is what makes the head read as the front of something rather than as the
+ * brightest of a row of equals. The `trail.color` the emitter passes is already that cooler colour.
+ */
+function shedFrom(head: Particle, trail: NonNullable<ParticleSeed['trail']>): ParticleSeed {
+    const size = trail.size ?? 2.6;
+    return {
+        x: head.x,
+        y: head.y,
+        // A little sideways drift so a trail is a ribbon rather than a line of dots on the path.
+        vx: (Math.random() - 0.5) * 26,
+        vy: (Math.random() - 0.5) * 18,
+        life: 340 + Math.random() * 220,
+        size: size * (0.7 + Math.random() * 0.6),
+        r: trail.color.r, g: trail.color.g, b: trail.color.b,
+        r2: Math.round(trail.color.r * 0.55),
+        g2: Math.round(trail.color.g * 0.55),
+        b2: Math.round(trail.color.b * 0.55),
+        a: 0.9,
+        gravity: trail.gravity ?? 0,
+        drag: 0.6,
+        shape: trail.kind,
+    };
+}
+
 function drawFlame(
     ctx: CanvasRenderingContext2D, p: Particle, t: number, r: number, g: number, b: number,
 ): void {

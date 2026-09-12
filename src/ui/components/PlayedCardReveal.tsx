@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import ProgramCard from './ProgramCard';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getElementColor } from './cardIcons';
-import { prefersReducedMotion } from '../utils/motionPrefs';
+import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { PlayedCardAnnouncement } from '../hooks/useBattleVfx';
+import { anchorFor, discardAnchor, handAnchor, revealAnchor } from '../vfx/emit';
+import { FLIGHT_MS } from '../vfx/useCastSequence';
 
 /**
  * PlayedCardReveal — the card that just resolved, held at centre stage.
@@ -39,7 +41,13 @@ interface Props {
 }
 
 const PlayedCardReveal: React.FC<Props> = ({ played }) => {
-    const reduced = prefersReducedMotion();
+    /*
+     * §2c: *"`animations` off → steps 1 and 5 are instant."* Reduced motion already implied that;
+     * `resolveVfxGates` is the generalisation, and reading it here rather than
+     * `prefersReducedMotion()` means the switch and the OS preference reach this card through the
+     * one function that also stamps the DOM attributes.
+     */
+    const reduced = !resolveVfxGates(loadSettings()).animations;
 
     // A missing program is a dead reveal rather than a crash: `GetProgramData` returns a not-found
     // stub, and rendering that stub's face would be worse than rendering nothing.
@@ -47,8 +55,50 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
     if (!played || !data || !data.name) return null;
 
     const accent = getElementColor(data.element);
-    // The enemy's cards arrive from their side of the stage and the player's from theirs, so the
-    // reveal reads as "who did this" before the label is read at all.
+
+    /*
+     * ── TICKET 146c, STEPS 1 AND 5: THE CARD'S OWN FLIGHT ────────────────────────────────────
+     *
+     * Ruling 5: *"Player card flies to the lane, then the animations play, then go to discard."*
+     * Ruling 6: *"Cards originate from the caster and do a similar thing except discard back at
+     * the caster."*
+     *
+     * So both sides fly TO THE LANE and differ only in where they come from and go back to. The
+     * enemy's card is not left small over its own sprite — ruling 6 says "a similar thing", and
+     * ticket 127 set the 1200ms hold precisely because Henry could not read the enemy's cards
+     * ("Enemy AI cards disappear to fast"). A card parked at 0.6 scale on top of a 190px sprite
+     * would undo that fix while technically animating.
+     *
+     *   player  hand fan  ->  lane  ->  the discard pile, at the end of the hand row
+     *   enemy   caster    ->  lane  ->  back into the caster
+     *
+     * The offsets are deltas from the lane's own centre, because that is where this element
+     * already is: it is positioned at the lane and framer-motion animates `x`/`y` as transforms
+     * off that position. Computing absolute coordinates here would mean re-deriving the lane.
+     */
+    const lane = revealAnchor();
+    const caster = anchorFor(played.sourceId);
+    const hand = handAnchor();
+
+    const centreOf = (r: { x: number; y: number; w?: number; h?: number } | null) =>
+        r ? { x: r.x + (r.w ?? 0) / 2, y: r.y + (r.h ?? 0) / 2 } : null;
+
+    const laneCentre = centreOf(lane);
+    const origin = centreOf(played.fromPlayer ? hand : caster);
+    const destination = centreOf(played.fromPlayer ? discardAnchor() : caster);
+
+    const delta = (point: { x: number; y: number } | null) =>
+        point && laneCentre ? { dx: point.x - laneCentre.x, dy: point.y - laneCentre.y } : null;
+
+    const entry = delta(origin);
+    const exit = delta(destination);
+
+    /*
+     * The fallback when the anchors are not mounted — a reveal rendered outside a battle stage, or
+     * the first frame before the layer registers. The old behaviour: in from the caster's side of
+     * the board, out the other way. Keeping it means this component never depends on the particle
+     * layer being alive.
+     */
     const fromY = played.fromPlayer ? 90 : -90;
 
     return (
@@ -71,16 +121,38 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                 }}
                 initial={reduced
                     ? { opacity: 0, x: '-50%', y: '-50%' }
-                    : { opacity: 0, x: '-50%', y: `calc(-50% + ${fromY}px)`, scale: 0.7 }}
+                    : {
+                        opacity: 0,
+                        x: entry ? `calc(-50% + ${entry.dx}px)` : '-50%',
+                        y: entry ? `calc(-50% + ${entry.dy}px)` : `calc(-50% + ${fromY}px)`,
+                        // §2c: the enemy's card grows from 0.6; the player's comes up from the fan,
+                        // where it was already a card, so it starts nearer full size.
+                        scale: played.fromPlayer ? 0.7 : 0.6,
+                    }}
                 animate={reduced
                     ? { opacity: 1, x: '-50%', y: '-50%' }
                     : { opacity: 1, x: '-50%', y: '-50%', scale: 1 }}
                 exit={reduced
                     ? { opacity: 0, x: '-50%', y: '-50%' }
-                    : { opacity: 0, x: '-50%', y: `calc(-50% - ${fromY / 3}px)`, scale: 0.9 }}
+                    : {
+                        opacity: 0,
+                        x: exit ? `calc(-50% + ${exit.dx}px)` : '-50%',
+                        y: exit ? `calc(-50% + ${exit.dy}px)` : `calc(-50% - ${fromY / 3}px)`,
+                        // §2c: *"the lane card shrinks and flies to the discard pile"*. Small
+                        // enough to read as going away, not so small it vanishes mid-flight.
+                        scale: 0.35,
+                    }}
                 transition={reduced
                     ? { duration: 0.12 }
-                    : { type: 'spring', stiffness: 420, damping: 26, opacity: { duration: 0.14 } }}
+                    // §2c gives the flight 180ms and the discard 200ms. A spring would overshoot
+                    // the lane pose and arrive late, and the trail leaves at 180ms whatever the
+                    // card is doing — so the two would drift apart. Eased, and on the ticket's
+                    // numbers, they cannot.
+                    : {
+                        duration: FLIGHT_MS / 1000,
+                        ease: 'easeOut',
+                        opacity: { duration: 0.14 },
+                    }}
             >
 
                 {/*

@@ -53,7 +53,8 @@ import { SeedStream } from '../src/engine/core/SeedStream';
 import { createRanchMember } from '../src/engine/gameTypes';
 import { toMingmingState } from '../src/engine/run/battleSetup';
 import { setReducedMotionOverride } from '../src/ui/utils/motionPrefs';
-import { anchorFor, emit, type ParticleKind } from '../src/ui/vfx/emit';
+import { anchorFor, emit, emitImpact, emitTrail, type ParticleKind } from '../src/ui/vfx/emit';
+import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from '../src/ui/vfx/trails';
 import { TOP_BAR_H, CONSOLE_H } from '../src/ui/components/stageGeometry';
 import type { IBattleEntity, IBattleState } from '../src/engine/types';
 import '../src/index.css';
@@ -133,7 +134,30 @@ const COLOR = (() => {
         : { r: 90, g: 210, b: 255 };
 })();
 
-if (BURN > 0) {
+/*
+ * TRAIL MODE — `?trail=Fire`. Fires the element's trail from the first ally to the first enemy on a
+ * loop, then its impact burst, which is 146c's steps 2 and 3 without the card flight around them.
+ * The stagger mirrors §2c's Side-card rule so a three-target shot can be photographed too.
+ */
+const TRAIL = params.get('trail') as TrailElement | null;
+if (TRAIL) {
+    const from = () => anchorFor(battleState.playerParty[0].id);
+    const targets = battleState.enemyParty.map((e) => e.id);
+    window.setInterval(() => {
+        const a = from();
+        if (!a) return;
+        targets.forEach((id, i) => {
+            window.setTimeout(() => {
+                const b = anchorFor(id);
+                if (!b) return;
+                emitTrail(TRAIL, a, b);
+                window.setTimeout(() => emitImpact(TRAIL, b), TRAIL_MS);
+            }, i * TRAIL_STAGGER_MS);
+        });
+    }, 520);
+}
+
+if (BURN > 0 && !TRAIL) {
     window.setInterval(() => {
         for (const id of everyUnitId) {
             const at = anchorFor(id);
