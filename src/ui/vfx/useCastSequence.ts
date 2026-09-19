@@ -39,7 +39,8 @@ import type { IBattleEntity, IBattleState, StatusType } from '../../engine/types
 import { anchorFor, emitImpact, emitTrail } from './emit';
 import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from './trails';
 import {
-    emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick,
+    emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved,
+    emitStatusTick,
 } from './statusTells';
 import { emitHookTell } from './osTells';
 
@@ -227,6 +228,30 @@ export function useCastSequence(battleState: IBattleState | null): void {
                         return;
                     }
                     if ((event.damage?.absorbed ?? 0) > 0) emitShieldAbsorb(event.targetId);
+
+                    /*
+                     * TICKET 155, DEEP DIVE 9 — THE DEATH FX 146 WAS SUPPOSED TO HAVE.
+                     *
+                     * `BattleStage.test` has said since 145 that the slot's anchor must survive a
+                     * death *"because 146 plays the death FX AT the slot"*, and 146 shipped with no
+                     * death branch and no recipe. The scaffold was tested; the thing was not built.
+                     *
+                     * There is no death EVENT on the bus, so the predicate is the one
+                     * `useImpactFeedback` already uses: events fire synchronously inside the
+                     * reducer, so the ref holds the HP from BEFORE this hit, and damage at or past
+                     * it is lethal. Deriving it twice in two files is worth a shared helper the day
+                     * a third caller wants it; today it is four lines and one comment each.
+                     *
+                     * Plays at arrival rather than through the queue — a body hitting the floor is
+                     * simultaneous with the hit, not downstream of it.
+                     */
+                    {
+                        const victim = findEntity(event.targetId);
+                        const applied = event.damage?.applied ?? event.amount;
+                        if (victim && victim.currentHp > 0 && applied >= victim.currentHp) {
+                            emitDeath(event.targetId);
+                        }
+                    }
 
                     /*
                      * A Side or All card hits several targets, and the engine tells us who only

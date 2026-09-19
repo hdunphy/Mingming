@@ -139,3 +139,35 @@ describe('155a — a cast survives the re-render it causes', () => {
         expect(spawned).toHaveLength(0);
     });
 });
+
+describe('155 deep dive 9 — a death plays at the slot', () => {
+    /**
+     * `BattleStage.test` has asserted since 145 that a dead unit KEEPS its anchor, *"because 146
+     * plays the death FX at the slot"*. 146 shipped with no death branch and no recipe: the
+     * scaffold was tested and the thing was never built, which is the same shape as the two
+     * dead-on-arrival defects 155a fixed.
+     */
+    const lethalHit = (applied: number) => {
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'DAMAGE_TAKEN', targetId: 'foe', amount: applied, element: 'Fire',
+                cause: 'attack',
+                damage: { raw: applied, absorbed: 0, applied } as never, timestamp: Date.now(),
+            });
+        });
+    };
+
+    it('fires when the hit is at or past the target\'s remaining HP', () => {
+        // STATE's foe is at 100/100, so 100 is exactly lethal — the boundary, because `>=` versus
+        // `>` here is the difference between a kill with no death FX and one with.
+        lethalHit(100);
+        expect(spawned.flat().length).toBeGreaterThan(0);
+    });
+
+    it('stays quiet on a hit the unit survives', () => {
+        // Otherwise every scratch would play a death, which is worse than none: the tell would stop
+        // meaning a body has left the board.
+        lethalHit(30);
+        expect(spawned.flat()).toHaveLength(0);
+    });
+});

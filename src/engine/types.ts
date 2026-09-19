@@ -724,6 +724,22 @@ export interface IBattleState {
    * keep compiling; every read defaults to `[]`.
    */
   readonly damageLedger?: ReadonlyArray<IDamageRecord>;
+  /**
+   * TICKET 155, DEEP DIVE 6 — WHERE THIS FIGHT IS HAPPENING.
+   *
+   * 145f built a biome backdrop — the name at 30%, three shafts in the biome's element, a haze and
+   * a ground line — and `BattleStage` read these two fields off the battle state through a cast.
+   * Nothing ever set them, so every fight in the game rendered the `None` fallback and the whole
+   * feature was dead on arrival in the same way 146's hooks were.
+   *
+   * Declared here rather than left to a cast: a field the view invents with `as unknown as` is a
+   * field nobody can find, and that is precisely how this went unnoticed for two tickets.
+   *
+   * Optional because a scenario fixture, a balance run and the gauntlet's own fights have no biome
+   * to name, and a backdrop that says nothing is the right answer there.
+   */
+  readonly biomeName?: string;
+  readonly biomeElement?: Element;
 }
 
 /**

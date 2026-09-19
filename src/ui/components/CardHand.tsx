@@ -589,12 +589,35 @@ const CardHand: React.FC<{
               * the arch; the hotkeys were 8px type nobody could read. See `.hand-underline`.
               */}
             <div className="hand-underline">
+                {/*
+                  * WHOSE NUMBERS THESE ARE. With one caster this was implicit; with three it is
+                  * the most load-bearing piece of state on the screen, because every figure in the
+                  * fan above is quoted for this unit.
+                  */}
                 <span data-testid="hand-caster-banner">
                     {caster
                         ? <>READING FOR <strong>{caster.name.toUpperCase()}</strong></>
                         : <>NO CASTER — PRESS W / E / R</>}
                 </span>
-                <span className="hand-hotkeys">{keybindLegend()}</span>
+                {/*
+                  * TICKET 155, DEEP DIVE 4 — the key map behind a `?`.
+                  *
+                  * It was the full legend printed at 8px, in a column between the piles that the
+                  * fan drew over. Raised to a readable size it is simply too wide for one line and
+                  * ran under the macro rack, so it goes where the ticket's other option puts it:
+                  * a `?` that carries the whole map in its tooltip.
+                  *
+                  * A keyboard path nobody can discover is not a keyboard path — but one `?` beside
+                  * the caster line is discoverable, and eight point type is not.
+                  */}
+                <span
+                    className="hand-hotkeys-hint"
+                    title={keybindLegend()}
+                    aria-label={`Keyboard shortcuts: ${keybindLegend()}`}
+                    tabIndex={0}
+                >
+                    ?
+                </span>
             </div>
         </div>
     );

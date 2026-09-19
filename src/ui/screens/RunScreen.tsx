@@ -97,6 +97,7 @@ import RunSummary from './RunSummary';
 import WorkshopNode from './WorkshopNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 import { Icon } from '../theme/Icon';
+import type { Element as MingmingElement } from '../../engine/types';
 
 /**
  * The kinds that have no handler yet, and the ticket that gives them one.
@@ -215,8 +216,15 @@ export default function RunScreen(): ReactNode {
 
         const encounter = rollEncounter({ run, node, party });
 
+        // 155 deep dive 6: the backdrop's two fields, from the map this node sits on.
+        const nodeBiome = run.biomes[node.biomeIndex];
+
         dispatch(startBattle({
             setup: buildBattleSetup(ranch, run, encounter),
+            biome: nodeBiome
+                // `Element` unqualified here is the DOM's, not the engine's — hence the alias.
+                ? { name: nodeBiome.name, element: (nodeBiome.elements[0] ?? 'None') as MingmingElement }
+                : undefined,
             // The pre-rolled encounter answers both of these; they are the pre-run generator's
             // parameters and this path does not use it.
             enemyIds: [],

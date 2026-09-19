@@ -118,8 +118,26 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                 aria-live="polite"
                 style={{
                     position: 'absolute',
-                    top: '38%',
-                    left: '50%',
+                    /*
+                     * TICKET 155, DEEP DIVE 2 — THE LANE IS WHERE THE GEOMETRY SAYS IT IS.
+                     *
+                     * This was `top: 38%; left: 50%` — a percentage of `.stage-area`, tuned by
+                     * eye — while the flight deltas below are computed against
+                     * `place(REVEAL_RECT)`. Two different answers to "where is the lane", so the
+                     * card flew toward a point it was not going to land on, and the error grew
+                     * with the window.
+                     *
+                     * Anchored to `anchors.reveal` now: one source, and 146c's trail (which also
+                     * reads the anchors) crosses in front of the card rather than past it.
+                     *
+                     * BOTH axes take the rect's CENTRE, because `x`/`y` below are `-50%` on both.
+                     * The first cut of this passed `lane.y` — the rect's top edge — against a
+                     * `translateY(-50%)`, which hung the card half its own height above the lane:
+                     * at 1280x800 its top measured -9, i.e. off the top of the screen and under
+                     * the bar. Caught by the write-back measurement, not by eye.
+                     */
+                    top: lane ? lane.y + (lane.h ?? 0) / 2 : '38%',
+                    left: lane ? lane.x + (lane.w ?? 0) / 2 : '50%',
                     zIndex: 60,
                     pointerEvents: 'none',
                     display: 'flex',

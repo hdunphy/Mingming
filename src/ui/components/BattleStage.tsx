@@ -393,8 +393,16 @@ const BattleStage: React.FC<BattleStageProps> = ({
      * that changed colour when you selected a different ally would be reporting the wrong thing.
      * Falls back to the stage's own violet outside a run, where there is no biome.
      */
-    const biomeName = (battleState as unknown as { biomeName?: string }).biomeName ?? null;
-    const biomeColor = getElementAccent((battleState as unknown as { biomeElement?: string }).biomeElement ?? 'None');
+    /*
+     * TICKET 155, DEEP DIVE 6 — read off the state, not cast out of it.
+     *
+     * These were `as unknown as { biomeName?: string }` — a view inventing a field it hoped the
+     * state had. It did not: nothing wrote either of them, so 145f's whole backdrop rendered the
+     * `None` fallback in every fight since it shipped. They are declared on `IBattleState` now and
+     * `startBattle` sets them, which is why this reads like an ordinary field access.
+     */
+    const biomeName = battleState.biomeName ?? null;
+    const biomeColor = getElementAccent(battleState.biomeElement ?? 'None');
 
     const anchors = useStageAnchors(battleState, activeAllyIndex);
     const spriteW = spriteWidthAt(anchors.scale);

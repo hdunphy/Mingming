@@ -699,7 +699,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  white-space: nowrap;
+  gap: 10px;
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   color: rgba(255, 255, 255, 0.45);
@@ -2859,10 +2860,20 @@ body {
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--biome) 40%, transparent), transparent);
 }
 
+/* ── TICKET 155, DEEP DIVE 6 — CLEAR OF THE TOP BAR.
+
+   `.battle-topbar` is `position: absolute; top: 0` and therefore takes no room
+   in the flow, so `.stage-area` — and the backdrop inside it — starts at the
+   VIEWPORT top rather than under the bar. `top: 14px` put the biome's name on
+   the same line as the combat log.
+
+   `44px` is `TOP_BAR_H`, the same constant `stageGeometry` uses. Stated here
+   because the bar overlays rather than displaces: every other child of the
+   stage is placed by `place()`, which already adds it. */
 .stage-biome-name {
   position: absolute;
   left: 50%;
-  top: 14px;
+  top: 58px;
   transform: translateX(-50%);
   font-size: 0.62rem;
   letter-spacing: 0.3em;
@@ -3399,13 +3410,27 @@ body {
   font-weight: 900;
 }
 
-.hand-hotkeys {
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  color: rgba(255, 255, 255, 0.3);
-  white-space: nowrap;
+/* ── TICKET 155, DEEP DIVE 4 — the key map is a `?`, not a strip.
+
+   `.hand-hotkeys` printed the whole legend at `0.5rem` — 8px — in a column
+   between the piles that the fan painted over. Raised to a readable size the
+   legend is simply too wide for one line and ran under the macro rack, so the
+   ticket's other option wins: one `?` carrying the map in its tooltip. */
+.hand-hotkeys-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: help;
 }
+.hand-hotkeys-hint:hover,
+.hand-hotkeys-hint:focus-visible { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
 
 /* The draw formula's answer, beside the pile the player already reads. The full
    arithmetic is in the tooltip - see drawFormula.ts for why it is spelled out. */

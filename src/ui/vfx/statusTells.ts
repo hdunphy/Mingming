@@ -128,6 +128,30 @@ export function emitSelfCost(casterId: string): void {
     emit('puff', at, { color: { r: 220, g: 60, b: 60 }, intensity: 5 });
 }
 
+/**
+ * A UNIT DIES — ticket 155, deep dive 9.
+ *
+ * `BattleStage.test` has said since 145 that *"the anchor must survive the death because 146 plays
+ * the death FX AT the slot"*, and 146 shipped without one: no death branch in `useCastSequence`, no
+ * recipe here. A ruled behaviour with a test asserting the SCAFFOLD for it and nothing doing it is
+ * the same shape as the two dead-on-arrival defects in 155a, so it is closed here rather than left
+ * as a comment pointing at a ticket that is finished.
+ *
+ * A ring and a grey scatter at the slot — not a flame, not the element's colour. A death is the
+ * board losing a body, and it should read the same whoever dies and whatever killed them; tying it
+ * to the killer's element would make a unit's death look like the last card played.
+ *
+ * 145b already draws the body as a 40%-brightness silhouette, which is the standing read. This is
+ * the moment, on the ruling that has governed every tell in 146.
+ */
+export function emitDeath(targetId: string): void {
+    const at = anchorFor(targetId);
+    if (!at) return;
+    emit('ring', at, { color: GREY, intensity: 1 });
+    emit('puff', at, { color: GREY, intensity: 9 });
+    emit('spark', at, { color: { r: 210, g: 214, b: 220 }, intensity: 8 });
+}
+
 /** Convenience for a caller that has an anchor already resolved. */
 export function emitAt(kind: 'ring' | 'puff', at: EmitAt, color: Rgb): void {
     emit(kind, at, { color, intensity: kind === 'ring' ? 1 : 5 });

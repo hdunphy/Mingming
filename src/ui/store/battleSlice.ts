@@ -93,7 +93,20 @@ const battleSlice = createSlice({
          * run's party against the ranch roster (`engine/run/battleSetup.ts`) before dispatching, so
          * the battle slice never has to know which slice a fighter came out of.
          */
-        startBattle: (state, action: PayloadAction<{ setup: IBattleSetup; enemyIds: string[]; sectorElement?: Element; options?: BattleOptions }>) => {
+        startBattle: (state, action: PayloadAction<{
+            setup: IBattleSetup;
+            enemyIds: string[];
+            sectorElement?: Element;
+            options?: BattleOptions;
+            /**
+             * TICKET 155, DEEP DIVE 6 — the room this fight is in.
+             *
+             * `createBattleState` is the ENGINE's factory and has no business knowing about a run's
+             * map, so the biome is attached here, where the UI already knows it. 145f's backdrop
+             * has been reading these two fields since it shipped and nothing has ever written them.
+             */
+            biome?: { name: string; element: Element };
+        }>) => {
             // options carries seed + enemyMode; dropping it here made
             // enemyMode: 'CARDS' and seeded battles unreachable from the UI.
             state.battle = createBattleState(
@@ -102,6 +115,10 @@ const battleSlice = createSlice({
                 action.payload.sectorElement,
                 action.payload.options
             ) as Draft<IBattleState>;
+            if (action.payload.biome) {
+                state.battle.biomeName = action.payload.biome.name;
+                state.battle.biomeElement = action.payload.biome.element;
+            }
             state.selectedSourceId = null;
             state.selectedTargetId = null;
             state.selectedCardId = null;
