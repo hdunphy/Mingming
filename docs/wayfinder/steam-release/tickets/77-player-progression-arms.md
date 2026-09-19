@@ -183,6 +183,43 @@ route to player power that does not cost a card slot.
 smaller deck cycles its engine faster" — both predict every row above. The arm that would separate
 them is bare plus three DUPLICATES of the deck's own cards, and it has not been run.
 
+## TRACK B + C REPORTED — 2026-09-19. Built, threading-proven, piloted at n=12; the n=60 arms are Henry's machine.
+
+Code: `1dc712a` (Track B: `--macros surge3|mixed` via `src/debug/balance/macroPolicy.ts`, `--player-driver <id>`,
+the `sampleFightFor` / `batchOptionsFor` seams, procs and macros on every cell line) and `e53198b` (Track C:
+`--tweak root-rot-c1|c3`, a Driver HOOK substitution — a new knob shape with its own threading case). Every new
+flag was proven to FAIL its threading test with the threading line commented out. Gates: tsc -b, eslint 0,
+**179 files / 2394 tests**, vite build. Full write-up and the n=60 run lines:
+[research/77-player-side-arms.md](../research/77-player-side-arms.md) §B.
+
+**Two STOPs, reported not worked around:**
+
+1. **C2 SPREADING ROT is not built.** "Another enemy than the target" has no hook target — `RANDOM_ENEMY` may
+   pick the context target itself. Expressing it is a new engine target, not a knob. `--tweak root-rot-c2`
+   throws saying so.
+2. **The bare row does not match research/77's.** 45 commits moved the tree (`6bafc12..6c61a4b`: 149b/150/151
+   card and OS changes, the single-candidate PRNG guard, the Drivers, the damage/HP rescale). Research/76's
+   *56.7 / 83.3* and the *scrubber p = 1.00* are cross-tree; every comparison below is to the day's bare.
+
+**Pilot, Rootfall boss cell, n=12, paired seeds, one tree** (under-powered; ±25pt intervals):
+
+| arm | boss cell | flips →win : →loss | p | instrument |
+| --- | --- | --- | --- | --- |
+| bare | 33.3% (4/12) | — | — | — |
+| `--boss-driver off` | 91.7% | 7 : 0 | **0.016** | — |
+| C1 Creeping Rot | 83.3% | 6 : 0 | **0.031** | 3.83 procs/fight |
+| C3 Festering | 41.7% | 2 : 1 | 1.00 | 29.75 procs/fight |
+| B1b macros mixed | 41.7% | 3 : 2 | 1.00 | 3.00 macros/fight, all boss-turn-1, **0 lethals** |
+| B2 antivenom | 33.3% | 1 : 1 | 1.00 | 1.67 procs/fight |
+
+Read: ROOT ROT is still the wall on this tree (+58pt off). **C1 is ROOT ROT removed, not reshaped** — one battle
+from *off*; per-turn-per-body deletes the quadratic term. **C3 is the only candidate in the between-band** and it
+fires ~30×/fight. Three macros at the boss are +8 (null at n=12) and the lethal rule never fired — a 30-power
+Surge is not a finisher against pools of ~1,000+. ANTIVENOM is a flat null at the boss, as the card was.
+
+**Harness caveats, stated:** the rack is per CELL (each gauntlet cell fights from a full rack as it fights from full
+HP — an upper bound, like `gauntletCompound`); C1's proc fires on the side's turn-end whether or not a stack lands.
+
 ## What this ticket does NOT do
 
 - No encounter nerfs beyond Track C, and Track C is one Driver at one gym.

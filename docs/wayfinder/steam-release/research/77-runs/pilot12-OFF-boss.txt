@@ -1,0 +1,41 @@
+[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.
+[balance:run-gate]   bands      gauntlet  (1 cells: gauntlet:fight2)
+[balance:run-gate]   iterations 12 per cell  ->  12 battles, PLAYER moves first (as a run does)
+[balance:run-gate]   sample     12 tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample
+[balance:run-gate]   AI tier    full   maxTurns 60   registry 1:3dbeb9b8
+
+[balance:run-gate]   gauntlet:fight2 1/12 WIN   80.6s into cell, 1m 21s total
+[balance:run-gate]   gauntlet:fight2 2/12 WIN   205.1s into cell, 3m 25s total
+[balance:run-gate]   gauntlet:fight2 3/12 WIN   233.5s into cell, 3m 53s total
+[balance:run-gate]   gauntlet:fight2 4/12 WIN   354.1s into cell, 5m 54s total
+[balance:run-gate]   gauntlet:fight2 5/12 WIN   401.1s into cell, 6m 41s total
+[balance:run-gate]   gauntlet:fight2 6/12 WIN   456.2s into cell, 7m 36s total
+[balance:run-gate]   gauntlet:fight2 7/12 WIN   496.3s into cell, 8m 16s total
+[balance:run-gate]   gauntlet:fight2 8/12 WIN   632.4s into cell, 10m 32s total
+[balance:run-gate]   gauntlet:fight2 9/12 loss  702.5s into cell, 11m 43s total
+[balance:run-gate]   gauntlet:fight2 10/12 WIN   822.8s into cell, 13m 43s total
+[balance:run-gate]   gauntlet:fight2 11/12 WIN   886.3s into cell, 14m 46s total
+[balance:run-gate]   gauntlet:fight2 12/12 WIN   959.5s into cell, 16m 00s total
+
+================================================================================================================
+  RUN GATE — ticket 61   ·   PREPARED player (brings the counter-element — THIS is the arm 95/75/60 grade)
+  ISOLATION — boss signature passive OFF (the gym Driver; tuned OS and deck untouched)
+  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).
+  PINNED to gym_rootfall — not comparable to an unpinned number (ticket 68)
+================================================================================================================
+
+  GAUNTLET (the gym's three fights)
+    NOT GRADED ON THE COMPOUND — only part of the gauntlet was measured, so the clear rate cannot be computed. The pooled per-fight rate below is graded instead,
+    against a target that describes CLEARING all three fights. Read it as a fight rate, not as a verdict: ~84.3% per fight is what a 60% clear needs.
+    target 60.0% (window 55.0%-65.0%)   measured 91.7% (11/12, +31.7pt)   95% CI 64.6%-98.5%
+    FAIL — outside the ±5 window by 26.7pt   [959.5s]  <- UNDER-SAMPLED: the 95% interval (±17.0pt) is wider than the ±5 window, so this verdict is not yet evidence
+    gauntlet fight 3/3 (boss)  3v3   11/12  =  91.7%  decisive= 91.7%  avgTurns= 5.1  ftk=0  stalled=0  959.5s
+      player: 752.4 dmg/turn  payoff=3.42/fight  dead=6.9%  deck=18  | enemy: 461.2 dmg/turn
+      macros=0.00/fight  procs: player=0.00/fight  enemy=0.00/fight
+
+----------------------------------------------------------------------------------------------------------------
+  1 BAND(S) OUTSIDE WINDOW: gauntlet
+  1 BAND(S) UNDER-SAMPLED (gauntlet): their 95% interval is wider than the ±5 window, so the verdicts above are provisional. Raise --iterations.
+  wall clock 16m 00s (959521 ms) for 12 battles
+  80.0s per battle averaged over every cell
+----------------------------------------------------------------------------------------------------------------

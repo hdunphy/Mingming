@@ -1,0 +1,43 @@
+[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.
+[balance:run-gate]   bands      gauntlet  (1 cells: gauntlet:fight2)
+[balance:run-gate]   iterations 12 per cell  ->  12 battles, PLAYER moves first (as a run does)
+[balance:run-gate]   sample     12 tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample
+[balance:run-gate]   AI tier    full   maxTurns 60   registry 1:6234b0ff
+
+[balance:run-gate]   gauntlet:fight2 1/12 WIN   88.8s into cell, 1m 29s total
+[balance:run-gate]   gauntlet:fight2 2/12 WIN   230.5s into cell, 3m 50s total
+[balance:run-gate]   gauntlet:fight2 3/12 WIN   263.7s into cell, 4m 24s total
+[balance:run-gate]   gauntlet:fight2 4/12 WIN   409.6s into cell, 6m 50s total
+[balance:run-gate]   gauntlet:fight2 5/12 WIN   466.6s into cell, 7m 47s total
+[balance:run-gate]   gauntlet:fight2 6/12 WIN   534.7s into cell, 8m 55s total
+[balance:run-gate]   gauntlet:fight2 7/12 WIN   584.2s into cell, 9m 44s total
+[balance:run-gate]   gauntlet:fight2 8/12 WIN   748.3s into cell, 12m 28s total
+[balance:run-gate]   gauntlet:fight2 9/12 loss  832.6s into cell, 13m 53s total
+[balance:run-gate]   gauntlet:fight2 10/12 WIN   953.2s into cell, 15m 53s total
+[balance:run-gate]   gauntlet:fight2 11/12 WIN   1033.8s into cell, 17m 14s total
+[balance:run-gate]   gauntlet:fight2 12/12 loss  1122.7s into cell, 18m 43s total
+
+================================================================================================================
+  RUN GATE — ticket 61   ·   PREPARED player (brings the counter-element — THIS is the arm 95/75/60 grade)
+  boss as shipped
+  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).
+  ** EXPERIMENTAL TWEAKS — NOT A BASELINE, NOT COMMITTED (root-rot-c1) **
+     root-rot-c1: driver_root_rot's hooks REPLACED for this run — CREEPING ROT (ticket 77 C1): At the end of this side's turn, every Poisoned enemy gains 1 Poison. (shape candidate only — ticket 77 Track C moves no lever before Henry's session; hooks.json untouched)
+  PINNED to gym_rootfall — not comparable to an unpinned number (ticket 68)
+================================================================================================================
+
+  GAUNTLET (the gym's three fights)
+    NOT GRADED ON THE COMPOUND — only part of the gauntlet was measured, so the clear rate cannot be computed. The pooled per-fight rate below is graded instead,
+    against a target that describes CLEARING all three fights. Read it as a fight rate, not as a verdict: ~84.3% per fight is what a 60% clear needs.
+    target 60.0% (window 55.0%-65.0%)   measured 83.3% (10/12, +23.3pt)   95% CI 55.2%-95.3%
+    FAIL — outside the ±5 window by 18.3pt   [1122.7s]  <- UNDER-SAMPLED: the 95% interval (±20.1pt) is wider than the ±5 window, so this verdict is not yet evidence
+    gauntlet fight 3/3 (boss)  3v3   10/12  =  83.3%  decisive= 83.3%  avgTurns= 4.8  ftk=0  stalled=0  1122.7s
+      player: 761.0 dmg/turn  payoff=3.42/fight  dead=8.4%  deck=18  | enemy: 508.7 dmg/turn
+      macros=0.00/fight  procs: player=0.00/fight  enemy=3.83/fight
+
+----------------------------------------------------------------------------------------------------------------
+  1 BAND(S) OUTSIDE WINDOW: gauntlet
+  1 BAND(S) UNDER-SAMPLED (gauntlet): their 95% interval is wider than the ±5 window, so the verdicts above are provisional. Raise --iterations.
+  wall clock 18m 43s (1122748 ms) for 12 battles
+  93.6s per battle averaged over every cell
+----------------------------------------------------------------------------------------------------------------

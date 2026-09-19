@@ -139,3 +139,106 @@ reached hand unplayed), `deck` (size), and both damage rates.
 research/76's — all 180 battles, same wins, same losses — which is the seed contract holding and
 confirms that adding telemetry collection perturbed nothing. Re-taking a bare row is still correct
 whenever the tree moved; this is the evidence that it is a no-op when it has not.
+
+
+---
+
+# TRACK B + C: the harness can now hold a rack, a Driver and a reshaped ROOT ROT — BUILT, PILOTED AT n=12, FULL ARMS PENDING ON HENRY'S MACHINE
+
+**Date:** 2026-09-19 · **Ticket:** [77](../tickets/77-player-progression-arms.md) Tracks B + C · tree at start `6c61a4b`, code commits `1dc712a` (Track B) and `e53198b` (Track C)
+**Conditions for every arm:** `--bands gauntlet --gym <gym> --matchup favourable`, bare arm grades (75 R2), Rally live, paired seeds, one tree.
+**Report only. Nothing has moved.** `--macros`, `--player-driver` and `--tweak root-rot-c*` are harness flags; no card, Driver number, OS, deck list, `programs.json` or `hooks.json` entry was edited.
+
+## B.0 What was built, and how each flag was proven to reach the fight
+
+Three flags, two commits, all threaded through the two functions `measureCell` actually calls — `sampleFightFor` and `batchOptionsFor` — which are new. Before this ticket `optionsThreading.test.ts` called `sampleFight` by hand with the right arguments, which tests `sampleFight` and not the arm; the `--toolbox` bug lived precisely in that gap. Each new case was run with its threading line commented out and **failed** (player-driver 1 test, macros 2 tests, root-rot knob 2 tests), then restored.
+
+| flag | what it does | where it lands | guard |
+|---|---|---|---|
+| `--macros surge3\|mixed` | `macroPolicy.ts` fires the rack through the same `FIRE_MACRO` action the screen dispatches | `BatchOptions.playerPolicy`, consulted before every player action in `runOne` | every fire passes `canFireMacro` or the policy THROWS; a reducer refusal after that throws too |
+| `--player-driver <id>` | `setup.player.drivers = [id]`; `createBattleState` applies it through the game's `applyDrivers` | `sampleFight`'s new last parameter | validated against `DRIVER_IDS` at parse AND at `sampleFightFor`; unknown id throws |
+| `--tweak root-rot-c1\|c3` | replaces `driver_root_rot`'s HOOKS in `FIRMWARE_REGISTRY` for the run | `applyRegistryTweaks`, once at script start | through `HookLibraryItemSchema`; refuses to stack on another candidate; `root-rot-c2` throws (below) |
+
+New cell-line instruments, beside Track A's: **`macros=N/fight (rule counts)`** and **`procs: player=N/fight enemy=N/fight`**, the latter counted off `DRIVER_PROC` events per side (the same event the chip flashes on; the AI's search emits none).
+
+**The macro policy is a floor on a human, as the ticket asked.** Lethal first (the real reducer run muted, so shields and Weakened count), then boss-turn-1 empties the rack (Surge → lowest pool, Cripple → highest attack, Mend → lowest %HP ally), then Mend at the start of any turn an ally is under 40%. **The rack is per CELL** — `runGate` fights each gauntlet cell from full HP and now from a full rack; `gauntletCompound` already prints itself as an UPPER BOUND for the first reason and the same applies to the second. Read the boss cell as *"three macros brought to the boss"*.
+
+**Track C's two candidates**, both proc-visible and uncapped, neither touching `onStatusApplied` so neither needs ROOT ROT's re-entry guard:
+
+- **C1 CREEPING ROT** — `onTurnEnd`, every Poisoned enemy +1 Poison. A Driver's hooks sit on every member, so "once per turn" for the SIDE is a SIDE-scoped flag reset at `onTurnStart` (DEEP CACHE's exact shape) — the mechanics of a side-level effect, not a cap. Measured in a 1v1 arena: 3 Poison → end of enemy turn → the player's tick deals **4 stacks** of damage and decays to 3 (bare: 3 then 2). The +1 lands BEFORE the victim's tick. One caveat the report must read correctly: the proc is announced when the `when` passes, before the `targetHasStatus` filter finds no Poisoned enemy, so **C1's procs/fight ≈ the boss side's turn-ends while it lives**, not stacks landed.
+- **C3 FESTERING** — `onPostDamage`, program has an ATTACK action, target already Poisoned → +1 Poison. Fires on hits, never on a Poison-only card. `onPostDamage` fires once per ACTION of a card and `actionType` is a property of the PROGRAM, so an attack card that also applies a status fires once per action — uncapped on purpose; the proc count shows it.
+
+### STOP 1 — C2 SPREADING ROT is NOT BUILT
+
+*"Whenever this side's card applies Poison, another enemy gains 1 Poison."* The hook targets are `SELF | TARGET | SOURCE | ALLIES | ENEMIES | RANDOM_ENEMY`, and `RANDOM_ENEMY` may resolve to the context target itself (`HookFactory.resolveTarget`). There is no *"a living enemy other than the target"*. Approximating with `RANDOM_ENEMY` would land the extra stack on the pile being built about a third of the time at 3v3 — the exact quadratic case the candidate exists to avoid — so, per the ticket, it was not approximated. `--tweak root-rot-c2` throws with this paragraph. Building it needs a new hook target in the engine, which is engine work for a ruling, not a knob.
+
+### STOP 2 — the bare row does NOT match research/77's, and the tree is why
+
+Research/77's Rootfall boss-cell sequence (2026-09-02, tree `6bafc12`) opens `WIN WIN WIN loss loss WIN WIN WIN WIN WIN loss loss`; today's opens `loss loss loss loss WIN WIN WIN loss loss loss WIN loss`. The tree moved under the row: **45 commits, `6bafc12..6c61a4b`**, among them card and OS changes that reach the gauntlet — `eefd078` (acid_splash to 20 power), `1c9fdf2` (overheat / stunning_strike / sleep_powder rework), `cab8ec7` (CORE_OVERCLOCK +20%/stack), `bc62e4a` (TOXIN_FANG, KINETIC_RAM ride power), `3d0552a` + `1d1f685` (ticket 151: jormungandr_v1 undertow swap, path-2 cards in the tuned decks), `4182922` (the single-candidate PRNG guard, which shifts every seed sequence after a 1-candidate draw), and `fe6a565`/`38e2fb1` (the eight Drivers). Damage and HP are also on a different scale than the 2026-09-02 rows (~600 dmg/turn against ~44) — so **no number below is comparable to research/76 or research/77 Track A**, including the *56.7 / 83.3* Track C was specified against and the *scrubber-card p = 1.00* B2 was to be paired with. Every comparison is to the day's bare on this tree, which the ticket requires anyway.
+
+## B.1 The pilot — Rootfall boss cell, n=12, six arms, one tree, paired seeds
+
+Run in a cloud container (two lanes, ~90 s/battle) to prove every arm is LIVE and to give the session a first read. **n=12 is under-powered by design; the ±5 window needs n=60 and these intervals are ±25pt.** Raw reports: `77-runs/pilot12-*.txt`.
+
+| arm | boss cell | vs bare | paired flips (→win : →loss) | McNemar p | player dmg/turn | boss dmg/turn | payoff/fight | instrument |
+|---|---|---|---|---|---|---|---|---|
+| **bare (grading)** | **4/12 = 33.3%** | — | — | — | 594 | 647 | 3.33 | — |
+| `--boss-driver off` | 11/12 = 91.7% | +58.3 | 7 : 0 | **0.016** | 752 | 461 | 3.42 | — |
+| **C1** Creeping Rot | 10/12 = 83.3% | +50.0 | 6 : 0 | **0.031** | 761 | 509 | 3.42 | 3.83 procs/fight (≈ every boss turn) |
+| **C3** Festering | 5/12 = 41.7% | +8.3 | 2 : 1 | 1.00 | 629 | 700 | 2.92 | **29.75 procs/fight** |
+| **B1b** macros `mixed` | 5/12 = 41.7% | +8.3 | 3 : 2 | 1.00 | 691 | 648 | 3.50 | 3.00 macros/fight, all `boss-turn-1`; **0 lethals in 12 fights** |
+| **B2** `driver_antivenom` | 4/12 = 33.3% | 0.0 | 1 : 1 | 1.00 | 614 | 690 | 3.08 | 1.67 procs/fight |
+
+Sequences, sample 0→11 (W/L), for the pairing: bare `LLLLWWWLLLWL` · off `WWWWWWWWLWWW` · C1 `WWWWWWWWLWWL` · C3 `LLLLWWWLWWLL` · B1b `LLWLLWWLWWLL` · B2 `LLWLWWWLLLLL`.
+
+**What the pilot can and cannot say:**
+
+1. **ROOT ROT is still the wall on this tree, and by more than research/76 measured.** Off is +58.3pt at 7:0, p = 0.016 even at n=12 (76: +26.6). Boss damage/turn falls 647 → 461 with the Driver stripped.
+2. **C1 is not a reshaped ROOT ROT; it is ROOT ROT removed.** 83.3% sits 8pt under *off* and 50pt over bare, and the two sequences differ in one battle. Its procs land every boss turn (3.83/fight over 4.8-turn fights), so it IS firing — one stack per Poisoned body per turn is simply worth almost nothing against a Poison pile the boss already builds 5–8 applications deep. Per-turn-per-body removes the quadratic term entirely.
+3. **C3 is the only candidate in the "between" band the ticket named** — 41.7% between 33.3 and 91.7 — and it fires **~30 times a fight**, because the boss trio's attacks on an already-Poisoned player body are most of its actions. Two flips to one is a null at this n; the direction is *lighter than ROOT ROT*. It is the one Track C arm worth n=60.
+4. **Three macros brought to the boss are worth ~+8pt at the boss cell, null at n=12** (3:2). Every one of the 36 fires was rule 2 on turn 1; **the lethal rule never fired in 12 fights** — a 30-power Surge against pools in the thousands is not a finisher on this tree, which is the macro sizing prior (*"~30 power ≈ 9 HP ≈ 11% of a pool"*) being off by an order of magnitude after the rescale. Player damage/turn rises 594 → 691 with the rack; the boss's is unchanged.
+5. **ANTIVENOM, the slot-free Rootfall counter, is a flat null at the boss cell** (4/12 = 4/12, 1:1), firing 1.67 times a fight. Against research/76's *scrubber*-the-card at p = 1.00 this is the same answer from the other end: **shedding one Poison a turn does not touch a fight the boss wins by rate**, whether it costs a card slot or not. So "counters must not be cards" is not what this measures — it measures that this counter does not matter in either form.
+
+## B.2 The full arms — run lines for Henry's machine
+
+Every line is one cell set, `--out` incremental (Node block-buffers stdout to a pipe; the container reclaims idle processes), n=60. Re-take the two bare rows FIRST, same day, same tree, before any arm. A bare row is ~80 min; a boss cell alone ~30 min.
+
+```
+# Bare rows — the day's grading arms (~80 min each)
+npm run balance:run-gate -- --bands gauntlet --gym gym_rootfall  --matchup favourable --iterations 60 --out research/77-runs/BC-BARE-rootfall.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_emberfall --matchup favourable --iterations 60 --out research/77-runs/BC-BARE-emberfall.txt
+
+# Track B1 — macros (4 arms, ~80 min each)
+npm run balance:run-gate -- --bands gauntlet --gym gym_rootfall  --matchup favourable --iterations 60 --macros surge3 --out research/77-runs/B1a-rootfall-surge3.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_rootfall  --matchup favourable --iterations 60 --macros mixed  --out research/77-runs/B1b-rootfall-mixed.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_emberfall --matchup favourable --iterations 60 --macros surge3 --out research/77-runs/B1a-emberfall-surge3.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_emberfall --matchup favourable --iterations 60 --macros mixed  --out research/77-runs/B1b-emberfall-mixed.txt
+
+# Track B2 — player Drivers (6 arms, ~80 min each; the element Driver is the favourable arm's lean)
+npm run balance:run-gate -- --bands gauntlet --gym gym_rootfall  --matchup favourable --iterations 60 --player-driver driver_antivenom      --out research/77-runs/B2-rootfall-antivenom.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_rootfall  --matchup favourable --iterations 60 --player-driver driver_tenth_strike   --out research/77-runs/B2-rootfall-tenth.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_rootfall  --matchup favourable --iterations 60 --player-driver driver_element_fire   --out research/77-runs/B2-rootfall-fire.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_emberfall --matchup favourable --iterations 60 --player-driver driver_antivenom      --out research/77-runs/B2-emberfall-antivenom.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_emberfall --matchup favourable --iterations 60 --player-driver driver_tenth_strike   --out research/77-runs/B2-emberfall-tenth.txt
+npm run balance:run-gate -- --bands gauntlet --gym gym_emberfall --matchup favourable --iterations 60 --player-driver driver_element_water  --out research/77-runs/B2-emberfall-water.txt
+# optional, same cells: --player-driver driver_bulwark_reflex   /   --player-driver driver_static_field
+
+# Track C — Rootfall boss cell only (~30 min each)
+npm run balance:run-gate -- --bands gauntlet --cells gauntlet:fight2 --gym gym_rootfall --matchup favourable --iterations 60 --out research/77-runs/C-BARE-rootfall-boss.txt
+npm run balance:run-gate -- --bands gauntlet --cells gauntlet:fight2 --gym gym_rootfall --matchup favourable --iterations 60 --boss-driver off      --out research/77-runs/C-OFF-rootfall-boss.txt
+npm run balance:run-gate -- --bands gauntlet --cells gauntlet:fight2 --gym gym_rootfall --matchup favourable --iterations 60 --tweak root-rot-c1   --out research/77-runs/C1-rootfall-boss.txt
+npm run balance:run-gate -- --bands gauntlet --cells gauntlet:fight2 --gym gym_rootfall --matchup favourable --iterations 60 --tweak root-rot-c3   --out research/77-runs/C3-rootfall-boss.txt
+```
+
+Total ≈ 12 × 80 min + 4 × 30 min ≈ **18 h**. Order if time is short: the two bare rows, then C3, then B1b at both gyms, then B2 tenth_strike. The `registry` stamp in the banner changes under a `--tweak root-rot-*` run (the hash covers `FIRMWARE_REGISTRY`) — that is the fingerprint working, not a mismatch.
+
+## B.3 For Henry's session — what the build and the pilot put in front of him
+
+1. **Slot-free vs slot-cost.** Track A: +3 cards = −9 to −31pt compound. Pilot, boss cell only: three macros +8.3 (3:2, null), ANTIVENOM 0.0 (1:1). The slot-free levers do not COST — that much is measured — but neither moved the boss cell at n=12. The n=60 arms decide whether +8 is real.
+2. **Antivenom-Driver vs scrubber-card, Rootfall boss.** Card (research/76, old tree): p = 1.00. Driver (pilot, this tree): 4/12 vs 4/12, 1:1. Same null from both ends; this counter is not about the slot.
+3. **Which of C1–C3 lands between bare and off.** C3 only: 41.7% between 33.3 and 91.7, 29.75 procs/fight. C1 at 83.3% is indistinguishable from *off* (one battle apart) — it removes the Driver rather than reshaping it. C2 cannot be expressed with the hook targets that exist.
+4. **Three lines, numbers only, no lever moved:** ROOT ROT off is +58.3pt at 7:0 (p = 0.016) on the current tree · C3 FESTERING is +8.3pt at 2:1 firing 30×/fight · the macro floor never found a lethal in 12 boss fights, so Surge's 30 power is not a finisher against pools of ~1,000+.
+
+## B.4 Gates and reproducing
+
+`npx tsc -b` clean · `eslint .` 0 · `npx vitest run` **179 files / 2394 tests** (was 177 / 2372) · `npx vite build` + `assert-no-debug` OK. New tests: `macroPolicy.test.ts` (8), `rootRotCandidates.test.ts` (7), `optionsThreading.test.ts` +7 (Track B 4, Track C 3). Tree at start `6c61a4b`; commits `1dc712a` (B), `e53198b` (C), plus this report.
