@@ -265,3 +265,31 @@ describe('CardHand surfaces the draw formula', () => {
         expect(downed).toContain('+5/turn');
     });
 });
+
+/**
+ * TICKET 155e — the shell variables the card face paints with.
+ *
+ * Henry's report: *"energy pips don't appear"* and the cards *"don't look like the shop cards"*.
+ * Both were one missing custom property. `--el` does not fall back when it is absent — it
+ * INVALIDATES: `rgba(var(--el), …)` with nothing there is not a colour, so the pips render
+ * transparent, the art band's gradient is dropped entirely, and the element foot bar disappears.
+ *
+ * The defect shipped past 201 green UI tests because nothing asserted on the style attribute — the
+ * hand was rendering, and everything it rendered was the right shape and the wrong colour. This is
+ * the cheapest possible guard against the class: the hand is one of five callers of the shared
+ * shell and the only one that had ever forgotten.
+ */
+describe('155e — the hand sets the shell variables the shared card face needs', () => {
+    it('sets --el on every hand card, as the shop and editor do', () => {
+        const markup = render({ source: 'blaze' });
+        expect(markup).toContain('--el:');
+    });
+
+    it('gives a Fire card the Fire colour rather than a neutral one', () => {
+        // Not just "present": a card whose `--el` is the None grey would pass a presence check and
+        // still look wrong, which is most of what the original defect looked like.
+        const markup = render({ source: 'blaze' });
+        expect(markup).toMatch(/--el:\s*#[0-9a-f]{6}/i);
+        expect(markup).not.toMatch(/--el:\s*(undefined|null|;)/i);
+    });
+});

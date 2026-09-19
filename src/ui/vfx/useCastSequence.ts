@@ -29,7 +29,7 @@
  * player would see one composite flash instead of seven plays.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -104,6 +104,33 @@ function playCast(cast: PendingCast, timers: number[]): number {
 }
 
 export function useCastSequence(battleState: IBattleState | null): void {
+    /*
+     * ── TICKET 155a — WHY THIS IS A REF AND THE EFFECT IS MOUNT-SCOPED ───────────────────────
+     *
+     * This hook shipped with `[battleState]` as its dependency, and that one array made every
+     * row of 146 dead on arrival. The sequence is worth spelling out because it fails in a way
+     * that leaves the whole suite green:
+     *
+     *   1. A card is played. The reducer emits `PROGRAM_PLAYED` SYNCHRONOUSLY inside the dispatch.
+     *   2. The handler below opens a cast window and arms `setTimeout(…, 0)` to close it at the
+     *      end of the reducer's burst.
+     *   3. The dispatch returns a NEW `battleState`. React re-renders and, because the dependency
+     *      changed, runs this effect's CLEANUP FIRST — which nulls `open`, empties the queue and
+     *      clears every timer.
+     *   4. The 0ms closure fires, sees a closed window, and drops the cast.
+     *
+     * Every play. No trail, no impact, no queued status tell — while `useBattleVfx` kept working,
+     * because it is mount-scoped with a `stateRef`, which is the pattern this now copies.
+     *
+     * The tests passed because `useImpactFeedback.test.tsx` mounted once with a constant state
+     * object and never re-rendered. A test that never does the thing the user does cannot fail the
+     * way the user does; the re-render is now part of both test files.
+     */
+    const stateRef = useRef(battleState);
+    useEffect(() => {
+        stateRef.current = battleState;
+    });
+
     useEffect(() => {
         // Read once per fight, as `useImpactFeedback` does and for the same reason.
         const gates = resolveVfxGates(loadSettings());
@@ -114,9 +141,11 @@ export function useCastSequence(battleState: IBattleState | null): void {
         let open: PendingCast | null = null;
         let busyUntil = 0;
 
-        const findEntity = (id: string): IBattleEntity | undefined =>
-            battleState?.playerParty.find((e) => e.id === id)
-            ?? battleState?.enemyParty.find((e) => e.id === id);
+        const findEntity = (id: string): IBattleEntity | undefined => {
+            const state = stateRef.current;
+            return state?.playerParty.find((e) => e.id === id)
+                ?? state?.enemyParty.find((e) => e.id === id);
+        };
 
         /** Start the next cast if nothing is playing, or schedule the attempt for when it is. */
         const pump = (): void => {
@@ -260,5 +289,7 @@ export function useCastSequence(battleState: IBattleState | null): void {
             queue.length = 0;
             open = null;
         };
-    }, [battleState]);
+        // MOUNT-SCOPED. See the note at the top of this hook: a dependency here tears the cast
+        // window down inside the dispatch that opened it.
+    }, []);
 }

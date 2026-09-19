@@ -30,8 +30,19 @@ const STATE = {
     enemyParty: [{ id: 'foe', maxHp: 100, currentHp: 100 }],
 } as unknown as IBattleState;
 
-const Harness: React.FC = () => {
-    useImpactFeedback(STATE, useAnimation());
+/**
+ * A fresh state object per render, which is what the reducer actually hands back.
+ *
+ * TICKET 155a: the version of this harness that shipped passed `STATE` — one constant object — and
+ * never re-rendered. That is why the suite was green while 146e had never once produced a hit-stop
+ * in a real fight: `[battleState]` tore the subscription down on the re-render the dispatch caused,
+ * and its cleanup cancelled the stop that the same dispatch had just requested.
+ *
+ * `nonce` exists to force a new object identity, exactly as a play does.
+ */
+const Harness: React.FC<{ nonce?: number }> = ({ nonce = 0 }) => {
+    const state = { ...STATE, __nonce: nonce } as unknown as IBattleState;
+    useImpactFeedback(state, useAnimation());
     return null;
 };
 
@@ -107,6 +118,32 @@ describe('146e — which damage earns a stop', () => {
     });
 });
 
+describe('155a — the subscription survives the render a play causes', () => {
+    it('still stops on a hit AFTER the state object has been replaced', () => {
+        /*
+         * THE REGRESSION TEST FOR THE BUG THAT MADE 146 DEAD ON ARRIVAL.
+         *
+         * A play dispatches, the reducer emits synchronously, and React re-renders with a new state
+         * object. If this hook is keyed on that object, the effect's cleanup runs between the
+         * request and the next frame and undoes it. Re-rendering BEFORE the assertion is the whole
+         * test — without it, a keyed effect passes.
+         */
+        act(() => { root.render(<Harness nonce={1} />); });
+        act(() => { root.render(<Harness nonce={2} />); });
+
+        hit('attack', 30);
+        expect(isHitStopped()).toBe(true);
+    });
+
+    it('does not cancel a stop that a re-render lands on top of', () => {
+        // The exact ordering that failed: request, then re-render, then look. The stop must still
+        // be standing — a cleanup that fires here is a cleanup that cancels its own request.
+        hit('attack', 30);
+        act(() => { root.render(<Harness nonce={3} />); });
+        expect(isHitStopped()).toBe(true);
+    });
+});
+
 describe('146e — the animations switch', () => {
     it('turns the stop off entirely, while the flash (which is vfx) stays', () => {
         // §2a: *"`animations` off → no stop, no shake; the flash stays (it is `vfx`)."* The flash
@@ -131,5 +168,32 @@ describe('146e — the animations switch', () => {
         hit('attack', 10);
         expect(spy.mock.calls.filter((c) => c[0] === SETTINGS_STORAGE_KEY)).toHaveLength(0);
         spy.mockRestore();
+    });
+});
+
+describe('155a — the deferred shake does not outlive the component', () => {
+    it('does not call framer-motion after unmount', () => {
+        /*
+         * The shake is deferred past the hit-stop, so up to 110ms separates the hit from
+         * `controls.start()`. A fight ending on the killing blow — when the stop is LONGEST — used
+         * to unmount inside that window and framer-motion threw
+         * "controls.start() should only be called after a component has mounted".
+         *
+         * An unhandled exception on the most dramatic hit in a run. It only surfaced once this file
+         * started unmounting while a stop was standing.
+         */
+        vi.useFakeTimers();
+        try {
+            hit('attack', 60);
+            expect(isHitStopped()).toBe(true);
+
+            act(() => { root.unmount(); });
+            // Re-created in afterEach's expectation; make the teardown a no-op.
+            root = createRoot(document.createElement('div'));
+
+            expect(() => vi.advanceTimersByTime(300)).not.toThrow();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

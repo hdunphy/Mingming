@@ -19,7 +19,7 @@
  * called second.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { useAnimation } from 'framer-motion';
 
 /** What `useAnimation()` returns — framer-motion stopped exporting the name. */
@@ -41,6 +41,20 @@ export function useImpactFeedback(
     battleState: IBattleState | null,
     stageControls: StageControls,
 ): void {
+    /*
+     * TICKET 155a — mount-scoped, for the reason written out in `useCastSequence`.
+     *
+     * The failure here was quieter and arguably worse. `requestHitStop` ran inside the dispatch;
+     * the re-render that dispatch caused then ran this effect's cleanup, whose `resetHitStop()`
+     * cancelled the stop in the same tick. So the shake still played — just with no pause in front
+     * of it, which is indistinguishable from the pre-146 threshold shake unless you are looking for
+     * it. 146e's whole point is the pause, and it had never once happened in a real fight.
+     */
+    const stateRef = useRef(battleState);
+    useEffect(() => {
+        stateRef.current = battleState;
+    });
+
     useEffect(() => {
         /*
          * Read ONCE per fight rather than per event. The settings cannot change mid-battle (the
@@ -49,6 +63,21 @@ export function useImpactFeedback(
          */
         const gates = resolveVfxGates(loadSettings());
         if (!gates.animations) return;
+
+        /*
+         * TICKET 155a, found by the re-render test this row added.
+         *
+         * The shake is DEFERRED past the hit-stop (146e: a shake that plays through the pause turns
+         * hit-stop into a stutter), so up to 110ms can pass between the hit and
+         * `stageControls.start()`. If the component goes away in that window — a fight ending on
+         * the killing blow, which is exactly when the stop is longest — framer-motion throws
+         * `controls.start() should only be called after a component has mounted`.
+         *
+         * An unhandled exception on the most dramatic hit in a run. It surfaced here as an
+         * unhandled error in the suite only because 155a's tests unmount while a stop is standing;
+         * nothing before them ever did.
+         */
+        let mounted = true;
 
         const unsubscribe = globalBattleEventBus.subscribe((event) => {
             if (event.type !== 'DAMAGE_TAKEN') return;
@@ -69,14 +98,15 @@ export function useImpactFeedback(
             const applied = event.damage?.applied ?? event.amount;
             if (applied <= 0) return;   // Fully absorbed: the shield float is the feedback.
 
-            const target = [...(battleState?.playerParty ?? []), ...(battleState?.enemyParty ?? [])]
+            const state = stateRef.current;
+            const target = [...(state?.playerParty ?? []), ...(state?.enemyParty ?? [])]
                 .find((e) => e.id === event.targetId);
             const maxHp = target?.maxHp ?? 0;
 
-            // `battleState` here is the snapshot from the render that installed this subscription,
-            // and events fire synchronously inside the reducer — so `currentHp` is the HP BEFORE
-            // this hit, and a hit at or past it is lethal. Same reasoning `useBattleVfx` uses for
-            // its own lethal check.
+            // The ref holds the state from the last COMMITTED render, and events fire
+            // synchronously inside the reducer — so `currentHp` is the HP BEFORE this hit, and a
+            // hit at or past it is lethal. Same reasoning `useBattleVfx` uses for its own lethal
+            // check, now reading through the same kind of ref.
             const isKill = !!target && target.currentHp > 0 && applied >= target.currentHp;
 
             requestHitStop(hitStopMsFor(applied, maxHp, isKill));
@@ -86,6 +116,7 @@ export function useImpactFeedback(
             // like it is working.
             const amplitude = shakeAmplitudeFor(applied, maxHp, isKill);
             afterHitStop(() => {
+                if (!mounted) return;
                 void stageControls.start({
                     x: shakeKeyframes(amplitude),
                     transition: { duration: SHAKE_DURATION_MS / 1000 },
@@ -94,10 +125,15 @@ export function useImpactFeedback(
         });
 
         return () => {
+            mounted = false;
             unsubscribe();
             // Leaving a fight mid-stop would otherwise strand the clock and the next battle would
-            // open frozen for up to 110ms.
+            // open frozen for up to 110ms. Safe to do here now that this only runs on UNMOUNT —
+            // when it ran on every state change it was cancelling stops it had just requested.
             resetHitStop();
         };
-    }, [battleState, stageControls]);
+        // MOUNT-SCOPED — see the note at the top of this hook. `stageControls` comes from
+        // `useAnimation()`, which returns a stable object for the life of the component, so
+        // listing it changes nothing except to document that it was considered.
+    }, [stageControls]);
 }

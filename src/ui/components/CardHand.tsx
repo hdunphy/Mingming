@@ -19,6 +19,7 @@ import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
 import HandCardFace from './HandCardFace';
 import { getElementAccent } from '../utils/contrastText';
+import { colorFor } from '../screens/runShell';
 import { playSfx } from '../audio/AudioEngine';
 // The fight draws ticket 66's ruled chassis now — same stylesheet as the shop and the editor.
 import '../screens/runShell.css';
@@ -258,6 +259,23 @@ const CardHand: React.FC<{
                                     height: FAN_CARD_H,
                                     zIndex: isSelected ? 100 : (isHovered ? 99 : index),
                                     filter: isUnplayable ? 'grayscale(0.6)' : 'none',
+                                    /*
+                                     * TICKET 155e — the one-line defect.
+                                     *
+                                     * `--el` is what the shared card shell paints with, and the
+                                     * hand was the only caller in the game that never set it.
+                                     * Undefined, it does not fall back — it invalidates: the
+                                     * energy pips are transparent (`runShell.css:193`), the art
+                                     * gradient is an invalid value so the band renders blank, and
+                                     * the element foot bar disappears. Henry's *"energy pips don't
+                                     * appear"* and *"cards don't look like the shop cards"* are
+                                     * both this, and both are this line.
+                                     *
+                                     * `colorFor` rather than `getElementAccent` because that is
+                                     * what every other `--el` caller uses (shop, editor, boundary
+                                     * alert) — the point of the row is that the hand joins them.
+                                     */
+                                    ['--el' as string]: colorFor(data.element),
                                     ...(stabAccent ? {
                                         '--stab-color': stabAccent,
                                         '--stab-glow': `${stabAccent}88`
