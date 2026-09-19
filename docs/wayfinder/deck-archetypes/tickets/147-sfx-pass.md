@@ -1,6 +1,6 @@
 # Ticket 147 — SFX pass (v2, 2026-09-12): what the genre does, what Henry owns, and the cue list that pairs with 146
 
-**Type:** audio. **Status:** REVISED for the 146 design session; sources and the pack inventory
+**Type:** audio. **Status:** ASSETS PICKED AND IN THE REPO 2026-09-19 (§8) — 147a/b/d/e ready for Legion. Earlier: REVISED for the 146 design session; sources and the pack inventory
 in §1–§3 are research, the cue table in §4 is the spec, §7 is what Henry still has to answer.
 **Relates to:** 146 (every row there has a cue here — the two tickets are built together),
 steam-release 35 (the audio pass), 145 (the top bar's volume slider). **Branch:** current working
@@ -194,3 +194,70 @@ sounds (the genre says no). Ambience beds (later, with biome art).
 ---
 
 Sources: [Unity — Can I use assets from the Asset Store with other engines?](https://support.unity.com/hc/en-us/articles/34387186019988-Can-I-use-assets-from-the-Asset-Store-with-other-engines) · [Unity Asset Store EULA FAQ](https://assetstore.unity.com/browse/eula-faq) · [Sonniss GDC 2026 Game Audio Bundle](https://gdc.sonniss.com/) · [Sonniss GameAudioGDC archive](https://sonniss.com/gameaudiogdc/) · [Slay the Spire modding audio README (jorbs-spire-mod)](https://github.com/dbjorge/jorbs-spire-mod/blob/master/src/main/resources/stsjorbsmodResources/audio/README.md) · [STS beta forum — SFX for card draw](https://steamcommunity.com/app/646570/discussions/4/2590022385672942037/) · [Epic Stock Media — AAA Card Game SFX kit](https://epicstockmedia.com/product/card-game/) · [Pokémon damage sounds (Soundeffects Wiki)](https://soundeffects.fandom.com/wiki/Pok%C3%A9mon_Not_Very_Effective_Damage) · [itch.io card-game sound effects tag](https://itch.io/game-assets/tag-card-game/tag-sound-effects)
+
+## 8. PICKED 2026-09-19 — the assets are in the repo; 147c is done, 147a/147d are Legion's
+
+Henry chose every cue over four sampler rounds (`_sfx/` on his machine holds the packs and the
+cutter scripts `sampler_r1..r4.py`, `sfx_finalize.py`; the sampler pages are the artifact "Mingming
+SFX Sampler"). **61 files in `public/sfx/*.mp3`, 674 KB total, none over 18 KB**, mono 96 kbps
+peak −1 dBFS, ≤1.4 s; `public/sfx/manifest.json` (cue → file, bytes, seconds) and
+`docs/audio/SOURCES.md` (cue → pack file(s), layered clips list each layer). MP3 not OGG: Web
+Audio decodes MP3 on every engine (Vorbis is missing in Safari), and the first OGG cut carried a
+stray video stream from embedded cover art — not worth the risk for 600 KB.
+
+**Rulings that changed the cue list (§4 is superseded where they differ):**
+- Effectiveness is **normal / super-effective only** (the game has no "not very effective"); STAB is
+  not a sound — it shows up as damage size through `hitBig` and pitch-by-magnitude. Ladder:
+  `impactNormal` (Realistic Punch 1) → `impactSuper` (Heavy Game Punch 1) → `hitBig` layered under
+  either on a ≥35% hit (Heavy Game Punch 1 + EMP).
+- **Element also rides the impact** as an option: `impactFire` / `impactWater` / `impactNature`
+  exist (Fighting Sounds Pro element punches). 147d wires them *instead of* `impactNormal` when the
+  attack's element is one of the three and the effectiveness is normal; super-effective always
+  plays `impactSuper`. Henry can flip that rule after hearing it.
+- **Shields are three moments + two raises:** `sharpRaise` (Armor On), `barkRaise` (Shield block),
+  `absorbedNoDamage` (a hit fully absorbed), `blockedByBark` (bark took the hit), `barkBreak` (the
+  hit broke through the bark).
+- `poisonTick` is a soft thud + bubbles; `burnTick` a sizzle; neither is an impact (no hit-stop).
+- `kill` is a **power-down** (EMP), not a scream — they are robots.
+- **OS tells: one per Early Access OS**, named `os_<species>_<OS>`; every other OS uses the family
+  default (146g) with `daemonProc` as the placeholder blip. Daemons: `daemonProc` for all for now —
+  **note for later: one per daemon.** SOLAR_OVERDRIVE (a passive) fires its tell on each Fire attack
+  the multiplier lands on.
+- **Species cries: yes, all sixteen** — on entry and on death; the three undead are distinct
+  (`cry_hel` ghost, `cry_draugr` zombie, `cry_valkyrie` warrior voice).
+- Dropped: `enemyTurn` (turnStart/turnEnd carry the beat), `cardHover` stays, `lowHp`/`victory`/
+  `defeat` stay synthesized.
+
+**The cue list as shipped** (`public/sfx/<cue>.mp3`):
+- *Card lifecycle:* `cardHover`, `cardSelect`, `cardFly`, `cardDraw`, `cardDiscard`, `shuffle`
+- *Casts:* `castFire`, `castWater`, `castNature`, `castNone`
+- *Impacts:* `impactNormal`, `impactSuper`, `hitBig`, `kill`, `impactFire`, `impactWater`, `impactNature`
+- *Status and shields:* `buffUp`, `debuffDown`, `statusOff`, `poisonTick`, `burnTick`, `sharpRaise`, `barkRaise`, `absorbedNoDamage`, `blockedByBark`, `barkBreak`, `recoil`
+- *OS / daemon tells:* `os_fenrir_CINDER_WALL`, `os_fenrir_UNBOUND_KERNEL`, `os_huldra_ALLURE_PROXY`, `os_huldra_BARK_SHIELD`, `os_jormungandr_OUROBOROS`, `os_jormungandr_TOXIN_FANG`, `os_kraken_ABYSSAL_INK`, `os_kraken_TIDAL_CRUSH`, `os_ratatoskr_GOSSIP_NODE`, `os_ratatoskr_INSTIGATOR`, `os_skoll_SOLAR_OVERDRIVE`, `os_skoll_TREACHERY_KERNEL`, `daemonProc`
+- *Beats:* `turnStart`, `turnEnd`, `energyGain`, `gymIntro`
+- *Cries:* `cry_audhumbla`, `cry_draugr`, `cry_fafnir`, `cry_fenrir`, `cry_gullinbursti`, `cry_hel`, `cry_hraesvelgr`, `cry_huldra`, `cry_jormungandr`, `cry_kraken`, `cry_nidhoggr`, `cry_ratatoskr`, `cry_skoll`, `cry_sleipnir`, `cry_valkyrie`, `cry_ymir`
+
+**147a — sample playback (Legion).** `registerSample(name, url)` → decode once via
+`AudioContext.decodeAudioData` into a buffer cache; `playSfx(name, {pitch, gain})` plays the buffer
+through the existing master bus (gain → compressor), falling back to the synth recipe when the
+manifest has no entry or the fetch fails — never silence. Load lazily on first battle, in the
+background, from `public/sfx/manifest.json`; the synth covers the first fight if the fetch is slow.
+`SfxName` becomes the union of the recipe names and the manifest keys; a test asserts every
+manifest key is a `SfxName` and every file exists and is ≤ 60 KB.
+
+**147b — mixing** as §5 (rate limit 60 ms, ducking under `hitBig`/`kill`/`victory`/`defeat`,
+pitch by magnitude on impacts and by stacks on ticks, `cardSelect` +1 semitone per card played
+this turn, `DynamicsCompressor` limiter, the *combat sounds* switch beside the SFX slider).
+
+**147d — wiring** (paired with the 146 rows): `PROGRAM_PLAYED` → `cardFly` (player) / `enemyCast`
+(reuse `cardFly` pitched −3 st) then `cast<Element>` at trail start; `DAMAGE_TAKEN cause:attack`
+→ impact per the ladder above (+`hitBig` layer at ≥35%), `cause:status` → `poisonTick`/`burnTick`,
+`cause:recoil|toll` → `recoil`; fully absorbed → `absorbedNoDamage`; bark absorbed → `blockedByBark`;
+bark broken → `barkBreak`; `STATUS_APPLIED` → `buffUp`/`debuffDown` (Sharp → `sharpRaise`,
+BarkShield → `barkRaise`), `STATUS_REMOVED` → `statusOff`; `HOOK_FIRED` → `os_<id>` if present else
+`daemonProc`; HP → 0 → `kill` then the species cry; battle start → each body's cry 120 ms apart;
+`TURN_START/END` (player) → `turnStart`/`turnEnd`; Energized/EP → `energyGain`; gauntlet →
+`gymIntro`; draw/shuffle/discard/hover/select as named.
+
+**147e — write-back** as §5: the 20-second capture, and Henry's three ear-tests (super vs normal
+eyes closed; a Poison tick vs a hit; an OS firing).
