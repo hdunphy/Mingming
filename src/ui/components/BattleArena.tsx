@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { type RootState } from '../store/store';
-import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import BattleStage from './BattleStage';
@@ -58,6 +57,8 @@ import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { useImpactFeedback } from '../vfx/useImpactFeedback';
 import { useCastSequence } from '../vfx/useCastSequence';
+import { useViewportSize } from '../hooks/useStageAnchors';
+import { consoleHeightAt } from './stageGeometry';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -223,6 +224,9 @@ const BattleArena: React.FC = () => {
      * `PlayedCardReveal`'s, because the card is a React element and these are particles.
      */
     useCastSequence(battleState);
+
+    // 155b: the console's height, published as a custom property — see the note on the root below.
+    const viewport = useViewportSize();
 
     const prevSideRef = useRef(battleState?.activeSide);
     // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect
@@ -1070,79 +1074,32 @@ const BattleArena: React.FC = () => {
         }
     };
 
-/**
- * TICKET 145b — THE HUD COLUMNS ARE OFF.
+/*
+ * THE LEGACY HUD COLUMNS ARE GONE — ticket 155, deep dive 7.
  *
- * The stagger stage puts every unit on the board with its own plaque, so the two sidebar columns
- * of `MingmingUnit` cards were a second, worse copy of the same information — and §1 lists the old
- * battle card chassis among the things Henry rejected outright.
+ * `SHOW_LEGACY_HUD_COLUMNS` was `false` and kept "for one release" so the sidebar columns could be
+ * put back if 145's plaque turned out to be too small for the preview in play. Four tickets and a
+ * playtest later the plaque carries the firmware chip, the daemon tags and the preview, Henry has
+ * ruled on all three, and nobody has reached for the flag — so the flag, `renderParty` and the
+ * `.party-column` rules it drew are deleted.
  *
- * 145a left them on because the plaque did not yet carry everything the card did. 145b's first
- * pass moved the statuses; it still owed the FIRMWARE chip, the DAEMON tags and the card PREVIEW,
- * which ticket 145's mock gives no home to. I shipped that pass with the flag still on and put the
- * gap to Henry rather than dropping three live readouts for a layout. He ruled: *"We need to
- * include those three things."* They are on the plaque now (`UnitReadouts`), rendered from the
- * same components the card used, so this can finally go false.
- *
- * Kept as a constant for one release rather than deleted outright: if the plaque turns out to be
- * too small for the preview in play, this is the one line that puts the columns back while that is
- * worked out. Delete it, `renderParty`, and `MingmingUnit`'s battle-screen usage after that.
- * `MingmingUnit` itself stays either way — the ranch and the workshop draw the same card.
+ * `MingmingUnit` itself stays: the ranch and the workshop draw the same card.
  */
-const SHOW_LEGACY_HUD_COLUMNS = false;
-    const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
-        <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
-            {party.map((entity, index) => {
-                const isSelected = selectedSourceId === entity.id;
-                const isTargeted = selectedTargetId === entity.id;
-                const isDead = entity.currentHp <= 0;
-
-                if (!entity.id) {
-                    console.warn(`[BattleArena] Entity at index ${index} (isEnemy: ${isEnemy}) has an empty ID!`);
-                }
-                const entityKey = entity.id || `entity-${isEnemy ? 'enemy' : 'player'}-${index}`;
-
-                const translateX = 0;
-
-                return (
-                    <motion.div
-                        key={entityKey}
-                        initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
-                        animate={{ opacity: isDead ? 0.55 : 1, x: translateX, scale: isDead ? 0.96 : 1 }}
-                        transition={{ delay: index * 0.1, type: 'spring' }}
-                        // Pointer events must stay 'auto' even for dead units,
-                        // so they can correctly receive the 'onPointerUp' to clear targeting state.
-                        // Desaturation of dead units lives on .hud-dead (inside the card),
-                        // so the TERMINATED stamp keeps its neon red.
-                        style={{ pointerEvents: 'auto' }}
-                        onMouseEnter={() => {
-                            if (isTargeting) setHoveredEntityId(entity.id);
-                        }}
-                        onMouseLeave={() => {
-                            if (hoveredEntityId === entity.id) setHoveredEntityId(null);
-                        }}
-                        onPointerUp={() => handleEntityPointerUp(entity, isEnemy)}
-                    >
-                        <MingmingUnit
-                            entity={entity}
-                            isEnemy={isEnemy}
-                            isSelected={isSelected}
-                            isTargeted={isTargeted}
-                            fx={vfx.unitFx[entity.id]}
-                            battleState={battleState}
-                            selectedCardId={selectedCardId}
-                            selectedSourceId={selectedSourceId}
-                            isHoveredTarget={hoveredEntityId === entity.id}
-                            onClick={() => handleEntityClick(entity, isEnemy)}
-                        />
-                    </motion.div>
-                );
-            })}
-        </div>
-    );
 
     return (
         <div className="battle-screen"
+            /*
+             * TICKET 155b — ONE CONSOLE HEIGHT, PUBLISHED.
+             *
+             * `--console-h` is `CONSOLE_H × scale`, the SAME number `place()` subtracts when it
+             * lays out the stage. The band used to be `flex: 0 0 265px` with an automatic minimum,
+             * so it grew to whatever the hand needed (~390px) while the geometry still assumed 210
+             * — and the stage lost 180px it did not know about, which is why the third ally and
+             * third enemy were off-screen at every viewport.
+             *
+             * Published from here rather than read in CSS because only JavaScript knows the scale.
+             */
+            style={{ ['--console-h' as string]: `${consoleHeightAt(viewport.width, viewport.height)}px` }}
             onPointerMove={(e) => {
                 if (isTargeting && selectedCardId) {
                     setDragPoint({ x: e.clientX, y: e.clientY });
@@ -1152,6 +1109,16 @@ const SHOW_LEGACY_HUD_COLUMNS = false;
                 setIsTargeting(false);
                 setDragPoint(null);
                 setOriginPoint(null);
+                /*
+                 * TICKET 155, DEEP DIVE 7 — and it is a leak, not dead code.
+                 *
+                 * `CardHand` takes an `onTargetingEnd` prop that it never destructures, so the
+                 * handler below it — the one that clears this — has never run. Every other piece
+                 * of drag state was reset here and `hoveredEntityId` was not, so the last unit the
+                 * pointer crossed stayed "hovered" after the drop: its preview kept rendering, and
+                 * `BattleStage` kept simulating a cast at it on every frame the hand re-rendered.
+                 */
+                setHoveredEntityId(null);
             }}
         >
             {/*
@@ -1163,7 +1130,13 @@ const SHOW_LEGACY_HUD_COLUMNS = false;
               * columns at some widths and each other at others — because nothing owned the strip.
               * `BattleTopBar` owns it, and every one of those readouts survived the move.
               */}
-            <BattleTopBar battleState={battleState} onOpenLog={() => setLogOpen(true)} />
+            <BattleTopBar
+                battleState={battleState}
+                onOpenLog={() => setLogOpen(true)}
+                // 155 deep dive 3: the gear was decorative. A fight is exactly where a player
+                // reaches for 146a's motion switches.
+                onOpenSettings={() => dispatch(openSettings())}
+            />
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
                 {isVictory && !showReport && (
@@ -1235,11 +1208,9 @@ const SHOW_LEGACY_HUD_COLUMNS = false;
                   */}
                 <PlayedCardReveal played={vfx.playedCard} />
 
-                {SHOW_LEGACY_HUD_COLUMNS && renderParty(battleState.playerParty, false)}
 
                 <CombatLog isOpen={logOpen} onOpenChange={setLogOpen} />
 
-                {SHOW_LEGACY_HUD_COLUMNS && renderParty(battleState.enemyParty, true)}
             </motion.div>
 
             <div
@@ -1279,12 +1250,6 @@ const SHOW_LEGACY_HUD_COLUMNS = false;
                     onTargetingStart={(point) => {
                         setOriginPoint(point);
                         setIsTargeting(true);
-                    }}
-                    onTargetingEnd={() => {
-                        setIsTargeting(false);
-                        setDragPoint(null);
-                        setOriginPoint(null);
-                        setHoveredEntityId(null);
                     }}
                 />
               </div>

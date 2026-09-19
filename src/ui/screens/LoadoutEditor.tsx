@@ -133,7 +133,9 @@ export default function LoadoutEditor({
     const [element, setElement] = useState<ElementFilter>('ALL');
     const [type, setType] = useState<TypeFilter>('ALL');
     /** The deck row under the pointer (or keyboard focus), and where to hang its tile. */
-    const [peek, setPeek] = useState<{ stack: Stack; top: number } | null>(null);
+    // 155h: just the stack. The row's viewport `top` went with `position: fixed` — the peek
+    // renders under the rows now and has nothing to align to.
+    const [peek, setPeek] = useState<{ stack: Stack } | null>(null);
     const [sort, setSort] = useState<Sort>('COST');
     const [search, setSearch] = useState('');
     /** The benched member awaiting a party slot to swap into. Null is the ordinary state. */
@@ -358,25 +360,6 @@ export default function LoadoutEditor({
 
                 <div className="rs-panel led-deck">
                     <h2>ACTIVE DECK · {run.deck.length} / floor {floor}</h2>
-                    {/*
-                      * The peek. Fixed-positioned and anchored to the row's own top, so it tracks
-                      * the list rather than the pointer - a tile that chases the cursor is unusable
-                      * at 255px tall. `pointer-events: none` so it can never eat the click that
-                      * sends the card back.
-                      */}
-                    {peek && (
-                        <div
-                            className="rs-card led-peek"
-                            style={{ ['--el' as string]: colorFor(peek.stack.element), top: peek.top } as React.CSSProperties}
-                            aria-hidden="true"
-                        >
-                            <CardTileFace
-                                face={peek.stack}
-                                count={peek.stack.instances.length}
-                                tags={peek.stack.tags}
-                            />
-                        </div>
-                    )}
 
                     <div className="led-rows">
                         {deckStacks
@@ -411,8 +394,8 @@ export default function LoadoutEditor({
                                      * every internal crossing. `relatedTarget` inside the row means
                                      * the pointer never left it.
                                      */
-                                    onMouseOver={(e) => setPeek({ stack, top: e.currentTarget.getBoundingClientRect().top })}
-                                    onFocus={(e) => setPeek({ stack, top: e.currentTarget.getBoundingClientRect().top })}
+                                    onMouseOver={() => setPeek({ stack })}
+                                    onFocus={() => setPeek({ stack })}
                                     onMouseOut={(e) => {
                                         const to = e.relatedTarget as Node | null;
                                         if (to && e.currentTarget.contains(to)) return;
@@ -428,6 +411,34 @@ export default function LoadoutEditor({
                                 </button>
                             ))}
                     </div>
+                    {/*
+                      * TICKET 155h — THE PEEK LIVES IN THE PANEL.
+                      *
+                      * It used to be `position: fixed`, offset from the viewport's centre and
+                      * tuned at 1280 — so at any wider window it drifted into the middle of the
+                      * grid. Henry: *"Edit Loadout hover shows in the middle of the screen"*, and
+                      * *in the side panel* is where he asked for it.
+                      *
+                      * Now it renders UNDER the rows as an ordinary block, which is beside the
+                      * deck at every width by construction. No `top` either: it no longer tracks
+                      * the row, because it no longer needs to find it.
+                      *
+                      * `pointer-events: none` stays — it must never eat the click that sends the
+                      * card back.
+                      */}
+                    {peek && (
+                        <div
+                            className="rs-card led-peek"
+                            style={{ ['--el' as string]: colorFor(peek.stack.element) } as React.CSSProperties}
+                            aria-hidden="true"
+                        >
+                            <CardTileFace
+                                face={peek.stack}
+                                count={peek.stack.instances.length}
+                                tags={peek.stack.tags}
+                            />
+                        </div>
+                    )}
                     <p className="rs-hint led-foot">
                         {atFloor
                             ? `At the floor — ${floor} is what your party itself brings. Bench a member or add cards before removing any.`

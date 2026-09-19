@@ -15,7 +15,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { describeLegalTargets, isValidCardTarget, legalSides, targetVerdict } from './targeting';
+import { describeLegalTargets, shortTargetLabel, isValidCardTarget, legalSides, targetVerdict } from './targeting';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import type { Element, IBattleEntity, ProgramData } from '../../engine/types';
 
@@ -74,7 +74,29 @@ describe('the legend says where a card may land, in words rather than in schema'
     it('names the reach for each shape', () => {
         expect(describeLegalTargets(ENEMY_ONLY)).toBe('ONE ENEMY');
         expect(describeLegalTargets(SELF_ONLY)).toBe('SELF');
-        expect(describeLegalTargets({ ...ENEMY_ONLY, target: 'All' } as ProgramData)).toBe('ANY LIVING UNIT');
+        /*
+         * TICKET 155g. An unrestricted ATTACK used to read *"ANY LIVING UNIT"* — true, and it left
+         * a player wondering why they would ever aim a damage card at their own team. It now names
+         * the side the card is FOR and puts the other in parentheses.
+         *
+         * A non-damaging card with the same reach keeps the old phrase, because for a cleanse or a
+         * buff "any living unit" is exactly the right thing to say.
+         */
+        const unrestrictedAttack = { ...ENEMY_ONLY, target: 'All' } as ProgramData;
+        expect(describeLegalTargets(unrestrictedAttack)).toBe('ONE ENEMY (OR AN ALLY)');
+
+        const unrestrictedSupport = { ...unrestrictedAttack, actions: [] } as ProgramData;
+        expect(describeLegalTargets(unrestrictedSupport)).toBe('ANY LIVING UNIT');
+    });
+
+    it('has a short form for the card tag, because 140px is not a sentence', () => {
+        // The long phrase squeezed "Battle Rhythm" down to "Batt Rhyt" on the live hand. The tag
+        // says which side; the tooltip says the rest.
+        expect(shortTargetLabel(ENEMY_ONLY)).toBe('ENEMY');
+        expect(shortTargetLabel(SELF_ONLY)).toBe('SELF');
+        for (const data of [ENEMY_ONLY, SELF_ONLY]) {
+            expect(shortTargetLabel(data).length).toBeLessThanOrEqual(8);
+        }
     });
 
     it('is derived from the predicate, so it can never promise a target the game refuses', () => {

@@ -160,12 +160,20 @@ describe('CardHand reads for the SELECTED CASTER', () => {
         expect(fireCaster).toBeGreaterThan(waterCaster);
     });
 
-    it('shows the ×1.5 STAB signal only for the caster it applies to', () => {
-        // Matched on the pip's own class rather than on the string "×1.5": the SUPER EFFECTIVE chip
-        // legitimately prints the same multiplier, and an assertion that cannot tell the two apart
-        // would pass on a hand that had lost STAB entirely.
-        expect(render({ source: 'blaze' })).toContain('card-stab-pip');
-        expect(render({ source: 'trickle' })).not.toContain('card-stab-pip');
+    it('shows the STAB signal only for the caster it applies to', () => {
+        /*
+         * Matched on `--stab-color` rather than on the string "×1.5": the SUPER chip legitimately
+         * prints the same multiplier, and an assertion that cannot tell the two apart would pass on
+         * a hand that had lost STAB entirely.
+         *
+         * TICKET 155e moved what this matches. It used to be `card-stab-pip`, the class on a `×1.5`
+         * pip printed on the face — which ticket 66 had already ruled out and which had grown back.
+         * The cue is the element GLOW on the card wrapper, set from `--stab-color`, so that is what
+         * the test reads now. The requirement is unchanged: this caster gets the signal, that one
+         * does not.
+         */
+        expect(render({ source: 'blaze' })).toContain('--stab-color');
+        expect(render({ source: 'trickle' })).not.toContain('--stab-color');
     });
 
     it('shows the element matchup against the enemy the numbers are quoted for', () => {
@@ -242,8 +250,14 @@ describe('CardHand reads for the SELECTED CASTER', () => {
 describe('CardHand names where a card may land', () => {
     it('replaces the raw TargetType enum with a phrase about where the card may land', () => {
         const markup = render({ source: 'blaze' });
-        expect(markup).toContain('ONE ENEMY');
+        // TICKET 155e: the card carries the SHORT form as a tag on the name row — the long phrase
+        // is two thirds of a 140px card's width and squeezed the names. The tooltip below still
+        // spells it out, which the next assertion checks.
+        expect(markup).toContain('ENEMY');
         expect(markup).not.toContain('>Single<');
+        // The long phrase lives in the hover tooltip, which `renderToStaticMarkup` does not open —
+        // `targeting.test.ts` is where the phrasing itself is asserted.
+        expect(markup).not.toContain('ANY LIVING UNIT');
     });
 });
 
@@ -291,5 +305,52 @@ describe('155e — the hand sets the shell variables the shared card face needs'
         const markup = render({ source: 'blaze' });
         expect(markup).toMatch(/--el:\s*#[0-9a-f]{6}/i);
         expect(markup).not.toMatch(/--el:\s*(undefined|null|;)/i);
+    });
+});
+
+/**
+ * TICKET 155 §3.10 — the guards that make this class of defect fail a test rather than a playtest.
+ *
+ * Every defect in 155 shipped past 201 green UI tests. What they had in common is that they were
+ * about what the markup CARRIES — a custom property, a role, an action name — rather than about
+ * what it computes, and nothing was looking there.
+ */
+describe('155 §3.10 — the markup carries what the player needs', () => {
+    it('makes every hand card a control, not a div', () => {
+        // Deep dive 8: no role, no tab stop, no keyboard path — so Tab skipped the entire hand,
+        // on a screen whose own hotkey strip advertises `1-9 SELECT CARD`.
+        const markup = render({ source: 'blaze' });
+        expect(markup).toContain('role="button"');
+        expect(markup).toContain('tabindex="0"');
+        expect(markup).toContain('aria-label');
+    });
+
+    it('never prints a raw ActionType where a sentence belongs', () => {
+        /*
+         * 155g: `formatAction` switched on `APPLY_STATUS`, `REMOVE_STATUS` and `ADD_ENERGY`, none
+         * of which are in `ActionType`. Every status card fell to `default: return action.type` and
+         * rendered "STATUS STATUS STATUS" — Henry's screenshot. The `as string` cast above the
+         * switch is what stopped the compiler saying so.
+         *
+         * The REAL guard is now a `never` check in that default case: a new `ActionType` breaks the
+         * build rather than shipping a card that explains itself as its own enum. This is the
+         * runtime half, and it is deliberately narrow — the tooltip only renders on hover, so what
+         * is checked here is the markup that IS rendered. `DRAW` and `DISCARD` are excluded because
+         * the pile labels legitimately print those words.
+         */
+        const markup = render({ source: 'blaze' });
+        for (const raw of ['>STATUS<', '>ENERGY<', '>CLEANSE<', '>TAUNT<', '>EXHAUST<']) {
+            expect(markup).not.toContain(raw);
+        }
+    });
+
+    it('does not open a requirements section with nothing in it', () => {
+        // 155g: `formatConstraint` returned '' for BASE while the section still counted the row,
+        // so a card blocked only on energy rendered an "⚠ REQUIREMENTS" header over empty space.
+        const markup = render({ source: 'blaze' });
+        const header = markup.indexOf('Requirements');
+        if (header >= 0) {
+            expect(markup.slice(header, header + 400)).toContain('tooltip-constraint');
+        }
     });
 });

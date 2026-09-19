@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import {
     ACTIVE_STEP, CONSOLE_H, PLAQUE_W, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, ROW_PITCH,
     SPRITE_H, SPRITE_MAX_W, SPRITE_W, STAGE_H, TOP_BAR_H,
-    place, plaqueRect, spriteRect, stageScale, spriteWidthAt,
+    consoleHeightAt, place, plaqueRect, spriteRect, stageScale, spriteWidthAt,
 } from './stageGeometry';
 
 /** Straight off the mock's final frame. ally 1 is the active one there, which is why it is at 330. */
@@ -136,5 +136,56 @@ describe('145a — §3: an anchor does not move for a reason 146 cannot see', ()
         const enemyEdge = spriteRect('enemy', 0).x;
         expect(REVEAL_RECT.x).toBeGreaterThan(allyEdge);
         expect(REVEAL_RECT.x + REVEAL_RECT.w).toBeLessThan(enemyEdge);
+    });
+});
+
+/**
+ * TICKET 155b — THE BAND AND THE BOARD AGREE.
+ *
+ * Henry, 2026-09-19: *"the hand takes up too much space"*, and the third ally and third enemy were
+ * off-screen at every viewport. The cause was two numbers for one thing: `.console-area` was
+ * content-sized and grew to ~390px, while this module subtracted a flat `CONSOLE_H` of 210. The
+ * stage believed it had 180px it did not have and drew row three below the fold.
+ *
+ * These are the tests that make that unrepeatable. They are stated as "every slot is inside the
+ * band", not as pixel values, because the failure was never a wrong pixel — it was a disagreement,
+ * and a disagreement shows up as something falling outside something else.
+ */
+describe('155b — every slot fits the band the console leaves', () => {
+    const VIEWPORTS: Array<[number, number]> = [[1280, 800], [1920, 1080], [1366, 768], [1600, 900]];
+
+    it.each(VIEWPORTS)('all six sprites are on screen at %ix%i', (width, height) => {
+        const scale = stageScale(width, height);
+        const consoleTop = height - consoleHeightAt(width, height);
+
+        for (const side of ['ally', 'enemy'] as const) {
+            for (let index = 0; index < 3; index += 1) {
+                const slot = place(spriteRect(side, index), width, height);
+                expect(slot.y).toBeGreaterThanOrEqual(TOP_BAR_H - 1);
+                // The whole sprite, not just its top edge — a unit whose feet are under the hand is
+                // as unusable as one that never drew.
+                expect(slot.y + slot.h).toBeLessThanOrEqual(consoleTop + 1);
+            }
+        }
+        expect(scale).toBeGreaterThan(0);
+    });
+
+    it('publishes the same console height it subtracts', () => {
+        // The one-number property. `BattleArena` writes this into `--console-h` and `place()`
+        // subtracts it; if they ever came from different expressions the board would drift again.
+        for (const [width, height] of VIEWPORTS) {
+            expect(consoleHeightAt(width, height)).toBeCloseTo(CONSOLE_H * stageScale(width, height), 6);
+        }
+    });
+
+    it('still returns exactly 1 at the mock, so the composition is unchanged there', () => {
+        // The property the rest of this file pins. The band arithmetic moved; the mock did not.
+        expect(stageScale(REF_WIDTH, REF_HEIGHT)).toBeCloseTo(1, 6);
+    });
+
+    it('leaves the console a real share of a short window rather than collapsing it', () => {
+        // A 768px laptop is the tightest common case. The console must still be able to hold a
+        // card: below about 150px the fan has nowhere to go and the piles overlap it.
+        expect(consoleHeightAt(1366, 768)).toBeGreaterThan(150);
     });
 });

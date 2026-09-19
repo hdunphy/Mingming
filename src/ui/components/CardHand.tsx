@@ -2,11 +2,23 @@ import React, { useState, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
-import type { ProgramAction, ProgramConstraint } from '../../engine/types';
+import type { IBattleEntity, ProgramAction, ProgramConstraint } from '../../engine/types';
 import { selectCard, endTurn } from '../store/battleSlice';
 import {
-    FAN_CARD_H, FAN_CARD_W, FAN_SELECTED_LIFT, FAN_TRANSFORM_ORIGIN, fanCard,
+    FAN_SELECTED_LIFT, FAN_TRANSFORM_ORIGIN, fanCard, fanCardSize, fanOverlapFor,
 } from './fanGeometry';
+import { stageScale } from './stageGeometry';
+import { loadSettings, resolveVfxGates } from '../settings/settings';
+import { useViewportSize } from '../hooks/useStageAnchors';
+
+/**
+ * The width one pile column occupies at scale 1 — the card back (58) plus its slack.
+ *
+ * Stated here rather than measured: `useStageAnchors` publishes rects for the STAGE and the console
+ * owns its own layout, so the fan's share of the row is arithmetic on a known column rather than a
+ * DOM read that would move the moment a count grew a digit.
+ */
+const PILE_COLUMN_PX = 96;
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getEffectiveCardCost } from '../../engine/battleReducer';
 import { executeCostCalculated } from '../../engine/resolutionEngine';
@@ -41,10 +53,21 @@ import '../screens/runShell.css';
  * target. Two numbers that never claimed to be the same one.
  */
 const formatAction = (action: ProgramAction): string => {
-    // Widened for the switch only: three of the cases below name action types that are not in
-    // `ActionType` but can still turn up in hand-authored JSON, and dropping them would change
-    // what those rows render.
-    switch (action.type as string) {
+    /*
+     * ── TICKET 155g — WRITTEN AGAINST THE REAL UNION ────────────────────────────────────────
+     *
+     * Henry, 2026-09-19: *"tooltips are not very helpful"*, with a screenshot reading
+     * "STATUS STATUS STATUS".
+     *
+     * This switched on `APPLY_STATUS`, `REMOVE_STATUS` and `ADD_ENERGY` — three names that are not
+     * in `ActionType` and never have been. The real ones are `STATUS`, `CLEANSE` and `ENERGY`, so
+     * every status card fell through to `default: return action.type` and printed the enum. The
+     * `as string` cast above the switch is what hid it: it widened the discriminant so TypeScript
+     * could not tell anyone the cases were unreachable. It is gone, and the `never` check at the
+     * bottom means a new `ActionType` is a compile error here rather than a card that explains
+     * itself as "TAUNT".
+     */
+    switch (action.type) {
         case 'ATTACK': {
             const hits = Math.max(1, action.count ?? 1);
             const p = typeof action.power === 'number' ? `${action.power} power` : 'Damage';
@@ -53,31 +76,86 @@ const formatAction = (action: ProgramAction): string => {
         }
         case 'HEAL':
             return typeof action.power === 'number' ? `💚 Heals with ${action.power} power` : '💚 Restores HP';
-        case 'APPLY_STATUS':
-            return `✦ ${action.status} ×${action.stacks || 1}`;
+        case 'STATUS': {
+            // The headline case, and the one that printed "STATUS". Says what lands, how much of
+            // it, and on whom — the three things a player is asking.
+            const stacks = action.stacks ?? 1;
+            const where = action.target === 'SELF' ? 'the caster'
+                : action.target === 'Side' || action.target === 'SIDE' ? 'their whole side'
+                : action.target === 'All' || action.target === 'ALL' ? 'everyone'
+                : 'the target';
+            return `✦ ${stacks}× ${action.status} → ${where}`;
+        }
+        case 'CLEANSE':
+            return `✖ Clears ${action.status ? String(action.status) : 'every status'}`;
+        case 'ENERGY':
+            return `⚡ ${(action.amount ?? 0) >= 0 ? '+' : ''}${action.amount ?? 0} Energy`;
         case 'DRAW':
-            return `🃏 Draw ${action.count || 1}`;
-        case 'REMOVE_STATUS':
-            return `✖ Remove ${action.status || 'all'}`;
-        case 'ADD_ENERGY':
-            return `⚡ +${action.amount} Energy`;
+            return `🃏 Draw ${action.count ?? 1}`;
+        case 'DISCARD':
+            return `🗑 Discard ${action.count ?? 1}`;
+        case 'FORCE_DISCARD':
+            return `🗑 The target discards ${action.count ?? 1}`;
+        case 'EXHAUST':
+            return `🔥 Exhausts ${action.count ?? 1} — gone for the fight`;
+        case 'RETURN':
+            return `↩ Returns ${action.count ?? 1} from the discard`;
+        case 'SEARCH':
+            return `🔍 Search the deck for a card`;
+        case 'GENERATE_CARD':
+            return `✨ Adds a card to your hand`;
+        case 'MULTIPLY_STATUS':
+            return `✦✦ Doubles ${action.status ? String(action.status) : 'a status'} on the target`;
+        case 'TRIGGER_STATUS':
+            return `⏱ Makes ${action.status ? String(action.status) : 'a status'} tick now`;
+        case 'PLAY_LAST_CARD':
+            return `↻ Replays the last card you cast`;
+        case 'TAUNT':
+            return `🛡 Forces the target to attack the caster`;
+        case 'BUFF_NEXT_PROGRAM':
+            return `⬆ Strengthens the next card you play`;
+        case 'REDIRECT_TARGET':
+            return `↪ Redirects the incoming attack`;
+        case 'SHIFT_STANCE':
+            return `🌗 Shifts stance`;
         case 'REVIVE':
-            return `♻️ Revive`;
-        default:
-            return action.type;
+            return `♻️ Revives a fallen ally`;
+        default: {
+            /*
+             * EXHAUSTIVE. `never` here means adding an `ActionType` breaks this build rather than
+             * shipping a card whose tooltip reads as its own enum — which is exactly what the
+             * `as string` cast let happen for three action types.
+             */
+            const unreachable: never = action.type;
+            return String(unreachable);
+        }
     }
 };
 
-const formatConstraint = (c: ProgramConstraint): string => {
+/**
+ * TICKET 155g — a constraint, as a sentence the player can act on.
+ *
+ * `BASE` is the energy check, and it returned `''` so the row would not render — but the section
+ * above still opened for it, which is the empty "⚠ REQUIREMENTS" header in Henry's screenshot.
+ * It now SAYS the thing, because "Needs 2 EP (have 1)" is the single most actionable line a blocked
+ * card can carry, and the caller filters the remaining empties rather than counting them.
+ */
+const formatConstraint = (
+    c: ProgramConstraint,
+    effectiveCost: number,
+    source: IBattleEntity | null | undefined,
+): string => {
     switch (c.type) {
         case 'HAS_STATUS':
-            return `Requires: ${c.target === 'SELF' ? 'Self' : 'Target'} has ${c.value}`;
+            return `Needs ${c.target === 'SELF' ? 'the caster' : 'the target'} to have ${c.value}`;
         case 'HEALTH_THRESHOLD':
-            return `Requires: HP ${c.value}`;
+            return `Needs HP ${c.value}`;
         case 'BASE':
-            return ''; // Don't display base energy check
+            return source
+                ? `Needs ${effectiveCost} EP (have ${source.currentEnergy})`
+                : `Needs ${effectiveCost} EP`;
         case 'NOT_STATUS':
-            return `Requires: ${c.target === 'SELF' ? 'Self' : 'Target'} does not have ${c.value}`;
+            return `Blocked while ${c.target === 'SELF' ? 'the caster has' : 'the target has'} ${c.value}`;
         default:
             return c.type;
     }
@@ -86,7 +164,12 @@ const formatConstraint = (c: ProgramConstraint): string => {
 const CardHand: React.FC<{
     hoveredEntityId?: string | null;
     onTargetingStart?: (point: { x: number, y: number }) => void;
-    onTargetingEnd?: () => void;
+    /*
+     * `onTargetingEnd` was here and is gone (155, deep dive 7). It was declared, passed by
+     * `BattleArena`, and never destructured — so it never fired. The drop is an `onPointerUp` on
+     * the StageSlot and on `.battle-screen`, which is where the reset belongs and now happens.
+     * A prop that exists, is wired, and does nothing is worse than no prop: it reads as coverage.
+     */
 }> = ({ hoveredEntityId, onTargetingStart }) => {
     const dispatch = useDispatch();
     const battleState = useSelector((state: RootState) => state.battle.battle);
@@ -137,9 +220,97 @@ const CardHand: React.FC<{
     const caster = playerParty.find(u => u.id === selectedSourceId);
     const draw = describeDraw(battleState);
 
+    /*
+     * ── TICKET 155b — THE CARD TAKES THE STAGE'S SCALE ──────────────────────────────────────
+     *
+     * The card was a fixed 180x255 in every window, which is a 1920 card shown at 1280 — and at
+     * 1280 it grew the console band to ~390px and pushed the third row of each party off-screen.
+     * Scaled and capped at 1.2, a wide screen gets a bigger card and both get the same SHARE of
+     * the window.
+     *
+     * The overlap is solved against the row's real width past eight cards (`fanOverlapFor`), so an
+     * eleven-card hand tightens to fit instead of drawing 1,590px wide and clipping the cards at
+     * both ends — which were cards the player could not click.
+     */
+    const viewport = useViewportSize();
+    const scale = stageScale(viewport.width, viewport.height);
+    // Read once per mount: the settings screen is a route away from a fight, and `loadSettings`
+    // is a storage read plus a JSON parse — the cost 155a found in `PlayedCardReveal`.
+    const [animate] = useState(() => resolveVfxGates(loadSettings()).animations);
+    const cardSize = fanCardSize(scale);
+    // The fan's share of the row: the console minus the two piles and the row's own padding.
+    const fanRoom = Math.max(320, viewport.width - 2 * (PILE_COLUMN_PX * scale) - 80);
+    const rowOverlap = fanOverlapFor(hand.length, cardSize.width, fanRoom);
+
+    /*
+     * ── TICKET 155b / 155f — THE PILES, LIFTED OUT OF THE FOOTER ────────────────────────────
+     *
+     * Declared here and placed into the hand row, because §2c draws `draw | fan | discard` on one
+     * line and the second row they used to live in was most of the height the console had taken
+     * from the board.
+     *
+     * 155f falls out of the move. `.pile-count` is `position: absolute` and was anchoring to
+     * `.pile-indicator` — the whole COLUMN, which contained the End Turn button — so the discard
+     * count sat on the button and the draw count sat on "+N/turn". Each count is now inside a
+     * `.pile-stack` that wraps only the card it counts, which is the element it was always
+     * describing.
+     */
+    const drawPile = (
+        <div className="pile-indicator draw-pile hand-piles" title={drawTooltipLines(draw).join('\n')}>
+            <span className="pile-label">DRAW</span>
+            {/*
+              * TICKET 145d — the pile IS a card, face down, with its count on its corner. A draw
+              * pile drawn as a card back says "these are cards" without a label, and the count
+              * belongs ON the thing it counts rather than in a row of numbers at the top of the
+              * screen — which is where §1 cut it from. Two stacked shadows, because a pile of one
+              * and a pile of thirty should not look identical.
+              */}
+            <span className="pile-stack">
+                <span className="pile-card pile-card-stacked" aria-hidden="true" />
+                <span className="pile-count">{drawPileCount}</span>
+            </span>
+            <span className="pile-formula">+{draw.total}/turn</span>
+        </div>
+    );
+
+    const discardPile = (
+        <div className="pile-indicator discard-pile hand-piles">
+            <span className="pile-label">DISCARD</span>
+            {/*
+              * The discard is a SINGLE card back, not a stack — §2c draws it that way and the
+              * distinction is honest: the draw pile is what you will get and the discard is what
+              * is spent, so only one of the two is worth reading a depth off.
+              */}
+            <span className="pile-stack">
+                <span className="pile-card" aria-hidden="true" />
+                <span className="pile-count">{discardPileCount}</span>
+            </span>
+            {/*
+              * END TURN sits DIRECTLY UNDER THE DISCARD (§2c): the button and the pile it feeds
+              * are one column rather than two things at opposite ends of the console.
+              */}
+            <button
+                disabled={!isOurTurn}
+                onClick={() => { playSfx('uiClick'); dispatch(endTurn()); }}
+                className="action-button end-turn"
+            >
+                END TURN
+            </button>
+        </div>
+    );
+
     return (
         <div className="hand-container">
+            {/*
+              * TICKET 155b — `draw | fan | discard` ON ONE ROW, which is what 145 §2c drew.
+              *
+              * The piles used to sit in a `.hand-footer` UNDER the fan, and that second row was
+              * most of the 150px the console had quietly taken from the board. On one line they
+              * bracket the hand they feed, and the console gives the stage its height back.
+              */}
             <div className="hand-row">
+                {drawPile}
+                <div className="hand-fan">
                 <AnimatePresence>
                     {hand.map((card, index) => {
                         const data = GetProgramData(card.dataId);
@@ -181,7 +352,15 @@ const CardHand: React.FC<{
                         const isDiscounted = !isBlocked && effectiveCost < card.currentCost;
                         const constraints = (data.constraints || [])
                             .filter(c => c.target === 'SELF' && source && !getConstraintBehavior(c.type).validate(c, { source, cost: effectiveCost }))
-                            .map(formatConstraint);
+                            .map((c) => formatConstraint(c, effectiveCost, source))
+                            /*
+                             * TICKET 155g — drop the empties BEFORE the section decides whether to
+                             * open. `formatConstraint` returns `''` for BASE (the energy check has
+                             * its own readout), and the section only counted rows — so a card whose
+                             * single unmet constraint was BASE rendered an "⚠ REQUIREMENTS" header
+                             * with nothing under it. That is Henry's empty header.
+                             */
+                            .filter((line) => line.length > 0);
                         if (isBlocked) constraints.push(blockReason ?? 'Cannot be paid for right now');
                         // Per-unit OS card limit (e.g. YMIR v2 GLACIAL_PACE_OS: 2 cards/turn).
                         // The reducer rejects the play silently, so the tooltip carries the reason.
@@ -207,16 +386,53 @@ const CardHand: React.FC<{
                         return (
                             <motion.div
                                 key={card.id}
-                                initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                                /*
+                                 * TICKET 155, DEEP DIVE 8 — the fan reads the switch too.
+                                 *
+                                 * These transitions ignored both `prefers-reduced-motion` and
+                                 * 146a's new `animations` switch: `resolveVfxGates` was never
+                                 * consulted in this file, so a player who turned animations off
+                                 * still had cards springing in and out of the hand — which is the
+                                 * most-moving thing on the screen.
+                                 *
+                                 * Off means the card is simply THERE, at its place in the arch.
+                                 * The arch itself stays: it is layout, not motion.
+                                 */
+                                initial={animate ? { opacity: 0, y: 40, scale: 0.9 } : false}
                                 animate={{
                                     opacity: isUnplayable ? 0.6 : 1,
                                     y: isSelected || isHovered ? -(fan.lift + FAN_SELECTED_LIFT + 20) : -fan.lift,
                                     scale: isSelected ? 1.08 : (isHovered ? 1.05 : 1),
                                     rotate: isSelected || isHovered ? 0 : fan.rotation,
                                 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                transition={{ duration: 0.2 }}
+                                exit={animate ? { opacity: 0, scale: 0.8 } : { opacity: 0 }}
+                                transition={animate ? { duration: 0.2 } : { duration: 0 }}
                                 className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
+                                /*
+                                 * TICKET 155, DEEP DIVE 8 — a card is a control.
+                                 *
+                                 * These were `div`s with a click handler: no role, no tab stop, no
+                                 * keyboard path, and nothing for a screen reader to announce. The
+                                 * hotkey strip says `1-9 SELECT CARD`, so the keyboard path exists
+                                 * — it just was not on the cards themselves, which means Tab
+                                 * skipped the entire hand.
+                                 *
+                                 * `role`/`tabIndex` rather than a real `<button>`: framer-motion is
+                                 * driving transforms on this element, and `motion.button` inside a
+                                 * flex row reintroduces the browser's own button metrics that the
+                                 * fan's geometry would then have to fight.
+                                 */
+                                role="button"
+                                tabIndex={0}
+                                aria-pressed={isSelected}
+                                aria-disabled={isUnplayable}
+                                aria-label={`${data.name}, ${displayCost} energy`}
+                                onKeyDown={(e) => {
+                                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                                    e.preventDefault();
+                                    playSfx(isUnplayable ? 'uiError' : 'uiClick');
+                                    dispatch(selectCard(isSelected ? null : card.id));
+                                }}
                                 /*
                                  * Ticket 22: the refusal also rides the card frame, not only the
                                  * hover tooltip below. The tooltip needs a deliberate hover on a
@@ -236,6 +452,21 @@ const CardHand: React.FC<{
                                     dispatch(selectCard(isSelected ? null : card.id));
                                 }}
                                 onPointerDown={(e) => {
+                                    /*
+                                     * TICKET 155c. `preventDefault` FIRST, before anything that
+                                     * could return early: the browser's default for a pointerdown
+                                     * on text is to begin a selection, and Henry's *"any time I
+                                     * drag a card all the text gets highlighted"* is that default
+                                     * running. `user-select: none` on `.battle-screen` handles the
+                                     * painting; this stops the drag being a selection gesture at
+                                     * all.
+                                     *
+                                     * NOT `setPointerCapture`. The drop is an `onPointerUp` on the
+                                     * StageSlot, and capturing here would keep every subsequent
+                                     * pointer event on the card — so the slot would never see the
+                                     * release and no card could ever be played.
+                                     */
+                                    e.preventDefault();
                                     // Grayed-out cards still open for reading, but buzz to
                                     // signal the play itself is blocked.
                                     playSfx(isUnplayable ? 'uiError' : 'uiClick');
@@ -254,9 +485,18 @@ const CardHand: React.FC<{
                                     flexShrink: 0,
                                     // §2c: below the card, so a rotation swings the top rather than the foot.
                                     transformOrigin: FAN_TRANSFORM_ORIGIN,
-                                    marginLeft: fan.overlap,
-                                    width: FAN_CARD_W,
-                                    height: FAN_CARD_H,
+                                    marginLeft: index === 0 ? 0 : rowOverlap,
+                                    width: cardSize.width,
+                                    height: cardSize.height,
+                                    /*
+                                     * The SAME pair, handed to the face. `.rs-card` sizes itself
+                                     * from `--cw/--ch`, so setting only the wrapper left the two
+                                     * disagreeing and the face won — which is how the card stayed
+                                     * 180px wide after the fan was changed to 140.
+                                     */
+                                    ['--cw' as string]: `${cardSize.width}px`,
+                                    ['--ch' as string]: `${cardSize.height}px`,
+                                    ['--ah' as string]: `${Math.round(44 * Math.min(Math.max(scale, 0.75), 1.2))}px`,
                                     zIndex: isSelected ? 100 : (isHovered ? 99 : index),
                                     filter: isUnplayable ? 'grayscale(0.6)' : 'none',
                                     /*
@@ -339,86 +579,22 @@ const CardHand: React.FC<{
                         );
                     })}
                 </AnimatePresence>
+                </div>
+                {discardPile}
             </div>
 
-            <div className="hand-footer">
-                {/*
-                  * THE DRAW TOOLTIP — ticket 22.
-                  *
-                  * Hung on the draw pile because that is where the player already looks to ask "how
-                  * many am I getting". It prints the arithmetic for THIS party rather than the
-                  * formula, because `sum(cardDraw) − (N − 1)` is the expression ticket 08's
-                  * start-deck ruling was derived from and "7" with no working shown is precisely the
-                  * number a player cannot plan a third party member around. See `drawFormula.ts`.
-                  */}
-                <div
-                    className="pile-indicator draw-pile"
-                    title={drawTooltipLines(draw).join('\n')}
-                >
-                    {/*
-                      * TICKET 145d — the pile IS a card, face down, with its count on its corner.
-                      * The emoji went with ticket 34's guard (an emoji ignores `color`), but the
-                      * real reason is §2c: a draw pile drawn as a card back says "these are cards"
-                      * without a label, and the count belongs ON the thing it counts rather than in
-                      * a row of numbers at the top of the screen — which is where §1 cut it from.
-                      * Two stacked shadows, because a pile of one and a pile of thirty should not
-                      * look identical; the number carries the precision, the stack carries the
-                      * glance.
-                      */}
-                    <span className="pile-label">DRAW</span>
-                    <span className="pile-card pile-card-stacked" aria-hidden="true" />
-                    <span className="pile-count">{drawPileCount}</span>
-                    <span className="pile-formula">+{draw.total}/turn</span>
-                </div>
-                <div className="hand-console-center">
-                    {/*
-                      * WHOSE NUMBERS THESE ARE. With one caster this was implicit and safe to leave
-                      * unsaid; with three it is the single most load-bearing piece of state on the
-                      * screen, because every figure in the fan above is quoted for this unit.
-                      */}
-                    <div className="hand-caster-banner" data-testid="hand-caster-banner">
-                        {caster
-                            ? <>READING FOR <strong>{caster.name.toUpperCase()}</strong></>
-                            : <>NO CASTER — PRESS W / E / R</>}
-                    </div>
-                    {/*
-                      * Ticket 22's Done-when is that the fight is playable by keyboard as well as
-                      * mouse. A keyboard path nobody can discover is not a keyboard path, so the map
-                      * lives on the console beside the hand it drives.
-                      *
-                      * It used to be a hardcoded string, and the comment here used to justify that
-                      * with "a fight has no options screen to hide a key list behind". Ticket 36
-                      * built that screen, so this line and the settings table are now generated from
-                      * one `KEYBINDS` array — three hand-written copies of the same fact was the
-                      * point at which drift stopped being hypothetical.
-                      */}
-                    <div className="hand-hotkeys">
-                        {keybindLegend()}
-                    </div>
-                </div>
-
-                {/*
-                  * The discard is a SINGLE card back, not a stack — §2c draws it that way and the
-                  * distinction is honest: the draw pile is what you will get and the discard is
-                  * what is spent, so only one of the two is worth reading a depth off.
-                  */}
-                <div className="pile-indicator discard-pile">
-                    <span className="pile-label">DISCARD</span>
-                    <span className="pile-card" aria-hidden="true" />
-                    <span className="pile-count">{discardPileCount}</span>
-                    {/*
-                      * END TURN sits DIRECTLY UNDER THE DISCARD (§2c), which is where the turn
-                      * ends up: the button and the pile it feeds are one column now instead of two
-                      * things at opposite ends of the console.
-                      */}
-                    <button
-                        disabled={!isOurTurn}
-                        onClick={() => { playSfx('uiClick'); dispatch(endTurn()); }}
-                        className="action-button end-turn"
-                    >
-                        END TURN
-                    </button>
-                </div>
+            {/*
+              * ONE line under the fan, not two rows beside the piles. The caster banner and the
+              * hotkey strip were a `.hand-console-center` column between the piles, colliding with
+              * the arch; the hotkeys were 8px type nobody could read. See `.hand-underline`.
+              */}
+            <div className="hand-underline">
+                <span data-testid="hand-caster-banner">
+                    {caster
+                        ? <>READING FOR <strong>{caster.name.toUpperCase()}</strong></>
+                        : <>NO CASTER — PRESS W / E / R</>}
+                </span>
+                <span className="hand-hotkeys">{keybindLegend()}</span>
             </div>
         </div>
     );

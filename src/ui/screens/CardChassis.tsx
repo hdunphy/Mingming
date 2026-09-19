@@ -34,7 +34,7 @@
  * `Icon.test.tsx`'s sweep already allows by name.
  */
 
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import type { Banner } from './runShell';
 
@@ -141,6 +141,75 @@ export function EnergyPips({ cost }: { readonly cost: number }): ReactElement {
  * Pure and prop-driven: the grid tile is a `<button>` that adds a card, the hover preview is a
  * floating `<div>`, and neither behaviour belongs in the face. The caller supplies the element.
  */
+/**
+ * THE ONE CARD FACE — ticket 155e.
+ *
+ * Henry, 2026-09-19: the hand cards *"don't look like the shop cards"*. They were supposed to since
+ * ticket 145d, and the reason they did not is that `HandCardFace` adopted the chassis' CLASSES and
+ * then added three rows of its own — a target chip, a keyword strip and a readout — to a tile whose
+ * description is the only flexing row. Three extra rows is three rows the description gives up, and
+ * in a 176px card it clipped mid-sentence.
+ *
+ * So there is now one face, and the fight's extras go where they cost nothing:
+ *
+ *   - the TARGET rides on the name row as a small tag, not a row of its own;
+ *   - the READOUT rides inside the existing tag line beside the element word
+ *     (`FIRE · 96 DMG vs SKOLL`), which is the row the shop already spends on metadata;
+ *   - the keyword chips carry their stacks, so the separate status summary is gone.
+ *
+ * Every caller — shop, loadout editor, hand, reveal lane — renders this. That is the property the
+ * ticket is really asking for: not "make them look similar" but "make them the same component", so
+ * the next divergence has nowhere to live.
+ *
+ * NO STAB TEXT. Ticket 66 ruled it out and `HandCardFace` had grown a `×1.5` pip anyway; the `--el`
+ * glow is the cue, and 155e says so in as many words.
+ */
+export function CardFace({ face, count, tags, target, readout, keywords, extras }: {
+    readonly face: {
+        readonly name: string;
+        readonly description: string;
+        readonly element: string;
+        readonly cost: number;
+        readonly banner: Banner;
+    };
+    readonly count?: number;
+    readonly tags?: string;
+    /** Where this card may land. A tag on the name row in every mode — it is a shopping question too. */
+    readonly target?: string;
+    /** The fight's preview, rendered inside the tag line after the element word. */
+    readonly readout?: ReactNode;
+    /** Keyword chips, which carry their own stack counts. */
+    readonly keywords?: ReactNode;
+    /** Cost-was, cannot-pay, replay — things that hang off the pips rather than taking a row. */
+    readonly extras?: ReactNode;
+}): ReactElement {
+    return (
+        <>
+            <EnergyPips cost={face.cost} />
+            {extras}
+            <TypeMark banner={face.banner} />
+            <span className="rs-art" />
+            <span className="rs-nmrow">
+                <span className="rs-cnm">{face.name}</span>
+                {target && <span className="rs-tgt">{target}</span>}
+            </span>
+            <span className="rs-desc">{face.description}</span>
+            {keywords}
+            <span className="rs-tags">
+                <ElementMark element={face.element} />
+                {readout}
+                {tags && <span className="rs-tg">{tags}</span>}
+            </span>
+            {count !== undefined && count > 1 && <span className="rs-nbadge">×{count}</span>}
+            <span className="rs-elbar" />
+        </>
+    );
+}
+
+/**
+ * The collection's face. A thin call to `CardFace` — kept as its own name because twenty-odd
+ * callers spell it, and renaming them would bury 155e's actual change in a rename diff.
+ */
 export function CardTileFace({ face, count, tags }: {
     readonly face: {
         readonly name: string;
@@ -154,19 +223,5 @@ export function CardTileFace({ face, count, tags }: {
     /** `pick`, `benched` — the collection's own word for where this card sits. */
     readonly tags?: string;
 }): ReactElement {
-    return (
-        <>
-            <EnergyPips cost={face.cost} />
-            <TypeMark banner={face.banner} />
-            <span className="rs-art" />
-            <span className="rs-cnm">{face.name}</span>
-            <span className="rs-desc">{face.description}</span>
-            <span className="rs-tags">
-                <ElementMark element={face.element} />
-                {tags && <span className="rs-tg">{tags}</span>}
-            </span>
-            {count !== undefined && count > 1 && <span className="rs-nbadge">×{count}</span>}
-            <span className="rs-elbar" />
-        </>
-    );
+    return <CardFace face={face} count={count} tags={tags} />;
 }

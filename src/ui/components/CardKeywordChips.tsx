@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
-import type { ProgramData } from '../../engine/types';
+import type { ProgramData, StatusType } from '../../engine/types';
 // Ticket 55: the keyword table and its two derivations moved to `cardKeywords.ts`, so this file
 // exports only components.
 import { KEYWORD_INFO, getAppliedStatuses, getCardKeywords } from './cardKeywords';
@@ -72,13 +72,31 @@ const Chip: React.FC<{ label: string; color: string; title: string; description:
  * plus one colored chip per status the card applies, each with a hover
  * tooltip drawn from the status glossary.
  */
+/**
+ * `2 BURN`, or just `BURN` for a single stack.
+ *
+ * Summed across actions rather than taken from the first: a card that applies one Weakened twice
+ * applies two, and reading only the first action would print the smaller, wrong number on exactly
+ * the cards where the count matters most.
+ */
+function chipLabel(data: ProgramData, status: StatusType): string {
+    const stacks = (data.actions ?? [])
+        .filter((a) => a.type === 'STATUS' && a.status === status)
+        .reduce((total, a) => total + (a.stacks ?? 1), 0);
+
+    const name = `${statusGlossary[status].icon ?? ''} ${statusGlossary[status].name}`.trim().toUpperCase();
+    return stacks > 1 ? `${stacks} ${name}` : name;
+}
+
 const CardKeywordChips: React.FC<{ data: ProgramData }> = ({ data }) => {
     const keywords = getCardKeywords(data);
     const statuses = getAppliedStatuses(data);
     if (keywords.length === 0 && statuses.length === 0) return null;
 
     return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
+        // `rs-chips` so the hand can cap this to one row (155e's budget) without the shop losing
+        // its wrap — the shop's tiles sit in a grid that grows and can afford two rows.
+        <div className="rs-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
             {keywords.map(k => (
                 <Chip
                     key={k}
@@ -91,7 +109,16 @@ const CardKeywordChips: React.FC<{ data: ProgramData }> = ({ data }) => {
             {statuses.map(s => (
                 <Chip
                     key={s}
-                    label={`${statusGlossary[s].icon ?? ''} ${statusGlossary[s].name}`.trim().toUpperCase()}
+                    /*
+                     * TICKET 155e — the chip carries the STACKS.
+                     *
+                     * `HandCardFace` used to print its own `→ 2 BURN` row beside this one, off the
+                     * same actions; Henry's second screenshot shows both at once. The duplicate is
+                     * gone, and the number moved here, because a chip that says BURN when the card
+                     * applies two of them was always telling half the story — in the shop as well
+                     * as in the fight.
+                     */
+                    label={chipLabel(data, s)}
                     color={STATUS_COLORS[s]}
                     title={statusGlossary[s].name}
                     description={statusGlossary[s].description}

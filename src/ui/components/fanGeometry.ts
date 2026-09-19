@@ -36,8 +36,43 @@
  * So the fan now states the face's own size rather than a smaller one. The numbers below are
  * `.program-card`'s, not new ones, which is what stops the two disagreeing again.
  */
-export const FAN_CARD_W = 180;
-export const FAN_CARD_H = 255;
+export const FAN_CARD_W = 140;
+export const FAN_CARD_H = 176;
+
+/**
+ * TICKET 155b — THE CARD IS 140x176 AGAIN, AND WHY THAT IS NOT A REVERT.
+ *
+ * The note above this is a true account of why the card grew to 180x255 on 2026-09-10: at 140x176
+ * the face clipped mid-sentence and Henry could not read his cards. What it could not know is what
+ * the bigger card cost. `.console-area` is content-sized, so a 255px card grew the band to ~390px
+ * while `stageGeometry` still computed the stage against a 210px one — and the board lost 180px it
+ * did not know it had lost. Henry, 2026-09-19: *"the hand takes up too much space"*, and **the
+ * third ally and third enemy were off-screen at every viewport**.
+ *
+ * So the size was never the fix; it was a workaround for a face with too many rows. 155e removed
+ * three of them — the target moved onto the name row, the readout into the tag line, the duplicate
+ * status row deleted — and the description has its space back at the smaller size. Fixing the cause
+ * is what lets the symptom's workaround go.
+ *
+ * It is also no longer a fixed size in pixels on screen: `fanCardSize(scale)` below multiplies by
+ * the stage's own scale, so a 1920 screen gets a bigger card than a 1280 one and both get the same
+ * SHARE of the window. The 180px card was, in effect, a 1920 card shown at 1280.
+ */
+
+/**
+ * The drawn card size at a given stage scale, capped.
+ *
+ * The cap is 1.2 rather than uncapped for the reason §4.1 caps the sprite: past about a fifth over
+ * the reference the fan starts eating the board again, and the whole point of this row is that the
+ * console cannot take the stage's space. At 1920x1080 (scale ~1.35 on width) this yields 168x211 —
+ * still smaller than the 180x255 it replaces, on a much larger screen.
+ */
+export const FAN_SCALE_CAP = 1.2;
+
+export const fanCardSize = (scale: number): { width: number; height: number } => {
+    const capped = Math.min(Math.max(scale, 0.75), FAN_SCALE_CAP);
+    return { width: Math.round(FAN_CARD_W * capped), height: Math.round(FAN_CARD_H * capped) };
+};
 
 /** The hand size the mock draws, and the anchor every constant below is stated at. */
 export const FAN_REFERENCE_HAND = 5;
@@ -50,9 +85,27 @@ export const FAN_MIN_ANGLE = 8;
 export const FAN_WIDE_HAND = 8;
 
 /** Overlap at the reference hand (negative: cards sit on each other). */
-export const FAN_OVERLAP = -23;
+export const FAN_OVERLAP = -18;
 /** Overlap at `FAN_WIDE_HAND`. */
-export const FAN_TIGHT_OVERLAP = -39;
+export const FAN_TIGHT_OVERLAP = -30;
+
+/**
+ * TICKET 155b — THE WIDTH GUARD PAST EIGHT CARDS.
+ *
+ * `fanOverlap` stops tightening at `FAN_WIDE_HAND`, but `HAND_SIZE_LIMIT` is 15. An eleven-card
+ * hand therefore drew at the eight-card overlap and came out about 1,590px wide, which clips both
+ * ends of a 1280 screen — and the cards that fall off the ends are cards the player cannot click.
+ *
+ * Past eight, the overlap is whatever fits: solve `w + (n-1)*(w+overlap) <= available` for overlap.
+ * It only ever tightens further, so a hand that already fits is untouched.
+ */
+export const fanOverlapFor = (size: number, cardWidth: number, available: number): number => {
+    const base = fanOverlap(size);
+    if (size <= FAN_WIDE_HAND || available <= 0) return base;
+
+    const needed = (available - cardWidth) / (size - 1) - cardWidth;
+    return Math.min(base, needed);
+};
 
 /** Lift of the centre card. The edges sit at 0 — the arch is measured from the baseline up. */
 export const FAN_MAX_LIFT = 18;

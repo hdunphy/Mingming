@@ -165,3 +165,55 @@ describe('the draw tooltip matches what drawCards actually draws', () => {
         expect(lines[2]).toContain('minus one per extra member');
     });
 });
+
+/**
+ * TICKET 155d — the cap depends on whose turn it is.
+ *
+ * Henry, 2026-09-19: *"draw pile shows +4 but I drew ~12"*. The room was measured against the hand
+ * the player was holding, and on their own turn that hand is discarded before the refill — so the
+ * cap was the one number it could not be.
+ *
+ * Only the enemy-turn case had a test, which is precisely why the player-turn case was wrong.
+ */
+describe('155d — the hand is discarded before your own refill', () => {
+    it('ignores the current hand on YOUR turn, because it is about to be thrown away', () => {
+        const state = board([unit('p1'), unit('p2'), unit('p3')], {
+            activeSide: 'PLAYER',
+            playerDeck: {
+                ownerId: 'PLAYER', deck: [], drawpile: pile(30), hand: pile(11), discard: [], exhaust: [],
+            },
+        } as Partial<IBattleState>);
+
+        const draw = describeDraw(state);
+        // 3 + 3 + 3 − 2 = 7, uncapped. The old code answered 4 (15 − 11).
+        expect(draw.total).toBe(7);
+        expect(draw.capped).toBe(false);
+    });
+
+    it('still respects the limit on the ENEMY\'s turn, when your hand survives to the refill', () => {
+        const state = board(
+            [unit('p1', { cardDraw: 9 }), unit('p2', { cardDraw: 9 }), unit('p3', { cardDraw: 9 })],
+            {
+                activeSide: 'ENEMY',
+                playerDeck: {
+                    ownerId: 'PLAYER', deck: [], drawpile: pile(30), hand: pile(11), discard: [], exhaust: [],
+                },
+            } as Partial<IBattleState>,
+        );
+
+        const draw = describeDraw(state);
+        // 9 + 9 + 9 − 2 = 25 into 4 cards of room.
+        expect(draw.total).toBe(4);
+        expect(draw.capped).toBe(true);
+    });
+
+    it('still caps a huge formula on your own turn at the hand limit itself', () => {
+        // The cap does not go away — it stops being measured against a hand that will not exist.
+        const state = board(
+            [unit('p1', { cardDraw: 9 }), unit('p2', { cardDraw: 9 }), unit('p3', { cardDraw: 9 })],
+            { activeSide: 'PLAYER' } as Partial<IBattleState>,
+        );
+
+        expect(describeDraw(state).total).toBe(HAND_SIZE_LIMIT);
+    });
+});

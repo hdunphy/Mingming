@@ -49,11 +49,13 @@ function latestLogLine(battleState: IBattleState): string | null {
 
 export interface BattleTopBarProps {
     battleState: IBattleState;
+    /** Opens the settings overlay. Optional — a bar rendered outside a fight has nowhere to send it. */
+    readonly onOpenSettings?: () => void;
     /** Opens the combat log. The bar owns the chevron; `CombatLog` owns the panel. */
     onOpenLog: () => void;
 }
 
-const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onOpenLog }) => {
+const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onOpenLog, onOpenSettings }) => {
     const run = useSelector((state: RootState) => state.run.run);
     const gauntlet = run?.gauntlet ?? null;
     const drivers = run?.drivers ?? [];
@@ -100,7 +102,14 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onOpenLog }) =
                     onClick={onOpenLog}
                     title="Open the combat log"
                 >
-                    <span className="battle-topbar-log-text">{latest ?? ''}</span>
+                    {/*
+                      * TICKET 155, DEEP DIVE 3 — a placeholder, not an empty string.
+                      *
+                      * On turn 1 there is nothing in the log yet, and `latest ?? ''` rendered a
+                      * button containing a lone chevron: an affordance with no label, which reads
+                      * as a rendering fault rather than as "nothing has happened yet".
+                      */}
+                    <span className="battle-topbar-log-text">{latest ?? 'COMBAT LOG'}</span>
                     <span className="battle-topbar-chevron" aria-hidden="true">▾</span>
                 </button>
 
@@ -110,9 +119,21 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onOpenLog }) =
                         {place}{grade ? <> · <b>{grade}</b></> : null}
                     </span>
                 )}
-                <span className="battle-topbar-gear" title="Settings">
+                {/*
+                  * TICKET 155, DEEP DIVE 3 — the gear was a `<span>` with no handler: a settings
+                  * button that looked like a settings button and did nothing. A fight is exactly
+                  * where a player reaches for the motion switches (146a's three), so it is worth
+                  * more here than on any other screen.
+                  */}
+                <button
+                    type="button"
+                    className="battle-topbar-gear"
+                    title="Settings"
+                    aria-label="Settings"
+                    onClick={onOpenSettings}
+                >
                     <Icon name="settings" />
-                </span>
+                </button>
             </div>
 
             {/*

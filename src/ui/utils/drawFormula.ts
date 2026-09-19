@@ -73,7 +73,25 @@ export function describeDraw(
     const penalty = alive.length === 0 ? 0 : alive.length - 1;
     const formulaTotal = alive.length === 0 ? 0 : sum - penalty;
 
-    const handRoom = HAND_SIZE_LIMIT - (deck?.hand.length ?? 0);
+    /*
+     * ── TICKET 155d — THE ROOM IS MEASURED AFTER THE DISCARD, NOT BEFORE IT ─────────────────
+     *
+     * Henry, 2026-09-19: *"draw pile shows +4 but I drew ~12"*.
+     *
+     * The cap was `HAND_SIZE_LIMIT − hand.length` against the CURRENT hand, and during your own
+     * turn with eleven cards in hand that is 4. But the engine discards your hand at END_TURN
+     * BEFORE it refills (`battleReducer.ts:1196` → `:1330`), so by the time the draw happens the
+     * hand is empty and the room is the whole limit. The number the player was shown was the one
+     * thing it could not be.
+     *
+     * Whose turn it is decides which reading is right. On the ENEMY's turn your hand is what it
+     * will still be when your refill comes, so the current hand is the cap; on YOUR turn the hand
+     * is about to be thrown away, so it is not.
+     */
+    const discardsFirst = state?.activeSide === side;
+    const handRoom = discardsFirst
+        ? HAND_SIZE_LIMIT
+        : HAND_SIZE_LIMIT - (deck?.hand.length ?? 0);
     const total = Math.max(0, Math.min(formulaTotal, handRoom));
 
     const terms = members.map(m => `${m.cardDraw}`).join(' + ') || '0';

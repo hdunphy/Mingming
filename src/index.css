@@ -38,6 +38,18 @@ body {
 
 /* Battle Layout */
 .battle-screen {
+  /* ── TICKET 155c — NO TEXT SELECTION IN A FIGHT.
+
+     Henry: *"any time I drag a card all the text gets highlighted"*. The old
+     `.program-card` set `user-select: none`; the `.rs-card` chassis the hand
+     adopted in 145d never did, and a drag that starts on a card name is a text
+     selection as far as the browser is concerned.
+
+     On the SCREEN rather than on the card, because the drag crosses the whole
+     board — it starts on a card and ends on a sprite, and selecting the plaque
+     text on the way is the same bug. Nothing in a fight is text to copy. */
+  user-select: none;
+  -webkit-user-select: none;
   width: 100%;
   height: 100%;
   display: flex;
@@ -61,8 +73,21 @@ body {
 }
 
 .console-area {
-  /* 265: fits the hand row + footer. The 255px card is bottom-aligned and overflows upward. */
-  flex: 0 0 265px;
+  /* ── TICKET 155b — THE BAND IS A NUMBER, NOT AN OUTCOME ──
+
+     This was `flex: 0 0 265px` with `min-height: auto`, which is not a fixed
+     height: a flex item's automatic minimum is its content, so the band grew to
+     whatever the hand row plus a two-row footer needed — about 390px. Meanwhile
+     `stageGeometry` computed the stage against `CONSOLE_H` (210). The stage was
+     therefore 180px shorter than the geometry believed, and the third ally and
+     third enemy were drawn below the fold at every viewport.
+
+     `--console-h` is set by `BattleArena` from `CONSOLE_H x scale` — the SAME
+     number `place()` subtracts — so the two cannot disagree again. `min-height:
+     0` is what makes the flex basis binding rather than advisory, and it is the
+     line that actually fixes Henry's *"the hand takes up too much space"*. */
+  flex: 0 0 var(--console-h, 210px);
+  min-height: 0;
   background: #0a0a0f;
   border-top: 2px solid var(--glass-border);
   position: relative;
@@ -604,8 +629,19 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 15px 0;
+  /* ── TICKET 155b — THE BAND'S OWN ARITHMETIC.
+
+     210 = 8 (top) + 176 (the card) + 14 (the one-line underline) + 6 (bottom),
+     with 6 to spare. It was `15px 0` around a 176 card and a 14px line, which
+     comes to 220 and pushed the cards down through the hotkey strip — visible
+     in the 2026-09-19 capture as text running across the card feet.
+
+     `flex-end` rather than `space-between`: the fan sits ON the underline and
+     overflows UPWARD into the stage's empty lower third, which is the 2026-09-10
+     ruling (*"plenty of space under the cards to extend into"*) and is what buys
+     a scaled card its height without the console taking it from the board. */
+  justify-content: flex-end;
+  padding: 8px 0 6px;
   box-sizing: border-box;
 }
 
@@ -613,6 +649,9 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
+  /* 155b: the piles live IN this row now (145 §2c: draw | fan | discard), so it
+     spans the console rather than only the fan's own width. */
+  gap: 18px;
   /*
    * 208, not the card's 255. Henry, 2026-09-10: *"there is plenty of space under the cards to
    * extend into"* - so the row grows 13px into the console's own slack and the card's remaining
@@ -620,11 +659,52 @@ body {
    * lower third of the stage. A hand of cards overlapping the board is what a hand looks like,
    * and it buys the face its full 255px without shrinking the board to pay for it.
    */
-  height: 208px;
+  /* AUTO, not 208. The row used to be a fixed height chosen against a 255px
+     card; with the card scaling (155b) a fixed row either clips it or leaves a
+     band of dead space. The console's own height is the budget now. */
+  height: auto;
   width: 100%;
   padding: 0 20px;
   box-sizing: border-box;
   overflow: visible;
+}
+
+/* ── 155b — THE PILES SIT IN THE HAND ROW, which is what 145 §2c drew.
+
+   They were in a `.hand-footer` under it, and that second row was most of the
+   150px the console had taken from the board. `draw | fan | discard` on one
+   line is the spec, and it reads better: the two piles bracket the hand they
+   feed. The caster line and the hotkeys go under the fan as ONE line. */
+.hand-piles {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  padding-bottom: 6px;
+}
+
+.hand-fan {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: visible;
+}
+
+/* The fan is z-indexed per card; without a stacking context of its own the
+   arch painted over the piles beside it — "DISCARD" read as "RD" in Henry's
+   screenshot. `isolation` gives the cards a context to fight inside. */
+.hand-fan { isolation: isolate; }
+
+.hand-underline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 2px 0 6px;
+  min-height: 14px;
 }
 
 .hand-row .program-card {
@@ -1353,15 +1433,12 @@ body {
 /* ── Pile Indicators ── */
 /* Ticket 145d: the console is macro stack · draw · fan · discard, and END TURN sits inside
    the discard column directly under its pile (§2c) rather than floating between them. */
-.hand-footer {
-  display: flex;
-  align-items: flex-end;
-  width: 100%;
-  justify-content: space-between;
-  padding: 0 30px 6px;
-  box-sizing: border-box;
-  position: relative;
-}
+/*
+ * `.hand-footer` is gone with ticket 155b — the row it drew is the reason the console was 390px
+ * tall against a geometry that assumed 210. Its contents moved: the piles into `.hand-row`
+ * (145 §2c's `draw | fan | discard`), the caster line and hotkeys into `.hand-underline` as one
+ * line. The rule is deleted rather than emptied so nothing can drift back into it.
+ */
 
 /* ── The piles, ticket 145d §2c ──
    Each pile is a face-down CARD with its count on its corner, not a labelled box with a number.
@@ -1409,6 +1486,21 @@ body {
 
 .pile-card-stacked::before { transform: translate(3px, 3px); }
 .pile-card-stacked::after { transform: translate(6px, 6px); }
+
+/* ── TICKET 155f — THE COUNT ANCHORS TO THE CARD, NOT THE COLUMN.
+
+   `.pile-count` is absolute and its containing block was `.pile-indicator` —
+   the whole column, which holds the label, the card, the "+N/turn" line and
+   (on the discard) the End Turn button. So the discard count rendered on the
+   button and the draw count rendered over "+4/turn". Henry: *"the discard
+   count is on the End Turn button"*.
+
+   `.pile-stack` wraps only the card back, which is the thing the number was
+   always describing. */
+.pile-stack {
+  position: relative;
+  display: inline-flex;
+}
 
 .pile-count {
   position: absolute;
@@ -3382,9 +3474,18 @@ body {
  * ============================================================================================ */
 
 .hand-card {
-  /* The face's authored size (see `fanGeometry`) — the fan states the same pair. */
-  --cw: 180px;
-  --ch: 255px;
+  /* ── TICKET 155b — THE SIZE COMES FROM THE FAN, NOT FROM HERE.
+
+     These were hardcoded `180px / 255px`, and that is how the card stayed big
+     after `fanGeometry` was changed: the fan set the WRAPPER's width and height
+     while `.rs-card` sized itself from these variables, so the two disagreed and
+     the face won. The fallbacks are the reference-scale pair, for any caller
+     that renders a `.hand-card` outside the fan.
+
+     `--ah` is the art band. It rides the same scale: an art band that stayed 44px
+     on a 140px card is a different card. */
+  --cw: 140px;
+  --ch: 176px;
   --ah: 44px;
   text-align: left;
   /*
@@ -3397,8 +3498,44 @@ body {
 }
 
 /* The shop centres its tiles; a hand is read down the left edge, one card after another. */
-.hand-card .rs-cnm { text-align: left; font-size: 13.5px; }
-.hand-card .rs-desc { text-align: left; font-size: 10.5px; line-height: 1.4; }
+.hand-card .rs-cnm { text-align: left; font-size: 12.5px; }
+
+/* ── TICKET 155e — THE ROW BUDGET, so the description survives.
+
+   A fixed-height card is a fixed budget, and the description is the only row
+   with `flex: 1` — so it pays for everything else. Measured on the live hand
+   before this block: three of four cards clipped, and `war_pact` was down to
+   6px of a 41px description. Henry's 2026-09-10 complaint was exactly this, and
+   it is what the 180x255 card was papering over.
+
+   Three caps, so the text gets a floor rather than the remainder:
+
+   1. The NAME takes at most two lines. "Ragnarok Edge" wrapped to three and
+      took 33px off the card's most important row.
+   2. The CHIPS take at most one. Three statuses wrapped to three rows, which is
+      how a card with a rich description ended up with none of it visible.
+   3. The DESCRIPTION has a floor of about three lines, which is what the
+      registry's text actually needs. */
+.hand-card .rs-cnm {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hand-card .rs-desc {
+  text-align: left;
+  font-size: 10px;
+  line-height: 1.35;
+  min-height: 40px;
+}
+
+.hand-card .rs-chips {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  max-height: 14px;
+}
 
 .hand-card.selected { border-color: #fff; box-shadow: 0 0 26px rgba(255, 255, 255, 0.45); }
 .hand-card.grayscale { filter: grayscale(0.6); }
@@ -3412,60 +3549,61 @@ body {
 }
 .hc-cost-blocked { position: absolute; top: 5px; left: 34px; font-size: 11px; color: #ff6b6b; font-weight: 900; }
 
-/*
- * Left of the type mark, never under it — the mark owns the corner (`.rs-typ`, top:2 right:7).
- *
- * It also carries `.card-stab-pip`, which `CardHand.test` matches this signal by (deliberately, on
- * the CLASS: the SUPER chip prints the same ×1.5 and a string match could not tell them apart).
- * That class brings the old face's boxed pip styling — `left: 42px`, a border and an opaque
- * background — so every one of its positional and painted properties is restated here. Dropping
- * the class instead would have been quieter and would have silently retired the assertion.
- */
-.hand-card .hc-stab {
-  position: absolute;
-  top: 5px; right: 24px; left: auto;
-  padding: 0;
-  border: none;
-  background: none;
-  border-radius: 0;
-  font-size: 9px; font-weight: 900; letter-spacing: 0.02em; line-height: 1;
-  color: var(--stab-color, var(--el));
-  text-shadow: 0 0 6px var(--stab-glow, transparent);
-}
+/* ── TICKET 155e — THE NAME ROW CARRIES THE TARGET ──
 
-/* TARGETING, under the name — `describeLegalTargets`, the drop handler's own predicate. */
-.hc-target {
-  display: block;
-  font-size: 8.5px;
+   `.hc-stab` is gone with the `×1.5` text it painted: ticket 66 ruled no STAB
+   text and 155e restates it. The `--el` glow on the wrapper is the cue.
+
+   The target moved off its own row and onto the name's. It was costing the
+   description a full line — and the description is the only flexing row on the
+   tile, which is how `brute_force` came to clip mid-sentence in Henry's
+   screenshot. As a tag beside the name it costs nothing and reads better: the
+   name and where it can land are one thought. */
+.rs-nmrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.rs-nmrow .rs-cnm { margin-bottom: 0; flex: 1 1 auto; min-width: 0; }
+
+.rs-tgt {
+  flex: 0 0 auto;
+  font-size: 7.5px;
   font-weight: 800;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: #9fb0c4;
   background: #ffffff0d;
   border: 1px solid #ffffff14;
   border-radius: 3px;
-  padding: 2px 4px;
-  margin-bottom: 5px;
-  align-self: flex-start;
+  padding: 1px 3px;
+  white-space: nowrap;
 }
 
 .hc-replay { font-size: 9px; color: #5fd4e4; margin-top: 3px; flex: none; }
 
 /*
- * THE LAST ROW. The shop spends it on `FIRE · pick`; the fight spends it on what the card does —
- * the true figure for the selected caster, then the chips that qualify it. `.rs-tags` keeps the
- * chassis' reserved height so the tile is the same height in both modes.
+ * THE READOUT RIDES THE TAG LINE — ticket 155e.
+ *
+ * It used to BE the last row, replacing the chassis' `FIRE · pick`. Now it sits inside that row
+ * after the element word: `FIRE · 96 DMG vs SKOLL`. Two reasons. The element word was a ruled
+ * decision (four of the nine hues are blues; the word is what settles the colour), and taking the
+ * row outright meant the fight's card and the shop's card had different last lines — which is the
+ * divergence Henry was reporting.
+ *
+ * `inline-flex`, so it flows after the element word rather than starting a line of its own.
  */
-.hand-card .hc-readout {
-  display: flex;
+.rs-tags .hc-readout {
+  display: inline-flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   gap: 3px;
-  padding-right: 0;
-  min-height: 13px;
+  margin-left: 4px;
   letter-spacing: 0;
 }
-.hc-figure { font-size: 12px; font-weight: 900; color: #ff8a7a; text-shadow: 0 0 8px #ff8a7a55; }
+.hc-figure { font-size: 10.5px; font-weight: 900; color: #ff8a7a; text-shadow: 0 0 8px #ff8a7a55; }
 .hc-readout.is-lethal .hc-figure { color: #ffd479; text-shadow: 0 0 10px #ffd47966; }
 .hc-vs { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; color: #8b98a8; text-transform: uppercase; }
 .hc-chip {

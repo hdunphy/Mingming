@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import ProgramCard from './ProgramCard';
+import { CardFace } from '../screens/CardChassis';
+import { bannerFor } from '../screens/runShell';
+import { shortTargetLabel } from '../utils/targeting';
+import { numericBaseCost } from '../../engine/types';
+import CardKeywordChips from './CardKeywordChips';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getElementColor } from './cardIcons';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
@@ -25,13 +29,13 @@ import { FLIGHT_MS } from '../vfx/useCastSequence';
  * what it was and the time carries information instead of nothing. See `BattleArena`'s enemy loop.
  *
  * THE FACE IS THE REAL CARD. `PROGRAM_PLAYED.programId` is the dataId, so this looks the program up
- * and renders `ProgramCard` — the same component the hand renders. A hand-built "played card" panel
+ * and renders the shared `CardFace` — the same face the hand and the shop render. A hand-built panel
  * is a second card face, and a second card face drifts from the first the next time a card gains a
  * keyword chip.
  *
  * NON-INTERACTIVE BY CONSTRUCTION. `pointer-events: none` on the wrapper: the reveal sits over the
  * stage while the player may be mid-drag on their own turn, and a card face that swallowed a
- * pointer-up would eat a play. `ProgramCard` opens a hover tooltip through a portal, and it must not
+ * pointer-up would eat a play. The keyword chips open a hover tooltip through a portal, and it must not
  * fire from here either.
  */
 
@@ -175,7 +179,33 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                         filter: `drop-shadow(0 0 14px ${accent}) drop-shadow(0 6px 18px rgba(0,0,0,0.8))`,
                     }}
                 >
-                    <ProgramCard data={data} className="played-card-reveal" />
+                    {/*
+                      * TICKET 155e — the lane joins the one face.
+                      *
+                      * This rendered `ProgramCard`, which was a THIRD chassis: the shop and editor
+                      * drew `.rs-card`, the hand drew `HandCardFace`, and the card the player had
+                      * just watched leave their hand arrived in the lane looking like neither. The
+                      * comment above this block claimed it was "the same component the hand
+                      * renders" — that stopped being true when 145d gave the hand the shop's
+                      * chassis, and nothing noticed because nothing asserted it.
+                      *
+                      * No readout here on purpose: by the time a card reaches the lane it has
+                      * already resolved, so a "96 DMG vs SKOLL" preview would be a prediction of
+                      * something that has happened. The caption underneath says who and at whom.
+                      */}
+                    <div className="rs-card played-card-reveal" style={{ ['--el' as string]: accent }}>
+                        <CardFace
+                            face={{
+                                name: data.name,
+                                description: data.description ?? '',
+                                element: data.element ?? 'None',
+                                cost: numericBaseCost(data.baseCost),
+                                banner: bannerFor(data.category),
+                            }}
+                            target={shortTargetLabel(data)}
+                            keywords={<CardKeywordChips data={data} />}
+                        />
+                    </div>
                 </div>
                 {/*
                   * "FENRIR CASTS WAR PACT" — the sentence the mock prints under the lane. It says

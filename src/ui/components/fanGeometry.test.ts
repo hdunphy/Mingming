@@ -8,8 +8,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    FAN_MAX_LIFT, FAN_OVERLAP, FAN_TIGHT_OVERLAP, FAN_WIDE_HAND,
-    fanCard, fanMaxAngle, fanOverlap,
+    FAN_CARD_H, FAN_CARD_W, FAN_MAX_LIFT, FAN_OVERLAP, FAN_SCALE_CAP, FAN_TIGHT_OVERLAP,
+    FAN_WIDE_HAND, fanCard, fanCardSize, fanMaxAngle, fanOverlap, fanOverlapFor,
 } from './fanGeometry';
 
 describe('145d — five cards, exactly as the mock draws them', () => {
@@ -30,8 +30,60 @@ describe('145d — five cards, exactly as the mock draws them', () => {
      * Keeping -18 at the wider card would have loosened the fan by a sixth and run the hand into
      * the draw and discard piles, which is the exact failure the overlap dial exists to prevent.
      */
-    it('overlaps by -23 at the 180px card, holding the mock\'s -18/140 ratio', () => {
-        expect(five.map(c => c.overlap)).toEqual([0, -23, -23, -23, -23]);
+    it('overlaps by -18, the mock\'s own number at the mock\'s own card size', () => {
+        /*
+         * TICKET 155b: back to −18/140 from −23/180.
+         *
+         * The −23 was the mock's ratio re-stated at the bigger card the 2026-09-10 note introduced.
+         * That card is gone — it was a workaround for a face with too many rows, and 155e removed
+         * the rows — so the derived overlap goes with it and the mock's own pair is the pair again.
+         */
+        expect(five.map(c => c.overlap)).toEqual([0, -18, -18, -18, -18]);
+    });
+
+    it('draws the mock\'s card at the mock\'s size', () => {
+        // The number Henry's 2026-09-19 report is really about: a 255px card grew the console band
+        // to ~390px against a geometry that assumed 210, and the third row went off-screen.
+        expect(FAN_CARD_W).toBe(140);
+        expect(FAN_CARD_H).toBe(176);
+    });
+});
+
+describe('155b — the card scales with the stage, and the fan never outgrows the screen', () => {
+    it('grows with the viewport instead of being a fixed pixel size', () => {
+        // The 180px card was, in effect, a 1920 card shown at 1280. Scaling means both screens get
+        // the same SHARE of the window rather than the same number of pixels.
+        expect(fanCardSize(1).width).toBe(FAN_CARD_W);
+        expect(fanCardSize(1.35).width).toBeGreaterThan(FAN_CARD_W);
+    });
+
+    it('caps the growth, because the console must never take the stage\'s space back', () => {
+        const huge = fanCardSize(3);
+        expect(huge.width).toBe(Math.round(FAN_CARD_W * FAN_SCALE_CAP));
+        // Still smaller than the card this replaces, on a far bigger screen.
+        expect(huge.width).toBeLessThan(180);
+        expect(huge.height).toBeLessThan(255);
+    });
+
+    it('tightens an eleven-card hand until it fits the row', () => {
+        /*
+         * `fanOverlap` stops tightening at eight but `HAND_SIZE_LIMIT` is 15. An eleven-card hand
+         * drew at the eight-card overlap, came out ~1,590px wide, and clipped both ends of a 1280
+         * screen — and a card that falls off the end is a card the player cannot click.
+         */
+        const width = 140;
+        const available = 1200;
+        const overlap = fanOverlapFor(11, width, available);
+        const drawn = width + 10 * (width + overlap);
+
+        expect(drawn).toBeLessThanOrEqual(available + 1);
+        expect(overlap).toBeLessThan(fanOverlap(11));
+    });
+
+    it('leaves a hand that already fits alone', () => {
+        // It may only ever tighten. A guard that LOOSENED a small hand would be redrawing the mock.
+        expect(fanOverlapFor(5, 140, 4000)).toBe(fanOverlap(5));
+        expect(fanOverlapFor(8, 140, 4000)).toBe(fanOverlap(8));
     });
 });
 

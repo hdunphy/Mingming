@@ -164,10 +164,37 @@ export const DISCARD_ANCHOR: StageRect = {
  * At exactly 1280x800 this returns 1 and the layout IS the mock, pixel for pixel. That property is
  * what `stageGeometry.test.ts` pins, and it is the reason to scale rather than to re-lay-out.
  */
+/**
+ * TICKET 155b — THE BAND, AND WHY IT IS SOLVED RATHER THAN ASSUMED.
+ *
+ * The console's height is `CONSOLE_H × scale`, and `scale` is computed FROM the band the console
+ * leaves. That is circular, and the circularity is the bug 155b is about: this used to subtract a
+ * flat `CONSOLE_H` while the real console had grown to ~390px, so the stage believed it had 180px
+ * it did not have and drew the third row below the fold.
+ *
+ * Solved instead of iterated. With `band = H − TOP_BAR_H − CONSOLE_H × s` and `s = band / STAGE_H`:
+ *
+ *     s = (H − TOP_BAR_H) / (STAGE_H + CONSOLE_H)
+ *
+ * one line, exact, and no fixed point to converge on. The width term is unchanged and still binds
+ * on a wide, short window.
+ *
+ * At exactly 1280×800 this returns 1 and the layout IS the mock, pixel for pixel — the property
+ * `stageGeometry.test.ts` pins, and the reason to scale rather than to re-lay-out.
+ */
 export function stageScale(viewportWidth: number, viewportHeight: number): number {
-    const bandHeight = Math.max(0, viewportHeight - TOP_BAR_H - CONSOLE_H);
-    return Math.min(viewportWidth / REF_WIDTH, bandHeight / STAGE_H);
+    const usableHeight = Math.max(0, viewportHeight - TOP_BAR_H);
+    return Math.min(viewportWidth / REF_WIDTH, usableHeight / (STAGE_H + CONSOLE_H));
 }
+
+/**
+ * The console's drawn height at a viewport, in px. `BattleArena` publishes this as `--console-h`.
+ *
+ * One number, read by the stylesheet AND subtracted by `place()` below, so the band the console
+ * takes and the band the stage believes it has cannot come apart again.
+ */
+export const consoleHeightAt = (viewportWidth: number, viewportHeight: number): number =>
+    CONSOLE_H * stageScale(viewportWidth, viewportHeight);
 
 /** The drawn width of a sprite at `scale`, with §4.1's cap applied. */
 export const spriteWidthAt = (scale: number): number => Math.min(SPRITE_W * scale, SPRITE_MAX_W);
@@ -182,7 +209,8 @@ export const spriteWidthAt = (scale: number): number => Math.min(SPRITE_W * scal
 export function place(rect: StageRect, viewportWidth: number, viewportHeight: number): StageRect {
     const scale = stageScale(viewportWidth, viewportHeight);
     const offsetX = (viewportWidth - REF_WIDTH * scale) / 2;
-    const bandHeight = Math.max(0, viewportHeight - TOP_BAR_H - CONSOLE_H);
+    // 155b: the SCALED console, the same number `consoleHeightAt` gives the stylesheet.
+    const bandHeight = Math.max(0, viewportHeight - TOP_BAR_H - CONSOLE_H * scale);
     const offsetY = TOP_BAR_H + (bandHeight - STAGE_H * scale) / 2 - STAGE_TOP * scale;
     return {
         x: offsetX + rect.x * scale,

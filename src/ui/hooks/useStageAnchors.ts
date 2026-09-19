@@ -20,7 +20,8 @@ import { useMemo, useSyncExternalStore } from 'react';
 
 import type { IBattleState } from '../../engine/types';
 import {
-    place, plaqueRect, spriteRect, DISCARD_ANCHOR, HAND_ANCHOR, REF_HEIGHT, REF_WIDTH, REVEAL_RECT,
+    place, plaqueRect, spriteRect, spriteWidthAt, DISCARD_ANCHOR, HAND_ANCHOR, REF_HEIGHT,
+    REF_WIDTH, REVEAL_RECT,
     type StageRect,
 } from '../components/stageGeometry';
 
@@ -88,13 +89,44 @@ export function useStageAnchors(state: IBattleState, activeAllyIndex: number): S
         const slots: Record<string, StageRect> = {};
         const plaques: Record<string, StageRect> = {};
 
+        /*
+         * ── TICKET 155, DEEP DIVE 5 — THE PLAQUE HANGS OFF THE DRAWN SPRITE ─────────────────
+         *
+         * `plaqueRect` places the plaque against the SLOT — `sprite.x + sprite.w + 8` — and the
+         * slot is the unit's whole cell. But §4.1 CAPS the drawn sprite at `SPRITE_MAX_W`, so
+         * above about 1.36 scale the art stops growing while the cell keeps going, and the gap
+         * between them opens up. On the enemy side that pushed Sköll's plaque ~50px off her
+         * sprite while Fenrir's sat at 8, because the ally plaque hangs off the cell's LEFT edge
+         * and the enemy's off its right.
+         *
+         * The fix is to hang both off the drawn box instead. The sprite is centred in its cell
+         * (`.stage-slot` is `justify-content: center`), so the drawn edges are the cell's edges
+         * pulled in by half the difference — which is zero whenever the cap is not biting, and
+         * the placement is unchanged at the mock.
+         */
+        const drawn = spriteWidthAt(place({ x: 0, y: 0, w: 1, h: 1 }, width, height).w);
+
+        const anchor = (side: 'ally' | 'enemy', index: number, active: number): {
+            slot: StageRect; plaque: StageRect;
+        } => {
+            const slot = place(spriteRect(side, index, active), width, height);
+            const plaque = place(plaqueRect(side, index, active), width, height);
+            const inset = Math.max(0, (slot.w - drawn) / 2);
+            return {
+                slot,
+                plaque: { ...plaque, x: side === 'ally' ? plaque.x + inset : plaque.x - inset },
+            };
+        };
+
         state.playerParty.forEach((entity, index) => {
-            slots[entity.id] = place(spriteRect('ally', index, activeAllyIndex), width, height);
-            plaques[entity.id] = place(plaqueRect('ally', index, activeAllyIndex), width, height);
+            const { slot, plaque } = anchor('ally', index, activeAllyIndex);
+            slots[entity.id] = slot;
+            plaques[entity.id] = plaque;
         });
         state.enemyParty.forEach((entity, index) => {
-            slots[entity.id] = place(spriteRect('enemy', index), width, height);
-            plaques[entity.id] = place(plaqueRect('enemy', index), width, height);
+            const { slot, plaque } = anchor('enemy', index, -1);
+            slots[entity.id] = slot;
+            plaques[entity.id] = plaque;
         });
 
         return {
