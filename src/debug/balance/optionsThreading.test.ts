@@ -28,7 +28,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { CELLS, sampleFight } from './runGate';
+import { CELLS, batchOptionsFor, sampleFight, sampleFightFor } from './runGate';
+import { runBatch } from './runBatch';
+import { buildScenarioState } from '../scenarios/buildScenarioState';
+
 import { handbuiltParty } from './handbuiltParties';
 import { GYM_COUNTER_ANSWERS, GYM_SELECTIVE_ANSWERS } from '../../engine/run/marketplace';
 import { applyRegistryTweaks, describeTweaks, tweakEnemyDeck, validateTweaks } from './experimentalTweaks';
@@ -276,5 +279,82 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
     it('`tweakEnemyDeck` returns the pile untouched', () => {
         const pile = ['undertow', 'ink_stream', 'serpents_coil'];
         expect(tweakEnemyDeck(pile, [])).toEqual(pile);
+    });
+});
+
+/*
+ * TICKET 77 TRACK B — two new flags, their threading cases, all through `sampleFightFor` /
+ * `batchOptionsFor`: the two functions `measureCell` ACTUALLY calls. The cases above call
+ * `sampleFight` by hand with the right arguments, which is a test of `sampleFight` and not of the
+ * arm; the `--toolbox` bug lived precisely in the gap between the two. These close it for the new
+ * flags, and each one was proven to FAIL with the threading line commented out (research/77 §B.0).
+ */
+describe('ticket 77: the player-side flags reach the fight through measureCell\'s own seams', () => {
+    const ROOTFALL = 'gym_rootfall';
+    const base = { iterations: 1, matchup: 'favourable' as const, gymId: ROOTFALL };
+
+    it('`--player-driver` lands on setup.player.drivers, and on the built player entities', () => {
+        const bare = sampleFightFor(CELL, 0, base);
+        const armed = sampleFightFor(CELL, 0, { ...base, playerDriver: 'driver_antivenom' });
+
+        expect([...bare.setup.player.drivers], 'the bare arm holds no Driver').toEqual([]);
+        expect([...armed.setup.player.drivers]).toEqual(['driver_antivenom']);
+
+        // Nothing a paired arm holds fixed may move.
+        expect(armed.setup.seed).toBe(bare.setup.seed);
+        expect(armed.enemy).toEqual(bare.enemy);
+        expect(armed.lineup).toEqual(bare.lineup);
+        expect([...armed.setup.player.deck]).toEqual([...bare.setup.player.deck]);
+        expect(armed.enemyDrivers).toEqual(bare.enemyDrivers);
+
+        // And the Driver is really ON the fighters, not merely on the setup — `createBattleState`
+        // applies it through the same `applyDrivers` the game uses.
+        const built = buildScenarioState({ ...armed.setup, seed: armed.setup.seed });
+        for (const member of built.playerParty) {
+            expect(member.hooks, `${member.id} did not receive the Driver's hook`).toContain('driver_antivenom_purge');
+        }
+        for (const enemy of built.enemyParty) {
+            expect(enemy.hooks ?? []).not.toContain('driver_antivenom_purge');
+        }
+    });
+
+    it('`--player-driver` with an unknown id throws rather than measuring the bare arm', () => {
+        expect(() => sampleFightFor(CELL, 0, { ...base, playerDriver: 'driver_nonsense' })).toThrow(/unknown --player-driver/);
+    });
+
+    it('`--macros` hands runBatch a policy, and the policy fires on turn 1 of the boss fight', () => {
+        const fight = sampleFightFor(CELL, 0, base);
+        const bareOptions = batchOptionsFor(CELL, fight, base);
+        const armedOptions = batchOptionsFor(CELL, fight, { ...base, macros: 'mixed' });
+
+        expect(bareOptions.playerPolicy, 'the bare arm must carry NO policy').toBeUndefined();
+        expect(armedOptions.playerPolicy).toBeDefined();
+        expect(armedOptions.playerPolicy!.held).toEqual(['surge', 'cripple', 'mend']);
+
+        // One turn of a real 3v3 is enough: rule 2 empties the rack before the first card. A
+        // zero-fire result here would be the VOID arm ticket 77 says to STOP on. The search is
+        // narrowed to its cheapest setting because the CARD AI's quality is not what is under test
+        // — only that the policy is consulted and fires — and a full-lookahead turn is ~70 s.
+        const batch = runBatch(fight.setup, { ...armedOptions, maxTurns: 1, aiBeam: 1, enemyAiTier: 'greedy' });
+        const fired = batch.runs[0].macrosFired ?? [];
+        expect(fired.length, 'the boss-turn-1 rule fires every held macro').toBe(3);
+        expect(fired.map((f) => f.macroId).sort()).toEqual(['cripple', 'mend', 'surge']);
+        for (const f of fired) {
+            expect(f.turn).toBe(1);
+            expect(['boss-turn-1', 'lethal']).toContain(f.rule);
+        }
+        expect(armedOptions.playerPolicy!.held, 'the rack is spent').toEqual([]);
+    });
+
+    it('`--macros` on a LEAD-IN cell builds a policy whose boss rule is off', () => {
+        const fight0 = CELLS.find((c) => c.id === 'gauntlet:fight0')!;
+        const fight = sampleFightFor(fight0, 0, base);
+        const options = batchOptionsFor(fight0, fight, { ...base, macros: 'surge3' });
+        expect(options.playerPolicy).toBeDefined();
+        // Turn 1 of a lead-in: no lethal on a full-HP enemy from a 30-power Surge, no boss rule,
+        // and surge3 holds no Mend — so the policy must yield to the card AI.
+        const built = buildScenarioState({ ...fight.setup, seed: fight.setup.seed });
+        expect(options.playerPolicy!.next(built)).toBeNull();
+        expect(options.playerPolicy!.held).toHaveLength(3);
     });
 });

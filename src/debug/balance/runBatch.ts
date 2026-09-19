@@ -36,6 +36,7 @@ import { battleReducer, type BattleAction } from '../../engine/battleReducer';
 import { executeDraw } from '../../engine/resolutionEngine';
 import { HAND_SIZE_LIMIT } from '../../engine/deckLogic';
 import { getBestAction } from '../../engine/ai/TacticalAI';
+import type { MacroFire, MacroPolicy } from './macroPolicy';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import { buildScenarioState } from '../scenarios/buildScenarioState';
@@ -128,6 +129,15 @@ export interface BatchOptions {
      * The other half of the KO cliff. Off by default; composes with `bereavementEnergy`.
      */
     bereavementDraw?: BereavementDraw;
+    /**
+     * TICKET 77 TRACK B1 — a hand on the PLAYER's macro rack.
+     *
+     * Consulted before every player action; when it returns a `FIRE_MACRO` that action is dispatched
+     * in place of `getBestAction`'s card. Off in every shipped path and in every suite that does not
+     * ask for it, so the bare arm is bit-identical. One policy instance per BATTLE — it holds the
+     * rack — so a caller running several seeds must build one per seed (see `runGate.measureCell`).
+     */
+    playerPolicy?: MacroPolicy;
 }
 
 /**
@@ -281,6 +291,8 @@ export interface RunResult {
     telemetry?: RunTelemetry;
     /** Ticket 70's four numbers. Always collected — see `SnowballRecord`. */
     snowball?: SnowballRecord;
+    /** Ticket 77 B1: every macro the player policy fired, in order. Present only when a policy ran. */
+    macrosFired?: ReadonlyArray<MacroFire>;
 }
 
 /**
@@ -460,6 +472,8 @@ export function runOne(
     bereavement?: BereavementEnergy,
     /** EXPERIMENTAL, ticket 70 Q3b. Undefined in every shipped path. */
     bereavementDraw?: BereavementDraw,
+    /** Ticket 77 B1: the player's macro policy. Undefined in every shipped path. */
+    playerPolicy?: MacroPolicy,
 ): RunResult {
     const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
     let state: IBattleState = {
@@ -627,9 +641,23 @@ export function runOne(
             break;
         }
 
-        const action: BattleAction = getBestAction(state);
+        /*
+         * TICKET 77 B1: the rack is consulted BEFORE the card AI, on the player's action only. A
+         * macro is free and costs no card, so firing it never pre-empts a play — the AI is asked on
+         * the very next iteration with the macro's effect already on the board.
+         */
+        const macro: BattleAction | null = playerPolicy !== undefined && state.activeSide === 'PLAYER'
+            ? playerPolicy.next(state)
+            : null;
+        const action: BattleAction = macro ?? getBestAction(state);
         const side = state.activeSide;
         const nextState = battleReducer(state, action);
+
+        if (macro !== null && nextState === state) {
+            // The policy pre-checks `canFireMacro`, so a refusal here is a policy bug and a STOP
+            // condition (ticket 77), never something to end the turn around.
+            throw new Error(`[runBatch] the macro policy fired ${JSON.stringify(macro)} and the reducer refused it.`);
+        }
 
         if (nextState === state) {
             // The reducer rejected the AI's choice (a stale constraint, an unplayable
@@ -781,6 +809,7 @@ export function runOne(
         deadCards: { player: deadRatio('PLAYER'), enemy: deadRatio('ENEMY') },
         cardsSeen: { player: seen.PLAYER.size, enemy: seen.ENEMY.size },
         ...(telemetry ? { telemetry } : {}),
+        ...(playerPolicy ? { macrosFired: [...playerPolicy.fired] } : {}),
         snowball: {
             firstKoBy,
             firstKoTurn,
@@ -883,7 +912,7 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
             runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier,
-                options.aiBeam, options.bereavementEnergy, options.bereavementDraw)),
+                options.aiBeam, options.bereavementEnergy, options.bereavementDraw, options.playerPolicy)),
     );
 }
 

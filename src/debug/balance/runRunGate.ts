@@ -116,6 +116,8 @@ import { AI_TIER } from '../../engine/ai/TacticalAI';
 import { DEFAULT_MAX_TURNS } from './runBatch';
 import { HANDBUILT_PARTIES, handbuiltParty, type HandbuiltParty } from './handbuiltParties';
 import { applyRegistryTweaks, describeTweaks, validateTweaks } from './experimentalTweaks';
+import { MACRO_LOADOUT_NAMES, describeMacroLoadout, isMacroLoadout, type MacroLoadout } from './macroPolicy';
+import { DRIVER_IDS } from '../../engine/data/driverRegistry';
 
 import {
     CELLS,
@@ -124,6 +126,7 @@ import {
     TUNED_OS_IDS,
     gauntletCompound,
     describeBossOverride,
+    describePlayerDriver,
     measureBand,
     type BossOverride,
     type MatchupMode,
@@ -244,6 +247,35 @@ interface Args {
      * two-knob arm can be run once the single-knob arms say which two are worth combining.
      */
     tweaks: ReadonlyArray<string>;
+    /**
+     * `--player-driver <id>`: the PLAYER side runs this Driver — ticket 77 Track B2.
+     *
+     * What `run.drivers` holds after an elite drop (ticket 17), handed to the arm directly. Validated
+     * against `DRIVER_IDS` at parse time: an unknown id throws rather than measuring the bare arm
+     * under a banner that names a Driver.
+     */
+    playerDriver?: string;
+    /**
+     * `--macros surge3|mixed`: the player holds a macro rack and the harness policy fires it —
+     * ticket 77 Track B1. See `macroPolicy.ts` for the three rules and why the rack is per cell.
+     */
+    macros?: MacroLoadout;
+}
+
+/** `--player-driver <id>`. Rejects an unknown Driver loudly — the `--toolbox` lesson, again. */
+function parsePlayerDriver(value: string | undefined): string | undefined {
+    if (value === undefined) return undefined;
+    if (!DRIVER_IDS.includes(value)) {
+        throw new Error(`[run-gate] --player-driver expects one of ${DRIVER_IDS.join(', ')} — got "${value}"`);
+    }
+    return value;
+}
+
+/** `--macros surge3|mixed`. Rejects anything else rather than silently running rackless. */
+function parseMacros(value: string | undefined): MacroLoadout | undefined {
+    if (value === undefined) return undefined;
+    if (isMacroLoadout(value)) return value;
+    throw new Error(`[run-gate] --macros expects ${MACRO_LOADOUT_NAMES.join(' | ')} — got "${value}"`);
 }
 
 /** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
@@ -338,6 +370,8 @@ function parseArgs(argv: string[]): Args {
         lean: get('--lean'),
         deckMode: parseDeckMode(get('--deck')),
         tweaks: tweaks ?? [],
+        playerDriver: parsePlayerDriver(get('--player-driver')),
+        macros: parseMacros(get('--macros')),
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
             // Ticket 16: the flag is `--boss-driver`; `--boss-relics` is kept as an alias so the run
@@ -411,8 +445,17 @@ function diagnosticsLine(cell: CellMeasurement): string {
         `payoff=${d.payoffCastsPerFight.toFixed(2)}/fight  ` +
         `dead=${(d.deadCardRatio * 100).toFixed(1)}%  ` +
         `deck=${d.deckSize.toFixed(0)}  ` +
-        `| enemy: ${d.enemyDamagePerTurn.toFixed(1)} dmg/turn`
+        `| enemy: ${d.enemyDamagePerTurn.toFixed(1)} dmg/turn` +
+        `\n      macros=${d.macrosFiredPerFight.toFixed(2)}/fight${macroRulesNote(d.macroRules)}  ` +
+        `procs: player=${d.playerProcsPerFight.toFixed(2)}/fight  enemy=${d.enemyProcsPerFight.toFixed(2)}/fight`
     );
+}
+
+/** ` (lethal 12, boss-turn-1 160)` — which rule fired the macros, or nothing when none did. */
+function macroRulesNote(rules: Readonly<Partial<Record<string, number>>>): string {
+    const entries = Object.entries(rules).filter(([, n]) => (n ?? 0) > 0);
+    if (entries.length === 0) return '';
+    return ` (${entries.map(([rule, n]) => `${rule} ${n}`).join(', ')})`;
 }
 
 /**
@@ -565,6 +608,8 @@ async function main(): Promise<void> {
             lean: args.lean,
             deckMode: args.deckMode,
             tweaks: args.tweaks,
+            playerDriver: args.playerDriver,
+            macros: args.macros,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
@@ -592,6 +637,13 @@ async function main(): Promise<void> {
     if (args.deckMode !== undefined && args.deckMode !== 'bare') {
         say(`  DECK PROGRESSION: ${args.deckMode} — ticket 77 Track A. The player side is NOT the 18-card `
             + 'run-start deck every previous gym number was taken with.');
+    }
+    if (args.playerDriver !== undefined) {
+        say(`  PLAYER DRIVER: ${describePlayerDriver(args.playerDriver)} — ticket 77 Track B2. The player side `
+            + 'runs a Driver the bare arm never held; procs/fight is printed under each cell.');
+    }
+    if (args.macros !== undefined) {
+        say(`  MACRO ARM ${describeMacroLoadout(args.macros)}`);
     }
     if (args.lean !== undefined) {
         say(`  PARTY LEAN: ${args.lean} — the lineup picker is aimed at ${args.lean} instead of the gym's counter (ticket 76).`);
