@@ -31,7 +31,8 @@ import { describe, expect, it } from 'vitest';
 import { CELLS, batchOptionsFor, sampleFight, sampleFightFor } from './runGate';
 import { runBatch } from './runBatch';
 import { buildScenarioState } from '../scenarios/buildScenarioState';
-
+import { DRIVER_ROOT_ROT, getDriver } from '../../engine/data/driverRegistry';
+import { FIRMWARE_REGISTRY } from '../../engine/data/firmwareRegistry';
 import { handbuiltParty } from './handbuiltParties';
 import { GYM_COUNTER_ANSWERS, GYM_SELECTIVE_ANSWERS } from '../../engine/run/marketplace';
 import { applyRegistryTweaks, describeTweaks, tweakEnemyDeck, validateTweaks } from './experimentalTweaks';
@@ -231,8 +232,8 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
         });
     }
 
-    it('an unknown knob names the live one rather than failing vaguely', () => {
-        expect(() => validateTweaks(['nonsense'])).toThrow(/only live knob is "rootfall-rat-v2"/);
+    it('an unknown knob names the live ones rather than failing vaguely', () => {
+        expect(() => validateTweaks(['nonsense'])).toThrow(/live knobs are "rootfall-rat-v2"/);
     });
 
     it('the empty list is accepted and does nothing', () => {
@@ -283,7 +284,7 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
 });
 
 /*
- * TICKET 77 TRACK B — two new flags, their threading cases, all through `sampleFightFor` /
+ * TICKET 77 TRACK B + C — three new flags, three threading cases, all through `sampleFightFor` /
  * `batchOptionsFor`: the two functions `measureCell` ACTUALLY calls. The cases above call
  * `sampleFight` by hand with the right arguments, which is a test of `sampleFight` and not of the
  * arm; the `--toolbox` bug lived precisely in the gap between the two. These close it for the new
@@ -356,5 +357,43 @@ describe('ticket 77: the player-side flags reach the fight through measureCell\'
         const built = buildScenarioState({ ...fight.setup, seed: fight.setup.seed });
         expect(options.playerPolicy!.next(built)).toBeNull();
         expect(options.playerPolicy!.held).toHaveLength(3);
+    });
+
+    it('`--tweak root-rot-c1` reshapes the Driver the Rootfall boss actually fields', () => {
+        const before = FIRMWARE_REGISTRY[DRIVER_ROOT_ROT];
+        try {
+            expect(applyRegistryTweaks(['root-rot-c1'])).toEqual(['root-rot-c1']);
+
+            const fight = sampleFightFor(CELL, 0, base);
+            expect(fight.enemyDrivers, 'Rootfall\'s boss still runs ROOT ROT by id').toEqual([DRIVER_ROOT_ROT]);
+
+            const driver = getDriver(DRIVER_ROOT_ROT)!;
+            expect(driver.hooks.map((h) => h.id)).toEqual(['driver_root_rot_c1_creep', 'driver_root_rot_c1_reset']);
+            expect(driver.hooks.map((h) => h.id)).not.toContain('driver_root_rot_spread');
+
+            const built = buildScenarioState({ ...fight.setup, seed: fight.setup.seed });
+            for (const enemy of built.enemyParty) {
+                expect(enemy.hooks).toContain('driver_root_rot_c1_creep');
+                expect(enemy.hooks).not.toContain('driver_root_rot_spread');
+            }
+        } finally {
+            FIRMWARE_REGISTRY[DRIVER_ROOT_ROT] = before;
+        }
+    });
+
+    it('`--tweak root-rot-c2` is REFUSED — the target cannot be expressed', () => {
+        expect(() => validateTweaks(['root-rot-c2'])).toThrow(/NOT BUILT/);
+        expect(() => applyRegistryTweaks(['root-rot-c2'])).toThrow(/RANDOM_ENEMY may pick the context target/);
+        expect(() => describeTweaks(['root-rot-c2'])).toThrow();
+    });
+
+    it('a ROOT ROT candidate refuses to stack on another', () => {
+        const before = FIRMWARE_REGISTRY[DRIVER_ROOT_ROT];
+        try {
+            applyRegistryTweaks(['root-rot-c3']);
+            expect(() => applyRegistryTweaks(['root-rot-c1'])).toThrow(/no longer carries driver_root_rot_spread/);
+        } finally {
+            FIRMWARE_REGISTRY[DRIVER_ROOT_ROT] = before;
+        }
     });
 });
