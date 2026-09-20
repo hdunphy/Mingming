@@ -16,7 +16,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import battleReducer, { setBattleState, startBattle } from './battleSlice';
+import battleReducer, { endTurn, playProgram, setBattleState, startBattle } from './battleSlice';
 import gameReducer, { swapOS } from './gameSlice';
 import runReducer, {
     addRunScrap,
@@ -33,6 +33,8 @@ import runReducer, {
 } from './runSlice';
 import uiReducer from './uiSlice';
 import { createRunLogMiddleware, currentRunLog, logRunEvent, resetRunLogRecorder } from './runLogMiddleware';
+import { battleReducer as battleReducerFn } from '../../engine/battleReducer';
+import { globalBattleEventBus } from '../../engine/events';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { readRunLogs, type IRunEvent } from '../../engine/run/runLog';
@@ -137,7 +139,8 @@ describe('the run log middleware, over a whole run', () => {
         // The list from ticket 59's deliverable 1, minus nothing. A class missing here means the
         // derivation for it never fires, which is invisible in the panel.
         for (const kind of [
-            'RUN_STARTED', 'NODE_ENTERED', 'FIGHT_STARTED', 'FIGHT_ENDED', 'SCRAP',
+            'RUN_STARTED', 'NODE_ENTERED', 'FIGHT_STARTED', 'FIGHT_DECK', 'FIGHT_LOG',
+            'FIGHT_ENDED', 'SCRAP',
             'CARD_PICKED', 'CARD_SKIPPED', 'CARD_BOUGHT', 'CARD_REMOVED', 'RECRUITED',
             'REFLASHED', 'MACRO_BOUGHT', 'MACRO_FIRED', 'RUN_ENDED',
         ]) {
@@ -208,6 +211,126 @@ describe('the run log middleware, over a whole run', () => {
         expect(ended).toBeTruthy();
         expect(Object.keys(ended.partyHp)).toContain('mm1');
         expect(ended.turns).toBeGreaterThan(0);
+    });
+
+    it('records a turn from the bus, with what was cast and what it cost', () => {
+        /*
+         * TICKET 156 §2. A Redux middleware cannot see inside a turn: the engine resolves a whole
+         * cast synchronously in one reducer call, so `before`/`after` show a turn's SUM and never
+         * its parts. These rows come off `globalBattleEventBus`, which is where the parts are — so
+         * this drives real plays through the real engine rather than dispatching fixtures.
+         */
+        const store = makeStore();
+        store.dispatch(startRun(makeRun()));
+        store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+
+        const board = store.getState().battle.battle!;
+        const caster = board.playerParty[0];
+        const foe = board.enemyParty[0];
+        const card = board.playerDeck.hand[0];
+        expect(card).toBeTruthy();
+        store.dispatch(playProgram({ sourceId: caster.id, targetId: foe.id, programId: card.id }));
+        store.dispatch(endTurn());
+
+        const turns = rowsOf('FIGHT_TURN') as Array<IRunEvent & {
+            side: string; cardsPlayed: Array<{ dataId: string }>; damageDealt: number;
+            partyHp: Record<string, number>;
+        }>;
+        expect(turns.length).toBeGreaterThan(0);
+
+        const played = turns.flatMap((row) => row.cardsPlayed);
+        expect(played.map((entry) => entry.dataId)).toContain('water_slap');
+        // The attack landed, so the acting side dealt damage and the row says so.
+        expect(turns.some((row) => row.damageDealt > 0)).toBe(true);
+        // Every row carries the player's HP at the turn's close — the attrition curve per turn.
+        expect(Object.keys(turns[0].partyHp)).toContain('mm1');
+    });
+
+    it('records nothing from a muted bus, so the AI\'s lookahead leaves no trace', () => {
+        /*
+         * TICKET 156 §3: *"Under `isSimulating()` nothing is recorded (the balance suite must stay
+         * byte-identical)."* The AI's search runs the reducer about 94,000 times for one 3v3
+         * decision; a row per imagined turn would bury the real run and rewrite the balance
+         * fixtures. `runMuted` is the seam the AI and both previews already use.
+         */
+        const store = makeStore();
+        store.dispatch(startRun(makeRun()));
+        store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+        const before = rowsOf('FIGHT_TURN').length;
+
+        const board = store.getState().battle.battle!;
+        globalBattleEventBus.runMuted(() => {
+            battleReducerFn(board, {
+                type: 'PLAY_PROGRAM',
+                payload: {
+                    sourceId: board.playerParty[0].id,
+                    targetId: board.enemyParty[0].id,
+                    programId: board.playerDeck.hand[0].id,
+                },
+            });
+        });
+
+        expect(rowsOf('FIGHT_TURN')).toHaveLength(before);
+    });
+
+    it('closes the fight BEFORE the run, on a defeat — and only once', async () => {
+        /*
+         * TICKET 156 §2, and a correction to the ticket. It says *"`FIGHT_ENDED` is not emitted on
+         * a defeat today"*. It is — `handleDefeat` dispatches `endRun('defeat')` and then
+         * `setBattleState(null)`, the second of which trips the ordinary close. What was actually
+         * wrong is WHERE it landed:
+         *
+         *     RUN_STARTED, FIGHT_STARTED, RUN_ENDED, FIGHT_ENDED
+         *
+         * The fight's own row after the end of the run, in the one position nobody reads — and the
+         * uncoalesced write at `RUN_ENDED` persisted a transcript without it, so a player who shut
+         * the game on the defeat screen kept the version that really was missing a row. That is the
+         * log Henry filed the ticket from.
+         */
+        const store = makeStore();
+        store.dispatch(startRun(makeRun()));
+        store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+
+        // The arena's own order on a defeat.
+        store.dispatch(endRun('defeat'));
+        store.dispatch(setBattleState(null));
+        await Promise.resolve();
+
+        expect(kinds()).toEqual([
+            'RUN_STARTED', 'FIGHT_STARTED', 'FIGHT_DECK', 'FIGHT_LOG', 'FIGHT_ENDED', 'RUN_ENDED',
+        ]);
+        // The board clearing a dispatch later must not write a second one.
+        expect(rowsOf('FIGHT_ENDED')).toHaveLength(1);
+        // And the immediate write at RUN_ENDED carries the fight, not a transcript missing it.
+        const stored = readRunLogs()[0];
+        expect(stored.events.map((event) => event.kind)).toEqual([
+            'RUN_STARTED', 'FIGHT_STARTED', 'FIGHT_DECK', 'FIGHT_LOG', 'FIGHT_ENDED', 'RUN_ENDED',
+        ]);
+    });
+
+    it('calls a mutual kill a loss, because the game does', () => {
+        /*
+         * TICKET 156 §2. `won` was `every enemy is down`, which is the precedence `battleOutcome`
+         * was written to end after Henry's 2026-09-05 report: *"Fenrir killed me, but added burn
+         * overload to himself and he died first, so I won?"* A board with both sides down would log
+         * `FIGHT_ENDED(won: true)` beside `RUN_ENDED(outcome: 'defeat')`, so the transcript
+         * disagreed with itself about the only fight anybody goes back to read.
+         */
+        const store = makeStore();
+        store.dispatch(startRun(makeRun()));
+        store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+
+        const board = store.getState().battle.battle!;
+        const floor = <T extends { currentHp: number }>(unit: T): T => ({ ...unit, currentHp: 0 });
+        store.dispatch(setBattleState({
+            ...board,
+            playerParty: board.playerParty.map(floor),
+            enemyParty: board.enemyParty.map(floor),
+        }));
+        store.dispatch(setBattleState(null));
+
+        const ended = rowsOf('FIGHT_ENDED')[0] as IRunEvent & { won: boolean };
+        expect(ended.won).toBe(false);
     });
 
     it('survives a reload — it RESUMES the transcript rather than starting a second one', async () => {

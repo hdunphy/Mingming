@@ -71,10 +71,35 @@ function Curve({ points, color, label, max }: {
 }
 
 /** One raw row, rendered as its kind plus whatever else it carries. */
+/**
+ * One value, small enough to sit on a line — ticket 156.
+ *
+ * The raw view is deliberately kind-agnostic, which is what let 156's rows land here without this
+ * panel knowing about them. What it could not do is print them: `String(value)` on an object gives
+ * `[object Object]`, and 156's rows carry arrays of them (`FIGHT_DECK.party`,
+ * `FIGHT_TURN.cardsPlayed`) plus, in `FIGHT_LOG`, four hundred strings that would drown the window.
+ *
+ * So: objects flatten to `a:b:c` in key order, and any list past `LIST_PREVIEW` prints its head and
+ * says how many it kept back. Still kind-agnostic — a row added tomorrow gets the same treatment.
+ */
+const LIST_PREVIEW = 6;
+
+function short(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (Array.isArray(value)) {
+        const head = value.slice(0, LIST_PREVIEW).map(short).join('/');
+        return value.length > LIST_PREVIEW ? `${head}/+${value.length - LIST_PREVIEW}` : head;
+    }
+    if (typeof value === 'object') {
+        return Object.values(value as Record<string, unknown>).map(short).join(':');
+    }
+    return String(value);
+}
+
 function rawLine(event: IRunEvent): string {
     const { seq, fightIndex, deckSize, scrap, kind, ...rest } = event as IRunEvent & Record<string, unknown>;
     const detail = Object.entries(rest)
-        .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join('/') : String(value)}`)
+        .map(([key, value]) => `${key}=${short(value)}`)
         .join(' ');
     return `#${seq} f${fightIndex} d${deckSize} $${scrap}  ${kind}${detail ? '  ' + detail : ''}`;
 }

@@ -39,11 +39,15 @@ import type { Middleware } from '@reduxjs/toolkit';
 import {
     appendRunEvent,
     emptyRunLog,
+    FIGHT_LOG_CAP,
     runLogKeyFor,
     writeRunLog,
     type IRunLog,
     type RunEventInput,
 } from '../../engine/run/runLog';
+import { isPlayerVictory } from '../../engine/battleOutcome';
+import { isSimulating } from '../../engine/core/simulationDepth';
+import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 import type { IBattleState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
 
@@ -66,6 +70,26 @@ interface LoggedState {
 let current: IRunLog | null = null;
 let seq = 0;
 let flushQueued = false;
+
+/**
+ * IS A FIGHT STILL OPEN — ticket 156 §2.
+ *
+ * `FIGHT_ENDED` used to be derived from one thing only: `battle.battle` going null. That is true of
+ * every fight the player walks out of, and NOT true of the order the two dispatches arrive in on a
+ * defeat. `BattleArena.handleDefeat` dispatches `endRun('defeat')` first and `setBattleState(null)`
+ * second, and the `run/endRun` branch below returns early — so the transcript read
+ *
+ *     … FIGHT_STARTED, RUN_ENDED, FIGHT_ENDED
+ *
+ * with the fight's own row landing AFTER the end of the run, and the non-coalesced write at
+ * `RUN_ENDED` persisting a transcript that did not contain it at all. Henry read one of those and
+ * filed 156 saying the row was missing; it was there, in the one position nothing looks.
+ *
+ * So the fight's close is now owned rather than inferred: this flag is raised with `FIGHT_STARTED`
+ * and lowered by whichever comes first — the battle clearing, or the run ending with a board still
+ * live. `closeFight` is the single writer, so the row cannot be emitted twice.
+ */
+let fightOpen = false;
 
 function flushSoon(): void {
     if (flushQueued) return;
@@ -92,6 +116,179 @@ function record(run: IRunState | null, input: RunEventInput): void {
     flushSoon();
 }
 
+/*
+ * ── THE TURN ROWS, FROM THE BUS ───────────────────────────────────────────────────
+ *
+ * Ticket 156 §2 wants what MOVED during a turn, and a Redux middleware cannot see it: the engine
+ * resolves a whole cast synchronously inside one reducer call, so `before`/`after` show the sum of
+ * a turn and never its parts. `globalBattleEventBus` is where the parts are.
+ *
+ * THREE THINGS THIS LISTENER MUST NOT DO, each learned the hard way somewhere else in the tree:
+ *
+ *  1. **Never dispatch.** It fires synchronously inside the reducer, and Redux throws "You may not
+ *     call store.getState() while the reducer is executing" — a throw that unwound through
+ *     `applyMutations` and broke every card play in the game on 2026-08-24 (`useCodexRecorder`).
+ *     Nothing here touches the store: it accumulates into a plain object and calls `record`, which
+ *     only appends to a module-local transcript and queues a microtask.
+ *  2. **Never throw.** `BattleEventBus.emit` is a bare `forEach` with no try/catch of its own, so
+ *     an exception here would unwind the engine the same way. The body is wrapped.
+ *  3. **Never record imagination.** The AI's lookahead runs the reducer ~94,000 times for one 3v3
+ *     decision. It mutes the bus, so `emit` short-circuits — but `isSimulating()` is checked too,
+ *     because the two predicates are not the same one and `emitHookFired` already treats them as
+ *     independent.
+ *
+ * Subscribed ONCE, at middleware creation, rather than per fight: a subscribe/unsubscribe cycle per
+ * fight is a window in which a play can be missed, and the accumulator is keyed on nothing that
+ * outlives a turn anyway.
+ */
+interface TurnAccumulator {
+    turn: number;
+    side: 'PLAYER' | 'ENEMY';
+    cardsPlayed: Array<{ dataId: string; casterId: string; targetId: string }>;
+    damageDealt: number;
+    damageTaken: number;
+    statusesApplied: Array<{ status: string; stacks: number; targetId: string }>;
+}
+
+const emptyTurn = (): TurnAccumulator => ({
+    turn: 0, side: 'PLAYER', cardsPlayed: [], damageDealt: 0, damageTaken: 0, statusesApplied: [],
+});
+
+let turnRows: TurnAccumulator = emptyTurn();
+/**
+ * The last board and run the middleware saw, for the listener to stamp against.
+ *
+ * The listener cannot read the store — see (1) above — so it reads these. They are written on
+ * every middleware pass, which means they are at worst one dispatch stale; and the dispatch they
+ * are stale by is the one currently resolving, whose own board is exactly what the turn is about.
+ * Whose side a unit is on cannot change mid-fight, which is all the listener asks of them.
+ */
+let lastBoard: IBattleState | null = null;
+let lastRun: IRunState | null = null;
+
+const sideOf = (entityId: string): 'PLAYER' | 'ENEMY' =>
+    lastBoard?.playerParty.some((entity) => entity.id === entityId) ? 'PLAYER' : 'ENEMY';
+
+/** Flush the accumulated turn as a row, and start the next one. */
+function flushTurn(): void {
+    const row = turnRows;
+    turnRows = emptyTurn();
+    if (!fightOpen || !current) return;
+    // A turn in which literally nothing happened is not worth a row; an empty enemy turn is common
+    // while a unit is stunned or asleep.
+    if (row.cardsPlayed.length === 0 && row.damageDealt === 0
+        && row.damageTaken === 0 && row.statusesApplied.length === 0) return;
+
+    const partyHp: Record<string, number> = {};
+    for (const member of lastBoard?.playerParty ?? []) partyHp[member.id] = member.currentHp;
+
+    record(lastRun, {
+        kind: 'FIGHT_TURN',
+        turn: row.turn,
+        side: row.side,
+        cardsPlayed: row.cardsPlayed,
+        damageDealt: row.damageDealt,
+        damageTaken: row.damageTaken,
+        statusesApplied: row.statusesApplied,
+        partyHp,
+    });
+}
+
+function onBattleEvent(event: BattleEvent): void {
+    try {
+        if (isSimulating() || !fightOpen) return;
+
+        switch (event.type) {
+            case 'PROGRAM_PLAYED':
+                turnRows.side = sideOf(event.sourceId);
+                turnRows.cardsPlayed.push({
+                    dataId: event.programId, casterId: event.sourceId, targetId: event.targetId,
+                });
+                return;
+            case 'DAMAGE_TAKEN': {
+                /*
+                 * `applied` rather than `amount` where the full record is there: `amount` is
+                 * post-shield but pre-floor, and a fully absorbed hit reports 0 either way. Dealt
+                 * or taken is decided by whose side the TARGET is on against whose turn it is, so
+                 * a recoil or a toll lands in `damageTaken` without needing its `cause`.
+                 */
+                const hit = event.damage?.applied ?? event.amount;
+                if (sideOf(event.targetId) === turnRows.side) turnRows.damageTaken += hit;
+                else turnRows.damageDealt += hit;
+                return;
+            }
+            case 'STATUS_APPLIED':
+                turnRows.statusesApplied.push({
+                    status: event.status, stacks: event.stacks, targetId: event.targetId,
+                });
+                return;
+            case 'TURN_END':
+                turnRows.turn = event.turnNumber;
+                turnRows.side = event.activeSide;
+                flushTurn();
+                return;
+            default:
+                return;
+        }
+    } catch (error) {
+        // (2): an exception here unwinds the engine reducer. Instrumentation may not cost a play.
+        console.warn('[RunLog] dropped a turn event:', error);
+    }
+}
+
+/**
+ * The fight's closing row, from the last live board — ticket 156 §2.
+ *
+ * `battleBefore` is that board: by the time `battle` is null there is no turn count and no HP left
+ * to read. Called from both closes, and a no-op unless a fight is actually open, so the run ending
+ * mid-fight and the arena clearing the board a tick later produce ONE row, in the earlier position.
+ */
+function closeFight(run: IRunState | null, board: IBattleState): void {
+    if (!fightOpen) return;
+
+    // The killing turn never reaches `TURN_END` — the fight is over inside it — so it is flushed
+    // here, while `fightOpen` is still true, or the turn that decided the fight is the one turn
+    // with no row.
+    lastBoard = board;
+    turnRows.turn = board.turn;
+    flushTurn();
+
+    fightOpen = false;
+
+    /*
+     * TICKET 156 §2 — the transcript, before the summary row.
+     *
+     * `IBattleState.logs` has no cap of its own and dies with the battle. Truncated from the FRONT:
+     * a fight's opening draw is worth less than the turn it ended on, and the ending is what a bug
+     * report is about. Measured: a 21-turn 3v3 makes 376 lines, so `FIGHT_LOG_CAP` of 400 keeps all
+     * of an ordinary fight and `truncated` is non-zero only on a genuinely long one.
+     */
+    const lines = board.logs;
+    record(run, {
+        kind: 'FIGHT_LOG',
+        lines: lines.length > FIGHT_LOG_CAP ? lines.slice(-FIGHT_LOG_CAP) : [...lines],
+        truncated: Math.max(0, lines.length - FIGHT_LOG_CAP),
+    });
+
+    const partyHp: Record<string, number> = {};
+    for (const member of board.playerParty) partyHp[member.id] = member.currentHp;
+
+    record(run, {
+        kind: 'FIGHT_ENDED',
+        turns: board.turn,
+        /*
+         * `isPlayerVictory`, not "every enemy is down" — ticket 156 §2, and the same defect
+         * `battleOutcome` was written to end. The local expression here called a MUTUAL KILL a win,
+         * so a defeat could log `FIGHT_ENDED(won: true)` next to `RUN_ENDED(outcome: 'defeat')` and
+         * the transcript contradicted itself on the one fight anybody would go back to read.
+         * Henry's ruling of 2026-09-05 is that a draw is a defeat; there is one function that knows
+         * it and this is now a caller of it.
+         */
+        won: isPlayerVictory(board),
+        partyHp,
+    });
+}
+
 /**
  * Begin a transcript, or resume the one already in storage for this run.
  *
@@ -111,6 +308,10 @@ function beginOrResume(run: IRunState, existing: ReadonlyArray<IRunLog>): void {
 export function resetRunLogRecorder(): void {
     current = null;
     seq = 0;
+    fightOpen = false;
+    turnRows = emptyTurn();
+    lastBoard = null;
+    lastRun = null;
 }
 
 /** Test seam: the transcript as it stands, without a storage round trip. */
@@ -132,6 +333,10 @@ function nodeOf(run: IRunState | null, nodeId: string | undefined) {
 }
 
 export function createRunLogMiddleware(readLogs: () => IRunLog[]): Middleware {
+    // Once for the life of the store. `subscribe` returns an unsubscribe nobody calls, because the
+    // middleware outlives every fight and a resubscribe per fight would be a hole to fall through.
+    globalBattleEventBus.subscribe(onBattleEvent);
+
     return (store) => (next) => (action) => {
         const before = store.getState() as LoggedState;
         const result = next(action);
@@ -141,6 +346,10 @@ export function createRunLogMiddleware(readLogs: () => IRunLog[]): Middleware {
             const after = store.getState() as LoggedState;
             const runBefore = before.run.run;
             const runAfter = after.run.run;
+
+            // What the bus listener stamps against; see `lastBoard`.
+            lastBoard = after.battle.battle;
+            lastRun = runAfter;
 
             // --- Run lifecycle ---
             if (action.type === 'run/startRun' || action.type === 'run/setRun') {
@@ -163,6 +372,15 @@ export function createRunLogMiddleware(readLogs: () => IRunLog[]): Middleware {
             if (!current) return result;
 
             if (action.type === 'run/endRun' && runAfter) {
+                /*
+                 * A defeat ends the RUN while the board is still on screen — `handleDefeat`
+                 * clears it on the next dispatch. Close the fight first so `RUN_ENDED` stays the
+                 * last row of every run, defeat included, and so the uncoalesced write below
+                 * persists a transcript that already has it.
+                 */
+                const liveBoard = before.battle.battle;
+                if (liveBoard) closeFight(runAfter, liveBoard);
+
                 record(runAfter, {
                     kind: 'RUN_ENDED',
                     outcome: runAfter.outcome ?? 'abandoned',
@@ -194,23 +412,42 @@ export function createRunLogMiddleware(readLogs: () => IRunLog[]): Middleware {
             const battleAfter = after.battle.battle;
             if (!battleBefore && battleAfter) {
                 const node = nodeOf(runAfter, runAfter?.currentNodeId);
+                fightOpen = true;
                 record(runAfter, {
                     kind: 'FIGHT_STARTED',
                     nodeKind: node?.kind ?? 'wild',
                     enemies: battleAfter.enemyParty.map((entity) => entity.definitionId),
                 });
+                /*
+                 * TICKET 156 §2 — what was carried in, beside who was fought.
+                 *
+                 * Taken from the RUN's deck rather than `battleAfter.playerDeck`, because the
+                 * battle's deck is already shuffled into draw pile and hand and the question is
+                 * "what did this run own at fight N", not "what order did it come up in". Sorted,
+                 * duplicates kept: a multiset that diffs cleanly against the next fight's.
+                 */
+                record(runAfter, {
+                    kind: 'FIGHT_DECK',
+                    deck: [...(runAfter?.deck ?? [])].map((card) => card.dataId).sort(),
+                    party: battleAfter.playerParty.map((entity) => ({
+                        memberId: entity.id,
+                        species: entity.definitionId,
+                        osId: entity.activeOS ?? null,
+                        hp: entity.currentHp,
+                        maxHp: entity.maxHp,
+                    })),
+                    enemies: battleAfter.enemyParty.map((entity) => ({
+                        species: entity.definitionId,
+                        osId: entity.activeOS ?? null,
+                    })),
+                    nodeKind: node?.kind ?? 'wild',
+                    biome: node?.biomeIndex ?? 0,
+                });
             }
             if (battleBefore && !battleAfter) {
-                // `battleBefore` is the last live board, so the HP and turn count are the fight's
-                // final ones. Reading them after the clear would find nothing at all.
-                const partyHp: Record<string, number> = {};
-                for (const member of battleBefore.playerParty) partyHp[member.id] = member.currentHp;
-                record(runAfter, {
-                    kind: 'FIGHT_ENDED',
-                    turns: battleBefore.turn,
-                    won: battleBefore.enemyParty.every((entity) => entity.currentHp <= 0),
-                    partyHp,
-                });
+                // The ordinary close: the arena cleared the board. On a defeat the run ended one
+                // dispatch ago and already closed it, and `closeFight` no-ops.
+                closeFight(runAfter, battleBefore);
             }
 
             // --- Named purchases, before the SCRAP row so a reader sees what then cost what ---

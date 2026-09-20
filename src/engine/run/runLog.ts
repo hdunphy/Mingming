@@ -31,6 +31,15 @@
  * held down) to evict every other run in the store. Capping per run first means a runaway run
  * truncates itself and leaves its neighbours alone.
  *
+ * **2,000 since ticket 156**, and the number is arithmetic rather than taste. A real 21-turn 3v3,
+ * driven through the reducer and counted: 376 log lines and 12.5 KB of text. 156 adds, per fight,
+ * one `FIGHT_DECK`, one `FIGHT_LOG` and one `FIGHT_TURN` per side per turn — about 46 rows for a
+ * fight that long. Fourteen of those is 644 rows, and the rest of a run's picks, purchases and
+ * scrap moves is another 150 or so. At the old cap of 800 a long run would have started dropping
+ * rows somewhere in its last third — and because the cap keeps the HEAD, what it would have
+ * dropped is the elite that killed you and `RUN_ENDED` with it. That is the exact failure 156 was
+ * opened to stop, so the cap moves with the rows that caused it.
+ *
  * When a run hits its cap the log keeps the OLDEST rows and drops the rest, recording how many in
  * `droppedEvents`. Keeping the head rather than the tail is the deliberate choice: the questions
  * this log exists to answer are about how a run *develops* — when the deck got big, where the scrap
@@ -56,10 +65,19 @@ export const RUN_LOG_KEY = 'mingming_run_log';
 export const RUN_LOG_VERSION = 1;
 
 /** Rows kept for one run. A full run measures a couple of hundred; see the header on the bounds. */
-export const RUN_LOG_EVENT_CAP = 800;
+export const RUN_LOG_EVENT_CAP = 2000;
 
 /** Runs kept in the store, newest last. A playtest session is a handful; three is the useful window. */
 export const RUN_LOG_RUNS = 3;
+
+/**
+ * Lines of combat log kept per fight — ticket 156 §2, which asks for 400.
+ *
+ * `IBattleState.logs` has no cap of its own and grows for the life of a battle, so this is the
+ * first thing in the codebase that bounds it. A long 3v3 runs a few hundred lines; 400 keeps all
+ * of an ordinary fight and the ending of a very long one.
+ */
+export const FIGHT_LOG_CAP = 400;
 
 // ---------------------------------------------------------------------------------------------
 // The rows
@@ -92,6 +110,39 @@ export type IRunEvent = IRunEventBase & (
     | { readonly kind: 'RUN_STARTED'; readonly gymId: string; readonly tier: number; readonly party: ReadonlyArray<string> }
     | { readonly kind: 'NODE_ENTERED'; readonly nodeKind: NodeKind; readonly biome: number; readonly layer: number }
     | { readonly kind: 'FIGHT_STARTED'; readonly nodeKind: NodeKind; readonly enemies: ReadonlyArray<string> }
+    /**
+     * THE BOARD AND THE DECK THIS FIGHT WAS WALKED INTO — ticket 156 §2.
+     *
+     * `FIGHT_STARTED` named the enemy species and nothing else, so a run could say it lost to an
+     * elite and not say what it was carrying at the time. This is the row 148/153 need: deck at
+     * fight N across a run IS the progression curve, and it cannot be reconstructed afterwards
+     * because every pick, purchase and removal between fights moved it.
+     *
+     * The deck is `dataId[]` SORTED, not in draw order — a multiset, because what is being asked
+     * of it is "what was in here" and a sorted list diffs cleanly between two fights. Duplicates
+     * are kept: three copies of a card is the fact.
+     */
+    | {
+        readonly kind: 'FIGHT_DECK';
+        readonly deck: ReadonlyArray<string>;
+        readonly party: ReadonlyArray<{
+            readonly memberId: string;
+            readonly species: string;
+            /** `null` where a unit runs no firmware — see the enemy note below. */
+            readonly osId: string | null;
+            readonly hp: number;
+            readonly maxHp: number;
+        }>;
+        /**
+         * `osId` is `null` rather than `''` on purpose. `encounter.ts` strips `activeOS` from a
+         * wild whose loadout has no firmware (ticket 142b: `kraken_v1` and `kraken_v2` are
+         * different fights on the same body, and a moveset enemy is a third thing) — so "no OS" is
+         * a real and common answer here, and an empty string would read as a recording failure.
+         */
+        readonly enemies: ReadonlyArray<{ readonly species: string; readonly osId: string | null }>;
+        readonly nodeKind: NodeKind;
+        readonly biome: number;
+    }
     | {
         readonly kind: 'FIGHT_ENDED';
         readonly turns: number;
@@ -106,6 +157,52 @@ export type IRunEvent = IRunEventBase & (
      * impossible to forget: a new scrap sink added next month is logged before anyone remembers
      * this file exists.
      */
+    /**
+     * ONE SIDE'S TURN, AS NUMBERS — ticket 156 §2.
+     *
+     * The `FIGHT_LOG` row beside this one is the "what happened"; this is the "how much", and it
+     * is the half a reader can aggregate. Built from the bus rather than from the board, because
+     * the board only ever shows the CURRENT state and the question is what moved during the turn.
+     *
+     * `partyHp` is the player's side as the turn closed, so a sequence of these rows IS the
+     * attrition curve at turn resolution rather than at fight resolution.
+     */
+    | {
+        readonly kind: 'FIGHT_TURN';
+        readonly turn: number;
+        readonly side: 'PLAYER' | 'ENEMY';
+        readonly cardsPlayed: ReadonlyArray<{
+            readonly dataId: string;
+            readonly casterId: string;
+            readonly targetId: string;
+        }>;
+        /** Damage the ACTING side dealt to the other, by this turn's events. */
+        readonly damageDealt: number;
+        /** Damage the acting side took in its own turn — recoil, tolls and status ticks. */
+        readonly damageTaken: number;
+        readonly statusesApplied: ReadonlyArray<{
+            readonly status: string;
+            readonly stacks: number;
+            readonly targetId: string;
+        }>;
+        readonly partyHp: Readonly<Record<string, number>>;
+    }
+    /**
+     * THE COMBAT LOG, VERBATIM — ticket 156 §2.
+     *
+     * Henry: *"Do we not save the actual battle logs? That might be useful for debugging."* These
+     * are the strings the top bar shows, and they die with the battle state; every other row in
+     * this file is a number, and a number cannot say what killed the party.
+     *
+     * Capped at `FIGHT_LOG_CAP` and truncated from the FRONT, which is the opposite of the run
+     * log's own cap and deliberately so: a fight's opening shuffle is worth less than the turn it
+     * ended on, and the end is what a bug report is about. `truncated` says how many lines went.
+     */
+    | {
+        readonly kind: 'FIGHT_LOG';
+        readonly lines: ReadonlyArray<string>;
+        readonly truncated: number;
+    }
     | { readonly kind: 'SCRAP'; readonly delta: number; readonly reason: string }
     | { readonly kind: 'CARD_PICKED'; readonly dataId: string; readonly offered: ReadonlyArray<string> }
     | { readonly kind: 'CARD_SKIPPED'; readonly offered: ReadonlyArray<string> }
