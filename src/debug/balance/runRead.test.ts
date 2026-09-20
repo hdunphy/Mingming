@@ -43,7 +43,7 @@ describe('156 §4 — reading a transcript back', () => {
                 cardsPlayed: [{ dataId: 'ignite', casterId: 'a', targetId: 'e' }],
             }),
             turn(1, 'ENEMY', { damageDealt: 12 }),
-            row(0, { kind: 'FIGHT_LOG', lines: ['a', 'b'], truncated: 7 }),
+            row(0, { kind: 'FIGHT_LOG', logId: 'r@1#1', lineCount: 2, truncated: 7 }),
             row(0, { kind: 'FIGHT_ENDED', turns: 1, won: true, partyHp: { a: 83 } }),
 
             row(1, { kind: 'FIGHT_STARTED', nodeKind: 'elite', enemies: ['draugr'] }),
@@ -60,6 +60,8 @@ describe('156 §4 — reading a transcript back', () => {
         expect(fights[0].damageTaken).toBe(17);
         expect(fights[0].logLines).toBe(2);
         expect(fights[0].logTruncated).toBe(7);
+        // The row is a POINTER now — the text lives under its own key, and the export inlines it.
+        expect(fights[0].logId).toBe('r@1#1');
         // The second fight's rows are its own.
         expect(fights[1].damageDealt).toBe(9);
         expect(fights[1].won).toBe(false);

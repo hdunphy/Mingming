@@ -38,6 +38,8 @@ import { globalBattleEventBus } from '../../engine/events';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { ACTIVE_GAP_CAP_MS, readRunLogs, type IRunEvent } from '../../engine/run/runLog';
+import { fightLogIds, readFightLog } from '../../engine/run/fightLog';
+import { DEFAULT_SETTINGS, saveSettings } from '../settings/settings';
 import { resetSaveStorage, setSaveStorage, type ISaveStorage } from '../../engine/save/storage';
 import type { IBattleSetup } from '../../engine/data/battleFactories';
 import type { IMingmingState } from '../../engine/types';
@@ -81,6 +83,9 @@ beforeEach(() => {
     storage = new MemoryStorage();
     setSaveStorage(storage);
     resetRunLogRecorder();
+    // `battleLogs` is read at each fight's close, so a test that changed it must not leak into the
+    // next one. The defaults are what the game ships with: logs on.
+    saveSettings(DEFAULT_SETTINGS);
 });
 
 afterEach(() => {
@@ -300,6 +305,72 @@ describe('the run log middleware, over a whole run', () => {
         });
 
         expect(rowsOf('FIGHT_TURN')).toHaveLength(before);
+    });
+
+    it('writes the fight\'s transcript to its own key, and points the row at it', () => {
+        /*
+         * Henry, 2026-09-20: *"Should we instead add a log for each fight and reference it in the
+         * full log instead of one big log?"* The row keeps the numbers; the text lives under
+         * `mingming_fight_log:<runKey>#<fight>`, and `writeRunLog` no longer re-serialises a
+         * fight's 12.5 KB on every dispatch for the rest of the run.
+         */
+        saveSettings({ ...DEFAULT_SETTINGS, battleLogs: true });
+        const store = makeStore();
+        const run = makeRun();
+        store.dispatch(startRun(run));
+        store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+
+        // A fight with no plays has an empty combat log, and an assertion about an empty
+        // transcript proves nothing — so play a card first.
+        const board = store.getState().battle.battle!;
+        store.dispatch(playProgram({
+            sourceId: board.playerParty[0].id,
+            targetId: board.enemyParty[0].id,
+            programId: board.playerDeck.hand[0].id,
+        }));
+        expect(store.getState().battle.battle!.logs.length).toBeGreaterThan(0);
+        store.dispatch(setBattleState(null));
+
+        const row = rowsOf('FIGHT_LOG')[0] as IRunEvent & {
+            logId: string | null; lineCount: number;
+        };
+        expect(row.logId).toBe(`${run.seed}@${run.startedAt}#1`);
+
+        const transcript = readFightLog(row.logId!);
+        expect(transcript).not.toBeNull();
+        expect(row.lineCount).toBeGreaterThan(0);
+        expect(transcript!.lines).toHaveLength(row.lineCount);
+        // And the run log itself carries no combat text at all.
+        expect(JSON.stringify(currentRunLog())).not.toContain(transcript!.lines[0] ?? '\u0000');
+    });
+
+    it('keeps the counts but stores no text when battle logs are off', () => {
+        /*
+         * "Off" has to be graceful: a row that vanished with the setting would make the setting
+         * look like a fault, and the line count is still worth having — *"that fight ran 376
+         * lines"* tells you what you chose not to keep.
+         */
+        saveSettings({ ...DEFAULT_SETTINGS, battleLogs: false });
+        const store = makeStore();
+        store.dispatch(startRun(makeRun()));
+        store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+
+        // A fight with no plays has an empty combat log, and an assertion about an empty
+        // transcript proves nothing — so play a card first.
+        const board = store.getState().battle.battle!;
+        store.dispatch(playProgram({
+            sourceId: board.playerParty[0].id,
+            targetId: board.enemyParty[0].id,
+            programId: board.playerDeck.hand[0].id,
+        }));
+        expect(store.getState().battle.battle!.logs.length).toBeGreaterThan(0);
+        store.dispatch(setBattleState(null));
+
+        const row = rowsOf('FIGHT_LOG')[0] as IRunEvent & { logId: string | null; lineCount: number };
+        expect(row).toBeTruthy();
+        expect(row.logId).toBeNull();
+        expect(row.lineCount).toBeGreaterThan(0);
+        expect(fightLogIds()).toEqual([]);
     });
 
     it('closes the fight BEFORE the run, on a defeat — and only once', async () => {

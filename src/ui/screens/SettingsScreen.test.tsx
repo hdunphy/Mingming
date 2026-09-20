@@ -95,6 +95,22 @@ describe('SettingsScreen', () => {
         expect(markup).toMatch(/Key remapping/);
     });
 
+    it('offers the battle-log switch, on by default, and says what off costs', () => {
+        /*
+         * Henry, 2026-09-20 — the switch that came with splitting transcripts out of the run log.
+         * On by default because ticket 156 exists precisely because the logs were missing, and the
+         * note has to say what "off" actually loses: the TEXT, not the run's numbers. A player who
+         * reads "off" as "stop recording my runs" would turn it off for the wrong reason.
+         */
+        const markup = render();
+        expect(markup).toContain('Save battle logs');
+        expect(markup).toContain('It is what a bug report needs');
+        // Defaulting to on means the On choice carries the pressed state, not the Off one.
+        const onIndex = markup.indexOf('Save battle logs');
+        const block = markup.slice(onIndex, onIndex + 600);
+        expect(block).toContain('aria-pressed="true"');
+    });
+
     it('says the settings are not part of the save', () => {
         const markup = render();
         expect(markup).toMatch(/across slots|never part of the save/);

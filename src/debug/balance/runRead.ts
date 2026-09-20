@@ -41,6 +41,14 @@ interface RunLogEnvelope {
     readonly version: number;
     readonly exportedAt: number;
     readonly logs: ReadonlyArray<IRunLog>;
+    /**
+     * The combat transcripts, keyed by the `logId` each `FIGHT_LOG` row carries.
+     *
+     * Absent on an export written before the transcripts were split out, and an individual id can
+     * be missing from it when that fight's text was pruned or never stored — both read here as
+     * "no transcript", which is the truth in either case.
+     */
+    readonly fightLogs?: Readonly<Record<string, { readonly lines: ReadonlyArray<string>; readonly truncated: number }>>;
 }
 
 /**
@@ -118,6 +126,8 @@ export interface FightRead {
     readonly statusesBySource: ReadonlyArray<{ status: string; count: number }>;
     readonly logLines: number;
     readonly logTruncated: number;
+    /** Into the export's `fightLogs` map. `null` when the player had battle logs off. */
+    readonly logId: string | null;
 }
 
 /**
@@ -194,8 +204,9 @@ export function readFights(log: IRunLog): FightRead[] {
             statusesBySource: [...byStatus.entries()]
                 .map(([status, count]) => ({ status, count }))
                 .sort((a, b) => b.count - a.count),
-            logLines: open.log?.lines.length ?? 0,
+            logLines: open.log?.lineCount ?? 0,
             logTruncated: open.log?.truncated ?? 0,
+            logId: open.log?.logId ?? null,
         });
         open = null;
     };
@@ -227,7 +238,13 @@ const padL = (text: string, width: number): string =>
 const num = (value: number | null, digits = 0): string =>
     value === null ? '—' : value.toFixed(digits);
 
-function printRun(log: IRunLog): void {
+/** How much of a fight's transcript the table prints. The rest stays in the file. */
+const TAIL_LINES = 6;
+
+function printRun(
+    log: IRunLog,
+    transcripts: Readonly<Record<string, { readonly lines: ReadonlyArray<string> }>> = {},
+): void {
     const fights = readFights(log);
     const ended = log.events.find((event) => event.kind === 'RUN_ENDED') as Row<'RUN_ENDED'> | undefined;
     const picks = log.events.filter(
@@ -299,9 +316,17 @@ function printRun(log: IRunLog): void {
             console.log(`    statuses applied: ${fight.statusesBySource
                 .map((entry) => `${entry.status} ×${entry.count}`).join(' · ')}`);
         }
-        if (fight.logLines > 0) {
+        if (fight.logLines > 0 || fight.logId) {
+            const held = fight.logId ? transcripts[fight.logId] : undefined;
+            const where = fight.logId === null
+                ? ' — not stored (battle logs off)'
+                : held ? '' : ' — MISSING from this export';
             console.log(`    combat log: ${fight.logLines} lines`
-                + (fight.logTruncated > 0 ? ` (+${fight.logTruncated} truncated from the front)` : ''));
+                + (fight.logTruncated > 0 ? ` (+${fight.logTruncated} truncated from the front)` : '')
+                + where);
+            // The last few lines are the part a bug report is about, so they are printed rather
+            // than merely counted. The whole transcript is in the file for anyone who wants it.
+            for (const line of (held?.lines ?? []).slice(-TAIL_LINES)) console.log(`      ${line}`);
         }
     }
     console.log('');
@@ -332,5 +357,5 @@ export function runRead(): void {
 
     const envelope = readEnvelope(path);
     console.log(`${path} — ${envelope.logs.length} run(s), exported ${new Date(envelope.exportedAt).toISOString()}`);
-    for (const log of envelope.logs) printRun(log);
+    for (const log of envelope.logs) printRun(log, envelope.fightLogs ?? {});
 }

@@ -47,6 +47,8 @@ import {
     type RunEventInput,
 } from '../../engine/run/runLog';
 import { isPlayerVictory } from '../../engine/battleOutcome';
+import { fightLogIdFor, writeFightLog } from '../../engine/run/fightLog';
+import { loadSettings } from '../settings/settings';
 import { isSimulating } from '../../engine/core/simulationDepth';
 import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 import type { IBattleState } from '../../engine/types';
@@ -250,6 +252,20 @@ function onBattleEvent(event: BattleEvent): void {
 }
 
 /**
+ * Does the player want combat transcripts stored — Henry's switch, 2026-09-20.
+ *
+ * Its own function, and failing to `true`, because a settings read that threw would otherwise end
+ * a fight without its row. The default is on: 156 exists because the logs were missing.
+ */
+function wantsBattleLogs(): boolean {
+    try {
+        return loadSettings().battleLogs;
+    } catch {
+        return true;
+    }
+}
+
+/**
  * The fight's closing row, from the last live board — ticket 156 §2.
  *
  * `battleBefore` is that board: by the time `battle` is null there is no turn count and no HP left
@@ -269,19 +285,53 @@ function closeFight(run: IRunState | null, board: IBattleState): void {
     fightOpen = false;
 
     /*
-     * TICKET 156 §2 — the transcript, before the summary row.
+     * TICKET 156 §2 — the transcript goes to its OWN key; this row is the pointer.
      *
      * `IBattleState.logs` has no cap of its own and dies with the battle. Truncated from the FRONT:
      * a fight's opening draw is worth less than the turn it ended on, and the ending is what a bug
      * report is about. Measured: a 21-turn 3v3 makes 376 lines, so `FIGHT_LOG_CAP` of 400 keeps all
      * of an ordinary fight and `truncated` is non-zero only on a genuinely long one.
+     *
+     * The text itself is 12.5 KB of that fight against ~30 KB for a whole run's other rows, and
+     * `writeRunLog` re-serialises the entire log on a microtask after every dispatch — so keeping
+     * it in the row meant re-stringifying every past fight on every card play. It lives in
+     * `fightLog.ts` now, under `logId`, and the export gathers them back into one file.
+     *
+     * `logId` is null when the player has battle logs off. The counts stay either way: a row that
+     * vanished with the setting would make the setting look like a fault.
      */
     const lines = board.logs;
-    record(run, {
-        kind: 'FIGHT_LOG',
-        lines: lines.length > FIGHT_LOG_CAP ? lines.slice(-FIGHT_LOG_CAP) : [...lines],
-        truncated: Math.max(0, lines.length - FIGHT_LOG_CAP),
-    });
+    const kept = lines.length > FIGHT_LOG_CAP ? lines.slice(-FIGHT_LOG_CAP) : [...lines];
+    const truncated = Math.max(0, lines.length - FIGHT_LOG_CAP);
+
+    /*
+     * Read at the fight's close rather than cached at module scope: the settings screen is a route
+     * away from a fight, so a player who turns this off mid-run means it from the next fight on,
+     * and one `localStorage` read per FIGHT is not a cost worth optimising. (Per RENDER was — see
+     * `PlayedCardReveal`.)
+     */
+    /*
+     * WITH LOGS OFF, THE ROW REPORTS THE FIGHT, NOT THE FILE THAT WAS NOT WRITTEN.
+     *
+     * `kept`/`truncated` describe a transcript; when none is stored, "400 lines, +17 truncated" is
+     * a description of a truncation that never happened. The honest number for the off case is how
+     * long the fight actually ran, with nothing truncated because nothing was kept.
+     */
+    let logId: string | null = null;
+    if (!(current && wantsBattleLogs())) {
+        record(run, { kind: 'FIGHT_LOG', logId: null, lineCount: lines.length, truncated: 0 });
+    } else {
+        // WHICH fight of this run, counted off the transcript rather than off `seq`. The row this
+        // is about has not been recorded yet, so predicting its `seq` would be predicting the
+        // future; the ordinal is already there to be counted, and survives a resumed run.
+        const ordinal = current.events.filter((event) => event.kind === 'FIGHT_STARTED').length;
+        const id = fightLogIdFor(current.runKey, Math.max(1, ordinal));
+        if (writeFightLog({ id, runKey: current.runKey, lines: kept, truncated })) logId = id;
+
+        // A write that failed leaves `logId` null with the transcript's own counts, which reads as
+        // "there should be text here and there isn't" — the truth, and visible in the table.
+        record(run, { kind: 'FIGHT_LOG', logId, lineCount: kept.length, truncated });
+    }
 
     const partyHp: Record<string, number> = {};
     for (const member of board.playerParty) partyHp[member.id] = member.currentHp;

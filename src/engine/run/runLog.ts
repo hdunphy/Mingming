@@ -55,6 +55,7 @@
 
 import { z } from 'zod';
 
+import { clearFightLogs, collectFightLogs, pruneFightLogs } from './fightLog';
 import { getSaveStorage } from '../save/storage';
 import type { NodeKind, RunOutcome } from '../runTypes';
 
@@ -70,14 +71,8 @@ export const RUN_LOG_EVENT_CAP = 2000;
 /** Runs kept in the store, newest last. A playtest session is a handful; three is the useful window. */
 export const RUN_LOG_RUNS = 3;
 
-/**
- * Lines of combat log kept per fight — ticket 156 §2, which asks for 400.
- *
- * `IBattleState.logs` has no cap of its own and grows for the life of a battle, so this is the
- * first thing in the codebase that bounds it. A long 3v3 runs a few hundred lines; 400 keeps all
- * of an ordinary fight and the ending of a very long one.
- */
-export const FIGHT_LOG_CAP = 400;
+/** Re-exported from `fightLog.ts`, which owns the transcripts the cap applies to. */
+export { FIGHT_LOG_CAP } from './fightLog';
 
 // ---------------------------------------------------------------------------------------------
 // The rows
@@ -188,19 +183,31 @@ export type IRunEvent = IRunEventBase & (
         readonly partyHp: Readonly<Record<string, number>>;
     }
     /**
-     * THE COMBAT LOG, VERBATIM — ticket 156 §2.
+     * A POINTER TO THE COMBAT LOG, AND ITS SHAPE — ticket 156 §2, rebuilt 2026-09-20.
      *
-     * Henry: *"Do we not save the actual battle logs? That might be useful for debugging."* These
-     * are the strings the top bar shows, and they die with the battle state; every other row in
-     * this file is a number, and a number cannot say what killed the party.
+     * Henry: *"Do we not save the actual battle logs?"* — and then, once they were in:
+     * *"Should we instead add a log for each fight and reference it in the full log instead of one
+     * big log?"* He is right, and the numbers say so. The first cut put four hundred strings in
+     * this row; a 21-turn 3v3 makes 376 lines and 12.5 KB, against roughly 30 KB for every other
+     * row in an entire run. The transcripts were ~85% of the store — and worse, `writeRunLog`
+     * re-serialises the whole log on a microtask after every dispatch, so a fight's text was being
+     * re-stringified on every card play for the rest of the run.
      *
-     * Capped at `FIGHT_LOG_CAP` and truncated from the FRONT, which is the opposite of the run
-     * log's own cap and deliberately so: a fight's opening shuffle is worth less than the turn it
-     * ended on, and the end is what a bug report is about. `truncated` says how many lines went.
+     * So the row keeps what a reader scans — how long the fight's log was, how much was truncated
+     * — and carries an id into `fightLog.ts`, where the text lives under its own key and is read
+     * only when somebody asks for it. The export inlines them again, so one file still goes to a
+     * playtest.
+     *
+     * `logId` is `null` when the player has battle logs switched off: the counts are still worth
+     * having (*"that fight ran 376 lines"*), and a row that vanished entirely would make the
+     * setting look like a bug.
      */
     | {
         readonly kind: 'FIGHT_LOG';
-        readonly lines: ReadonlyArray<string>;
+        readonly logId: string | null;
+        /** How many lines the transcript holds — a COUNT, not the lines. */
+        readonly lineCount: number;
+        /** Lines dropped off the FRONT because the fight ran past `FIGHT_LOG_CAP`. */
         readonly truncated: number;
     }
     | { readonly kind: 'SCRAP'; readonly delta: number; readonly reason: string }
@@ -368,6 +375,15 @@ export function writeRunLog(log: IRunLog): boolean {
         const existing = readRunLogs().filter((entry) => entry.runKey !== log.runKey);
         const logs = [...existing, log].slice(-RUN_LOG_RUNS);
         getSaveStorage().write(RUN_LOG_KEY, JSON.stringify({ version: RUN_LOG_VERSION, logs }));
+        /*
+         * A RUN LEAVING TAKES ITS FIGHTS WITH IT, in the same operation that dropped it.
+         *
+         * The fight transcripts live under their own keys (`fightLog.ts`) and have no retention
+         * rule of their own on purpose: a second cap would be a second thing to reason about and a
+         * new way for the two stores to disagree. `RUN_LOG_RUNS` is the one rule, and this is where
+         * it is enforced on the other store.
+         */
+        pruneFightLogs(logs.map((entry) => entry.runKey));
         return true;
     } catch {
         return false;
@@ -382,6 +398,9 @@ export function latestRunLog(): IRunLog | null {
 
 /** Throw the transcripts away. `wipeSave` calls this; nothing in the game does. */
 export function clearRunLogs(): void {
+    // The two stores clear together, or a wipe leaves half a megabyte of orphaned transcripts
+    // behind with nothing left that references them.
+    clearFightLogs();
     try {
         getSaveStorage().remove(RUN_LOG_KEY);
     } catch {
@@ -390,9 +409,39 @@ export function clearRunLogs(): void {
     }
 }
 
-/** The export payload — every stored transcript, pretty-printed. `exportedAt` is injected. */
+/**
+ * Every `FIGHT_LOG` row's `logId` in these runs, in order, skipping the nulls.
+ *
+ * Exported because `runRead` wants the same list when it reads a file back.
+ */
+export function fightLogIdsIn(logs: ReadonlyArray<IRunLog>): string[] {
+    const ids: string[] = [];
+    for (const log of logs) {
+        for (const event of log.events) {
+            if (event.kind !== 'FIGHT_LOG') continue;
+            if (event.logId) ids.push(event.logId);
+        }
+    }
+    return ids;
+}
+
+/**
+ * The export payload — every stored transcript, pretty-printed. `exportedAt` is injected.
+ *
+ * SPLIT IN STORAGE, WHOLE ON THE WAY OUT. 156 §3 says *"the export stays a single JSON"*, and
+ * that is the whole point of an export: a playtester sends one file. The combat logs live under
+ * their own keys now (see `fightLog.ts`), so they are gathered back here into a `fightLogs` map
+ * keyed by the same `logId` the rows carry. A transcript that has gone missing is simply absent
+ * from the map, which a reader can see, rather than a null it has to special-case.
+ */
 export function serializeRunLogs(exportedAt: number): string {
-    return JSON.stringify({ version: RUN_LOG_VERSION, exportedAt, logs: readRunLogs() }, null, 2);
+    const logs = readRunLogs();
+    return JSON.stringify({
+        version: RUN_LOG_VERSION,
+        exportedAt,
+        logs,
+        fightLogs: collectFightLogs(fightLogIdsIn(logs)),
+    }, null, 2);
 }
 
 /** One transcript by key, or null. What the auto-save writes when a run ends. */
@@ -408,7 +457,12 @@ export function findRunLog(runKey: string): IRunLog | null {
  * without translation.
  */
 export function serializeOneRunLog(log: IRunLog, exportedAt: number): string {
-    return JSON.stringify({ version: RUN_LOG_VERSION, exportedAt, logs: [log] }, null, 2);
+    return JSON.stringify({
+        version: RUN_LOG_VERSION,
+        exportedAt,
+        logs: [log],
+        fightLogs: collectFightLogs(fightLogIdsIn([log])),
+    }, null, 2);
 }
 
 // ---------------------------------------------------------------------------------------------

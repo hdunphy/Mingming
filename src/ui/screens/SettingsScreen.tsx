@@ -24,6 +24,7 @@ import {
     runLogDirectory,
     storedRunLogCount,
 } from '../settings/exportRunLog';
+import { FIGHT_LOG_CAP } from '../../engine/run/fightLog';
 import { playSfx } from '../audio/AudioEngine';
 import './SettingsScreen.css';
 
@@ -312,6 +313,39 @@ export default function SettingsScreen(): ReactNode {
                               : `Off. Runs are still recorded and you can save them below, but only the
                                  last ${RUN_LOG_RUNS} are kept — turn this on and each one writes itself to
                                  your downloads folder as it ends, so nothing is lost to that window.`}
+                    </p>
+
+                    {/*
+                      * TICKET 156 / Henry, 2026-09-20. Under the auto-save toggle because it is the
+                      * same subject one level down: that one decides whether a run is KEPT, this one
+                      * decides how much of each fight is in it.
+                      */}
+                    <div className="settings-row">
+                        <span className="settings-label">Save battle logs</span>
+                        <div className="settings-control settings-choices">
+                            {([false, true] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice ${settings.battleLogs === choice ? 'active' : ''}`}
+                                    aria-pressed={settings.battleLogs === choice}
+                                    onClick={() => update({ ...settings, battleLogs: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.battleLogs
+                            ? `On. Each fight's combat log is kept beside the run — up to
+                               ${FIGHT_LOG_CAP} lines, the end of the fight rather than the start.
+                               It is what a bug report needs, and it is the only large thing a run
+                               keeps: about 12 KB a fight against 30 KB for everything else a whole
+                               run records.`
+                            : `Off. Runs still record every fight, every turn and every deck — only
+                               the combat text is skipped. The log still says how many lines each
+                               fight ran, so you can see what you are not keeping.`}
                     </p>
 
                     {/*

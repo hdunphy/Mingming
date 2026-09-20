@@ -101,6 +101,21 @@ export interface ISettings {
     readonly particles: boolean;
     readonly vfx: boolean;
     readonly animations: boolean;
+
+    /**
+     * ── BATTLE LOGS — Henry, 2026-09-20, with the split that made them cheap. ──────────────
+     *
+     * Ticket 156 records a transcript per fight so a bug report can say what actually happened.
+     * They are the only expensive thing the run log stores: a 21-turn 3v3 measures 376 lines and
+     * 12.5 KB, against roughly 30 KB for every other row in an entire run.
+     *
+     * ON by default, because 156 exists precisely because they were missing — but a switch,
+     * because it is the one part of the instrumentation a player might reasonably not want paying
+     * for, and because "off" here has a genuinely graceful shape: the `FIGHT_LOG` row still
+     * records how many lines the fight ran, so the run log keeps its numbers and loses only the
+     * text. Nothing else in the log changes.
+     */
+    readonly battleLogs: boolean;
 }
 
 /**
@@ -122,11 +137,14 @@ export const SettingsSchema = z.object({
     particles: z.boolean().default(true),
     vfx: z.boolean().default(true),
     animations: z.boolean().default(true),
+    // `.default(true)` for the same reason as the three above: a settings blob written before this
+    // field existed parses into the behaviour that player already had — 156 shipped them on.
+    battleLogs: z.boolean().default(true),
 });
 
 export const DEFAULT_SETTINGS: ISettings = {
     reducedMotion: 'system', textScale: 1, autoSaveRunLog: false,
-    particles: true, vfx: true, animations: true,
+    particles: true, vfx: true, animations: true, battleLogs: true,
 };
 
 /** What `vfx` resolves to once reduced motion has had its say. */
