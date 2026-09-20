@@ -1,9 +1,15 @@
 import React from 'react';
 import { globalBattleEventBus } from '../../engine/events';
-import type { IBattleState, StatusType } from '../../engine/types';
+import type { IBattleEntity, IBattleState, StatusType } from '../../engine/types';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
+import { GetProgramData } from '../../engine/data/programRegistry';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
+import {
+    castCue, causeCue, cryCue, effectivenessAgainst, HIT_BIG_FRACTION, hookCue, impactCue,
+    isPlayerSide, shieldCue, statusCue, tickCue,
+} from '../audio/battleCues';
+import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -128,6 +134,29 @@ function statusPitch(status: string): number {
     return 0.85 + (Math.abs(h) % 8) * 0.06; // 0.85 .. 1.27
 }
 /** Element 'None' damage stays red-hot instead of the gray element accent, so it never reads as "absorbed". */
+/**
+ * How many stacks of this status the target is carrying — ticket 147d, so a tick can rise with it.
+ *
+ * Read off the PRE-dispatch snapshot, like everything else in this hook: bus events fire
+ * synchronously inside the reducer, so this is the stack count the tick was computed from rather
+ * than what is left after it.
+ */
+/**
+ * Impacts closer together than this are one cast landing on several bodies — ticket 147d.
+ *
+ * 146c staggers a cast's per-target impacts by `TRAIL_STAGGER_MS` (40 ms) and the next cast is
+ * hundreds of milliseconds away, so there is a wide gap to put the line in. 150 sits in it.
+ */
+const SAME_CAST_MS = 150;
+
+/** A card hits at most a side — three bodies — so the series never climbs past a third step. */
+const MAX_HIT_STEP = 2;
+
+function stacksOf(target: IBattleEntity | undefined, status: StatusType | undefined): number {
+    if (!target || !status) return 0;
+    return target.statusEffects.find((effect) => effect.type === status)?.stacks ?? 0;
+}
+
 const NEUTRAL_DAMAGE_COLOR = '#ff5a5a';
 
 interface VfxState {
@@ -152,6 +181,19 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
 
     const floatIdRef = React.useRef(1);
     const revealKeyRef = React.useRef(1);
+    /*
+     * Which impact of a multi-target cast this is — ticket 147d, feeding 147b's `step`.
+     *
+     * The hook sees one `DAMAGE_TAKEN` at a time and is never told a Side card is in progress, so
+     * the series is DETECTED rather than counted: impacts less than `SAME_CAST_MS` apart are one
+     * cast landing on several bodies, and anything later starts over at 0.
+     *
+     * Detecting matters. A bare counter would pitch a LONE hit — the common case — by whatever
+     * the counter happened to be sitting at, and would also exempt it from coalescing, which is
+     * the protection `step` is allowed to bypass precisely because the caller has stated intent.
+     */
+    const hitStepRef = React.useRef(0);
+    const lastHitAtRef = React.useRef(0);
     const slotRef = React.useRef<Record<string, number>>({});
     // Pending timeouts, cleared on unmount (pendingTimeoutsRef pattern from MingmingUnit).
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -230,17 +272,46 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                      * they are two different resources coming off two different bars.
                      */
                     const absorbed = event.damage?.absorbed ?? 0;
+
+                    /*
+                     * ── TICKET 147d: DAMAGE IS FOUR DIFFERENT SOUNDS ───────────────────────
+                     *
+                     * `DAMAGE_TAKEN` carries a `cause` (146b) and this hook ignored it, so a Burn
+                     * tick, a toll paid and a sword landing all played `hit`. 147 §4 is explicit
+                     * that a tick is *"**never** the impact sound"* — a player has to be able to
+                     * tell "the board is hurting me" from "I am being hit" with their eyes
+                     * elsewhere, and that is the single most useful thing sound does here.
+                     */
+                    const tick = event.cause === 'status';
+                    const selfInflicted = causeCue(event.cause);
+                    if (tick) {
+                        playSfx(tickCue(event.status), {
+                            pitch: pitchForStacks(stacksOf(findEntity(targetId), event.status)),
+                        });
+                    } else if (selfInflicted) {
+                        playSfx(selfInflicted);
+                    }
+
                     if (absorbed > 0) {
                         pushFloat(targetId, 'absorbed', `-${absorbed} 🛡`, ABSORB_COLOR);
-                        playSfx('absorbed');
                     }
+                    /*
+                     * Three shield moments, not one (147 §8): the bark held (`blockedByBark`),
+                     * the bark broke and the rest landed (`barkBreak`), or something reduced the
+                     * hit to nothing without a shield to credit (`absorbedNoDamage`). They are
+                     * three different pieces of news about whether that wall is still there.
+                     */
+                    if (!tick && !selfInflicted) {
+                        const shield = shieldCue(absorbed, amount);
+                        if (shield) playSfx(shield);
+                    }
+
                     if (amount <= 0) {
                         // Nothing reached HP. The shield float above is the whole readout; the
                         // wordy fallback is kept only for an absorption we could not quantify
                         // (a hand-built event with no ledger, or a non-shield reduction to zero).
                         if (absorbed <= 0) {
                             pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
-                            playSfx('absorbed');
                         }
                         return;
                     }
@@ -252,10 +323,40 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     // synchronously inside the reducer), so currentHp is the HP
                     // *before* this hit → HP→0 transition = lethal hit.
                     const isLethal = !!target && target.currentHp > 0 && amount >= target.currentHp;
+                    /*
+                     * THE IMPACT LADDER — 147 §8. Effectiveness decides the cue, damage decides the
+                     * pitch and whether the sub-thump is layered under it, and a lethal hit adds
+                     * the power-down and the dying body's cry on top.
+                     *
+                     * Ticks and tolls never reach here: they made their own sound above and a
+                     * `return` would have skipped the damage float, which they still deserve.
+                     */
+                    if (!tick && !selfInflicted) {
+                        const effectiveness = effectivenessAgainst(element, target);
+                        // One cast landing on several bodies, or a new cast? 146c staggers a
+                        // Side card's impacts by 40ms; the next cast is hundreds of ms away.
+                        const at = typeof performance !== 'undefined' ? performance.now() : Date.now();
+                        const hitStep = at - lastHitAtRef.current < SAME_CAST_MS
+                            ? Math.min(hitStepRef.current + 1, MAX_HIT_STEP)
+                            : 0;
+                        hitStepRef.current = hitStep;
+                        lastHitAtRef.current = at;
+                        playSfx(impactCue(element, effectiveness), {
+                            intensity: Math.min(1, frac),
+                            pitch: pitchForDamage(frac),
+                            // Each target of a Side card is the next of a stated series — see
+                            // `SfxOptions.step`. Without it the 40ms stagger falls inside the 60ms
+                            // coalescing window and three bodies take one audible hit.
+                            step: hitStep,
+                        });
+                        if (frac >= HIT_BIG_FRACTION || isLethal) playSfx('hitBig', { intensity: 1 });
+                    }
                     if (isLethal) {
-                        playSfx('death');
-                    } else {
-                        playSfx(isCrit ? 'hitCrit' : 'hit', { intensity: Math.min(1, frac) });
+                        // A power-down, not a scream: 147 §8 — they are robots. The cry goes under
+                        // it, which is the Pokémon model (one call, on entry and on faint).
+                        playSfx('kill');
+                        const cry = cryCue(target?.definitionId);
+                        if (cry) playSfx(cry);
                     }
                     const color =
                         element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
@@ -297,12 +398,19 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     return;
                 }
                 case 'STATUS_APPLIED': {
+                    /*
+                     * 147d. The two stances keep their own synthesized cues — they are the only
+                     * statuses that change how a whole unit BEHAVES, and 147 §8 left them out of
+                     * the sample pack for that reason. Everything else is the STS family model:
+                     * up for a buff, down for a debuff, and a cue of its own for the two that put
+                     * a wall in front of a body.
+                     */
                     if (event.status === 'DarkStance') {
                         playSfx('stanceDark');
                     } else if (event.status === 'LightStance') {
                         playSfx('stanceLight');
                     } else {
-                        playSfx('statusApply', { pitch: statusPitch(event.status) });
+                        playSfx(statusCue(event.status), { pitch: statusPitch(event.status) });
                     }
                     const color = STATUS_COLORS[event.status as StatusType] ?? '#cccccc';
                     setVfx(prev => {
@@ -321,9 +429,39 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     });
                     return;
                 }
+                case 'STATUS_REMOVED': {
+                    // 147d. A status ending is news too — a shield gone is a target that just got
+                    // softer, and it had no sound at all before this row.
+                    playSfx('statusOff');
+                    return;
+                }
+                case 'PROGRAM_DISCARDED': {
+                    playSfx('cardDiscard');
+                    return;
+                }
+                case 'DECK_SHUFFLED': {
+                    playSfx('shuffle');
+                    return;
+                }
+                case 'HOOK_FIRED': {
+                    /*
+                     * 147d. One cue per Early Access OS, the family blip for the rest. The engine
+                     * only fires this for hooks that actually DID something (`emitHookFired`'s
+                     * own predicate), so this is not the sound of a hook being checked.
+                     */
+                    playSfx(hookCue(findEntity(event.ownerId), event.osId, event.daemonId));
+                    return;
+                }
                 case 'PROGRAM_PLAYED': {
-                    // Subtle attacker anticipation ("Step Forward" from the roadmap).
-                    playSfx('cardPlay');
+                    /*
+                     * 147d. The card leaves the hand, then the element leaves the caster — the
+                     * two halves of 146c's cast, and they are different sounds because they are
+                     * different moments. The enemy's card is the same whoosh three semitones
+                     * down (147 §8), which is the cheapest possible "that was not you".
+                     */
+                    const fromPlayer = isPlayerSide(stateRef.current, event.sourceId);
+                    playSfx('cardFly', { pitch: fromPlayer ? 1 : semitones(-3) });
+                    playSfx(castCue(GetProgramData(event.programId)?.element));
                     triggerLunge(event.sourceId);
                     // The reveal is NOT auto-expired on a timer. A timer would race the enemy
                     // loop's own hold, and the next play (or the turn ending) is the honest thing
@@ -350,6 +488,12 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     // Only the player's deck ticks audibly; the 35ms coalescer
                     // collapses multi-card draws into a single soft tick.
                     if (event.ownerId === 'PLAYER') playSfx('cardDraw');
+                    return;
+                }
+                case 'TURN_END': {
+                    // 147d. The player's half only: an enemy turn ending is the player's turn
+                    // starting, and both would be two sounds for one moment.
+                    if (event.activeSide === 'PLAYER') playSfx('turnEnd');
                     return;
                 }
                 case 'TURN_START': {
