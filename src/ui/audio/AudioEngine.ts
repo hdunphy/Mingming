@@ -25,7 +25,17 @@ import {
     type SynthToolkit,
     type ToneOpts,
 } from './sfxRecipes';
-import { SfxRateLimiter, VoicePool } from './limiters';
+import {
+    DUCK_DB,
+    DUCK_MS,
+    DUCKING_CUES,
+    gainForDb,
+    NON_COMBAT_CUES,
+    MULTI_HIT_SEMITONES,
+    semitones,
+    SfxRateLimiter,
+    VoicePool,
+} from './limiters';
 import { primeSampleBank, sampleBuffer } from './sampleBank';
 import { isSampleCue, SAMPLE_FALLBACK, type SampleCue } from './sfxSamples';
 import { getSaveStorage } from '../../engine/save/storage';
@@ -107,6 +117,10 @@ export function saveAudioSettings(
 let settings: AudioSettings | null = null;
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
+/** What ordinary cues pass through, so a big moment can push them down. Ticket 147b. */
+let duckGain: GainNode | null = null;
+/** The last line before the speakers. Ticket 147b. */
+let limiter: DynamicsCompressorNode | null = null;
 let unlockInstalled = false;
 let noiseBuffer: AudioBuffer | null = null;
 let noiseBufferCtx: AudioContext | null = null;
@@ -155,10 +169,39 @@ function ensureContext(): AudioContext | null {
             ctx = new Ctor();
             masterGain = ctx.createGain();
             applyMasterGain();
-            masterGain.connect(ctx.destination);
+
+            /*
+             * ── TICKET 147b: THE MASTER CHAIN ────────────────────────────────────
+             *
+             *     ordinary cue ──► duckGain ─┐
+             *                              ├─► masterGain ─► limiter ─► destination
+             *     big moment  ─────────────┘
+             *
+             * `duckGain` is what 147b's *"ducking −6 dB for 250 ms"* moves. A big moment connects
+             * PAST it, straight to master — otherwise the cue that caused the duck would duck
+             * itself, which is the one sound that must not get quieter.
+             *
+             * The limiter is a `DynamicsCompressor` at the very end, catching the case ducking
+             * cannot: several loud cues that are individually fine and together clip. Its
+             * threshold sits above normal play, so it does nothing at all most of the time.
+             */
+            duckGain = ctx.createGain();
+            duckGain.connect(masterGain);
+
+            limiter = ctx.createDynamicsCompressor();
+            limiter.threshold.value = -6;
+            limiter.knee.value = 6;
+            limiter.ratio.value = 12;
+            limiter.attack.value = 0.003;
+            limiter.release.value = 0.12;
+
+            masterGain.connect(limiter);
+            limiter.connect(ctx.destination);
         } catch {
             ctx = null;
             masterGain = null;
+            duckGain = null;
+            limiter = null;
             return null;
         }
     }
@@ -315,6 +358,28 @@ function makeToolkit(context: AudioContext, bus: GainNode): RealizedToolkit {
 // ---------------------------------------------------------------------------
 
 /**
+ * Push everything that is not this moment down for a quarter second — ticket 147b.
+ *
+ * Ramped rather than stepped, and held before it comes back: a gain that jumps produces its own
+ * click, which on a cue whose whole job is to make room would be self-defeating. The release is
+ * slower than the duck, because a board coming back up abruptly reads as a mistake.
+ */
+function duckOthers(context: AudioContext): void {
+    if (!duckGain) return;
+    try {
+        const now = context.currentTime;
+        const gain = duckGain.gain;
+        gain.cancelScheduledValues(now);
+        gain.setValueAtTime(gain.value, now);
+        gain.linearRampToValueAtTime(gainForDb(DUCK_DB), now + 0.02);
+        gain.setValueAtTime(gainForDb(DUCK_DB), now + DUCK_MS / 1000);
+        gain.linearRampToValueAtTime(1, now + DUCK_MS / 1000 + 0.12);
+    } catch {
+        // An engine without scheduling. Nothing ducks; nothing breaks.
+    }
+}
+
+/**
  * The longest a sampled cue is assumed to run, for voice-pool bookkeeping.
  *
  * Every shipped sample is at or under 1.4 s (the manifest's own `seconds` field), and the pool
@@ -334,14 +399,13 @@ function playSample(
     context: AudioContext,
     bus: GainNode,
     cue: SampleCue,
-    opts: SfxOptions,
+    pitch: number,
 ): boolean {
     const buffer = sampleBuffer(cue, context);
     if (!buffer) return false;
     try {
         const source = context.createBufferSource();
         source.buffer = buffer;
-        const pitch = opts.pitch ?? 1;
         if (Number.isFinite(pitch) && pitch > 0) source.playbackRate.value = pitch;
         source.connect(bus);
         source.start();
@@ -360,14 +424,35 @@ export function playSfx(name: SfxName, opts: SfxOptions = {}): void {
     try {
         const s = getSettings();
         if (s.muted || s.volume <= 0) return;
+        // Ticket 147b: the fight can be quiet while the interface still answers you.
+        if (!combatSounds && !NON_COMBAT_CUES.has(name)) return;
         const context = ensureContext();
         if (!context || context.state !== 'running' || !masterGain) return;
 
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        if (!rateLimiter.shouldPlay(name, now)) return;
+        /*
+         * A STATED SERIES SKIPS THE COALESCER — ticket 147b.
+         *
+         * 146c staggers a Side card's per-target impacts by `TRAIL_STAGGER_MS` (40 ms), inside the
+         * 60 ms window, so three bodies taking a hit would collapse into one. `step` is the
+         * caller saying the repeat is deliberate — the distinction the coalescer cannot draw for
+         * itself, since an intentional series and a double-fire look identical from in here.
+         */
+        const step = Math.max(0, Math.floor(opts.step ?? 0));
+        if (step === 0 && !rateLimiter.shouldPlay(name, now)) return;
 
         const bus = context.createGain();
-        bus.connect(masterGain);
+        /*
+         * The cue that causes a duck must not be ducked by it, so the big moments connect past
+         * `duckGain` straight to master. Everything else goes through it.
+         */
+        const ducks = DUCKING_CUES.has(name);
+        bus.connect(ducks || !duckGain ? masterGain : duckGain);
+        if (ducks) duckOthers(context);
+
+        // `step` pitches ON TOP of whatever the caller asked for, so a stepped impact still drops
+        // with damage.
+        const pitch = (opts.pitch ?? 1) * (step > 0 ? semitones(step * MULTI_HIT_SEMITONES) : 1);
 
         /*
          * SAMPLE FIRST, RECIPE SECOND — ticket 147a.
@@ -380,7 +465,7 @@ export function playSfx(name: SfxName, opts: SfxOptions = {}): void {
          * have no oscillator equivalent worth faking.
          */
         let endsAt: number;
-        if (isSampleCue(name) && playSample(context, bus, name, opts)) {
+        if (isSampleCue(name) && playSample(context, bus, name, pitch)) {
             endsAt = context.currentTime + SAMPLE_TTL_SECONDS;
         } else {
             const recipeName = isSampleCue(name) ? SAMPLE_FALLBACK[name] : name;
@@ -390,7 +475,8 @@ export function playSfx(name: SfxName, opts: SfxOptions = {}): void {
             const toolkit = makeToolkit(context, bus);
             recipe(toolkit, {
                 intensity: clamp01(opts.intensity ?? 0.4),
-                pitch: opts.pitch ?? 1,
+                pitch,
+                step,
             });
             endsAt = toolkit.endTime;
         }
@@ -411,6 +497,21 @@ export function playSfx(name: SfxName, opts: SfxOptions = {}): void {
     } catch {
         // Audio must never break the game.
     }
+}
+
+/**
+ * Does the fight make noise — ticket 147b's switch.
+ *
+ * Held here rather than read per call: `playSfx` runs several times a second in a busy turn and a
+ * `localStorage` read per sound is the shape of mistake `PlayedCardReveal` already made once this
+ * week. `applySettings` pushes it on every change, and it defaults to on, so the only window where
+ * this is wrong is before the first `applySettings` — during which the fight makes noise, which
+ * is the default anyway.
+ */
+let combatSounds = true;
+
+export function setCombatSounds(enabled: boolean): void {
+    combatSounds = enabled;
 }
 
 /** Spec-named alias for playSfx. */

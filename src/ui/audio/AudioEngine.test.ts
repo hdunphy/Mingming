@@ -126,11 +126,14 @@ describe('AudioEngine headless safety', () => {
 
 describe('SfxRateLimiter', () => {
     it('coalesces identical SFX inside the window', () => {
+        // Derived from the constant rather than hardcoded: ticket 147b widened the window from
+        // 35 ms to 60, and a test that restated the old number failed for the right reason but
+        // would have had to be rewritten again on the next change.
         const rl = new SfxRateLimiter(SFX_COALESCE_WINDOW_MS);
         expect(rl.shouldPlay('hit', 1000)).toBe(true);
-        expect(rl.shouldPlay('hit', 1010)).toBe(false);
-        expect(rl.shouldPlay('hit', 1034)).toBe(false);
-        expect(rl.shouldPlay('hit', 1036)).toBe(true);
+        expect(rl.shouldPlay('hit', 1000 + 1)).toBe(false);
+        expect(rl.shouldPlay('hit', 1000 + SFX_COALESCE_WINDOW_MS - 1)).toBe(false);
+        expect(rl.shouldPlay('hit', 1000 + SFX_COALESCE_WINDOW_MS)).toBe(true);
     });
 
     it('tracks different SFX names independently', () => {
@@ -237,7 +240,7 @@ describe('SFX recipes', () => {
     it('every recipe schedules at least one sound with sane parameters', () => {
         for (const name of ALL_RECIPE_NAMES) {
             const { calls, toolkit } = makeRecordingToolkit();
-            SFX_RECIPES[name as RecipeName](toolkit, { intensity: 0.5, pitch: 1 });
+            SFX_RECIPES[name as RecipeName](toolkit, { intensity: 0.5, pitch: 1, step: 0 });
             expect(calls.length, `recipe '${name}' scheduled nothing`).toBeGreaterThan(0);
         }
     });
@@ -245,15 +248,15 @@ describe('SFX recipes', () => {
     it('intensity extremes keep hit parameters valid', () => {
         for (const intensity of [0, 1, -2, 5]) {
             const { toolkit } = makeRecordingToolkit();
-            expect(() => SFX_RECIPES.hit(toolkit, { intensity, pitch: 1 })).not.toThrow();
-            expect(() => SFX_RECIPES.hitCrit(toolkit, { intensity, pitch: 1 })).not.toThrow();
+            expect(() => SFX_RECIPES.hit(toolkit, { intensity, pitch: 1, step: 0 })).not.toThrow();
+            expect(() => SFX_RECIPES.hitCrit(toolkit, { intensity, pitch: 1, step: 0 })).not.toThrow();
         }
     });
 
     it('statusApply pitch variation keeps frequencies positive', () => {
         for (const pitch of [0.85, 1, 1.27]) {
             const { calls, toolkit } = makeRecordingToolkit();
-            SFX_RECIPES.statusApply(toolkit, { intensity: 0.5, pitch });
+            SFX_RECIPES.statusApply(toolkit, { intensity: 0.5, pitch, step: 0 });
             expect(calls.length).toBeGreaterThan(0);
         }
     });

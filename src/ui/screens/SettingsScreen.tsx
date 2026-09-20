@@ -154,9 +154,38 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     </div>
                     <p className="settings-note">
-                        One channel, because the game has one: every sound is synthesized on the spot and
-                        there is no music yet. Volume and mute are stored separately from your save, so
-                        they follow you across slots.
+                        One channel, because the game has one: there is no music yet. Volume and mute are
+                        stored separately from your save, so they follow you across slots.
+                    </p>
+
+                    {/*
+                      * TICKET 147b. Beside the slider, because they are the two audio decisions and
+                      * they are different ones: the slider says how loud, this says whether the
+                      * FIGHT is part of it. Deliberately NOT tied to the Effects switch below —
+                      * 147b is explicit that turning effects off does not mute, and somebody who
+                      * wants a quiet fight should not lose their impact flashes for it.
+                      */}
+                    <div className="settings-row">
+                        <span className="settings-label">Combat sounds</span>
+                        <div className="settings-control settings-choices">
+                            {([false, true] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice ${settings.combatSounds === choice ? 'active' : ''}`}
+                                    aria-pressed={settings.combatSounds === choice}
+                                    onClick={() => update({ ...settings, combatSounds: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.combatSounds
+                            ? 'On. Casts, impacts, status ticks, shields, firmware tells and the creature cries.'
+                            : `Off. The fight is quiet — but the interface still answers you, the turn
+                               beats still play, and you still hear a win.`}
                     </p>
                 </section>
 

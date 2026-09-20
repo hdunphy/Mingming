@@ -35,6 +35,7 @@ import { z } from 'zod';
 
 import { getSaveStorage } from '../../engine/save/storage';
 import { prefersReducedMotion, setReducedMotionOverride } from '../utils/motionPrefs';
+import { setCombatSounds } from '../audio/AudioEngine';
 
 /** One key, no slot prefix — see the header. */
 export const SETTINGS_STORAGE_KEY = 'mingming_settings';
@@ -116,6 +117,22 @@ export interface ISettings {
      * text. Nothing else in the log changes.
      */
     readonly battleLogs: boolean;
+
+    /**
+     * ── COMBAT SOUNDS — ticket 147b. ────────────────────────────────────────
+     *
+     * The fight's own noise — casts, impacts, ticks, cries, OS tells — as distinct from the
+     * interface's clicks and the run's stingers, which stay.
+     *
+     * **147b is explicit that the 146 `vfx` switch does NOT mute.** They are different senses and
+     * different reasons: somebody turns particles off for frames and somebody turns combat sounds
+     * off to hear something else, and tying them would mean a player who wanted a quiet fight lost
+     * their impact flashes too. The volume slider is a THIRD thing again — it governs everything,
+     * and this governs which half of everything exists.
+     *
+     * ON by default, like every other switch here.
+     */
+    readonly combatSounds: boolean;
 }
 
 /**
@@ -140,11 +157,14 @@ export const SettingsSchema = z.object({
     // `.default(true)` for the same reason as the three above: a settings blob written before this
     // field existed parses into the behaviour that player already had — 156 shipped them on.
     battleLogs: z.boolean().default(true),
+    // `.default(true)` as above: a blob written before this field parses into the behaviour that
+    // player already had — the fight made noise.
+    combatSounds: z.boolean().default(true),
 });
 
 export const DEFAULT_SETTINGS: ISettings = {
     reducedMotion: 'system', textScale: 1, autoSaveRunLog: false,
-    particles: true, vfx: true, animations: true, battleLogs: true,
+    particles: true, vfx: true, animations: true, battleLogs: true, combatSounds: true,
 };
 
 /** What `vfx` resolves to once reduced motion has had its say. */
@@ -232,6 +252,13 @@ export const fontSizeFor = (scale: number): string => `${Math.round(BASE_FONT_PX
  * no `window` in a vitest node environment.
  */
 export function applySettings(settings: ISettings, root?: HTMLElement): void {
+    /*
+     * Ticket 147b. Pushed rather than polled: `playSfx` runs several times a second in a busy turn
+     * and a storage read per sound is a cost with no upside. Before the DOM guard below, because
+     * the balance harness has no document and the audio gate is still a real setting there.
+     */
+    setCombatSounds(settings.combatSounds);
+
     setReducedMotionOverride(
         settings.reducedMotion === 'system' ? null : settings.reducedMotion === 'on',
     );

@@ -84,6 +84,20 @@ void _allNamesCovered;
 export interface SfxOptions {
     /** 0..1 — e.g. damage as a fraction of max HP. Bigger = lower/longer/louder. */
     intensity?: number;
+    /**
+     * WHICH OF A DELIBERATE SERIES this is, counted from 0 — ticket 147b.
+     *
+     * 147b: *"multi-hit plays the impact with a pitch step, never stacked."* A Side card's three
+     * impacts arrive `TRAIL_STAGGER_MS` (40 ms) apart, inside the 60 ms coalescing window, so
+     * without this they would collapse to one hit. Passing `step` does two things: it raises the
+     * pitch by `MULTI_HIT_SEMITONES` per index so the ear counts them, and it exempts the call
+     * from coalescing — because the caller has stated the repeat is intentional, which is exactly
+     * what the coalescer cannot tell on its own.
+     *
+     * It multiplies with `pitch` rather than replacing it, so a stepped impact still drops with
+     * damage.
+     */
+    step?: number;
     /** Frequency multiplier for pitch-varied sounds (statusApply). Default 1. */
     pitch?: number;
 }
