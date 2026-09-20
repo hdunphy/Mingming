@@ -344,6 +344,26 @@ describe('155 §3.10 — the markup carries what the player needs', () => {
         }
     });
 
+    it('keeps the description row out of the fan until the card is lifted', () => {
+        /*
+         * Henry, 2026-09-20, off the 155 write-back's eleven-card shot: *"we can hide the card
+         * descriptions, when you hover you see the whole card so thats fine."* At a wide hand each
+         * card's right side is under the next one, and the description is the only row that needs
+         * the full width — so it was the only row reading as half a sentence.
+         *
+         * `face-open` is the class that paints it, and this is the KEYBOARD half of it: selecting
+         * with 1-9 puts no pointer on the card, so `selected` has to open the face on its own or a
+         * keyboard player never sees a description at all. Hover is the other half and cannot be
+         * reached through `renderToStaticMarkup`.
+         */
+        expect(render({ source: 'blaze' })).not.toContain('face-open');
+
+        const selected = render({ source: 'blaze', card: 'c1' });
+        expect(selected).toContain('face-open');
+        // Exactly the one card, not the whole fan.
+        expect(selected.match(/face-open/g)).toHaveLength(1);
+    });
+
     it('does not open a requirements section with nothing in it', () => {
         // 155g: `formatConstraint` returned '' for BASE while the section still counted the row,
         // so a card blocked only on energy rendered an "⚠ REQUIREMENTS" header over empty space.

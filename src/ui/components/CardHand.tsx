@@ -407,7 +407,13 @@ const CardHand: React.FC<{
                                 }}
                                 exit={animate ? { opacity: 0, scale: 0.8 } : { opacity: 0 }}
                                 transition={animate ? { duration: 0.2 } : { duration: 0 }}
-                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
+                                /*
+                                 * `face-open` paints the description row — see `.hand-card
+                                 * .rs-desc` in index.css. Hidden in the fan because the next card
+                                 * covers the right half of this one at a wide hand, and shown the
+                                 * moment this card is lifted clear, by hover OR by 1-9.
+                                 */
+                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isSelected || isHovered ? 'face-open' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
                                 /*
                                  * TICKET 155, DEEP DIVE 8 — a card is a control.
                                  *

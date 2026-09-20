@@ -3555,6 +3555,30 @@ body {
   min-height: 40px;
 }
 
+/* ── THE DESCRIPTION IS A HOVER READ IN THE HAND — Henry, 2026-09-20.
+
+   The 155 write-back posed an eleven-card hand and the fan tightens far enough
+   that each card's RIGHT side is under the next one. Name, cost pips, target
+   tag, element word and keyword chips all live in the strip that stays
+   uncovered; the description is the one row that needs the card's full width,
+   so it was the one row reading as half a sentence.
+
+   Henry: *"we can hide the card descriptions, when you hover you see the whole
+   card so thats fine. As long as you can see most of the card."*
+
+   `visibility`, not `display`: the row keeps its 40px so the face does not
+   re-flow when it comes back, and nothing jumps under the cursor.
+
+   `face-open` is hover OR selected. Selected matters on its own — 1-9 picks a
+   card with no pointer anywhere near it, and a keyboard player is owed the same
+   read as a mouse one (dive 8). Both states already lift the card clear of the
+   arch and unrotate it, so there is room for the text by the time it appears.
+
+   This is the hand only. The shop, the editor and the lane render the same
+   `CardFace` at full size with nothing overlapping them. */
+.hand-card .rs-desc { visibility: hidden; }
+.hand-card.face-open .rs-desc { visibility: visible; }
+
 .hand-card .rs-chips {
   flex: 0 0 auto;
   flex-wrap: nowrap;
