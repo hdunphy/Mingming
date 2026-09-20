@@ -12,6 +12,7 @@
     "test": "vitest run",
     "balance": "vitest run --config vitest.balance.config.ts",
     "balance:deck": "vite-node src/debug/balance/runDeckReport.ts",
+    "runread": "vite-node src/debug/balance/runRunRead.ts",
     "decks": "vite-node src/debug/balance/runDeckBrowser.ts",
     "balance:run-gate": "vite-node src/debug/balance/runRunGate.ts",
     "desktop:build": "node scripts/desktop-build.mjs",
