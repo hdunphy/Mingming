@@ -3,7 +3,7 @@ import { globalBattleEventBus } from '../../engine/events';
 import type { IBattleState, StatusType } from '../../engine/types';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { getElementAccent } from '../utils/contrastText';
-import { playSfx } from '../audio/AudioEngine';
+import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -164,6 +164,20 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 unitFx: { ...prev.unitFx, [entityId]: { ...unit, lungeKey: unit.lungeKey + 1 } },
             };
         });
+    }, []);
+
+    /*
+     * TICKET 147a — START THE SAMPLE BANK WHEN A FIGHT DOES.
+     *
+     * The 61 sampled cues are 675 KB and nothing before a battle needs them, so they are fetched
+     * and decoded here rather than at boot. Fire-and-forget and idempotent: nothing waits on it,
+     * and every cue has a synth fallback for the seconds before its buffer lands — which is what
+     * makes loading it *here* rather than earlier cost nothing but fidelity on the first fight.
+     *
+     * A no-op with no AudioContext, which is how the suite stays silent.
+     */
+    React.useEffect(() => {
+        primeSfxSamples();
     }, []);
 
     React.useEffect(() => {

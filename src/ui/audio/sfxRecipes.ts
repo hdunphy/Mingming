@@ -11,7 +11,16 @@
  * in isolation without touching engine plumbing.
  */
 
-export type SfxName =
+import type { SampleCue } from './sfxSamples';
+
+/**
+ * The SYNTHESIZED cues — the ones drawn with oscillators and noise, needing no assets.
+ *
+ * Renamed from `SfxName` in ticket 147a, because `SfxName` now means "any cue a caller may ask
+ * for" and that is this union plus the 61 sampled ones. Everything in here has a recipe below,
+ * and the `Record` at the bottom of this file is total over it.
+ */
+export type RecipeName =
     | 'cardPlay'
     | 'cardDraw'
     | 'hit'
@@ -34,8 +43,8 @@ export type SfxName =
     | 'uiClick'
     | 'uiError';
 
-/** Runtime list of every SFX name (kept in sync with the union by the type below). */
-export const ALL_SFX_NAMES = [
+/** Runtime list of every RECIPE name (kept in sync with the union by the type below). */
+export const ALL_RECIPE_NAMES = [
     'cardPlay',
     'cardDraw',
     'hit',
@@ -57,10 +66,18 @@ export const ALL_SFX_NAMES = [
     'breach',
     'uiClick',
     'uiError',
-] as const satisfies readonly SfxName[];
+] as const satisfies readonly RecipeName[];
+
+/**
+ * Every cue a caller may ask `playSfx` for — ticket 147a.
+ *
+ * The union of the recipes above and the sampled cues in `public/sfx/`. `cardDraw` is in both, on
+ * purpose: the sample plays and the recipe is its own fallback.
+ */
+export type SfxName = RecipeName | SampleCue;
 
 // Compile-time completeness check: the array above must cover the whole union.
-type _AssertAllNames = SfxName extends (typeof ALL_SFX_NAMES)[number] ? true : never;
+type _AssertAllNames = RecipeName extends (typeof ALL_RECIPE_NAMES)[number] ? true : never;
 const _allNamesCovered: _AssertAllNames = true;
 void _allNamesCovered;
 
@@ -121,7 +138,7 @@ export type SfxRecipe = (s: SynthToolkit, opts: Required<SfxOptions>) => void;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
-export const SFX_RECIPES: Record<SfxName, SfxRecipe> = {
+export const SFX_RECIPES: Record<RecipeName, SfxRecipe> = {
     /** Short filtered whoosh + square blip — a program executing. */
     cardPlay: (s) => {
         s.noise({ duration: 0.09, filterType: 'bandpass', filterFreq: 850, filterEndFreq: 2600, q: 1.1, gain: 0.35 });

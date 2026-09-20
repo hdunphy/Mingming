@@ -14,9 +14,9 @@ import {
 } from './AudioEngine';
 import { SfxRateLimiter, VoicePool, SFX_COALESCE_WINDOW_MS, MAX_VOICES } from './limiters';
 import {
-    ALL_SFX_NAMES,
+    ALL_RECIPE_NAMES,
     SFX_RECIPES,
-    type SfxName,
+    type RecipeName,
     type SynthToolkit,
 } from './sfxRecipes';
 
@@ -93,7 +93,7 @@ describe('AudioEngine settings persistence', () => {
 describe('AudioEngine headless safety', () => {
     it('playSfx / play / initAudio are silent no-ops without an AudioContext', () => {
         expect(() => initAudio()).not.toThrow();
-        for (const name of ALL_SFX_NAMES) {
+        for (const name of ALL_RECIPE_NAMES) {
             expect(() => playSfx(name)).not.toThrow();
         }
         expect(() => play('hit', { intensity: 1 })).not.toThrow();
@@ -226,18 +226,18 @@ function makeRecordingToolkit() {
 }
 
 describe('SFX recipes', () => {
-    it('every SfxName has a recipe and nothing extra is registered', () => {
+    it('every RecipeName has a recipe and nothing extra is registered', () => {
         const registered = Object.keys(SFX_RECIPES).sort();
-        expect(registered).toEqual([...ALL_SFX_NAMES].sort());
-        for (const name of ALL_SFX_NAMES) {
-            expect(typeof SFX_RECIPES[name as SfxName]).toBe('function');
+        expect(registered).toEqual([...ALL_RECIPE_NAMES].sort());
+        for (const name of ALL_RECIPE_NAMES) {
+            expect(typeof SFX_RECIPES[name as RecipeName]).toBe('function');
         }
     });
 
     it('every recipe schedules at least one sound with sane parameters', () => {
-        for (const name of ALL_SFX_NAMES) {
+        for (const name of ALL_RECIPE_NAMES) {
             const { calls, toolkit } = makeRecordingToolkit();
-            SFX_RECIPES[name as SfxName](toolkit, { intensity: 0.5, pitch: 1 });
+            SFX_RECIPES[name as RecipeName](toolkit, { intensity: 0.5, pitch: 1 });
             expect(calls.length, `recipe '${name}' scheduled nothing`).toBeGreaterThan(0);
         }
     });
