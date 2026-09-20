@@ -4,6 +4,8 @@
 **Branch:** `playtest-polish`. **Commits:** `2465ab2` (155a), `478dc8a` (155b–h + dives 1, 3, 5, 7,
 8, 10), `ac0dd86` (dives 2, 4, 6, 9).
 **Measured on:** 2 cores, Intel Xeon @ 2.80GHz, headless Chromium, at 1280×800 and 1920×1080.
+**§3's timings are from `vite dev` and are inflated by React's dev instrumentation** — see the
+correction in that section for the production numbers.
 
 ---
 
@@ -20,7 +22,8 @@ and a 10-second capture of one cast with the switches on."*
 
 The three artifacts came back through the conversation rather than the file bridge, which refused
 anything over about 40KB for the whole of this session; they belong in `Claude outputs/` beside
-146's.
+146's. The two stills predate the 2026-09-20 follow-up that hid card descriptions in the fan —
+`155-fan-descriptions-hidden.png` is what it looks like now.
 
 The board is posed through the debug scenario launcher rather than played into: an eleven-card hand
 at 3v3 is not reachable in the first minutes of a run, and the point of the shot is the geometry,
@@ -84,10 +87,37 @@ p95 drops from 66.6 to 16.7 after the first cast, which is 146's `ProgramCard`-m
 again — 155e made the lane render the shared `CardFace`, so the lane now pays that cost once
 instead of the hand and the lane each paying their own.
 
-**What does NOT go away: one 100–133ms frame per cast.** Every cast, warm or cold, has a single
-frame of about six dropped frames' worth at the moment the reveal mounts. It is one hitch, not a
-stutter, and it lands under a card that is flying anyway — but it is the last thing on this screen
-above 20ms, and it is a decision, not a defect. **See §6.**
+**What does NOT go away: one 100–133ms frame per cast**, warm or cold, at both viewports.
+
+**CORRECTION, 2026-09-20.** The paragraph that stood here attributed that frame to the reveal card's
+mount and it was wrong — a guess dressed as a finding, which is the thing this write-back exists to
+stop. Henry called for the fix it implied (*"permanent invisible card"*), the reveal was rebuilt to
+never unmount, **and the frame did not move.** What the measurements actually say:
+
+| test | result |
+|---|---|
+| reveal permanently mounted, face updated not rebuilt | unchanged: max 100–133ms |
+| particles off / vfx off / animations off / all three off | unchanged: max 100–183ms |
+| nine cards in hand vs eleven | unchanged |
+| **CPU profile of one steady cast** | **`jsxDEV` 76.7ms of self time**, plus `createTask`, `getComponentNameFromType`, `getTaskName`, `validateProperty`, `addObjectDiffToProperties`, `runWithFiberInDEV` |
+
+Every one of those is React's **development-build instrumentation**, and none of it ships. The whole
+of §3 above was measured against `vite dev`, which makes its absolute numbers wrong for the game
+anybody plays.
+
+Against the PRODUCTION build, same machine, same route (a real 1v1 fight, since `dist/` has no debug
+toolkit to pose a 3v3 with), three casts after a warm-up cast:
+
+| build | median | p95 | max | frames > 20ms |
+|---|---|---|---|---|
+| dev | 16.7 | 16.8–33.3 | 66.7–83.4 | 7–10 / 179 |
+| **production** | **16.7** | **16.8–33.2** | **50–66.7** | **4–9 / 179** |
+
+So roughly half the hitch is dev-only, and **a real 50–66ms residue survives in the shipped build** —
+three or four dropped frames per cast. It is not the reveal, not the particle layer, and not the
+hand: what is left is the reducer resolving the cast and the board re-rendering behind it.
+Attributing it properly needs a profile of the production bundle, which is its own piece of work.
+**See §6.**
 
 ## 4. The three features that were dead, and the proof they are not
 
@@ -125,10 +155,12 @@ eslint 0, tsc 0, **2,490 vitest across 181 files**, production build clean, `ass
 
 ## 6. Decisions needed
 
-1. **The 100–133ms frame when the reveal mounts.** One dropped-frame cluster per cast, every cast,
-   at both viewports. It can be removed by keeping the lane's card mounted and hidden between casts
-   rather than mounting it per play — cheap to do, but it means a card face permanently in the tree
-   over the stage. Leave it, or pre-mount it?
+1. **The 50–66ms frame per cast in the production build** — RE-OPENED. Henry chose the pre-mount and
+   it shipped, and it did not help, because the cause was not what §3 claimed. The reveal is now
+   permanently mounted anyway: it is small, tested, and removes a real remount, but it was bought
+   for a reason that turned out to be false, so it is Henry's to keep or revert in one line. The
+   remaining question is the residue itself — it needs a profile of the production bundle to
+   attribute, and that is a ticket, not a footnote.
 2. **Eleven cards is where the fan stops carrying its text.** At 1280×800 every card's NAME, cost
    pips, keyword chips and element word stay readable, and the fan is correctly inside the frame —
    but the description paragraph is clipped by the next card on every card except the rightmost.

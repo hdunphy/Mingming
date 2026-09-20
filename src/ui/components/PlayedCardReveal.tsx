@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, useAnimationControls } from 'framer-motion';
 import { CardFace } from '../screens/CardChassis';
 import { bannerFor } from '../screens/runShell';
 import { shortTargetLabel } from '../utils/targeting';
@@ -33,6 +33,18 @@ import { FLIGHT_MS } from '../vfx/useCastSequence';
  * is a second card face, and a second card face drifts from the first the next time a card gains a
  * keyword chip.
  *
+ * PERMANENTLY MOUNTED — Henry, 2026-09-20, off the 155 write-back. This used to be an
+ * `AnimatePresence` child keyed on `played.key`, which meant every cast unmounted one card face and
+ * mounted another. The write-back measured the cost: ONE frame of 100-133ms per cast, warm or cold,
+ * at both viewports — six or seven dropped frames, landing on the exact frame the player is
+ * watching. Henry's call was *"permanent invisible card"*: the element never unmounts, the face is
+ * a props update rather than a mount, and the flight is driven imperatively off `played.key`.
+ *
+ * The cost of that call, stated plainly: one card face is always in the tree over the stage. It is
+ * `opacity: 0`, `pointer-events: none` and `aria-hidden` when there is nothing to announce, and
+ * between casts it holds the LAST card played rather than being emptied — an empty face would be a
+ * second layout to pay for, which is the thing we are buying our way out of.
+ *
  * NON-INTERACTIVE BY CONSTRUCTION. `pointer-events: none` on the wrapper: the reveal sits over the
  * stage while the player may be mid-drag on their own turn, and a card face that swallowed a
  * pointer-up would eat a play. The keyword chips open a hover tooltip through a portal, and it must not
@@ -59,12 +71,26 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
      */
     const [reduced] = useState(() => !resolveVfxGates(loadSettings()).animations);
 
-    // A missing program is a dead reveal rather than a crash: `GetProgramData` returns a not-found
-    // stub, and rendering that stub's face would be worse than rendering nothing.
-    const data = played ? GetProgramData(played.dataId) : null;
-    if (!played || !data || !data.name) return null;
+    /*
+     * WHAT THE FACE RENDERS BETWEEN CASTS: the last card played, held invisible.
+     *
+     * `played` goes null on the turn flip, and the whole point of the permanent mount is that the
+     * face does NOT tear down when it does. A ref rather than state: it is written in an effect,
+     * so the render that clears `played` still reads the previous value and the face keeps its
+     * content through the exit animation without a second render to arrange it.
+     */
+    const lastRef = useRef<PlayedCardAnnouncement | null>(null);
+    const shown = played ?? lastRef.current;
+    useEffect(() => {
+        if (played) lastRef.current = played;
+    }, [played]);
 
-    const accent = getElementColor(data.element);
+    // A missing program is a dead reveal rather than a crash: `GetProgramData` returns a not-found
+    // stub, and rendering that stub's face would be worse than rendering the card's own name.
+    const data = shown ? GetProgramData(shown.dataId) : null;
+    const hasFace = !!(data && data.name);
+
+    const accent = hasFace ? getElementColor(data!.element) : 'transparent';
 
     /*
      * ── TICKET 146c, STEPS 1 AND 5: THE CARD'S OWN FLIGHT ────────────────────────────────────
@@ -87,15 +113,15 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
      * off that position. Computing absolute coordinates here would mean re-deriving the lane.
      */
     const lane = revealAnchor();
-    const caster = anchorFor(played.sourceId);
+    const caster = shown ? anchorFor(shown.sourceId) : null;
     const hand = handAnchor();
 
     const centreOf = (r: { x: number; y: number; w?: number; h?: number } | null) =>
         r ? { x: r.x + (r.w ?? 0) / 2, y: r.y + (r.h ?? 0) / 2 } : null;
 
     const laneCentre = centreOf(lane);
-    const origin = centreOf(played.fromPlayer ? hand : caster);
-    const destination = centreOf(played.fromPlayer ? discardAnchor() : caster);
+    const origin = centreOf(shown?.fromPlayer ? hand : caster);
+    const destination = centreOf(shown?.fromPlayer ? discardAnchor() : caster);
 
     const delta = (point: { x: number; y: number } | null) =>
         point && laneCentre ? { dx: point.x - laneCentre.x, dy: point.y - laneCentre.y } : null;
@@ -109,13 +135,76 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
      * the board, out the other way. Keeping it means this component never depends on the particle
      * layer being alive.
      */
-    const fromY = played.fromPlayer ? 90 : -90;
+    const fromY = shown?.fromPlayer ? 90 : -90;
+
+    /*
+     * ── THE FLIGHT, DRIVEN BY HAND ──────────────────────────────────────────────
+     *
+     * `AnimatePresence` animates a mount and an unmount, which is exactly what this element no
+     * longer does. The poses are unchanged — same offsets, same scales, same §2c durations — but
+     * they are now `set` and `start` calls fired on a change of `played.key`, so the SAME DOM
+     * flies every time instead of a new one being built to fly.
+     *
+     * The poses are read from a ref rather than closed over: they depend on anchors that move with
+     * the window, and the effect must use the ones from the render that decided to animate.
+     */
+    const controls = useAnimationControls();
+    const posesRef = useRef({ entry, exit, fromY, reduced, fromPlayer: !!shown?.fromPlayer });
+    posesRef.current = { entry, exit, fromY, reduced, fromPlayer: !!shown?.fromPlayer };
+
+    const flownKeyRef = useRef<number | null>(null);
+    useEffect(() => {
+        const { entry: e, exit: x, fromY: fy, reduced: red, fromPlayer } = posesRef.current;
+        const transition = red
+            ? { duration: 0.12 }
+            /*
+             * §2c gives the flight 180ms and the discard 200ms. A spring would overshoot the lane
+             * pose and arrive late, and the trail leaves at 180ms whatever the card is doing — so
+             * the two would drift apart. Eased, and on the ticket's numbers, they cannot.
+             */
+            : { duration: FLIGHT_MS / 1000, ease: 'easeOut' as const, opacity: { duration: 0.14 } };
+
+        if (played && played.key !== flownKeyRef.current) {
+            flownKeyRef.current = played.key;
+            controls.set(red
+                ? { opacity: 0, x: '-50%', y: '-50%', scale: 1 }
+                : {
+                    opacity: 0,
+                    x: e ? `calc(-50% + ${e.dx}px)` : '-50%',
+                    y: e ? `calc(-50% + ${e.dy}px)` : `calc(-50% + ${fy}px)`,
+                    // §2c: the enemy's card grows from 0.6; the player's comes up from the fan,
+                    // where it was already a card, so it starts nearer full size.
+                    scale: fromPlayer ? 0.7 : 0.6,
+                });
+            void controls.start({ opacity: 1, x: '-50%', y: '-50%', scale: 1 }, transition);
+            return;
+        }
+
+        if (!played && flownKeyRef.current !== null) {
+            flownKeyRef.current = null;
+            void controls.start(red
+                ? { opacity: 0, x: '-50%', y: '-50%' }
+                : {
+                    opacity: 0,
+                    x: x ? `calc(-50% + ${x.dx}px)` : '-50%',
+                    y: x ? `calc(-50% + ${x.dy}px)` : `calc(-50% - ${fy / 3}px)`,
+                    // §2c: *"the lane card shrinks and flies to the discard pile"*. Small enough
+                    // to read as going away, not so small it vanishes mid-flight.
+                    scale: 0.35,
+                }, transition);
+        }
+    }, [played, controls]);
 
     return (
-        <AnimatePresence mode="wait">
             <motion.div
-                key={played.key}
                 aria-live="polite"
+                /*
+                 * Nothing to announce means nothing in the accessibility tree either. The face is
+                 * still mounted underneath — that is the whole point — but a screen reader should
+                 * not find last turn's card sitting on the stage.
+                 */
+                aria-hidden={played ? undefined : true}
+                data-reveal={played ? 'shown' : 'idle'}
                 style={{
                     position: 'absolute',
                     /*
@@ -147,40 +236,14 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                     // `translate(-50%, -50%)` cannot live here: framer-motion animates `x`/`y` as
                     // transforms and would overwrite it. The centring goes on `x`/`y` below.
                 }}
-                initial={reduced
-                    ? { opacity: 0, x: '-50%', y: '-50%' }
-                    : {
-                        opacity: 0,
-                        x: entry ? `calc(-50% + ${entry.dx}px)` : '-50%',
-                        y: entry ? `calc(-50% + ${entry.dy}px)` : `calc(-50% + ${fromY}px)`,
-                        // §2c: the enemy's card grows from 0.6; the player's comes up from the fan,
-                        // where it was already a card, so it starts nearer full size.
-                        scale: played.fromPlayer ? 0.7 : 0.6,
-                    }}
-                animate={reduced
-                    ? { opacity: 1, x: '-50%', y: '-50%' }
-                    : { opacity: 1, x: '-50%', y: '-50%', scale: 1 }}
-                exit={reduced
-                    ? { opacity: 0, x: '-50%', y: '-50%' }
-                    : {
-                        opacity: 0,
-                        x: exit ? `calc(-50% + ${exit.dx}px)` : '-50%',
-                        y: exit ? `calc(-50% + ${exit.dy}px)` : `calc(-50% - ${fromY / 3}px)`,
-                        // §2c: *"the lane card shrinks and flies to the discard pile"*. Small
-                        // enough to read as going away, not so small it vanishes mid-flight.
-                        scale: 0.35,
-                    }}
-                transition={reduced
-                    ? { duration: 0.12 }
-                    // §2c gives the flight 180ms and the discard 200ms. A spring would overshoot
-                    // the lane pose and arrive late, and the trail leaves at 180ms whatever the
-                    // card is doing — so the two would drift apart. Eased, and on the ticket's
-                    // numbers, they cannot.
-                    : {
-                        duration: FLIGHT_MS / 1000,
-                        ease: 'easeOut',
-                        opacity: { duration: 0.14 },
-                    }}
+                /*
+                 * The resting pose is INVISIBLE, not absent. Before the first cast of a battle the
+                 * element is already here, already laid out, already `-50%` on both axes; the
+                 * first play is a `set` plus a `start`, which is the mount this component no
+                 * longer performs.
+                 */
+                initial={{ opacity: 0, x: '-50%', y: '-50%', scale: 1 }}
+                animate={controls}
             >
 
                 {/*
@@ -212,16 +275,27 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                       * something that has happened. The caption underneath says who and at whom.
                       */}
                     <div className="rs-card played-card-reveal" style={{ ['--el' as string]: accent }}>
+                        {/*
+                          * BEFORE THE FIRST CAST there is no card to draw, and the face renders
+                          * empty rather than being left out: an element that appears on the first
+                          * play is a mount on the first play, which is the cost this component was
+                          * rebuilt to stop paying. Empty strings, same nodes, same layout.
+                          */}
                         <CardFace
                             face={{
-                                name: data.name,
-                                description: data.description ?? '',
-                                element: data.element ?? 'None',
-                                cost: numericBaseCost(data.baseCost),
-                                banner: bannerFor(data.category),
+                                name: hasFace ? data!.name : '',
+                                description: hasFace ? data!.description ?? '' : '',
+                                element: hasFace ? data!.element ?? 'None' : 'None',
+                                cost: hasFace ? numericBaseCost(data!.baseCost) : 0,
+                                /*
+                                 * `Banner` has no empty member and should not gain one for this:
+                                 * the idle face is never read, and SKILL is the least loaded of
+                                 * the four — no element bar, no macro chrome.
+                                 */
+                                banner: hasFace ? bannerFor(data!.category) : 'SKILL',
                             }}
-                            target={shortTargetLabel(data)}
-                            keywords={<CardKeywordChips data={data} />}
+                            target={hasFace ? shortTargetLabel(data!) : undefined}
+                            keywords={hasFace ? <CardKeywordChips data={data!} /> : null}
                         />
                     </div>
                 </div>
@@ -230,14 +304,17 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                   * the two things the card face cannot: WHO cast it, which at 3v3 is a real
                   * question, and who it landed on.
                   */}
-                <div className="reveal-caption" style={{ color: played.fromPlayer ? '#8fe3ff' : '#ff9d9d' }}>
-                    {played.sourceName} casts {data.name}
-                    {played.targetName && played.targetName !== played.sourceName
-                        ? ` \u2192 ${played.targetName}`
-                        : ''}
+                <div className="reveal-caption" style={{ color: shown?.fromPlayer ? '#8fe3ff' : '#ff9d9d' }}>
+                    {hasFace && shown ? (
+                        <>
+                            {shown.sourceName} casts {data!.name}
+                            {shown.targetName && shown.targetName !== shown.sourceName
+                                ? ` \u2192 ${shown.targetName}`
+                                : ''}
+                        </>
+                    ) : null}
                 </div>
             </motion.div>
-        </AnimatePresence>
     );
 };
 

@@ -89,8 +89,54 @@ describe('155 deep dive 2 — the reveal sits ON the lane', () => {
         expect(el!.style.top).toBe('38%');
     });
 
-    it('renders nothing at all with no play to announce', () => {
+    it('stays mounted with no play to announce, hidden rather than absent', () => {
+        /*
+         * Henry, 2026-09-20: *"permanent invisible card."* The write-back measured one 100-133ms
+         * frame per cast, every cast, and its cause was that this element unmounted and remounted
+         * a whole card face each time. The element is now permanent: idle, out of the
+         * accessibility tree, and still carrying a face.
+         */
         act(() => root.render(<PlayedCardReveal played={null} />));
-        expect(wrapper()).toBeNull();
+
+        const el = wrapper();
+        expect(el).not.toBeNull();
+        expect(el!.getAttribute('data-reveal')).toBe('idle');
+        expect(el!.getAttribute('aria-hidden')).toBe('true');
+        // The face is there to be updated later, not built later.
+        expect(el!.querySelector('.rs-card.played-card-reveal')).not.toBeNull();
+        // Nothing to read out: no caster sentence on an idle lane.
+        expect(el!.querySelector('.reveal-caption')!.textContent).toBe('');
+    });
+
+    it('announces the play, and drops back out of the tree when it ends', () => {
+        act(() => root.render(<PlayedCardReveal played={PLAYED} />));
+        expect(wrapper()!.getAttribute('data-reveal')).toBe('shown');
+        expect(wrapper()!.getAttribute('aria-hidden')).toBeNull();
+        expect(wrapper()!.querySelector('.reveal-caption')!.textContent).toContain('Fenrir casts');
+
+        act(() => root.render(<PlayedCardReveal played={null} />));
+        expect(wrapper()!.getAttribute('data-reveal')).toBe('idle');
+        // The last card stays on the face through the exit rather than blanking mid-flight.
+        expect(wrapper()!.querySelector('.reveal-caption')!.textContent).toContain('Fenrir casts');
+    });
+
+    it('flies the SAME card face on every cast, never a new one', () => {
+        /*
+         * This is the whole of Henry's call, as a test. If a future edit puts the element back
+         * inside an `AnimatePresence` keyed on `played.key`, or restores an early `return null`,
+         * the node identity changes here and this fails — which is the only way to notice, because
+         * a remount looks identical on screen and only costs a frame.
+         */
+        act(() => root.render(<PlayedCardReveal played={null} />));
+        const first = wrapper()!.querySelector('.rs-card.played-card-reveal');
+
+        act(() => root.render(<PlayedCardReveal played={PLAYED} />));
+        const duringCast = wrapper()!.querySelector('.rs-card.played-card-reveal');
+
+        act(() => root.render(<PlayedCardReveal played={{ ...PLAYED, key: 2, dataId: 'growth' }} />));
+        const secondCast = wrapper()!.querySelector('.rs-card.played-card-reveal');
+
+        expect(duringCast).toBe(first);
+        expect(secondCast).toBe(first);
     });
 });
