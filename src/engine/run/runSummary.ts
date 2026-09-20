@@ -198,6 +198,17 @@ export interface IRunSummary {
 
     /** `endedAt - startedAt`, floored at 0. Wall-clock: it counts time the game sat paused. */
     readonly durationMs: number;
+    /**
+     * Time the player was actually playing — ticket 156 §2, and the number the pacing target is
+     * really about.
+     *
+     * Henry's summary read *5h 01m* for a three-fight run: `durationMs` is wall clock and the run
+     * sat open across a day away from the app. The run log sums the gaps between dispatches with
+     * each gap capped, which is why this comes in from outside rather than being derived here —
+     * `summarizeRun` has a run and a clock reading, and neither of them knows about the hours in
+     * between. 0 when no transcript is available, and `durationMs` remains the honest fallback.
+     */
+    readonly activeMs: number;
 }
 
 /**
@@ -208,7 +219,7 @@ export interface IRunSummary {
  * this run's summary say right now?") and the debug tools may want it. `outcome` is simply null
  * until `endRun` sets it.
  */
-export function summarizeRun(run: IRunState, endedAt: number): IRunSummary {
+export function summarizeRun(run: IRunState, endedAt: number, activeMs = 0): IRunSummary {
     const here = run.nodes.find((node) => node.id === run.currentNodeId);
     const biomeIndex = here?.biomeIndex ?? 0;
 
@@ -238,6 +249,8 @@ export function summarizeRun(run: IRunState, endedAt: number): IRunSummary {
         biomeReached: biomeIndex + 1,
         biomeName: run.biomes[biomeIndex]?.name ?? 'the region',
         durationMs,
+        // Floored the same way and for the same reason as `durationMs`.
+        activeMs: Number.isFinite(activeMs) ? Math.max(0, Math.round(activeMs)) : 0,
     };
 }
 

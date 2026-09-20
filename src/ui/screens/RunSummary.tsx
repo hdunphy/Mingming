@@ -59,6 +59,7 @@ import {
     formatRunDuration,
     summarizeRun,
 } from '../../engine/run/runSummary';
+import { findRunLog, runLogKeyFor } from '../../engine/run/runLog';
 import { recordRunEnd, runTelemetryEntryFor } from '../../engine/run/runTelemetry';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import type { IRunState } from '../../engine/runTypes';
@@ -140,7 +141,23 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
      */
     const [clock] = useState<number>(() => endedAt ?? Date.now());
 
-    const summary = useMemo(() => summarizeRun(run, clock), [run, clock]);
+    /**
+     * ACTIVE TIME COMES FROM THE RUN LOG — ticket 156 §2.
+     *
+     * Read once, beside the clock, and for the same reason: this panel's numbers must not move
+     * while the player reads them. The log is keyed by `<seed>@<startedAt>`, the same identity the
+     * telemetry store joins on. Missing — a run played before 156, or a transcript the cap ate —
+     * reads as 0, and `summarizeRun` falls back to wall clock for the headline.
+     */
+    const [activeMs] = useState<number>(() => {
+        try {
+            return findRunLog(runLogKeyFor(run.seed, run.startedAt))?.activeMs ?? 0;
+        } catch {
+            return 0;
+        }
+    });
+
+    const summary = useMemo(() => summarizeRun(run, clock, activeMs), [run, clock, activeMs]);
     const banked = useMemo(() => bankedBlueprintCounts(run.modifiers), [run.modifiers]);
 
     /**
@@ -210,10 +227,23 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
                 {/* --- The five numbers, each against the target it was aimed at --- */}
 
                 <div className="rs-grid">
+                    {/*
+                      * TICKET 156 §2. The headline is ACTIVE time when the log has it, because the
+                      * target is a pacing target and wall clock answers a different question:
+                      * Henry's three-fight run read *5h 01m* on a run left open overnight. Wall
+                      * clock stays underneath rather than being dropped — when the two differ by a
+                      * lot, that gap is itself worth seeing.
+                      */}
                     <div className="rs-stat">
                         <span className="rs-stat-label">Time</span>
-                        <span className="rs-stat-figure">{formatRunDuration(summary.durationMs)}</span>
-                        <span className="rs-stat-note">target {RUN_MINUTES_MIN}–{RUN_MINUTES_MAX} min</span>
+                        <span className="rs-stat-figure">
+                            {formatRunDuration(summary.activeMs > 0 ? summary.activeMs : summary.durationMs)}
+                        </span>
+                        <span className="rs-stat-note">
+                            {summary.activeMs > 0
+                                ? `playing · ${formatRunDuration(summary.durationMs)} elapsed`
+                                : `target ${RUN_MINUTES_MIN}–${RUN_MINUTES_MAX} min`}
+                        </span>
                     </div>
 
                     <div className="rs-stat">

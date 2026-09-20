@@ -37,6 +37,7 @@ import { createAction } from '@reduxjs/toolkit';
 import type { Middleware } from '@reduxjs/toolkit';
 
 import {
+    ACTIVE_GAP_CAP_MS,
     appendRunEvent,
     emptyRunLog,
     FIGHT_LOG_CAP,
@@ -165,6 +166,18 @@ let turnRows: TurnAccumulator = emptyTurn();
  */
 let lastBoard: IBattleState | null = null;
 let lastRun: IRunState | null = null;
+
+/**
+ * When the last dispatch happened — ticket 156 §2, active time.
+ *
+ * A dispatch is this game's own evidence that somebody is playing: every card, every click and
+ * every enemy turn is one. So active time is the sum of the gaps between them, each gap capped at
+ * `ACTIVE_GAP_CAP_MS`, and there is no `visibilitychange` listener, no idle timer and no DOM in it
+ * at all — a shut laptop simply stops dispatching, which is the same signal by a shorter route.
+ *
+ * `null` until the first dispatch of a run, so a resumed transcript does not bill the reload gap.
+ */
+let lastDispatchAt: number | null = null;
 
 const sideOf = (entityId: string): 'PLAYER' | 'ENEMY' =>
     lastBoard?.playerParty.some((entity) => entity.id === entityId) ? 'PLAYER' : 'ENEMY';
@@ -312,6 +325,7 @@ export function resetRunLogRecorder(): void {
     turnRows = emptyTurn();
     lastBoard = null;
     lastRun = null;
+    lastDispatchAt = null;
 }
 
 /** Test seam: the transcript as it stands, without a storage round trip. */
@@ -332,7 +346,15 @@ function nodeOf(run: IRunState | null, nodeId: string | undefined) {
     return run.nodes.find((node) => node.id === nodeId);
 }
 
-export function createRunLogMiddleware(readLogs: () => IRunLog[]): Middleware {
+/**
+ * @param now Injectable clock. Production passes nothing; the tests pass a hand-cranked one,
+ *            because a duration asserted against `Date.now()` is a duration asserted against how
+ *            fast the machine running the suite happens to be.
+ */
+export function createRunLogMiddleware(
+    readLogs: () => IRunLog[],
+    now: () => number = () => Date.now(),
+): Middleware {
     // Once for the life of the store. `subscribe` returns an unsubscribe nobody calls, because the
     // middleware outlives every fight and a resubscribe per fight would be a hole to fall through.
     globalBattleEventBus.subscribe(onBattleEvent);
@@ -350,6 +372,18 @@ export function createRunLogMiddleware(readLogs: () => IRunLog[]): Middleware {
             // What the bus listener stamps against; see `lastBoard`.
             lastBoard = after.battle.battle;
             lastRun = runAfter;
+
+            // Active time, before anything can return early: every dispatch counts, including the
+            // ones this file has no row for.
+            const at = now();
+            if (current && lastDispatchAt !== null) {
+                const gap = at - lastDispatchAt;
+                if (gap > 0) {
+                    current = { ...current, activeMs: current.activeMs + Math.min(gap, ACTIVE_GAP_CAP_MS) };
+                    flushSoon();
+                }
+            }
+            lastDispatchAt = at;
 
             // --- Run lifecycle ---
             if (action.type === 'run/startRun' || action.type === 'run/setRun') {

@@ -228,6 +228,17 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 export type RunEventInput = DistributiveOmit<IRunEvent, keyof IRunEventBase>;
 
 /** One run's transcript. */
+/**
+ * The longest gap between two dispatches that still counts as playing — ticket 156 §2.
+ *
+ * Henry's summary read *5h 01m* for a three-fight run, because `durationMs` is `endedAt -
+ * startedAt` and the run sat open across a day away from the app. Active time is accumulated from
+ * the gaps BETWEEN dispatches, and this is where a gap stops being a player thinking and starts
+ * being a player gone: a minute covers reading a card, a shop and an unhurried turn, and anything
+ * longer is not counted at all rather than counted in part.
+ */
+export const ACTIVE_GAP_CAP_MS = 60_000;
+
 export interface IRunLog {
     /** `<seed>@<startedAt>`, the identity `runTelemetry` uses, so the two stores join on it. */
     readonly runKey: string;
@@ -236,6 +247,17 @@ export interface IRunLog {
     readonly events: ReadonlyArray<IRunEvent>;
     /** Rows the cap threw away. Non-zero means this transcript is incomplete — say so when reading. */
     readonly droppedEvents: number;
+    /**
+     * Milliseconds the player was actually playing — ticket 156 §2.
+     *
+     * Wall clock stays available as `endedAt - startedAt` wherever it is wanted; this is the
+     * other number, and it is the one a pacing target is about. Summed from the gaps between
+     * dispatches, each capped at `ACTIVE_GAP_CAP_MS`, so a laptop shut for a day adds nothing
+     * and a turn spent thinking adds itself. It undercounts a player who reads without clicking,
+     * which is the right direction to be wrong in for a number answering *"is a run twenty
+     * minutes?"*
+     */
+    readonly activeMs: number;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -248,7 +270,10 @@ export function runLogKeyFor(seed: string, startedAt: number): string {
 }
 
 export function emptyRunLog(seed: string, startedAt: number): IRunLog {
-    return { runKey: runLogKeyFor(seed, startedAt), seed, startedAt, events: [], droppedEvents: 0 };
+    return {
+        runKey: runLogKeyFor(seed, startedAt), seed, startedAt, events: [], droppedEvents: 0,
+        activeMs: 0,
+    };
 }
 
 /**
@@ -294,6 +319,14 @@ const LogSchema = z.object({
     startedAt: z.number(),
     events: z.array(EventSchema),
     droppedEvents: z.number().int().nonnegative().default(0),
+    /*
+     * A TOP-LEVEL FIELD MUST BE LISTED HERE OR IT IS DELETED ON READ. `EventSchema` is
+     * `.passthrough()`, so a new event KIND round-trips untouched and needs nothing from this
+     * file — but `LogSchema` is a plain `z.object`, which strips what it does not name. A new
+     * container field added only to the interface survives in memory and vanishes on the next
+     * load, silently. `.default(0)` is what makes a log written before 156 still readable.
+     */
+    activeMs: z.number().nonnegative().default(0),
 });
 
 const StoreSchema = z.object({

@@ -37,7 +37,7 @@ import { battleReducer as battleReducerFn } from '../../engine/battleReducer';
 import { globalBattleEventBus } from '../../engine/events';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
-import { readRunLogs, type IRunEvent } from '../../engine/run/runLog';
+import { ACTIVE_GAP_CAP_MS, readRunLogs, type IRunEvent } from '../../engine/run/runLog';
 import { resetSaveStorage, setSaveStorage, type ISaveStorage } from '../../engine/save/storage';
 import type { IBattleSetup } from '../../engine/data/battleFactories';
 import type { IMingmingState } from '../../engine/types';
@@ -211,6 +211,35 @@ describe('the run log middleware, over a whole run', () => {
         expect(ended).toBeTruthy();
         expect(Object.keys(ended.partyHp)).toContain('mm1');
         expect(ended.turns).toBeGreaterThan(0);
+    });
+
+    it('counts time between dispatches, and refuses to count a day away from the app', () => {
+        /*
+         * TICKET 156 §2. Henry's summary read *5h 01m* for a three-fight run — `durationMs` is
+         * `endedAt - startedAt`, and the run sat open across a day away from the app.
+         *
+         * A dispatch is this game's own evidence that somebody is playing, so active time is the
+         * sum of the gaps between them with each gap capped. No `visibilitychange`, no idle timer,
+         * no DOM: a shut laptop stops dispatching, which is the same signal by a shorter route.
+         */
+        let clock = 1_000_000;
+        const store = configureStore({
+            reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
+            middleware: (getDefault) => getDefault({ serializableCheck: false })
+                .concat(createRunLogMiddleware(readRunLogs, () => clock)),
+        });
+
+        store.dispatch(startRun(makeRun()));
+        clock += 5_000;
+        store.dispatch(addRunScrap(1));          // five seconds of play
+        clock += 20_000;
+        store.dispatch(addRunScrap(1));          // twenty more
+        expect(currentRunLog()!.activeMs).toBe(25_000);
+
+        // Overnight. The gap is capped, not counted — one minute, not eight hours.
+        clock += 8 * 60 * 60 * 1000;
+        store.dispatch(addRunScrap(1));
+        expect(currentRunLog()!.activeMs).toBe(25_000 + ACTIVE_GAP_CAP_MS);
     });
 
     it('records a turn from the bus, with what was cast and what it cost', () => {
