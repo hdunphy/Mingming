@@ -952,11 +952,29 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     score += chargedRemoval;
     statusPortion += chargedRemoval;
 
-    // Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
-    // `do` actions once and multiply by the expected proc count. Recursion is bounded by
-    // `seen`: a token that generates itself is scored once and then contributes nothing, so
-    // feedback_token -> feedback_token cannot spin.
-    if (card.category === 'Daemon' && score === 0) {
+    /*
+     * Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
+     * `do` actions once and multiply by the expected proc count. Recursion is bounded by
+     * `seen`: a token that generates itself is scored once and then contributes nothing, so
+     * feedback_token -> feedback_token cannot spin.
+     *
+     * ── TICKET 149c-1 — THE HOOKS ARE ADDED, NOT SUBSTITUTED ───────────────────────────
+     *
+     * This was gated on `score === 0` and ASSIGNED rather than added, which made it a fallback
+     * for "the card scored nothing" instead of a price for "the card has hooks". A daemon with
+     * BOTH an on-cast action and a hook had its hook silently dropped — 149b measured it: an
+     * in-memory `feedback_loop_daemon` with an added on-cast ATTACK 10 scored **1.2 instead of
+     * 3.2**, the on-cast action alone, with the entire reason the card exists priced at zero.
+     *
+     * No shipped daemon trips it today, and that was checked rather than taken from the ticket:
+     * of the fourteen daemons in the pool, thirteen carry `actions: []` and the one that does not
+     * (`battery_pack`) registers no hooks. So §1.3 is byte-identical and this is a trap removed
+     * before anyone stands on it, not a repricing.
+     *
+     * `+=` rather than `=` is the whole fix. A daemon is worth what it does on cast PLUS what its
+     * hooks do, and there is no reading of the card on which one replaces the other.
+     */
+    if (card.category === 'Daemon') {
         const doActions = daemonHookActions(card);
         if (doActions.length > 0) {
             const proc = calculatePowerscale({
@@ -966,9 +984,9 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
                 isToken: false,
                 actions: doActions,
             } as ProgramData, new Set([...seen, card.id]));
-            score = proc.score * EXPECTED_DAEMON_PROCS;
-            damagePortion = proc.damagePortion * EXPECTED_DAEMON_PROCS;
-            statusPortion = proc.statusPortion * EXPECTED_DAEMON_PROCS;
+            score += proc.score * EXPECTED_DAEMON_PROCS;
+            damagePortion += proc.damagePortion * EXPECTED_DAEMON_PROCS;
+            statusPortion += proc.statusPortion * EXPECTED_DAEMON_PROCS;
             for (const m of proc.manualReview) manualReview.push(m);
         }
     }
