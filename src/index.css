@@ -3667,3 +3667,109 @@ body {
 /* The no-damage row: what the card PUTS ON something. `↺` is on the caster, `→` outward. */
 .hc-chip.is-status { background: #1d3a4d; color: #a9d4ea; font-size: 8px; }
 .hc-chip.is-status.is-self { background: #33304f; color: #cdc4ee; }
+
+/* ── TICKET 159b — THE ENEMY HAND: AN EDGE TAB THAT SLIDES A PANEL OVER THE PLAQUES ──────────
+
+   Henry picked prototype C (2026-09-21: *"Just C is good"*) from the four in
+   `159-mock/159-mock.html`, and the geometry here is that mock's `.eh.pc` rather than a
+   re-invention: `right: 8px; top: 56px; width: 270px`, parked at `translateX(calc(100% - 34px))`
+   so exactly the tab shows, `transform: none` when open.
+
+   C is the only one of the four that costs the board nothing while closed: A moved the enemy row
+   150px left to make room, B collided with the cast lane, D buried the list behind a plaque.
+
+   `transform` and not `right`: this sits over a live stage, and animating a layout property would
+   relayout the whole board on every frame of the slide.
+
+   ── POINTER EVENTS ───────────────────────────────────────────────────────────────────────────
+   `.battle-stage` is `pointer-events: none` on purpose — *"a coordinate space, not a surface, so
+   the empty reveal lane never eats a drag"*. Every child that wants the pointer has to opt back
+   in, and the first cut of this panel did not: the tab was there, drawn, and completely
+   unclickable because `.stage-area` took the pointer instead. Found in a browser, not by a test.
+
+   ── WHERE IT SITS IN 146a's LADDER ───────────────────────────────────────────────────────────
+   That ladder is 0 backdrop, 2 sprites, 60 reveal card, 61 particles, 62 plaques. §5 says the
+   panel *"slides over the enemy plaques"*, which puts it above 62 — so 63. The same ruling also
+   says *"a cast in flight plays over them"*, and those two cannot both be z-order: the plaques
+   are already above the lane card. Read as behaviour rather than as numbers, the panel covering
+   the plaques is the part that is observable, so that is the one implemented. Flagged for Henry
+   rather than split the difference silently. */
+.ehp {
+  position: absolute;
+  top: 56px;                 /* clear of TOP_BAR_H (44), the mock's number */
+  right: 8px;
+  width: 270px;
+  box-sizing: border-box;
+  z-index: 63;               /* over the plaques (62), which is what "slides over them" means */
+  /* Opt back in: the stage itself takes no pointer events. */
+  pointer-events: auto;
+  transform: translateX(calc(100% - 34px));
+  transition: transform 200ms ease;
+}
+.ehp.open,
+.ehp:hover,
+.ehp:focus-within { transform: none; }
+
+/* Off means off — 146a's rule for the VFX switches, applied to the slide. */
+:root[data-animations="off"] .ehp { transition: none; }
+
+.ehp-tab {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 34px;
+  height: 150px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px 0 0 6px;
+  background: #12171f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.ehp-tab span {
+  /* Rotated rather than `writing-mode`: the mock's, and it keeps the count upright beside the
+     label instead of standing every digit on its side. */
+  transform: rotate(-90deg);
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #9fb4c8;
+}
+.ehp-tab b { color: #ffd479; margin-left: 6px; }
+.ehp-tab:hover span,
+.ehp-tab:focus-visible span { color: #fff; }
+
+/* The panel's content clears the tab that is sitting on its left edge. */
+.ehp-inner {
+  margin-left: 34px;
+  max-height: calc(100vh - 220px);
+  overflow: hidden auto;
+  /* Column, like `.led-deck`: the rows give the peek its room rather than it scrolling under
+     them. */
+  display: flex;
+  flex-direction: column;
+}
+
+.ehp-inner h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ehp-ep { font-size: 0.6rem; font-weight: 800; color: #ffd76a; letter-spacing: 0.08em; }
+
+.ehp-rows { display: flex; flex-direction: column; gap: 3px; }
+
+/* A card no living enemy can pay for this turn. Greyed rather than hidden: "it is holding this
+   and cannot use it yet" is information, and hiding it would make the hand count on the tab
+   disagree with the list under it. */
+.ehp-poor { opacity: 0.38; }
+.ehp-poor .rs-g { background: #3a4150; color: rgba(255, 255, 255, 0.5); }
+
+/* `.led-peek`, to the letter. It sets no width or height on purpose — `.rs-card` already carries
+   `--cw: 152px` / `--ch: 200px`, which is where §5's "152×200" comes from. Restating them here
+   would be a second copy to drift, and the first cut of this file had exactly that. */
+.ehp-peek {
+  position: static;
+  margin: 10px auto 0;
+  flex: 0 0 auto;
+  pointer-events: none;      /* it must never eat a click meant for the row under it */
+  box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
+}

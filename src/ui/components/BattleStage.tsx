@@ -9,6 +9,7 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { targetVerdict, type TargetVerdict } from '../utils/targeting';
 import { useStageAnchors } from '../hooks/useStageAnchors';
 import ParticleLayer from '../vfx/ParticleLayer';
+import EnemyHandPanel from './EnemyHandPanel';
 import { spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
 import { StatusBadgeRow, PLAQUE_STATUS_BUDGET } from './StatusBadges';
 import { DaemonTags, FirmwareChip, UnitPreview } from './UnitReadouts';
@@ -492,6 +493,19 @@ const BattleStage: React.FC<BattleStageProps> = ({
               * conditions. A component that could see the state would drift back toward polling it.
               */}
             <ParticleLayer anchors={anchors} />
+            {/*
+              * TICKET 159b — THE ENEMY'S HAND, ABOVE EVERYTHING ELSE ON THE STAGE.
+              *
+              * After the particle layer, so the tab and the panel are not painted over by a trail
+              * that happens to cross them. §5's ruling is the other way round for a cast: *"a cast
+              * in flight plays over them"* — and it does, because the reveal card and the cast lane
+              * live in `BattleArena` above this whole element, not inside the stage.
+              *
+              * It takes the battle state and reads only `enemyDeck.hand` and the enemies' Energy.
+              * Nothing is predicted here: no targets, no order — see the component's header for
+              * why that line is the whole design.
+              */}
+            <EnemyHandPanel battleState={battleState} />
         </div>
     );
 };
