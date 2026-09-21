@@ -186,6 +186,21 @@ control). It rendered 8 px wider and 15 px taller than the buttons beside it: `.
 free from the UA sheet and a `<div>` does not. Fixed on `.rs-row` itself, which also quietly fixes
 `WorkshopNode`'s static rows — wrong since 142, and invisible in a screenshot.
 
+### 159c — shipped, in its own group rather than beside 146's three
+
+§5 asked for it beside the VFX switches and it cannot go there. Those sit under Motion because
+reduced motion **overrules** them, and the note under them says so on screen: *"Reduced motion is
+on, so particles and animations are off whatever these say."* Reduced motion does not touch this
+one and must not — it is a statement about movement, and taking information away from a player who
+asked for less movement is a different decision made on their behalf. A fourth row under that note
+would have been a sentence lying about the switch beneath it. It has its own **Battle** group, and
+a test asserts it is under Battle rather than Motion so the next tidy-up does not move it back.
+
+Stamped as `data-enemy-hand` by `applySettings` — 146a's own rule — and hidden by one CSS rule,
+**not** resolved through `resolveVfxGates`. A prop or a mount-time read would have been wrong here
+in a way it is not wrong for the VFX switches: the settings screen is an overlay on the battle, so
+the fight stays mounted and the tab would have persisted until the next fight.
+
 ### Still open
 
-- **159c** — the "Show enemy hand" switch, unchanged by any of this.
+- The reshuffle-tail question in the block above — count, or show nothing?
