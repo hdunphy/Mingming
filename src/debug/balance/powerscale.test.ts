@@ -537,3 +537,66 @@ describe('149c-6 — the rate table, one case per measured constant', () => {
         expect(payoff).toBeLessThan(1.5);
     });
 });
+
+describe('149c-8 — consuming your own pile is not removal', () => {
+    it('drops the x1.25 premium from a self-consume \u2014 §4.8, tested on umbral_feast', () => {
+        /*
+         * `REMOVAL_PREMIUM` exists because shedding a debuff undoes an OPPONENT's card as well as
+         * helping you — two cards' worth of swing for one, which is why ticket 51 priced it above
+         * plain application. That rationale does not survive contact with a `consume`.
+         *
+         * `umbral_feast` consumes its OWN Poison, which its own deck put there on purpose as
+         * fuel. Nothing is neutralised; the pile is cashed. It was collecting a 25% premium for
+         * spending a resource it built itself. §4.8: the shed term goes 12.15 -> 9.7, i.e. the
+         * card drops by 2.45.
+         *
+         * Asserted as the DIFFERENCE against a synthetic twin that sheds by stacks instead of
+         * consuming, so the case survives every future repricing of what Poison is worth.
+         */
+        const feast = registry['umbral_feast'];
+        expect(feast).toBeDefined();
+
+        const consumeAction = (feast.actions ?? []).find(
+            a => (a as unknown as { consume?: boolean }).consume === true);
+        expect(consumeAction).toBeDefined();
+
+        const consumed = calculatePowerscale(feast).score;
+
+        // The same card, shedding by stacks rather than consuming. Removal in the sense the
+        // premium means — the Poison on you is usually the opponent's — so it KEEPS the premium.
+        const shed = calculatePowerscale({
+            ...feast,
+            id: 'umbral_feast__test_shed',
+            actions: (feast.actions ?? []).map(a =>
+                (a as unknown as { consume?: boolean }).consume === true
+                    ? { type: 'STATUS', status: 'Poison', stacks: -8, target: 'SELF' }
+                    : a),
+        } as unknown as ProgramData).score;
+
+        expect(shed).toBeGreaterThan(consumed);
+    });
+
+    it('leaves a shed of an enemy pile, and a stack-shed of your own, exactly where they were', () => {
+        /*
+         * The containment check. §4.8 is one clause about one shape; it must not reach a cleanse
+         * or an enemy-facing removal. Three cards in the pool self-consume a debuff —
+         * `umbral_feast`, `bloodwrath` and `ash_communion` — and nothing else may move.
+         */
+        const selfConsumesADebuff = (card: ProgramData): boolean =>
+            (card.actions ?? []).some(a =>
+                (a.type as string) === 'STATUS'
+                && (a as unknown as { consume?: boolean }).consume === true
+                && ((a.target as string) ?? '').toUpperCase() === 'SELF'
+                && ['Burn', 'Poison', 'Dazed', 'Stunned', 'Weakened', 'Asleep', 'Vulnerable']
+                    .includes(a.status as string));
+
+        const affected = Object.values(registry).filter(selfConsumesADebuff).map(c => c.id).sort();
+        expect(affected).toEqual(['ash_communion', 'bloodwrath', 'umbral_feast']);
+
+        // `purify` sheds Poison and Burn from itself by stacks, not by consuming: still removal,
+        // still premium-charged, untouched by this row.
+        const purify = registry['purify'];
+        expect(purify).toBeDefined();
+        expect(selfConsumesADebuff(purify)).toBe(false);
+    });
+});

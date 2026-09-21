@@ -1297,11 +1297,34 @@ const scoreAtWidth = (
         }
 
         const key = exclusivityKey(action);
+        /*
+         * ── TICKET 149c-8 (§4.8) — CONSUMING YOUR OWN PILE IS NOT REMOVAL ────────────────
+         *
+         * `REMOVAL_PREMIUM` exists because shedding a debuff undoes an OPPONENT's card as well as
+         * helping you — two cards' worth of swing for one, which is why ticket 51 priced it above
+         * plain application. That rationale does not survive contact with a `consume`.
+         *
+         * `umbral_feast` and `bloodwrath` consume **their own Poison**, which their own deck put
+         * there on purpose as fuel. Nothing is being neutralised; the pile is being cashed. They
+         * were collecting a 25% premium for spending a resource they built themselves, and §4.8
+         * rules it off: the shed term goes 12.15 -> 9.7.
+         *
+         * The discriminator is `consume`, not the target. A `stacks: -N` shed on yourself is still
+         * removal in the sense the premium means — the Poison on you is usually the opponent's —
+         * and keeps it. A `consume` takes the WHOLE pile as fuel, which is a card design that only
+         * makes sense when the pile is yours.
+         */
+        const isConsumeAction = (action as unknown as { consume?: boolean }).consume === true;
         const removesOwnDebuff = action.type === 'STATUS'
             && actionIsSelfFacing
             && DEBUFFS.includes(action.status)
-            && ((action.stacks ?? 0) < 0 || (action as unknown as { consume?: boolean }).consume === true);
-        if (removesOwnDebuff && key === null) {
+            && (action.stacks ?? 0) < 0;
+        if (isConsumeAction && actionIsSelfFacing && action.type === 'STATUS'
+            && DEBUFFS.includes(action.status) && key === null) {
+            // Scored at face value, with no premium and no separate accounting.
+            score += actionScore;
+            statusPortion += actionScore;
+        } else if (removesOwnDebuff && key === null) {
             removalScore += actionScore;
         } else if (key === null) {
             score += actionScore;
