@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ACTION_WEIGHTS, budgetBandFor, calculatePowerscale } from './powerscale';
+import { ACTION_WEIGHTS, BAND_TOLERANCE_PCT, bandVerdict, budgetBandFor, calculatePowerscale } from './powerscale';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 
@@ -270,5 +270,96 @@ describe('149c-4 — the same card, priced at both widths', () => {
 
         const scored = calculatePowerscale(sideHookDaemon);
         expect(scored.score3v3).toBeGreaterThan(scored.score1v1);
+    });
+});
+
+describe('149c-5 — the band is a target, not a cliff', () => {
+    it('calls +15% the edge of the tolerance, and +16% a violation \u2014 §4.3', () => {
+        /*
+         * Henry, 2026-08-26, on `frost_bite` scoring 3.3 against a 3.0 ceiling: *"3.3 vs 3 is not
+         * a problem. 3 is not a hard cut off but a general target we can be +/- some
+         * percentage."* The audit was binary, so a card 1% over and a card 150% over produced the
+         * same word.
+         *
+         * The boundary is inclusive: exactly 15% over is WITHIN TOLERANCE, because a rule that
+         * excluded its own stated number would be a 14.99% rule with a 15% label.
+         */
+        expect(bandVerdict(3.0, 3.0).state).toBe('IN BAND');
+        expect(bandVerdict(2.4, 3.0).state).toBe('IN BAND');
+        expect(bandVerdict(3.45, 3.0).state).toBe('WITHIN TOLERANCE');   // exactly +15%
+        expect(bandVerdict(3.5, 3.0).state).toBe('OUT OF BAND');         // +17%
+
+        /*
+         * The comparison is against the ROUNDED percentage, which is the one that gets printed.
+         * So 3.46 is +15.3% and reads WITHIN TOLERANCE +15%, rather than OUT OF BAND +15% — a
+         * row whose verdict and whose number disagreed would be the binary problem back in a
+         * subtler form.
+         */
+        expect(bandVerdict(3.46, 3.0).label).toBe('WITHIN TOLERANCE +15%');
+    });
+
+    it('prints the percentage in every state, because that is the actionable part', () => {
+        // §4.3: "the percentage always printed". Including on a card that is in band — "IN BAND"
+        // alone cannot be compared against another row, and comparing rows is the only thing
+        // anyone does with this list.
+        expect(bandVerdict(3.0, 3.0).label).toBe('IN BAND +0%');
+        expect(bandVerdict(2.3, 3.0).label).toBe('IN BAND -23%');
+        expect(bandVerdict(3.3, 3.0).label).toBe('WITHIN TOLERANCE +10%');
+        expect(bandVerdict(7.3, 3.0).label).toBe('OUT OF BAND +143%');
+    });
+
+    it('routes a score of zero or less to MANUAL REVIEW, never to "under band"', () => {
+        /*
+         * §4.3, and the reason is §4.7: a non-positive score is not an under-powered card, it is
+         * a card the model priced as a net NEGATIVE, which in this pool means a drawback card.
+         * `scrubber` scores -1.6 because it sheds an ALLY's Poison and removal-from-an-ally reads
+         * as a downside; `wither_feast` -10.8. That whole tail is parked behind ticket 138, and
+         * this state is what keeps it from polluting the list meanwhile.
+         *
+         * Saying "260% under band" about `vent` would be the report asserting the card is far too
+         * weak, when what it actually knows is that it cannot price it.
+         */
+        expect(bandVerdict(0, 3.0).state).toBe('MANUAL REVIEW');
+        expect(bandVerdict(-1.6, 6.5).state).toBe('MANUAL REVIEW');
+
+        // And it really is where the drawback tail lands, not just where a synthetic zero lands.
+        for (const id of ['scrubber', 'vent', 'wither_feast', 'dark_pact', 'desperate_strike']) {
+            const card = registry[id];
+            expect(card, id).toBeDefined();
+            const band = budgetBandFor(Number(card.baseCost)).over;
+            expect(bandVerdict(calculatePowerscale(card).score, band).state, id).toBe('MANUAL REVIEW');
+        }
+    });
+
+    it('is 15 because the pool\'s own spread is 15, and it uses MAD not sd', () => {
+        /*
+         * The tolerance is not a round number picked for being round. `scratch/bandspread.ts`
+         * measures the distribution the rule has to describe: the MEDIAN ABSOLUTE deviation from
+         * band across 236 costed non-token cards is 15.4% at 1v1.
+         *
+         * §4.3 rules MAD and not standard deviation, and the numbers say why: the sd is 68.8%,
+         * four and a half times the MAD, because a handful of cards sit 200-570% over and drag
+         * it. A tolerance built on the sd would be built on `bloodwrath`.
+         *
+         * Recomputed here from the live registry rather than asserted as a literal, so the day
+         * the pool's spread moves away from the constant, this says so.
+         */
+        const deviations: number[] = [];
+        for (const card of Object.values(registry)) {
+            if ((card as { isToken?: boolean }).isToken) continue;
+            const band = budgetBandFor(Number(card.baseCost)).over;
+            if (!(band > 0)) continue;
+            const { score } = calculatePowerscale(card);
+            if (score <= 0) continue;   // the MANUAL REVIEW tail describes nothing about spread
+            deviations.push(Math.abs((score / band - 1) * 100));
+        }
+        deviations.sort((a, b) => a - b);
+        const mad = deviations[Math.floor(deviations.length / 2)];
+
+        // Within a factor of two of the pool's own typical distance from band. Loose on purpose:
+        // the claim is "15 is the right ORDER of magnitude for this pool", which is what makes it
+        // a defensible rule, not "15 is exactly the MAD", which would fail on every repricing.
+        expect(mad).toBeGreaterThan(BAND_TOLERANCE_PCT / 2);
+        expect(mad).toBeLessThan(BAND_TOLERANCE_PCT * 2);
     });
 });

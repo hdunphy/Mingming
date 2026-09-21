@@ -43,13 +43,16 @@ import { fileURLToPath } from 'node:url';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 import { computeRegistryHash } from '../scenarios/registryHash';
-import { budgetBandFor, calculatePowerscale } from './powerscale';
+import { BAND_TOLERANCE_PCT, bandVerdict, budgetBandFor, calculatePowerscale } from './powerscale';
+import type { BandState } from './powerscale';
 import type { BatchResult, PairedBatchResult } from './runBatch';
 import { numericBaseCost } from '../../engine/types';
 
 /** Bump when the JSON shape changes, so an old report is never diffed against a new one. */
 // 2 (ticket 149c-4): every 1.3 entry now carries `score1v1`, `score3v3` and `width`.
-export const BALANCE_REPORT_SCHEMA_VERSION = 2;
+// 3 (ticket 149c-5): entries carry `verdict` and `pctVsBand`, and `cardBudget` gained a
+//   `watchlist` beside `redlines` - a card inside the +/-15% tolerance is reported, not redlined.
+export const BALANCE_REPORT_SCHEMA_VERSION = 3;
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -194,6 +197,16 @@ export interface CardBudgetEntry {
      * do not, i.e. this is a Side or All card and a reader needs to see which number won.
      */
     width: '1v1' | 'both';
+    /**
+     * TICKET 149c-5: which of section 4.3's four states this card is in, and by how much.
+     *
+     * Henry, on a card scoring 3.3 against a 3.0 band: "3.3 vs 3 is not a problem. 3 is not a
+     * hard cut off but a general target we can be +/- some percentage." The audit was binary, so
+     * a card 1% over and a card 150% over produced the same word. `pctVsBand` is always present,
+     * whatever the state, because the number is the part a reader can act on.
+     */
+    verdict: BandState;
+    pctVsBand: number;
     /** Section 1.3's upper bound for this cost. */
     budget: number;
     overBudgetBy: number;
@@ -235,7 +248,17 @@ export interface BalanceReport {
     cardBudget: {
         /** Section 1.3's table, echoed so the report is readable without the source. */
         thresholds: Array<{ cost: string; maxScore: number }>;
+        /** Ticket 149c-5 / section 4.3: how far past band is still not a violation. */
+        tolerancePct: number;
+        /** Past the band by MORE than `tolerancePct`. These are the violations. */
         redlines: CardBudgetEntry[];
+        /**
+         * Past the band by the tolerance or less, plus the MANUAL REVIEW tail (a score of zero
+         * or below - drawback cards the model reads as net-negative, parked behind ticket 138 by
+         * section 4.7). Reported so the movement is visible; not redlined, because "3.3 against a
+         * 3.0 target" is not a thing that is broken.
+         */
+        watchlist: CardBudgetEntry[];
     };
     matchups: MatchupReport[];
     /** Every redline from both halves, flattened and sorted. The "what is broken" list. */
@@ -278,7 +301,7 @@ function byString(a: string, b: string): number {
 /* Section 1: the static card-budget audit                                    */
 /* -------------------------------------------------------------------------- */
 
-function budgetRedline(entry: CardBudgetEntry): Redline {
+export function budgetRedline(entry: CardBudgetEntry): Redline {
     return {
         kind: 'CARD_OVER_BUDGET',
         section: '1.3',
@@ -288,7 +311,11 @@ function budgetRedline(entry: CardBudgetEntry): Redline {
         threshold: entry.budget,
         comparison: 'above',
         detail:
-            `${entry.name} (${entry.id}) costs ${entry.cost} energy and scores ${entry.score}, ` +
+            // Ticket 149c-5: the PERCENTAGE leads, because it is the part a reader can act on.
+            // "2.1 over the 6.5 budget" needs arithmetic to compare against another row; "+32%"
+            // does not, and comparing rows is the only thing anyone does with this list.
+            `${entry.name} (${entry.id}) costs ${entry.cost} energy and scores ${entry.score} ` +
+            `- ${entry.verdict} ${entry.pctVsBand >= 0 ? '+' : ''}${entry.pctVsBand}%, ` +
             `${round(entry.overBudgetBy, 1)} over the ${entry.budget} budget for that cost.` +
             // Ticket 149c-4: name the width whenever it decided the number, and print the one
             // that did not, so a reader can tell "over budget in every fight" from "over budget
@@ -305,16 +332,26 @@ function budgetRedline(entry: CardBudgetEntry): Redline {
 /**
  * Score every card in the inflated registry against its section 1.3 band.
  *
- * Over budget only. Section 1.3 states ranges, but a card *under* its target is a card
- * nobody plays rather than a card that breaks the game, the Studio's amber threshold does
- * not match the doc's lower bound anyway (see `powerscale.ts`), and inventing a redline
- * this repo never agreed to is how a report loses its authority.
+ * TICKET 149c-5 SPLIT THE ANSWER IN TWO, because section 4.3 made the band a target rather than
+ * a cliff. A card past its band by 15% or less is REPORTED (`watchlist`) and not redlined; only
+ * a card past the tolerance is a `redline`. The old function returned one list and every card
+ * over the line by any amount was in it.
+ *
+ * Still over-budget only, on the original reasoning: a card *under* its target is a card nobody
+ * plays rather than a card that breaks the game, and inventing a redline this repo never agreed
+ * to is how a report loses its authority. The one addition is section 4.3's MANUAL REVIEW state,
+ * which is NOT an under-band verdict - see `bandVerdict`.
  */
-export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: number } {
+export function auditCardBudget(): {
+    redlines: CardBudgetEntry[];
+    watchlist: CardBudgetEntry[];
+    cardsAudited: number;
+} {
     const registry = getInflatedProgramRegistry();
     const ids = Object.keys(registry).sort();
 
-    const entries: CardBudgetEntry[] = [];
+    const redlines: CardBudgetEntry[] = [];
+    const watchlist: CardBudgetEntry[] = [];
     for (const id of ids) {
         const card = registry[id] as ProgramData;
         const band = budgetBandFor(numericBaseCost(card.baseCost));
@@ -331,27 +368,35 @@ export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: n
          */
         const widthsDiffer = score3v3 !== score1v1;
         const score = Math.max(score1v1, score3v3);
-        if (score > band.over) {
-            entries.push({
-                id,
-                name: card.name,
-                cost: numericBaseCost(card.baseCost),
-                score,
-                perEnergy,
-                score1v1,
-                score3v3,
-                width: widthsDiffer ? 'both' : '1v1',
-                budget: band.over,
-                overBudgetBy: round(score - band.over, 1),
-                manualReview,
-            });
-        }
+        const verdict = bandVerdict(score, band.over);
+        if (verdict.state === 'IN BAND') continue;
+
+        const entry: CardBudgetEntry = {
+            id,
+            name: card.name,
+            cost: numericBaseCost(card.baseCost),
+            score,
+            perEnergy,
+            score1v1,
+            score3v3,
+            width: widthsDiffer ? 'both' : '1v1',
+            budget: band.over,
+            overBudgetBy: round(score - band.over, 1),
+            verdict: verdict.state,
+            pctVsBand: verdict.pct,
+            manualReview,
+        };
+        if (verdict.state === 'OUT OF BAND') redlines.push(entry);
+        else watchlist.push(entry);
     }
 
     // Worst offender first, then by id so equal scores never reorder between runs.
-    entries.sort((a, b) => b.overBudgetBy - a.overBudgetBy || byString(a.id, b.id));
+    const worstFirst = (a: CardBudgetEntry, b: CardBudgetEntry): number =>
+        b.overBudgetBy - a.overBudgetBy || byString(a.id, b.id);
+    redlines.sort(worstFirst);
+    watchlist.sort(worstFirst);
 
-    return { entries, cardsAudited: ids.length };
+    return { redlines, watchlist, cardsAudited: ids.length };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -615,7 +660,7 @@ function compareRedlines(a: Redline, b: Redline): number {
 }
 
 export function assembleReport(matchups: ReadonlyArray<MatchupReport>): BalanceReport {
-    const { entries: cardEntries, cardsAudited } = auditCardBudget();
+    const { redlines: cardEntries, watchlist, cardsAudited } = auditCardBudget();
     const sortedMatchups = [...matchups].sort((a, b) => byString(a.id, b.id));
 
     const cardRedlines = cardEntries.map(budgetRedline);
@@ -643,7 +688,11 @@ export function assembleReport(matchups: ReadonlyArray<MatchupReport>): BalanceR
                 { cost: '2', maxScore: budgetBandFor(2).over },
                 { cost: '3+', maxScore: budgetBandFor(3).over },
             ],
+            // Ticket 149c-5: the band is a target, not a cliff. `redlines` is past the tolerance;
+            // `watchlist` is inside it, plus the MANUAL REVIEW tail - reported, not redlined.
+            tolerancePct: BAND_TOLERANCE_PCT,
             redlines: cardEntries,
+            watchlist,
         },
         matchups: sortedMatchups,
         redlines: [...cardRedlines, ...matchupRedlines].sort(compareRedlines),

@@ -10,14 +10,14 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { auditCardBudget } from './balanceReport';
-import { budgetBandFor, calculatePowerscale } from './powerscale';
+import { auditCardBudget, budgetRedline } from './balanceReport';
+import { BAND_TOLERANCE_PCT, bandVerdict, budgetBandFor, calculatePowerscale } from './powerscale';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import { numericBaseCost } from '../../engine/types';
 
 const registry = getInflatedProgramRegistry();
-const { entries, cardsAudited } = auditCardBudget();
-const bySubject = new Map(entries.map(e => [e.id, e]));
+const { redlines: entries, watchlist, cardsAudited } = auditCardBudget();
+const bySubject = new Map([...entries, ...watchlist].map(e => [e.id, e] as const));
 
 describe('149c-4 — which width the band verdict is taken against', () => {
     it('audits the whole registry and reports only what is over', () => {
@@ -83,6 +83,57 @@ describe('149c-4 — which width the band verdict is taken against', () => {
             if (previous.overBudgetBy === current.overBudgetBy) {
                 expect(previous.id < current.id).toBe(true);
             }
+        }
+    });
+});
+
+describe('149c-5 — redlined, watched, or neither', () => {
+    it('redlines only what is past the tolerance, and watches what is inside it', () => {
+        /*
+         * The split section 4.3 asks for. Before it, every card past its band by any amount was
+         * a redline: 71 of 243 cards, of which 35 were over by 15% or less. A list where a card
+         * 3% over sits beside one 573% over is a list nobody can triage.
+         */
+        for (const entry of entries) {
+            expect(entry.verdict, entry.id).toBe('OUT OF BAND');
+            expect(entry.pctVsBand, entry.id).toBeGreaterThan(BAND_TOLERANCE_PCT);
+        }
+        for (const entry of watchlist) {
+            expect(['WITHIN TOLERANCE', 'MANUAL REVIEW'], entry.id).toContain(entry.verdict);
+            if (entry.verdict === 'WITHIN TOLERANCE') {
+                expect(entry.pctVsBand, entry.id).toBeGreaterThan(0);
+                expect(entry.pctVsBand, entry.id).toBeLessThanOrEqual(BAND_TOLERANCE_PCT);
+            }
+        }
+        // Both lists have real cards in them: a tolerance that caught nothing, or caught
+        // everything, would pass the two loops above and mean nothing.
+        expect(entries.length).toBeGreaterThan(0);
+        expect(watchlist.filter(e => e.verdict === 'WITHIN TOLERANCE').length).toBeGreaterThan(0);
+        expect(watchlist.filter(e => e.verdict === 'MANUAL REVIEW').length).toBeGreaterThan(0);
+    });
+
+    it('leaves an in-band card out of both lists entirely', () => {
+        const reported = new Set([...entries, ...watchlist].map(e => e.id));
+        let inBand = 0;
+        for (const card of Object.values(registry)) {
+            const band = budgetBandFor(numericBaseCost(card.baseCost)).over;
+            const scored = calculatePowerscale(card);
+            const verdict = bandVerdict(Math.max(scored.score1v1, scored.score3v3), band);
+            if (verdict.state !== 'IN BAND') continue;
+            inBand += 1;
+            expect(reported.has(card.id), card.id).toBe(false);
+        }
+        // Most of the pool is in band, and that is the headline the report should be able to make.
+        expect(inBand).toBeGreaterThan(cardsAudited / 2);
+    });
+
+    it('carries the percentage into the redline text, where a reader will actually see it', () => {
+        // §4.3: "the percentage always printed". The JSON having a field is not the same as the
+        // human-readable line saying it, and the line is what lands in the CSV and the console.
+        for (const entry of entries.slice(0, 5)) {
+            const line = budgetRedline(entry).detail;
+            expect(line, entry.id).toContain(`${entry.pctVsBand}%`);
+            expect(line, entry.id).toContain('OUT OF BAND');
         }
     });
 });

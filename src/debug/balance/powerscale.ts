@@ -175,6 +175,62 @@ export const BUDGET_BANDS: ReadonlyArray<BudgetBand> = [
     { cost: 3, over: 10.5, under: 8.4 },
 ];
 
+/**
+ * ── TICKET 149c-5 — THE BAND IS A TARGET, NOT A CLIFF ─────────────────────────────
+ *
+ * Henry, 2026-08-26, on `frost_bite` scoring 3.3 against a 3.0 ceiling: *"3.3 vs 3 is not a
+ * problem. 3 is not a hard cut off but a general target we can be +/- some percentage."*
+ *
+ * The audit was binary — IN BAND or OVER — so a card 1% over and a card 150% over produced the
+ * same word, and every audit in this repo has treated them the same way. §4.3 rules ±15% with the
+ * percentage always printed.
+ *
+ * **15% is where the pool's own noise sits**, which is why it is 15 and not a round number picked
+ * for being round. `scratch/bandspread.ts` measures the distribution the rule has to describe:
+ * the MEDIAN ABSOLUTE deviation from band across 236 costed non-token cards is **15.4% at 1v1**
+ * and 13.8% at 3v3. A tolerance under that reclassifies the pool's ordinary spread as violations;
+ * one far over it waves through cards that really are mispriced.
+ *
+ * MAD and not standard deviation, on §4.3's explicit ruling, and the numbers say why: the sd is
+ * **68.8%**, four and a half times the MAD, because a handful of cards sit 200–570% over and drag
+ * it. A tolerance built on the sd would be built on `bloodwrath`, not on the pool.
+ */
+export const BAND_TOLERANCE_PCT = 15;
+
+/** The four states §4.3 rules. The strings are what gets printed — there is no second vocabulary. */
+export type BandState = 'IN BAND' | 'WITHIN TOLERANCE' | 'OUT OF BAND' | 'MANUAL REVIEW';
+
+export interface BandVerdict {
+    state: BandState;
+    /** How far past the band, in percent. Negative is under. Always printed, per §4.3. */
+    pct: number;
+    /** The printable form: `OUT OF BAND +37%`, `IN BAND -23%`. */
+    label: string;
+}
+
+/**
+ * Where a score sits against its band, as one of §4.3's four states.
+ *
+ * The MANUAL REVIEW branch is the one worth explaining. A score of zero or less is not an
+ * under-powered card — it is a card the scorer priced as a net NEGATIVE, which in this pool means
+ * a drawback card: `scrubber` scores −1.6 because it sheds an ally's Poison and the model reads
+ * removal-from-an-ally as a downside. §4.7 parks that whole tail behind ticket 138, and this state
+ * is what keeps it out of the under-band list meanwhile. Routing those to "under band" would be
+ * the report asserting nine cards are too weak when what it actually knows is that it cannot
+ * price them.
+ */
+export function bandVerdict(score: number, band: number): BandVerdict {
+    const pct = band > 0 ? Math.round((score / band - 1) * 100) : 0;
+    const signed = `${pct >= 0 ? '+' : ''}${pct}%`;
+
+    // Checked BEFORE the band comparison: a negative score is under every band there is, and the
+    // thing worth saying about it is not "under".
+    if (score <= 0) return { state: 'MANUAL REVIEW', pct, label: `MANUAL REVIEW ${signed}` };
+    if (pct <= 0) return { state: 'IN BAND', pct, label: `IN BAND ${signed}` };
+    if (pct <= BAND_TOLERANCE_PCT) return { state: 'WITHIN TOLERANCE', pct, label: `WITHIN TOLERANCE ${signed}` };
+    return { state: 'OUT OF BAND', pct, label: `OUT OF BAND ${signed}` };
+}
+
 /** The band a card of this cost is budgeted against. Costs above 3 use the 3+ band. */
 export function budgetBandFor(cost: number): BudgetBand {
     let band = BUDGET_BANDS[0];

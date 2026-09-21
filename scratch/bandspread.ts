@@ -29,7 +29,7 @@
  *
  * Run: npx vite-node scratch/bandspread.ts
  */
-import { calculatePowerscale, budgetBandFor } from '../src/debug/balance/powerscale';
+import { BAND_TOLERANCE_PCT, bandVerdict, calculatePowerscale, budgetBandFor } from '../src/debug/balance/powerscale';
 import { ProgramRegistry } from '../src/engine/data/programRegistry';
 import type { ProgramData } from '../src/engine/types';
 
@@ -92,6 +92,27 @@ for (const { label, pcts } of widths) {
 console.log(`\n  The median absolute deviation is the number a tolerance should be built on: the`);
 console.log(`  typical distance from the target, ignoring direction.\n`);
 
+/*
+ * TICKET 149c-5 — THE RULE THIS SCRIPT ARGUED FOR, NOW APPLIED.
+ *
+ * §4.3 ruled +/-15% off the back of the median absolute deviation printed above. Printing the
+ * resulting split here, in the same vocabulary `bandVerdict` uses everywhere else, is what stops
+ * this script and the committed report from developing two different ideas of "over".
+ */
+console.log(`With the shipped +/-${BAND_TOLERANCE_PCT}% tolerance (§4.3):`);
+for (const { label, pcts } of widths) {
+    const states = pcts.map((_, i) => bandVerdict(
+        label === '1v1' ? rows[i].score1v1 : rows[i].score3v3,
+        rows[i].ceiling,
+    ).state);
+    const count = (state: string) => states.filter(x => x === state).length;
+    console.log(`  at ${label}:  ${String(count('IN BAND')).padStart(3)} IN BAND   `
+        + `${String(count('WITHIN TOLERANCE')).padStart(3)} WITHIN TOLERANCE   `
+        + `${String(count('OUT OF BAND')).padStart(3)} OUT OF BAND   `
+        + `${String(count('MANUAL REVIEW')).padStart(3)} MANUAL REVIEW`);
+}
+console.log('');
+
 console.log(`What each candidate tolerance would still call OVER:`);
 console.log(`  ${'tol'.padStart(6)}   ${'at 1v1'.padStart(16)}   ${'at 3v3'.padStart(16)}`);
 for (const tol of [5, 10, 15, 20, 25, 30, 50]) {
@@ -106,18 +127,18 @@ console.log('\nthe 15 furthest OVER at 1v1 — the verdict width for a non-Side 
 for (const r of [...rows].sort((a, b) => b.pct1v1 - a.pct1v1).slice(0, 15)) {
     const wide = r.pct3v3 !== r.pct1v1 ? `   (3v3 ${r.score3v3.toFixed(1)}, ${r.pct3v3 >= 0 ? '+' : ''}${r.pct3v3.toFixed(0)}%)` : '';
     console.log(`  ${r.id.padEnd(20)} ${r.cost}e  score ${r.score1v1.toFixed(1).padStart(6)}  `
-        + `ceiling ${r.ceiling.toFixed(1).padStart(5)}   ${r.pct1v1 >= 0 ? '+' : ''}${r.pct1v1.toFixed(0)}%${wide}`);
+        + `ceiling ${r.ceiling.toFixed(1).padStart(5)}   ${bandVerdict(r.score1v1, r.ceiling).label.padEnd(24)}${wide}`);
 }
 
 console.log('\nthe 15 furthest OVER at 3v3 — which is the verdict width for these, being Side/All:');
 for (const r of [...rows].sort((a, b) => b.pct3v3 - a.pct3v3).slice(0, 15)) {
     const narrow = r.pct3v3 !== r.pct1v1 ? `   (1v1 ${r.score1v1.toFixed(1)}, ${r.pct1v1 >= 0 ? '+' : ''}${r.pct1v1.toFixed(0)}%)` : '';
     console.log(`  ${r.id.padEnd(20)} ${r.cost}e  score ${r.score3v3.toFixed(1).padStart(6)}  `
-        + `ceiling ${r.ceiling.toFixed(1).padStart(5)}   ${r.pct3v3 >= 0 ? '+' : ''}${r.pct3v3.toFixed(0)}%${narrow}`);
+        + `ceiling ${r.ceiling.toFixed(1).padStart(5)}   ${bandVerdict(r.score3v3, r.ceiling).label.padEnd(24)}${narrow}`);
 }
 
 console.log('\nthe 5 furthest UNDER at 1v1:');
 for (const r of [...rows].sort((a, b) => a.pct1v1 - b.pct1v1).slice(0, 5)) {
     console.log(`  ${r.id.padEnd(20)} ${r.cost}e  score ${r.score1v1.toFixed(1).padStart(6)}  `
-        + `ceiling ${r.ceiling.toFixed(1).padStart(5)}   ${r.pct1v1.toFixed(0)}%`);
+        + `ceiling ${r.ceiling.toFixed(1).padStart(5)}   ${bandVerdict(r.score1v1, r.ceiling).label}`);
 }
