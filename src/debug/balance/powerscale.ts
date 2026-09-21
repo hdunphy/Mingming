@@ -91,15 +91,27 @@ export interface PowerscaleResult {
  * finer section 1.2 rules (below) supersede the rest: status weight depends on *which*
  * status, draw has diminishing returns per card, energy is priced directly in power.
  */
+/*
+ * ONLY `ATTACK` AND `HEAL` ARE LIVE — ticket 149c-2.
+ *
+ * Two of these are read (L732, L742). The rest are historical: STATUS, REMOVE_STATUS and ENERGY
+ * are each priced by their own branch in the big switch, and `DRAW` was priced by the ladder
+ * below. `'DRAW': 15` has been DELETED rather than left sitting here, because it was the one that
+ * actively misled — 149b's report opens on it: the live price is the ladder, and a reader looking
+ * up "what is a draw worth" found this number instead and got the wrong answer.
+ *
+ * The other three are left in place because they are §5's next rows' business, not this one's, but
+ * they are dead code too: changing any of them changes nothing.
+ */
 export const ACTION_WEIGHTS: Record<string, number> = {
     'ATTACK': 1,
     // 4 power/1%HP vs damage's 3 power/1%HP => heal's raw `power` field is worth 3/4 as
     // much per point as an attack's (docs/power_curve_spec.md rev 3, "heal costs more than
     // damage").
     'HEAL': 0.75,
+    // Dead: priced by their own branches in `calculatePowerscale`. See the note above.
     'STATUS': 12,
     'REMOVE_STATUS': 8,
-    'DRAW': 15,
     'ENERGY': 20,
 };
 
@@ -469,6 +481,27 @@ function tier(n: number): number {
  */
 const EXPECTED_DAEMON_PROCS = 4;
 
+/**
+ * What a drawn card is worth — the 1st, 2nd and 3rd-or-later card of one DRAW action, in power.
+ *
+ * TICKET 149c-2, §4.1: **20/15/10**, up from 15/10/5.
+ *
+ * 149b measured the thing the old numbers were guessing at: the mean scorer value of a card drawn
+ * across the 33 shipped decks is **3.39** in /10 units, i.e. 33.9 power, and it is under the deck
+ * mean in 31 of the 33 (range 1.39 on nidhoggr_v1 to 7.09 on ymir_v2 —
+ * `research/scorer-pricing.md` §2). 15 power was therefore selling the first card at 44% of what
+ * a card is worth on an average deck.
+ *
+ * The raise is deliberately short of the measurement. A scorer that paid the full 33.9 would price
+ * a draw as the best line in the game on every deck, which is a deck property rather than a card
+ * one — Henry's framing for the whole ticket: *"its numbers are not meant to work for a specific
+ * width or deck."* 20 is the general floor; the decks that beat it are the decks built to.
+ *
+ * The shape is unchanged and is not a guess: a second card joins a hand that is already deciding,
+ * so it is worth less than the first, and a third less again.
+ */
+const DRAW_LADDER_POWER: ReadonlyArray<number> = [20, 15, 10];
+
 const MANUAL_REVIEW_TYPES = new Set([
     // Ticket 46: CLEANSE left this set - it is priced from measured debuff load now.
     'SEARCH', 'PLAY_LAST_CARD', 'TRIGGER_STATUS',
@@ -802,11 +835,24 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             }
         } else if (action.type === 'DRAW') {
             const count = action.amount || action.count || 1;
-            // 15/10/5 power for 1st/2nd/3rd+ card (docs/power_curve_spec.md), in /10 units.
+            /*
+             * The ladder, in /10 units. `DRAW_LADDER_POWER` is the price; the table above is not.
+             *
+             * Ticket 149c-2 raised it from 15/10/5 to 20/15/10 on §4.1. 149b measured what 15
+             * power was buying: the mean scorer value of a card drawn across the 33 shipped decks
+             * is **3.39** — 2.26× the 1.5 the first card was priced at, and under the deck mean
+             * in 31 of the 33 (`research/scorer-pricing.md` §2). The scorer was selling a card for
+             * less than half what a card is worth, which is why every draw-2 in the pool read as
+             * under-band while ticket 131's field test had the draw-2 arm of `whirlpool_v2` at
+             * 73.9% against the shipped arm's 47.1%.
+             *
+             * 20/15/10 rather than 34/34/34: the ladder's SHAPE is right even where its level was
+             * not. The second card off a refill is worth less than the first because the hand it
+             * joins is already making the decision, and the third less again — what changes here
+             * is the floor, not the slope.
+             */
             for (let i = 1; i <= count; i++) {
-                if (i === 1) actionScore += 1.5;
-                else if (i === 2) actionScore += 1.0;
-                else actionScore += 0.5;
+                actionScore += DRAW_LADDER_POWER[Math.min(i, DRAW_LADDER_POWER.length) - 1] / 10;
             }
         } else if (action.type === 'ENERGY') {
             const amount = action.amount || 0;

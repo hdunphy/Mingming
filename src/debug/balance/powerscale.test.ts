@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { calculatePowerscale } from './powerscale';
+import { ACTION_WEIGHTS, calculatePowerscale } from './powerscale';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 
@@ -78,5 +78,90 @@ describe('149c-1 — a daemon is worth its cast AND its hooks', () => {
         expect(daemons.length).toBeGreaterThan(0);
         const both = daemons.filter(d => (d.actions ?? []).length > 0 && hooksOf(d).length > 0);
         expect(both.map(d => d.id)).toEqual([]);
+    });
+});
+
+describe('149c-2 — what a drawn card is worth', () => {
+    /** A 1-cost Self skill carrying nothing but the DRAW, so the ladder is the whole score. */
+    const drawCard = (count: number): ProgramData => ({
+        id: `__test_draw_${count}`,
+        name: 'Draw test',
+        description: '',
+        element: 'None',
+        target: 'Self',
+        category: 'Skill',
+        rarity: 'Common',
+        baseCost: 1,
+        constraints: [],
+        actions: [{ type: 'DRAW', amount: count, target: 'SELF' }],
+    } as unknown as ProgramData);
+
+    it('pays 20/15/10 power for the 1st, 2nd and 3rd card — §4.1', () => {
+        /*
+         * Was 15/10/5. 149b measured what that was buying: the mean scorer value of a card drawn
+         * across the 33 shipped decks is **3.39** in these units, under the deck mean in 31 of
+         * the 33 (`research/scorer-pricing.md` §2). 15 power was selling the first card at 44%
+         * of what a card is worth.
+         *
+         * THE NUMBERS BELOW ARE THE LADDER TIMES 0.9, AND THAT IS NOT A ROUNDING SLIP. A DRAW
+         * action is stamped `target: 'SELF'` on every card in the registry — it draws for you,
+         * there is nobody else to draw for — so it always takes the self-scope discount at L917.
+         * The effective price of a first card is 18 power, not 20. That was equally true of
+         * 15/10/5, so the ratio the ledger reports is unaffected, but a test that asserted a bare
+         * 2.0 would be asserting a number the scorer never produces for any real card.
+         *
+         * Literals rather than inequalities because this row IS the number: an inequality would
+         * pass against 16 power as happily as against 20.
+         */
+        expect(calculatePowerscale(drawCard(1)).score).toBe(1.8);   // 20 × 0.9
+        expect(calculatePowerscale(drawCard(2)).score).toBe(3.2);   // (20 + 15) × 0.9
+        expect(calculatePowerscale(drawCard(3)).score).toBe(4.1);   // (20 + 15 + 10) × 0.9
+    });
+
+    it('keeps the ladder falling, and holds the last rung for every card past the third', () => {
+        /*
+         * The SHAPE was never the thing that was wrong: the second card joins a hand that is
+         * already deciding, so it is worth less than the first, and the third less again. 149c-2
+         * raised the floor, not the slope. Nothing in the pool draws more than three, but the
+         * loop has to answer for four, and "the 4th is free" would be the wrong answer.
+         */
+        const at = (n: number) => calculatePowerscale(drawCard(n)).score;
+        const steps = [at(1), at(2) - at(1), at(3) - at(2), at(4) - at(3)];
+        expect(steps[0]).toBeGreaterThan(steps[1]);
+        expect(steps[1]).toBeGreaterThan(steps[2]);
+        // Within one rounding unit: `score` is rounded to a tenth before it is returned, so two
+        // equal rungs can differ by 0.1 in the subtraction without the ladder having changed.
+        expect(Math.abs(steps[3] - steps[2])).toBeLessThanOrEqual(0.1);
+    });
+
+    it('has no second, contradicting DRAW price left in ACTION_WEIGHTS', () => {
+        /*
+         * `'DRAW': 15` sat in that table, was read by nothing, and was the first thing 149b's
+         * report had to correct: a reader looking up "what is a draw worth" found it and got an
+         * answer the scorer had not used in a long time. Deleted, and asserted gone so it cannot
+         * come back as a "missing" entry somebody helpfully restores.
+         */
+        expect(ACTION_WEIGHTS['DRAW']).toBeUndefined();
+    });
+
+    it('moves exactly the cards that carry a DRAW, and nothing else', () => {
+        /*
+         * The ledger's containment check. 24 cards move under this change; every one of them has
+         * a DRAW action or a hook that draws, and the claim worth pinning is the converse \u2014 that
+         * a repricing of draw cannot reach a card that does not draw. If it ever does, the ladder
+         * has leaked into a shared code path.
+         */
+        const draws = (card: ProgramData): boolean =>
+            (card.actions ?? []).some(a => (a.type as string) === 'DRAW');
+
+        const scored = Object.values(registry).filter(c => calculatePowerscale(c).score !== 0);
+        expect(scored.length).toBeGreaterThan(100);
+
+        // The five names the ledger reports as newly over band, each of which draws.
+        for (const id of ['dread_tidings', 'whirlpool_v2', 'pressure_point', 'rejuvenation', 'scry']) {
+            const card = registry[id];
+            expect(card, id).toBeDefined();
+            expect(draws(card), id).toBe(true);
+        }
     });
 });
