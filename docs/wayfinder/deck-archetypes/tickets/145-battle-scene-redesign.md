@@ -1,9 +1,9 @@
-# Ticket 145 — Battle scene redesign: the stagger stage (mock approved 2026-09-08)
+# Ticket 145 — Battle scene redesign: the stagger stage (mock approved 2026-09-08, CLOSED 2026-09-21)
 
-> **Status: BUILT — all six rows shipped by Legion 2026-09-08/09** (`ae37565` 145a stagger stage + `useStageAnchors`; `0850b87` + `2040bc0` 145b plaque, statuses, rim light, dead-body silhouette, firmware chip/daemons/preview moved; `c782772` 145c–f top bar, console, target chip, reveal lane, backdrop; follow-ups `af7bc62` hand card 180×255, `168e0c1` hand on the marketplace chassis, `25f44ca` collapsed log draws nothing — the top bar is that surface; `bce8574` the ticket-58 harness clicks the stage slots). Renders in `Claude outputs/stage-1280x800.png` and `battle-screen-final.png`. **Closes on Henry's eyes**: play a fight at 1280×800 and 1920×1080 and note anything that differs from `145-mock/`; then 146/147 start.
+> **Status: CLOSED 2026-09-21 — signed off by Henry.** All six rows shipped by Legion 2026-09-08/09 (`ae37565` 145a stagger stage + `useStageAnchors`; `0850b87` + `2040bc0` 145b plaque, statuses, rim light, dead-body silhouette, firmware chip/daemons/preview moved; `c782772` 145c–f top bar, console, target chip, reveal lane, backdrop; follow-ups `af7bc62` hand card 180×255, `168e0c1` hand on the marketplace chassis, `25f44ca` collapsed log draws nothing — the top bar is that surface; `bce8574` the ticket-58 harness clicks the stage slots). Renders in `Claude outputs/stage-1280x800.png` and `battle-screen-final.png`. Henry reviewed the fight at 1280×800 and 1920×1080 against `145-mock/` and signed off with no differences called out — 146/147 are clear to build against these anchors (both already have).
 
-**Type:** UI. **Status:** design RULED by Henry after three prototyping rounds (2026-09-07/08);
-ready for Legion. **Branch:** `legion/comp-grid`, authored as Henry, one commit per lettered row.
+**Type:** UI. **Status:** CLOSED — design RULED by Henry after three prototyping rounds (2026-09-07/08),
+built by Legion 2026-09-08/09, and **signed off by Henry 2026-09-21**. **Branch:** `legion/comp-grid`, authored as Henry, one commit per lettered row.
 **Mock:** `145-mock/145-mock.html` (open in a browser; 1280×800) and `145-mock/final.png` /
 `final-between-plays.png` (2× renders) beside this ticket. The mock's geometry is the spec; where
 this text and the mock disagree, the mock wins.
@@ -129,3 +129,11 @@ selection change and a death), `CardHand.test` (fan angle by hand size; selected
 Sprite art and biome art (steam-release 33/34), particles and hit-stop (146), sounds (147), any
 change to what a card does. The unchosen directions are on the prototyping canvas (three rounds,
 25 boards) for reference only.
+
+
+## Resolution
+
+**Closed 2026-09-21.** Henry reviewed the built battle scene at 1280×800 and 1920×1080 against
+`145-mock/` and signed off with no differences called out from the ruled mock. 146 (game juice)
+and 147 (SFX) — both of which depend on this ticket's `useStageAnchors()` — were already building
+against these anchors before the sign-off landed; nothing changes for them now that it has.
