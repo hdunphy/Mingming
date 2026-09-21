@@ -1,4 +1,5 @@
 # Ticket 151 — EA deck rework: two independent damage paths per deck (frame RULED 2026-09-09)
+> **Per-deck sessions superseded by [160](160-ea-deck-recut.md) (2026-09-21).** The two-paths frame survives as 158 §2.6's counter rule.
 
 **Type:** wayfinder:grilling (frame ruled) → one `task` session per deck, Henry designing, assistant costing.
 **Asked by Henry, 2026-09-02:** *"I think we need to fix the decks. It's clear the card size was getting
