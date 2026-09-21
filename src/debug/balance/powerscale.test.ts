@@ -209,3 +209,66 @@ describe('149c-3 — a discard scaler the scorer could not see', () => {
         expect(score).toBeLessThan(budgetBandFor(1).over);
     });
 });
+
+describe('149c-4 — the same card, priced at both widths', () => {
+    it('charges a Side card \u00d71.0 at 1v1 and \u00d72.2 at 3v3 \u2014 §4.2', () => {
+        /*
+         * The bug this closes is not a wrong constant, it is a missing question. A Side card hits
+         * one enemy at 1v1 and three at 3v3, and the scorer had one answer: it charged 2.2 always.
+         * So `frost_bite` read 7.3 against a 3.0 band — 143% over — in a fight where it is a
+         * perfectly ordinary 1-energy attack at 3.3.
+         *
+         * 2.2 and not 3.0 at 3v3 because it is MEASURED, not counted: 149b saw 1.9–2.2 delivered
+         * per cast across the pool, since units die and the third target is often already gone
+         * (`research/scorer-pricing.md` §1). Three targets is not three times the value.
+         */
+        const side = registry['frost_bite'];
+        expect(side).toBeDefined();
+        expect(side.target).toBe('Side');
+
+        const scored = calculatePowerscale(side);
+        expect(scored.score3v3 / scored.score1v1).toBeCloseTo(2.2, 1);
+        // `score` is the 1v1 reading, because that is what a consumer that never asked about
+        // width means. Nothing that did not opt in has to learn about this.
+        expect(scored.score).toBe(scored.score1v1);
+    });
+
+    it('gives the same number twice for every card whose scope does not depend on width', () => {
+        /*
+         * 22 of 243 cards are Side; none is All. Every other card must come out identical at both
+         * widths, and that is the property that lets the report take a plain `max` over the two
+         * instead of branching on `card.target` — a branch that would have to be kept in step
+         * with `powerscale.ts` forever.
+         */
+        const differ = Object.values(registry)
+            .filter(c => { const s = calculatePowerscale(c); return s.score1v1 !== s.score3v3; });
+
+        expect(differ.length).toBeGreaterThan(0);
+        for (const card of differ) {
+            expect(['Side', 'All'], card.id).toContain(card.target);
+        }
+        // Every Side card differs: none of them is priced identically by accident.
+        const sides = Object.values(registry).filter(c => c.target === 'Side');
+        expect(differ.length).toBe(sides.length);
+    });
+
+    it('prices a hook at the width of the daemon carrying it', () => {
+        /*
+         * The recursion inside the daemon branch calls back into the width-aware scorer, and the
+         * obvious slip is to let it default. A daemon whose hook hits the SIDE would then be
+         * priced at 3v3 inside a 1v1 reading — the exact bug 149c-4 is closing, hidden one level
+         * down where no ledger would show it.
+         */
+        const daemon = registry['riptide'];
+        expect(daemon).toBeDefined();
+
+        const sideHookDaemon = {
+            ...daemon,
+            id: 'riptide__test_side',
+            target: 'Side',
+        } as unknown as ProgramData;
+
+        const scored = calculatePowerscale(sideHookDaemon);
+        expect(scored.score3v3).toBeGreaterThan(scored.score1v1);
+    });
+});

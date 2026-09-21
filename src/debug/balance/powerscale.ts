@@ -82,6 +82,25 @@ export interface PowerscaleResult {
      */
     damagePortion: number;
     statusPortion: number;
+    /**
+     * ── TICKET 149c-4 — THE SAME CARD, PRICED AT BOTH WIDTHS ─────────────────────────────
+     *
+     * A `Side` card hits one enemy at 1v1 and three at 3v3, and the scorer had exactly one
+     * answer: it charged the 3v3 multiplier always. So every Side card in the pool read as
+     * over-budget in a 1v1 fight it is merely ordinary in — the five Ice cards being the
+     * clearest case — and the report had no way to say which width it was talking about.
+     *
+     * §4.2 rules two scores rather than one, and a verdict rule to go with them: the band
+     * verdict is against `score1v1` unless the card is `Side`/`All`, where **both are printed
+     * and the verdict is the worse of the two**. That last clause is the whole reason this is
+     * not simply "score it at 1v1": a card that is fine at one width and egregious at the
+     * other is still a card Henry has to see.
+     *
+     * `score` above is `score1v1` — the general reading, and what every existing consumer
+     * wants — so nothing that did not ask for width has to learn about it.
+     */
+    score1v1: number;
+    score3v3: number;
 }
 
 /**
@@ -502,6 +521,36 @@ const EXPECTED_DAEMON_PROCS = 4;
  */
 const DRAW_LADDER_POWER: ReadonlyArray<number> = [20, 15, 10];
 
+/** The two widths a card is priced at — ticket 149c-4. */
+export type ScoreWidth = '1v1' | '3v3';
+
+/**
+ * What hitting the enemy SIDE is worth, per width.
+ *
+ * 1v1 is ×1.0 because there is one enemy: a Side card is a single-target card in that fight,
+ * and charging it 2.2 was the scorer stating a fact about a different game.
+ *
+ * 3v3 is ×2.2 and it is measured, not counted. Three targets does not mean three times the
+ * value — 149b measured 1.9–2.2 delivered per cast across the pool, because units die and the
+ * third target is often already dead or irrelevant. A pure-debuff Side card reads 2.6, and
+ * §4.2 rules 2.2 for all of them rather than splitting the constant on a card property the
+ * scorer would then have to keep classifying (`research/scorer-pricing.md` §1).
+ */
+export const SIDE_SCOPE_MULTIPLIER: Record<ScoreWidth, number> = { '1v1': 1.0, '3v3': 2.2 };
+
+/**
+ * The same, for `All` scope.
+ *
+ * **No card in the pool has `target: 'All'`** — 158 Single, 63 Self, 22 Side, 0 All — so this
+ * constant prices nothing today and the ledger cannot move on it. It collapses to ×1.0 at 1v1
+ * for the same reason Side does, and keeps its historical ×4.0 at 3v3 rather than inheriting
+ * Side's 2.2: 2.2 is a MEASURED delivery rate for Side cards and there is no All card to have
+ * measured. Carrying a number across from a different scope would read as a measurement.
+ *
+ * If an `All` card is ever authored, this wants measuring before it is trusted.
+ */
+export const ALL_SCOPE_MULTIPLIER: Record<ScoreWidth, number> = { '1v1': 1.0, '3v3': 4.0 };
+
 const MANUAL_REVIEW_TYPES = new Set([
     // Ticket 46: CLEANSE left this set - it is priced from measured debuff load now.
     'SEARCH', 'PLAY_LAST_CARD', 'TRIGGER_STATUS',
@@ -538,7 +587,20 @@ function daemonHookActions(card: ProgramData): ProgramAction[] {
     return out;
 }
 
-export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string> = new Set()): PowerscaleResult => {
+/**
+ * One width's worth of the formula — everything `calculatePowerscale` used to be.
+ *
+ * Split out by ticket 149c-4 so the public entry point can run it twice. It is a pure function
+ * of `(card, width)`, so running it twice costs two passes over 243 cards and buys the width
+ * honesty §4.2 asks for; the alternative was threading a second running total through every
+ * `score +=` in the body, which is the same arithmetic written twice and one place for the two
+ * copies to drift.
+ */
+const scoreAtWidth = (
+    card: ProgramData,
+    width: ScoreWidth,
+    seen: ReadonlySet<string> = new Set(),
+): Omit<PowerscaleResult, 'score1v1' | 'score3v3'> => {
     let score = 0;
     const manualReview: string[] = [];
 
@@ -941,8 +1003,9 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         // GENERATE_CARD is already a whole-card score (scope included) - do not scope it twice.
         if (action.type === 'GENERATE_CARD') { /* no scope multiplier */ }
         else if (scope === 'SELF') actionScore *= 0.9;
-        else if (scope === 'SIDE') actionScore *= 2.2;
-        else if (scope === 'ALL') actionScore *= 4.0;
+        // Ticket 149c-4: these two are the only terms that know how wide the fight is.
+        else if (scope === 'SIDE') actionScore *= SIDE_SCOPE_MULTIPLIER[width];
+        else if (scope === 'ALL') actionScore *= ALL_SCOPE_MULTIPLIER[width];
         else actionScore *= 1.0;
 
         // Condition Discount
@@ -1049,13 +1112,14 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     if (card.category === 'Daemon') {
         const doActions = daemonHookActions(card);
         if (doActions.length > 0) {
-            const proc = calculatePowerscale({
+            const proc = scoreAtWidth({
                 ...card,
                 category: 'Skill',
                 exhaust: false,
                 isToken: false,
                 actions: doActions,
-            } as ProgramData, new Set([...seen, card.id]));
+                // Ticket 149c-4: the hook is priced at the SAME width as the card carrying it.
+            } as ProgramData, width, new Set([...seen, card.id]));
             score += proc.score * EXPECTED_DAEMON_PROCS;
             damagePortion += proc.damagePortion * EXPECTED_DAEMON_PROCS;
             statusPortion += proc.statusPortion * EXPECTED_DAEMON_PROCS;
@@ -1087,4 +1151,25 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         damagePortion: Math.round(damagePortion * 10) / 10,
         statusPortion: Math.round(statusPortion * 10) / 10,
     };
+};
+
+/**
+ * Section 1.1's score for a card, at both widths — ticket 149c-4.
+ *
+ * `score`, `perEnergy` and the two portions are the **1v1** reading, because that is the general
+ * one and it is what every consumer that does not ask about width means. `score3v3` sits beside
+ * them for the report's Side/All rows and for §4.2's "the verdict is the worse of the two".
+ *
+ * Identical for the 221 of 243 cards that are not Side or All: the two passes differ in exactly
+ * two multipliers, so a card with no Side action gets the same number twice. That is not waste
+ * worth optimising — the whole registry scores in milliseconds either way, and a fast path here
+ * would be a second place for the widths to disagree.
+ */
+export const calculatePowerscale = (
+    card: ProgramData,
+    seen: ReadonlySet<string> = new Set(),
+): PowerscaleResult => {
+    const narrow = scoreAtWidth(card, '1v1', seen);
+    const wide = scoreAtWidth(card, '3v3', seen);
+    return { ...narrow, score1v1: narrow.score, score3v3: wide.score };
 };

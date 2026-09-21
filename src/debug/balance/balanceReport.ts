@@ -48,7 +48,8 @@ import type { BatchResult, PairedBatchResult } from './runBatch';
 import { numericBaseCost } from '../../engine/types';
 
 /** Bump when the JSON shape changes, so an old report is never diffed against a new one. */
-export const BALANCE_REPORT_SCHEMA_VERSION = 1;
+// 2 (ticket 149c-4): every 1.3 entry now carries `score1v1`, `score3v3` and `width`.
+export const BALANCE_REPORT_SCHEMA_VERSION = 2;
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -169,8 +170,30 @@ export interface CardBudgetEntry {
     id: string;
     name: string;
     cost: number;
+    /**
+     * The score the verdict was taken against - `score1v1`, or the WORSE of the two widths on a
+     * Side/All card (ticket 149c-4 / section 4.2).
+     */
     score: number;
     perEnergy: number;
+    /**
+     * TICKET 149c-4: the same card at both widths.
+     *
+     * A Side card hits one enemy at 1v1 and three at 3v3, and the scorer used to charge the 3v3
+     * multiplier always - so 22 Side cards read as over-budget in a fight they are ordinary in,
+     * and the report had no way to say which width it meant. Section 4.2 rules that both are
+     * printed and, for a Side/All card, the verdict is the worse of the two: a card that is fine
+     * at one width and egregious at the other is still a card that has to be looked at.
+     *
+     * Equal on the 221 cards that are not Side or All, which is most rows.
+     */
+    score1v1: number;
+    score3v3: number;
+    /**
+     * `'1v1'` when the two widths agree and the verdict is simply the score; `'both'` when they
+     * do not, i.e. this is a Side or All card and a reader needs to see which number won.
+     */
+    width: '1v1' | 'both';
     /** Section 1.3's upper bound for this cost. */
     budget: number;
     overBudgetBy: number;
@@ -267,6 +290,12 @@ function budgetRedline(entry: CardBudgetEntry): Redline {
         detail:
             `${entry.name} (${entry.id}) costs ${entry.cost} energy and scores ${entry.score}, ` +
             `${round(entry.overBudgetBy, 1)} over the ${entry.budget} budget for that cost.` +
+            // Ticket 149c-4: name the width whenever it decided the number, and print the one
+            // that did not, so a reader can tell "over budget in every fight" from "over budget
+            // only at 3v3" without opening the JSON.
+            (entry.width === 'both'
+                ? ` Side/All: ${entry.score3v3} at 3v3, ${entry.score1v1} at 1v1 - judged on the worse.`
+                : '') +
             (entry.manualReview.length > 0
                 ? ` (score excludes unscored ${entry.manualReview.join('/')} action(s) - actual value is at least this.)`
                 : ''),
@@ -289,7 +318,19 @@ export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: n
     for (const id of ids) {
         const card = registry[id] as ProgramData;
         const band = budgetBandFor(numericBaseCost(card.baseCost));
-        const { score, perEnergy, manualReview } = calculatePowerscale(card);
+        const { score1v1, score3v3, perEnergy, manualReview } = calculatePowerscale(card);
+        /*
+         * TICKET 149c-4, section 4.2: the verdict is against `score1v1` unless the card is
+         * Side/All, where it is the WORSE of the two.
+         *
+         * "Worse" is the higher number, because both widths are judged against the same band -
+         * the band is a property of the card's energy cost, not of the fight. So this is a max,
+         * and it is written as one rather than branching on `card.target`: the two scores are
+         * equal by construction on every card whose scope does not depend on width, so a max
+         * over them IS the rule, with no classification to keep in step with `powerscale.ts`.
+         */
+        const widthsDiffer = score3v3 !== score1v1;
+        const score = Math.max(score1v1, score3v3);
         if (score > band.over) {
             entries.push({
                 id,
@@ -297,6 +338,9 @@ export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: n
                 cost: numericBaseCost(card.baseCost),
                 score,
                 perEnergy,
+                score1v1,
+                score3v3,
+                width: widthsDiffer ? 'both' : '1v1',
                 budget: band.over,
                 overBudgetBy: round(score - band.over, 1),
                 manualReview,
