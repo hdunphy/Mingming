@@ -239,3 +239,54 @@ describe('146a — reduced motion overrules the switches', () => {
         expect(root.getAttribute('data-vfx')).toBe('off');
     });
 });
+
+describe('159c \u2014 the enemy hand switch', () => {
+    it('defaults ON, and an older settings blob parses into ON rather than OFF', () => {
+        /*
+         * 159 exists to close a visibility gap, and a telegraph nobody can see closes nothing \u2014 so
+         * a player who stored their settings before this field existed keeps the behaviour 159b
+         * shipped, not the opposite of it.
+         */
+        expect(DEFAULT_SETTINGS.showEnemyHand).toBe(true);
+
+        const storage = makeMockStorage({
+            [SETTINGS_STORAGE_KEY]: JSON.stringify({ reducedMotion: 'system', textScale: 1 }),
+        });
+        expect(loadSettings(storage).showEnemyHand).toBe(true);
+    });
+
+    it('stamps the document, so flipping it reaches the fight already on screen', () => {
+        /*
+         * The settings screen is an OVERLAY on the battle, not a route away from it \u2014 the fight
+         * stays mounted underneath. A read-once-per-mount component would leave the tab on screen
+         * until the next fight, and watching the switch do nothing is the one failure a player is
+         * guaranteed to notice, because watching it work is why they flipped it.
+         */
+        const root = document.createElement('div');
+
+        applySettings({ ...DEFAULT_SETTINGS, showEnemyHand: false }, root);
+        expect(root.getAttribute('data-enemy-hand')).toBe('off');
+
+        applySettings({ ...DEFAULT_SETTINGS, showEnemyHand: true }, root);
+        expect(root.getAttribute('data-enemy-hand')).toBe('on');
+    });
+
+    it('is NOT overruled by reduced motion, unlike the three beside it', () => {
+        /*
+         * The 146a switches are overruled on purpose: a player who asked their OS for less motion
+         * has said something about their body. This one is not movement \u2014 it is information, and
+         * taking it away on the same signal would be a different decision made on their behalf.
+         */
+        const root = document.createElement('div');
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'on', showEnemyHand: true }, root);
+
+        expect(root.getAttribute('data-animations')).toBe('off');
+        expect(root.getAttribute('data-enemy-hand')).toBe('on');
+    });
+
+    it('round-trips through a restart like every other setting', () => {
+        const storage = makeMockStorage();
+        saveSettings({ ...DEFAULT_SETTINGS, showEnemyHand: false }, storage);
+        expect(loadSettings(makeMockStorage(storage.data)).showEnemyHand).toBe(false);
+    });
+});

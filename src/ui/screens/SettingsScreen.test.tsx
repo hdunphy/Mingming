@@ -115,4 +115,27 @@ describe('SettingsScreen', () => {
         const markup = render();
         expect(markup).toMatch(/across slots|never part of the save/);
     });
+    it('offers the enemy-hand switch, on, and away from the motion switches \u2014 159c', () => {
+        /*
+         * \u00a75 said "beside 146's three" and it cannot sit there: the note under those three reads
+         * "so particles and animations are off whatever these say" under reduced motion, and
+         * reduced motion does NOT touch this one. A player reading that line directly above this
+         * switch has been told something false about it.
+         *
+         * So: present, on by default, and under its own heading rather than Motion's.
+         */
+        const markup = render();
+        expect(markup).toContain('Show enemy hand');
+
+        const battleHeading = markup.indexOf('>Battle<');
+        const motionHeading = markup.indexOf('>Motion<');
+        const switchAt = markup.indexOf('Show enemy hand');
+        expect(battleHeading).toBeGreaterThan(-1);
+        // It is under Battle, not under Motion.
+        expect(switchAt).toBeGreaterThan(battleHeading);
+        expect(battleHeading).toBeGreaterThan(motionHeading);
+
+        // On by default, and the note says what "on" actually shows rather than naming the control.
+        expect(markup).toContain('their next draw takes off the top');
+    });
 });

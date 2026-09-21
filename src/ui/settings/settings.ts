@@ -133,6 +133,21 @@ export interface ISettings {
      * ON by default, like every other switch here.
      */
     readonly combatSounds: boolean;
+
+    /**
+     * ── SHOW ENEMY HAND — ticket 159c. ──────────────────────────────────────
+     *
+     * The edge tab and its panel: what the enemy is holding, or about to draw. 159 §5 ruled it a
+     * switch defaulting ON, because 159 exists to close a visibility gap and a telegraph nobody
+     * can see closes nothing — but a player who wants to work it out for themselves should be able
+     * to, and a streamer who finds the tab in shot should be able to move it out.
+     *
+     * **Deliberately NOT under `resolveVfxGates`.** The three 146a switches are overruled by
+     * reduced motion, which is right for them and wrong here: reduced motion is a statement about
+     * MOVEMENT, and taking information away from a player who asked for less of it would be a
+     * different decision made on their behalf. This one is theirs alone.
+     */
+    readonly showEnemyHand: boolean;
 }
 
 /**
@@ -160,11 +175,15 @@ export const SettingsSchema = z.object({
     // `.default(true)` as above: a blob written before this field parses into the behaviour that
     // player already had — the fight made noise.
     combatSounds: z.boolean().default(true),
+    // `.default(true)` as above: a blob written before this field parses into the behaviour that
+    // player already had — 159b shipped the tab on.
+    showEnemyHand: z.boolean().default(true),
 });
 
 export const DEFAULT_SETTINGS: ISettings = {
     reducedMotion: 'system', textScale: 1, autoSaveRunLog: false,
     particles: true, vfx: true, animations: true, battleLogs: true, combatSounds: true,
+    showEnemyHand: true,
 };
 
 /** What `vfx` resolves to once reduced motion has had its say. */
@@ -286,4 +305,21 @@ export function applySettings(settings: ISettings, root?: HTMLElement): void {
     element.setAttribute('data-particles', gates.particles ? 'on' : 'off');
     element.setAttribute('data-animations', gates.animations ? 'on' : 'off');
     element.setAttribute('data-vfx', gates.vfx);
+
+    /*
+     * TICKET 159c, stamped the same way and pointedly NOT through `gates`.
+     *
+     * A `data-` attribute rather than a prop threaded into `EnemyHandPanel`, because the settings
+     * screen is an OVERLAY on the battle rather than a route away from it: the fight stays mounted
+     * while it is open, so the read-once-per-mount pattern the VFX components use would leave the
+     * tab on screen until the next fight. Flipping a visibility switch and watching nothing happen
+     * is the one failure a player is guaranteed to notice, since watching it happen is why they
+     * flipped it.
+     *
+     * The panel still renders and still builds its list while hidden — one memo over at most
+     * fifteen cards, against a re-render of the stage on every settings change. `display: none`
+     * takes it out of the layout, the hit-testing and the accessibility tree, which is the whole of
+     * what "off" has to mean.
+     */
+    element.setAttribute('data-enemy-hand', settings.showEnemyHand ? 'on' : 'off');
 }

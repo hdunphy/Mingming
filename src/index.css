@@ -3771,6 +3771,14 @@ body {
   opacity: 0.55;
   font-style: italic;
 }
+
+/* TICKET 159c — the switch, as one rule.
+
+   `display: none` rather than `visibility` or an opacity: off has to mean out of the layout, out
+   of hit-testing and out of the accessibility tree, or a screen reader still announces a panel the
+   player turned off. The attribute is stamped by `applySettings`, so flipping the switch in the
+   overlay updates the fight underneath it immediately rather than at the next fight. */
+:root[data-enemy-hand='off'] .ehp { display: none; }
 .ehp-unknown .rs-g { background: #2c3240; color: #9fb4c8; }
 
 /* `.led-peek`, to the letter. It sets no width or height on purpose — `.rs-card` already carries

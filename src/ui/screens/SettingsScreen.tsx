@@ -249,6 +249,46 @@ export default function SettingsScreen(): ReactNode {
                     </p>
                 </section>
 
+                {/*
+                  * TICKET 159c — ITS OWN GROUP, NOT A FOURTH ROW UNDER MOTION.
+                  *
+                  * §5 says "beside 146's three", and it cannot literally sit there: those three are
+                  * overruled by reduced motion (`resolveVfxGates`), and the note under them says so
+                  * out loud. A player who turns reduced motion on and reads "so particles and
+                  * animations are off whatever these say" directly above a switch that reduced
+                  * motion does NOT touch has been told something false about this one. Reduced
+                  * motion is a statement about movement; hiding information is a different
+                  * decision, and it stays the player's.
+                  */}
+                <section className="settings-group">
+                    <h3>Battle</h3>
+                    <div className="settings-row">
+                        <span className="settings-label">Show enemy hand</span>
+                        <div className="settings-control settings-choices">
+                            {([true, false] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice ${settings.showEnemyHand === choice ? 'active' : ''}`}
+                                    aria-pressed={settings.showEnemyHand === choice}
+                                    onClick={() => update({ ...settings, showEnemyHand: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.showEnemyHand
+                            ? `On. A tab at the right edge of the fight opens what the enemy is
+                               holding — or, on your turn, the cards their next draw takes off the top
+                               of their deck. No targets and no damage figures: what they have, not
+                               what they do with it.`
+                            : `Off. The tab is gone and their cards are hidden, as they were before.
+                               Their plaques still show energy, statuses and firmware.`}
+                    </p>
+                </section>
+
                 <section className="settings-group">
                     <h3>Text size</h3>
                     <div className="settings-row">
