@@ -26,12 +26,30 @@ const card = (dataId: string, n = 1): ProgramEntity[] =>
     } as ProgramEntity));
 
 const foe = (id: string, energy: number, hp = 100): IBattleEntity =>
-    ({ id, currentEnergy: energy, currentHp: hp, statusEffects: [], daemons: [] } as unknown as IBattleEntity);
+    ({
+        id, name: id, currentEnergy: energy, maxEnergy: energy, currentHp: hp, cardDraw: 3,
+        statusEffects: [], daemons: [],
+    } as unknown as IBattleEntity);
 
+/** Their own turn: cards in hand, which is the source the panel prefers. */
 function board(hand: ProgramEntity[], enemies: IBattleEntity[] = [foe('e1', 9)]): IBattleState {
     return {
+        enemyMode: 'CARDS',
         enemyParty: enemies,
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand, discard: [], exhaust: [] },
+    } as unknown as IBattleState;
+}
+
+/** The player's turn: the enemy hand is empty and the panel falls to the drawpile preview. */
+function previewBoard(
+    drawpile: ProgramEntity[],
+    discard: ProgramEntity[] = [],
+    enemies: IBattleEntity[] = [foe('e1', 9)],
+): IBattleState {
+    return {
+        enemyMode: 'CARDS',
+        enemyParty: enemies,
+        enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile, hand: [], discard, exhaust: [] },
     } as unknown as IBattleState;
 }
 
@@ -77,7 +95,7 @@ describe('159b — the enemy hand panel', () => {
         expect(rows()[0].textContent).not.toContain('no EP');
     });
 
-    it('is absent entirely when there is no hand — a MOVES enemy has no deck', () => {
+    it('is absent entirely when there is nothing to show — a MOVES enemy has no deck', () => {
         /*
          * Absent rather than empty. A tab reading "ENEMY HAND · 0" in every MOVES fight teaches
          * the player that the feature is broken.
@@ -86,6 +104,62 @@ describe('159b — the enemy hand panel', () => {
         expect(container.querySelector('.ehp-tab')).toBeNull();
         render(null);
         expect(container.querySelector('.ehp-tab')).toBeNull();
+    });
+
+    it('falls to the drawpile preview when their hand is empty, and labels it as one', () => {
+        /*
+         * The player's turn, which is when this panel is actually read. The enemy discarded its
+         * hand at the end of its turn, so the top of its drawpile is the hand it is about to
+         * play. One living member drawing 3: three cards, three rows if they are all different.
+         */
+        render(previewBoard([...card('ignite', 2), ...card('molten_core', 4)]));
+
+        expect(container.querySelector('[data-testid="enemy-hand"]')!.getAttribute('data-source'))
+            .toBe('PREVIEW');
+        // The label changes with the source, so the player is never told they are looking at a
+        // hand the enemy is not holding.
+        expect(container.querySelector('.ehp-tab')!.textContent).toContain('ENEMY DRAWS');
+        expect(container.querySelector('.ehp-tab')!.textContent).toContain('3');
+        expect(rows()).toHaveLength(2);
+        expect(container.textContent).toContain('×2');
+    });
+
+    it('prefers the hand over the preview, and says so', () => {
+        render(board(card('ignite', 2), [foe('e1', 9)]));
+        expect(container.querySelector('[data-testid="enemy-hand"]')!.getAttribute('data-source'))
+            .toBe('HAND');
+        expect(container.querySelector('.ehp-tab')!.textContent).toContain('ENEMY HAND');
+    });
+
+    it('counts the reshuffle tail into the tab, and names it as unknown in the list', () => {
+        /*
+         * The one thing a preview can get catastrophically wrong is claiming to know a card that
+         * has not been shuffled yet. The tail is a count, never a card — and it still counts
+         * toward the size of the turn coming at the player, which is why it is on the tab.
+         */
+        render(previewBoard(card('ignite', 1), card('growth', 5)));
+
+        const unknown = container.querySelector('[data-testid="enemy-hand-unknown"]');
+        expect(unknown).not.toBeNull();
+        expect(unknown!.textContent).toContain('2');
+        // Wants 3, knows 1, so the tab reads 3 — not 1.
+        expect(container.querySelector('.ehp-tab')!.textContent).toContain('3');
+        // And it does not deal the discard out as if it were known.
+        expect(container.textContent).not.toContain('Growth');
+        // It is not a button: there is no tile to peek at, and a dead control is worse than none.
+        expect(unknown!.tagName).toBe('DIV');
+    });
+
+    it('greys a preview against the Energy they will have, not the tank they just emptied', () => {
+        /*
+         * A preview is read after the enemy has spent down, usually to zero. Measured against
+         * `currentEnergy`, every row would grey out at exactly the moment the player is deciding.
+         */
+        const spent = foe('e1', 0);
+        (spent as { maxEnergy: number }).maxEnergy = 9;
+        render(previewBoard(card('molten_core', 3), [], [spent]));
+
+        expect(rows()[0].className).not.toContain('ehp-poor');
     });
 
     it('shows the card tile under the rows on hover, and takes it back', () => {

@@ -312,6 +312,11 @@
 
 .rs-row {
     display: flex; align-items: center; gap: 7px;
+    /* `height: 27px` with `width: 100%` below only lands on 27px when the border and padding are
+       counted INSIDE it. A <button> gets that free from the UA sheet; a <div> with this class —
+       WorkshopNode's static rows, and 159b's reshuffle row — does not, and came out 8px wider
+       and 15px taller than the buttons beside it. Stated here so the two forms cannot disagree. */
+    box-sizing: border-box;
     border: 1px solid #2b3441;
     border-left: 4px solid var(--el);
     border-radius: 3px;

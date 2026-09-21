@@ -3757,11 +3757,21 @@ body {
 
 .ehp-rows { display: flex; flex-direction: column; gap: 3px; }
 
-/* A card no living enemy can pay for this turn. Greyed rather than hidden: "it is holding this
-   and cannot use it yet" is information, and hiding it would make the hand count on the tab
-   disagree with the list under it. */
+/* A card no living enemy can pay for on the turn this list is about. Greyed rather than hidden:
+   "it has this and cannot use it yet" is information, and hiding it would make the count on the
+   tab disagree with the list under it. */
 .ehp-poor { opacity: 0.38; }
 .ehp-poor .rs-g { background: #3a4150; color: rgba(255, 255, 255, 0.5); }
+
+/* The reshuffle tail: cards they WILL draw, out of a discard that has not been shuffled yet. It
+   reads as a row so it sits in the same column as the cards it is counting, but it is not a
+   button — there is nothing to peek at, and a hoverable row that never shows a tile would be a
+   control that does nothing. */
+.ehp-unknown {
+  opacity: 0.55;
+  font-style: italic;
+}
+.ehp-unknown .rs-g { background: #2c3240; color: #9fb4c8; }
 
 /* `.led-peek`, to the letter. It sets no width or height on purpose — `.rs-card` already carries
    `--cw: 152px` / `--ch: 200px`, which is where §5's "152×200" comes from. Restating them here

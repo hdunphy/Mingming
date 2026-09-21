@@ -1,5 +1,5 @@
 /**
- * The enemy's hand, face up behind a tab — ticket 159b.
+ * What the enemy has to play with, face up behind a tab — ticket 159b.
  *
  * # WHAT THIS IS ANSWERING
  *
@@ -14,14 +14,17 @@
  * still a decision the player has to read rather than an answer handed to them.
  *
  * So there are no targets here and no order. The 152 case — a Jormungandr turn that killed a party
- * out of nowhere — reads as *"four Undertow and an Ink Stream in hand"*, and the player can decide
- * to shield or to kill Jorm this turn. That is counterplay from open information.
+ * out of nowhere — reads as *"four Undertow and an Ink Stream"*, and the player can decide to
+ * shield or to kill Jorm this turn. That is counterplay from open information.
  *
- * # WHY THERE IS A HAND TO SHOW AT ALL
+ * # WHERE THE LIST COMES FROM
  *
- * There was not, until 159a. `END_TURN` discarded the active side's hand and the next `TURN_START`
- * drew it fresh, so during the player's turn the enemy held nothing and this panel would have been
- * an empty list. 159a moved the draw to the end of the owner's own turn for exactly this.
+ * On the enemy's own turn, their real hand. On the player's turn their hand is empty — the engine
+ * discards at end of turn and redraws at the start of the next — so it is the top of their
+ * drawpile, as many cards as their next refill will take. `enemyHand.ts` holds that reasoning and
+ * the reason 159a's reducer change was reverted in favour of it.
+ *
+ * The reshuffle tail is shown as a count and never guessed; see `enemyHandView`.
  *
  * # WHY IT IS THE EDIT LOADOUT DECK COLUMN
  *
@@ -37,10 +40,7 @@ import type { IBattleState } from '../../engine/types';
 import { CardTileFace, ElementMark } from '../screens/CardChassis';
 import { colorFor } from '../screens/runShell';
 import { playSfx } from '../audio/AudioEngine';
-import { highestEnemyEnergy, stackHand, type HandStack } from './enemyHand';
-
-/** One shared empty array, so a null state does not invalidate the memo on every render. */
-const EMPTY_HAND: ReadonlyArray<never> = [];
+import { enemyHandView, stackHand, type HandStack } from './enemyHand';
 
 interface Props {
     readonly battleState: IBattleState | null;
@@ -50,18 +50,29 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
     const [open, setOpen] = useState(false);
     const [peek, setPeek] = useState<HandStack | null>(null);
 
-    const energy = highestEnemyEnergy(battleState);
-    // The `?? EMPTY_HAND` is a stable reference on purpose: `?? []` is a new array every render,
-    // which would make the memo below recompute on every one of them.
-    const hand = battleState?.enemyDeck.hand ?? EMPTY_HAND;
-    const stacks = useMemo(() => stackHand(hand, energy), [hand, energy]);
+    /*
+     * `enemyHandView` returns a fresh object every call, so both of these are memoised on the
+     * state identity rather than on the view: Redux hands back the same `battleState` reference
+     * until something actually dispatches, which is exactly the invalidation this wants. A member
+     * dying or a `cardDraw` buff lands as a new state, so the preview follows it — the two cases
+     * Henry asked for.
+     */
+    const view = useMemo(() => enemyHandView(battleState), [battleState]);
+    const stacks = useMemo(() => stackHand(view.cards, view.energy), [view.cards, view.energy]);
+
+    const total = view.cards.length + view.unknown;
 
     /*
      * A MOVES enemy has no deck by construction, so there is nothing to show and the tab would be
      * a control that opens onto an empty list. Absent rather than empty: a tab reading "ENEMY
-     * HAND · 0" in every MOVES fight teaches the player that the feature is broken.
+     * HAND · 0" in every MOVES fight teaches the player that the feature is broken. The same
+     * applies to a CARDS enemy that has genuinely run out of cards — nothing to show is nothing
+     * to show.
      */
-    if (!battleState || hand.length === 0) return null;
+    if (!battleState || total === 0) return null;
+
+    const previewing = view.source === 'PREVIEW';
+    const label = previewing ? 'ENEMY DRAWS' : 'ENEMY HAND';
 
     const close = () => { setOpen(false); setPeek(null); };
 
@@ -82,6 +93,7 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={close}
             data-testid="enemy-hand"
+            data-source={view.source}
         >
             {/*
               * A real button: §5 asks for keyboard, and a div with a hover handler is reachable by
@@ -96,13 +108,13 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
                 onFocus={() => setOpen(true)}
                 onClick={() => { playSfx('uiClick'); setOpen(!open); }}
             >
-                <span>ENEMY HAND <b>{hand.length}</b></span>
+                <span>{label} <b>{total}</b></span>
             </button>
 
             <div className="rs-panel ehp-inner" id="enemy-hand-panel">
                 <h2>
-                    ENEMY HAND · {hand.length}
-                    <span className="ehp-ep">{energy} EP</span>
+                    {label} · {total}
+                    <span className="ehp-ep">{view.energy} EP</span>
                 </h2>
 
                 <div className="ehp-rows">
@@ -136,6 +148,20 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
                             {stack.count > 1 && <span className="rs-x">×{stack.count}</span>}
                         </button>
                     ))}
+
+                    {/*
+                      * THE GAP, STATED. Not a row per unknown card — that would be a list of
+                      * question marks the player has to count — and not silence, which would make
+                      * the panel quietly under-report the size of the turn coming at them.
+                      */}
+                    {view.unknown > 0 && (
+                        <div className="rs-row static ehp-unknown" data-testid="enemy-hand-unknown">
+                            <span className="rs-g">?</span>
+                            <span className="rs-rnm">
+                                +{view.unknown} more after reshuffle
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/*
