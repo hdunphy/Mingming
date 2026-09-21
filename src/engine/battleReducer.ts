@@ -1168,6 +1168,14 @@ function applyStatusTickAftermath(state: IBattleState, tick: StatusTickResult): 
 function processPostTurn(state: IBattleState): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'POST_TURN', timestamp: Date.now() });
 
+    // Emit TURN_END for the finishing player
+    globalBattleEventBus.emit({
+        type: 'TURN_END',
+        turnNumber: state.turn,
+        activeSide: state.activeSide,
+        timestamp: Date.now()
+    });
+
     const activePartyKey = state.activeSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
     const inactivePartyKey = state.activeSide === 'PLAYER' ? 'enemyParty' : 'playerParty';
     const activeDeckKey = state.activeSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
@@ -1227,73 +1235,6 @@ function processPostTurn(state: IBattleState): IBattleState {
         nextState = afterTurnEnd;
     }
 
-    /*
-     * ── TICKET 159a: THE SIDE DRAWS ITS NEXT HAND HERE, NOT AT ITS NEXT TURN_START ────────
-     *
-     * Henry, 2026-09-20: *"the enemy card deck hides a lot of what the enemies are doing."* 159
-     * §1 found the one engine fact that decided the whole ticket: `END_TURN` discards the active
-     * side's hand and the next `TURN_START` drew it fresh — so **during the player's turn the
-     * enemy held no cards at all**, and "show their hand" would have shown an empty fan. The
-     * telegraph 159b builds needs the hand to EXIST while the other side is deciding.
-     *
-     * So the draw moves one phase earlier: same count, same discard, same AI, same RNG stream —
-     * it simply happens at the end of the owner's own turn instead of at the start of their next
-     * one. **Symmetric**, both sides (§5): the player's hand then also shows during the enemy's
-     * turn, which is a free and honest "what I will have", and one code path is one bug surface.
-     *
-     * WHERE IT SITS, AND WHY EXACTLY HERE:
-     *   - AFTER `discardHand`, or it would draw into the hand it is about to throw away;
-     *   - AFTER the `onTurnEnd` hooks, keeping the relationship it had with `onTurnStart` hooks
-     *     before the move: a hook that draws does so first, and the refill below is capped by
-     *     what that left in hand;
-     *   - AFTER the counter resets in the literal above, so the refill lands on a fresh
-     *     `cardsDrawnThisTurn` and the side still BEGINS its turn with the refill counted — which
-     *     is exactly what `CARDS_DRAWN` read before this change;
-     *   - BEFORE `TURN_END` fires, which is the property 159b depends on and the reducer test
-     *     pins: a listener at `TURN_END` sees the hand that side will play next.
-     *
-     * The count is taken from the units alive AT THIS MOMENT (§5). A unit that dies during the
-     * other side's turn does not un-draw the card its presence paid for.
-     *
-     * THE SEEDED CONSEQUENCE, stated because it is the whole risk: draws now consume the RNG at a
-     * different point in the turn cycle, so every seeded battle diverges from its old transcript.
-     * That is not a rule change — no card behaves differently — but it IS a re-baseline, which is
-     * why §5's gate is the balance grid re-run with per-cell deltas reported.
-     */
-    nextState = executeDraw(nextState, state.activeSide, 0, true);
-
-    /*
-     * The player always uses cards; the enemy only does in `enemyMode: 'CARDS'`. MOVES enemies
-     * must NOT draw — their deck is empty by construction, and a real draw count would advance
-     * the seed and change every existing MOVES battle and every recorded scenario.
-     */
-    const endingSideUsesCards = state.activeSide === 'PLAYER'
-        || (nextState.enemyMode ?? 'MOVES') === 'CARDS';
-    if (endingSideUsesCards) {
-        const aliveUnits = nextState[activePartyKey].filter((e: IBattleEntity) => e.currentHp > 0);
-        const totalCardDraw = aliveUnits.length === 0
-            ? 0
-            : aliveUnits.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveUnits.length + 1;
-        const cardsToDraw = Math.max(
-            0,
-            Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState[activeDeckKey].hand.length),
-        );
-        nextState = executeDraw(nextState, state.activeSide, cardsToDraw, true);
-    }
-
-    /*
-     * `TURN_END` fires LAST now, after the draw — 159a's whole point is that the hand exists when
-     * it does. It therefore also fires after `PHASE_END(POST_TURN)` rather than inside the phase;
-     * nothing reads it that way (`runLogMiddleware` flushes its turn row on it, `useBattleVfx`
-     * plays the beat), and both want the settled board rather than the mid-phase one.
-     */
-    globalBattleEventBus.emit({
-        type: 'TURN_END',
-        turnNumber: state.turn,
-        activeSide: state.activeSide,
-        timestamp: Date.now()
-    });
-
     return nextState;
 }
 
@@ -1305,6 +1246,7 @@ function processPreTurn(state: IBattleState): IBattleState {
     const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn;
 
     const activePartyKey = nextSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const activeDeckKey = nextSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
 
     const activeParty = state[activePartyKey];
 
@@ -1368,18 +1310,29 @@ function processPreTurn(state: IBattleState): IBattleState {
         nextState = afterHook;
     }
 
-    /*
-     * THE DRAW USED TO BE HERE — moved to `processPostTurn` by ticket 159a, so the side's next
-     * hand exists while the OTHER side is deciding. `TURN_START` keeps the energy refill and the
-     * `OWNER_TURN_START` ticks above; it no longer touches the deck at all, and a reducer test
-     * pins that the hand is unchanged across it.
-     *
-     * The old comment here recorded a defect worth keeping: the refill was once gated on
-     * `nextSide === 'PLAYER'`, so a CARDS enemy drew its opening hand at battle creation and then
-     * never drew again — it played through them, `getBestAction` found nothing, and the enemy
-     * silently passed for the rest of the fight. The gate is on `enemyMode` at the new site for
-     * that reason.
-     */
+    // 3. Draw cards for the active side.
+    nextState = executeDraw(nextState, nextSide, 0, true);
+
+    // Refill the active side's hand. The player always uses cards; the enemy
+    // only does in enemyMode 'CARDS'. MOVES enemies must NOT draw - their deck
+    // is empty by construction, and calling executeDraw with a real count would
+    // advance the RNG seed and change every existing MOVES battle and every
+    // recorded scenario.
+    //
+    // This was previously gated on `nextSide === 'PLAYER'`, so a CARDS enemy
+    // drew its opening hand at battle creation and then never drew again: once
+    // it had played through those cards it had nothing left, getBestAction
+    // found no plays, and the enemy silently passed every turn for the rest of
+    // the battle.
+    const activeSideUsesCards = nextSide === 'PLAYER' || (nextState.enemyMode ?? 'MOVES') === 'CARDS';
+    if (activeSideUsesCards) {
+        const aliveUnits = nextState[activePartyKey].filter((e: IBattleEntity) => e.currentHp > 0);
+        const totalCardDraw = aliveUnits.length === 0
+            ? 0
+            : aliveUnits.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveUnits.length + 1;
+        const cardsToDraw = Math.max(0, Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState[activeDeckKey].hand.length));
+        nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
+    }
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
 

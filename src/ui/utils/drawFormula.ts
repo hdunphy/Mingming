@@ -64,8 +64,7 @@ export function describeDraw(
     side: 'PLAYER' | 'ENEMY' = 'PLAYER',
 ): DrawBreakdown {
     const party = (side === 'PLAYER' ? state?.playerParty : state?.enemyParty) ?? [];
-    // The deck was read here for `HAND_SIZE_LIMIT − hand.length`. Ticket 159a made the room the
-    // whole limit whoever is acting, so the formula no longer needs the deck at all.
+    const deck = side === 'PLAYER' ? state?.playerDeck : state?.enemyDeck;
     const alive = party.filter(e => e.currentHp > 0);
 
     const members = alive.map(e => ({ name: e.name.toUpperCase(), cardDraw: e.cardDraw }));
@@ -85,20 +84,14 @@ export function describeDraw(
      * hand is empty and the room is the whole limit. The number the player was shown was the one
      * thing it could not be.
      *
-     * Whose turn it is used to decide which reading was right: on the ENEMY's turn your hand was
-     * what it would still be when your refill came, so the current hand was the cap.
-     *
-     * ── TICKET 159a COLLAPSED THAT BRANCH ─────────────────────────────────────
-     *
-     * The draw moved to the end of the owner's own turn, immediately after `discardHand`. So
-     * EVERY draw is now preceded by the discard of the very hand it is replacing, whoever is
-     * acting right now — your next refill is at the end of your next turn, by which time the
-     * cards you are holding are gone. The room is the whole limit in both readings, and a branch
-     * on `activeSide` would now be two answers to a question that has one.
-     *
-     * `side` is still a parameter because the FORMULA is per-side; only the room stopped caring.
+     * Whose turn it is decides which reading is right. On the ENEMY's turn your hand is what it
+     * will still be when your refill comes, so the current hand is the cap; on YOUR turn the hand
+     * is about to be thrown away, so it is not.
      */
-    const handRoom = HAND_SIZE_LIMIT;
+    const discardsFirst = state?.activeSide === side;
+    const handRoom = discardsFirst
+        ? HAND_SIZE_LIMIT
+        : HAND_SIZE_LIMIT - (deck?.hand.length ?? 0);
     const total = Math.max(0, Math.min(formulaTotal, handRoom));
 
     const terms = members.map(m => `${m.cardDraw}`).join(' + ') || '0';
