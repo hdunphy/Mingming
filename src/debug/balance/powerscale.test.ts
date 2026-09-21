@@ -14,13 +14,26 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ACTION_WEIGHTS, BAND_TOLERANCE_PCT, bandVerdict, budgetBandFor, calculatePowerscale } from './powerscale';
+import {
+    ACTION_WEIGHTS,
+    BAND_TOLERANCE_PCT,
+    DAEMON_HORIZON_TURNS,
+    TRIGGER_RATE_CEILING,
+    TRIGGER_RATE_FLOOR,
+    bandVerdict,
+    budgetBandFor,
+    calculatePowerscale,
+    classifyHook,
+    hooksOf,
+    scoreHook,
+} from './powerscale';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 
 const registry = getInflatedProgramRegistry();
 const daemons = Object.values(registry).filter(c => c.category === 'Daemon');
-const hooksOf = (card: ProgramData): ReadonlyArray<string> =>
+/** The hook IDS a card declares, which is a different question from `hooksOf`'s records. */
+const hookIdsOf = (card: ProgramData): ReadonlyArray<string> =>
     (card as unknown as { hooks?: ReadonlyArray<string> }).hooks ?? [];
 
 describe('149c-1 — a daemon is worth its cast AND its hooks', () => {
@@ -36,7 +49,7 @@ describe('149c-1 — a daemon is worth its cast AND its hooks', () => {
          */
         const base = registry['feedback_loop_daemon'];
         expect(base).toBeDefined();
-        expect(hooksOf(base).length).toBeGreaterThan(0);
+        expect(hookIdsOf(base).length).toBeGreaterThan(0);
 
         const hookOnly = calculatePowerscale(base).score;
         expect(hookOnly).toBeGreaterThan(0);
@@ -76,7 +89,7 @@ describe('149c-1 — a daemon is worth its cast AND its hooks', () => {
          * be told by a failing assertion than to find it in a diff of scores.
          */
         expect(daemons.length).toBeGreaterThan(0);
-        const both = daemons.filter(d => (d.actions ?? []).length > 0 && hooksOf(d).length > 0);
+        const both = daemons.filter(d => (d.actions ?? []).length > 0 && hookIdsOf(d).length > 0);
         expect(both.map(d => d.id)).toEqual([]);
     });
 });
@@ -361,5 +374,166 @@ describe('149c-5 — the band is a target, not a cliff', () => {
         // a defensible rule, not "15 is exactly the MAD", which would fail on every repricing.
         expect(mad).toBeGreaterThan(BAND_TOLERANCE_PCT / 2);
         expect(mad).toBeLessThan(BAND_TOLERANCE_PCT * 2);
+    });
+});
+
+describe('149c-6 — one rate per trigger, not one constant for fourteen cards', () => {
+    it('ranks riptide above harden above einherjar \u2014 §5\'s named case', () => {
+        /*
+         * The three cards that show what `EXPECTED_DAEMON_PROCS = 4` was hiding, all priced by
+         * the SAME formula and separated only by their measured rates
+         * (`research/scorer-pricing.md` §2):
+         *
+         *   riptide    opponent card played   4.2/unit-turn, ~20 a game  -> was priced at a fifth
+         *   harden     turn boundary          0.79            -> 4 was right by accident of game length
+         *   einherjar  Light attack           0.00            -> four procs of something that never happens
+         *
+         * Asserted as an ORDER rather than three literals: the ordering is the claim the rate
+         * table makes, and it survives every later repricing of what the hooks actually do.
+         */
+        const scoreOf = (id: string) => calculatePowerscale(registry[id]).score;
+
+        expect(scoreOf('riptide')).toBeGreaterThan(scoreOf('harden_daemon'));
+        expect(scoreOf('harden_daemon')).toBeGreaterThan(scoreOf('einherjar_standard'));
+        expect(scoreOf('einherjar_standard')).toBe(0);
+    });
+
+    it('treats a trigger that never fires as an honest zero, not as something to review', () => {
+        /*
+         * `einherjar_standard` fires on a Light attack, measured at 0.00 across 22,780 unit-turns
+         * because no shipped deck has a Light attacker. Zero is the MEASUREMENT here. Flagging it
+         * for manual review would be asking a human to re-derive a number we already have.
+         */
+        const einherjar = calculatePowerscale(registry['einherjar_standard']);
+        expect(einherjar.score).toBe(0);
+        expect(einherjar.manualReview).toEqual([]);
+        expect(TRIGGER_RATE_FLOOR.LIGHT_ATTACK).toBe(0);
+    });
+
+    it('flags a trigger the census never measured instead of defaulting it', () => {
+        /*
+         * `core_overclock_daemon` is a damage multiplier on `onDamageCalculated` with no element
+         * gate — a class the census has no rate for. A fallback rate would read as a measurement,
+         * which is the failure mode ticket 66 spent a whole census correcting.
+         */
+        const scored = calculatePowerscale(registry['core_overclock_daemon']);
+        expect(scored.score).toBe(0);
+        expect(scored.manualReview.join(' ')).toContain('HOOK:');
+    });
+
+    it('prices each of a card\'s hooks at its own rate rather than pooling them', () => {
+        /*
+         * `reactive_plating` is why the old flattening had to go: it registers a damage-taken
+         * hook AND a turn-start hook, firing at 2.2 and 0.8 per unit-turn. One bag of actions
+         * times one proc count cannot express that.
+         */
+        const hooks = hooksOf(registry['reactive_plating']);
+        expect(hooks.length).toBe(2);
+        const classes = hooks.map(classifyHook);
+        expect(classes).toContain('DAMAGE_TAKEN');
+        expect(classes).toContain('TURN_BOUNDARY');
+        expect(new Set(classes).size).toBe(2);
+    });
+
+    it('reports a ceiling for a card that can be built around, and none for one that cannot', () => {
+        /*
+         * §4.4's build-around index. Two classes have a home deck that beats the roster — own
+         * 0-cost play reaches 3.3 on ratatoskr_v1, own triggered draw 1.4 on kraken_v1 — and
+         * every other class is its own floor. That is a finding, not a gap: an OPPONENT-triggered
+         * hook cannot be built around, because the rate is the opponent's behaviour.
+         */
+        const echo = calculatePowerscale(registry['echo_chamber_v2']);
+        expect(echo.hookFloor).toBeGreaterThan(0);
+        expect(echo.hookCeiling / echo.hookFloor).toBeCloseTo(
+            TRIGGER_RATE_CEILING.OWN_ZERO_COST_PLAY / TRIGGER_RATE_FLOOR.OWN_ZERO_COST_PLAY, 1);
+
+        const riptide = calculatePowerscale(registry['riptide']);
+        expect(riptide.hookFloor).toBeGreaterThan(0);
+        expect(riptide.hookCeiling).toBe(riptide.hookFloor);
+
+        // And a card with no hooks has neither, rather than a zero that reads as "measured 0".
+        const ordinary = calculatePowerscale(registry['ignite']);
+        expect(ordinary.hookFloor).toBe(0);
+        expect(ordinary.hookCeiling).toBe(0);
+    });
+
+    it('is payoff x rate x horizon, with nothing else hidden in it', () => {
+        // The point of replacing `EXPECTED_DAEMON_PROCS` is that the three inputs are separable
+        // and each is somebody's measurement. If this stops being a plain product, it has grown
+        // an opinion.
+        expect(scoreHook(2, { rate: 4.2, horizon: 3 })).toBeCloseTo(25.2, 5);
+        expect(scoreHook(2, { rate: 0, horizon: 3 })).toBe(0);
+        expect(DAEMON_HORIZON_TURNS).toBe(3);
+    });
+
+    it('leaves the 229 cards with no hooks exactly where they were', () => {
+        // The containment check. A change to how HOOKS are priced must not be able to reach a
+        // card that has none, and this is the only assertion that can catch it if it leaks.
+        const withHooks = Object.values(registry).filter(c => hooksOf(c).length > 0);
+        expect(withHooks.length).toBeGreaterThan(0);
+        for (const card of Object.values(registry)) {
+            if (hooksOf(card).length > 0) continue;
+            expect(calculatePowerscale(card).hookFloor, card.id).toBe(0);
+        }
+    });
+});
+
+describe('149c-6 — the rate table, one case per measured constant', () => {
+    /*
+     * §5: "one case per constant (cited)". These are not the scorer's opinions — every one is a
+     * figure from `research/scorer-pricing.md` §2, measured with probe hooks over 22,780
+     * unit-turns at 1v1, counted outside AI lookahead.
+     *
+     * Asserted as literals, because the whole value of the table is that it is the census and not
+     * a set of plausible numbers. If a figure here ever changes, it should be because somebody
+     * re-ran the census — and this failing is how they say so.
+     */
+    it('carries the 149b census figures, unrounded and unrounded-up', () => {
+        expect(TRIGGER_RATE_FLOOR.TURN_BOUNDARY).toBe(0.8);              // measured 0.79
+        expect(TRIGGER_RATE_FLOOR.OWN_ZERO_COST_PLAY).toBe(1.0);
+        expect(TRIGGER_RATE_FLOOR.OWN_TRIGGERED_DRAW).toBe(0.33);
+        expect(TRIGGER_RATE_FLOOR.BURN_ON_SELF).toBe(0.14);
+        expect(TRIGGER_RATE_FLOOR.LIGHT_ATTACK).toBe(0);
+        expect(TRIGGER_RATE_FLOOR.OPPONENT_CARD_PLAYED).toBe(4.2);
+        expect(TRIGGER_RATE_FLOOR.OPPONENT_TRIGGERED_DRAW).toBe(0.84);
+        expect(TRIGGER_RATE_FLOOR.DAMAGE_TAKEN).toBe(2.2);
+    });
+
+    it('has a ceiling above the floor for exactly the two classes a deck can build around', () => {
+        /*
+         * own 0-cost play reaches 3.3 on ratatoskr_v1 (five 0-costs, each a proc) and own
+         * triggered draw 1.4 on kraken_v1. Every other class is its own floor, and that is a
+         * finding rather than missing data: an opponent-triggered hook cannot be built around,
+         * because the rate is the OPPONENT's behaviour.
+         */
+        const raised = (Object.keys(TRIGGER_RATE_FLOOR) as Array<keyof typeof TRIGGER_RATE_FLOOR>)
+            .filter(k => TRIGGER_RATE_CEILING[k] > TRIGGER_RATE_FLOOR[k]);
+        expect(raised.sort()).toEqual(['OWN_TRIGGERED_DRAW', 'OWN_ZERO_COST_PLAY']);
+
+        expect(TRIGGER_RATE_CEILING.OWN_ZERO_COST_PLAY).toBe(3.3);
+        expect(TRIGGER_RATE_CEILING.OWN_TRIGGERED_DRAW).toBe(1.4);
+        // A ceiling below its floor would be a data-entry slip that silently discounts a card.
+        for (const key of Object.keys(TRIGGER_RATE_FLOOR) as Array<keyof typeof TRIGGER_RATE_FLOOR>) {
+            expect(TRIGGER_RATE_CEILING[key], key).toBeGreaterThanOrEqual(TRIGGER_RATE_FLOOR[key]);
+        }
+    });
+
+    it('charges riptide the opponent-play rate, which is what makes it the outlier it is', () => {
+        /*
+         * The single largest correction in the row: `riptide` fires on every card the opponent
+         * plays — 4.2 per unit-turn, about 20 a game — and was being charged four procs like
+         * everything else. The ratio between its score and a turn-boundary daemon's is the
+         * ratio between their RATES, with the payoffs divided out, which is what pins the number
+         * rather than just the ordering.
+         */
+        const riptide = calculatePowerscale(registry['riptide']);
+        const hook = hooksOf(registry['riptide'])[0];
+        expect(classifyHook(hook)).toBe('OPPONENT_CARD_PLAYED');
+
+        // The hook contribution IS payoff x 4.2 x 3, premium and exhaust discount aside. Recover
+        // the payoff from the score and check it against the card's printed 8 power.
+        const payoff = riptide.hookFloor / (TRIGGER_RATE_FLOOR.OPPONENT_CARD_PLAYED * DAEMON_HORIZON_TURNS);
+        expect(payoff).toBeGreaterThan(0.5);
+        expect(payoff).toBeLessThan(1.5);
     });
 });

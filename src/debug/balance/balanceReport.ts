@@ -52,7 +52,8 @@ import { numericBaseCost } from '../../engine/types';
 // 2 (ticket 149c-4): every 1.3 entry now carries `score1v1`, `score3v3` and `width`.
 // 3 (ticket 149c-5): entries carry `verdict` and `pctVsBand`, and `cardBudget` gained a
 //   `watchlist` beside `redlines` - a card inside the +/-15% tolerance is reported, not redlined.
-export const BALANCE_REPORT_SCHEMA_VERSION = 3;
+// 4 (ticket 149c-6): entries carry `hookFloor`, `hookCeiling` and `buildAroundIndex`.
+export const BALANCE_REPORT_SCHEMA_VERSION = 4;
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -207,6 +208,21 @@ export interface CardBudgetEntry {
      */
     verdict: BandState;
     pctVsBand: number;
+    /**
+     * TICKET 149c-6 / section 4.4: the hook half of the score, at the roster-mean trigger rate
+     * and at the best home-deck rate the 149b census saw. `hookFloor` is part of `score`;
+     * `hookCeiling` is part of nothing - no card is ever priced at a ceiling.
+     *
+     * `buildAroundIndex` is their ratio, and it answers a question a single score cannot: a high
+     * FLOOR is a card everyone has to take, while a low floor with a high ceiling is a legitimate
+     * deck-specific rare. `echo_chamber_v2` procs 3.3x the roster mean on ratatoskr_v1 - that is
+     * the card working as designed, and the old single number had no way to say so.
+     *
+     * All three are 0 (index 1) for a card that registers no hooks, which is most of the pool.
+     */
+    hookFloor: number;
+    hookCeiling: number;
+    buildAroundIndex: number;
     /** Section 1.3's upper bound for this cost. */
     budget: number;
     overBudgetBy: number;
@@ -323,6 +339,11 @@ export function budgetRedline(entry: CardBudgetEntry): Redline {
             (entry.width === 'both'
                 ? ` Side/All: ${entry.score3v3} at 3v3, ${entry.score1v1} at 1v1 - judged on the worse.`
                 : '') +
+            // Ticket 149c-6: a hook card's score is a floor, and the ceiling is the difference
+            // between "everyone has to take this" and "this is someone's deck".
+            (entry.buildAroundIndex > 1
+                ? ` Hooks: ${entry.hookFloor} at the roster rate, ${entry.hookCeiling} on the deck built for it (${entry.buildAroundIndex}x).`
+                : '') +
             (entry.manualReview.length > 0
                 ? ` (score excludes unscored ${entry.manualReview.join('/')} action(s) - actual value is at least this.)`
                 : ''),
@@ -355,7 +376,8 @@ export function auditCardBudget(): {
     for (const id of ids) {
         const card = registry[id] as ProgramData;
         const band = budgetBandFor(numericBaseCost(card.baseCost));
-        const { score1v1, score3v3, perEnergy, manualReview } = calculatePowerscale(card);
+        const { score1v1, score3v3, perEnergy, manualReview, hookFloor, hookCeiling } =
+            calculatePowerscale(card);
         /*
          * TICKET 149c-4, section 4.2: the verdict is against `score1v1` unless the card is
          * Side/All, where it is the WORSE of the two.
@@ -384,6 +406,11 @@ export function auditCardBudget(): {
             overBudgetBy: round(score - band.over, 1),
             verdict: verdict.state,
             pctVsBand: verdict.pct,
+            hookFloor,
+            hookCeiling,
+            // 1 rather than 0 or Infinity when there are no hooks: the index means "how much
+            // headroom does the best deck have", and a card with no hooks has exactly none.
+            buildAroundIndex: hookFloor > 0 ? round(hookCeiling / hookFloor, 2) : 1,
             manualReview,
         };
         if (verdict.state === 'OUT OF BAND') redlines.push(entry);

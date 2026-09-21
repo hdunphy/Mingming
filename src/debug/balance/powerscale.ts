@@ -101,6 +101,19 @@ export interface PowerscaleResult {
      */
     score1v1: number;
     score3v3: number;
+    /**
+     * TICKET 149c-6 — §4.4's two hook columns.
+     *
+     * `hookFloor` is the part of `score` that came from hooks, priced at the ROSTER-MEAN trigger
+     * rate; it is included in `score`. `hookCeiling` is the same hooks at the best home-deck rate
+     * the census saw, and is included in nothing — no card is ever priced at a ceiling.
+     *
+     * Their ratio is the build-around index. A high floor is a card everyone has to take; a low
+     * floor with a high ceiling is a legitimate deck-specific rare. Both are 0 for the 229 cards
+     * that register no hooks.
+     */
+    hookFloor: number;
+    hookCeiling: number;
 }
 
 /**
@@ -545,16 +558,16 @@ function tier(n: number): number {
 }
 
 /** Action types whose value depends on board state a static pass can't see - flag, don't guess. */
-/**
- * Ticket 32: daemons carry empty `actions` - their whole value is in hooks, so the static model
- * scored every one of them 0.00 and the existing "Daemon Premium x1.5" multiplied nothing.
- * Price one proc's worth of the hook's `do` actions against a fixed expected-proc count.
+/*
+ * `EXPECTED_DAEMON_PROCS = 4` STOOD HERE UNTIL TICKET 149c-6, and its own comment said what was
+ * wrong with it: *"This is a FLOOR, not a price. powerscale has no deck context, so a daemon in a
+ * deck built around it runs at roughly twice this."* Ticket 32 was right about the shape and had
+ * no way to measure it, so it picked one number for fourteen cards.
  *
- * This is a FLOOR, not a price. powerscale has no deck context (the same limitation ticket 29
- * documented for `brute_force`), so a daemon in a deck built around it - echo_chamber in
- * ratatoskr_v1, where five 0-costs each proc it - runs at roughly twice this.
+ * 149b measured all fourteen. The replacement is `TRIGGER_RATE_FLOOR` / `TRIGGER_RATE_CEILING`
+ * and `scoreHook` below: a rate per trigger class, and the "roughly twice" is now a printed
+ * column rather than a caveat in a comment.
  */
-const EXPECTED_DAEMON_PROCS = 4;
 
 /**
  * What a drawn card is worth — the 1st, 2nd and 3rd-or-later card of one DRAW action, in power.
@@ -627,20 +640,192 @@ const MANUAL_REVIEW_TYPES = new Set([
  * damage multiplier like core_overclock_daemon), which correctly leaves those scoring 0 rather
  * than inventing a number for an effect this model cannot see.
  */
-function daemonHookActions(card: ProgramData): ProgramAction[] {
+/*
+ * ══ TICKET 149c-6 — HOOKS GET A FORMULA, AND THE FORMULA IS MEASURED ══════════════════
+ *
+ * `EXPECTED_DAEMON_PROCS = 4` was one number for fourteen cards whose triggers fire at rates an
+ * order of magnitude apart. 149b measured every one of them with probe hooks over **22,780
+ * unit-turns at 1v1** (`research/scorer-pricing.md` §2), and the constant turned out to be right
+ * for exactly one trigger class and wrong by up to 5× for another:
+ *
+ *   - turn start / turn end fires 0.79 per unit-turn — about 3.9 a game, so 4 was right **by
+ *     accident of game length**, which is not the same as being right;
+ *   - opponent card played fires **4.2**, roughly 20 a game: `riptide` was priced at a fifth of
+ *     what it does;
+ *   - Light attack fires **0.00** — no shipped deck has a Light attacker, so `einherjar` was
+ *     being charged four procs of an effect that has never once happened.
+ *
+ * §4.4 replaces the constant with `payoff × rate × horizon`, printed TWICE: a FLOOR at the
+ * roster-mean rate and a CEILING at the best home-deck rate the census saw. The ratio between
+ * them is the build-around index, and it is the number that answers a question a single score
+ * cannot: a high floor is a card everyone has to take, while a low floor with a high ceiling is
+ * a legitimate deck-specific rare. `echo_chamber_v2` on ratatoskr_v1 procs 3.3× the roster mean;
+ * that is the card working as designed, not a balance problem, and the old single number had no
+ * way to say so.
+ */
+
+/** The trigger classes the 149b census measured. One rate per class, not per hook. */
+export type TriggerClass =
+    | 'TURN_BOUNDARY'
+    | 'OWN_ZERO_COST_PLAY'
+    | 'OWN_TRIGGERED_DRAW'
+    | 'BURN_ON_SELF'
+    | 'LIGHT_ATTACK'
+    | 'OPPONENT_CARD_PLAYED'
+    | 'OPPONENT_TRIGGERED_DRAW'
+    | 'DAMAGE_TAKEN';
+
+/**
+ * Procs per unit-turn at the ROSTER MEAN — what this trigger does on a deck not built for it.
+ *
+ * Every figure is `research/scorer-pricing.md` §2, measured over 22,780 unit-turns at 1v1 with
+ * probe hooks counted outside AI lookahead. This is the rate a card is PRICED at, because the
+ * scorer prices cards for the registry — anyone can draft them — and not for the one deck that
+ * ships them. The same choice ticket 66 made for the board-pile constants.
+ */
+export const TRIGGER_RATE_FLOOR: Record<TriggerClass, number> = {
+    TURN_BOUNDARY: 0.8,             // measured 0.79; 0-3% of units never see it
+    OWN_ZERO_COST_PLAY: 1.0,        // echo_chamber, hoofbeat. 6% of units never see it
+    OWN_TRIGGERED_DRAW: 0.33,       // feedback_loop. 67% of units never see it at all
+    BURN_ON_SELF: 0.14,             // cinder_armor. 84% of units never see it
+    LIGHT_ATTACK: 0.0,              // einherjar. 100% of units never see it - no Light attacker ships
+    OPPONENT_CARD_PLAYED: 4.2,      // riptide. 0% miss it; ~20 procs a game
+    OPPONENT_TRIGGERED_DRAW: 0.84,  // short_circuit. 41% of units never see it
+    DAMAGE_TAKEN: 2.2,              // reactive_plating. Capped by its own counter, see below
+};
+
+/**
+ * The highest rate the census saw on a deck BUILT for the trigger — the ceiling column.
+ *
+ * Only two classes have a home deck that beats the roster: `own 0-cost play` reaches 3.3 on
+ * ratatoskr_v1 (five 0-costs, each one a proc) and `own triggered draw` reaches 1.4 on kraken_v1.
+ * Every other class is its own floor, and that is a finding rather than a gap in the data: an
+ * opponent-triggered hook cannot be built around, because the rate is the OPPONENT's behaviour.
+ *
+ * Nothing is ever priced at these. They exist so the report can say how much headroom a card has
+ * on the deck that wants it, which is §4.4's build-around index.
+ */
+export const TRIGGER_RATE_CEILING: Record<TriggerClass, number> = {
+    ...TRIGGER_RATE_FLOOR,
+    OWN_ZERO_COST_PLAY: 3.3,        // ratatoskr_v1
+    OWN_TRIGGERED_DRAW: 1.4,        // kraken_v1
+};
+
+/**
+ * When a daemon lands and how long it has to work — §4.4.
+ *
+ * The AI casts shipped daemons on turn 1.9 mean, median 2, so 2 is the cast turn. The horizon is
+ * 3 turns, which is Henry's bar from the design session: a daemon should be worth its energy even
+ * when it lands late. Pricing at the full remaining game would flatter every daemon in the pool.
+ */
+export const DAEMON_CAST_TURN = 2;
+export const DAEMON_HORIZON_TURNS = 3;
+
+/** An OS is installed from turn 0 and never leaves, so it gets the longer horizon (§4.4). */
+export const OS_HORIZON_TURNS = 5;
+
+/**
+ * The daemon premium, kept at 1.5 and finally named for what it is.
+ *
+ * §4.4: daemons keep it, *"now stated as the size of the sanctioned rare"*. It is not a claim
+ * that a daemon delivers 50% more than its actions say — it is Henry's ruling that a daemon is
+ * ALLOWED to be over band by half, because *"some rare over-band cards are wanted so players win
+ * easier, and daemons may be that rare"*.
+ */
+export const DAEMON_RARE_PREMIUM = 1.5;
+
+/**
+ * Which measured class a hook's trigger belongs to, or `null` when the census never saw it.
+ *
+ * `null` is a real answer and is handled as one by the caller: a hook the census did not measure
+ * is left UNPRICED and flagged for manual review, rather than falling back to a default rate. A
+ * default here would read as a measurement, which is the failure mode ticket 66 spent a whole
+ * census correcting.
+ */
+export function classifyHook(hook: HookRecord): TriggerClass | null {
+    const trigger = hook.trigger ?? '';
+    const from = (hook.when?.source ?? 'SELF').toUpperCase();
+    const opponent = from === 'OPPONENT';
+
+    if (trigger === 'onTurnStart' || trigger === 'onTurnEnd') return 'TURN_BOUNDARY';
+    if (trigger === 'onCardDraw') {
+        // `isNaturalDraw: false` is the discriminator: the census counted EFFECT draws only,
+        // because the draw-phase refill happens once a turn for everyone and is not a trigger a
+        // card can be built around.
+        if (hook.when?.isNaturalDraw !== false) return null;
+        return opponent ? 'OPPONENT_TRIGGERED_DRAW' : 'OWN_TRIGGERED_DRAW';
+    }
+    if (trigger === 'onActionStart') {
+        if (opponent) return 'OPPONENT_CARD_PLAYED';
+        // The 0-cost gate is what the census measured: echo_chamber and hoofbeat both carry
+        // `baseCost: 0, isToken: false`. A hypothetical any-cost own-play hook is a different
+        // rate and has never been measured.
+        return hook.when?.baseCost === 0 ? 'OWN_ZERO_COST_PLAY' : null;
+    }
+    if (trigger === 'onActionEnd') return opponent ? 'OPPONENT_CARD_PLAYED' : null;
+    if (trigger === 'onStatusApplied') {
+        return hook.when?.statusApplied === 'Burn' && !opponent ? 'BURN_ON_SELF' : null;
+    }
+    if (trigger === 'onDamageCalculated') {
+        return (hook.when?.programElement ?? '').toUpperCase() === 'LIGHT' ? 'LIGHT_ATTACK' : null;
+    }
+    if (trigger === 'onPostDamage') return opponent ? 'DAMAGE_TAKEN' : null;
+    return null;
+}
+
+/**
+ * §4.4's formula: **per-proc payoff × trigger rate × horizon**.
+ *
+ * Three inputs, each of which is somebody's measurement rather than this function's opinion: the
+ * payoff comes from scoring the hook's own actions through the ordinary card formula, the rate
+ * from the 149b census, and the horizon from §4.4's cast-turn ruling. That is the whole point of
+ * replacing `EXPECTED_DAEMON_PROCS` — the old number silently blended all three.
+ */
+export function scoreHook(perProcScore: number, opts: { rate: number; horizon: number }): number {
+    return perProcScore * opts.rate * opts.horizon;
+}
+
+/** A hook as the library stores it, with only the fields the scorer reads. */
+export interface HookRecord {
+    id: string;
+    trigger?: string;
+    when?: {
+        source?: string;
+        statusApplied?: string;
+        programElement?: string;
+        isNaturalDraw?: boolean;
+        baseCost?: number;
+    };
+    multiplier?: number;
+    do?: ReadonlyArray<ProgramAction>;
+}
+
+/**
+ * Every hook a card registers, as records rather than a flat list of actions.
+ *
+ * TICKET 149c-6 changed the shape here, and the reason is `reactive_plating`: it registers TWO
+ * hooks on different triggers (one on damage taken, one on turn start), and the old flattening
+ * put both sets of actions in one bag to be multiplied by one proc count. Once each trigger has
+ * its OWN measured rate, a bag is not something that can be priced — the hooks have to stay
+ * apart.
+ */
+export function hooksOf(card: ProgramData): HookRecord[] {
     const ids = (card as unknown as { hooks?: ReadonlyArray<string> }).hooks;
     if (!ids || ids.length === 0) return [];
     const wanted = new Set(ids);
-    const out: ProgramAction[] = [];
+    const out: HookRecord[] = [];
     for (const entry of Object.values(HOOK_LIBRARY as Record<string, unknown>)) {
-        const hooks = (entry as { hooks?: ReadonlyArray<{ id: string; do?: ReadonlyArray<ProgramAction> }> }).hooks;
+        const hooks = (entry as { hooks?: ReadonlyArray<HookRecord> }).hooks;
         if (!hooks) continue;
-        for (const h of hooks) {
-            if (!wanted.has(h.id) || !h.do) continue;
-            for (const a of h.do) if ((a.type as string) !== 'LOG') out.push(a);
-        }
+        for (const h of hooks) if (wanted.has(h.id)) out.push(h);
     }
     return out;
+}
+
+/** A hook's `do` actions, LOG entries dropped - they are flavour, not value. */
+export function hookActions(hook: HookRecord): ProgramAction[] {
+    if (!hook.do) return [];
+    return hook.do.filter(a => (a.type as string) !== 'LOG');
 }
 
 /**
@@ -658,6 +843,13 @@ const scoreAtWidth = (
     seen: ReadonlySet<string> = new Set(),
 ): Omit<PowerscaleResult, 'score1v1' | 'score3v3'> => {
     let score = 0;
+    /*
+     * Ticket 149c-6: the hook half of `score`, at the roster-mean rate and at the best home-deck
+     * rate the census saw. `hookFloor` is INCLUDED in `score`; `hookCeiling` never is - nothing
+     * is priced at a ceiling. Their ratio is section 4.4's build-around index.
+     */
+    let hookFloor = 0;
+    let hookCeiling = 0;
     const manualReview: string[] = [];
 
     // Baseline assumptions
@@ -1165,29 +1357,77 @@ const scoreAtWidth = (
      * `+=` rather than `=` is the whole fix. A daemon is worth what it does on cast PLUS what its
      * hooks do, and there is no reading of the card on which one replaces the other.
      */
+    /*
+     * ── TICKET 149c-6 — ONE RATE PER TRIGGER, NOT ONE CONSTANT FOR FOURTEEN CARDS ────────
+     *
+     * The hooks are priced one at a time now, each at its OWN measured rate. `reactive_plating`
+     * is why they cannot be pooled: it registers a damage-taken hook and a turn-start hook, and
+     * those fire at 2.2 and 0.8 per unit-turn. One bag of actions times one proc count cannot
+     * express that.
+     *
+     * See `TRIGGER_RATE_FLOOR` for the census and for why the FLOOR is what gets charged.
+     */
     if (card.category === 'Daemon') {
-        const doActions = daemonHookActions(card);
-        if (doActions.length > 0) {
+        for (const hook of hooksOf(card)) {
+            const triggerClass = classifyHook(hook);
+            if (triggerClass === null) {
+                /*
+                 * A trigger the census never measured. Flagged, not defaulted: a fallback rate
+                 * here would read as a measurement, which is exactly the failure ticket 66 spent
+                 * a whole census correcting. `core_overclock_daemon`'s damage multiplier lands
+                 * here, and 149c-7 is where multiplier hooks get a price.
+                 */
+                manualReview.push(`HOOK:${hook.trigger ?? hook.id}`);
+                continue;
+            }
+
+            const floorRate = TRIGGER_RATE_FLOOR[triggerClass];
+            const ceilingRate = TRIGGER_RATE_CEILING[triggerClass];
+            /*
+             * An HONEST ZERO, and the one place a zero is an answer rather than a gap.
+             * `einherjar_standard` triggers on a Light attack, and the census measured that at
+             * 0.00 across 22,780 unit-turns because no shipped deck has a Light attacker. The
+             * card is worth nothing today; saying so is the measurement doing its job, and
+             * flagging it for review would be asking a human to re-derive a number we have.
+             */
+            if (floorRate === 0 && ceilingRate === 0) continue;
+
+            const actions = hookActions(hook);
+            if (actions.length === 0) {
+                // A modifier hook - its value is in `multiplier`, which needs the deck's mean
+                // attack score to price. 149c-7's business; flagged rather than read as 0.
+                if (hook.multiplier !== undefined) manualReview.push(`HOOK_MULTIPLIER:${hook.id}`);
+                continue;
+            }
+
             const proc = scoreAtWidth({
                 ...card,
                 category: 'Skill',
                 exhaust: false,
                 isToken: false,
-                actions: doActions,
+                actions,
                 // Ticket 149c-4: the hook is priced at the SAME width as the card carrying it.
             } as ProgramData, width, new Set([...seen, card.id]));
-            score += proc.score * EXPECTED_DAEMON_PROCS;
-            damagePortion += proc.damagePortion * EXPECTED_DAEMON_PROCS;
-            statusPortion += proc.statusPortion * EXPECTED_DAEMON_PROCS;
+
+            const horizon = DAEMON_HORIZON_TURNS;
+            const atFloor = scoreHook(proc.score, { rate: floorRate, horizon });
+            score += atFloor;
+            damagePortion += scoreHook(proc.damagePortion, { rate: floorRate, horizon });
+            statusPortion += scoreHook(proc.statusPortion, { rate: floorRate, horizon });
+            hookFloor += atFloor;
+            hookCeiling += scoreHook(proc.score, { rate: ceilingRate, horizon });
             for (const m of proc.manualReview) manualReview.push(m);
         }
     }
 
-    // Daemon Premium
+    // Daemon Premium - ticket 149c-6 named it `DAEMON_RARE_PREMIUM`; see that constant for what
+    // it is actually asserting, which is a ruling rather than a measurement.
     if (card.category === 'Daemon') {
-        score *= 1.5;
-        damagePortion *= 1.5;
-        statusPortion *= 1.5;
+        score *= DAEMON_RARE_PREMIUM;
+        damagePortion *= DAEMON_RARE_PREMIUM;
+        statusPortion *= DAEMON_RARE_PREMIUM;
+        hookFloor *= DAEMON_RARE_PREMIUM;
+        hookCeiling *= DAEMON_RARE_PREMIUM;
     }
 
     // Exhaust/Token Discount
@@ -1195,6 +1435,10 @@ const scoreAtWidth = (
         score *= 0.9;
         damagePortion *= 0.9;
         statusPortion *= 0.9;
+        // The two hook columns take it too, so `hookFloor` stays a component of `score` that a
+        // reader can subtract rather than a parallel number on a different scale.
+        hookFloor *= 0.9;
+        hookCeiling *= 0.9;
     }
 
     const costFactor = Math.pow(Math.max(numericBaseCost(card.baseCost), 0.5), 1.25);
@@ -1206,6 +1450,8 @@ const scoreAtWidth = (
         manualReview,
         damagePortion: Math.round(damagePortion * 10) / 10,
         statusPortion: Math.round(statusPortion * 10) / 10,
+        hookFloor: Math.round(hookFloor * 10) / 10,
+        hookCeiling: Math.round(hookCeiling * 10) / 10,
     };
 };
 
