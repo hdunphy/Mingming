@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ACTION_WEIGHTS, calculatePowerscale } from './powerscale';
+import { ACTION_WEIGHTS, budgetBandFor, calculatePowerscale } from './powerscale';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 
@@ -163,5 +163,49 @@ describe('149c-2 — what a drawn card is worth', () => {
             expect(card, id).toBeDefined();
             expect(draws(card), id).toBe(true);
         }
+    });
+});
+
+describe('149c-3 — a discard scaler the scorer could not see', () => {
+    it('scales `carrion_swoop` by 2 cards discarded, doubling a score that was blind', () => {
+        /*
+         * `CARDS_DISCARDED` had no branch in the scaling switch and no `manualReview` flag — the
+         * flag at L724 covers only BURN_STACKS and SELF_ANY_STATUS — so an "11 power for every
+         * card discarded this turn" card was priced at a flat 11. 149b called it *"the largest
+         * single miss in either table"*: 2.2 fire_punches a cast for one energy, scored 1.1
+         * (`results/t149_oscensus/FINDINGS.md`, 1,200 games, 1,951 casts).
+         *
+         * 11 power x 2 = 22 -> 2.2. A literal, because the constant IS the ruling.
+         */
+        const card = registry['carrion_swoop'];
+        expect(card).toBeDefined();
+        expect(calculatePowerscale(card).score).toBe(2.2);
+    });
+
+    it('prices the roster, not the deck that ships it \u2014 §4 and Henry\'s framing', () => {
+        /*
+         * The measured figure is 5.03 cards discarded per cast, and it is hraesvelgr_v1's number:
+         * that deck IS the discard engine, every card in it feeds this one. On sleipnir_v2, which
+         * has no engine, the card discards about one and prices exactly. The constant is the
+         * roster-general low end, because Henry's framing for the whole ticket is *"its numbers
+         * are not meant to work for a specific width or deck"* — pricing the engine's number here
+         * would redline the card for everyone who cannot build it.
+         *
+         * Pinned as an inequality against the measurement rather than a second copy of the
+         * constant: what must not happen is somebody "correcting" 2 to the measured 5.03 because
+         * the census says 5.03.
+         */
+        const card = registry['carrion_swoop'];
+        const MEASURED_ON_THE_ENGINE_DECK = 5.03;
+        const printed = 11 / 10;   // the ATTACK branch's /10 unit, before any scaling
+
+        const score = calculatePowerscale(card).score;
+        expect(score).toBeGreaterThan(printed);
+        expect(score).toBeLessThan(printed * MEASURED_ON_THE_ENGINE_DECK);
+
+        // And it stays UNDER its 1-energy band even doubled, which is the point of the floor:
+        // the card is 2.4x a fire_punch on the deck built for it and an ordinary 1e attack
+        // everywhere else. 149c-6's ceiling column is where that spread gets printed.
+        expect(score).toBeLessThan(budgetBandFor(1).over);
     });
 });

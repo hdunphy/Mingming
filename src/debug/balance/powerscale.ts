@@ -546,6 +546,28 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     const ASSUMED_CARDS_PLAYED = 2.5;
     const ASSUMED_HP_PERCENT = 0.5;
     const ASSUMED_DISCARD_SIZE = 8;
+    /*
+     * ── TICKET 149c-3 — `CARDS_DISCARDED` HAD NO BRANCH AT ALL ────────────────────────────
+     *
+     * `carrion_swoop` is "11 power for every card discarded this turn", and the scorer read the
+     * printed 11 with no scaling and no `manualReview` flag — the flag at L724 covers only
+     * BURN_STACKS and SELF_ANY_STATUS. 149b called it *"the largest single miss in either
+     * table"*: a 1-energy card that lands **2.2 fire_punches a cast** (16.6% of a target's pool,
+     * 1.6 casts a game on hraesvelgr_v1) and scored **1.1**. Not over-priced or under-priced —
+     * unseen, and silently, which is the failure mode ticket 66 spent a whole census closing.
+     *
+     * **2, not the measured 5.03.** The 5.03 is hraesvelgr_v1's number, and hraesvelgr_v1 IS the
+     * discard engine — every card in it feeds this one. `carrion_swoop` on sleipnir_v2, which has
+     * no engine, discards about one and prices exactly. Henry's framing governs which of those
+     * the constant is: *"its numbers are not meant to work for a specific width or deck."* So the
+     * constant is the roster-general low end, and the 5.03 is what the ceiling column in 149c-6
+     * is for. Pricing the engine's number here would redline the card for everyone who cannot
+     * build it.
+     *
+     * Cited: `results/t149_oscensus/FINDINGS.md` line 64 (1,200 games, 1,951 casts, 5.03 cards
+     * discarded per cast on the owning deck) and `research/scorer-pricing.md` §4.
+     */
+    const ASSUMED_CARDS_DISCARDED = 2;
     // The BOARD-pile assumption: how many stacks of a status a card can expect to find when it
     // reads one. Stays at 3 - Henry, 2026-08-15, after the roster-wide census. This is a FLOOR,
     // not a price: a static pass cannot see the board, and several paths that use it meet
@@ -719,6 +741,10 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // and TREACHERY's measured feed is 4.8, so the sim gate decides this card, not §1.3.
             if (action.scaling === 'STATUS_CONSUMED') power *= consumedCount(consumedStatusOnThisCard);
             else if (action.scaling === 'CARDS_PLAYED') power *= ASSUMED_CARDS_PLAYED;
+            // Ticket 149c-3: the mirror of CARDS_PLAYED above, and it was simply missing. See
+            // `ASSUMED_CARDS_DISCARDED` for why the constant is the roster's 2 and not the
+            // owning deck's measured 5.03.
+            else if (action.scaling === 'CARDS_DISCARDED') power *= ASSUMED_CARDS_DISCARDED;
             // Ticket 26: MISSING_HP is power-side now, priced at the cap - ASSUMED_HP_PERCENT
             // 0.5 means "assume half HP", which IS the MISSING_HP_PCT_CAP of 50.
             else if (action.scaling === 'MISSING_HP') power += (action.scalingPower || 0) * 50;
