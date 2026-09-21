@@ -132,11 +132,17 @@ describe('the draw tooltip matches what drawCards actually draws', () => {
         expect(said.formulaTotal).toBe(0);
     });
 
-    it('reports the HAND CAP when the cap, not the formula, decides the number', () => {
+    it('measures the room after the discard, whoever is acting \u2014 ticket 159a', () => {
         /*
-         * The player's hand survives the enemy's end of turn (only the active side discards), so a
-         * near-full hand meets the refill and the clamp bites. A tooltip that still promised 7 here
-         * would be the hidden number in its purest form.
+         * This used to assert the opposite, and 159a is why it flipped.
+         *
+         * Under the old timing the player's hand survived the enemy's end of turn and met the
+         * refill at the START of the player's next turn, so a near-full hand capped the draw to 1
+         * and the tooltip had to say so (155d). The draw now happens at the end of the owner's
+         * OWN turn, immediately after that hand is discarded — so a hand held during the enemy's
+         * turn is gone before its own refill, and the room is the whole limit either way.
+         *
+         * Same board, same near-full hand, opposite answer, because the engine changed under it.
          */
         const state = board([unit('p1'), unit('p2'), unit('p3')], {
             activeSide: 'ENEMY',
@@ -148,13 +154,19 @@ describe('the draw tooltip matches what drawCards actually draws', () => {
 
         const said = describeDraw(state);
         expect(said.formulaTotal).toBe(7);
-        expect(said.handRoom).toBe(1);
-        expect(said.total).toBe(1);
-        expect(said.capped).toBe(true);
-        expect(drawTooltipLines(said).join(' ')).toContain('Capped');
+        expect(said.handRoom).toBe(HAND_SIZE_LIMIT);
+        expect(said.total).toBe(7);
+        expect(said.capped).toBe(false);
+        expect(drawTooltipLines(said).join(' ')).not.toContain('Capped');
 
-        const back = battleReducer(state, { type: 'END_TURN' });
-        expect(back.playerDeck.hand.length - (HAND_SIZE_LIMIT - 1)).toBe(said.total);
+        /*
+         * And the engine agrees. Ending the ENEMY's turn no longer refills the player at all —
+         * the player's refill happens at the end of the PLAYER's turn — so the hand they are
+         * holding is untouched here. That is 159a's property, checked against the reducer rather
+         * than against a second copy of the rule.
+         */
+        const afterEnemyTurn = battleReducer(state, { type: 'END_TURN' });
+        expect(afterEnemyTurn.playerDeck.hand.length).toBe(HAND_SIZE_LIMIT - 1);
     });
 
     it('the tooltip leads with the number and then shows its working', () => {
@@ -175,7 +187,7 @@ describe('the draw tooltip matches what drawCards actually draws', () => {
  *
  * Only the enemy-turn case had a test, which is precisely why the player-turn case was wrong.
  */
-describe('155d — the hand is discarded before your own refill', () => {
+describe('155d/159a — the hand is discarded before its own refill, always', () => {
     it('ignores the current hand on YOUR turn, because it is about to be thrown away', () => {
         const state = board([unit('p1'), unit('p2'), unit('p3')], {
             activeSide: 'PLAYER',
@@ -190,7 +202,16 @@ describe('155d — the hand is discarded before your own refill', () => {
         expect(draw.capped).toBe(false);
     });
 
-    it('still respects the limit on the ENEMY\'s turn, when your hand survives to the refill', () => {
+    it('ignores it on the ENEMY\'s turn too, since 159a moved the draw', () => {
+        /*
+         * This asserted `total: 4` until 2026-09-21. Under the old timing the player's hand
+         * survived the enemy's turn and met the refill still holding eleven cards, so the clamp
+         * bit. 159a draws at the end of the owner's own turn, right after that hand is discarded,
+         * so there is no longer a reading in which the current hand is the cap.
+         *
+         * The hand limit still clamps — it is just `HAND_SIZE_LIMIT` rather than what is left of
+         * it, so a formula over 15 is still capped.
+         */
         const state = board(
             [unit('p1', { cardDraw: 9 }), unit('p2', { cardDraw: 9 }), unit('p3', { cardDraw: 9 })],
             {
@@ -202,8 +223,8 @@ describe('155d — the hand is discarded before your own refill', () => {
         );
 
         const draw = describeDraw(state);
-        // 9 + 9 + 9 − 2 = 25 into 4 cards of room.
-        expect(draw.total).toBe(4);
+        // 9 + 9 + 9 − 2 = 25, clamped by the LIMIT rather than by the eleven cards in hand.
+        expect(draw.total).toBe(HAND_SIZE_LIMIT);
         expect(draw.capped).toBe(true);
     });
 

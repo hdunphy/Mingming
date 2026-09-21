@@ -185,9 +185,18 @@ describe('Item 3 - VALKYRIE v1 VALHALLA_UPLINK (einherjar recursion)', () => {
         state = battleReducer(state, { type: 'END_TURN' });
 
         expect(state.logs.some(l => l.includes('VALHALLA_UPLINK'))).toBe(true);
-        // The free cast hits again, and the card is still in the discard afterwards.
+        // The free cast hits again.
         expect(state.enemyParty[0].currentHp).toBeLessThan(hpAfterPaidCast);
-        expect(state.playerDeck.discard.some(c => c.id === 'c1')).toBe(true);
+        /*
+         * The card is not exhausted — it is still in the deck somewhere. It used to be asserted
+         * as "in the discard", which was true until ticket 159a: the side now draws its next hand
+         * at the end of its own turn, immediately after this hook, and with a one-card deck that
+         * reshuffles the discard and deals `c1` straight back into hand. Either pile proves the
+         * point the assertion was making, which is that a replayed card is not consumed.
+         */
+        const stillInDeck = [...state.playerDeck.discard, ...state.playerDeck.hand, ...state.playerDeck.drawpile];
+        expect(stillInDeck.some(c => c.id === 'c1')).toBe(true);
+        expect(state.playerDeck.exhaust.some(c => c.id === 'c1')).toBe(false);
     });
 
     it('does nothing with an empty discard pile, and never costs Energy', () => {

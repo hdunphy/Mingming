@@ -75,11 +75,44 @@ describe('Battle Reducer State Machine', () => {
         expect(globalBattleEventBus.emit).toHaveBeenCalledWith(expect.objectContaining({ type: 'PHASE_START', phase: 'PRE_TURN' }));
     });
 
-    it('should discard hand on POST_TURN', () => {
+    it('should discard hand on POST_TURN, then draw the next one \u2014 ticket 159a', () => {
+        /*
+         * This asserted an EMPTY hand after `END_TURN` until 2026-09-21, and that was the whole
+         * problem 159 §1 identified: the side held nothing while the other side decided, so
+         * 159b's face-up enemy hand would have shown an empty panel. The discard still happens
+         * first — both cards land in the pile — and the refill follows it in the same phase.
+         */
+        const heldBefore = initialState.playerDeck.hand.map(c => c.id);
+        expect(heldBefore).toHaveLength(2);
+
         const newState = battleReducer(initialState, { type: 'END_TURN' });
 
-        expect(newState.playerDeck.hand.length).toBe(0);
-        expect(newState.playerDeck.discard.length).toBe(2);
+        // The refill happened: the side does not sit empty-handed through the other's turn.
+        expect(newState.playerDeck.hand.length).toBeGreaterThan(0);
+
+        /*
+         * This fixture's drawpile is EMPTY, so the two discarded cards are the only ones there
+         * are: `drawCards` reshuffles the discard and deals them straight back. That is the
+         * honest thing to assert here — the cards left the hand and are accounted for, and none
+         * of them was exhausted by the round trip. A fixture with a stocked drawpile would test
+         * "drawn from the pile", which `repro_enemy_cards_draw` already does.
+         */
+        const everywhere = [
+            ...newState.playerDeck.hand, ...newState.playerDeck.discard, ...newState.playerDeck.drawpile,
+        ].map(c => c.id);
+        for (const id of heldBefore) expect(everywhere).toContain(id);
+        expect(newState.playerDeck.exhaust).toHaveLength(0);
+    });
+
+    it('leaves the hand untouched across TURN_START \u2014 ticket 159a', () => {
+        // The other half of the move: `TURN_START` keeps the energy refill and the
+        // `OWNER_TURN_START` ticks, and no longer touches the deck at all. A side plays the hand
+        // it ended its previous turn holding.
+        const enemyTurn = battleReducer(initialState, { type: 'END_TURN' });
+        const backToPlayer = battleReducer(enemyTurn, { type: 'END_TURN' });
+
+        expect(backToPlayer.playerDeck.hand.map(c => c.id))
+            .toEqual(enemyTurn.playerDeck.hand.map(c => c.id));
     });
 
     it('should transfer energy', () => {
