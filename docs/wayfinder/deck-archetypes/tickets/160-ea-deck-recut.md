@@ -77,7 +77,8 @@ session ends with the kit's 5 cards named by shape, the OS's ally-facing output 
 | 8 | **Fenrir v1** | as is — the reference kit (HP + Str consume) | 0 |
 | 9 | **Sköll v2** | **the rework**: OS = detonation (attacks on a Burning target +1 Burn); cheap-Burn zoo + Heat Wave | new OS, Burn scalar, ~6 cards |
 | — | glue | one None-element draw (0e/1e "draw 1"; Squirrel Away is the template) in every kit | 1 |
-| — | ramp | 160-r1 + 160-r2 | 2 |
+| — | ramp | 160-r1 (Max Energy +1, 2e, exhaust) + 160-r2 | 2 |
+| — | engine | **160-e1 ally-target cards** (before session 5) | — |
 
 Sköll v2 is last on purpose: it is the only expensive item, and if sessions 1–8 alone move the
 numbers in §5, it may not be needed.
@@ -98,13 +99,11 @@ Run on the current registry **this week**, before session 1, and again after ses
 Gate for the ticket: live-pair rate up, duplicate count down, solitaire score positive for every
 species, gym check (141) still passes with the two teams per gym in the research doc §4.
 
-## 6. Decisions Henry owes before session 5
+## 6. Decisions — RULED by Henry 2026-09-22
 
-1. **Ally-target cards in EA?** A target picker for allies is engine + UI work the game does not have.
-   If no, Huldra v1's keeper lane becomes self-buffs and ALLURE_PROXY's "ally applies a buff to an ally"
-   is read as including self — say which.
-2. **Tidal Battery's home** (Kraken v2 or Jorm v1) — the one party-ramp card should be in a kit.
-3. **160-r1 at 2e** — confirm, or name the price.
+1. **Ally-target cards exist.** → **160-e1 (Legion, engine + UI):** an `Ally` target for programs — the reducer accepts a friendly `targetId` for `Single`-target Skills/Status/Heal flagged `allyTarget`, the hand's target picker offers allies for those cards, the AI enumerates ally targets (candidate count grows; re-run the beam gate), `formatAction`/tooltips read "an ally". Huldra v1's keeper lane and Sköll v1's battery lane depend on it; build it before session 5.
+2. **Tidal Battery is a run card, not a kit card.** Side-Energy ramp lives in the reward pool / shop (161 §2 seeds it), so party ramp is something you *find*.
+3. **160-r1 at 2e, and it is a permanent +1 max Energy** (not Energized per refill): *Daemon, 2e, exhaust: Max Energy +1 for the rest of the battle.* Battery Pack at half price; 149c prices the hook, the grid decides whether 2e holds.
 
 ## 7. Not in this ticket
 
