@@ -1,5 +1,9 @@
 # Ticket 152 — jormungandr_v1's two undertows draw each other: a base enemy deck that loops
 
+> **MEASURED 2026-09-22 — NOTHING SHIPPED. Both arms pass §4 gates 1 and 2 and fail gate 3 by
+> 43–51 field points; the parked engine lever passes all three. Henry's call.**
+> Numbers in `../../../../results/t152/FINDINGS.md` and §6 below.
+
 **Type:** balance (card swap in one base deck). **Status:** RULED by Henry 2026-09-11 — *"let's try
 with a card swap first, another 0e Water card, maybe apply a status"*. Card swap only; no engine
 change in this ticket.
@@ -73,3 +77,55 @@ until the swap has been tried.
 
 The scorer's `CARDS_DRAWN_TRIGGERED` constant (ticket 149c prices it with a floor/ceiling; the
 ceiling column is what would have flagged this). Player-side undertow pairs — players may loop.
+
+## 6. Write-back (2026-09-22) — the swap was tried
+
+1,200 games per arm, all 30 opponents, beamless, `scratch/t149_castprobe.ts` with the gates
+computed by `scratch/t152_gates.ts`. **The baseline reproduces §2 to within a decimal** — 12.7%
+of turns with ≥6 undertow casts against §2's 12%, max 18, `ink_stream` mean 3.03 and max 19,
+16.8% of turns dealing ≥75% of a pool — which is what makes the rest of the table worth reading.
+
+|  | shipped | A: `poison_injection` | B: 2nd `blind_spot` | engine lever |
+|---|---|---|---|---|
+| **field win %** | **69.6** | **18.3** | **26.8** | **42.8** |
+| turns with ≥6 undertow | 12.7% | 0.0% | 0.0% | 0.0% |
+| `ink_stream` max triggered draws | 19 | 3 | 3 | 5 |
+| turns dealing ≥75% of a pool | 16.8% | 0.0% | 0.1% | 0.1% |
+| damage/turn p90 | 94.2% | 32.1% | 36.6% | 40.8% |
+
+**Gates 1 and 2 pass on all three fixes**, and not narrowly: the loop disappears and the
+≥75%-of-a-pool turn falls from one in six to one in a thousand.
+
+**Gate 3 fails on both card swaps, by 43–51 points — and it is unsatisfiable as written.** The
+shipped baseline IS the loop. Against the rest of the EA roster in the same harness — ratatoskr_v1
+64.2, huldra_v1 56.3, fenrir_v1 52.9, jormungandr_v2 51.7, skoll_v1 47.3, kraken_v1 46.7 —
+jormungandr_v1 ships at **69.6%**, the top of the roster and ~17 points above its median. A fix that
+removes the loop cannot hold a number the loop produced; "within ±5 of shipped" and "the loop is
+gone" are asking for opposite things.
+
+### The parked lever, measured and not shipped
+
+§4's fallback says the next lever is the engine guard. It was applied in a working copy, run, and
+reverted — `deckLogic.ts` and `resolutionEngine.ts` verified byte-identical afterwards by checksum.
+During a triggered draw, every copy of the resolving card's `dataId` is held out of the reshuffle
+rather than only the resolving instance.
+
+It kills the loop as completely as the swaps and **leaves a deck**: 42.8%, both undertows intact,
+`ink_stream` at the gate's ceiling of exactly 5. Still ~9 points under the peer median, so not a
+free pass — but in the same game as his peers, where 18% is not. `ink_stream` casts go UP (4,034
+against 3,451) because the games last longer, which is the shape of a deck that no longer wins or
+loses on turn two.
+
+**What it costs:** `drawCards` is shared, so it reaches every deck running two copies of a draw
+cantrip, not just this one. The PRNG stream is undisturbed (the discard is shuffled whole either
+way, exactly as ticket 111 arranged) but the cards off the top change, so **the grid needs a
+re-baseline**. Against that: it is the fix that covers every future two-copy cantrip rather than one
+deck's symptom, which is the argument §4 already made for it.
+
+### Decision needed
+
+1. **Ship the engine lever** and pay for a re-baseline; or
+2. **Ship a swap and compensate** jormungandr_v1 back toward ~52% with something that is not a draw
+   cantrip — new design, and §5 currently forbids it in this ticket; or
+3. **Leave it** — the law in §0 says base enemy decks may not loop, so this is the option that
+   needs a reason.
