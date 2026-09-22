@@ -183,6 +183,31 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 - **An exponential curve is incompatible with a turn-count floor.** Every v1 lost 0/100 — the ramp deck becomes the fastest deck. Structural to the shape, not the constants.
 - **A curve change under ~20% is invisible to status cards**, because stacks are whole numbers. Status decks must be re-gated by hand after any curve move, and buffing the attack side is the finer instrument.
 
+## EA SCOPE (Henry, 2026-09-22) — read this before picking up any balance finding
+
+> *"Lets leave the non-EA mingmings for after EA. Focus only on fire, water and nature, but good to
+> note."*
+
+**IN EA — three elements, six mingmings, twelve decks:**
+
+| element | mingmings |
+|---|---|
+| Fire | fenrir, sköll |
+| Water | kraken, jormungandr |
+| Nature | ratatoskr, huldra |
+
+**POST-EA:** fafnir and gullinbursti (Earth), hraesvelgr and sleipnir (Air), ymir and draugr (Ice),
+valkyrie and audhumbla (Light), hel and nidhoggr (Dark). `control` is the harness frame and is not
+a shipped mingming.
+
+This is a rule about **what to spend a session on**, not about what to record. A finding on a
+post-EA mingming still gets measured and written down — Henry's *"but good to note"* — it just does
+not become work. Three of ticket 149c's four findings landed post-EA and were left on exactly this
+reasoning (`research/scorer-pricing.md` §7).
+
+It also decides what a grid result means: a re-baseline that moves an Ice cell is not a release
+blocker, and a re-baseline that moves a jormungandr cell is.
+
 ## Open items, in the order they should be taken
 
 **2026-09-22 — 160 §6 RULED + 161 OPENED.** Henry: ally-target cards exist (→ **160-e1**, engine + UI, Legion, before session 5); Tidal Battery is a run card (reward pool), not a kit card; 160-r1 is 2e, exhaust, **permanent +1 max Energy**. **161** start kits + card upgrades: start kit = enablers + scalar + glue with the consume seeded into that run's reward pool (the first pick completes an engine you can see); upgrades shape A (`<id>+`, StS-style) for the EA sixty, priced by 149c, bought at the workshop for scrap (153's sink), C (currency-rider rule) as the draft generator; four questions in §5.
@@ -215,17 +240,17 @@ is the short form.
 - **146 juice / 147 SFX** — after 145a lands (anchors). 146b's Burn flames can start earlier.
 - **148 progression curve** — P0–P3 for Legion, slot-neutral (ticket 77: deck size is the lever).
 - **59 registry triage** — 53 orphan cards are reward-pool traps; do this before 148's policy arms.
-- **149 scorer pricing** — **149c SHIPPED 2026-09-21, all nine rows** (§7 of the ticket has the
+- **149 scorer pricing** — **CLOSED 2026-09-22.** 149c shipped all nine rows 2026-09-21 (§7 of the ticket has the
   ledger). The draw ladder is 20/15/10; scores are width-aware (`score1v1` / `score3v3`, verdict
   on the worse for a Side card); the band has a ±15% tolerance with the percentage always
   printed; daemon hooks are priced at measured per-trigger rates instead of a flat 4 procs; and
   §1.4 of the balance report now scores all 33 firmware against a 15-40% band.
   **RULE RETIRED: "any card that draws more than one is unpriced" (ticket 130) no longer
   applies** — gate those on a score like anything else.
-  Three findings Henry still rules (§4.6: reported, never auto-tuned): `riptide` 3.8 -> 11.9,
-  from 42% under its band to 83% over; **Ice reads as a 3v3 element** — seven Ice cards are at
-  or under band at 1v1 and 58-143% over at 3v3; and REBIRTH_CYCLE_OS at 118% of a pool a game,
-  a firmware flag §4.5 did not predict.
+  **All four findings RULED 2026-09-22: left as they are, revisit only if playtesting raises
+  them.** `riptide` 3.8 -> 11.9 (83% over band); Ice reads as a 3v3 element (seven cards); 
+  REBIRTH_CYCLE_OS at 118% of a pool a game; the 36 still out of band. Three of the four are
+  post-EA mingmings — see EA SCOPE above. Numbers in `research/scorer-pricing.md` §7.
 - **142 route to gym** — shipped; Henry's playtest decides; his biome alternative is §5.
 - **Beam (144 §2):** harness default beamless; `BatchOptions.aiBeam` is the only route. Results
   on Henry's machine: `results/compgrid_beam` is the post-143 BEAMLESS grid (rows record `beam: 0`)

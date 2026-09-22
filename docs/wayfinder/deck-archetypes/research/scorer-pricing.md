@@ -388,9 +388,29 @@ rule is RETIRED** by 149c-2 and 149c-4 — those cards have a price now.
 
 `BALANCE_REPORT_SCHEMA_VERSION` 1 → 5 across the nine rows.
 
-### Open for Henry (§4.6: reported, never auto-tuned)
+### Ruled by Henry, 2026-09-22 — nothing is tuned off these numbers
 
-1. **`riptide`** — 3.8 → 11.9, 83% over its band.
-2. **Ice as a 3v3 element** — seven cards, at band at 1v1 and far over at 3v3.
-3. **REBIRTH_CYCLE_OS** — 118% of a pool a game, not on §4.5's flag list.
-4. The 36 cards still out of band and the 35 inside the tolerance, per row.
+All four findings were put to Henry and all four are **left as they are**:
+
+> *"Ice is fine as is. Lets leave the non-EA mingmings for after EA. Focus only on fire, water and
+> nature, but good to note. [...] Leave the 1-4 items as is for now. If they come up in playtesting
+> I will address it."*
+
+| finding | ruling |
+|---|---|
+| `riptide` 3.8 → 11.9, 83% over band | left; revisit if playtesting raises it |
+| Ice reads as a 3v3 element (7 cards) | **fine as is** — and Ice is post-EA anyway |
+| REBIRTH_CYCLE_OS at 118% of a pool a game | left; valkyrie is post-EA |
+| the 36 out of band and 35 inside the tolerance | left; playtesting decides |
+
+That is the ticket working as designed rather than a backlog: §4.6 says a card that moves under an
+honest price is **reported, never auto-tuned**, and the scorer's job is to make the number visible
+before the grid runs. The numbers are visible; the decisions are Henry's and he has made them.
+
+**The EA scope ruling that came with it is the wider one.** Only **Fire, Water and Nature** are in
+the early-access cut — fenrir, sköll, kraken, jormungandr, ratatoskr, huldra — so every finding
+above that lands on an Earth, Air, Ice, Light or Dark mingming is post-EA work by definition. Three
+of the four do: Ice (×7 cards), valkyrie's REBIRTH_CYCLE, and most of the out-of-band tail. See
+HANDOFF.
+
+**Ticket 149 is CLOSED.**

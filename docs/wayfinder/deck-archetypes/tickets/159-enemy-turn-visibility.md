@@ -1,5 +1,8 @@
 # Ticket 159 — Seeing the enemy's turn coming, without going back to moves
 
+> **CLOSED 2026-09-22.** 159a reverted (the draw timing is untouched; the panel reads the
+> drawpile instead), 159b rebuilt on the preview, 159c shipped the switch. Write-back in §7.
+
 **Type:** design session → UI + one engine timing change. **Status:** RULED 2026-09-21 (§5), asked by Henry
 2026-09-20: *"the enemy card deck hides a lot of what the enemies are doing. How can we make that
 more visible. I think we were trying to avoid moves and keep the cards. Show their hand? Show their
@@ -201,6 +204,12 @@ Stamped as `data-enemy-hand` by `applySettings` — 146a's own rule — and hidd
 in a way it is not wrong for the VFX switches: the settings screen is an overlay on the battle, so
 the fight stays mounted and the tab would have persisted until the next fight.
 
-### Still open
+### Ruled 2026-09-22 — the reshuffle tail stays a count
 
-- The reshuffle-tail question in the block above — count, or show nothing?
+Henry: *"For now leave the +3 more after reshuffle"*. So the panel keeps saying how many more
+cards are coming when it cannot say which, and still never simulates the shuffle — the seed
+advances on every card the player casts, so a simulated tail would rewrite itself between one
+play and the next.
+
+**Ticket 159 is CLOSED**: 159a reverted in favour of the preview, 159b rebuilt on it, 159c
+shipped the switch.
