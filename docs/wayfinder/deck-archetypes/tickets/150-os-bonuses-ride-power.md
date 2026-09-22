@@ -1,8 +1,8 @@
 # Ticket 150 — Two OS bonuses ride the power, not the HP; and hel_v2's dead hook goes
 
-> **2026-09-22 — 150a and 150b SHIPPED. 150c MEASURED, NOT SHIPPED: §3's `bonus: 3` fails its
-> own ±5 gate by −10.7 field points; `bonus: 4` passes at +1.8, and §2's own table already
-> gives 3.9 for the un-STAB'd case. One word from Henry.** Numbers in
+> **2026-09-22 — 150a, 150b and 150c SHIPPED. Henry ruled `bonus: 4`** after §3's `bonus: 3`
+> failed its own ±5 gate by −10.7 field points; 4 lands at +1.8, and it is §2's own un-STAB'd
+> figure (3.9). Numbers in
 > `../../../../results/t150c/FINDINGS.md` and §6 below. 150d/150e not started — 150d is
 > gullinbursti, a post-EA mingming (HANDOFF, EA SCOPE).
 
@@ -152,12 +152,21 @@ where it is happens to be an integer. That steepness is itself an argument for t
 `bonus: 10` flat HP the same sharpness exists but sits AFTER the pace divisor, the attack/defense
 ratio and type effectiveness, where none of the game's dials can reach it.
 
-Per §3 (*"If it lands outside ±5, report — do not tune"*) nothing was committed; `hooks.json` is
-byte-identical to the 150a state. **`bonus: 4` or `bonus: 3` — one word.**
+**RULED AND SHIPPED: `bonus: 4`.** Henry, 2026-09-22, given the table above. The description reads
+*"his attacks deal +4 power per Poison stack on the target"* and `descriptionData.test` passes
+against it without an allowlist entry — the printed number and the data are now the same number,
+which they were not when the text said "+10 damage" and the hook added flat HP.
 
-Shipping with either: `powerscale`'s firmware scorer (149c-7) prices a `bonus` hook as flat HP, and
-once TOXIN_FANG's bonus is power that conversion has to read the trigger rather than assume the
-unit. Not a design decision, but it is not free either.
+Re-measured on the shipped file: **55.0%** against the 53.2% baseline, +1.8.
+
+### The unit fix that had to ship with it
+
+`powerscale`'s firmware scorer (149c-7) priced every `bonus` hook as flat HP, running it back
+through the scorer's own HP table to reach power. An `onPowerCalculated` bonus is ALREADY power,
+and passing it through that table divides it by the frame a second time — a 4x error on the one
+hook 150c just moved. It reads the trigger now. §1.4 has TOXIN_FANG_OS at **22.8%** of a pool a
+game (it read 15.2% under the HP conversion), still in band; the census's 40% is the owning deck
+at 9.4 Poison stacks against the roster-general 3, which is 149c-6's ceiling column again.
 
 ### 150d / 150e — not started
 

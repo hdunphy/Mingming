@@ -39,14 +39,24 @@ That steepness is itself an argument for the change: at `bonus: 10` flat HP the 
 exists but sits **after** the pace divisor, the attack/defense ratio and type effectiveness, where
 none of the game's dials can reach it. On the power side, every one of them can.
 
-## Not shipped
+## Ruled and shipped: `bonus: 4`
 
-§3: *"If it lands outside ±5, report — do not tune."* The specified arm landed outside, so nothing
-was committed. `hooks.json` is byte-identical to the 150a state.
+§3 says *"If it lands outside ±5, report — do not tune"*, so the +3 arm was reported rather than
+committed and Henry ruled on the table above: **4**. Re-measured on the shipped file: **55.0%**
+against the 53.2% baseline, +1.8.
 
-**The decision is one word.** `bonus: 4` and the description reads *"+4 power per Poison stack on
-the target"*; `bonus: 3` and the OS takes a deliberate 10-point nerf.
+The description reads *"his attacks deal +4 power per Poison stack on the target"*, and
+`descriptionData.test` passes against it with no allowlist entry — the printed number and the data
+are the same number now, which they were not when the text said "+10 damage" and the hook added
+flat HP after the divisor.
 
-One thing that ships with whichever number is chosen, and is not a design decision: `powerscale`'s
-firmware scorer (149c-7) prices a `bonus` hook as flat HP. Once TOXIN_FANG's bonus is power, that
-conversion is wrong for it and has to read the trigger rather than assume the unit.
+### The unit fix that shipped with it
+
+`powerscale`'s firmware scorer (149c-7) priced every `bonus` hook as flat HP, converting it back
+through the scorer's own HP table. An `onPowerCalculated` bonus is already power, and running it
+through that table divides it by the frame a second time — a 4x error on the one hook this row
+just moved. It reads the trigger now.
+
+§1.4 has TOXIN_FANG_OS at **22.8%** of a pool a game, up from the 15.2% the HP conversion gave it,
+and still in band. The census's 40% is the owning deck at 9.4 Poison stacks against the
+roster-general 3 — 149c-6's ceiling column again, not a disagreement.

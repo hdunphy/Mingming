@@ -1743,11 +1743,22 @@ export function scoreOS(osId: string): OsScore {
             perProc = (onOpponentsDamage ? 1 - hook.multiplier : hook.multiplier - 1) * meanAttackScore();
         } else if (typeof bonus === 'number') {
             kind = 'FLAT_BONUS';
-            // `bonus` is flat HP applied after the pace divisor, per stack of the scaled status.
-            // Converted into the scorer's /10 power units through its own HP table so it can sit
-            // beside everything else.
             const stacks = ASSUMED_BOARD_STATUS_COUNT;
-            perProc = (bonus * stacks / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP / 10;
+            /*
+             * TICKET 150c — THE UNIT DEPENDS ON THE TRIGGER, AND READING IT WRONG IS A 4x ERROR.
+             *
+             * An `onDamageCalculated` bonus is flat HP applied AFTER the pace divisor, so it has
+             * to come back through the scorer's own HP table to become power. An
+             * `onPowerCalculated` bonus (ticket 150b) is already power and goes straight in —
+             * running it through the HP table would divide it by the frame a second time.
+             *
+             * Measured on TOXIN_FANG, which 150c moved from `bonus: 10` HP to `bonus: 4` power:
+             * those are the same OS by the field (53.2% against 55.0%), and a scorer that read
+             * the second as HP would price it at a fraction of the first.
+             */
+            perProc = hook.trigger === 'onPowerCalculated'
+                ? (bonus * stacks) / 10
+                : (bonus * stacks / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP / 10;
         }
 
         if (rate === null) {
