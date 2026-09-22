@@ -220,3 +220,177 @@ to manual review rather than the under-band list.
 Two new items for Henry that are not scorer questions: `hel_v2 lifeblood` at ×1.0, and whether
 TOXIN_FANG / KINETIC_RAM stay flat post-divisor HP (they are the only payoffs that do not scale with
 the pace dial).
+
+
+## 7. What shipped (149c, 2026-09-21) — the ledger
+
+Nine rows, one commit each, scorer-only: §2–3 of the balance report are untouched throughout, and
+no engine code changed, so nothing here needs re-simulating.
+
+### 149c-1 — the guard
+
+`Daemon && score === 0` priced hooks as a FALLBACK for "the card scored nothing" and ASSIGNED
+rather than added, so a daemon with both an on-cast action and a hook lost the hook (§2's measured
+case: an in-memory `feedback_loop_daemon` with an added on-cast ATTACK 10 scored 1.2 instead of
+3.2). Now additive. **§1.3 byte-identical**, verified by scoring all fourteen daemons before and
+after: thirteen carry `actions: []` and the fourteenth (`battery_pack`) registers no hooks. That
+claim is a test now, so the day someone authors a daemon with both, it says so.
+
+### 149c-2 — DRAW 20/15/10
+
+Up from 15/10/5 on §4.1. `'DRAW': 15` deleted from `ACTION_WEIGHTS`, where it was read by nothing
+and misled anyone looking the price up. **24 cards moved**, and every figure §4.1 predicted
+reproduced exactly:
+
+| | |
+|---|---|
+| newly past +15% | `dread_tidings` +7% → +37%, `whirlpool_v2` +7% → +20%, `pressure_point` +3% → +17%, `rejuvenation` +0% → +17% |
+| the draw-2s | `morning_light`/`squirrel_away`/`tailwind`/`tempest`/`tide_reading` −23% → +7% |
+| 0e cantrips | `glimmer`/`slipstream`/`undertow` +40% → +80% (the 0e ceiling being tight, not the cards) |
+| one of its own | `forage` 0.0 → 0.5 — "draw 1, take 15 power" scored LITERALLY ZERO, the old draw price exactly cancelled by its own drawback |
+
+A DRAW action is `target: 'SELF'` on every card in the registry, so it always takes the 0.9
+self-scope discount: the effective first card is 18 power, not 20. True of 15/10/5 too, so no
+ratio here moves.
+
+### 149c-3 — `CARDS_DISCARDED`
+
+Had no branch and no manual-review flag. `carrion_swoop` — §4's "largest single miss in either
+table" — **1.1 → 2.2**. The constant is **2**, not the measured 5.03: 5.03 is hraesvelgr_v1's
+number and hraesvelgr_v1 IS the discard engine; on sleipnir_v2 the card discards about one. Even
+doubled it sits **27% under** its 1e band while being 2.4× a `fire_punch_v2` on the deck built for
+it, which is the floor/ceiling spread in its purest form.
+
+### 149c-4 — width
+
+`score1v1` and `score3v3`, Side scope ×1.0 / ×2.2 (measured 1.9–2.2 delivered per cast, not
+counted). Verdict on `score1v1` unless Side/All, where it is the worse of the two. **All 22 Side
+cards moved and nothing else.**
+
+**The finding Henry has not yet ruled:** seven of the eight worst are Ice, and every one of them is
+at or under band at 1v1 while 58–143% over at 3v3 — `frost_bite` +143/+10, `numbing_gale` +120/+0,
+`killing_frost` +120/+0, `rimefrost` +90/−10, `ice_spear` +87/−13, `numbing_storm` +69/−23,
+`rime_spear` +58/−28. **Ice reads as a 3v3 element**, and the old single score was averaging that
+into seven redlines.
+
+`All` scope collapses to ×1.0 at 1v1 and keeps ×4.0 at 3v3 rather than inheriting Side's measured
+2.2. No card in the pool has `target: 'All'`, so it prices nothing; flagged in the constant.
+
+### 149c-5 — ±15% tolerance
+
+Four states with the percentage always printed. **15 is the pool's own median ABSOLUTE deviation
+from band** — 15.4% at 1v1, 13.8% at 3v3 across 236 costed non-token cards. MAD and not sd on
+§4.3's ruling, and the numbers say why: the sd is **68.8%**, 4.5× the MAD, dragged by a handful of
+cards 200–570% over. A tolerance built on the sd would be built on `bloodwrath`.
+
+    before   71 redlines
+    after    36 redlines, 35 within tolerance, 16 manual review (160 of 243 in band at 1v1)
+
+Nothing was repriced by this row. A score ≤ 0 routes to MANUAL REVIEW rather than "under band":
+those are the §4.7 drawback tail (`scrubber` −1.6, `wither_feast` −10.8), and calling them far too
+weak would be the report asserting something it does not know.
+
+### 149c-6 — the hook formula
+
+`payoff × rate × horizon` replaces `EXPECTED_DAEMON_PROCS = 4`, with §2's per-trigger rates.
+Daemons: cast turn 2, horizon 3.
+
+| daemon | before | after | band | floor | ceiling | index |
+|---|---|---|---|---|---|---|
+| `riptide` | 3.8 | **11.9** | 6.5 | 11.9 | 11.9 | 1.0 |
+| `fertile_ground_daemon` | 9.7 | 5.8 | 6.5 | 5.8 | 5.8 | 1.0 |
+| `short_circuit` | 7.6 | 4.8 | 6.5 | 4.8 | 4.8 | 1.0 |
+| `echo_chamber_v2` | 4.9 | 3.6 | 6.5 | 3.6 | **12.0** | **3.3** |
+| `drip_feed` | 5.9 | 3.6 | 6.5 | 3.6 | 3.6 | 1.0 |
+| `hoofbeat_daemon` | 3.8 | 2.8 | 6.5 | 2.8 | **9.4** | **3.4** |
+| `reactive_plating` | 1.6 | 2.7 | 6.5 | 2.7 | 2.7 | 1.0 |
+| `harden_daemon` | 1.6 | 1.0 | 3.0 | 1.0 | 1.0 | 1.0 |
+| `feedback_loop_daemon` | 3.2 | 0.8 | 3.0 | 0.8 | **3.4** | **4.3** |
+| `cinder_armor_daemon` | 1.6 | 0.2 | 6.5 | 0.2 | 0.2 | 1.0 |
+| `einherjar_standard` | 0.0 | 0.0 | 6.5 | — | — | — |
+| `core_overclock_daemon` | 0.0 | 0.0 | 6.5 | — | — | — |
+| `scrubber` | −1.6 | −1.0 | 6.5 | −1.0 | −1.0 | — |
+| `battery_pack` | 4.9 | 4.9 | 10.5 | — | — | no hooks |
+
+**`riptide` is the headline and a new redline**: 42% under its band to 83% over. Nothing about the
+card changed; the scorer started counting the 4.2 procs a unit-turn its trigger actually fires at.
+
+**§5 expected `short_circuit` up and it goes down.** Its trigger is the opponent's non-natural
+draw at 0.84/unit-turn — 2.5 procs over the horizon against the old 4. §2's own table says the
+implied figure is "≈4", i.e. the constant already matched it; there was never headroom to find.
+
+Two zeros, and only one of them is a gap. `einherjar_standard` is an **honest zero** — its Light
+attack trigger measured 0.00 across 22,780 unit-turns because no shipped deck has a Light attacker
+— so it is not flagged. `core_overclock_daemon` IS flagged: a multiplier on `onDamageCalculated`
+with no element gate is a class §2 never measured, and a fallback rate would read as a
+measurement.
+
+### 149c-7 — the firmware band
+
+All 33 OSes scored in **%-of-pool per game**, band 15–40, flag >50, as a new §1.4 of the balance
+report.
+
+**§5's "horizon 5" was not used, on Henry's ruling.** The daemon trigger table has eight classes
+drawn from fourteen daemon hooks and cannot reach firmware (`onHeal`, `onDiscarded`,
+`onDeckShuffled`, `onHpThresholdCrossed`, `onStatusRemoved`, any-cost own-play). The firmware
+census measured each OS in **procs per game**, which is already the band's denominator — so the
+rates are per-hook and measured, and there is no horizon to multiply by.
+
+    FLAGGED     GOSSIP_NODE 143.5% · REBIRTH_CYCLE_OS 117.7% · PRIMORDIAL_MILK 108.8%
+                TWILIGHT_CADENCE 71.5%
+    OVER BAND   WAR_STEED_OS 41.1%
+    IN BAND     14 of them, 15.2-38.0%
+    UNDER BAND  kraken_v2 11.9 · jormungandr_v1 9.8 · fenrir_v2 9.2 · skoll_v2 8.3
+                nidhoggr_v1 2.7 · hel_v2 0.0
+    UNMEASURED  audhumbla_v1, control_v1, fafnir_v1, gullinbursti_v1, hraesvelgr_v2,
+                huldra_v2, valkyrie_v1, ymir_v2
+
+**Calibration, reported and not forced (§4.5).** GOSSIP and PRIMORDIAL_MILK land at the top and
+fourteen of the 8–25% crowd land in band. **BARK_SHIELD, KINETIC_RAM and SOLAR_OVERDRIVE do not**,
+and it is one fact three times: the scorer can only see firmware that lives in `hooks.json`. Six
+OSes register no hooks at all — their behaviour is in `CustomFirmware` code. SOLAR_OVERDRIVE is
+half-visible: its +1 Strengthened hook is in data (8.3%), its +10%-per-stack multiplier, which is
+the 51% the census measured, is not. KINETIC_RAM is the floor/ceiling case again: +2.5 HP per Sharp
+stack at the roster-assumed 3 is 15.6%, against 13 stacks measured on the deck built to feed it.
+
+**Two flags §4.5 did not predict.** REBIRTH_CYCLE_OS looks real — 15 power of damage AND a
+15-power heal, 14.12 reshuffles a game; the census recorded the two halves separately and never
+summed them. TWILIGHT_CADENCE is probably an artefact: its payoff is a STANCE status the scorer has
+no price for, so it takes the generic 2-per-stack fallback, which §4 of the firmware census says in
+its own words. Treat 71.5% as unpriced, not as a finding.
+
+A sign bug the ledger caught: GRAVE_CHILL_OS is ×0.8 on the damage Draugr TAKES, and priced as
+`(m − 1)` it read **−23% of a pool** — the report calling a defensive firmware a debt. `(1 − m)`
+for a hook on the opponent's damage; now 23% and in band.
+
+### 149c-8 — the own-pile shed premium
+
+§4.8. The ×1.25 removal premium exists because shedding a debuff undoes an OPPONENT's card too;
+that does not survive a `consume`, where the pile is fuel the deck built. **The discriminator is
+`consume`, not the target** — a `stacks: -N` self-shed is still removal and keeps the premium
+(`purify` is untouched).
+
+| | | |
+|---|---|---|
+| `umbral_feast` | 14.9 → 12.4 | +397% → +313% |
+| `bloodwrath` | 20.2 → 17.7 | +573% → +490% |
+| `ash_communion` | 4.6 → 4.3 | −29% → −34% |
+
+§4.8 predicted the shed term at 12.15 → 9.7 and both Poison cards drop by exactly 2.5.
+`ash_communion` was not named and moves anyway: it consumes its own BURN, same shape, same reason.
+
+### 149c-9 — close-out
+
+Tickets **63 / 119 / 120 / 121 / 130** closed against this section. HANDOFF's `0-ASSUMED-STACKS`
+extended (the same constant is now the floor for a flat-bonus firmware hook, and the same trap is
+in it). **Ticket 130's "any card that draws more than one is unpriced, gate it on a field arm"
+rule is RETIRED** by 149c-2 and 149c-4 — those cards have a price now.
+
+`BALANCE_REPORT_SCHEMA_VERSION` 1 → 5 across the nine rows.
+
+### Open for Henry (§4.6: reported, never auto-tuned)
+
+1. **`riptide`** — 3.8 → 11.9, 83% over its band.
+2. **Ice as a 3v3 element** — seven cards, at band at 1v1 and far over at 3v3.
+3. **REBIRTH_CYCLE_OS** — 118% of a pool a game, not on §4.5's flag list.
+4. The 36 cards still out of band and the 35 inside the tolerance, per row.

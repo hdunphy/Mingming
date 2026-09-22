@@ -1,6 +1,6 @@
 # Ticket 121 — the cost band needs a tolerance, and the pool says what it should be
 
-> **Status: FOLDED INTO TICKET 149 (2026-09-08)** — the measurement and the fix are rows of `149-scorer-pricing.md`; this file stays as the finding. Closes when 149e does.
+> **Status: FOLDED INTO TICKET 149 (2026-09-08)** — the measurement and the fix are rows of `149-scorer-pricing.md`; this file stays as the finding. **CLOSED 2026-09-21 — 149c shipped all nine rows** (`149-scorer-pricing.md` §7); the fix that closes this one is named there.
 
 **Status:** OPEN, proposal ready for a ruling. Opened 2026-08-26.
 

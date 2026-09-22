@@ -1,11 +1,13 @@
 # Ticket 149 — The scorer prices what it can measure
 
+> **149c DELIVERED 2026-09-21 — all nine rows, one commit each. The shipped ledger is §7 of `../research/scorer-pricing.md`; three findings wait on Henry (`riptide` 3.8 → 11.9; Ice reads as a 3v3 element; REBIRTH_CYCLE_OS at 118% of a pool a game). §5's "horizon 5" for firmware was replaced by per-OS measured procs-per-game on Henry's ruling — see §7. Tickets 63 / 119 / 120 / 121 / 130 closed against it.**
+>
 > **149c RULED 2026-09-09 — Legion: start at §5.** 149b DELIVERED 2026-09-08 — all five measurements ran (3a/3b/3c/3e complete; 3d complete — the last nine owners and the 3v3 consume cells ran 2026-09-09). Read `../research/scorer-pricing.md` (short form, §6 = the §4 rulings with numbers) and `../research/firmware-power-census.md`; per-measurement findings in `results/t149_*/FINDINGS.md`; scripts `scratch/t149_*.ts`. Two findings not on the ticket: `hel_v2 lifeblood` ships at ×1.0 (inert) and `carrion_swoop` has no scorer branch (scores 1.1, delivers 2.2 fire-punches a cast). Next: Henry's §4 rulings, then 149c.
 
 **Type:** instrument work (`powerscale.ts` and the budget report). **Report-first: no card, deck,
 OS or engine number changes in this ticket.** A card that moves out of band because its price
 became honest goes to Henry with the measurement; it is not "corrected".
-**Status:** 149b delivered; **149c RULED by Henry 2026-09-09 (§4) — ready for Legion (§5)**. Originally: Henry and the design session take the rulings
+**Status:** **149c SHIPPED 2026-09-21** — nine rows, scorer-only, §2–3 of the balance report untouched throughout. Previously: 149b delivered; 149c ruled by Henry 2026-09-09 (§4). Originally: Henry and the design session take the rulings
 in §4 together, then Legion runs the rows in §5. **Absorbs and closes** 63, 119, 120 (the scorer
 half), 121 and 130.
 **Branch:** current working branch, one commit per lettered row, authored as Henry.
