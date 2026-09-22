@@ -1132,7 +1132,8 @@ const BattleArena: React.FC = () => {
               */}
             <BattleTopBar
                 battleState={battleState}
-                onOpenLog={() => setLogOpen(true)}
+                onToggleLog={() => setLogOpen(open => !open)}
+                logOpen={logOpen}
                 // 155 deep dive 3: the gear was decorative. A fight is exactly where a player
                 // reaches for 146a's motion switches.
                 onOpenSettings={() => dispatch(openSettings())}

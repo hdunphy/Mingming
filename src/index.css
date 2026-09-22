@@ -925,6 +925,16 @@ body {
 /* Combat Log — hangs from the top CENTER of the stage. The spotlights sit on
    the bottom-left / mid-right diagonal, so the top-middle band is the one spot
    neither big sprite reaches. */
+/* ── THE PANEL CLEARS THE TOP BAR — Henry, 2026-09-22: "I cannot close the combat log."
+
+   This was `top: 0` at `z-index: 50` while `.battle-topbar` is `top: 0` at `z-index: 1500`, so
+   the panel's first 44px — which is exactly its own `.log-header`, the ▲ that closes it — was
+   drawn BEHIND the bar and could not be clicked. The bar's chevron only opened (fixed in
+   `BattleTopBar`), so between the two there was no way out of an open log.
+
+   `44px` is `TOP_BAR_H` from `stageGeometry`, the same constant and the same fix ticket 155's
+   deep dive 6 made for `.stage-biome-name`: the bar OVERLAYS rather than displaces, so anything
+   absolutely positioned at the top of the stage has to add it by hand. */
 .combat-log-container {
   width: 280px;
   background: var(--glass-bg);
@@ -937,7 +947,7 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  top: 0;
+  top: 44px;
   z-index: 50;
 }
 

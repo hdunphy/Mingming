@@ -27,14 +27,14 @@ const battle = (over: Partial<IBattleState> = {}): IBattleState => ({
     ...over,
 } as unknown as IBattleState);
 
-function render(state: IBattleState, run: Partial<IRunState> | null = null): string {
+function render(state: IBattleState, run: Partial<IRunState> | null = null, logOpen = false): string {
     const store = configureStore({
         reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
         preloadedState: { run: { run: run as IRunState | null } } as never,
     } as never);
     return renderToStaticMarkup(
         <Provider store={store}>
-            <BattleTopBar battleState={state} onOpenLog={() => {}} />
+            <BattleTopBar battleState={state} onToggleLog={() => {}} logOpen={logOpen} />
         </Provider>,
     );
 }
@@ -115,5 +115,29 @@ describe('145c — the Drivers row', () => {
 
     it('is absent outside a run — a debug scenario has no gym and no Drivers', () => {
         expect(render(battle(), null)).not.toContain('battle-drivers');
+    });
+});
+
+describe('the chevron is a TOGGLE, and it says which way it goes', () => {
+    /*
+     * Henry, 2026-09-22: *"I cannot close the combat log."*
+     *
+     * `BattleArena` passed `() => setLogOpen(true)`, so this button could only ever open. The
+     * panel's own header is the other way out and it sits UNDER this bar — `.combat-log-container`
+     * is `position: absolute; top: 0; z-index: 50` against the bar's `z-index: 1500`, so the
+     * header is drawn behind it and cannot be clicked. Between them, an open log was a trap.
+     *
+     * The state is asserted through `aria-expanded` rather than the glyph, because the glyph is
+     * decoration a future restyle may replace and the accessible name is the contract.
+     */
+    it('reports its state, so the control is not a one-way door', () => {
+        const state = battle({});
+        expect(render(state, null, false)).toContain('aria-expanded="false"');
+        expect(render(state, null, true)).toContain('aria-expanded="true"');
+    });
+
+    it('points down when the panel is closed and up when it is open', () => {
+        expect(render(battle({}), null, false)).toContain('▾');
+        expect(render(battle({}), null, true)).toContain('▴');
     });
 });

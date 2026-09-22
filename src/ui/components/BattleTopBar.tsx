@@ -51,11 +51,20 @@ export interface BattleTopBarProps {
     battleState: IBattleState;
     /** Opens the settings overlay. Optional — a bar rendered outside a fight has nowhere to send it. */
     readonly onOpenSettings?: () => void;
-    /** Opens the combat log. The bar owns the chevron; `CombatLog` owns the panel. */
-    onOpenLog: () => void;
+    /**
+     * TOGGLES the combat log. The bar owns the chevron; `CombatLog` owns the panel.
+     *
+     * It was `onOpenLog` and it only ever opened — Henry, 2026-09-22: *"I cannot close the combat
+     * log."* `BattleArena` passed `() => setLogOpen(true)`, so pressing the chevron on an open log
+     * did nothing, and the panel's own header (the only other way out) sits under this bar at
+     * z-index 50 against the bar's 1500, unreachable. Between them there was no way to close it.
+     */
+    onToggleLog: () => void;
+    /** Whether the panel is open, so the chevron can point the way it will move. */
+    logOpen?: boolean;
 }
 
-const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onOpenLog, onOpenSettings }) => {
+const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, logOpen = false, onOpenSettings }) => {
     const run = useSelector((state: RootState) => state.run.run);
     const gauntlet = run?.gauntlet ?? null;
     const drivers = run?.drivers ?? [];
@@ -99,8 +108,9 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onOpenLog, onO
                 <button
                     type="button"
                     className="battle-topbar-log"
-                    onClick={onOpenLog}
-                    title="Open the combat log"
+                    onClick={onToggleLog}
+                    aria-expanded={logOpen}
+                    title={logOpen ? 'Close the combat log' : 'Open the combat log'}
                 >
                     {/*
                       * TICKET 155, DEEP DIVE 3 — a placeholder, not an empty string.
@@ -110,7 +120,10 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onOpenLog, onO
                       * as a rendering fault rather than as "nothing has happened yet".
                       */}
                     <span className="battle-topbar-log-text">{latest ?? 'COMBAT LOG'}</span>
-                    <span className="battle-topbar-chevron" aria-hidden="true">▾</span>
+                    {/* The glyph points where the panel will GO, not where it is: a chevron that
+                        never changes reads as decoration, and this one is the only close control
+                        most players will find. */}
+                    <span className="battle-topbar-chevron" aria-hidden="true">{logOpen ? '▴' : '▾'}</span>
                 </button>
 
                 <AudioControls inline />

@@ -21,7 +21,7 @@ import { Provider } from 'react-redux';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import CombatLog from './CombatLog';
-import { visibleEntries, isPinnedToBottom, EXPANDED_ENTRY_COUNT } from './combatLogModel';
+import { visibleEntries, isPinnedToBottom } from './combatLogModel';
 import battleSliceReducer from '../store/battleSlice';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
@@ -87,11 +87,38 @@ describe('143c — which entries the panel shows', () => {
         expect(visibleEntries(many, true)).toEqual([entry(29)]);
     });
 
-    it('expanded: the last 8, oldest first so the newest sits at the bottom', () => {
+    it('expanded: the WHOLE fight, oldest first so the newest sits at the bottom', () => {
+        /*
+         * This asserted the last EIGHT until 2026-09-22. Henry: *"the enemy played like 10 cards
+         * that I don't see in the log. Does it trim it?"* It did. Ten card plays is upwards of
+         * twenty lines, so the turn he was trying to read was gone before he opened the panel.
+         *
+         * The cap was also defeating the scrolling 143c asked for in the same sentence: eight
+         * entries in a scroll box have nothing to scroll to. `.log-messages` is a fixed-height
+         * `overflow-y: auto`, so the entry count never controlled the panel's SIZE - only how
+         * far back a reader could go.
+         */
         const shown = visibleEntries(many, false);
-        expect(shown).toHaveLength(EXPANDED_ENTRY_COUNT);
-        expect(shown[0]).toEqual(entry(22));
+        expect(shown).toHaveLength(many.length);
+        expect(shown[0]).toEqual(entry(0));
         expect(shown[shown.length - 1]).toEqual(entry(29));
+    });
+
+    it('keeps a full enemy turn, which is the case that reported this', () => {
+        // Ten card plays at two lines each, inside a fight that had already run a while. Under
+        // the old slice, none of the plays survived to be read.
+        const fight = Array.from({ length: 40 }, (_, i) => entry(i));
+        const enemyTurn = Array.from({ length: 20 }, (_, i) => entry(40 + i));
+        const shown = visibleEntries([...fight, ...enemyTurn], false);
+
+        for (const line of enemyTurn) expect(shown).toContainEqual(line);
+        // And the turn before it is still reachable, so "what happened" is not one turn deep.
+        expect(shown).toContainEqual(entry(0));
+    });
+
+    it('does not hand back the caller own array, which a scroll effect could mutate', () => {
+        const source = [entry(0), entry(1)];
+        expect(visibleEntries(source, false)).not.toBe(source);
     });
 
     it('a short fight shows what there is, without padding', () => {
