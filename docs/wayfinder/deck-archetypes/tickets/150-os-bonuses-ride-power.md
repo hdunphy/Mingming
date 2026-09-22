@@ -1,5 +1,11 @@
 # Ticket 150 — Two OS bonuses ride the power, not the HP; and hel_v2's dead hook goes
 
+> **2026-09-22 — 150a and 150b SHIPPED. 150c MEASURED, NOT SHIPPED: §3's `bonus: 3` fails its
+> own ±5 gate by −10.7 field points; `bonus: 4` passes at +1.8, and §2's own table already
+> gives 3.9 for the un-STAB'd case. One word from Henry.** Numbers in
+> `../../../../results/t150c/FINDINGS.md` and §6 below. 150d/150e not started — 150d is
+> gullinbursti, a post-EA mingming (HANDOFF, EA SCOPE).
+
 **Type:** engine + data. **Status:** RULED by Henry 2026-09-09 off the ticket-149 firmware census
 (`research/firmware-power-census.md`): *"Toxin_fang and Kinetic_RAM should be fixed. Change
 toxin_fang to use power … Kinetic_ram should also be +2.5 power per stack, that's what the
@@ -84,3 +90,77 @@ Pricing OS hooks in `powerscale` (that is ticket 149's hook formula). GOSSIP_NOD
 game (a design question for the 149 session). The other modifier OSes (SOLAR_OVERDRIVE ×2.0,
 GLACIAL_PACE ×1.25, TIDAL_CRUSH ×1.3, GRAVE_CHILL ×0.8) are multipliers, which already scale with
 everything — they are fine as they are.
+
+## 6. Write-back (2026-09-22)
+
+### 150a — shipped
+
+`hel_v2_lifeblood` deleted: an `onHealCalculated` hook with `multiplier: 1.0` that multiplied
+healing by one, measured by 149b at 0 procs across 8.30 offers. `hooks.json` hel_v2 → `"hooks":
+[]`, control_v1's precedent. No balance change.
+
+The three scratch scripts that drove it through a `heal` knob were already null-safe, so with the
+hook gone the knob would have parsed and silently done nothing — worse than absent. Replaced by a
+comment. `powerscale`'s two 149c-7 entries and its `instrumentBlind` special case went with it.
+
+Visible effect, and it is an improvement: §1.4 read *"hel_v2 0.0%, UNDER BAND"* — the report
+asserting that UNDERWORLD_GATEWAY delivers nothing — and now reads UNMEASURED / code-driven, which
+is true. The gateway is in `CustomFirmware`, where a hook-walking scorer cannot see it.
+
+### 150b — shipped
+
+`onPowerCalculated`, the power-side twin of `onDamageCalculated`. Fires at step 1 of
+`calculateDamage`, on the raw power, beside `statusPower` — where the duality statuses have ridden
+since ticket 95 for the same reason.
+
+`applyPowerModifiers` copies `applyDamageModifiers`' hook collection, dedupe-by-id and priority
+sort, and deliberately does NOT copy its closing status scan (that scan is the PERCENT shape's job;
+under the POWER shape those four are already inside `statusPower`, and repeating it would pay them
+twice). It also does not floor at zero — `calculateDamage` floors `power + statusPower`, and
+flooring twice would quietly make the hook unable to subtract.
+
+§3's test is there, asserted against a second call to `calculateDamage` rather than a literal, plus
+the half it did not ask for: the hooked attack must also be MORE than an unhooked 30-power one, or
+a hook that did nothing would pass whenever 30 and 42 floored to the same damage.
+
+**No shipped hook uses the trigger yet**, so §2–3 of the balance report cannot move.
+
+### 150c — measured, not shipped
+
+1,200 games per arm, all 30 opponents, beamless. Baseline measured in the same harness rather than
+taken from §3's "~62", which is ticket 143's 3v3 grid number and not comparable.
+
+| `jorm_v2_toxin_fang` | field | vs baseline |
+|---|---|---|
+| **shipped** (`onDamageCalculated`, `bonus: 10` flat HP) | **53.2%** | — |
+| §3's arm: `onPowerCalculated`, `bonus: 3` | 42.5% | **−10.7** |
+| `bonus: 4` | **55.0%** | **+1.8** |
+| `bonus: 5` | 66.6% | +13.4 |
+| `bonus: 6` | 74.9% | +21.7 |
+
+§3's gate is ±5. **+3 fails it by more than twice over.**
+
+**§2 already contained the answer.** Its conversion row reads *"~3 power (2.9 STAB'd, 3.9 not)"*
+and the sentence under it takes the STAB'd end. TOXIN_FANG fires on every attack Jörmungandr makes
+against the whole 30-opponent field, and most of those are not type-advantaged — so **3.9** is the
+figure that describes what the OS does over a field run. Rounded: 4, which is what the field
+measures at +1.8.
+
+**The dial is sharp.** One point of `bonus` is worth roughly eleven field points. There is no
+comfortable middle: +3 is a serious nerf, +5 a serious buff, and the only value that leaves the OS
+where it is happens to be an integer. That steepness is itself an argument for the move — at
+`bonus: 10` flat HP the same sharpness exists but sits AFTER the pace divisor, the attack/defense
+ratio and type effectiveness, where none of the game's dials can reach it.
+
+Per §3 (*"If it lands outside ±5, report — do not tune"*) nothing was committed; `hooks.json` is
+byte-identical to the 150a state. **`bonus: 4` or `bonus: 3` — one word.**
+
+Shipping with either: `powerscale`'s firmware scorer (149c-7) prices a `bonus` hook as flat HP, and
+once TOXIN_FANG's bonus is power that conversion has to read the trigger rather than assume the
+unit. Not a design decision, but it is not free either.
+
+### 150d / 150e — not started
+
+150d is KINETIC_RAM on gullinbursti_v2, an **Earth** mingming. Henry's 2026-09-22 scope ruling puts
+Earth outside the EA cut (HANDOFF, "EA SCOPE"), so it waits. 150e's law-comment and
+`descriptionData` assertion belong with whichever of 150c/150d lands first.
